@@ -1,0 +1,94 @@
+import { Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import {
+  LayoutDashboard,
+  AlertTriangle,
+  TrendingUp,
+  BarChart3,
+  GraduationCap,
+  Layers,
+  Users,
+  Award,
+  BookOpen,
+  Newspaper,
+  Mic2,
+  Bot,
+  Sparkles,
+  Stethoscope,
+  Brain,
+  Send,
+  Palette,
+  Settings as SettingsIcon,
+} from 'lucide-react';
+import Sidebar from '../components/Sidebar';
+import Topbar from '../components/Topbar';
+import MobileNav from '../components/MobileNav';
+
+const adminGroups = [
+  {
+    title: 'Painel',
+    items: [
+      { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/admin/evasao', label: 'Previsão de Evasão', icon: AlertTriangle },
+      { to: '/admin/retencao', label: 'Retenção', icon: TrendingUp },
+      { to: '/admin/metricas', label: 'Métricas & SEO', icon: BarChart3 },
+    ],
+  },
+  {
+    title: 'Acadêmico',
+    items: [
+      { to: '/admin/cursos', label: 'Cursos', icon: GraduationCap },
+      { to: '/admin/modulos', label: 'Módulos e Aulas', icon: Layers },
+      { to: '/admin/alunos', label: 'Alunos', icon: Users },
+      { to: '/admin/certificados', label: 'Certificados', icon: Award },
+    ],
+  },
+  {
+    title: 'Conteúdo',
+    items: [
+      { to: '/admin/biblioteca', label: 'Biblioteca PCO', icon: BookOpen },
+      { to: '/admin/news', label: 'PCO News', icon: Newspaper },
+      { to: '/admin/podcasts', label: 'PCO POD', icon: Mic2 },
+      { to: '/admin/tutor', label: 'Tutor Virtual', icon: Bot },
+    ],
+  },
+  {
+    title: 'Serviços',
+    items: [
+      { to: '/admin/analise-supervisao', label: 'Análise e Supervisão', icon: Stethoscope },
+    ],
+  },
+  {
+    title: 'IA e Automação',
+    items: [
+      { to: '/admin/ias', label: 'Gestão de IAs', icon: Brain },
+      { to: '/admin/plano-retomada-ia', label: 'Plano de Retomada IA', icon: Sparkles },
+      { to: '/admin/reengajamento', label: 'Reengajamento', icon: Send },
+    ],
+  },
+  {
+    title: 'Configurações',
+    items: [
+      { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
+      { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
+      { to: '/admin/configuracoes', label: 'Configurações Gerais', icon: SettingsIcon },
+    ],
+  },
+];
+
+export default function AdminLayout() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <div className="flex min-h-screen bg-surface-off">
+      <Sidebar variant="admin" groups={adminGroups} />
+      <MobileNav open={mobileOpen} onClose={() => setMobileOpen(false)} groups={adminGroups} />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <Topbar variant="admin" onMenuClick={() => setMobileOpen(true)} />
+        <main className="flex-1 px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] w-full mx-auto">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}

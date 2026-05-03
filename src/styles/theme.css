@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --pco-blue: #0097b2;
+  --pco-cyan: #0cc0df;
+  --pco-cyan-light: #5ce1e6;
+  --pco-orange: #fe9002;
+  --pco-deep: #063b49;
+  --pco-graphite: #101828;
+
+  --surface-white: #ffffff;
+  --surface-off: #f8fcfd;
+  --surface-gray: #eef5f7;
+
+  --ink-base: #101828;
+  --ink-muted: #475467;
+  --ink-subtle: #98a2b3;
+
+  --status-success: #16a34a;
+  --status-danger: #d92d20;
+  --status-warning: #f59e0b;
+  --status-gold: #d6a84f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--surface-off);
+  color: var(--ink-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  .pco-card {
+    @apply bg-white border border-surface-gray rounded-2xl shadow-card p-6 transition-shadow duration-200 ease-smooth;
+  }
+  .pco-card-hover {
+    @apply hover:shadow-lift;
+  }
+  .pco-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pco-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-off disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .pco-btn-primary {
+    @apply pco-btn bg-pco-blue text-white hover:bg-[#007a92] active:bg-[#006578];
+  }
+  .pco-btn-secondary {
+    @apply pco-btn bg-white text-pco-deep border border-surface-gray hover:border-pco-blue hover:text-pco-blue;
+  }
+  .pco-btn-ghost {
+    @apply pco-btn bg-transparent text-ink-muted hover:bg-surface-gray hover:text-pco-deep;
+  }
+  .pco-btn-accent {
+    @apply pco-btn bg-pco-orange text-white hover:bg-[#e07e00];
+  }
+  .pco-input {
+    @apply w-full rounded-xl border border-surface-gray bg-white px-4 py-2.5 text-sm text-ink-base placeholder:text-ink-subtle focus:outline-none focus:border-pco-blue focus:ring-2 focus:ring-pco-blue/20 transition-all duration-150 ease-smooth;
+  }
+  .pco-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .pco-section-title {
+    @apply text-2xl font-semibold tracking-tight text-pco-deep;
+  }
+  .pco-section-subtitle {
+    @apply text-sm text-ink-muted;
+  }
+}
+
+::selection {
+  background: rgba(0, 151, 178, 0.18);
+  color: var(--pco-deep);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d0d5dd;
+  border-radius: 8px;
+  border: 2px solid var(--surface-off);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pco-blue);
+}
