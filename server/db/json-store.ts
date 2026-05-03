@@ -126,4 +126,15 @@ export class JsonStore<T> {
     if (count > 0) await this.queueWrite();
     return count;
   }
+
+  /**
+   * Permite mutação arbitrária do array interno (incluindo nested) com
+   * auto-save garantido. O retorno do mutator é repassado.
+   */
+  async modify<R>(mutator: (items: T[]) => R | Promise<R>): Promise<R> {
+    await this.load();
+    const result = await Promise.resolve(mutator(this.items!));
+    await this.queueWrite();
+    return result;
+  }
 }

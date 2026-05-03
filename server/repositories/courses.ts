@@ -1,8 +1,10 @@
 // Courses são lidos primariamente do seed enquanto o conteúdo não migra para CMS.
 // Quando DB existe, lê de courses + modules + lessons + assessments.
+// Sem DB, persiste em data/courses.json (com modules/lessons/assessments aninhados).
 
 import { eq, asc } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
+import { JsonStore } from '../db/json-store';
 import { courses as seedCourses } from '../../src/app/data/seed';
 import type { Course, Module, Lesson, Assessment } from '../../src/app/types/schema';
 import type {
@@ -14,6 +16,18 @@ import type {
   CreateAssessmentInput,
   UpdateAssessmentInput,
 } from '../../shared/schemas';
+
+const store = new JsonStore<Course>('courses.json', () =>
+  // Deep clone do seed pra não compartilhar refs
+  seedCourses.map((c) => ({
+    ...c,
+    modules: c.modules.map((m) => ({
+      ...m,
+      lessons: m.lessons.map((l) => ({ ...l })),
+      assessment: m.assessment ? { ...m.assessment } : undefined,
+    })),
+  })),
+);
 
 async function loadFromDb(): Promise<Course[]> {
   const db = getDb();
@@ -85,7 +99,7 @@ export async function listCourses(): Promise<Course[]> {
     const fromDb = await loadFromDb();
     if (fromDb.length > 0) return fromDb;
   }
-  return seedCourses;
+  return await store.getAll();
 }
 
 export async function findCourse(id: string): Promise<Course | null> {
@@ -100,22 +114,21 @@ export async function updateCourse(
   const db = getDb();
 
   if (!db) {
-    const idx = seedCourses.findIndex((c) => c.id === id);
-    if (idx === -1) return null;
-    const current = seedCourses[idx];
-    seedCourses[idx] = {
-      ...current,
-      ...(patch.title !== undefined ? { title: patch.title } : {}),
-      ...(patch.slug !== undefined ? { slug: patch.slug } : {}),
-      ...(patch.shortTitle !== undefined ? { shortTitle: patch.shortTitle } : {}),
-      ...(patch.description !== undefined ? { description: patch.description } : {}),
-      ...(patch.totalHours !== undefined ? { totalHours: patch.totalHours } : {}),
-      ...(patch.certificateAvailable !== undefined
-        ? { certificateAvailable: patch.certificateAvailable }
-        : {}),
-      ...(patch.coverColor !== undefined ? { coverColor: patch.coverColor } : {}),
-    };
-    return seedCourses[idx];
+    return await store.update(
+      (c) => c.id === id,
+      (c) => ({
+        ...c,
+        ...(patch.title !== undefined ? { title: patch.title } : {}),
+        ...(patch.slug !== undefined ? { slug: patch.slug } : {}),
+        ...(patch.shortTitle !== undefined ? { shortTitle: patch.shortTitle } : {}),
+        ...(patch.description !== undefined ? { description: patch.description } : {}),
+        ...(patch.totalHours !== undefined ? { totalHours: patch.totalHours } : {}),
+        ...(patch.certificateAvailable !== undefined
+          ? { certificateAvailable: patch.certificateAvailable }
+          : {}),
+        ...(patch.coverColor !== undefined ? { coverColor: patch.coverColor } : {}),
+      }),
+    );
   }
 
   const update: Partial<typeof schema.courses.$inferInsert> = {};
@@ -145,10 +158,6 @@ function newLessonId(moduleId: string) {
   return `${moduleId}-les-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
 }
 
-function findSeedCourseIdx(courseId: string): number {
-  return seedCourses.findIndex((c) => c.id === courseId);
-}
-
 export async function createModule(
   courseId: string,
   input: CreateModuleInput,
@@ -157,20 +166,22 @@ export async function createModule(
 
   const db = getDb();
   if (!db) {
-    const ci = findSeedCourseIdx(courseId);
-    if (ci === -1) return null;
-    const newModule: Module = {
-      id,
-      courseId,
-      title: input.title,
-      description: input.description,
-      order: input.order,
-      releaseAt: input.releaseAt,
-      lessons: [],
-    };
-    seedCourses[ci].modules.push(newModule);
-    seedCourses[ci].modules.sort((a, b) => a.order - b.order);
-    return newModule;
+    return await store.modify((courses) => {
+      const c = courses.find((x) => x.id === courseId);
+      if (!c) return null;
+      const newModule: Module = {
+        id,
+        courseId,
+        title: input.title,
+        description: input.description,
+        order: input.order,
+        releaseAt: input.releaseAt,
+        lessons: [],
+      };
+      c.modules.push(newModule);
+      c.modules.sort((a, b) => a.order - b.order);
+      return newModule;
+    });
   }
 
   await db.insert(schema.modules).values({
@@ -198,15 +209,17 @@ export async function updateModule(
 ): Promise<Module | null> {
   const db = getDb();
   if (!db) {
-    for (const course of seedCourses) {
-      const idx = course.modules.findIndex((m) => m.id === moduleId);
-      if (idx !== -1) {
-        course.modules[idx] = { ...course.modules[idx], ...patch } as Module;
-        if (patch.order !== undefined) course.modules.sort((a, b) => a.order - b.order);
-        return course.modules[idx];
+    return await store.modify((courses) => {
+      for (const c of courses) {
+        const idx = c.modules.findIndex((m) => m.id === moduleId);
+        if (idx !== -1) {
+          c.modules[idx] = { ...c.modules[idx], ...patch } as Module;
+          if (patch.order !== undefined) c.modules.sort((a, b) => a.order - b.order);
+          return c.modules[idx];
+        }
       }
-    }
-    return null;
+      return null;
+    });
   }
 
   const update: Partial<typeof schema.modules.$inferInsert> = {};
@@ -251,14 +264,16 @@ export async function updateModule(
 export async function deleteModule(moduleId: string): Promise<boolean> {
   const db = getDb();
   if (!db) {
-    for (const course of seedCourses) {
-      const idx = course.modules.findIndex((m) => m.id === moduleId);
-      if (idx !== -1) {
-        course.modules.splice(idx, 1);
-        return true;
+    return await store.modify((courses) => {
+      for (const c of courses) {
+        const idx = c.modules.findIndex((m) => m.id === moduleId);
+        if (idx !== -1) {
+          c.modules.splice(idx, 1);
+          return true;
+        }
       }
-    }
-    return false;
+      return false;
+    });
   }
   const rows = await db
     .delete(schema.modules)
@@ -275,27 +290,29 @@ export async function createLesson(
 ): Promise<Lesson | null> {
   const db = getDb();
   if (!db) {
-    for (const course of seedCourses) {
-      const m = course.modules.find((x) => x.id === moduleId);
-      if (m) {
-        const id = newLessonId(moduleId);
-        const lesson: Lesson = {
-          id,
-          moduleId,
-          courseId: course.id,
-          title: input.title,
-          durationMinutes: input.durationMinutes,
-          videoUrl: input.videoUrl || undefined,
-          description: input.description,
-          isMandatory: input.isMandatory,
-          order: input.order,
-        };
-        m.lessons.push(lesson);
-        m.lessons.sort((a, b) => a.order - b.order);
-        return lesson;
+    return await store.modify((courses) => {
+      for (const c of courses) {
+        const m = c.modules.find((x) => x.id === moduleId);
+        if (m) {
+          const id = newLessonId(moduleId);
+          const lesson: Lesson = {
+            id,
+            moduleId,
+            courseId: c.id,
+            title: input.title,
+            durationMinutes: input.durationMinutes,
+            videoUrl: input.videoUrl || undefined,
+            description: input.description,
+            isMandatory: input.isMandatory,
+            order: input.order,
+          };
+          m.lessons.push(lesson);
+          m.lessons.sort((a, b) => a.order - b.order);
+          return lesson;
+        }
       }
-    }
-    return null;
+      return null;
+    });
   }
 
   // Resolve courseId via DB
@@ -337,17 +354,19 @@ export async function updateLesson(
 ): Promise<Lesson | null> {
   const db = getDb();
   if (!db) {
-    for (const course of seedCourses) {
-      for (const m of course.modules) {
-        const idx = m.lessons.findIndex((l) => l.id === lessonId);
-        if (idx !== -1) {
-          m.lessons[idx] = { ...m.lessons[idx], ...patch } as Lesson;
-          if (patch.order !== undefined) m.lessons.sort((a, b) => a.order - b.order);
-          return m.lessons[idx];
+    return await store.modify((courses) => {
+      for (const c of courses) {
+        for (const m of c.modules) {
+          const idx = m.lessons.findIndex((l) => l.id === lessonId);
+          if (idx !== -1) {
+            m.lessons[idx] = { ...m.lessons[idx], ...patch } as Lesson;
+            if (patch.order !== undefined) m.lessons.sort((a, b) => a.order - b.order);
+            return m.lessons[idx];
+          }
         }
       }
-    }
-    return null;
+      return null;
+    });
   }
 
   const update: Partial<typeof schema.lessons.$inferInsert> = {};
@@ -375,16 +394,18 @@ export async function updateLesson(
 export async function deleteLesson(lessonId: string): Promise<boolean> {
   const db = getDb();
   if (!db) {
-    for (const course of seedCourses) {
-      for (const m of course.modules) {
-        const idx = m.lessons.findIndex((l) => l.id === lessonId);
-        if (idx !== -1) {
-          m.lessons.splice(idx, 1);
-          return true;
+    return await store.modify((courses) => {
+      for (const c of courses) {
+        for (const m of c.modules) {
+          const idx = m.lessons.findIndex((l) => l.id === lessonId);
+          if (idx !== -1) {
+            m.lessons.splice(idx, 1);
+            return true;
+          }
         }
       }
-    }
-    return false;
+      return false;
+    });
   }
   const rows = await db
     .delete(schema.lessons)
@@ -420,24 +441,26 @@ export async function upsertAssessment(
   const db = getDb();
 
   if (!db) {
-    for (const course of seedCourses) {
-      const m = course.modules.find((x) => x.id === moduleId);
-      if (m) {
-        const id = m.assessment?.id ?? newAssessmentId(moduleId);
-        const assessment: Assessment = {
-          id,
-          moduleId,
-          courseId: course.id,
-          title: input.title,
-          questionCount: input.questionCount,
-          passingScore: input.passingScore,
-          timeLimitMinutes: input.timeLimitMinutes,
-        };
-        m.assessment = assessment;
-        return assessment;
+    return await store.modify((courses) => {
+      for (const c of courses) {
+        const m = c.modules.find((x) => x.id === moduleId);
+        if (m) {
+          const id = m.assessment?.id ?? newAssessmentId(moduleId);
+          const assessment: Assessment = {
+            id,
+            moduleId,
+            courseId: c.id,
+            title: input.title,
+            questionCount: input.questionCount,
+            passingScore: input.passingScore,
+            timeLimitMinutes: input.timeLimitMinutes,
+          };
+          m.assessment = assessment;
+          return assessment;
+        }
       }
-    }
-    return null;
+      return null;
+    });
   }
 
   const moduleRow = await db
@@ -447,7 +470,6 @@ export async function upsertAssessment(
   if (moduleRow.length === 0) return null;
   const courseId = moduleRow[0].courseId;
 
-  // Existe avaliação para esse módulo?
   const existing = await db
     .select()
     .from(schema.assessments)
@@ -475,7 +497,6 @@ export async function upsertAssessment(
     };
   }
 
-  // Update
   const id = existing[0].id;
   await db
     .update(schema.assessments)
@@ -503,15 +524,17 @@ export async function updateAssessment(
 ): Promise<Assessment | null> {
   const db = getDb();
   if (!db) {
-    for (const course of seedCourses) {
-      for (const m of course.modules) {
-        if (m.assessment?.id === assessmentId) {
-          m.assessment = { ...m.assessment, ...patch } as Assessment;
-          return m.assessment;
+    return await store.modify((courses) => {
+      for (const c of courses) {
+        for (const m of c.modules) {
+          if (m.assessment?.id === assessmentId) {
+            m.assessment = { ...m.assessment, ...patch } as Assessment;
+            return m.assessment;
+          }
         }
       }
-    }
-    return null;
+      return null;
+    });
   }
 
   const update: Partial<typeof schema.assessments.$inferInsert> = {};
@@ -540,15 +563,17 @@ export async function updateAssessment(
 export async function deleteAssessment(assessmentId: string): Promise<boolean> {
   const db = getDb();
   if (!db) {
-    for (const course of seedCourses) {
-      for (const m of course.modules) {
-        if (m.assessment?.id === assessmentId) {
-          m.assessment = undefined;
-          return true;
+    return await store.modify((courses) => {
+      for (const c of courses) {
+        for (const m of c.modules) {
+          if (m.assessment?.id === assessmentId) {
+            m.assessment = undefined;
+            return true;
+          }
         }
       }
-    }
-    return false;
+      return false;
+    });
   }
   const rows = await db
     .delete(schema.assessments)

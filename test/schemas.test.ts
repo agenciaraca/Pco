@@ -21,9 +21,17 @@ describe('shared/schemas', () => {
       expect(r.success).toBe(false);
     });
 
-    it('rejeita senha curta', () => {
-      const r = loginSchema.safeParse({ email: 'a@b.com', password: '123' });
+    it('rejeita senha vazia', () => {
+      const r = loginSchema.safeParse({ email: 'a@b.com', password: '' });
       expect(r.success).toBe(false);
+    });
+
+    it('aceita TLDs locais (.local)', () => {
+      const r = loginSchema.safeParse({
+        email: 'superadmin@pco.local',
+        password: 'qualquer-senha',
+      });
+      expect(r.success).toBe(true);
     });
   });
 
