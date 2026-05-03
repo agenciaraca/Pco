@@ -13,7 +13,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
-import { sessionServices, professionals } from '../data/seed';
+import { useSessionServices, useProfessionals } from '../data/hooks';
 import type { SessionService, Professional } from '../types/schema';
 
 type Step = 'service' | 'professional' | 'datetime' | 'confirm' | 'done';
@@ -66,6 +66,8 @@ export default function AnaliseSupervisao() {
   const [step, setStep] = useState<Step>('service');
   const [booking, setBooking] = useState<Booking>({});
   const [bookerOpen, setBookerOpen] = useState(false);
+  const { data: sessionServices = [] } = useSessionServices();
+  const { data: professionals = [] } = useProfessionals();
 
   const selectedService = sessionServices.find((s) => s.id === booking.serviceId);
   const selectedPro = professionals.find((p) => p.id === booking.professionalId);
@@ -344,6 +346,7 @@ function ServiceStep({
   onSelect: (s: SessionService) => void;
   onCancel: () => void;
 }) {
+  const { data: sessionServices = [] } = useSessionServices();
   return (
     <>
       <StepHeader step={1} total={4} title="Escolha o serviço" />
@@ -386,6 +389,7 @@ function ProfessionalStep({
   onSelect: (p: Professional) => void;
   onBack: () => void;
 }) {
+  const { data: professionals = [] } = useProfessionals();
   const available = professionals.filter((p) => p.serviceIds.includes(service.id));
   return (
     <>

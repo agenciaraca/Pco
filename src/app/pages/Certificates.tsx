@@ -1,7 +1,13 @@
 import { Award, Download, Eye, QrCode } from 'lucide-react';
-import { certificates, courses } from '../data/seed';
+import { useCertificates, useCourses } from '../data/hooks';
+import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function Certificates() {
+  const { data: certificates = [], isLoading } = useCertificates();
+  const { data: courses = [] } = useCourses();
+
+  if (isLoading) return <CardListSkeleton count={3} />;
+
   return (
     <div className="space-y-6">
       <header>

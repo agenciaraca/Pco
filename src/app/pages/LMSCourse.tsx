@@ -1,9 +1,13 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowRight, Clock, Layers, PlayCircle } from 'lucide-react';
-import { courses } from '../data/seed';
+import { useCourses } from '../data/hooks';
+import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function LMSCourse() {
   const { courseId } = useParams<{ courseId: string }>();
+  const { data: courses = [], isLoading } = useCourses();
+
+  if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
   if (!course) return <Navigate to="/cursos" replace />;
 

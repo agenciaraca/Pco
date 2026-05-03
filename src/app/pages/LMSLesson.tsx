@@ -9,10 +9,13 @@ import {
   BookOpen,
   Clock,
 } from 'lucide-react';
-import { courses } from '../data/seed';
+import { useCourses } from '../data/hooks';
+import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function LMSLesson() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
+  const { data: courses = [], isLoading } = useCourses();
+  if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
   let lesson;
   let module;

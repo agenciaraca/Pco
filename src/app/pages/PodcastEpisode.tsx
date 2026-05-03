@@ -13,10 +13,14 @@ import {
   Clock,
   Calendar,
 } from 'lucide-react';
-import { podcasts, courses, libraryItems } from '../data/seed';
+import { usePodcasts, useCourses, useLibrary } from '../data/hooks';
+import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function PodcastEpisode() {
   const { id } = useParams<{ id: string }>();
+  const { data: podcasts = [], isLoading } = usePodcasts();
+  const { data: courses = [] } = useCourses();
+  const { data: libraryItems = [] } = useLibrary();
   const episode = podcasts.find((p) => p.id === id);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -39,6 +43,7 @@ export default function PodcastEpisode() {
     if (progress >= 100) setPlaying(false);
   }, [progress]);
 
+  if (isLoading) return <CardListSkeleton count={2} />;
   if (!episode) return <Navigate to="/podcasts" replace />;
 
   const totalSeconds = episode.durationMinutes * 60;

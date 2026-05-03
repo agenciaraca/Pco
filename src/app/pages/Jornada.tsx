@@ -9,11 +9,17 @@ import {
   Sparkles,
   Flag,
 } from 'lucide-react';
-import { courses } from '../data/seed';
+import { useCourses } from '../data/hooks';
+import { CardListSkeleton } from '../components/LoadingSkeleton';
+import EmptyState from '../components/EmptyState';
 import type { LessonStatus } from '../types/schema';
 
 export default function Jornada() {
+  const { data: courses = [], isLoading } = useCourses();
   const course = courses[0];
+
+  if (isLoading) return <CardListSkeleton count={3} />;
+  if (!course) return <EmptyState title="Sem cursos disponíveis" />;
 
   return (
     <div className="space-y-8">
@@ -106,7 +112,7 @@ function NodeCard({
   order,
   courseId,
 }: {
-  module: (typeof courses)[number]['modules'][number];
+  module: import('../types/schema').Module;
   status: LessonStatus;
   order: number;
   courseId: string;
@@ -213,6 +219,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function CourseSelector() {
+  const { data: courses = [] } = useCourses();
   return (
     <div className="flex items-center gap-2 text-xs">
       <span className="text-ink-muted">Curso:</span>

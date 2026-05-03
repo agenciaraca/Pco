@@ -17,6 +17,49 @@ if (staticRoot) {
   // /api/* -> API (Hono inteiro com basePath '/api')
   root.all('/api/*', (c) => api.fetch(c.req.raw));
 
+  // SEO básico: robots.txt e sitemap.xml (públicos)
+  root.get('/robots.txt', (c) => {
+    const host = c.req.header('host') ?? 'ava.psicanaliseclinica.online';
+    const proto = c.req.header('x-forwarded-proto') ?? 'https';
+    const body = [
+      'User-agent: *',
+      'Disallow: /admin/',
+      'Disallow: /api/',
+      'Disallow: /dashboard',
+      'Disallow: /perfil',
+      'Disallow: /jornada',
+      'Disallow: /cursos',
+      'Disallow: /biblioteca',
+      'Disallow: /podcasts',
+      'Disallow: /tutor',
+      'Disallow: /certificados',
+      'Disallow: /suporte',
+      'Allow: /verificar/',
+      'Allow: /termos',
+      'Allow: /privacidade',
+      `Sitemap: ${proto}://${host}/sitemap.xml`,
+    ].join('\n');
+    return c.text(body, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  });
+
+  root.get('/sitemap.xml', (c) => {
+    const host = c.req.header('host') ?? 'ava.psicanaliseclinica.online';
+    const proto = c.req.header('x-forwarded-proto') ?? 'https';
+    const base = `${proto}://${host}`;
+    const today = new Date().toISOString().slice(0, 10);
+    const urls = ['/', '/login', '/landing', '/termos', '/privacidade', '/esqueci-senha'];
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls
+  .map(
+    (u) =>
+      `  <url><loc>${base}${u}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq></url>`,
+  )
+  .join('\n')}
+</urlset>`;
+    return c.body(xml, 200, { 'Content-Type': 'application/xml; charset=utf-8' });
+  });
+
   // /uploads/* -> arquivos persistidos pelos usuários (data/uploads/)
   // Cache curto (1h) para permitir invalidação simples
   root.use('/uploads/*', async (c, next) => {

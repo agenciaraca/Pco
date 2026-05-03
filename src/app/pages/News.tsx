@@ -1,9 +1,13 @@
 import { Calendar, Tag } from 'lucide-react';
-import { newsArticles } from '../data/seed';
+import { useNews } from '../data/hooks';
+import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function News() {
+  const { data: newsArticles = [], isLoading } = useNews();
   const featured = newsArticles.find((a) => a.featured);
   const others = newsArticles.filter((a) => !a.featured);
+
+  if (isLoading) return <CardListSkeleton count={4} />;
 
   return (
     <div className="space-y-6">

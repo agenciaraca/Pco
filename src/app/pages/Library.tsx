@@ -1,7 +1,13 @@
 import { BookOpen, Download, Star } from 'lucide-react';
-import { libraryItems, courses } from '../data/seed';
+import { useLibrary, useCourses } from '../data/hooks';
+import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function Library() {
+  const { data: libraryItems = [], isLoading } = useLibrary();
+  const { data: courses = [] } = useCourses();
+
+  if (isLoading) return <CardListSkeleton count={4} />;
+
   return (
     <div className="space-y-6">
       <header>

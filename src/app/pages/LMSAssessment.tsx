@@ -1,9 +1,12 @@
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { ScrollText, Clock, Trophy, ArrowRight } from 'lucide-react';
-import { courses } from '../data/seed';
+import { useCourses } from '../data/hooks';
+import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function LMSAssessment() {
   const { courseId, assessmentId } = useParams<{ courseId: string; assessmentId: string }>();
+  const { data: courses = [], isLoading } = useCourses();
+  if (isLoading) return <CardListSkeleton count={2} />;
   const course = courses.find((c) => c.id === courseId);
   let assessment;
   let module;

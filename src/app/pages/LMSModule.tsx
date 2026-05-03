@@ -1,9 +1,12 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Circle, Clock, PlayCircle, ScrollText } from 'lucide-react';
-import { courses } from '../data/seed';
+import { useCourses } from '../data/hooks';
+import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function LMSModule() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>();
+  const { data: courses = [], isLoading } = useCourses();
+  if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
   const module = course?.modules.find((m) => m.id === moduleId);
   if (!course || !module) return <Navigate to="/cursos" replace />;
