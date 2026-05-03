@@ -302,3 +302,77 @@ export function useDeletePodcast() {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.podcasts }),
   });
 }
+
+// ---- Admin: modules writes ----
+
+export function useCreateModule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, input }: { courseId: string; input: api.CreateModulePayload }) =>
+      api.createModule(courseId, input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.course(vars.courseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+    },
+  });
+}
+
+export function useUpdateModule(courseId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<api.CreateModulePayload> }) =>
+      api.updateModule(id, patch),
+    onSuccess: () => {
+      if (courseId) qc.invalidateQueries({ queryKey: queryKeys.course(courseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+    },
+  });
+}
+
+export function useDeleteModule(courseId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteModule,
+    onSuccess: () => {
+      if (courseId) qc.invalidateQueries({ queryKey: queryKeys.course(courseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+    },
+  });
+}
+
+// ---- Admin: lessons writes ----
+
+export function useCreateLesson(courseId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ moduleId, input }: { moduleId: string; input: api.CreateLessonPayload }) =>
+      api.createLesson(moduleId, input),
+    onSuccess: () => {
+      if (courseId) qc.invalidateQueries({ queryKey: queryKeys.course(courseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+    },
+  });
+}
+
+export function useUpdateLesson(courseId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<api.CreateLessonPayload> }) =>
+      api.updateLesson(id, patch),
+    onSuccess: () => {
+      if (courseId) qc.invalidateQueries({ queryKey: queryKeys.course(courseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+    },
+  });
+}
+
+export function useDeleteLesson(courseId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteLesson,
+    onSuccess: () => {
+      if (courseId) qc.invalidateQueries({ queryKey: queryKeys.course(courseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+    },
+  });
+}

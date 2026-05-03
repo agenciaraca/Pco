@@ -214,6 +214,34 @@ export type CreatePodcastInput = z.infer<typeof createPodcastSchema>;
 export const updatePodcastSchema = createPodcastSchema.partial();
 export type UpdatePodcastInput = z.infer<typeof updatePodcastSchema>;
 
+// ---- Module writes ----
+
+export const createModuleSchema = z.object({
+  title: z.string().min(2, 'Título muito curto').max(160),
+  description: z.string().max(2000).optional(),
+  order: z.number().int().min(1).max(500),
+  releaseAt: z.string().min(8).max(35).optional(),
+});
+export type CreateModuleInput = z.infer<typeof createModuleSchema>;
+
+export const updateModuleSchema = createModuleSchema.partial();
+export type UpdateModuleInput = z.infer<typeof updateModuleSchema>;
+
+// ---- Lesson writes ----
+
+export const createLessonSchema = z.object({
+  title: z.string().min(2, 'Título muito curto').max(200),
+  durationMinutes: z.number().int().min(0).max(600).default(0),
+  videoUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
+  description: z.string().max(4000).optional(),
+  isMandatory: z.boolean().default(true),
+  order: z.number().int().min(1).max(500),
+});
+export type CreateLessonInput = z.infer<typeof createLessonSchema>;
+
+export const updateLessonSchema = createLessonSchema.partial();
+export type UpdateLessonInput = z.infer<typeof updateLessonSchema>;
+
 // Filters
 export const studentsFilterSchema = z.object({
   search: z.string().optional(),

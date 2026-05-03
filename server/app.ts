@@ -17,6 +17,10 @@ import {
   updateLibrarySchema,
   createPodcastSchema,
   updatePodcastSchema,
+  createModuleSchema,
+  updateModuleSchema,
+  createLessonSchema,
+  updateLessonSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -419,6 +423,58 @@ export function buildApp() {
   app.delete('/admin/podcasts/:id', async (c) => {
     const ok = await podcastsRepo.deletePodcast(c.req.param('id'));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Episódio não encontrado');
+    return c.json({ ok: true });
+  });
+
+  // ---------- Admin: Modules ----------
+
+  app.post('/admin/courses/:courseId/modules', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createModuleSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const created = await coursesRepo.createModule(c.req.param('courseId'), v.data);
+    if (!created) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
+    return c.json(created, 201);
+  });
+
+  app.put('/admin/modules/:id', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateModuleSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await coursesRepo.updateModule(c.req.param('id'), v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/modules/:id', async (c) => {
+    const ok = await coursesRepo.deleteModule(c.req.param('id'));
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
+    return c.json({ ok: true });
+  });
+
+  // ---------- Admin: Lessons ----------
+
+  app.post('/admin/modules/:moduleId/lessons', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createLessonSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const created = await coursesRepo.createLesson(c.req.param('moduleId'), v.data);
+    if (!created) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
+    return c.json(created, 201);
+  });
+
+  app.put('/admin/lessons/:id', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateLessonSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await coursesRepo.updateLesson(c.req.param('id'), v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/lessons/:id', async (c) => {
+    const ok = await coursesRepo.deleteLesson(c.req.param('id'));
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada');
     return c.json({ ok: true });
   });
 

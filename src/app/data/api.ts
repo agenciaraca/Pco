@@ -4,6 +4,8 @@
 import { http } from './client';
 import type {
   Course,
+  Module,
+  Lesson,
   Student,
   NewsArticle,
   PodcastEpisode,
@@ -354,6 +356,62 @@ export async function updatePodcast(
 
 export async function deletePodcast(id: string): Promise<{ ok: true }> {
   return http.delete(`/admin/podcasts/${encodeURIComponent(id)}`);
+}
+
+// ---------- Admin: Modules ----------
+
+export interface CreateModulePayload {
+  title: string;
+  description?: string;
+  order: number;
+  releaseAt?: string;
+}
+
+export async function createModule(
+  courseId: string,
+  input: CreateModulePayload,
+): Promise<Module> {
+  return http.post<Module>(`/admin/courses/${encodeURIComponent(courseId)}/modules`, input);
+}
+
+export async function updateModule(
+  id: string,
+  patch: Partial<CreateModulePayload>,
+): Promise<Module> {
+  return http.put<Module>(`/admin/modules/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteModule(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/modules/${encodeURIComponent(id)}`);
+}
+
+// ---------- Admin: Lessons ----------
+
+export interface CreateLessonPayload {
+  title: string;
+  durationMinutes?: number;
+  videoUrl?: string;
+  description?: string;
+  isMandatory?: boolean;
+  order: number;
+}
+
+export async function createLesson(
+  moduleId: string,
+  input: CreateLessonPayload,
+): Promise<Lesson> {
+  return http.post<Lesson>(`/admin/modules/${encodeURIComponent(moduleId)}/lessons`, input);
+}
+
+export async function updateLesson(
+  id: string,
+  patch: Partial<CreateLessonPayload>,
+): Promise<Lesson> {
+  return http.put<Lesson>(`/admin/lessons/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteLesson(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/lessons/${encodeURIComponent(id)}`);
 }
 
 // ---------- Recovery plans ----------
