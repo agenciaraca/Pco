@@ -27,3 +27,20 @@ yarn-error.log*
 .vite
 
 *.tsbuildinfo
+
+# Runtime data — contém hashes de senha, audit log, notificações, etc.
+data/users.json
+data/audit-log.json
+data/errors.json
+data/notifications.json
+data/support-tickets.json
+data/sessions.json
+data/uploads/
+data/backups/
+data/certificates.json
+data/students.json
+data/courses.json
+data/news.json
+data/library.json
+data/podcasts.json
+data/retention-risks.json
