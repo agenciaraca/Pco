@@ -27,7 +27,9 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { seoTimeseries, keywords } from '../../data/seed';
+import { useState } from 'react';
+import { useSeoTimeseries, useKeywords } from '../../data/hooks';
+import { CardListSkeleton } from '../../components/LoadingSkeleton';
 
 const trafficSources = [
   { name: 'Orgânico', value: 52, color: '#0097B2' },
@@ -55,12 +57,21 @@ const techSeo = [
 ];
 
 export default function AdminMetricas() {
+  const [range, setRange] = useState('30d');
+  const seriesQ = useSeoTimeseries(range);
+  const keywordsQ = useKeywords();
+  const seoTimeseries = seriesQ.data ?? [];
+  const keywords = keywordsQ.data ?? [];
   const totalVisitors = seoTimeseries.reduce((s, d) => s + d.visitors, 0);
   const totalPageviews = seoTimeseries.reduce((s, d) => s + d.pageviews, 0);
   const avgBounce =
-    seoTimeseries.reduce((s, d) => s + d.bounceRate, 0) / seoTimeseries.length;
+    seoTimeseries.length > 0
+      ? seoTimeseries.reduce((s, d) => s + d.bounceRate, 0) / seoTimeseries.length
+      : 0;
   const avgSession =
-    seoTimeseries.reduce((s, d) => s + d.avgSessionMinutes, 0) / seoTimeseries.length;
+    seoTimeseries.length > 0
+      ? seoTimeseries.reduce((s, d) => s + d.avgSessionMinutes, 0) / seoTimeseries.length
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -72,11 +83,15 @@ export default function AdminMetricas() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select className="pco-input w-auto py-2 text-xs">
-            <option>Últimos 30 dias</option>
-            <option>Últimos 7 dias</option>
-            <option>Últimos 90 dias</option>
-            <option>Este ano</option>
+          <select
+            value={range}
+            onChange={(e) => setRange(e.target.value)}
+            className="pco-input w-auto py-2 text-xs"
+          >
+            <option value="30d">Últimos 30 dias</option>
+            <option value="7d">Últimos 7 dias</option>
+            <option value="90d">Últimos 90 dias</option>
+            <option value="365d">Este ano</option>
           </select>
           <button className="pco-btn-secondary text-xs">
             <RefreshCcw size={12} strokeWidth={2} />

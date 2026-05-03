@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../auth/AuthContext';
+import { useLoginConfig } from '../data/hooks';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const { data: cfg } = useLoginConfig();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
@@ -44,7 +46,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-surface-off">
-      <section className="hidden lg:flex relative overflow-hidden bg-gradient-to-br from-pco-deep via-pco-blue to-pco-cyan p-12 text-white">
+      <section
+        className="hidden lg:flex relative overflow-hidden p-12 text-white"
+        style={{
+          backgroundImage: `linear-gradient(to bottom right, ${cfg?.fromColor ?? '#063B49'}, ${cfg?.viaColor ?? '#0097B2'}, ${cfg?.toColor ?? '#0CC0DF'})`,
+        }}
+      >
         <div className="absolute inset-0 opacity-30 mix-blend-overlay">
           <div className="absolute top-12 -left-12 w-96 h-96 rounded-full bg-pco-cyan-light/40 blur-3xl" />
           <div className="absolute bottom-12 right-0 w-[28rem] h-[28rem] rounded-full bg-pco-orange/30 blur-3xl" />
@@ -54,14 +61,14 @@ export default function Login() {
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur text-xs font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-pco-cyan-light animate-pulse" />
-              Ambiente Virtual de Aprendizagem
+              {cfg?.tag ?? 'Ambiente Virtual de Aprendizagem'}
             </div>
             <h1 className="text-4xl font-extrabold leading-tight tracking-tight">
-              Sua formação organizada em uma experiência de aprendizagem moderna.
+              {cfg?.title ?? 'Sua formação organizada em uma experiência de aprendizagem moderna.'}
             </h1>
             <p className="text-base text-white/80 max-w-sm">
-              Cursos, jornada de estudos, biblioteca, PCO News, PCO POD, Tutor Virtual e
-              certificados em um só ambiente.
+              {cfg?.subtitle ??
+                'Cursos, jornada de estudos, biblioteca, PCO News, PCO POD, Tutor Virtual e certificados em um só ambiente.'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs text-white/70">

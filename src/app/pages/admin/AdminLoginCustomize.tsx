@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, RotateCcw, Image as ImageIcon, Eye, ArrowRight } from 'lucide-react';
+import { useLoginConfig, useUpdateLoginConfig, useResetLoginConfig } from '../../data/hooks';
+import { useToast } from '../../components/Toast';
 
 const presets = [
   { name: 'Split Screen Premium', from: '#063B49', via: '#0097B2', to: '#0CC0DF' },
@@ -9,18 +11,60 @@ const presets = [
 ];
 
 export default function AdminLoginCustomize() {
-  const [title, setTitle] = useState(
-    'Sua formação organizada em uma experiência de aprendizagem moderna.',
-  );
-  const [subtitle, setSubtitle] = useState(
-    'Cursos, jornada de estudos, biblioteca, PCO News, PCO POD, Tutor Virtual e certificados em um só ambiente.',
-  );
-  const [tag, setTag] = useState('Ambiente Virtual de Aprendizagem');
+  const cfgQ = useLoginConfig();
+  const updateMut = useUpdateLoginConfig();
+  const resetMut = useResetLoginConfig();
+  const toast = useToast();
+
+  const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [tag, setTag] = useState('');
   const [from, setFrom] = useState('#063B49');
   const [via, setVia] = useState('#0097B2');
   const [to, setTo] = useState('#0CC0DF');
   const [position, setPosition] = useState<'left' | 'right'>('right');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const c = cfgQ.data;
+    if (!c) return;
+    setTag(c.tag);
+    setTitle(c.title);
+    setSubtitle(c.subtitle);
+    setFrom(c.fromColor);
+    setVia(c.viaColor);
+    setTo(c.toColor);
+    setPosition(c.position);
+    setTheme(c.theme);
+  }, [cfgQ.data]);
+
+  async function handleSave() {
+    try {
+      await updateMut.mutateAsync({
+        tag,
+        title,
+        subtitle,
+        fromColor: from,
+        viaColor: via,
+        toColor: to,
+        position,
+        theme,
+      });
+      toast.success('Customização salva');
+    } catch (err) {
+      toast.error('Falha ao salvar', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
+  async function handleReset() {
+    if (!confirm('Restaurar padrão e descartar customização atual?')) return;
+    try {
+      await resetMut.mutateAsync();
+      toast.success('Padrão restaurado');
+    } catch (err) {
+      toast.error('Falha ao restaurar', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   const applyPreset = (p: (typeof presets)[number]) => {
     setFrom(p.from);
@@ -38,13 +82,21 @@ export default function AdminLoginCustomize() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="pco-btn-secondary text-xs">
+          <button
+            onClick={handleReset}
+            disabled={resetMut.isPending}
+            className="pco-btn-secondary text-xs"
+          >
             <RotateCcw size={12} strokeWidth={2} />
-            Restaurar padrão
+            {resetMut.isPending ? 'Restaurando...' : 'Restaurar padrão'}
           </button>
-          <button className="pco-btn-primary text-xs">
+          <button
+            onClick={handleSave}
+            disabled={updateMut.isPending}
+            className="pco-btn-primary text-xs"
+          >
             <Save size={12} strokeWidth={2} />
-            Salvar customização
+            {updateMut.isPending ? 'Salvando...' : 'Salvar customização'}
           </button>
         </div>
       </header>

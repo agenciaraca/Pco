@@ -60,6 +60,7 @@ import * as sessionsRepo from './repositories/sessions';
 import * as studentsRepo from './repositories/students';
 import * as metricsRepo from './repositories/metrics';
 import * as notificationsRepo from './repositories/notifications';
+import * as loginConfigRepo from './repositories/login-config';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -84,6 +85,39 @@ export function buildApp() {
   app.use('*', rateLimit({ windowMs: 60_000, max: 120 }));
   app.use('*', attachUser);
   app.use('*', auditMiddleware);
+
+  // ---------- Login customization ----------
+
+  // Público — usado pela tela /login para renderizar branding
+  app.get('/login-config', async (c) => c.json(await loginConfigRepo.getConfig()));
+
+  // Admin: atualiza
+  app.put('/admin/login-config', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    // Aceita só keys conhecidas
+    const allowed = [
+      'tag',
+      'title',
+      'subtitle',
+      'fromColor',
+      'viaColor',
+      'toColor',
+      'position',
+      'theme',
+      'logoUrl',
+    ] as const;
+    const patch: Record<string, unknown> = {};
+    for (const k of allowed) {
+      if (body[k] !== undefined) patch[k] = body[k];
+    }
+    const next = await loginConfigRepo.updateConfig(patch);
+    return c.json(next);
+  });
+
+  app.post('/admin/login-config/reset', requireAuth('admin', 'superadmin'), async (c) => {
+    const next = await loginConfigRepo.resetConfig();
+    return c.json(next);
+  });
 
   // /health rápido — sem I/O caro (usado por crons)
   app.get('/health', (c) =>

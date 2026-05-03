@@ -14,7 +14,7 @@ import {
   Check,
 } from 'lucide-react';
 import Tabs from '../../components/Tabs';
-import { sessionServices, professionals } from '../../data/seed';
+import { useSessionServices, useProfessionals } from '../../data/hooks';
 
 const tabs = [
   { id: 'servicos', label: 'Serviços', icon: <Stethoscope size={14} strokeWidth={1.75} /> },
@@ -61,6 +61,7 @@ export default function AdminAnaliseSupervisao() {
 }
 
 function ServicosPane() {
+  const { data: sessionServices = [] } = useSessionServices();
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -117,6 +118,7 @@ function ServicosPane() {
 }
 
 function ProfissionaisPane() {
+  const { data: professionals = [] } = useProfessionals();
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -171,6 +173,7 @@ function ProfissionaisPane() {
 }
 
 function AgendaPane() {
+  const { data: professionals = [] } = useProfessionals();
   const days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
   const today = new Date();
   const month = today.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -251,6 +254,7 @@ function AgendaPane() {
 }
 
 function ValoresPane() {
+  const { data: sessionServices = [] } = useSessionServices();
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <div className="pco-card">

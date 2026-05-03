@@ -531,6 +531,31 @@ export function useDeleteSystemUser() {
   });
 }
 
+const loginConfigKey = ['login-config'] as const;
+export function useLoginConfig() {
+  return useQuery({
+    queryKey: loginConfigKey,
+    queryFn: api.fetchLoginConfig,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useUpdateLoginConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.updateLoginConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: loginConfigKey }),
+  });
+}
+
+export function useResetLoginConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.resetLoginConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: loginConfigKey }),
+  });
+}
+
 const healthKey = ['admin', 'health'] as const;
 export function useHealth() {
   return useQuery({

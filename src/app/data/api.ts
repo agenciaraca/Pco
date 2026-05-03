@@ -114,6 +114,35 @@ export async function resetPassword(token: string, password: string): Promise<{ 
   });
 }
 
+// ---------- Login customization ----------
+
+export interface LoginConfigDto {
+  tag: string;
+  title: string;
+  subtitle: string;
+  fromColor: string;
+  viaColor: string;
+  toColor: string;
+  position: 'left' | 'right';
+  theme: 'light' | 'dark';
+  logoUrl: string | null;
+  updatedAt: string;
+}
+
+export async function fetchLoginConfig(): Promise<LoginConfigDto> {
+  return http.get<LoginConfigDto>('/login-config');
+}
+
+export async function updateLoginConfig(
+  patch: Partial<LoginConfigDto>,
+): Promise<LoginConfigDto> {
+  return http.put<LoginConfigDto>('/admin/login-config', patch);
+}
+
+export async function resetLoginConfig(): Promise<LoginConfigDto> {
+  return http.post<LoginConfigDto>('/admin/login-config/reset', {});
+}
+
 // ---------- Admin search ----------
 
 export interface SearchHitDto {
