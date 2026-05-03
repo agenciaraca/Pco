@@ -9,6 +9,7 @@ import { attachUser, requireAuth } from './auth/middleware';
 import { createResetToken, consumeResetToken } from './auth/password-reset';
 import { auditMiddleware } from './audit/middleware';
 import { listAudit } from './audit/log';
+import { recordError, listErrors } from './errors/store';
 import {
   createSupportTicketSchema,
   recoveryPlanSchema,
@@ -85,7 +86,8 @@ export function buildApp() {
 
   // ---------- Auth (mock) ----------
 
-  app.post('/auth/login', async (c) => {
+  // Limite estrito em /auth/login: 5 tentativas / min por IP
+  app.post('/auth/login', rateLimit({ windowMs: 60_000, max: 5 }), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) return jsonError(c, 400, 'INVALID_INPUT', parsed.error.message);
@@ -119,7 +121,8 @@ export function buildApp() {
 
   // ---------- Forgot / Reset password ----------
 
-  app.post('/auth/forgot-password', async (c) => {
+  // Limite estrito em /auth/forgot-password: 3 tentativas / 5min
+  app.post('/auth/forgot-password', rateLimit({ windowMs: 5 * 60_000, max: 3 }), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(forgotPasswordSchema, body);
     if (!v.ok) {
@@ -141,7 +144,8 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
-  app.post('/auth/reset-password', async (c) => {
+  // Limite estrito em /auth/reset-password: 10 tentativas / min por IP
+  app.post('/auth/reset-password', rateLimit({ windowMs: 60_000, max: 10 }), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(resetPasswordSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
@@ -700,6 +704,16 @@ export function buildApp() {
     }
     try {
       const created = await usersStore.createUser(v.data);
+      // Notificação de boas-vindas para o novo usuário
+      await notificationsRepo.createOne({
+        userId: created.id,
+        title: `Bem-vindo(a) ao AVA PCO, ${created.name}!`,
+        body:
+          'Sua conta foi criada. Acesse seu perfil para confirmar dados e, se receber uma senha temporária, troque-a no primeiro acesso.',
+        category: 'announcement',
+        link: '/perfil',
+        authorEmail: acting?.email ?? null,
+      });
       return c.json(created, 201);
     } catch (err) {
       return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
@@ -745,6 +759,18 @@ export function buildApp() {
     }
   });
 
+  // ---------- Error log ----------
+
+  app.get('/admin/errors', requireAuth('admin', 'superadmin'), async (c) => {
+    const q = c.req.query();
+    const limit = q.limit ? Number(q.limit) : undefined;
+    const entries = await listErrors({
+      since: q.since,
+      limit: typeof limit === 'number' && Number.isFinite(limit) ? limit : undefined,
+    });
+    return c.json(entries);
+  });
+
   // ---------- Audit log ----------
 
   app.get('/admin/audit-log', requireAuth('admin', 'superadmin'), async (c) => {
@@ -765,9 +791,10 @@ export function buildApp() {
   // 404 catch-all
   app.notFound((c) => jsonError(c, 404, 'NOT_FOUND', 'Rota inexistente'));
 
-  // Erro não tratado
+  // Erro não tratado — também grava em data/errors.json
   app.onError((err, c) => {
     console.error('[api] unhandled error', err);
+    void recordError(c, err, 500);
     return jsonError(c, 500, 'INTERNAL', 'Erro interno');
   });
 

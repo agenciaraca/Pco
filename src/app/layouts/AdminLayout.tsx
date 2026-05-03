@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   ScrollText,
   Bell as BellIcon,
+  AlertOctagon,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
@@ -75,6 +76,7 @@ const adminGroups = [
     items: [
       { to: '/admin/usuarios', label: 'Usuários do Sistema', icon: ShieldCheck },
       { to: '/admin/auditoria', label: 'Auditoria', icon: ScrollText },
+      { to: '/admin/erros', label: 'Erros do servidor', icon: AlertOctagon },
       { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
       { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
       { to: '/admin/configuracoes', label: 'Configurações Gerais', icon: SettingsIcon },

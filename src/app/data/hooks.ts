@@ -503,6 +503,14 @@ export function useDeleteSystemUser() {
   });
 }
 
+const errorLogKey = ['admin', 'error-log'] as const;
+export function useErrorLog(limit = 200) {
+  return useQuery({
+    queryKey: [...errorLogKey, limit],
+    queryFn: () => api.fetchErrorLog(limit),
+  });
+}
+
 const auditLogKey = ['admin', 'audit-log'] as const;
 export function useAuditLog(filter: api.AuditFilter = {}) {
   return useQuery({

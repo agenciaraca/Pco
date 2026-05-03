@@ -139,6 +139,28 @@ export interface AuditFilter {
   limit?: number;
 }
 
+// ---------- Error log ----------
+
+export interface ErrorEntryDto {
+  id: string;
+  ts: string;
+  message: string;
+  stack: string | null;
+  method: string;
+  path: string;
+  status: number;
+  actorId: string | null;
+  actorEmail: string | null;
+  ip: string | null;
+  userAgent: string | null;
+}
+
+export async function fetchErrorLog(limit = 200): Promise<ErrorEntryDto[]> {
+  return http.get<ErrorEntryDto[]>(`/admin/errors?limit=${limit}`);
+}
+
+// ---------- Audit log ----------
+
 export async function fetchAuditLog(filter: AuditFilter = {}): Promise<AuditEntryDto[]> {
   const qs = new URLSearchParams();
   Object.entries(filter).forEach(([k, v]) => {
