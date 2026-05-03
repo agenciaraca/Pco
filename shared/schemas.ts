@@ -242,6 +242,28 @@ export type CreateLessonInput = z.infer<typeof createLessonSchema>;
 export const updateLessonSchema = createLessonSchema.partial();
 export type UpdateLessonInput = z.infer<typeof updateLessonSchema>;
 
+// ---- Student writes ----
+
+export const studentStatusEnum = z.enum(['ativo', 'em_risco', 'bloqueado', 'inativo']);
+
+export const createStudentSchema = z.object({
+  name: z.string().min(2, 'Nome muito curto').max(120),
+  email: z.string().email('E-mail inválido'),
+  weeklyGoalMinutes: z.number().int().min(15).max(2400).default(180),
+  status: studentStatusEnum.default('ativo'),
+  enrolledCourseIds: z.array(z.string().max(40)).max(50).default([]),
+});
+export type CreateStudentInput = z.infer<typeof createStudentSchema>;
+
+export const updateStudentSchema = z.object({
+  name: z.string().min(2).max(120).optional(),
+  email: z.string().email().optional(),
+  weeklyGoalMinutes: z.number().int().min(15).max(2400).optional(),
+  status: studentStatusEnum.optional(),
+  enrolledCourseIds: z.array(z.string().max(40)).max(50).optional(),
+});
+export type UpdateStudentInput = z.infer<typeof updateStudentSchema>;
+
 // Filters
 export const studentsFilterSchema = z.object({
   search: z.string().optional(),

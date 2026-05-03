@@ -6,9 +6,154 @@ import {
   type AdminStudentRow,
 } from '../../src/app/data/seed';
 import type { Student } from '../../src/app/types/schema';
-import type { StudentsFilter } from '../../shared/schemas';
+import type {
+  StudentsFilter,
+  CreateStudentInput,
+  UpdateStudentInput,
+} from '../../shared/schemas';
 
 interface AdminStudentDto extends AdminStudentRow {}
+
+function newStudentId() {
+  return `s-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+export async function createAdminStudent(
+  input: CreateStudentInput,
+): Promise<AdminStudentDto> {
+  const id = newStudentId();
+  const now = new Date();
+  const dto: AdminStudentDto = {
+    id,
+    name: input.name,
+    email: input.email,
+    enrolledCourseIds: input.enrolledCourseIds,
+    progressByCourse: Object.fromEntries(input.enrolledCourseIds.map((cid) => [cid, 0])),
+    status: input.status,
+    riskScore: 0,
+    lastAccessAt: now.toISOString(),
+    createdAt: now.toISOString(),
+  };
+
+  const db = getDb();
+  if (!db) {
+    seedAdmin.unshift(dto);
+    return dto;
+  }
+
+  await db
+    .insert(schema.users)
+    .values({ id, email: input.email, name: input.name, role: 'student' })
+    .onConflictDoNothing();
+
+  await db.insert(schema.students).values({
+    id,
+    userId: id,
+    weeklyGoalMinutes: input.weeklyGoalMinutes,
+    totalStudyMinutes: 0,
+    riskScore: 0,
+    status: input.status,
+    lastAccessAt: now,
+  });
+
+  if (input.enrolledCourseIds.length > 0) {
+    await db.insert(schema.enrollments).values(
+      input.enrolledCourseIds.map((courseId) => ({
+        id: `enr-${id}-${courseId}`,
+        studentId: id,
+        courseId,
+        progress: 0,
+      })),
+    );
+  }
+
+  return dto;
+}
+
+export async function updateAdminStudent(
+  id: string,
+  patch: UpdateStudentInput,
+): Promise<AdminStudentDto | null> {
+  const db = getDb();
+  if (!db) {
+    const idx = seedAdmin.findIndex((s) => s.id === id);
+    if (idx === -1) return null;
+    seedAdmin[idx] = {
+      ...seedAdmin[idx],
+      ...(patch.name !== undefined ? { name: patch.name } : {}),
+      ...(patch.email !== undefined ? { email: patch.email } : {}),
+      ...(patch.status !== undefined ? { status: patch.status } : {}),
+      ...(patch.enrolledCourseIds !== undefined
+        ? {
+            enrolledCourseIds: patch.enrolledCourseIds,
+            progressByCourse: Object.fromEntries(
+              patch.enrolledCourseIds.map((cid) => [
+                cid,
+                seedAdmin[idx].progressByCourse[cid] ?? 0,
+              ]),
+            ),
+          }
+        : {}),
+    };
+    return seedAdmin[idx];
+  }
+
+  if (patch.name !== undefined || patch.email !== undefined) {
+    const userUpdate: Partial<typeof schema.users.$inferInsert> = {};
+    if (patch.name !== undefined) userUpdate.name = patch.name;
+    if (patch.email !== undefined) userUpdate.email = patch.email;
+    if (Object.keys(userUpdate).length > 0) {
+      await db.update(schema.users).set(userUpdate).where(eq(schema.users.id, id));
+    }
+  }
+
+  if (patch.status !== undefined || patch.weeklyGoalMinutes !== undefined) {
+    const studentUpdate: Partial<typeof schema.students.$inferInsert> = {};
+    if (patch.status !== undefined) studentUpdate.status = patch.status;
+    if (patch.weeklyGoalMinutes !== undefined)
+      studentUpdate.weeklyGoalMinutes = patch.weeklyGoalMinutes;
+    await db.update(schema.students).set(studentUpdate).where(eq(schema.students.id, id));
+  }
+
+  if (patch.enrolledCourseIds !== undefined) {
+    await db.delete(schema.enrollments).where(eq(schema.enrollments.studentId, id));
+    if (patch.enrolledCourseIds.length > 0) {
+      await db.insert(schema.enrollments).values(
+        patch.enrolledCourseIds.map((courseId) => ({
+          id: `enr-${id}-${courseId}-${Math.random().toString(36).slice(2, 5)}`,
+          studentId: id,
+          courseId,
+          progress: 0,
+        })),
+      );
+    }
+  }
+
+  return await findAdminStudent(id);
+}
+
+export async function setStudentStatus(
+  id: string,
+  status: 'ativo' | 'em_risco' | 'bloqueado' | 'inativo',
+): Promise<AdminStudentDto | null> {
+  return updateAdminStudent(id, { status });
+}
+
+export async function deleteAdminStudent(id: string): Promise<boolean> {
+  const db = getDb();
+  if (!db) {
+    const idx = seedAdmin.findIndex((s) => s.id === id);
+    if (idx === -1) return false;
+    seedAdmin.splice(idx, 1);
+    return true;
+  }
+  const rows = await db
+    .delete(schema.students)
+    .where(eq(schema.students.id, id))
+    .returning({ id: schema.students.id });
+  await db.delete(schema.users).where(eq(schema.users.id, id));
+  return rows.length > 0;
+}
 
 export async function getCurrentStudent(): Promise<Student> {
   const db = getDb();

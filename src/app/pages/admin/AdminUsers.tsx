@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Plus,
   Upload,
@@ -10,11 +13,27 @@ import {
   Lock,
   Unlock,
   ArrowUpDown,
+  X,
+  Save,
+  Loader2,
+  Trash2,
 } from 'lucide-react';
-import { useAdminStudents, useCourses } from '../../data/hooks';
-import type { StudentsFilter } from '../../../../shared/schemas';
+import {
+  useAdminStudents,
+  useCourses,
+  useCreateAdminStudent,
+  useBlockStudent,
+  useUnblockStudent,
+  useDeleteAdminStudent,
+} from '../../data/hooks';
+import {
+  createStudentSchema,
+  type CreateStudentInput,
+  type StudentsFilter,
+} from '../../../../shared/schemas';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import type { AdminStudentRow } from '../../data/seed';
 
@@ -39,6 +58,8 @@ export default function AdminUsers() {
     useState<NonNullable<StudentsFilter['status']>>('todos');
   const [courseFilter, setCourseFilter] = useState<string>('todos');
   const [sortBy, setSortBy] = useState<NonNullable<StudentsFilter['sortBy']>>('name');
+  const [showCreate, setShowCreate] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<AdminStudentRow | null>(null);
 
   const { data: courses } = useCourses();
   const studentsQ = useAdminStudents({
@@ -47,6 +68,11 @@ export default function AdminUsers() {
     courseId: courseFilter,
     sortBy,
   });
+
+  const createMut = useCreateAdminStudent();
+  const blockMut = useBlockStudent();
+  const unblockMut = useUnblockStudent();
+  const deleteMut = useDeleteAdminStudent();
 
   const filtered = studentsQ.data ?? [];
   const isLoading = studentsQ.isLoading;
@@ -60,6 +86,31 @@ export default function AdminUsers() {
     bloqueados: filtered.filter((s) => s.status === 'bloqueado').length,
   };
 
+  const toggleBlock = async (s: AdminStudentRow) => {
+    try {
+      if (s.status === 'bloqueado') {
+        await unblockMut.mutateAsync(s.id);
+        toast.success('Aluno desbloqueado', s.name);
+      } else {
+        await blockMut.mutateAsync(s.id);
+        toast.success('Aluno bloqueado', s.name);
+      }
+    } catch (err) {
+      toast.error('Falha ao mudar status', err instanceof Error ? err.message : 'Erro');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      await deleteMut.mutateAsync(confirmDelete.id);
+      toast.success('Aluno excluído', confirmDelete.name);
+      setConfirmDelete(null);
+    } catch (err) {
+      toast.error('Falha ao excluir', err instanceof Error ? err.message : 'Erro');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
@@ -71,16 +122,15 @@ export default function AdminUsers() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => toast.info('Importar CSV', 'Funcionalidade chegará na integração com backend.')}
+            onClick={() =>
+              toast.info('Importar CSV', 'Em desenvolvimento — usar criação manual por enquanto.')
+            }
             className="pco-btn-secondary text-xs"
           >
             <Upload size={12} strokeWidth={2} />
             Importar CSV
           </button>
-          <button
-            onClick={() => toast.success('Novo aluno', 'Formulário será aberto em modal na próxima iteração.')}
-            className="pco-btn-primary text-xs"
-          >
+          <button onClick={() => setShowCreate(true)} className="pco-btn-primary text-xs">
             <Plus size={12} strokeWidth={2} />
             Novo aluno
           </button>
@@ -291,12 +341,8 @@ export default function AdminUsers() {
                             <Mail size={12} strokeWidth={1.75} />
                           </button>
                           <button
-                            onClick={() =>
-                              toast.success(
-                                s.status === 'bloqueado' ? 'Aluno desbloqueado' : 'Aluno bloqueado',
-                                s.name,
-                              )
-                            }
+                            onClick={() => toggleBlock(s)}
+                            disabled={blockMut.isPending || unblockMut.isPending}
                             className="pco-btn-ghost text-xs px-2.5"
                             title={s.status === 'bloqueado' ? 'Desbloquear' : 'Bloquear'}
                           >
@@ -305,6 +351,13 @@ export default function AdminUsers() {
                             ) : (
                               <Lock size={12} strokeWidth={1.75} className="text-status-danger" />
                             )}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDelete(s)}
+                            className="pco-btn-ghost text-xs px-2.5 text-status-danger hover:bg-status-danger/10"
+                            title="Excluir"
+                          >
+                            <Trash2 size={12} strokeWidth={1.75} />
                           </button>
                         </div>
                       </td>
@@ -316,7 +369,190 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
+
+      {showCreate && (
+        <StudentEditor
+          courses={(courses ?? []).map((c) => ({ id: c.id, shortTitle: c.shortTitle }))}
+          submitting={createMut.isPending}
+          onClose={() => setShowCreate(false)}
+          onSubmit={async (data) => {
+            try {
+              await createMut.mutateAsync(data);
+              toast.success('Aluno criado', data.name);
+              setShowCreate(false);
+            } catch (err) {
+              toast.error('Falha ao criar', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Excluir aluno?"
+        description={
+          confirmDelete && (
+            <>
+              <span className="font-semibold text-pco-deep">{confirmDelete.name}</span> e todas
+              as suas matrículas e dados acadêmicos serão removidos. Esta ação é irreversível.
+            </>
+          )
+        }
+        confirmLabel="Excluir aluno"
+        variant="danger"
+        loading={deleteMut.isPending}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
+  );
+}
+
+interface StudentEditorProps {
+  courses: Array<{ id: string; shortTitle: string }>;
+  submitting: boolean;
+  onClose: () => void;
+  onSubmit: (data: CreateStudentInput) => Promise<void>;
+}
+
+function StudentEditor({ courses, submitting, onClose, onSubmit }: StudentEditorProps) {
+  type FormInput = z.input<typeof createStudentSchema>;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+  } = useForm<FormInput, unknown, CreateStudentInput>({
+    resolver: zodResolver(createStudentSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      weeklyGoalMinutes: 180,
+      status: 'ativo',
+      enrolledCourseIds: [],
+    },
+  });
+
+  const enrolled = watch('enrolledCourseIds') ?? [];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center px-4 py-6"
+      onClick={(e) => {
+        if (e.currentTarget === e.target && !submitting) onClose();
+      }}
+    >
+      <div className="absolute inset-0 bg-pco-deep/50 backdrop-blur-sm" />
+      <div className="relative pco-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-0">
+        <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+              Cadastro
+            </div>
+            <h2 className="text-lg font-bold text-pco-deep">Novo aluno</h2>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="h-8 w-8 grid place-items-center rounded-lg text-ink-muted hover:bg-surface-gray"
+            aria-label="Fechar"
+          >
+            <X size={18} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4" noValidate>
+          <Field label="Nome completo" error={errors.name?.message}>
+            <input {...register('name')} className="pco-input" />
+          </Field>
+          <Field label="E-mail" error={errors.email?.message}>
+            <input {...register('email')} type="email" className="pco-input" />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Meta semanal (min)" error={errors.weeklyGoalMinutes?.message}>
+              <input
+                type="number"
+                min={15}
+                max={2400}
+                {...register('weeklyGoalMinutes', { valueAsNumber: true })}
+                className="pco-input"
+              />
+            </Field>
+            <Field label="Status">
+              <select {...register('status')} className="pco-input">
+                <option value="ativo">Ativo</option>
+                <option value="em_risco">Em risco</option>
+                <option value="bloqueado">Bloqueado</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </Field>
+          </div>
+
+          {courses.length > 0 && (
+            <Field label="Matricular nos cursos">
+              <div className="flex flex-wrap gap-1.5">
+                {courses.map((c) => {
+                  const active = enrolled.includes(c.id);
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        const set = new Set(enrolled);
+                        if (set.has(c.id)) set.delete(c.id);
+                        else set.add(c.id);
+                        setValue('enrolledCourseIds', Array.from(set));
+                      }}
+                      className={`pco-badge cursor-pointer ${
+                        active
+                          ? 'bg-pco-blue text-white'
+                          : 'bg-pco-blue/10 text-pco-blue hover:bg-pco-blue/20'
+                      }`}
+                    >
+                      {c.shortTitle}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-surface-gray">
+            <button
+              type="button"
+              onClick={onClose}
+              className="pco-btn-ghost text-xs"
+              disabled={submitting}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="pco-btn-primary text-xs" disabled={submitting}>
+              {submitting ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+              Criar aluno
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+  error,
+}: {
+  label: string;
+  children: React.ReactNode;
+  error?: string;
+}) {
+  return (
+    <label className="block">
+      <div className="text-xs font-medium text-ink-muted mb-1.5">{label}</div>
+      {children}
+      {error && <p className="mt-1 text-xs text-status-danger">{error}</p>}
+    </label>
   );
 }
 

@@ -376,3 +376,59 @@ export function useDeleteLesson(courseId?: string) {
     },
   });
 }
+
+// ---- Admin: students writes ----
+
+function invalidateStudents(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['admin-students'] });
+}
+
+export function useCreateAdminStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createAdminStudent,
+    onSuccess: () => invalidateStudents(qc),
+  });
+}
+
+export function useUpdateAdminStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<api.CreateStudentPayload> }) =>
+      api.updateAdminStudent(id, patch),
+    onSuccess: (_data, vars) => {
+      invalidateStudents(qc);
+      qc.invalidateQueries({ queryKey: queryKeys.adminStudent(vars.id) });
+    },
+  });
+}
+
+export function useBlockStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.blockStudent,
+    onSuccess: (_data, id) => {
+      invalidateStudents(qc);
+      qc.invalidateQueries({ queryKey: queryKeys.adminStudent(id) });
+    },
+  });
+}
+
+export function useUnblockStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.unblockStudent,
+    onSuccess: (_data, id) => {
+      invalidateStudents(qc);
+      qc.invalidateQueries({ queryKey: queryKeys.adminStudent(id) });
+    },
+  });
+}
+
+export function useDeleteAdminStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteAdminStudent,
+    onSuccess: () => invalidateStudents(qc),
+  });
+}

@@ -414,6 +414,39 @@ export async function deleteLesson(id: string): Promise<{ ok: true }> {
   return http.delete(`/admin/lessons/${encodeURIComponent(id)}`);
 }
 
+// ---------- Admin: Student writes ----------
+
+export interface CreateStudentPayload {
+  name: string;
+  email: string;
+  weeklyGoalMinutes?: number;
+  status?: 'ativo' | 'em_risco' | 'bloqueado' | 'inativo';
+  enrolledCourseIds?: string[];
+}
+
+export async function createAdminStudent(input: CreateStudentPayload): Promise<AdminStudentRow> {
+  return http.post<AdminStudentRow>('/admin/students', input);
+}
+
+export async function updateAdminStudent(
+  id: string,
+  patch: Partial<CreateStudentPayload>,
+): Promise<AdminStudentRow> {
+  return http.put<AdminStudentRow>(`/admin/students/${encodeURIComponent(id)}`, patch);
+}
+
+export async function blockStudent(id: string): Promise<AdminStudentRow> {
+  return http.post<AdminStudentRow>(`/admin/students/${encodeURIComponent(id)}/block`);
+}
+
+export async function unblockStudent(id: string): Promise<AdminStudentRow> {
+  return http.post<AdminStudentRow>(`/admin/students/${encodeURIComponent(id)}/unblock`);
+}
+
+export async function deleteAdminStudent(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/students/${encodeURIComponent(id)}`);
+}
+
 // ---------- Recovery plans ----------
 
 export async function generateRecoveryPlan(input: RecoveryPlanInput): Promise<{

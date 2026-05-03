@@ -21,6 +21,9 @@ import {
   updateModuleSchema,
   createLessonSchema,
   updateLessonSchema,
+  createStudentSchema,
+  updateStudentSchema,
+  studentStatusEnum,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -475,6 +478,53 @@ export function buildApp() {
   app.delete('/admin/lessons/:id', async (c) => {
     const ok = await coursesRepo.deleteLesson(c.req.param('id'));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada');
+    return c.json({ ok: true });
+  });
+
+  // ---------- Admin: Student writes ----------
+
+  app.post('/admin/students', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createStudentSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const created = await studentsRepo.createAdminStudent(v.data);
+    return c.json(created, 201);
+  });
+
+  app.put('/admin/students/:id', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateStudentSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await studentsRepo.updateAdminStudent(c.req.param('id'), v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+    return c.json(updated);
+  });
+
+  app.post('/admin/students/:id/block', async (c) => {
+    const updated = await studentsRepo.setStudentStatus(c.req.param('id'), 'bloqueado');
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+    return c.json(updated);
+  });
+
+  app.post('/admin/students/:id/unblock', async (c) => {
+    const updated = await studentsRepo.setStudentStatus(c.req.param('id'), 'ativo');
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+    return c.json(updated);
+  });
+
+  app.put('/admin/students/:id/status', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const parsed = studentStatusEnum.safeParse(body?.status);
+    if (!parsed.success)
+      return jsonError(c, 400, 'INVALID_INPUT', 'Status inválido', parsed.error.flatten());
+    const updated = await studentsRepo.setStudentStatus(c.req.param('id'), parsed.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/students/:id', async (c) => {
+    const ok = await studentsRepo.deleteAdminStudent(c.req.param('id'));
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json({ ok: true });
   });
 
