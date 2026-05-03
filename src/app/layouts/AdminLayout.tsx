@@ -19,6 +19,7 @@ import {
   Send,
   Palette,
   Settings as SettingsIcon,
+  ShieldCheck,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
@@ -69,6 +70,7 @@ const adminGroups = [
   {
     title: 'Configurações',
     items: [
+      { to: '/admin/usuarios', label: 'Usuários do Sistema', icon: ShieldCheck },
       { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
       { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
       { to: '/admin/configuracoes', label: 'Configurações Gerais', icon: SettingsIcon },

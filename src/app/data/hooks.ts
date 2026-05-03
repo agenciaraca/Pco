@@ -457,3 +457,48 @@ export function useDeleteAssessment(courseId?: string) {
     },
   });
 }
+
+// ---- Admin: System users (login + RBAC) ----
+
+const systemUsersKey = ['system-users'] as const;
+
+export function useSystemUsers() {
+  return useQuery({ queryKey: systemUsersKey, queryFn: api.fetchSystemUsers });
+}
+
+export function useCreateSystemUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createSystemUser,
+    onSuccess: () => qc.invalidateQueries({ queryKey: systemUsersKey }),
+  });
+}
+
+export function useUpdateSystemUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: Parameters<typeof api.updateSystemUser>[1];
+    }) => api.updateSystemUser(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: systemUsersKey }),
+  });
+}
+
+export function useChangeSystemUserPassword() {
+  return useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      api.changeSystemUserPassword(id, password),
+  });
+}
+
+export function useDeleteSystemUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteSystemUser,
+    onSuccess: () => qc.invalidateQueries({ queryKey: systemUsersKey }),
+  });
+}

@@ -478,6 +478,53 @@ export async function deleteAssessment(id: string): Promise<{ ok: true }> {
   return http.delete(`/admin/assessments/${encodeURIComponent(id)}`);
 }
 
+// ---------- Admin: System Users (RBAC + login) ----------
+
+export interface SystemUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'student' | 'admin' | 'superadmin';
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string;
+}
+
+export interface CreateSystemUserPayload {
+  email: string;
+  name: string;
+  role: SystemUser['role'];
+  password: string;
+  active?: boolean;
+}
+
+export async function fetchSystemUsers(): Promise<SystemUser[]> {
+  return http.get<SystemUser[]>('/admin/users');
+}
+
+export async function createSystemUser(input: CreateSystemUserPayload): Promise<SystemUser> {
+  return http.post<SystemUser>('/admin/users', input);
+}
+
+export async function updateSystemUser(
+  id: string,
+  patch: { email?: string; name?: string; role?: SystemUser['role']; active?: boolean },
+): Promise<SystemUser> {
+  return http.put<SystemUser>(`/admin/users/${encodeURIComponent(id)}`, patch);
+}
+
+export async function changeSystemUserPassword(
+  id: string,
+  password: string,
+): Promise<{ ok: true }> {
+  return http.put<{ ok: true }>(`/admin/users/${encodeURIComponent(id)}/password`, { password });
+}
+
+export async function deleteSystemUser(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/users/${encodeURIComponent(id)}`);
+}
+
 // ---------- Recovery plans ----------
 
 export async function generateRecoveryPlan(input: RecoveryPlanInput): Promise<{

@@ -277,6 +277,36 @@ export type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;
 export const updateAssessmentSchema = createAssessmentSchema.partial();
 export type UpdateAssessmentInput = z.infer<typeof updateAssessmentSchema>;
 
+// ---- System Users (login + RBAC) ----
+
+export const createSystemUserSchema = z.object({
+  email: z.string().email('E-mail inválido').max(160),
+  name: z.string().min(2, 'Nome muito curto').max(120),
+  role: roleSchema,
+  password: z
+    .string()
+    .min(8, 'Senha precisa ter ao menos 8 caracteres')
+    .max(128, 'Senha muito longa'),
+  active: z.boolean().default(true),
+});
+export type CreateSystemUserInput = z.infer<typeof createSystemUserSchema>;
+
+export const updateSystemUserSchema = z.object({
+  email: z.string().email().max(160).optional(),
+  name: z.string().min(2).max(120).optional(),
+  role: roleSchema.optional(),
+  active: z.boolean().optional(),
+});
+export type UpdateSystemUserInput = z.infer<typeof updateSystemUserSchema>;
+
+export const changePasswordSchema = z.object({
+  password: z
+    .string()
+    .min(8, 'Senha precisa ter ao menos 8 caracteres')
+    .max(128, 'Senha muito longa'),
+});
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
 // Filters
 export const studentsFilterSchema = z.object({
   search: z.string().optional(),

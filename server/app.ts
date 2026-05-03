@@ -3,6 +3,9 @@ import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { currentStudent } from '../src/app/data/seed';
+import * as usersStore from './auth/users-store';
+import { signToken } from './auth/jwt';
+import { attachUser, requireAuth } from './auth/middleware';
 import {
   createSupportTicketSchema,
   recoveryPlanSchema,
@@ -26,6 +29,9 @@ import {
   studentStatusEnum,
   createAssessmentSchema,
   updateAssessmentSchema,
+  createSystemUserSchema,
+  updateSystemUserSchema,
+  changePasswordSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -63,6 +69,7 @@ export function buildApp() {
     }),
   );
   app.use('*', rateLimit({ windowMs: 60_000, max: 120 }));
+  app.use('*', attachUser);
 
   app.get('/health', (c) =>
     c.json({ ok: true, ts: Date.now(), db: hasDb() ? 'connected' : 'fallback' }),
@@ -74,20 +81,28 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) return jsonError(c, 400, 'INVALID_INPUT', parsed.error.message);
-    const { email } = parsed.data;
-    const lower = email.toLowerCase();
-    const isSuperadmin = lower.includes('superadmin') || lower.includes('super');
-    const isAdmin = !isSuperadmin && lower.includes('admin');
-    const role = isSuperadmin ? 'superadmin' : isAdmin ? 'admin' : 'student';
-    const id = isSuperadmin ? 'super-001' : isAdmin ? 'admin-001' : 'stu-001';
-    const name = isSuperadmin ? 'Superadmin Demo' : isAdmin ? 'Admin Demo' : 'Aluno Demo';
-    return c.json({
-      user: { id, name, email, role },
-      token: 'mock-jwt-' + Math.random().toString(36).slice(2),
-    });
+    const { email, password } = parsed.data;
+    const user = await usersStore.verifyPassword(email, password);
+    if (!user) return jsonError(c, 401, 'INVALID_CREDENTIALS', 'E-mail ou senha incorretos.');
+    const token = await signToken({ sub: user.id, email: user.email, role: user.role });
+    return c.json({ user, token });
   });
 
-  app.get('/auth/me', async (c) => c.json(await studentsRepo.getCurrentStudent()));
+  app.get('/auth/me', async (c) => {
+    const jwt = c.get('user');
+    if (!jwt) {
+      // Sem token: comportamento legado retorna currentStudent (compatibilidade dev)
+      return c.json(await studentsRepo.getCurrentStudent());
+    }
+    const u = await usersStore.findUserById(jwt.sub);
+    if (!u) return jsonError(c, 401, 'UNAUTHORIZED', 'Usuário não existe mais.');
+    if (u.role === 'student') {
+      // Para aluno, devolve o perfil acadêmico ligado
+      const s = await studentsRepo.getCurrentStudent();
+      return c.json({ ...s, name: u.name, email: u.email, role: u.role });
+    }
+    return c.json(u);
+  });
 
   // ---------- Courses ----------
 
@@ -554,6 +569,75 @@ export function buildApp() {
     const ok = await coursesRepo.deleteAssessment(c.req.param('id'));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Avaliação não encontrada');
     return c.json({ ok: true });
+  });
+
+  // ---------- Admin: System Users (login + RBAC) ----------
+  // Apenas admin/superadmin. Mudança de role exige superadmin.
+
+  app.get('/admin/users', requireAuth('admin', 'superadmin'), async (c) => {
+    return c.json(await usersStore.listUsers());
+  });
+
+  app.get('/admin/users/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const u = await usersStore.findUserById(id);
+    if (!u) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+    return c.json(u);
+  });
+
+  app.post('/admin/users', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createSystemUserSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const acting = c.get('user');
+    if (v.data.role === 'superadmin' && acting?.role !== 'superadmin') {
+      return jsonError(c, 403, 'FORBIDDEN', 'Apenas superadmin pode criar superadmin.');
+    }
+    try {
+      const created = await usersStore.createUser(v.data);
+      return c.json(created, 201);
+    } catch (err) {
+      return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
+    }
+  });
+
+  app.put('/admin/users/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateSystemUserSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const acting = c.get('user');
+    if (v.data.role && acting?.role !== 'superadmin') {
+      return jsonError(c, 403, 'FORBIDDEN', 'Apenas superadmin pode alterar role.');
+    }
+    try {
+      const id = c.req.param('id') as string;
+      const updated = await usersStore.updateUser(id, v.data);
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+      return c.json(updated);
+    } catch (err) {
+      return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
+    }
+  });
+
+  app.put('/admin/users/:id/password', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(changePasswordSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const id = c.req.param('id') as string;
+    const ok = await usersStore.changePassword(id, v.data.password);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+    return c.json({ ok: true });
+  });
+
+  app.delete('/admin/users/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    try {
+      const id = c.req.param('id') as string;
+      const ok = await usersStore.deleteUser(id);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+      return c.json({ ok: true });
+    } catch (err) {
+      return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
+    }
   });
 
   // 404 catch-all

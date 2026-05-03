@@ -61,6 +61,7 @@ const AdminReengajamento = lazy(() => import('./pages/admin/AdminReengajamento')
 const AdminLoginModels = lazy(() => import('./pages/admin/AdminLoginModels'));
 const AdminLoginCustomize = lazy(() => import('./pages/admin/AdminLoginCustomize'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const AdminUsuarios = lazy(() => import('./pages/admin/AdminUsuarios'));
 
 function S({ children }: { children: ReactNode }) {
   return <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>;
@@ -154,6 +155,7 @@ export const router = createBrowserRouter([
       { path: 'login-modelos', element: <S><AdminLoginModels /></S> },
       { path: 'login-customizacao', element: <S><AdminLoginCustomize /></S> },
       { path: 'configuracoes', element: <S><AdminSettings /></S> },
+      { path: 'usuarios', element: <S><AdminUsuarios /></S> },
     ],
   },
 
