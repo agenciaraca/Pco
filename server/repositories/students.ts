@@ -1,5 +1,6 @@
 import { eq, desc, asc, and, ilike, or, sql, type SQL } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
+import { JsonStore } from '../db/json-store';
 import {
   adminStudents as seedAdmin,
   currentStudent,
@@ -13,6 +14,14 @@ import type {
 } from '../../shared/schemas';
 
 interface AdminStudentDto extends AdminStudentRow {}
+
+const adminStore = new JsonStore<AdminStudentDto>('admin-students.json', () =>
+  seedAdmin.map((s) => ({
+    ...s,
+    enrolledCourseIds: [...s.enrolledCourseIds],
+    progressByCourse: { ...s.progressByCourse },
+  })),
+);
 
 function newStudentId() {
   return `s-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -37,8 +46,7 @@ export async function createAdminStudent(
 
   const db = getDb();
   if (!db) {
-    seedAdmin.unshift(dto);
-    return dto;
+    return await adminStore.unshift(dto);
   }
 
   await db
@@ -76,26 +84,28 @@ export async function updateAdminStudent(
 ): Promise<AdminStudentDto | null> {
   const db = getDb();
   if (!db) {
-    const idx = seedAdmin.findIndex((s) => s.id === id);
-    if (idx === -1) return null;
-    seedAdmin[idx] = {
-      ...seedAdmin[idx],
-      ...(patch.name !== undefined ? { name: patch.name } : {}),
-      ...(patch.email !== undefined ? { email: patch.email } : {}),
-      ...(patch.status !== undefined ? { status: patch.status } : {}),
-      ...(patch.enrolledCourseIds !== undefined
-        ? {
-            enrolledCourseIds: patch.enrolledCourseIds,
-            progressByCourse: Object.fromEntries(
-              patch.enrolledCourseIds.map((cid) => [
-                cid,
-                seedAdmin[idx].progressByCourse[cid] ?? 0,
-              ]),
-            ),
-          }
-        : {}),
-    };
-    return seedAdmin[idx];
+    return await adminStore.modify((list) => {
+      const idx = list.findIndex((s) => s.id === id);
+      if (idx === -1) return null;
+      list[idx] = {
+        ...list[idx],
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.email !== undefined ? { email: patch.email } : {}),
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+        ...(patch.enrolledCourseIds !== undefined
+          ? {
+              enrolledCourseIds: patch.enrolledCourseIds,
+              progressByCourse: Object.fromEntries(
+                patch.enrolledCourseIds.map((cid) => [
+                  cid,
+                  list[idx].progressByCourse[cid] ?? 0,
+                ]),
+              ),
+            }
+          : {}),
+      };
+      return list[idx];
+    });
   }
 
   if (patch.name !== undefined || patch.email !== undefined) {
@@ -142,10 +152,7 @@ export async function setStudentStatus(
 export async function deleteAdminStudent(id: string): Promise<boolean> {
   const db = getDb();
   if (!db) {
-    const idx = seedAdmin.findIndex((s) => s.id === id);
-    if (idx === -1) return false;
-    seedAdmin.splice(idx, 1);
-    return true;
+    return await adminStore.remove((s) => s.id === id);
   }
   const rows = await db
     .delete(schema.students)
@@ -195,7 +202,7 @@ export async function getCurrentStudent(): Promise<Student> {
 export async function listAdminStudents(filter: StudentsFilter): Promise<AdminStudentDto[]> {
   const db = getDb();
   if (!db) {
-    return filterSeed(filter);
+    return await filterSeed(filter);
   }
 
   const baseQuery = db
@@ -268,8 +275,8 @@ export async function findAdminStudent(id: string): Promise<AdminStudentDto | nu
   return list.find((s) => s.id === id) ?? null;
 }
 
-function filterSeed(filter: StudentsFilter): AdminStudentDto[] {
-  let list = [...seedAdmin];
+async function filterSeed(filter: StudentsFilter): Promise<AdminStudentDto[]> {
+  let list = await adminStore.getAll();
   if (filter.search) {
     const q = filter.search.toLowerCase();
     list = list.filter(

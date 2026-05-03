@@ -1,21 +1,22 @@
 import { eq, desc } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
-import { retentionRisks as seed } from '../../src/app/data/seed';
+import { JsonStore } from '../db/json-store';
+import { retentionRisks as defaults } from '../../src/app/data/seed';
 import type { RetentionRisk } from '../../src/app/types/schema';
+
+const store = new JsonStore<RetentionRisk>('retention-risks.json', () =>
+  defaults.map((r) => ({ ...r, reasons: [...r.reasons] })),
+);
 
 export async function listRetentionRisks(level?: string): Promise<RetentionRisk[]> {
   const db = getDb();
   if (!db) {
-    return level && level !== 'todos'
-      ? seed.filter((r) => r.level === level)
-      : seed;
+    const all = await store.getAll();
+    return level && level !== 'todos' ? all.filter((r) => r.level === level) : all;
   }
 
   const baseQuery = db
-    .select({
-      r: schema.retentionRisks,
-      name: schema.users.name,
-    })
+    .select({ r: schema.retentionRisks, name: schema.users.name })
     .from(schema.retentionRisks)
     .leftJoin(schema.users, eq(schema.users.id, schema.retentionRisks.studentId))
     .orderBy(desc(schema.retentionRisks.score));
@@ -25,9 +26,8 @@ export async function listRetentionRisks(level?: string): Promise<RetentionRisk[
     : baseQuery);
 
   if (rows.length === 0) {
-    return level && level !== 'todos'
-      ? seed.filter((r) => r.level === level)
-      : seed;
+    const all = await store.getAll();
+    return level && level !== 'todos' ? all.filter((r) => r.level === level) : all;
   }
 
   return rows.map(({ r, name }) => ({
@@ -46,4 +46,3 @@ export async function listRetentionRisks(level?: string): Promise<RetentionRisk[
     recommendedAction: r.recommendedAction,
   }));
 }
-
