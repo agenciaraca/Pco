@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Mic2, PlayCircle, Heart, CheckCircle2, Clock } from 'lucide-react';
 import { podcasts } from '../data/seed';
 
@@ -43,10 +44,10 @@ export default function Podcasts() {
                   <span>{new Date(p.publishedAt).toLocaleDateString('pt-BR')}</span>
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <button className="pco-btn-primary text-xs">
+                  <Link to={`/podcasts/${p.id}`} className="pco-btn-primary text-xs">
                     <PlayCircle size={14} strokeWidth={2} />
                     Reproduzir
-                  </button>
+                  </Link>
                   <button className="pco-btn-ghost text-xs px-3">
                     <Heart size={14} strokeWidth={1.75} />
                   </button>

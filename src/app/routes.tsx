@@ -1,60 +1,74 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { lazy, Suspense, type ReactNode } from 'react';
 import StudentLayout from './layouts/StudentLayout';
 import AdminLayout from './layouts/AdminLayout';
 import LearningLayout from './layouts/LearningLayout';
 import RootError from './components/RootError';
+import ProtectedRoute from './auth/ProtectedRoute';
+import { PageLoadingSkeleton } from './components/LoadingSkeleton';
 
-// Public
+// Eager (small/critical)
 import Login from './pages/Login';
-import ForgotPassword from './pages/ForgotPassword';
-import Onboarding from './pages/Onboarding';
-import Terms from './pages/Terms';
-import Landing from './pages/Landing';
 import NotFound from './pages/NotFound';
 
-// Student
-import Dashboard from './pages/Dashboard';
-import Jornada from './pages/Jornada';
-import Courses from './pages/Courses';
-import Library from './pages/Library';
-import News from './pages/News';
-import Podcasts from './pages/Podcasts';
-import Tutor from './pages/Tutor';
-import Certificates from './pages/Certificates';
-import Support from './pages/Support';
-import Profile from './pages/Profile';
-import AnaliseSupervisao from './pages/AnaliseSupervisao';
-import Notifications from './pages/Notifications';
+// Public — lazy
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Landing = lazy(() => import('./pages/Landing'));
 
-// Learning (LMS)
-import LMSCourse from './pages/LMSCourse';
-import LMSModule from './pages/LMSModule';
-import LMSLesson from './pages/LMSLesson';
-import LMSAssessment from './pages/LMSAssessment';
+// Student — lazy
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Jornada = lazy(() => import('./pages/Jornada'));
+const Courses = lazy(() => import('./pages/Courses'));
+const Library = lazy(() => import('./pages/Library'));
+const News = lazy(() => import('./pages/News'));
+const Podcasts = lazy(() => import('./pages/Podcasts'));
+const PodcastEpisode = lazy(() => import('./pages/PodcastEpisode'));
+const Tutor = lazy(() => import('./pages/Tutor'));
+const Certificates = lazy(() => import('./pages/Certificates'));
+const Support = lazy(() => import('./pages/Support'));
+const Profile = lazy(() => import('./pages/Profile'));
+const AnaliseSupervisao = lazy(() => import('./pages/AnaliseSupervisao'));
+const Notifications = lazy(() => import('./pages/Notifications'));
 
-// Admin
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminCourses from './pages/admin/AdminCourses';
-import AdminCourseEditor from './pages/admin/AdminCourseEditor';
-import AdminModules from './pages/admin/AdminModules';
-import AdminLessons from './pages/admin/AdminLessons';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminUserDetail from './pages/admin/AdminUserDetail';
-import AdminEvasion from './pages/admin/AdminEvasion';
-import AdminRecoveryPlan from './pages/admin/AdminRecoveryPlan';
-import AdminRetention from './pages/admin/AdminRetention';
-import AdminMetricas from './pages/admin/AdminMetricas';
-import AdminLibrary from './pages/admin/AdminLibrary';
-import AdminNews from './pages/admin/AdminNews';
-import AdminPodcasts from './pages/admin/AdminPodcasts';
-import AdminTutor from './pages/admin/AdminTutor';
-import AdminIAs from './pages/admin/AdminIAs';
-import AdminCertificates from './pages/admin/AdminCertificates';
-import AdminAnaliseSupervisao from './pages/admin/AdminAnaliseSupervisao';
-import AdminReengajamento from './pages/admin/AdminReengajamento';
-import AdminLoginModels from './pages/admin/AdminLoginModels';
-import AdminLoginCustomize from './pages/admin/AdminLoginCustomize';
-import AdminSettings from './pages/admin/AdminSettings';
+// Learning — lazy
+const LMSCourse = lazy(() => import('./pages/LMSCourse'));
+const LMSModule = lazy(() => import('./pages/LMSModule'));
+const LMSLesson = lazy(() => import('./pages/LMSLesson'));
+const LMSAssessment = lazy(() => import('./pages/LMSAssessment'));
+
+// Admin — lazy
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminCourses = lazy(() => import('./pages/admin/AdminCourses'));
+const AdminCourseEditor = lazy(() => import('./pages/admin/AdminCourseEditor'));
+const AdminModules = lazy(() => import('./pages/admin/AdminModules'));
+const AdminLessons = lazy(() => import('./pages/admin/AdminLessons'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminUserDetail = lazy(() => import('./pages/admin/AdminUserDetail'));
+const AdminEvasion = lazy(() => import('./pages/admin/AdminEvasion'));
+const AdminRecoveryPlan = lazy(() => import('./pages/admin/AdminRecoveryPlan'));
+const AdminRetention = lazy(() => import('./pages/admin/AdminRetention'));
+const AdminMetricas = lazy(() => import('./pages/admin/AdminMetricas'));
+const AdminLibrary = lazy(() => import('./pages/admin/AdminLibrary'));
+const AdminNews = lazy(() => import('./pages/admin/AdminNews'));
+const AdminPodcasts = lazy(() => import('./pages/admin/AdminPodcasts'));
+const AdminTutor = lazy(() => import('./pages/admin/AdminTutor'));
+const AdminIAs = lazy(() => import('./pages/admin/AdminIAs'));
+const AdminCertificates = lazy(() => import('./pages/admin/AdminCertificates'));
+const AdminAnaliseSupervisao = lazy(() => import('./pages/admin/AdminAnaliseSupervisao'));
+const AdminReengajamento = lazy(() => import('./pages/admin/AdminReengajamento'));
+const AdminLoginModels = lazy(() => import('./pages/admin/AdminLoginModels'));
+const AdminLoginCustomize = lazy(() => import('./pages/admin/AdminLoginCustomize'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+
+function S({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>;
+}
+
+function Protected({ children, role }: { children: ReactNode; role?: 'student' | 'admin' }) {
+  return <ProtectedRoute requireRole={role}>{children}</ProtectedRoute>;
+}
 
 export const router = createBrowserRouter([
   {
@@ -63,70 +77,83 @@ export const router = createBrowserRouter([
     errorElement: <RootError />,
   },
   { path: '/login', element: <Login />, errorElement: <RootError /> },
-  { path: '/esqueci-senha', element: <ForgotPassword />, errorElement: <RootError /> },
-  { path: '/onboarding', element: <Onboarding />, errorElement: <RootError /> },
-  { path: '/termos', element: <Terms />, errorElement: <RootError /> },
-  { path: '/landing', element: <Landing />, errorElement: <RootError /> },
-  { path: '/ava-pco', element: <Landing />, errorElement: <RootError /> },
+  { path: '/esqueci-senha', element: <S><ForgotPassword /></S>, errorElement: <RootError /> },
+  { path: '/onboarding', element: <S><Onboarding /></S>, errorElement: <RootError /> },
+  { path: '/termos', element: <S><Terms /></S>, errorElement: <RootError /> },
+  { path: '/landing', element: <S><Landing /></S>, errorElement: <RootError /> },
+  { path: '/ava-pco', element: <S><Landing /></S>, errorElement: <RootError /> },
 
   {
-    element: <StudentLayout />,
+    element: (
+      <Protected>
+        <StudentLayout />
+      </Protected>
+    ),
     errorElement: <RootError />,
     children: [
-      { path: '/dashboard', element: <Dashboard /> },
-      { path: '/jornada', element: <Jornada /> },
-      { path: '/cursos', element: <Courses /> },
-      { path: '/biblioteca', element: <Library /> },
-      { path: '/news', element: <News /> },
-      { path: '/podcasts', element: <Podcasts /> },
-      { path: '/tutor', element: <Tutor /> },
-      { path: '/certificados', element: <Certificates /> },
-      { path: '/suporte', element: <Support /> },
-      { path: '/perfil', element: <Profile /> },
-      { path: '/analise-supervisao', element: <AnaliseSupervisao /> },
-      { path: '/notificacoes', element: <Notifications /> },
+      { path: '/dashboard', element: <S><Dashboard /></S> },
+      { path: '/jornada', element: <S><Jornada /></S> },
+      { path: '/cursos', element: <S><Courses /></S> },
+      { path: '/biblioteca', element: <S><Library /></S> },
+      { path: '/news', element: <S><News /></S> },
+      { path: '/podcasts', element: <S><Podcasts /></S> },
+      { path: '/podcasts/:id', element: <S><PodcastEpisode /></S> },
+      { path: '/tutor', element: <S><Tutor /></S> },
+      { path: '/certificados', element: <S><Certificates /></S> },
+      { path: '/suporte', element: <S><Support /></S> },
+      { path: '/perfil', element: <S><Profile /></S> },
+      { path: '/analise-supervisao', element: <S><AnaliseSupervisao /></S> },
+      { path: '/notificacoes', element: <S><Notifications /></S> },
     ],
   },
 
   {
-    element: <LearningLayout />,
+    element: (
+      <Protected>
+        <LearningLayout />
+      </Protected>
+    ),
     errorElement: <RootError />,
     children: [
-      { path: '/curso/:courseId', element: <LMSCourse /> },
-      { path: '/curso/:courseId/modulo/:moduleId', element: <LMSModule /> },
-      { path: '/curso/:courseId/aula/:lessonId', element: <LMSLesson /> },
-      { path: '/curso/:courseId/avaliacao/:assessmentId', element: <LMSAssessment /> },
+      { path: '/curso/:courseId', element: <S><LMSCourse /></S> },
+      { path: '/curso/:courseId/modulo/:moduleId', element: <S><LMSModule /></S> },
+      { path: '/curso/:courseId/aula/:lessonId', element: <S><LMSLesson /></S> },
+      { path: '/curso/:courseId/avaliacao/:assessmentId', element: <S><LMSAssessment /></S> },
     ],
   },
 
   {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <Protected role="admin">
+        <AdminLayout />
+      </Protected>
+    ),
     errorElement: <RootError />,
     children: [
       { index: true, element: <Navigate to="/admin/dashboard" replace /> },
-      { path: 'dashboard', element: <AdminDashboard /> },
-      { path: 'cursos', element: <AdminCourses /> },
-      { path: 'cursos/:id', element: <AdminCourseEditor /> },
-      { path: 'modulos', element: <AdminModules /> },
-      { path: 'aulas', element: <AdminLessons /> },
-      { path: 'alunos', element: <AdminUsers /> },
-      { path: 'alunos/:id', element: <AdminUserDetail /> },
-      { path: 'evasao', element: <AdminEvasion /> },
-      { path: 'plano-retomada-ia', element: <AdminRecoveryPlan /> },
-      { path: 'retencao', element: <AdminRetention /> },
-      { path: 'metricas', element: <AdminMetricas /> },
-      { path: 'biblioteca', element: <AdminLibrary /> },
-      { path: 'news', element: <AdminNews /> },
-      { path: 'podcasts', element: <AdminPodcasts /> },
-      { path: 'tutor', element: <AdminTutor /> },
-      { path: 'ias', element: <AdminIAs /> },
-      { path: 'certificados', element: <AdminCertificates /> },
-      { path: 'analise-supervisao', element: <AdminAnaliseSupervisao /> },
-      { path: 'reengajamento', element: <AdminReengajamento /> },
-      { path: 'login-modelos', element: <AdminLoginModels /> },
-      { path: 'login-customizacao', element: <AdminLoginCustomize /> },
-      { path: 'configuracoes', element: <AdminSettings /> },
+      { path: 'dashboard', element: <S><AdminDashboard /></S> },
+      { path: 'cursos', element: <S><AdminCourses /></S> },
+      { path: 'cursos/:id', element: <S><AdminCourseEditor /></S> },
+      { path: 'modulos', element: <S><AdminModules /></S> },
+      { path: 'aulas', element: <S><AdminLessons /></S> },
+      { path: 'alunos', element: <S><AdminUsers /></S> },
+      { path: 'alunos/:id', element: <S><AdminUserDetail /></S> },
+      { path: 'evasao', element: <S><AdminEvasion /></S> },
+      { path: 'plano-retomada-ia', element: <S><AdminRecoveryPlan /></S> },
+      { path: 'retencao', element: <S><AdminRetention /></S> },
+      { path: 'metricas', element: <S><AdminMetricas /></S> },
+      { path: 'biblioteca', element: <S><AdminLibrary /></S> },
+      { path: 'news', element: <S><AdminNews /></S> },
+      { path: 'podcasts', element: <S><AdminPodcasts /></S> },
+      { path: 'tutor', element: <S><AdminTutor /></S> },
+      { path: 'ias', element: <S><AdminIAs /></S> },
+      { path: 'certificados', element: <S><AdminCertificates /></S> },
+      { path: 'analise-supervisao', element: <S><AdminAnaliseSupervisao /></S> },
+      { path: 'reengajamento', element: <S><AdminReengajamento /></S> },
+      { path: 'login-modelos', element: <S><AdminLoginModels /></S> },
+      { path: 'login-customizacao', element: <S><AdminLoginCustomize /></S> },
+      { path: 'configuracoes', element: <S><AdminSettings /></S> },
     ],
   },
 

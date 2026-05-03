@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom';
-import { Bell, Search, Menu } from 'lucide-react';
-import { currentStudent } from '../data/seed';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Bell, Search, Menu, LogOut, UserCircle2, Settings as SettingsIcon } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -8,11 +9,32 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps) {
-  const initials = currentStudent.name
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  const name = user?.name ?? 'Aluno';
+  const initials = name
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
     .join('');
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <header className="sticky top-0 z-30 bg-white/85 backdrop-blur border-b border-surface-gray">
@@ -55,22 +77,69 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-pco-orange ring-2 ring-white" />
         </Link>
 
-        <Link
-          to="/perfil"
-          className="flex items-center gap-2.5 rounded-xl pl-1 pr-3 py-1 hover:bg-surface-gray transition-colors"
-        >
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white shadow-soft">
-            {initials}
-          </div>
-          <div className="hidden sm:block text-left leading-tight">
-            <div className="text-xs font-semibold text-pco-deep truncate max-w-[120px]">
-              {currentStudent.name}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex items-center gap-2.5 rounded-xl pl-1 pr-3 py-1 hover:bg-surface-gray transition-colors"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+          >
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white shadow-soft">
+              {initials}
             </div>
-            <div className="text-[10px] text-ink-subtle">
-              {variant === 'admin' ? 'Admin' : 'Aluno'}
+            <div className="hidden sm:block text-left leading-tight">
+              <div className="text-xs font-semibold text-pco-deep truncate max-w-[120px]">
+                {name}
+              </div>
+              <div className="text-[10px] text-ink-subtle">
+                {variant === 'admin' ? 'Admin' : 'Aluno'}
+              </div>
             </div>
-          </div>
-        </Link>
+          </button>
+
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-56 pco-card p-1 shadow-lift animate-in" role="menu">
+              <div className="px-3 py-2 border-b border-surface-gray mb-1">
+                <div className="text-xs font-semibold text-pco-deep truncate">{name}</div>
+                {user?.email && (
+                  <div className="text-[11px] text-ink-subtle truncate">{user.email}</div>
+                )}
+              </div>
+              <Link
+                to="/perfil"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-ink-muted hover:bg-surface-off hover:text-pco-deep"
+              >
+                <UserCircle2 size={14} strokeWidth={1.75} />
+                Meu perfil
+              </Link>
+              <Link
+                to={variant === 'admin' ? '/admin/configuracoes' : '/perfil'}
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-ink-muted hover:bg-surface-off hover:text-pco-deep"
+              >
+                <SettingsIcon size={14} strokeWidth={1.75} />
+                Configurações
+              </Link>
+              {variant !== 'admin' && user?.role === 'admin' && (
+                <Link
+                  to="/admin/dashboard"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-pco-blue hover:bg-pco-blue/10"
+                >
+                  Acessar área admin
+                </Link>
+              )}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-status-danger hover:bg-status-danger/10"
+              >
+                <LogOut size={14} strokeWidth={1.75} />
+                Sair
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

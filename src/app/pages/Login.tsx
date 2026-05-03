@@ -1,17 +1,34 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
+import { useAuth } from '../auth/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [showPwd, setShowPwd] = useState(false);
   const [email, setEmail] = useState('aluno@pco.local');
   const [pwd, setPwd] = useState('demo1234');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const from = (location.state as { from?: string } | null)?.from ?? '/dashboard';
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/dashboard');
+    setSubmitting(true);
+    setError(null);
+    try {
+      const u = await login(email, pwd);
+      const target = u.role === 'admin' || u.role === 'superadmin' ? '/admin/dashboard' : from;
+      navigate(target, { replace: true });
+    } catch {
+      setError('Não foi possível entrar. Verifique seus dados.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -57,6 +74,13 @@ export default function Login() {
           </p>
 
           <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+            {error && (
+              <div className="rounded-xl border border-status-danger/30 bg-status-danger/5 p-3 flex items-start gap-2 text-xs text-status-danger">
+                <AlertCircle size={14} strokeWidth={1.75} className="shrink-0 mt-0.5" />
+                {error}
+              </div>
+            )}
+
             <div>
               <label htmlFor="email" className="block text-xs font-medium text-ink-muted mb-1.5">
                 E-mail
@@ -69,6 +93,7 @@ export default function Login() {
                 className="pco-input"
                 placeholder="seu@email.com"
                 required
+                autoComplete="email"
               />
             </div>
             <div>
@@ -84,12 +109,13 @@ export default function Login() {
                   className="pco-input pr-11"
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPwd((v) => !v)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center text-ink-subtle hover:text-pco-blue rounded-lg hover:bg-surface-gray"
-                  aria-label="Mostrar senha"
+                  aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}
                 >
                   {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -106,13 +132,19 @@ export default function Login() {
               </Link>
             </div>
 
-            <button type="submit" className="pco-btn-primary w-full">
-              Entrar no AVA PCO
-              <ArrowRight size={16} strokeWidth={2} />
+            <button type="submit" disabled={submitting} className="pco-btn-primary w-full">
+              {submitting ? 'Entrando...' : 'Entrar no AVA PCO'}
+              {!submitting && <ArrowRight size={16} strokeWidth={2} />}
             </button>
           </form>
 
-          <div className="mt-8 text-center text-xs text-ink-muted">
+          <div className="mt-6 rounded-xl bg-surface-gray p-3 text-[11px] text-ink-muted leading-relaxed">
+            <strong className="text-pco-deep">Demo:</strong> qualquer e-mail funciona. Use um
+            e-mail contendo <code className="font-mono text-pco-deep">admin</code> para entrar
+            na área administrativa.
+          </div>
+
+          <div className="mt-6 text-center text-xs text-ink-muted">
             Primeiro acesso?{' '}
             <Link to="/onboarding" className="text-pco-blue hover:underline font-medium">
               Iniciar onboarding
