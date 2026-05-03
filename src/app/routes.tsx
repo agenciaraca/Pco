@@ -17,6 +17,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyCertificate = lazy(() => import('./pages/VerifyCertificate'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Terms = lazy(() => import('./pages/Terms'));
+const Privacidade = lazy(() => import('./pages/Privacidade'));
 const Landing = lazy(() => import('./pages/Landing'));
 
 // Student — lazy
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
   { path: '/verificar/:code', element: <S><VerifyCertificate /></S>, errorElement: <RootError /> },
   { path: '/onboarding', element: <S><Onboarding /></S>, errorElement: <RootError /> },
   { path: '/termos', element: <S><Terms /></S>, errorElement: <RootError /> },
+  { path: '/privacidade', element: <S><Privacidade /></S>, errorElement: <RootError /> },
   { path: '/landing', element: <S><Landing /></S>, errorElement: <RootError /> },
   { path: '/ava-pco', element: <S><Landing /></S>, errorElement: <RootError /> },
 

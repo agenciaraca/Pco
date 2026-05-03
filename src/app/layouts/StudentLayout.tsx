@@ -16,6 +16,7 @@ import {
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import MobileNav from '../components/MobileNav';
+import Footer from '../components/Footer';
 
 const studentGroups = [
   {
@@ -51,6 +52,12 @@ export default function StudentLayout() {
 
   return (
     <div className="flex min-h-screen bg-surface-off">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-2 focus:rounded-lg focus:bg-pco-blue focus:text-white text-xs"
+      >
+        Pular para o conteúdo
+      </a>
       <Sidebar variant="student" />
       <MobileNav
         open={mobileOpen}
@@ -59,9 +66,13 @@ export default function StudentLayout() {
       />
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar variant="student" onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] w-full mx-auto">
+        <main
+          id="main-content"
+          className="flex-1 px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] w-full mx-auto"
+        >
           <Outlet />
         </main>
+        <Footer />
       </div>
     </div>
   );
