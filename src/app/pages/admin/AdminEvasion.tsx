@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { AlertTriangle, ArrowRight, Sparkles } from 'lucide-react';
-import { retentionRisks } from '../../data/seed';
+import { useRetentionRisks } from '../../data/hooks';
+import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import EmptyState, { ErrorState } from '../../components/EmptyState';
 
 const levelStyles: Record<string, string> = {
   critico: 'bg-status-danger/15 text-status-danger',
@@ -10,6 +13,9 @@ const levelStyles: Record<string, string> = {
 };
 
 export default function AdminEvasion() {
+  const [level, setLevel] = useState('todos');
+  const { data, isLoading, isError, refetch } = useRetentionRisks(level);
+
   return (
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
@@ -20,12 +26,16 @@ export default function AdminEvasion() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <select className="pco-input w-auto py-2 text-xs">
-            <option>Todos os níveis</option>
-            <option>Crítico</option>
-            <option>Alto</option>
-            <option>Médio</option>
-            <option>Baixo</option>
+          <select
+            value={level}
+            onChange={(e) => setLevel(e.target.value)}
+            className="pco-input w-auto py-2 text-xs"
+          >
+            <option value="todos">Todos os níveis</option>
+            <option value="critico">Crítico</option>
+            <option value="alto">Alto</option>
+            <option value="medio">Médio</option>
+            <option value="baixo">Baixo</option>
           </select>
           <Link to="/admin/plano-retomada-ia" className="pco-btn-primary text-xs">
             <Sparkles size={12} strokeWidth={2} />
@@ -34,6 +44,19 @@ export default function AdminEvasion() {
         </div>
       </header>
 
+      {isLoading ? (
+        <CardListSkeleton count={4} />
+      ) : isError ? (
+        <ErrorState
+          action={
+            <button onClick={() => refetch()} className="pco-btn-secondary text-xs">
+              Tentar novamente
+            </button>
+          }
+        />
+      ) : !data || data.length === 0 ? (
+        <EmptyState title="Nenhum risco no filtro atual" />
+      ) : (
       <div className="pco-card p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -49,7 +72,7 @@ export default function AdminEvasion() {
               </tr>
             </thead>
             <tbody>
-              {retentionRisks.map((r) => {
+              {data.map((r) => {
                 const initials = r.studentName
                   .split(' ')
                   .map((n) => n[0])
@@ -141,10 +164,11 @@ export default function AdminEvasion() {
           </table>
         </div>
       </div>
+      )}
 
       <div className="text-[11px] text-ink-subtle">
-        Score 0–100 mockado. Ao integrar dados reais, a previsão usará histórico de acesso,
-        progresso esperado vs real, avaliações pendentes e uso de Tutor/POD/Biblioteca.
+        Score calculado a partir de inatividade, progresso esperado vs real, avaliações pendentes
+        e uso de Tutor/POD/Biblioteca.
       </div>
     </div>
   );

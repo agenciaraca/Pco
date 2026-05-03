@@ -19,7 +19,8 @@ import {
   Calendar,
 } from 'lucide-react';
 import Tabs from '../../components/Tabs';
-import { adminStudents, courses, retentionRisks, certificates } from '../../data/seed';
+import { useAdminStudents, useCourses, useRetentionRisks, useAllCertificates } from '../../data/hooks';
+import { CardListSkeleton } from '../../components/LoadingSkeleton';
 
 const statusStyles: Record<string, string> = {
   ativo: 'bg-status-success/10 text-status-success',
@@ -36,10 +37,22 @@ const statusLabel: Record<string, string> = {
 
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
-  const student = adminStudents.find((s) => s.id === id);
   const [active, setActive] = useState('geral');
+  const studentsQ = useAdminStudents({ status: 'todos', sortBy: 'name' });
+  const coursesQ = useCourses();
+  const risksQ = useRetentionRisks();
+  const certsQ = useAllCertificates();
 
+  if (studentsQ.isLoading || coursesQ.isLoading) {
+    return <CardListSkeleton count={4} />;
+  }
+
+  const student = (studentsQ.data ?? []).find((s) => s.id === id);
   if (!student) return <Navigate to="/admin/alunos" replace />;
+
+  const courses = coursesQ.data ?? [];
+  const retentionRisks = risksQ.data ?? [];
+  const certificates = (certsQ.data ?? []).filter((c) => c.studentId === student.id);
 
   const initials = student.name
     .split(' ')
@@ -47,7 +60,7 @@ export default function AdminUserDetail() {
     .slice(0, 2)
     .join('');
   const enrolled = student.enrolledCourseIds
-    .map((cid) => courses.find((c) => c.id === cid))
+    .map((cid: string) => courses.find((c) => c.id === cid))
     .filter(Boolean) as (typeof courses)[number][];
   const risk = retentionRisks.find((r) => r.studentId === student.id);
 

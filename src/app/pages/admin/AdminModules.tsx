@@ -9,7 +9,8 @@ import {
   Edit3,
   ArrowRight,
 } from 'lucide-react';
-import { courses } from '../../data/seed';
+import { useCourses } from '../../data/hooks';
+import { CardListSkeleton } from '../../components/LoadingSkeleton';
 
 const statusStyles: Record<string, string> = {
   completed: 'bg-status-success/10 text-status-success',
@@ -27,14 +28,19 @@ const statusLabel: Record<string, string> = {
 export default function AdminModules() {
   const [courseFilter, setCourseFilter] = useState<string>('todos');
   const [search, setSearch] = useState('');
+  const { data: courses, isLoading } = useCourses();
 
-  const allModules = useMemo(
-    () =>
-      courses.flatMap((c) =>
-        c.modules.map((m) => ({ ...m, courseTitle: c.title, courseShortTitle: c.shortTitle, courseColor: c.coverColor })),
-      ),
-    [],
-  );
+  const allModules = useMemo(() => {
+    if (!courses) return [];
+    return courses.flatMap((c) =>
+      c.modules.map((m) => ({
+        ...m,
+        courseTitle: c.title,
+        courseShortTitle: c.shortTitle,
+        courseColor: c.coverColor,
+      })),
+    );
+  }, [courses]);
 
   const filtered = useMemo(() => {
     let list = [...allModules];
@@ -85,7 +91,7 @@ export default function AdminModules() {
           className="pco-input w-auto"
         >
           <option value="todos">Todos os cursos</option>
-          {courses.map((c) => (
+          {(courses ?? []).map((c) => (
             <option key={c.id} value={c.id}>
               {c.title}
             </option>
@@ -96,9 +102,12 @@ export default function AdminModules() {
         </span>
       </div>
 
+      {isLoading ? (
+        <CardListSkeleton count={4} />
+      ) : (
       <div className="pco-card p-0 overflow-hidden">
         <ul className="divide-y divide-surface-gray">
-          {filtered.map((m, i) => (
+          {filtered.map((m) => (
             <li key={m.id} className="flex items-center gap-3 p-4 hover:bg-surface-off">
               <button className="text-ink-subtle hover:text-pco-deep cursor-grab">
                 <GripVertical size={14} strokeWidth={1.75} />
@@ -146,6 +155,7 @@ export default function AdminModules() {
           )}
         </ul>
       </div>
+      )}
 
       <div className="text-[11px] text-ink-subtle">
         A edição completa de cada módulo (aulas, materiais, avaliação, regras) é feita dentro

@@ -301,6 +301,30 @@ export async function fetchCertificates(): Promise<Certificate[]> {
   return http.get<Certificate[]>('/certificates');
 }
 
+export async function fetchAllCertificates(): Promise<Certificate[]> {
+  return http.get<Certificate[]>('/admin/certificates');
+}
+
+export async function validateCertificate(
+  code: string,
+): Promise<{ valid: boolean; certificate?: Certificate }> {
+  try {
+    return await http.get<{ valid: boolean; certificate?: Certificate }>(
+      `/certificates/validate/${encodeURIComponent(code)}`,
+    );
+  } catch {
+    return { valid: false };
+  }
+}
+
+export async function issueCertificate(studentId: string, courseId: string): Promise<Certificate> {
+  return http.post<Certificate>('/admin/certificates', { studentId, courseId });
+}
+
+export async function revokeCertificate(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/certificates/${encodeURIComponent(id)}`);
+}
+
 // ---------- Retention ----------
 
 export async function fetchRetentionRisks(level?: string): Promise<RetentionRisk[]> {

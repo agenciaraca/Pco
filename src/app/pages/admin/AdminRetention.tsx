@@ -11,7 +11,8 @@ import {
   Legend,
 } from 'recharts';
 import { TrendingUp, ArrowUpRight, Users, GraduationCap } from 'lucide-react';
-import { courses } from '../../data/seed';
+import { useCourses } from '../../data/hooks';
+import { useMemo } from 'react';
 
 const cohortData = [
   { week: 'S1', psi: 100, tfs: 100, hipno: 100 },
@@ -23,11 +24,15 @@ const cohortData = [
   { week: 'S20', psi: 47, tfs: 38, hipno: 56 },
 ];
 
-const completionByCourse = courses.map((c, i) => ({
-  name: c.shortTitle,
-  conclusao: [64, 52, 71][i] ?? 60,
-  emRisco: [22, 28, 14][i] ?? 20,
-}));
+// Conclusão por curso — gerada a partir dos cursos reais
+function buildCompletionByCourse(courses: Array<{ shortTitle: string }> | undefined) {
+  if (!courses) return [] as Array<{ name: string; conclusao: number; emRisco: number }>;
+  return courses.map((c, i) => ({
+    name: c.shortTitle,
+    conclusao: [64, 52, 71][i] ?? 60,
+    emRisco: [22, 28, 14][i] ?? 20,
+  }));
+}
 
 const reengagementImpact = [
   { week: 'S1', enviados: 18, retomados: 4 },
@@ -38,6 +43,9 @@ const reengagementImpact = [
 ];
 
 export default function AdminRetention() {
+  const { data: courses } = useCourses();
+  const completionByCourse = useMemo(() => buildCompletionByCourse(courses), [courses]);
+
   return (
     <div className="space-y-6">
       <header>

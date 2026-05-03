@@ -12,8 +12,7 @@ import {
   ArrowDownRight,
   ArrowRight,
 } from 'lucide-react';
-import { retentionRisks } from '../../data/seed';
-import { useHealth } from '../../data/hooks';
+import { useHealth, useRetentionRisks } from '../../data/hooks';
 import { Cpu, HardDrive, AlertOctagon, Clock } from 'lucide-react';
 
 function formatUptime(sec: number): string {
@@ -88,6 +87,8 @@ const colorMap: Record<string, { bg: string; text: string }> = {
 };
 
 export default function AdminDashboard() {
+  const { data: retentionRisks = [] } = useRetentionRisks();
+
   return (
     <div className="space-y-6">
       <header>

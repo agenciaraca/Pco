@@ -80,6 +80,34 @@ export function useCertificates() {
   });
 }
 
+const allCertsKey = ['admin', 'certificates'] as const;
+export function useAllCertificates() {
+  return useQuery({ queryKey: allCertsKey, queryFn: api.fetchAllCertificates });
+}
+
+export function useIssueCertificate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ studentId, courseId }: { studentId: string; courseId: string }) =>
+      api.issueCertificate(studentId, courseId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: allCertsKey });
+      qc.invalidateQueries({ queryKey: queryKeys.certificates });
+    },
+  });
+}
+
+export function useRevokeCertificate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.revokeCertificate,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: allCertsKey });
+      qc.invalidateQueries({ queryKey: queryKeys.certificates });
+    },
+  });
+}
+
 export function useRetentionRisks(level?: string) {
   return useQuery({
     queryKey: queryKeys.retentionRisks(level),

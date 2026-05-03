@@ -326,6 +326,43 @@ export function buildApp() {
     c.json(await certsRepo.listCertificatesForStudent(currentStudent.id)),
   );
 
+  // Admin: lista todos
+  app.get('/admin/certificates', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await certsRepo.listAllCertificates()),
+  );
+
+  // Validação pública (sem auth) — usada por terceiros que recebem o link
+  app.get('/certificates/validate/:code', async (c) => {
+    const code = c.req.param('code') as string;
+    const cert = await certsRepo.findByValidationCode(code);
+    if (!cert) return c.json({ valid: false }, 404);
+    return c.json({ valid: true, certificate: cert });
+  });
+
+  // Admin: emite certificado manualmente
+  app.post(
+    '/admin/certificates',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const studentId = typeof body.studentId === 'string' ? body.studentId : '';
+      const courseId = typeof body.courseId === 'string' ? body.courseId : '';
+      if (!studentId || !courseId) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'studentId e courseId são obrigatórios.');
+      }
+      const cert = await certsRepo.issueCertificate({ studentId, courseId });
+      return c.json(cert, 201);
+    },
+  );
+
+  // Admin: revoga
+  app.delete('/admin/certificates/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const ok = await certsRepo.deleteCertificate(id);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Certificado não encontrado.');
+    return c.json({ ok: true });
+  });
+
   // ---------- Retention ----------
 
   app.get('/retention/risks', async (c) =>

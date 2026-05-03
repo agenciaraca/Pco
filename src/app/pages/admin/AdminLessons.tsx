@@ -9,35 +9,36 @@ import {
   Circle,
   Edit3,
 } from 'lucide-react';
-import { courses } from '../../data/seed';
+import { useCourses } from '../../data/hooks';
+import { CardListSkeleton } from '../../components/LoadingSkeleton';
 
 export default function AdminLessons() {
   const [courseFilter, setCourseFilter] = useState<string>('todos');
   const [moduleFilter, setModuleFilter] = useState<string>('todos');
   const [mandatoryOnly, setMandatoryOnly] = useState(false);
   const [search, setSearch] = useState('');
+  const { data: courses, isLoading } = useCourses();
 
-  const allLessons = useMemo(
-    () =>
-      courses.flatMap((c) =>
-        c.modules.flatMap((m) =>
-          m.lessons.map((l) => ({
-            ...l,
-            courseTitle: c.title,
-            courseShortTitle: c.shortTitle,
-            courseColor: c.coverColor,
-            moduleTitle: m.title,
-            moduleOrder: m.order,
-          })),
-        ),
+  const allLessons = useMemo(() => {
+    if (!courses) return [];
+    return courses.flatMap((c) =>
+      c.modules.flatMap((m) =>
+        m.lessons.map((l) => ({
+          ...l,
+          courseTitle: c.title,
+          courseShortTitle: c.shortTitle,
+          courseColor: c.coverColor,
+          moduleTitle: m.title,
+          moduleOrder: m.order,
+        })),
       ),
-    [],
-  );
+    );
+  }, [courses]);
 
   const availableModules = useMemo(() => {
-    if (courseFilter === 'todos') return [];
+    if (courseFilter === 'todos' || !courses) return [];
     return courses.find((c) => c.id === courseFilter)?.modules ?? [];
-  }, [courseFilter]);
+  }, [courseFilter, courses]);
 
   const filtered = useMemo(() => {
     let list = [...allLessons];
@@ -89,7 +90,7 @@ export default function AdminLessons() {
           className="pco-input w-auto"
         >
           <option value="todos">Todos os cursos</option>
-          {courses.map((c) => (
+          {(courses ?? []).map((c) => (
             <option key={c.id} value={c.id}>
               {c.title}
             </option>
