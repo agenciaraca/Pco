@@ -12,6 +12,7 @@ import {
   ArrowUpDown,
 } from 'lucide-react';
 import { useAdminStudents, useCourses } from '../../data/hooks';
+import type { StudentsFilter } from '../../../../shared/schemas';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
@@ -34,9 +35,10 @@ const statusLabel: Record<AdminStudentRow['status'], string> = {
 export default function AdminUsers() {
   const toast = useToast();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('todos');
+  const [statusFilter, setStatusFilter] =
+    useState<NonNullable<StudentsFilter['status']>>('todos');
   const [courseFilter, setCourseFilter] = useState<string>('todos');
-  const [sortBy, setSortBy] = useState<'name' | 'risk' | 'lastAccess'>('name');
+  const [sortBy, setSortBy] = useState<NonNullable<StudentsFilter['sortBy']>>('name');
 
   const { data: courses } = useCourses();
   const studentsQ = useAdminStudents({
@@ -109,7 +111,9 @@ export default function AdminUsers() {
           </div>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as NonNullable<StudentsFilter['status']>)
+            }
             className="pco-input w-auto"
           >
             <option value="todos">Todos os status</option>

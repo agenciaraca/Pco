@@ -1,25 +1,7 @@
-// Camada de API mockada — espelha o contrato REST que o backend real exporá.
-// Cada função retorna Promise para o consumidor poder usar TanStack Query
-// uniformemente. Quando o backend existir, basta trocar o corpo das funções
-// por fetch/axios para o endpoint real, mantendo a mesma assinatura.
+// Camada de API — chama o backend Hono em /api via fetch.
+// Os tipos voltam dos schemas/Zod compartilhados em shared/.
 
-import {
-  courses,
-  newsArticles,
-  podcasts,
-  libraryItems,
-  certificates,
-  retentionRisks,
-  professionals,
-  sessionServices,
-  seoTimeseries,
-  keywords,
-  aiConfigurations,
-  supportTickets,
-  adminStudents,
-  currentStudent,
-  type AdminStudentRow,
-} from './seed';
+import { http } from './client';
 import type {
   Course,
   Student,
@@ -34,60 +16,60 @@ import type {
   KeywordMetric,
   AiConfiguration,
   SupportTicket,
-  RecoveryPlan,
 } from '../types/schema';
+import type {
+  CreateSupportTicketInput,
+  RecoveryPlanInput,
+  StudentsFilter,
+} from '../../../shared/schemas';
+import type { AdminStudentRow } from './seed';
 
-const NETWORK_DELAY = 350;
-const FAILURE_RATE = 0; // 0..1 — coloque 0.05 para simular falhas eventuais em dev
+// ---------- Auth ----------
 
-function delay<T>(value: T, ms = NETWORK_DELAY): Promise<T> {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (Math.random() < FAILURE_RATE) {
-        reject(new Error('Falha de rede simulada'));
-      } else {
-        resolve(value);
-      }
-    }, ms);
+export interface AuthUserDto {
+  id: string;
+  name: string;
+  email: string;
+  role: 'student' | 'admin' | 'superadmin';
+}
+
+export async function login(email: string, password: string) {
+  return http.post<{ user: AuthUserDto; token: string }>('/auth/login', {
+    email,
+    password,
   });
 }
 
-function clone<T>(v: T): T {
-  return typeof structuredClone !== 'undefined'
-    ? structuredClone(v)
-    : (JSON.parse(JSON.stringify(v)) as T);
-}
-
-// ---------- Auth / current user ----------
-
 export async function fetchCurrentStudent(): Promise<Student> {
-  return delay(clone(currentStudent));
+  return http.get<Student>('/auth/me');
 }
 
 // ---------- Courses ----------
 
 export async function fetchCourses(): Promise<Course[]> {
-  return delay(clone(courses));
+  return http.get<Course[]>('/courses');
 }
 
 export async function fetchCourse(id: string): Promise<Course | null> {
-  return delay(clone(courses.find((c) => c.id === id) ?? null));
+  return http.get<Course>(`/courses/${encodeURIComponent(id)}`).catch(() => null);
 }
 
 // ---------- News ----------
 
 export async function fetchNews(): Promise<NewsArticle[]> {
-  return delay(clone(newsArticles));
+  return http.get<NewsArticle[]>('/news');
 }
 
 // ---------- Podcasts ----------
 
 export async function fetchPodcasts(): Promise<PodcastEpisode[]> {
-  return delay(clone(podcasts));
+  return http.get<PodcastEpisode[]>('/podcasts');
 }
 
 export async function fetchPodcastEpisode(id: string): Promise<PodcastEpisode | null> {
-  return delay(clone(podcasts.find((p) => p.id === id) ?? null));
+  return http
+    .get<PodcastEpisode>(`/podcasts/${encodeURIComponent(id)}`)
+    .catch(() => null);
 }
 
 // ---------- Library ----------
@@ -97,141 +79,101 @@ export async function fetchLibrary(filters?: {
   courseId?: string;
   mandatoryOnly?: boolean;
 }): Promise<LibraryItem[]> {
-  let list = libraryItems;
-  if (filters?.type) list = list.filter((i) => i.type === filters.type);
-  if (filters?.courseId)
-    list = list.filter((i) => i.relatedCourseIds?.includes(filters.courseId!));
-  if (filters?.mandatoryOnly) list = list.filter((i) => i.mandatory);
-  return delay(clone(list));
+  return http.get<LibraryItem[]>('/library', {
+    query: {
+      type: filters?.type,
+      courseId: filters?.courseId,
+      mandatoryOnly: filters?.mandatoryOnly,
+    },
+  });
 }
 
 // ---------- Certificates ----------
 
 export async function fetchCertificates(): Promise<Certificate[]> {
-  return delay(clone(certificates));
+  return http.get<Certificate[]>('/certificates');
 }
 
-// ---------- Retention / risks ----------
+// ---------- Retention ----------
 
 export async function fetchRetentionRisks(level?: string): Promise<RetentionRisk[]> {
-  let list = retentionRisks;
-  if (level && level !== 'todos') list = list.filter((r) => r.level === level);
-  return delay(clone(list));
+  return http.get<RetentionRisk[]>('/retention/risks', {
+    query: { level },
+  });
 }
 
-// ---------- Sessions / professionals ----------
+// ---------- Sessions ----------
 
 export async function fetchProfessionals(): Promise<Professional[]> {
-  return delay(clone(professionals));
+  return http.get<Professional[]>('/sessions/professionals');
 }
 
 export async function fetchSessionServices(): Promise<SessionService[]> {
-  return delay(clone(sessionServices));
+  return http.get<SessionService[]>('/sessions/services');
 }
 
-// ---------- Metrics (SEO) ----------
+// ---------- SEO / Metrics ----------
 
-export async function fetchSeoTimeseries(_range = '30d'): Promise<SeoMetric[]> {
-  return delay(clone(seoTimeseries));
+export async function fetchSeoTimeseries(range = '30d'): Promise<SeoMetric[]> {
+  return http.get<SeoMetric[]>('/metrics/seo/timeseries', {
+    query: { range },
+  });
 }
 
 export async function fetchKeywords(): Promise<KeywordMetric[]> {
-  return delay(clone(keywords));
+  return http.get<KeywordMetric[]>('/metrics/seo/keywords');
 }
 
-// ---------- AI configurations ----------
+// ---------- AI ----------
 
 export async function fetchAiConfigurations(): Promise<AiConfiguration[]> {
-  return delay(clone(aiConfigurations));
+  return http.get<AiConfiguration[]>('/ai/configurations');
+}
+
+export async function askTutor(
+  message: string,
+): Promise<{ message: string; usage?: { inputTokens?: number; outputTokens?: number } | null }> {
+  return http.post('/ai/tutor', { message });
 }
 
 // ---------- Support ----------
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
-  return delay(clone(supportTickets));
+  return http.get<SupportTicket[]>('/support/tickets');
 }
 
-export async function createSupportTicket(input: {
-  subject: string;
-  category: SupportTicket['category'];
-  message: string;
-}): Promise<SupportTicket> {
-  const ticket: SupportTicket = {
-    id: `t-${Date.now()}`,
-    studentId: currentStudent.id,
-    subject: input.subject,
-    category: input.category,
-    status: 'open',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    message: input.message,
-  };
-  return delay(ticket, 600);
+export async function createSupportTicket(
+  input: CreateSupportTicketInput,
+): Promise<SupportTicket> {
+  return http.post<SupportTicket>('/support/tickets', input);
 }
 
 // ---------- Admin students ----------
 
-export interface StudentsFilter {
-  search?: string;
-  status?: string;
-  courseId?: string;
-  sortBy?: 'name' | 'risk' | 'lastAccess';
-}
+export type { StudentsFilter };
 
 export async function fetchAdminStudents(
   filters: StudentsFilter = {},
 ): Promise<AdminStudentRow[]> {
-  let list = [...adminStudents];
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    list = list.filter(
-      (s) => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q),
-    );
-  }
-  if (filters.status && filters.status !== 'todos')
-    list = list.filter((s) => s.status === filters.status);
-  if (filters.courseId && filters.courseId !== 'todos')
-    list = list.filter((s) => s.enrolledCourseIds.includes(filters.courseId!));
-  list.sort((a, b) => {
-    if (filters.sortBy === 'risk') return b.riskScore - a.riskScore;
-    if (filters.sortBy === 'lastAccess')
-      return new Date(b.lastAccessAt).getTime() - new Date(a.lastAccessAt).getTime();
-    return a.name.localeCompare(b.name);
+  return http.get<AdminStudentRow[]>('/admin/students', {
+    query: {
+      search: filters.search,
+      status: filters.status,
+      courseId: filters.courseId,
+      sortBy: filters.sortBy,
+    },
   });
-  return delay(clone(list));
 }
 
 export async function fetchAdminStudent(id: string): Promise<AdminStudentRow | null> {
-  return delay(clone(adminStudents.find((s) => s.id === id) ?? null));
+  return http.get<AdminStudentRow>(`/admin/students/${encodeURIComponent(id)}`).catch(() => null);
 }
 
 // ---------- Recovery plans ----------
 
-export async function generateRecoveryPlan(input: {
-  studentId: string;
-  tone: 'acolhedor' | 'direto' | 'motivacional';
-  channel: 'email' | 'whatsapp' | 'in_app';
-  intensity: 'leve' | 'media' | 'intensa';
-  goal: string;
-  includeTutor: boolean;
-  includePod: boolean;
-  includeLibrary: boolean;
-}): Promise<{ message: string; plan: Partial<RecoveryPlan> }> {
-  const message = `Plano gerado (mock) com tom ${input.tone}, canal ${input.channel}, intensidade ${input.intensity}.`;
-  return delay(
-    {
-      message,
-      plan: {
-        studentId: input.studentId,
-        tone: input.tone,
-        channel: input.channel,
-        intensity: input.intensity,
-        goal: input.goal,
-        message,
-        weeklyGoalMinutes: 120,
-        status: 'draft',
-      },
-    },
-    900,
-  );
+export async function generateRecoveryPlan(input: RecoveryPlanInput): Promise<{
+  message: string;
+  plan: Record<string, unknown>;
+}> {
+  return http.post('/admin/recovery-plan', input);
 }

@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { Role } from '../types/schema';
+import * as api from '../data/api';
 
 interface AuthUser {
   id: string;
@@ -24,6 +25,26 @@ interface AuthContextValue {
 
 const STORAGE_KEY = 'ava-pco-auth';
 
+interface StoredSession {
+  user: AuthUser;
+  token: string;
+}
+
+function readSession(): StoredSession | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as StoredSession;
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(session: StoredSession | null) {
+  if (session) localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  else localStorage.removeItem(STORAGE_KEY);
+}
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -31,31 +52,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setUser(JSON.parse(raw));
-    } catch {
-      // ignore
-    }
+    const session = readSession();
+    if (session?.user) setUser(session.user);
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (email: string, _password: string) => {
-    // Mock: anything works. Email containing "admin" gets admin role.
-    const isAdmin = email.toLowerCase().includes('admin');
-    const u: AuthUser = {
-      id: isAdmin ? 'admin-001' : 'stu-001',
-      name: isAdmin ? 'Admin Demo' : 'Aluno Demo',
-      email,
-      role: isAdmin ? 'admin' : 'student',
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    setUser(u);
-    return u;
+  const login = useCallback(async (email: string, password: string) => {
+    const { user: u, token } = await api.login(email, password);
+    const stored: StoredSession = { user: u as AuthUser, token };
+    writeSession(stored);
+    setUser(u as AuthUser);
+    return u as AuthUser;
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    writeSession(null);
     setUser(null);
   }, []);
 

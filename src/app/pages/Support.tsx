@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { LifeBuoy, MessageSquare, Send } from 'lucide-react';
 import { useSupportTickets, useCreateSupportTicket } from '../data/hooks';
 import { useToast } from '../components/Toast';
 import { TableSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
-import type { SupportTicket } from '../types/schema';
+import {
+  createSupportTicketSchema,
+  type CreateSupportTicketInput,
+} from '../../../shared/schemas';
 
-const categories = [
+const categories: { id: CreateSupportTicketInput['category']; label: string }[] = [
   { id: 'duvida_aula', label: 'Dúvida sobre aula' },
   { id: 'acesso', label: 'Acesso' },
   { id: 'certificado', label: 'Certificado' },
@@ -19,19 +23,27 @@ export default function Support() {
   const ticketsQ = useSupportTickets();
   const createTicket = useCreateSupportTicket();
   const toast = useToast();
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [category, setCategory] = useState<SupportTicket['category']>('duvida_aula');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateSupportTicketInput>({
+    resolver: zodResolver(createSupportTicketSchema),
+    defaultValues: { category: 'duvida_aula', subject: '', message: '' },
+  });
+
+  const onSubmit = async (data: CreateSupportTicketInput) => {
     try {
-      await createTicket.mutateAsync({ subject, category, message });
+      await createTicket.mutateAsync(data);
       toast.success('Solicitação enviada', 'Você receberá uma resposta em breve.');
-      setSubject('');
-      setMessage('');
-    } catch {
-      toast.error('Não foi possível enviar', 'Tente novamente em alguns instantes.');
+      reset();
+    } catch (err) {
+      toast.error(
+        'Não foi possível enviar',
+        err instanceof Error ? err.message : 'Tente novamente em alguns instantes.',
+      );
     }
   };
 
@@ -61,50 +73,61 @@ export default function Support() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <form onSubmit={handleSubmit} className="pco-card space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="pco-card space-y-4">
           <h3 className="text-base font-semibold text-pco-deep">Abrir solicitação</h3>
+
           <div>
-            <label className="block text-xs font-medium text-ink-muted mb-1.5">Categoria</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as SupportTicket['category'])}
-              className="pco-input"
-            >
+            <label htmlFor="category" className="block text-xs font-medium text-ink-muted mb-1.5">
+              Categoria
+            </label>
+            <select id="category" {...register('category')} className="pco-input">
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
                 </option>
               ))}
             </select>
+            {errors.category && (
+              <p className="mt-1 text-xs text-status-danger">{errors.category.message}</p>
+            )}
           </div>
+
           <div>
-            <label className="block text-xs font-medium text-ink-muted mb-1.5">Assunto</label>
+            <label htmlFor="subject" className="block text-xs font-medium text-ink-muted mb-1.5">
+              Assunto
+            </label>
             <input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="pco-input"
-              required
+              id="subject"
+              {...register('subject')}
+              className={`pco-input ${errors.subject ? 'border-status-danger' : ''}`}
               placeholder="Resumo do seu problema"
+              aria-invalid={!!errors.subject}
             />
+            {errors.subject && (
+              <p className="mt-1 text-xs text-status-danger">{errors.subject.message}</p>
+            )}
           </div>
+
           <div>
-            <label className="block text-xs font-medium text-ink-muted mb-1.5">Descrição</label>
+            <label htmlFor="message" className="block text-xs font-medium text-ink-muted mb-1.5">
+              Descrição
+            </label>
             <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              id="message"
               rows={5}
-              className="pco-input resize-none"
-              required
+              {...register('message')}
+              className={`pco-input resize-none ${errors.message ? 'border-status-danger' : ''}`}
               placeholder="Conte com detalhes o que está acontecendo..."
+              aria-invalid={!!errors.message}
             />
+            {errors.message && (
+              <p className="mt-1 text-xs text-status-danger">{errors.message.message}</p>
+            )}
           </div>
-          <button
-            type="submit"
-            disabled={createTicket.isPending}
-            className="pco-btn-primary"
-          >
+
+          <button type="submit" disabled={isSubmitting} className="pco-btn-primary">
             <Send size={14} strokeWidth={2} />
-            {createTicket.isPending ? 'Enviando...' : 'Enviar solicitação'}
+            {isSubmitting ? 'Enviando...' : 'Enviar solicitação'}
           </button>
         </form>
 

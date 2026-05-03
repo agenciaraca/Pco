@@ -1,33 +1,40 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../auth/AuthContext';
+import { loginSchema, type LoginInput } from '../../../shared/schemas';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
   const [showPwd, setShowPwd] = useState(false);
-  const [email, setEmail] = useState('aluno@pco.local');
-  const [pwd, setPwd] = useState('demo1234');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [topError, setTopError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: 'aluno@pco.local', password: 'demo1234', remember: false },
+  });
 
   const from = (location.state as { from?: string } | null)?.from ?? '/dashboard';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
+  const onSubmit = async (data: LoginInput) => {
+    setTopError(null);
     try {
-      const u = await login(email, pwd);
+      const u = await login(data.email, data.password);
       const target = u.role === 'admin' || u.role === 'superadmin' ? '/admin/dashboard' : from;
       navigate(target, { replace: true });
-    } catch {
-      setError('Não foi possível entrar. Verifique seus dados.');
-    } finally {
-      setSubmitting(false);
+    } catch (err) {
+      setTopError(
+        err instanceof Error ? err.message : 'Não foi possível entrar. Verifique seus dados.',
+      );
     }
   };
 
@@ -56,9 +63,13 @@ export default function Login() {
           <div className="flex flex-wrap gap-2 text-xs text-white/70">
             <span>© AVA PCO</span>
             <span className="opacity-50">•</span>
-            <Link to="/termos" className="hover:text-white">Termos</Link>
+            <Link to="/termos" className="hover:text-white">
+              Termos
+            </Link>
             <span className="opacity-50">•</span>
-            <Link to="/landing" className="hover:text-white">Sobre o AVA</Link>
+            <Link to="/landing" className="hover:text-white">
+              Sobre o AVA
+            </Link>
           </div>
         </div>
       </section>
@@ -73,43 +84,40 @@ export default function Login() {
             Bem-vindo de volta. Continue de onde parou.
           </p>
 
-          <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-            {error && (
-              <div className="rounded-xl border border-status-danger/30 bg-status-danger/5 p-3 flex items-start gap-2 text-xs text-status-danger">
+          <form className="mt-8 space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+            {topError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-status-danger/30 bg-status-danger/5 p-3 flex items-start gap-2 text-xs text-status-danger"
+              >
                 <AlertCircle size={14} strokeWidth={1.75} className="shrink-0 mt-0.5" />
-                {error}
+                {topError}
               </div>
             )}
 
+            <Field
+              id="email"
+              label="E-mail"
+              error={errors.email?.message}
+              type="email"
+              autoComplete="email"
+              {...register('email')}
+            />
+
             <div>
-              <label htmlFor="email" className="block text-xs font-medium text-ink-muted mb-1.5">
-                E-mail
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pco-input"
-                placeholder="seu@email.com"
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <label htmlFor="pwd" className="block text-xs font-medium text-ink-muted mb-1.5">
+              <label htmlFor="password" className="block text-xs font-medium text-ink-muted mb-1.5">
                 Senha
               </label>
               <div className="relative">
                 <input
-                  id="pwd"
+                  id="password"
                   type={showPwd ? 'text' : 'password'}
-                  value={pwd}
-                  onChange={(e) => setPwd(e.target.value)}
-                  className="pco-input pr-11"
-                  placeholder="••••••••"
-                  required
                   autoComplete="current-password"
+                  className={`pco-input pr-11 ${errors.password ? 'border-status-danger focus:border-status-danger' : ''}`}
+                  placeholder="••••••••"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
+                  {...register('password')}
                 />
                 <button
                   type="button"
@@ -120,11 +128,20 @@ export default function Login() {
                   {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {errors.password && (
+                <p id="password-error" className="mt-1 text-xs text-status-danger">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-between text-xs">
               <label className="inline-flex items-center gap-2 text-ink-muted">
-                <input type="checkbox" className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue" />
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
+                  {...register('remember')}
+                />
                 Lembrar de mim
               </label>
               <Link to="/esqueci-senha" className="text-pco-blue hover:underline font-medium">
@@ -132,9 +149,9 @@ export default function Login() {
               </Link>
             </div>
 
-            <button type="submit" disabled={submitting} className="pco-btn-primary w-full">
-              {submitting ? 'Entrando...' : 'Entrar no AVA PCO'}
-              {!submitting && <ArrowRight size={16} strokeWidth={2} />}
+            <button type="submit" disabled={isSubmitting} className="pco-btn-primary w-full">
+              {isSubmitting ? 'Entrando...' : 'Entrar no AVA PCO'}
+              {!isSubmitting && <ArrowRight size={16} strokeWidth={2} />}
             </button>
           </form>
 
@@ -155,3 +172,29 @@ export default function Login() {
     </div>
   );
 }
+
+interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  id: string;
+  label: string;
+  error?: string;
+}
+
+const Field = ({ id, label, error, ...rest }: FieldProps) => (
+  <div>
+    <label htmlFor={id} className="block text-xs font-medium text-ink-muted mb-1.5">
+      {label}
+    </label>
+    <input
+      id={id}
+      className={`pco-input ${error ? 'border-status-danger focus:border-status-danger' : ''}`}
+      aria-invalid={!!error}
+      aria-describedby={error ? `${id}-error` : undefined}
+      {...rest}
+    />
+    {error && (
+      <p id={`${id}-error`} className="mt-1 text-xs text-status-danger">
+        {error}
+      </p>
+    )}
+  </div>
+);
