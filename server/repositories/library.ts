@@ -1,6 +1,7 @@
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
-import { libraryItems as seed } from '../../src/app/data/seed';
+import { JsonStore } from '../db/json-store';
+import { libraryItems as defaults } from '../../src/app/data/seed';
 import type { LibraryItem } from '../../src/app/types/schema';
 import type { CreateLibraryInput, UpdateLibraryInput } from '../../shared/schemas';
 
@@ -9,6 +10,14 @@ interface Filter {
   courseId?: string;
   mandatoryOnly?: boolean;
 }
+
+const store = new JsonStore<LibraryItem>('library.json', () =>
+  defaults.map((d) => ({
+    ...d,
+    relatedCourseIds: [...(d.relatedCourseIds ?? [])],
+    relatedModuleIds: [...(d.relatedModuleIds ?? [])],
+  })),
+);
 
 function rowToItem(r: typeof schema.libraryItems.$inferSelect): LibraryItem {
   return {
@@ -24,22 +33,24 @@ function rowToItem(r: typeof schema.libraryItems.$inferSelect): LibraryItem {
   };
 }
 
-function filterSeed(filter: Filter): LibraryItem[] {
-  let list = seed;
-  if (filter.type) list = list.filter((i) => i.type === filter.type);
-  if (filter.courseId)
-    list = list.filter((i) => i.relatedCourseIds?.includes(filter.courseId!));
-  if (filter.mandatoryOnly) list = list.filter((i) => i.mandatory);
-  return list;
-}
-
 function newId() {
   return `lib-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+async function applyFilter(items: LibraryItem[], filter: Filter): Promise<LibraryItem[]> {
+  let list = items;
+  if (filter.type) list = list.filter((i) => i.type === filter.type);
+  if (filter.courseId) list = list.filter((i) => i.relatedCourseIds?.includes(filter.courseId!));
+  if (filter.mandatoryOnly) list = list.filter((i) => i.mandatory);
+  return list;
+}
+
 export async function listLibrary(filter: Filter = {}): Promise<LibraryItem[]> {
   const db = getDb();
-  if (!db) return filterSeed(filter);
+  if (!db) {
+    const all = await store.getAll();
+    return await applyFilter(all, filter);
+  }
 
   const conds: SQL[] = [];
   if (filter.type) conds.push(eq(schema.libraryItems.type, filter.type));
@@ -49,19 +60,21 @@ export async function listLibrary(filter: Filter = {}): Promise<LibraryItem[]> {
 
   const baseQuery = db.select().from(schema.libraryItems);
   const rows = await (conds.length > 0 ? baseQuery.where(and(...conds)) : baseQuery);
-  if (rows.length === 0) return filterSeed(filter);
-
+  if (rows.length === 0) {
+    const all = await store.getAll();
+    return await applyFilter(all, filter);
+  }
   return rows.map(rowToItem);
 }
 
 export async function findLibrary(id: string): Promise<LibraryItem | null> {
   const db = getDb();
-  if (!db) return seed.find((i) => i.id === id) ?? null;
+  if (!db) return await store.findOne((i) => i.id === id);
   const rows = await db
     .select()
     .from(schema.libraryItems)
     .where(eq(schema.libraryItems.id, id));
-  if (rows.length === 0) return seed.find((i) => i.id === id) ?? null;
+  if (rows.length === 0) return await store.findOne((i) => i.id === id);
   return rowToItem(rows[0]);
 }
 
@@ -80,10 +93,7 @@ export async function createLibrary(input: CreateLibraryInput): Promise<LibraryI
   };
 
   const db = getDb();
-  if (!db) {
-    seed.unshift(item);
-    return item;
-  }
+  if (!db) return await store.unshift(item);
 
   await db.insert(schema.libraryItems).values({
     id,
@@ -105,10 +115,10 @@ export async function updateLibrary(
 ): Promise<LibraryItem | null> {
   const db = getDb();
   if (!db) {
-    const idx = seed.findIndex((i) => i.id === id);
-    if (idx === -1) return null;
-    seed[idx] = { ...seed[idx], ...patch } as LibraryItem;
-    return seed[idx];
+    return await store.update(
+      (i) => i.id === id,
+      (i) => ({ ...i, ...patch }) as LibraryItem,
+    );
   }
 
   const update: Partial<typeof schema.libraryItems.$inferInsert> = {};
@@ -133,12 +143,7 @@ export async function updateLibrary(
 
 export async function deleteLibrary(id: string): Promise<boolean> {
   const db = getDb();
-  if (!db) {
-    const idx = seed.findIndex((i) => i.id === id);
-    if (idx === -1) return false;
-    seed.splice(idx, 1);
-    return true;
-  }
+  if (!db) return await store.remove((i) => i.id === id);
   const rows = await db
     .delete(schema.libraryItems)
     .where(eq(schema.libraryItems.id, id))

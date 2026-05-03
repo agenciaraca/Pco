@@ -20,7 +20,7 @@ export default function Login() {
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: 'aluno@pco.local', password: 'demo1234', remember: false },
+    defaultValues: { email: '', password: '', remember: false },
   });
 
   const from = (location.state as { from?: string } | null)?.from ?? '/dashboard';
@@ -157,12 +157,6 @@ export default function Login() {
               {!isSubmitting && <ArrowRight size={16} strokeWidth={2} />}
             </button>
           </form>
-
-          <div className="mt-6 rounded-xl bg-surface-gray p-3 text-[11px] text-ink-muted leading-relaxed">
-            <strong className="text-pco-deep">Demo:</strong> qualquer e-mail funciona. Use um
-            e-mail contendo <code className="font-mono text-pco-deep">admin</code> para entrar
-            na área administrativa.
-          </div>
 
           <div className="mt-6 text-center text-xs text-ink-muted">
             Primeiro acesso?{' '}

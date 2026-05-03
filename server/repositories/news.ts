@@ -1,8 +1,17 @@
 import { eq, desc } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
-import { newsArticles as seed } from '../../src/app/data/seed';
+import { JsonStore } from '../db/json-store';
+import { newsArticles as defaults } from '../../src/app/data/seed';
 import type { NewsArticle } from '../../src/app/types/schema';
 import type { CreateNewsInput, UpdateNewsInput } from '../../shared/schemas';
+
+const store = new JsonStore<NewsArticle>('news.json', () =>
+  defaults.map((d) => ({
+    ...d,
+    tags: [...d.tags],
+    relatedCourseIds: [...(d.relatedCourseIds ?? [])],
+  })),
+);
 
 function rowToArticle(r: typeof schema.newsArticles.$inferSelect): NewsArticle {
   return {
@@ -26,20 +35,23 @@ function newId() {
 
 export async function listNews(): Promise<NewsArticle[]> {
   const db = getDb();
-  if (!db) return seed;
+  if (!db) return await store.getAll();
   const rows = await db
     .select()
     .from(schema.newsArticles)
     .orderBy(desc(schema.newsArticles.publishedAt));
-  if (rows.length === 0) return seed;
+  if (rows.length === 0) return await store.getAll();
   return rows.map(rowToArticle);
 }
 
 export async function findNews(id: string): Promise<NewsArticle | null> {
   const db = getDb();
-  if (!db) return seed.find((n) => n.id === id) ?? null;
-  const rows = await db.select().from(schema.newsArticles).where(eq(schema.newsArticles.id, id));
-  if (rows.length === 0) return seed.find((n) => n.id === id) ?? null;
+  if (!db) return await store.findOne((n) => n.id === id);
+  const rows = await db
+    .select()
+    .from(schema.newsArticles)
+    .where(eq(schema.newsArticles.id, id));
+  if (rows.length === 0) return await store.findOne((n) => n.id === id);
   return rowToArticle(rows[0]);
 }
 
@@ -60,10 +72,7 @@ export async function createNews(input: CreateNewsInput): Promise<NewsArticle> {
   };
 
   const db = getDb();
-  if (!db) {
-    seed.unshift(article);
-    return article;
-  }
+  if (!db) return await store.unshift(article);
 
   await db.insert(schema.newsArticles).values({
     id,
@@ -87,10 +96,10 @@ export async function updateNews(
 ): Promise<NewsArticle | null> {
   const db = getDb();
   if (!db) {
-    const idx = seed.findIndex((n) => n.id === id);
-    if (idx === -1) return null;
-    seed[idx] = { ...seed[idx], ...patch } as NewsArticle;
-    return seed[idx];
+    return await store.update(
+      (n) => n.id === id,
+      (n) => ({ ...n, ...patch }) as NewsArticle,
+    );
   }
 
   const update: Partial<typeof schema.newsArticles.$inferInsert> = {};
@@ -105,9 +114,7 @@ export async function updateNews(
   if (patch.featured !== undefined) update.featured = patch.featured;
   if (patch.relatedCourseIds !== undefined) update.relatedCourseIds = patch.relatedCourseIds;
 
-  if (Object.keys(update).length === 0) {
-    return await findNews(id);
-  }
+  if (Object.keys(update).length === 0) return await findNews(id);
 
   const rows = await db
     .update(schema.newsArticles)
@@ -119,12 +126,7 @@ export async function updateNews(
 
 export async function deleteNews(id: string): Promise<boolean> {
   const db = getDb();
-  if (!db) {
-    const idx = seed.findIndex((n) => n.id === id);
-    if (idx === -1) return false;
-    seed.splice(idx, 1);
-    return true;
-  }
+  if (!db) return await store.remove((n) => n.id === id);
   const rows = await db
     .delete(schema.newsArticles)
     .where(eq(schema.newsArticles.id, id))

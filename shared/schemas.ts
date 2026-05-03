@@ -7,9 +7,17 @@ export const isoDateSchema = z.string().datetime({ offset: true }).or(z.string()
 // Auth / User
 export const roleSchema = z.enum(['student', 'admin', 'superadmin']);
 
+// E-mail leniente: aceita qualquer string contendo @ e ponto no domínio.
+// Funciona com TLDs como .local, .test, .internal etc.
+const emailLike = z
+  .string()
+  .min(3, 'E-mail muito curto')
+  .max(160, 'E-mail muito longo')
+  .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'E-mail inválido');
+
 export const loginSchema = z.object({
-  email: z.string().email('E-mail inválido'),
-  password: z.string().min(8, 'Senha precisa ter ao menos 8 caracteres'),
+  email: emailLike,
+  password: z.string().min(1, 'Senha obrigatória').max(200, 'Senha muito longa'),
   remember: z.boolean().optional(),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
