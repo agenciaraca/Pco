@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bot, Send, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
-import { useAskTutor } from '../data/hooks';
+import { Bot, Send, AlertCircle, Sparkles, Loader2, Trash2 } from 'lucide-react';
+import { useAskTutor, useTutorHistory, useClearTutorHistory } from '../data/hooks';
 import { useToast } from '../components/Toast';
 import { ApiError } from '../data/client';
 
@@ -14,6 +14,8 @@ interface Msg {
 
 export default function Tutor() {
   const ask = useAskTutor();
+  const history = useTutorHistory();
+  const clearHistory = useClearTutorHistory();
   const toast = useToast();
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -27,7 +29,26 @@ export default function Tutor() {
     provider: string | null;
     model: string | null;
   }>({ provider: null, model: null });
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Quando o histórico carrega, prepende ao welcome message
+  useEffect(() => {
+    if (historyLoaded) return;
+    if (!history.data) return;
+    const turns = [...history.data].reverse(); // mais antigo primeiro
+    if (turns.length === 0) {
+      setHistoryLoaded(true);
+      return;
+    }
+    const flat: Msg[] = [];
+    for (const t of turns) {
+      flat.push({ role: 'user', content: t.prompt });
+      flat.push({ role: 'assistant', content: t.response });
+    }
+    setMessages((prev) => [...prev, ...flat]);
+    setHistoryLoaded(true);
+  }, [history.data, historyLoaded]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -35,6 +56,22 @@ export default function Tutor() {
       behavior: 'smooth',
     });
   }, [messages, ask.isPending]);
+
+  async function handleClear() {
+    if (!confirm('Limpar todo o histórico de conversas com o Tutor?')) return;
+    try {
+      await clearHistory.mutateAsync();
+      setMessages([
+        {
+          role: 'assistant',
+          content: 'Histórico limpo. Como posso te ajudar?',
+        },
+      ]);
+      toast.success('Histórico apagado');
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   const send = async () => {
     const text = draft.trim();
@@ -101,9 +138,20 @@ export default function Tutor() {
         </div>
       </header>
 
-      <div className="pco-card border-pco-orange/30 bg-pco-orange/5 p-4 flex gap-3">
-        <AlertCircle className="text-pco-orange shrink-0" size={18} strokeWidth={1.75} />
-        <p className="text-xs text-ink-muted">{ATTRIB_NOTICE}</p>
+      <div className="pco-card border-pco-orange/30 bg-pco-orange/5 p-4 flex gap-3 items-start">
+        <AlertCircle className="text-pco-orange shrink-0 mt-0.5" size={18} strokeWidth={1.75} />
+        <p className="text-xs text-ink-muted flex-1">{ATTRIB_NOTICE}</p>
+        {history.data && history.data.length > 0 && (
+          <button
+            onClick={handleClear}
+            disabled={clearHistory.isPending}
+            className="pco-btn-ghost text-[11px] shrink-0"
+            title="Limpar histórico"
+          >
+            <Trash2 size={11} strokeWidth={2} />
+            {clearHistory.isPending ? 'Limpando...' : 'Limpar'}
+          </button>
+        )}
       </div>
 
       <div className="pco-card p-0 overflow-hidden flex flex-col h-[60vh] min-h-[420px]">

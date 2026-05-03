@@ -531,6 +531,48 @@ export function useDeleteSystemUser() {
   });
 }
 
+const myProgressKey = ['me', 'progress'] as const;
+export function useMyProgress() {
+  return useQuery({ queryKey: myProgressKey, queryFn: api.fetchMyProgress });
+}
+
+export function useMarkLessonCompleted() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      lessonId,
+      courseId,
+      moduleId,
+    }: {
+      lessonId: string;
+      courseId: string;
+      moduleId: string;
+    }) => api.markLessonCompleted(lessonId, courseId, moduleId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: myProgressKey }),
+  });
+}
+
+export function useUnmarkLessonCompleted() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.unmarkLessonCompleted,
+    onSuccess: () => qc.invalidateQueries({ queryKey: myProgressKey }),
+  });
+}
+
+const tutorHistoryKey = ['tutor', 'history'] as const;
+export function useTutorHistory() {
+  return useQuery({ queryKey: tutorHistoryKey, queryFn: () => api.fetchTutorHistory() });
+}
+
+export function useClearTutorHistory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.clearTutorHistory,
+    onSuccess: () => qc.invalidateQueries({ queryKey: tutorHistoryKey }),
+  });
+}
+
 const settingsKey = ['settings'] as const;
 export function useSettings() {
   return useQuery({

@@ -62,6 +62,8 @@ import * as metricsRepo from './repositories/metrics';
 import * as notificationsRepo from './repositories/notifications';
 import * as loginConfigRepo from './repositories/login-config';
 import * as settingsRepo from './repositories/settings';
+import * as tutorHistory from './repositories/tutor-history';
+import * as progressRepo from './repositories/progress';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -296,6 +298,62 @@ export function buildApp() {
       }
       throw err;
     }
+  });
+
+  // ---------- Progresso (usuário logado) ----------
+
+  app.get('/me/progress', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const list = await progressRepo.listForUser(u.sub);
+    const byCourse = await progressRepo.progressByCourse(u.sub);
+    return c.json({
+      completedLessonIds: list.map((p) => p.lessonId),
+      byCourse,
+    });
+  });
+
+  app.post('/lessons/:id/complete', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const lessonId = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const courseId = typeof body.courseId === 'string' ? body.courseId : '';
+    const moduleId = typeof body.moduleId === 'string' ? body.moduleId : '';
+    if (!courseId || !moduleId) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'courseId e moduleId são obrigatórios');
+    }
+    const entry = await progressRepo.markCompleted({
+      userId: u.sub,
+      lessonId,
+      courseId,
+      moduleId,
+    });
+    return c.json(entry, 201);
+  });
+
+  app.delete('/lessons/:id/complete', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const lessonId = c.req.param('id') as string;
+    const ok = await progressRepo.unmarkCompleted(u.sub, lessonId);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Não estava marcada como concluída');
+    return c.json({ ok: true });
+  });
+
+  // ---------- Tutor history (usuário logado) ----------
+
+  app.get('/tutor/history', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const limit = Number(c.req.query('limit') ?? '50');
+    const list = await tutorHistory.listForUser(
+      u.sub,
+      Number.isFinite(limit) ? limit : 50,
+    );
+    return c.json(list);
+  });
+
+  app.delete('/tutor/history', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const removed = await tutorHistory.clearForUser(u.sub);
+    return c.json({ ok: true, removed });
   });
 
   // ---------- Notifications (usuário logado) ----------
@@ -552,6 +610,18 @@ export function buildApp() {
         costUsd: cost,
         successful: true,
       });
+
+      // Persiste turno no histórico se o user estiver logado
+      const u = c.get('user');
+      if (u) {
+        await tutorHistory.recordTurn({
+          userId: u.sub,
+          prompt: v.data.message,
+          response: result.text,
+          provider: config.provider,
+          model: result.model,
+        });
+      }
 
       return c.json({
         message: result.text,

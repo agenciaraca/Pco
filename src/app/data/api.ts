@@ -114,6 +114,52 @@ export async function resetPassword(token: string, password: string): Promise<{ 
   });
 }
 
+// ---------- Progress ----------
+
+export interface MyProgressDto {
+  completedLessonIds: string[];
+  byCourse: Record<string, { lessonsCompleted: number; lastAt: string | null }>;
+}
+
+export async function fetchMyProgress(): Promise<MyProgressDto> {
+  return http.get<MyProgressDto>('/me/progress');
+}
+
+export async function markLessonCompleted(
+  lessonId: string,
+  courseId: string,
+  moduleId: string,
+): Promise<{ lessonId: string; completedAt: string }> {
+  return http.post<{ lessonId: string; completedAt: string }>(
+    `/lessons/${encodeURIComponent(lessonId)}/complete`,
+    { courseId, moduleId },
+  );
+}
+
+export async function unmarkLessonCompleted(lessonId: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/lessons/${encodeURIComponent(lessonId)}/complete`);
+}
+
+// ---------- Tutor history ----------
+
+export interface TutorTurnDto {
+  id: string;
+  userId: string;
+  prompt: string;
+  response: string;
+  provider: string | null;
+  model: string | null;
+  ts: string;
+}
+
+export async function fetchTutorHistory(limit = 50): Promise<TutorTurnDto[]> {
+  return http.get<TutorTurnDto[]>(`/tutor/history?limit=${limit}`);
+}
+
+export async function clearTutorHistory(): Promise<{ ok: true; removed: number }> {
+  return http.delete<{ ok: true; removed: number }>('/tutor/history');
+}
+
 // ---------- App settings ----------
 
 export interface AppSettingsDto {

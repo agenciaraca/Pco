@@ -9,12 +9,23 @@ import {
   BookOpen,
   Clock,
 } from 'lucide-react';
-import { useCourses } from '../data/hooks';
+import {
+  useCourses,
+  useMyProgress,
+  useMarkLessonCompleted,
+  useUnmarkLessonCompleted,
+} from '../data/hooks';
+import { useToast } from '../components/Toast';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function LMSLesson() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const { data: courses = [], isLoading } = useCourses();
+  const progressQ = useMyProgress();
+  const markMut = useMarkLessonCompleted();
+  const unmarkMut = useUnmarkLessonCompleted();
+  const toast = useToast();
+
   if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
   let lesson;
@@ -34,6 +45,25 @@ export default function LMSLesson() {
   const idxInModule = module.lessons.findIndex((l) => l.id === lesson!.id);
   const prev = module.lessons[idxInModule - 1];
   const next = module.lessons[idxInModule + 1];
+  const isCompleted = progressQ.data?.completedLessonIds.includes(lesson!.id) ?? false;
+
+  async function handleToggleCompleted() {
+    try {
+      if (isCompleted) {
+        await unmarkMut.mutateAsync(lesson!.id);
+        toast.info('Aula desmarcada');
+      } else {
+        await markMut.mutateAsync({
+          lessonId: lesson!.id,
+          courseId: course!.id,
+          moduleId: module!.id,
+        });
+        toast.success('Aula marcada como concluída');
+      }
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -117,10 +147,24 @@ export default function LMSLesson() {
         </div>
 
         <aside className="space-y-4">
-          <div className="pco-card">
-            <button className="pco-btn-primary w-full justify-center">
+          <div className="pco-card p-4">
+            <button
+              onClick={handleToggleCompleted}
+              disabled={markMut.isPending || unmarkMut.isPending}
+              className={
+                isCompleted
+                  ? 'pco-btn-secondary w-full justify-center'
+                  : 'pco-btn-primary w-full justify-center'
+              }
+            >
               <CheckCircle2 size={14} strokeWidth={2} />
-              Marcar como concluída
+              {isCompleted
+                ? markMut.isPending || unmarkMut.isPending
+                  ? 'Atualizando...'
+                  : '✓ Concluída — desfazer'
+                : markMut.isPending
+                  ? 'Salvando...'
+                  : 'Marcar como concluída'}
             </button>
             <Link
               to="/tutor"
