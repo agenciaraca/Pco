@@ -36,6 +36,32 @@ export const resetPasswordSchema = z.object({
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
+// Notifications
+export const notificationCategoryEnum = z.enum([
+  'info',
+  'success',
+  'warning',
+  'danger',
+  'announcement',
+]);
+
+export const notificationAudienceEnum = z.enum(['all', 'students', 'admins', 'user']);
+
+export const broadcastNotificationSchema = z
+  .object({
+    audience: notificationAudienceEnum,
+    userId: z.string().min(1).optional(),
+    title: z.string().min(2, 'Título muito curto').max(120, 'Título muito longo'),
+    body: z.string().min(2, 'Corpo muito curto').max(2000, 'Corpo muito longo'),
+    category: notificationCategoryEnum.optional(),
+    link: z.string().max(500).optional(),
+  })
+  .refine((v) => v.audience !== 'user' || (v.userId && v.userId.length > 0), {
+    message: 'userId é obrigatório quando audience = user',
+    path: ['userId'],
+  });
+export type BroadcastNotificationInput = z.infer<typeof broadcastNotificationSchema>;
+
 // Support
 export const supportCategorySchema = z.enum([
   'duvida_aula',

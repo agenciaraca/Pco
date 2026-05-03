@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, Menu, LogOut, UserCircle2, Settings as SettingsIcon } from 'lucide-react';
+import { Bell, Search, Menu, LogOut, UserCircle2, Settings as SettingsIcon, ShieldOff } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { useUnreadCount } from '../data/hooks';
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -9,8 +10,9 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, logoutAllDevices } = useAuth();
   const navigate = useNavigate();
+  const unread = useUnreadCount();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +35,14 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
 
   const handleLogout = () => {
     logout();
+    navigate('/login');
+  };
+
+  const handleLogoutAll = async () => {
+    if (!confirm('Encerrar sessões em TODOS os dispositivos?\n\nVocê precisará fazer login novamente.')) {
+      return;
+    }
+    await logoutAllDevices();
     navigate('/login');
   };
 
@@ -74,7 +84,11 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
           aria-label="Notificações"
         >
           <Bell size={18} strokeWidth={1.75} />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-pco-orange ring-2 ring-white" />
+          {unread.data && unread.data.count > 0 ? (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-pco-orange text-[9px] font-bold text-white grid place-items-center ring-2 ring-white">
+              {unread.data.count > 99 ? '99+' : unread.data.count}
+            </span>
+          ) : null}
         </Link>
 
         <div className="relative" ref={menuRef}>
@@ -136,6 +150,14 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
               >
                 <LogOut size={14} strokeWidth={1.75} />
                 Sair
+              </button>
+              <button
+                onClick={handleLogoutAll}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-ink-muted hover:bg-surface-off hover:text-status-danger"
+                title="Encerra a sessão em todos os dispositivos"
+              >
+                <ShieldOff size={12} strokeWidth={1.75} />
+                Sair de todos os dispositivos
               </button>
             </div>
           )}

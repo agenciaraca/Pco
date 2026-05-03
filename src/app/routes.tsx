@@ -64,6 +64,7 @@ const AdminLoginCustomize = lazy(() => import('./pages/admin/AdminLoginCustomize
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminUsuarios = lazy(() => import('./pages/admin/AdminUsuarios'));
 const AdminAuditoria = lazy(() => import('./pages/admin/AdminAuditoria'));
+const AdminNotificacoes = lazy(() => import('./pages/admin/AdminNotificacoes'));
 
 function S({ children }: { children: ReactNode }) {
   return <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>;
@@ -160,6 +161,7 @@ export const router = createBrowserRouter([
       { path: 'configuracoes', element: <S><AdminSettings /></S> },
       { path: 'usuarios', element: <S><AdminUsuarios /></S> },
       { path: 'auditoria', element: <S><AdminAuditoria /></S> },
+      { path: 'notificacoes', element: <S><AdminNotificacoes /></S> },
     ],
   },
 

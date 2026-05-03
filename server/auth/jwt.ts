@@ -25,11 +25,15 @@ export interface JwtPayload {
   sub: string; // user id
   email: string;
   role: Role;
+  tv: number; // tokenVersion — invalida quando user.tokenVersion bumpa
   iat: number;
   exp: number;
 }
 
-export async function signToken(payload: { sub: string; email: string; role: Role }, ttlSeconds = DEFAULT_TTL_SECONDS): Promise<string> {
+export async function signToken(
+  payload: { sub: string; email: string; role: Role; tv: number },
+  ttlSeconds = DEFAULT_TTL_SECONDS,
+): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const full = { ...payload, iat: now, exp: now + ttlSeconds };
   return sign(full, SECRET, 'HS256');

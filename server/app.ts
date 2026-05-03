@@ -37,6 +37,7 @@ import {
   changePasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  broadcastNotificationSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -52,6 +53,7 @@ import * as retentionRepo from './repositories/retention';
 import * as sessionsRepo from './repositories/sessions';
 import * as studentsRepo from './repositories/students';
 import * as metricsRepo from './repositories/metrics';
+import * as notificationsRepo from './repositories/notifications';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -90,7 +92,12 @@ export function buildApp() {
     const { email, password } = parsed.data;
     const user = await usersStore.verifyPassword(email, password);
     if (!user) return jsonError(c, 401, 'INVALID_CREDENTIALS', 'E-mail ou senha incorretos.');
-    const token = await signToken({ sub: user.id, email: user.email, role: user.role });
+    const token = await signToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      tv: user.tokenVersion ?? 0,
+    });
     return c.json({ user, token });
   });
 
@@ -146,6 +153,61 @@ export function buildApp() {
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
     return c.json({ ok: true, email: tokenEntry.email });
   });
+
+  // Revoga todos os tokens do user logado (logout em todos os dispositivos)
+  app.post('/auth/logout-all-devices', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const newTv = await usersStore.bumpTokenVersion(u.sub);
+    if (newTv === null) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
+    return c.json({ ok: true, tokenVersion: newTv });
+  });
+
+  // ---------- Notifications (usuário logado) ----------
+
+  app.get('/notifications', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const limit = Number(c.req.query('limit') ?? '100');
+    const items = await notificationsRepo.listForUser(u.sub, Number.isFinite(limit) ? limit : 100);
+    return c.json(items);
+  });
+
+  app.get('/notifications/unread-count', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const count = await notificationsRepo.unreadCountForUser(u.sub);
+    return c.json({ count });
+  });
+
+  app.post('/notifications/:id/read', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const id = c.req.param('id') as string;
+    const ok = await notificationsRepo.markRead(u.sub, id);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Notificação não encontrada.');
+    return c.json({ ok: true });
+  });
+
+  app.post('/notifications/mark-all-read', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const updated = await notificationsRepo.markAllRead(u.sub);
+    return c.json({ ok: true, updated });
+  });
+
+  // Broadcast — admin/superadmin
+  app.post(
+    '/admin/notifications/broadcast',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const v = validate(broadcastNotificationSchema, body);
+      if (!v.ok)
+        return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+      const u = c.get('user')!;
+      const sent = await notificationsRepo.broadcast({
+        ...v.data,
+        authorEmail: u.email,
+      });
+      return c.json({ ok: true, sent });
+    },
+  );
 
   // ---------- Courses ----------
 

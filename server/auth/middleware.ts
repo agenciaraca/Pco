@@ -1,6 +1,7 @@
 import type { Context, Next } from 'hono';
 import { verifyToken, type JwtPayload } from './jwt';
 import type { Role } from './users-store';
+import { findUserByEmail } from './users-store';
 
 export interface AuthContextVar {
   user: JwtPayload;
@@ -22,7 +23,13 @@ export async function attachUser(c: Context, next: Next) {
   const token = readBearer(c);
   if (token) {
     const payload = await verifyToken(token);
-    if (payload) c.set('user', payload);
+    if (payload) {
+      // Valida tokenVersion — se o user bumpou, esse token é inválido
+      const u = await findUserByEmail(payload.email);
+      if (u && u.active && (payload.tv ?? 0) === (u.tokenVersion ?? 0)) {
+        c.set('user', payload);
+      }
+    }
   }
   await next();
 }

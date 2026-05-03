@@ -14,6 +14,7 @@ export interface SystemUser {
   name: string;
   role: Role;
   passwordHash: string;
+  tokenVersion: number;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
@@ -25,6 +26,7 @@ export interface SystemUserPublic {
   email: string;
   name: string;
   role: Role;
+  tokenVersion: number;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
@@ -76,7 +78,17 @@ export async function loadUsers(): Promise<void> {
   if (loaded) return;
   try {
     const raw = await fs.readFile(USERS_FILE, 'utf8');
-    users = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as SystemUser[];
+    // Normaliza campos novos para registros antigos
+    let needsRewrite = false;
+    users = parsed.map((u) => {
+      if (typeof u.tokenVersion !== 'number') {
+        needsRewrite = true;
+        return { ...u, tokenVersion: 0 };
+      }
+      return u;
+    });
+    if (needsRewrite) await persist();
     loaded = true;
     return;
   } catch {
@@ -114,6 +126,7 @@ export async function loadUsers(): Promise<void> {
       name: d.name,
       role: d.role,
       passwordHash: hash,
+      tokenVersion: 0,
       createdAt: now,
       updatedAt: now,
       active: true,
@@ -178,6 +191,7 @@ export async function createUser(input: CreateInput): Promise<SystemUserPublic> 
     name: input.name,
     role: input.role,
     passwordHash: hash,
+    tokenVersion: 0,
     createdAt: now,
     updatedAt: now,
     active: input.active ?? true,
@@ -205,12 +219,16 @@ export async function updateUser(
     const conflict = await findUserByEmail(patch.email);
     if (conflict) throw new Error('Já existe um usuário com este e-mail.');
   }
+  // Desativar conta também invalida tokens vivos
+  const willDeactivate =
+    patch.active === false && users[i].active === true;
   users[i] = {
     ...users[i],
     ...(patch.email !== undefined ? { email: patch.email } : {}),
     ...(patch.name !== undefined ? { name: patch.name } : {}),
     ...(patch.role !== undefined ? { role: patch.role } : {}),
     ...(patch.active !== undefined ? { active: patch.active } : {}),
+    ...(willDeactivate ? { tokenVersion: (users[i].tokenVersion ?? 0) + 1 } : {}),
     updatedAt: new Date().toISOString(),
   };
   await queueWrite();
@@ -222,9 +240,24 @@ export async function changePassword(id: string, newPassword: string): Promise<b
   const i = users.findIndex((u) => u.id === id);
   if (i === -1) return false;
   users[i].passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  users[i].tokenVersion = (users[i].tokenVersion ?? 0) + 1;
   users[i].updatedAt = new Date().toISOString();
   await queueWrite();
   return true;
+}
+
+/**
+ * Invalida todos os tokens existentes do usuário (logout em todos os
+ * dispositivos). Retorna a nova tokenVersion ou null se o usuário não existe.
+ */
+export async function bumpTokenVersion(id: string): Promise<number | null> {
+  await loadUsers();
+  const i = users.findIndex((u) => u.id === id);
+  if (i === -1) return null;
+  users[i].tokenVersion = (users[i].tokenVersion ?? 0) + 1;
+  users[i].updatedAt = new Date().toISOString();
+  await queueWrite();
+  return users[i].tokenVersion;
 }
 
 export async function deleteUser(id: string): Promise<boolean> {

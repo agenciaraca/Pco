@@ -46,6 +46,10 @@ export async function fetchCurrentStudent(): Promise<Student> {
   return http.get<Student>('/auth/me');
 }
 
+export async function logoutAllDevices(): Promise<{ ok: true; tokenVersion: number }> {
+  return http.post<{ ok: true; tokenVersion: number }>('/auth/logout-all-devices', {});
+}
+
 export interface ForgotPasswordResponse {
   ok: true;
   devToken?: string;
@@ -61,6 +65,51 @@ export async function resetPassword(token: string, password: string): Promise<{ 
     token,
     password,
   });
+}
+
+// ---------- Notifications ----------
+
+export interface NotificationDto {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  category: 'info' | 'success' | 'warning' | 'danger' | 'announcement';
+  link?: string;
+  createdAt: string;
+  readAt: string | null;
+  authorEmail?: string | null;
+}
+
+export async function fetchNotifications(): Promise<NotificationDto[]> {
+  return http.get<NotificationDto[]>('/notifications');
+}
+
+export async function fetchUnreadCount(): Promise<{ count: number }> {
+  return http.get<{ count: number }>('/notifications/unread-count');
+}
+
+export async function markNotificationRead(id: string): Promise<{ ok: true }> {
+  return http.post<{ ok: true }>(`/notifications/${encodeURIComponent(id)}/read`, {});
+}
+
+export async function markAllNotificationsRead(): Promise<{ ok: true; updated: number }> {
+  return http.post<{ ok: true; updated: number }>('/notifications/mark-all-read', {});
+}
+
+export interface BroadcastNotificationInput {
+  audience: 'all' | 'students' | 'admins' | 'user';
+  userId?: string;
+  title: string;
+  body: string;
+  category?: NotificationDto['category'];
+  link?: string;
+}
+
+export async function broadcastNotification(
+  input: BroadcastNotificationInput,
+): Promise<{ ok: true; sent: number }> {
+  return http.post<{ ok: true; sent: number }>('/admin/notifications/broadcast', input);
 }
 
 // ---------- Audit log ----------

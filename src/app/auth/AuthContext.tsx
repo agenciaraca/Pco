@@ -21,6 +21,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
+  logoutAllDevices: () => Promise<void>;
 }
 
 const STORAGE_KEY = 'ava-pco-auth';
@@ -70,8 +71,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const logoutAllDevices = useCallback(async () => {
+    try {
+      await api.logoutAllDevices();
+    } finally {
+      writeSession(null);
+      setUser(null);
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, logoutAllDevices }}>
       {children}
     </AuthContext.Provider>
   );

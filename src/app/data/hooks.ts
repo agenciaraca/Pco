@@ -510,3 +510,51 @@ export function useAuditLog(filter: api.AuditFilter = {}) {
     queryFn: () => api.fetchAuditLog(filter),
   });
 }
+
+const notificationsKey = ['notifications'] as const;
+const unreadCountKey = ['notifications', 'unread-count'] as const;
+
+export function useNotifications() {
+  return useQuery({ queryKey: notificationsKey, queryFn: api.fetchNotifications });
+}
+
+export function useUnreadCount() {
+  return useQuery({
+    queryKey: unreadCountKey,
+    queryFn: api.fetchUnreadCount,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.markNotificationRead,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: notificationsKey });
+      qc.invalidateQueries({ queryKey: unreadCountKey });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.markAllNotificationsRead,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: notificationsKey });
+      qc.invalidateQueries({ queryKey: unreadCountKey });
+    },
+  });
+}
+
+export function useBroadcastNotification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.broadcastNotification,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: notificationsKey });
+      qc.invalidateQueries({ queryKey: unreadCountKey });
+    },
+  });
+}
