@@ -73,7 +73,7 @@ function Protected({ children, role }: { children: ReactNode; role?: 'student' |
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/dashboard" replace />,
+    element: <S><Landing /></S>,
     errorElement: <RootError />,
   },
   { path: '/login', element: <Login />, errorElement: <RootError /> },

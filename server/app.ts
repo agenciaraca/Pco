@@ -75,14 +75,14 @@ export function buildApp() {
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) return jsonError(c, 400, 'INVALID_INPUT', parsed.error.message);
     const { email } = parsed.data;
-    const isAdmin = email.toLowerCase().includes('admin');
+    const lower = email.toLowerCase();
+    const isSuperadmin = lower.includes('superadmin') || lower.includes('super');
+    const isAdmin = !isSuperadmin && lower.includes('admin');
+    const role = isSuperadmin ? 'superadmin' : isAdmin ? 'admin' : 'student';
+    const id = isSuperadmin ? 'super-001' : isAdmin ? 'admin-001' : 'stu-001';
+    const name = isSuperadmin ? 'Superadmin Demo' : isAdmin ? 'Admin Demo' : 'Aluno Demo';
     return c.json({
-      user: {
-        id: isAdmin ? 'admin-001' : 'stu-001',
-        name: isAdmin ? 'Admin Demo' : 'Aluno Demo',
-        email,
-        role: isAdmin ? 'admin' : 'student',
-      },
+      user: { id, name, email, role },
       token: 'mock-jwt-' + Math.random().toString(36).slice(2),
     });
   });
