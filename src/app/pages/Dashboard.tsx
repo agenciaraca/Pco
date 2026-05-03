@@ -12,13 +12,44 @@ import {
   Award,
   ChevronRight,
 } from 'lucide-react';
-import { courses, currentStudent, podcasts, newsArticles } from '../data/seed';
+import { useCourses, useCurrentStudent, useNews, usePodcasts } from '../data/hooks';
+import { Skeleton } from '../components/LoadingSkeleton';
+import { ErrorState } from '../components/EmptyState';
 
 export default function Dashboard() {
-  const enrolled = courses.filter((c) => currentStudent.enrolledCourseIds.includes(c.id));
+  const studentQ = useCurrentStudent();
+  const coursesQ = useCourses();
+  const newsQ = useNews();
+  const podcastsQ = usePodcasts();
+
+  const isLoading = studentQ.isLoading || coursesQ.isLoading;
+  const isError = studentQ.isError || coursesQ.isError;
+
+  if (isError) {
+    return (
+      <div className="pco-card">
+        <ErrorState
+          title="Não conseguimos carregar seu painel"
+          description="Verifique sua conexão e tente novamente."
+          action={
+            <button onClick={() => location.reload()} className="pco-btn-primary text-xs">
+              Tentar novamente
+            </button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (isLoading || !studentQ.data || !coursesQ.data) {
+    return <DashboardSkeleton />;
+  }
+
+  const student = studentQ.data;
+  const enrolled = coursesQ.data.filter((c) => student.enrolledCourseIds.includes(c.id));
   const weeklyProgress = Math.min(
     100,
-    Math.round(((currentStudent.totalStudyMinutes % 240) / currentStudent.weeklyGoalMinutes) * 100),
+    Math.round(((student.totalStudyMinutes % 240) / student.weeklyGoalMinutes) * 100),
   );
 
   return (
@@ -27,7 +58,7 @@ export default function Dashboard() {
         <div>
           <p className="text-sm text-ink-muted">Bem-vindo de volta,</p>
           <h1 className="text-3xl font-bold tracking-tight text-pco-deep">
-            {currentStudent.name.split(' ')[0]}
+            {student.name.split(' ')[0]}
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
             Você está construindo uma rotina sólida. Continue no seu ritmo.
@@ -212,7 +243,7 @@ export default function Dashboard() {
           </Link>
         </div>
         <div className="grid gap-5 md:grid-cols-3">
-          {newsArticles.slice(0, 2).map((article) => (
+          {(newsQ.data ?? []).slice(0, 2).map((article) => (
             <article key={article.id} className="pco-card pco-card-hover">
               <div className={`h-24 rounded-xl bg-gradient-to-br ${article.coverColor} mb-3`} />
               <div className="text-[10px] font-semibold uppercase tracking-wider text-pco-blue">
@@ -224,8 +255,8 @@ export default function Dashboard() {
               <p className="mt-1 text-xs text-ink-muted line-clamp-3">{article.excerpt}</p>
             </article>
           ))}
-          {podcasts.slice(0, 1).map((pod) => (
-            <article key={pod.id} className="pco-card pco-card-hover">
+          {(podcastsQ.data ?? []).slice(0, 1).map((pod) => (
+            <Link key={pod.id} to={`/podcasts/${pod.id}`} className="pco-card pco-card-hover">
               <div className={`h-24 rounded-xl bg-gradient-to-br ${pod.coverColor} mb-3 grid place-items-center`}>
                 <Mic2 size={28} className="text-white" strokeWidth={1.5} />
               </div>
@@ -236,10 +267,32 @@ export default function Dashboard() {
                 {pod.title}
               </h3>
               <p className="mt-1 text-xs text-ink-muted">{pod.durationMinutes} min</p>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <Skeleton variant="text" className="w-32 h-3 mb-2" />
+        <Skeleton variant="text" className="w-48 h-7 mb-2" />
+        <Skeleton variant="text" className="w-64" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} variant="card" className="h-28" />
+        ))}
+      </div>
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} variant="card" className="h-72" />
+        ))}
+      </div>
     </div>
   );
 }

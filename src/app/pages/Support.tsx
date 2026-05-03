@@ -1,5 +1,10 @@
+import { useState } from 'react';
 import { LifeBuoy, MessageSquare, Send } from 'lucide-react';
-import { supportTickets } from '../data/seed';
+import { useSupportTickets, useCreateSupportTicket } from '../data/hooks';
+import { useToast } from '../components/Toast';
+import { TableSkeleton } from '../components/LoadingSkeleton';
+import EmptyState from '../components/EmptyState';
+import type { SupportTicket } from '../types/schema';
 
 const categories = [
   { id: 'duvida_aula', label: 'Dúvida sobre aula' },
@@ -11,6 +16,25 @@ const categories = [
 ];
 
 export default function Support() {
+  const ticketsQ = useSupportTickets();
+  const createTicket = useCreateSupportTicket();
+  const toast = useToast();
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [category, setCategory] = useState<SupportTicket['category']>('duvida_aula');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createTicket.mutateAsync({ subject, category, message });
+      toast.success('Solicitação enviada', 'Você receberá uma resposta em breve.');
+      setSubject('');
+      setMessage('');
+    } catch {
+      toast.error('Não foi possível enviar', 'Tente novamente em alguns instantes.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <header>
@@ -37,70 +61,96 @@ export default function Support() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            alert('Solicitação enviada (mock).');
-          }}
-          className="pco-card space-y-4"
-        >
+        <form onSubmit={handleSubmit} className="pco-card space-y-4">
           <h3 className="text-base font-semibold text-pco-deep">Abrir solicitação</h3>
           <div>
             <label className="block text-xs font-medium text-ink-muted mb-1.5">Categoria</label>
-            <select className="pco-input">
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as SupportTicket['category'])}
+              className="pco-input"
+            >
               {categories.map((c) => (
-                <option key={c.id}>{c.label}</option>
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-ink-muted mb-1.5">Assunto</label>
-            <input className="pco-input" required placeholder="Resumo do seu problema" />
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="pco-input"
+              required
+              placeholder="Resumo do seu problema"
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-ink-muted mb-1.5">Descrição</label>
             <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
               rows={5}
               className="pco-input resize-none"
               required
               placeholder="Conte com detalhes o que está acontecendo..."
             />
           </div>
-          <button type="submit" className="pco-btn-primary">
+          <button
+            type="submit"
+            disabled={createTicket.isPending}
+            className="pco-btn-primary"
+          >
             <Send size={14} strokeWidth={2} />
-            Enviar solicitação
+            {createTicket.isPending ? 'Enviando...' : 'Enviar solicitação'}
           </button>
         </form>
 
         <div className="pco-card">
           <h3 className="text-base font-semibold text-pco-deep mb-4">Histórico</h3>
-          <ul className="space-y-3">
-            {supportTickets.map((t) => (
-              <li key={t.id} className="rounded-xl border border-surface-gray p-4">
-                <div className="flex items-start justify-between gap-3 mb-1">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare size={14} className="text-pco-blue" strokeWidth={1.75} />
-                    <span className="text-sm font-semibold text-pco-deep">{t.subject}</span>
-                  </div>
-                  <span
-                    className={`pco-badge ${
-                      t.status === 'open'
-                        ? 'bg-pco-orange/10 text-pco-orange'
+          {ticketsQ.isLoading ? (
+            <TableSkeleton rows={2} />
+          ) : (ticketsQ.data ?? []).length === 0 ? (
+            <EmptyState
+              variant="compact"
+              title="Nenhuma solicitação ainda"
+              description="Você verá seu histórico de suporte aqui."
+            />
+          ) : (
+            <ul className="space-y-3">
+              {(ticketsQ.data ?? []).map((t) => (
+                <li key={t.id} className="rounded-xl border border-surface-gray p-4">
+                  <div className="flex items-start justify-between gap-3 mb-1">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare size={14} className="text-pco-blue" strokeWidth={1.75} />
+                      <span className="text-sm font-semibold text-pco-deep">{t.subject}</span>
+                    </div>
+                    <span
+                      className={`pco-badge ${
+                        t.status === 'open'
+                          ? 'bg-pco-orange/10 text-pco-orange'
+                          : t.status === 'in_progress'
+                            ? 'bg-pco-blue/10 text-pco-blue'
+                            : 'bg-status-success/10 text-status-success'
+                      }`}
+                    >
+                      {t.status === 'open'
+                        ? 'Aberto'
                         : t.status === 'in_progress'
-                          ? 'bg-pco-blue/10 text-pco-blue'
-                          : 'bg-status-success/10 text-status-success'
-                    }`}
-                  >
-                    {t.status === 'open' ? 'Aberto' : t.status === 'in_progress' ? 'Em andamento' : 'Resolvido'}
-                  </span>
-                </div>
-                <p className="text-xs text-ink-muted line-clamp-2">{t.message}</p>
-                <div className="mt-2 text-[11px] text-ink-subtle">
-                  Atualizado em {new Date(t.updatedAt).toLocaleDateString('pt-BR')}
-                </div>
-              </li>
-            ))}
-          </ul>
+                          ? 'Em andamento'
+                          : 'Resolvido'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-ink-muted line-clamp-2">{t.message}</p>
+                  <div className="mt-2 text-[11px] text-ink-subtle">
+                    Atualizado em {new Date(t.updatedAt).toLocaleDateString('pt-BR')}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
