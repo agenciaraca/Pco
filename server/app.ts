@@ -2,19 +2,7 @@ import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
-import {
-  newsArticles,
-  podcasts,
-  libraryItems,
-  certificates,
-  retentionRisks,
-  professionals,
-  sessionServices,
-  seoTimeseries,
-  keywords,
-  adminStudents,
-  currentStudent,
-} from '../src/app/data/seed';
+import { currentStudent } from '../src/app/data/seed';
 import {
   createSupportTicketSchema,
   recoveryPlanSchema,
@@ -29,6 +17,14 @@ import { getProvider, listProviders, calculateCost } from './ai/providers';
 import * as aiConfigRepo from './repositories/ai-configs';
 import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
+import * as newsRepo from './repositories/news';
+import * as podcastsRepo from './repositories/podcasts';
+import * as libraryRepo from './repositories/library';
+import * as certsRepo from './repositories/certificates';
+import * as retentionRepo from './repositories/retention';
+import * as sessionsRepo from './repositories/sessions';
+import * as studentsRepo from './repositories/students';
+import * as metricsRepo from './repositories/metrics';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -75,7 +71,7 @@ export function buildApp() {
     });
   });
 
-  app.get('/auth/me', (c) => c.json(currentStudent));
+  app.get('/auth/me', async (c) => c.json(await studentsRepo.getCurrentStudent()));
 
   // ---------- Courses ----------
 
@@ -88,52 +84,53 @@ export function buildApp() {
 
   // ---------- News ----------
 
-  app.get('/news', (c) => c.json(newsArticles));
+  app.get('/news', async (c) => c.json(await newsRepo.listNews()));
 
   // ---------- Podcasts ----------
 
-  app.get('/podcasts', (c) => c.json(podcasts));
-  app.get('/podcasts/:id', (c) => {
-    const ep = podcasts.find((p) => p.id === c.req.param('id'));
+  app.get('/podcasts', async (c) => c.json(await podcastsRepo.listPodcasts()));
+  app.get('/podcasts/:id', async (c) => {
+    const ep = await podcastsRepo.findPodcast(c.req.param('id'));
     if (!ep) return jsonError(c, 404, 'NOT_FOUND', 'Episódio não encontrado');
     return c.json(ep);
   });
 
   // ---------- Library ----------
 
-  app.get('/library', (c) => {
+  app.get('/library', async (c) => {
     const { type, courseId, mandatoryOnly } = c.req.query();
-    let list = libraryItems;
-    if (type) list = list.filter((i) => i.type === type);
-    if (courseId) list = list.filter((i) => i.relatedCourseIds?.includes(courseId));
-    if (mandatoryOnly === 'true') list = list.filter((i) => i.mandatory);
-    return c.json(list);
+    return c.json(
+      await libraryRepo.listLibrary({
+        type,
+        courseId,
+        mandatoryOnly: mandatoryOnly === 'true',
+      }),
+    );
   });
 
   // ---------- Certificates ----------
 
-  app.get('/certificates', (c) => c.json(certificates));
+  app.get('/certificates', async (c) =>
+    c.json(await certsRepo.listCertificatesForStudent(currentStudent.id)),
+  );
 
   // ---------- Retention ----------
 
-  app.get('/retention/risks', (c) => {
-    const level = c.req.query('level');
-    const list =
-      level && level !== 'todos'
-        ? retentionRisks.filter((r) => r.level === level)
-        : retentionRisks;
-    return c.json(list);
-  });
+  app.get('/retention/risks', async (c) =>
+    c.json(await retentionRepo.listRetentionRisks(c.req.query('level'))),
+  );
 
   // ---------- Sessions / Professionals ----------
 
-  app.get('/sessions/services', (c) => c.json(sessionServices));
-  app.get('/sessions/professionals', (c) => c.json(professionals));
+  app.get('/sessions/services', async (c) => c.json(await sessionsRepo.listSessionServices()));
+  app.get('/sessions/professionals', async (c) => c.json(await sessionsRepo.listProfessionals()));
 
   // ---------- SEO / Metrics ----------
 
-  app.get('/metrics/seo/timeseries', (c) => c.json(seoTimeseries));
-  app.get('/metrics/seo/keywords', (c) => c.json(keywords));
+  app.get('/metrics/seo/timeseries', async (c) =>
+    c.json(await metricsRepo.listSeoTimeseries(c.req.query('range'))),
+  );
+  app.get('/metrics/seo/keywords', async (c) => c.json(await metricsRepo.listKeywords()));
 
   // ---------- AI: providers catalog ----------
 
@@ -297,7 +294,7 @@ export function buildApp() {
 
   // ---------- Admin students ----------
 
-  app.get('/admin/students', (c) => {
+  app.get('/admin/students', async (c) => {
     const filtersResult = studentsFilterSchema.safeParse({
       search: c.req.query('search'),
       status: c.req.query('status'),
@@ -305,29 +302,11 @@ export function buildApp() {
       sortBy: c.req.query('sortBy'),
     });
     const filters = filtersResult.success ? filtersResult.data : {};
-
-    let list = [...adminStudents];
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      list = list.filter(
-        (s) => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q),
-      );
-    }
-    if (filters.status && filters.status !== 'todos')
-      list = list.filter((s) => s.status === filters.status);
-    if (filters.courseId && filters.courseId !== 'todos')
-      list = list.filter((s) => s.enrolledCourseIds.includes(filters.courseId!));
-    list.sort((a, b) => {
-      if (filters.sortBy === 'risk') return b.riskScore - a.riskScore;
-      if (filters.sortBy === 'lastAccess')
-        return new Date(b.lastAccessAt).getTime() - new Date(a.lastAccessAt).getTime();
-      return a.name.localeCompare(b.name);
-    });
-    return c.json(list);
+    return c.json(await studentsRepo.listAdminStudents(filters));
   });
 
-  app.get('/admin/students/:id', (c) => {
-    const s = adminStudents.find((x) => x.id === c.req.param('id'));
+  app.get('/admin/students/:id', async (c) => {
+    const s = await studentsRepo.findAdminStudent(c.req.param('id'));
     if (!s) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(s);
   });
