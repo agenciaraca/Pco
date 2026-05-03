@@ -502,3 +502,11 @@ export function useDeleteSystemUser() {
     onSuccess: () => qc.invalidateQueries({ queryKey: systemUsersKey }),
   });
 }
+
+const auditLogKey = ['admin', 'audit-log'] as const;
+export function useAuditLog(filter: api.AuditFilter = {}) {
+  return useQuery({
+    queryKey: [...auditLogKey, filter],
+    queryFn: () => api.fetchAuditLog(filter),
+  });
+}

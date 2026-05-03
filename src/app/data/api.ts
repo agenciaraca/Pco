@@ -46,6 +46,59 @@ export async function fetchCurrentStudent(): Promise<Student> {
   return http.get<Student>('/auth/me');
 }
 
+export interface ForgotPasswordResponse {
+  ok: true;
+  devToken?: string;
+  expiresIn?: number;
+}
+
+export async function requestPasswordReset(email: string): Promise<ForgotPasswordResponse> {
+  return http.post<ForgotPasswordResponse>('/auth/forgot-password', { email });
+}
+
+export async function resetPassword(token: string, password: string): Promise<{ ok: true; email: string }> {
+  return http.post<{ ok: true; email: string }>('/auth/reset-password', {
+    token,
+    password,
+  });
+}
+
+// ---------- Audit log ----------
+
+export interface AuditEntryDto {
+  id: string;
+  ts: string;
+  actorId: string | null;
+  actorEmail: string | null;
+  actorRole: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  ip: string | null;
+  userAgent: string | null;
+  meta?: Record<string, unknown>;
+  status: 'ok' | 'error';
+}
+
+export interface AuditFilter {
+  action?: string;
+  actorId?: string;
+  targetType?: string;
+  targetId?: string;
+  since?: string;
+  until?: string;
+  limit?: number;
+}
+
+export async function fetchAuditLog(filter: AuditFilter = {}): Promise<AuditEntryDto[]> {
+  const qs = new URLSearchParams();
+  Object.entries(filter).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+  });
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return http.get<AuditEntryDto[]>(`/admin/audit-log${suffix}`);
+}
+
 // ---------- Courses ----------
 
 export async function fetchCourses(): Promise<Course[]> {

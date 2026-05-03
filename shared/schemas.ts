@@ -23,9 +23,18 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('E-mail inválido'),
+  email: emailLike,
 });
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(10).max(200),
+  password: z
+    .string()
+    .min(8, 'Senha precisa ter ao menos 8 caracteres')
+    .max(128, 'Senha muito longa'),
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 // Support
 export const supportCategorySchema = z.enum([

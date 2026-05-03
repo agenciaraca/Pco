@@ -6,6 +6,9 @@ import { currentStudent } from '../src/app/data/seed';
 import * as usersStore from './auth/users-store';
 import { signToken } from './auth/jwt';
 import { attachUser, requireAuth } from './auth/middleware';
+import { createResetToken, consumeResetToken } from './auth/password-reset';
+import { auditMiddleware } from './audit/middleware';
+import { listAudit } from './audit/log';
 import {
   createSupportTicketSchema,
   recoveryPlanSchema,
@@ -32,6 +35,8 @@ import {
   createSystemUserSchema,
   updateSystemUserSchema,
   changePasswordSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -70,6 +75,7 @@ export function buildApp() {
   );
   app.use('*', rateLimit({ windowMs: 60_000, max: 120 }));
   app.use('*', attachUser);
+  app.use('*', auditMiddleware);
 
   app.get('/health', (c) =>
     c.json({ ok: true, ts: Date.now(), db: hasDb() ? 'connected' : 'fallback' }),
@@ -102,6 +108,43 @@ export function buildApp() {
       return c.json({ ...s, name: u.name, email: u.email, role: u.role });
     }
     return c.json(u);
+  });
+
+  // ---------- Forgot / Reset password ----------
+
+  app.post('/auth/forgot-password', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(forgotPasswordSchema, body);
+    if (!v.ok) {
+      // Mesmo input ruim retorna sucesso vazio (não vaza existência de e-mail)
+      return c.json({ ok: true });
+    }
+    const u = await usersStore.findUserByEmail(v.data.email);
+    if (u && u.active) {
+      const token = createResetToken(u.id, u.email);
+      // Em produção real: dispara e-mail. Por enquanto, log + também devolve
+      // o token na resposta SE NODE_ENV != 'production' (debugging em dev).
+      // eslint-disable-next-line no-console
+      console.log(`[forgot-password] reset token para ${u.email}: ${token.token}`);
+      if (process.env.NODE_ENV !== 'production') {
+        return c.json({ ok: true, devToken: token.token, expiresIn: 30 * 60 });
+      }
+    }
+    // Sempre retorna ok pra não revelar se o e-mail existe
+    return c.json({ ok: true });
+  });
+
+  app.post('/auth/reset-password', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(resetPasswordSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const tokenEntry = consumeResetToken(v.data.token);
+    if (!tokenEntry) {
+      return jsonError(c, 400, 'INVALID_TOKEN', 'Token inválido ou expirado.');
+    }
+    const ok = await usersStore.changePassword(tokenEntry.userId, v.data.password);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
+    return c.json({ ok: true, email: tokenEntry.email });
   });
 
   // ---------- Courses ----------
@@ -638,6 +681,23 @@ export function buildApp() {
     } catch (err) {
       return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
     }
+  });
+
+  // ---------- Audit log ----------
+
+  app.get('/admin/audit-log', requireAuth('admin', 'superadmin'), async (c) => {
+    const q = c.req.query();
+    const limit = q.limit ? Number(q.limit) : undefined;
+    const entries = await listAudit({
+      action: q.action,
+      actorId: q.actorId,
+      targetType: q.targetType,
+      targetId: q.targetId,
+      since: q.since,
+      until: q.until,
+      limit: typeof limit === 'number' && Number.isFinite(limit) ? limit : undefined,
+    });
+    return c.json(entries);
   });
 
   // 404 catch-all

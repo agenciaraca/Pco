@@ -13,6 +13,7 @@ import NotFound from './pages/NotFound';
 
 // Public — lazy
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Landing = lazy(() => import('./pages/Landing'));
@@ -62,6 +63,7 @@ const AdminLoginModels = lazy(() => import('./pages/admin/AdminLoginModels'));
 const AdminLoginCustomize = lazy(() => import('./pages/admin/AdminLoginCustomize'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminUsuarios = lazy(() => import('./pages/admin/AdminUsuarios'));
+const AdminAuditoria = lazy(() => import('./pages/admin/AdminAuditoria'));
 
 function S({ children }: { children: ReactNode }) {
   return <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>;
@@ -79,6 +81,7 @@ export const router = createBrowserRouter([
   },
   { path: '/login', element: <Login />, errorElement: <RootError /> },
   { path: '/esqueci-senha', element: <S><ForgotPassword /></S>, errorElement: <RootError /> },
+  { path: '/redefinir-senha', element: <S><ResetPassword /></S>, errorElement: <RootError /> },
   { path: '/onboarding', element: <S><Onboarding /></S>, errorElement: <RootError /> },
   { path: '/termos', element: <S><Terms /></S>, errorElement: <RootError /> },
   { path: '/landing', element: <S><Landing /></S>, errorElement: <RootError /> },
@@ -156,6 +159,7 @@ export const router = createBrowserRouter([
       { path: 'login-customizacao', element: <S><AdminLoginCustomize /></S> },
       { path: 'configuracoes', element: <S><AdminSettings /></S> },
       { path: 'usuarios', element: <S><AdminUsuarios /></S> },
+      { path: 'auditoria', element: <S><AdminAuditoria /></S> },
     ],
   },
 
