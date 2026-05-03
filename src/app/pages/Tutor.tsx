@@ -1,38 +1,77 @@
-import { useState } from 'react';
-import { Bot, Send, AlertCircle, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bot, Send, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
+import { useAskTutor } from '../data/hooks';
+import { useToast } from '../components/Toast';
+import { ApiError } from '../data/client';
 
 const ATTRIB_NOTICE =
   'O Tutor Virtual responde apenas dúvidas pedagógicas relacionadas aos cursos da PCO. Ele não substitui professores, supervisão clínica, atendimento psicológico, médico ou jurídico.';
 
 interface Msg {
   role: 'user' | 'assistant';
-  text: string;
+  content: string;
 }
 
-const seedHistory: Msg[] = [
-  {
-    role: 'assistant',
-    text: 'Olá! Sou o Tutor Virtual da PCO. Posso te ajudar com dúvidas dos seus cursos. Como posso te apoiar hoje?',
-  },
-];
-
 export default function Tutor() {
-  const [messages, setMessages] = useState<Msg[]>(seedHistory);
+  const ask = useAskTutor();
+  const toast = useToast();
+  const [messages, setMessages] = useState<Msg[]>([
+    {
+      role: 'assistant',
+      content:
+        'Olá! Sou o Tutor Virtual da PCO. Posso te ajudar com dúvidas dos seus cursos. Como posso te apoiar hoje?',
+    },
+  ]);
   const [draft, setDraft] = useState('');
-  const credits = 32;
-  const limit = 50;
+  const [providerInfo, setProviderInfo] = useState<{
+    provider: string | null;
+    model: string | null;
+  }>({ provider: null, model: null });
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const send = () => {
-    if (!draft.trim()) return;
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', text: draft },
-      {
-        role: 'assistant',
-        text: 'Ótima pergunta. Esta é uma resposta mockada do Tutor — a integração com o provedor de IA será feita em uma próxima fase.',
-      },
-    ]);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: 'smooth',
+    });
+  }, [messages, ask.isPending]);
+
+  const send = async () => {
+    const text = draft.trim();
+    if (!text || ask.isPending) return;
+
+    const newUserMsg: Msg = { role: 'user', content: text };
+    const history = messages.filter((m) => m.role === 'user' || m.role === 'assistant');
+
+    setMessages((prev) => [...prev, newUserMsg]);
     setDraft('');
+
+    try {
+      const reply = await ask.mutateAsync({
+        message: text,
+        history: history.slice(-10), // últimas 10
+      });
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply.message }]);
+      setProviderInfo({ provider: reply.provider, model: reply.model });
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : 'UNKNOWN';
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      if (code === 'STUDENT_LIMIT') {
+        toast.warning('Limite atingido', message);
+      } else {
+        toast.error('Falha no Tutor', message);
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            code === 'STUDENT_LIMIT'
+              ? message
+              : 'Tive um problema agora. Tente reformular a pergunta ou volte em alguns minutos.',
+        },
+      ]);
+    }
   };
 
   return (
@@ -45,10 +84,19 @@ export default function Tutor() {
         <div className="pco-card p-3 px-4 flex items-center gap-3">
           <Sparkles size={16} className="text-pco-blue" />
           <div className="text-xs">
-            <div className="font-semibold text-pco-deep">
-              {credits}/{limit} perguntas neste mês
-            </div>
-            <div className="text-ink-subtle">Pacotes adicionais disponíveis</div>
+            {providerInfo.provider ? (
+              <>
+                <div className="font-semibold text-pco-deep">
+                  Conectado · {providerInfo.provider}
+                </div>
+                <div className="text-ink-subtle font-mono">{providerInfo.model}</div>
+              </>
+            ) : (
+              <>
+                <div className="font-semibold text-pco-deep">Pronto para conversar</div>
+                <div className="text-ink-subtle">Provider ativo no admin</div>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -58,33 +106,21 @@ export default function Tutor() {
         <p className="text-xs text-ink-muted">{ATTRIB_NOTICE}</p>
       </div>
 
-      <div className="pco-card p-0 overflow-hidden flex flex-col h-[60vh] min-h-[400px]">
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="pco-card p-0 overflow-hidden flex flex-col h-[60vh] min-h-[420px]">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
           {messages.map((m, i) => (
-            <div
-              key={i}
-              className={`flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}
-            >
-              <div
-                className={`h-8 w-8 rounded-xl shrink-0 grid place-items-center ${
-                  m.role === 'user'
-                    ? 'bg-pco-blue text-white'
-                    : 'bg-pco-blue/10 text-pco-blue'
-                }`}
-              >
-                {m.role === 'user' ? 'V' : <Bot size={16} strokeWidth={1.75} />}
-              </div>
-              <div
-                className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm ${
-                  m.role === 'user'
-                    ? 'bg-pco-blue text-white'
-                    : 'bg-surface-gray text-pco-deep'
-                }`}
-              >
-                {m.text}
-              </div>
-            </div>
+            <Bubble key={i} role={m.role}>
+              {m.content}
+            </Bubble>
           ))}
+          {ask.isPending && (
+            <Bubble role="assistant">
+              <span className="inline-flex items-center gap-2 text-ink-muted">
+                <Loader2 size={12} className="animate-spin" />
+                Pensando...
+              </span>
+            </Bubble>
+          )}
         </div>
 
         <div className="border-t border-surface-gray p-3 bg-surface-off">
@@ -92,15 +128,55 @@ export default function Tutor() {
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && send()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
               placeholder="Pergunte sobre uma aula, conceito ou leitura..."
               className="pco-input flex-1"
+              maxLength={2000}
+              disabled={ask.isPending}
             />
-            <button onClick={send} className="pco-btn-primary">
-              <Send size={14} strokeWidth={2} />
+            <button
+              onClick={send}
+              disabled={ask.isPending || !draft.trim()}
+              className="pco-btn-primary"
+              aria-label="Enviar"
+            >
+              {ask.isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Send size={14} strokeWidth={2} />
+              )}
             </button>
           </div>
+          <div className="mt-1.5 text-[10px] text-ink-subtle">
+            Enter para enviar · Shift+Enter para quebrar linha · {draft.length}/2000
+          </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Bubble({ role, children }: { role: 'user' | 'assistant'; children: React.ReactNode }) {
+  return (
+    <div className={`flex gap-3 ${role === 'user' ? 'flex-row-reverse' : ''}`}>
+      <div
+        className={`h-8 w-8 rounded-xl shrink-0 grid place-items-center ${
+          role === 'user' ? 'bg-pco-blue text-white' : 'bg-pco-blue/10 text-pco-blue'
+        }`}
+      >
+        {role === 'user' ? 'V' : <Bot size={16} strokeWidth={1.75} />}
+      </div>
+      <div
+        className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
+          role === 'user' ? 'bg-pco-blue text-white' : 'bg-surface-gray text-pco-deep'
+        }`}
+      >
+        {children}
       </div>
     </div>
   );

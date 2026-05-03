@@ -7,8 +7,10 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Tabs from '../../components/Tabs';
-import { aiConfigurations } from '../../data/seed';
+import { useAiConfigurations } from '../../data/hooks';
+import { CardListSkeleton } from '../../components/LoadingSkeleton';
 
 const tabs = [
   { id: 'limites', label: 'Limites', icon: <Users size={14} strokeWidth={1.75} /> },
@@ -26,7 +28,20 @@ const recentLogs = [
 
 export default function AdminTutor() {
   const [active, setActive] = useState('limites');
-  const config = aiConfigurations.find((c) => c.module === 'tutor') ?? aiConfigurations[0];
+  const configsQ = useAiConfigurations();
+  const config = configsQ.data?.find((c) => c.module === 'tutor');
+
+  if (configsQ.isLoading || !config) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <h1 className="pco-section-title">Tutor Virtual — Configurações</h1>
+          <p className="pco-section-subtitle mt-1">Carregando...</p>
+        </header>
+        <CardListSkeleton count={2} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -71,7 +86,11 @@ export default function AdminTutor() {
           <p>
             Modelo atual: <span className="font-mono text-pco-deep">{config.model}</span> · Provedor{' '}
             <span className="font-semibold text-pco-deep capitalize">{config.provider}</span> · Configurações
-            de provedor, modelo e chave API são feitas em <a href="/admin/ias" className="text-pco-blue hover:underline">/admin/ias</a>.
+            de provedor, modelo e chave API são feitas em{' '}
+            <Link to="/admin/ias" className="text-pco-blue hover:underline">
+              /admin/ias
+            </Link>
+            .
           </p>
         </div>
       </div>
@@ -149,7 +168,7 @@ export default function AdminTutor() {
           <div className="pco-card space-y-3">
             <h3 className="text-base font-semibold text-pco-deep">Tópicos bloqueados</h3>
             <div className="flex flex-wrap gap-1">
-              {config.blockedTopics.map((t) => (
+              {config.blockedTopics.map((t: string) => (
                 <span key={t} className="pco-badge bg-status-danger/10 text-status-danger">
                   {t}
                 </span>
@@ -161,7 +180,7 @@ export default function AdminTutor() {
           <div className="pco-card space-y-3">
             <h3 className="text-base font-semibold text-pco-deep">Escopo permitido</h3>
             <div className="flex flex-wrap gap-1">
-              {config.allowedScopes.map((t) => (
+              {config.allowedScopes.map((t: string) => (
                 <span key={t} className="pco-badge bg-status-success/10 text-status-success">
                   {t}
                 </span>

@@ -13,7 +13,6 @@ import {
   sessionServices,
   seoTimeseries,
   keywords,
-  aiConfigurations,
   supportTickets,
   adminStudents,
   currentStudent,
@@ -23,9 +22,27 @@ import {
   recoveryPlanSchema,
   studentsFilterSchema,
   loginSchema,
+  updateAiConfigSchema,
+  tutorAskSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
+import {
+  getProvider,
+  listProviders,
+  calculateCost,
+} from './ai/providers';
+import {
+  listConfigs,
+  getConfig,
+  getActiveByModule,
+  updateConfig,
+  recordUsage,
+  aggregateUsage,
+  countUsageInWindow,
+  toPublic,
+} from './ai/store';
+import { AiError } from './ai/types';
 
 export function buildApp() {
   const app = new Hono().basePath('/api');
@@ -64,7 +81,6 @@ export function buildApp() {
         email,
         role: isAdmin ? 'admin' : 'student',
       },
-      // Em prod, isso volta como cookie HttpOnly via Set-Cookie. Mock retorna no body.
       token: 'mock-jwt-' + Math.random().toString(36).slice(2),
     });
   });
@@ -112,9 +128,10 @@ export function buildApp() {
 
   app.get('/retention/risks', (c) => {
     const level = c.req.query('level');
-    const list = level && level !== 'todos'
-      ? retentionRisks.filter((r) => r.level === level)
-      : retentionRisks;
+    const list =
+      level && level !== 'todos'
+        ? retentionRisks.filter((r) => r.level === level)
+        : retentionRisks;
     return c.json(list);
   });
 
@@ -128,52 +145,142 @@ export function buildApp() {
   app.get('/metrics/seo/timeseries', (c) => c.json(seoTimeseries));
   app.get('/metrics/seo/keywords', (c) => c.json(keywords));
 
-  // ---------- AI ----------
+  // ---------- AI: providers catalog ----------
 
-  app.get('/ai/configurations', (c) => c.json(aiConfigurations));
+  app.get('/ai/providers', (c) =>
+    c.json(
+      listProviders().map((p) => ({
+        ...p.info,
+        // não expõe instância, só metadata
+      })),
+    ),
+  );
 
-  // Tutor proxy: env-gated. Sem ANTHROPIC_API_KEY, retorna resposta mockada.
+  // ---------- AI: configurations (admin) ----------
+
+  app.get('/admin/ai/configurations', (c) => c.json(listConfigs()));
+
+  app.get('/admin/ai/configurations/:id', (c) => {
+    const cfg = getConfig(c.req.param('id'));
+    if (!cfg) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
+    return c.json({ ...toPublic(cfg), usage: aggregateUsage(cfg.id) });
+  });
+
+  app.put('/admin/ai/configurations/:id', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateAiConfigSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = updateConfig(c.req.param('id'), v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
+    return c.json(toPublic(updated));
+  });
+
+  // Test connection com a chave fornecida (não persiste).
+  app.post('/admin/ai/test', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const provider = body?.provider as string;
+    const apiKey = body?.apiKey as string;
+    if (!provider || !apiKey)
+      return jsonError(c, 400, 'INVALID_INPUT', 'provider e apiKey são obrigatórios');
+    const p = getProvider(provider as 'anthropic');
+    if (!p) return jsonError(c, 400, 'INVALID_PROVIDER', 'Provider desconhecido');
+    const result = await p.testKey(apiKey);
+    return c.json(result);
+  });
+
+  // ---------- AI: Tutor ----------
+
   app.post('/ai/tutor', async (c) => {
     const body = await c.req.json().catch(() => ({}));
-    const message = String(body?.message ?? '').trim();
-    if (!message) return jsonError(c, 400, 'INVALID_INPUT', 'message é obrigatório');
+    const v = validate(tutorAskSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    const config = getActiveByModule('tutor');
+    if (!config) {
       return c.json({
         message:
-          'Resposta mockada do Tutor — defina ANTHROPIC_API_KEY no servidor para habilitar IA real.',
-        usage: { inputTokens: 0, outputTokens: 0 },
+          'Tutor Virtual não está configurado. Acesse /admin/ias para selecionar provider, modelo e chave de API.',
+        provider: null,
+        model: null,
+        usage: null,
       });
     }
 
+    // Limites por aluno (mock — usaria o studentId real do JWT)
+    const studentId = currentStudent.id;
+    const dailyUse = countUsageInWindow(config.id, studentId, 24 * 60 * 60 * 1000);
+    if (dailyUse >= config.perStudentLimit) {
+      return jsonError(
+        c,
+        429,
+        'STUDENT_LIMIT',
+        `Você atingiu o limite de ${config.perStudentLimit} perguntas neste mês. Pacotes adicionais disponíveis em breve.`,
+      );
+    }
+
+    const provider = getProvider(config.provider);
+    if (!provider) {
+      return jsonError(c, 500, 'PROVIDER_MISSING', 'Provider configurado não existe.');
+    }
+
     try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6',
-          max_tokens: 1200,
-          system:
-            'Você é o Tutor Virtual da PCO. Responde apenas dúvidas pedagógicas dos cursos. Não substitui supervisão clínica, atendimento psicológico, médico ou jurídico.',
-          messages: [{ role: 'user', content: message }],
-        }),
+      const messages = [
+        ...(v.data.history ?? []).map((m) => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: v.data.message },
+      ];
+
+      const result = await provider.chat({
+        apiKey: config.apiKey,
+        model: config.model,
+        messages,
+        systemPrompt: config.systemMessage,
+        temperature: config.temperature,
+        maxTokens: config.maxTokens,
       });
-      if (!r.ok) {
-        const text = await r.text();
-        return jsonError(c, 502, 'AI_UPSTREAM', `Provider error: ${r.status}`, { text });
-      }
-      const data = await r.json();
-      const text = (data?.content?.[0]?.text ?? '') as string;
+
+      const cost = calculateCost(
+        config.provider,
+        config.model,
+        result.inputTokens,
+        result.outputTokens,
+      );
+      recordUsage({
+        configId: config.id,
+        studentId,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        costUsd: cost,
+        successful: true,
+      });
+
       return c.json({
-        message: text || 'Sem resposta gerada.',
-        usage: data?.usage ?? null,
+        message: result.text,
+        provider: config.provider,
+        model: result.model,
+        usage: {
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          costUsd: cost,
+        },
       });
     } catch (err) {
-      return jsonError(c, 502, 'AI_UPSTREAM', 'Falha ao chamar provedor IA', { error: String(err) });
+      recordUsage({
+        configId: config.id,
+        studentId,
+        inputTokens: 0,
+        outputTokens: 0,
+        costUsd: 0,
+        successful: false,
+      });
+      if (err instanceof AiError) {
+        if (err.code === 'INVALID_KEY')
+          return jsonError(c, 502, 'AI_INVALID_KEY', 'Chave do provider inválida.');
+        if (err.code === 'RATE_LIMIT')
+          return jsonError(c, 502, 'AI_RATE_LIMIT', 'Provider rejeitou por excesso de uso.');
+        if (err.code === 'TIMEOUT')
+          return jsonError(c, 504, 'AI_TIMEOUT', err.message);
+      }
+      return jsonError(c, 502, 'AI_UPSTREAM', 'Falha ao chamar provider IA.');
     }
   });
 

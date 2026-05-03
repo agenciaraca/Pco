@@ -14,7 +14,6 @@ import type {
   SessionService,
   SeoMetric,
   KeywordMetric,
-  AiConfiguration,
   SupportTicket,
 } from '../types/schema';
 import type {
@@ -126,14 +125,99 @@ export async function fetchKeywords(): Promise<KeywordMetric[]> {
 
 // ---------- AI ----------
 
-export async function fetchAiConfigurations(): Promise<AiConfiguration[]> {
-  return http.get<AiConfiguration[]>('/ai/configurations');
+export interface AiProviderInfo {
+  id: 'anthropic' | 'openai' | 'google' | 'mistral' | 'deepseek' | 'groq';
+  name: string;
+  homepageUrl: string;
+  consoleUrl: string;
+  apiKeyDocsUrl: string;
+  defaultModel: string;
+  models: Array<{
+    id: string;
+    label: string;
+    contextWindow: number;
+    inputCostPerMTok?: number;
+    outputCostPerMTok?: number;
+    recommendedFor?: string;
+  }>;
+}
+
+export async function fetchAiProviders(): Promise<AiProviderInfo[]> {
+  return http.get<AiProviderInfo[]>('/ai/providers');
+}
+
+export interface AiConfigPublic {
+  id: string;
+  module: 'tutor' | 'recovery_plan' | 'evasion' | 'recommendations' | 'support' | 'summaries';
+  provider: AiProviderInfo['id'];
+  model: string;
+  apiKeyMasked: string;
+  apiKeyConfigured: boolean;
+  temperature: number;
+  maxTokens: number;
+  perStudentLimit: number;
+  perDayLimit: number;
+  perMonthLimit: number;
+  monthlyCostCap: number;
+  systemMessage: string;
+  allowedScopes: string[];
+  blockedTopics: string[];
+  fallbackResponse: string;
+  active: boolean;
+  updatedAt: string;
+}
+
+export async function fetchAiConfigurations(): Promise<AiConfigPublic[]> {
+  return http.get<AiConfigPublic[]>('/admin/ai/configurations');
+}
+
+export async function fetchAiConfiguration(
+  id: string,
+): Promise<AiConfigPublic & { usage: { inputTokens: number; outputTokens: number; costUsd: number; total: number; successCount: number; successRate: number } }> {
+  return http.get(`/admin/ai/configurations/${encodeURIComponent(id)}`);
+}
+
+export async function updateAiConfiguration(
+  id: string,
+  patch: Partial<{
+    provider: AiProviderInfo['id'];
+    model: string;
+    apiKey: string | null;
+    temperature: number;
+    maxTokens: number;
+    perStudentLimit: number;
+    perDayLimit: number;
+    perMonthLimit: number;
+    monthlyCostCap: number;
+    systemMessage: string;
+    allowedScopes: string[];
+    blockedTopics: string[];
+    fallbackResponse: string;
+    active: boolean;
+  }>,
+): Promise<AiConfigPublic> {
+  return http.put(`/admin/ai/configurations/${encodeURIComponent(id)}`, patch);
+}
+
+export async function testAiConnection(
+  provider: AiProviderInfo['id'],
+  apiKey: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return http.post('/admin/ai/test', { provider, apiKey });
+}
+
+export interface TutorReply {
+  message: string;
+  provider: AiProviderInfo['id'] | null;
+  model: string | null;
+  usage: { inputTokens: number; outputTokens: number; costUsd: number } | null;
 }
 
 export async function askTutor(
   message: string,
-): Promise<{ message: string; usage?: { inputTokens?: number; outputTokens?: number } | null }> {
-  return http.post('/ai/tutor', { message });
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+): Promise<TutorReply> {
+  return http.post<TutorReply>('/ai/tutor', { message, history });
 }
 
 // ---------- Support ----------

@@ -83,6 +83,59 @@ export const paginationSchema = z.object({
 });
 export type Pagination = z.infer<typeof paginationSchema>;
 
+// AI providers
+export const providerIdSchema = z.enum([
+  'anthropic',
+  'openai',
+  'google',
+  'mistral',
+  'deepseek',
+  'groq',
+]);
+export type ProviderId = z.infer<typeof providerIdSchema>;
+
+export const aiModuleSchema = z.enum([
+  'tutor',
+  'recovery_plan',
+  'evasion',
+  'recommendations',
+  'support',
+  'summaries',
+]);
+export type AiModule = z.infer<typeof aiModuleSchema>;
+
+export const updateAiConfigSchema = z.object({
+  provider: providerIdSchema.optional(),
+  model: z.string().min(1).max(80).optional(),
+  apiKey: z.string().min(0).max(500).nullable().optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  maxTokens: z.number().int().min(1).max(32000).optional(),
+  perStudentLimit: z.number().int().min(0).max(100000).optional(),
+  perDayLimit: z.number().int().min(0).max(10000000).optional(),
+  perMonthLimit: z.number().int().min(0).max(100000000).optional(),
+  monthlyCostCap: z.number().min(0).max(1000000).optional(),
+  systemMessage: z.string().max(8000).optional(),
+  allowedScopes: z.array(z.string().max(80)).max(50).optional(),
+  blockedTopics: z.array(z.string().max(80)).max(50).optional(),
+  fallbackResponse: z.string().max(1000).optional(),
+  active: z.boolean().optional(),
+});
+export type UpdateAiConfigInput = z.infer<typeof updateAiConfigSchema>;
+
+export const tutorAskSchema = z.object({
+  message: z.string().min(1, 'Mensagem obrigatória').max(2000, 'Mensagem muito longa'),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().max(4000),
+      }),
+    )
+    .max(20)
+    .optional(),
+});
+export type TutorAskInput = z.infer<typeof tutorAskSchema>;
+
 // Filters
 export const studentsFilterSchema = z.object({
   search: z.string().optional(),

@@ -11,7 +11,6 @@ import type {
   SessionService,
   SeoMetric,
   KeywordMetric,
-  AiConfiguration,
   SupportTicket,
 } from '../types/schema';
 
@@ -378,52 +377,6 @@ export const keywords: KeywordMetric[] = [
   { keyword: 'terapia familiar sistêmica curso', position: 12, searchVolume: 1300, trend: 'flat', ctr: 2.4 },
   { keyword: 'pós em psicanálise clínica', position: 9, searchVolume: 990, trend: 'down', ctr: 3.0 },
   { keyword: 'pco escola de psicanálise', position: 1, searchVolume: 480, trend: 'up', ctr: 14.8 },
-];
-
-export const aiConfigurations: AiConfiguration[] = [
-  {
-    id: 'ai-tutor',
-    module: 'tutor',
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-6',
-    apiKeyMasked: 'sk-ant-•••••••••••••••a3f9',
-    temperature: 0.3,
-    maxTokens: 1200,
-    perStudentLimit: 50,
-    perDayLimit: 5000,
-    perMonthLimit: 120000,
-    monthlyCostCap: 800,
-    systemMessage:
-      'Você é o Tutor Virtual PCO. Responde apenas dúvidas pedagógicas dos cursos da PCO.',
-    allowedScopes: ['cursos PCO', 'aulas', 'leituras'],
-    blockedTopics: [
-      'diagnóstico psicológico',
-      'orientação médica',
-      'orientação jurídica',
-      'supervisão clínica individual',
-    ],
-    fallbackResponse:
-      'Esta pergunta está fora do escopo pedagógico do Tutor Virtual da PCO.',
-    active: true,
-  },
-  {
-    id: 'ai-recovery',
-    module: 'recovery_plan',
-    provider: 'openai',
-    model: 'gpt-4o-mini',
-    apiKeyMasked: 'sk-•••••••••••••••f12c',
-    temperature: 0.5,
-    maxTokens: 1500,
-    perStudentLimit: 4,
-    perDayLimit: 200,
-    perMonthLimit: 6000,
-    monthlyCostCap: 200,
-    systemMessage: 'Gere planos de retomada acolhedores baseados em dados do aluno.',
-    allowedScopes: ['retenção', 'reengajamento'],
-    blockedTopics: ['cobrança', 'venda'],
-    fallbackResponse: 'Plano não pôde ser gerado automaticamente.',
-    active: true,
-  },
 ];
 
 export interface AdminStudentRow {

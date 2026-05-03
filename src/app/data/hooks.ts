@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from './api';
+import type { AiProviderInfo } from './api';
 
 // Keys centralizadas para invalidate
 export const queryKeys = {
@@ -17,6 +18,8 @@ export const queryKeys = {
   seoTimeseries: (range: string) => ['seo-timeseries', range] as const,
   keywords: ['keywords'] as const,
   aiConfigurations: ['ai-configurations'] as const,
+  aiConfiguration: (id: string) => ['ai-configurations', id] as const,
+  aiProviders: ['ai-providers'] as const,
   supportTickets: ['support-tickets'] as const,
   adminStudents: (filters: api.StudentsFilter) => ['admin-students', filters] as const,
   adminStudent: (id: string) => ['admin-students', id] as const,
@@ -113,6 +116,53 @@ export function useAiConfigurations() {
   return useQuery({
     queryKey: queryKeys.aiConfigurations,
     queryFn: api.fetchAiConfigurations,
+  });
+}
+
+export function useAiConfiguration(id: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.aiConfiguration(id ?? ''),
+    queryFn: () => api.fetchAiConfiguration(id!),
+    enabled: !!id,
+  });
+}
+
+export function useAiProviders() {
+  return useQuery({
+    queryKey: queryKeys.aiProviders,
+    queryFn: api.fetchAiProviders,
+    staleTime: Infinity,
+  });
+}
+
+export function useUpdateAiConfiguration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof api.updateAiConfiguration>[1] }) =>
+      api.updateAiConfiguration(id, patch),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: queryKeys.aiConfigurations });
+      qc.invalidateQueries({ queryKey: queryKeys.aiConfiguration(variables.id) });
+    },
+  });
+}
+
+export function useTestAiConnection() {
+  return useMutation({
+    mutationFn: ({ provider, apiKey }: { provider: AiProviderInfo['id']; apiKey: string }) =>
+      api.testAiConnection(provider, apiKey),
+  });
+}
+
+export function useAskTutor() {
+  return useMutation({
+    mutationFn: ({
+      message,
+      history,
+    }: {
+      message: string;
+      history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+    }) => api.askTutor(message, history),
   });
 }
 

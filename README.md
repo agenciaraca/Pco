@@ -155,18 +155,39 @@ npm install -D drizzle-kit
    `src/app/types/schema.ts`)
 4. Substitua imports de `seed.ts` em `server/app.ts` por queries Drizzle
 
-### 3. Tutor Virtual com Claude
+### 3. IAs do AVA (Tutor, Plano de Retomada, etc.)
 
-Já implementado em `server/app.ts` com fallback mock.
+**Configuradas pelo admin no próprio sistema, não em env vars.**
 
-1. Crie key em https://console.anthropic.com/
-2. Adicione no `.env`:
-   ```
-   ANTHROPIC_API_KEY=sk-ant-...
-   ANTHROPIC_MODEL=claude-sonnet-4-6
-   ```
+O AVA suporta nativamente 6 providers via abstração comum
+(`server/ai/providers/`), todos com a mesma interface:
 
-A chave **nunca** é exposta ao cliente — sempre via proxy server-side.
+| Provider | Recomendado para | Custo aproximado |
+|---|---|---|
+| **Anthropic Claude** | Tutor pedagógico, casos sensíveis | $3 / $15 por MTok (Sonnet 4.6) |
+| **OpenAI** | Fallback universal | $0.15 / $0.60 (4o mini) |
+| **Google Gemini** | Janela enorme (1M+ tokens), tier gratuito | $0.075 / $0.30 (Flash) |
+| **Mistral AI** | Multi-idioma, GDPR, sediada na UE | $0.20 / $0.60 (Small) |
+| **DeepSeek** | Custo muito baixo, raciocínio forte | $0.27 / $1.10 (V3) |
+| **Groq** (Llama 3.3, Mixtral, Gemma) | Velocidade extrema, open weights | $0.59 / $0.79 (70B) |
+
+Como configurar (sem deploy):
+
+1. Acesse `/admin/ias`
+2. Clique em **Configurar** no módulo desejado (Tutor Virtual, Plano de
+   Retomada, etc.)
+3. Selecione provider, modelo e cole a chave de API
+4. Clique em **Testar conexão** — o backend faz uma chamada-ping ao provider
+5. Salve
+
+A chave fica **apenas no servidor**. O frontend recebe somente a versão
+mascarada (ex.: `sk-a••••••••0xyz`). Em produção (com DB), as chaves serão
+criptografadas com AES-GCM usando `AI_KEY_ENCRYPTION_SECRET` em env var.
+
+Para trocar de provider, repita o processo no admin — não exige redeploy.
+
+Para adicionar um novo provider, crie `server/ai/providers/<id>.ts`
+implementando a interface `AiProvider` e registre em `providers/index.ts`.
 
 ### 4. Sentry para erros
 

@@ -51,24 +51,26 @@ describe('http client', () => {
     );
     const fetchMock = vi.fn(async () =>
       new Response('null', { status: 200, headers: { 'content-type': 'application/json' } }),
-    ) as typeof fetch;
-    globalThis.fetch = fetchMock;
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     await http.get('/secure');
 
-    const headers = (fetchMock.mock.calls[0][1] as RequestInit).headers as Record<string, string>;
+    const calls = fetchMock.mock.calls as unknown as Array<[string, RequestInit]>;
+    const headers = calls[0][1].headers as Record<string, string>;
     expect(headers.authorization).toBe('Bearer abc123');
   });
 
   it('serializa query string corretamente', async () => {
     const fetchMock = vi.fn(async () =>
       new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }),
-    ) as typeof fetch;
-    globalThis.fetch = fetchMock;
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     await http.get('/items', { query: { search: 'foo', page: 2, ignored: undefined } });
 
-    const url = fetchMock.mock.calls[0][0] as string;
+    const calls = fetchMock.mock.calls as unknown as Array<[string, RequestInit]>;
+    const url = calls[0][0];
     expect(url).toContain('search=foo');
     expect(url).toContain('page=2');
     expect(url).not.toContain('ignored');
