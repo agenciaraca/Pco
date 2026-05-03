@@ -24,6 +24,8 @@ import {
   createStudentSchema,
   updateStudentSchema,
   studentStatusEnum,
+  createAssessmentSchema,
+  updateAssessmentSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -525,6 +527,32 @@ export function buildApp() {
   app.delete('/admin/students/:id', async (c) => {
     const ok = await studentsRepo.deleteAdminStudent(c.req.param('id'));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+    return c.json({ ok: true });
+  });
+
+  // ---------- Admin: Assessments ----------
+
+  app.post('/admin/modules/:moduleId/assessment', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createAssessmentSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const result = await coursesRepo.upsertAssessment(c.req.param('moduleId'), v.data);
+    if (!result) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
+    return c.json(result);
+  });
+
+  app.put('/admin/assessments/:id', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateAssessmentSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await coursesRepo.updateAssessment(c.req.param('id'), v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Avaliação não encontrada');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/assessments/:id', async (c) => {
+    const ok = await coursesRepo.deleteAssessment(c.req.param('id'));
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Avaliação não encontrada');
     return c.json({ ok: true });
   });
 

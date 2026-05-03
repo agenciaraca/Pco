@@ -34,6 +34,8 @@ import {
   useCreateLesson,
   useUpdateLesson,
   useDeleteLesson,
+  useUpsertAssessment,
+  useDeleteAssessment,
 } from '../../data/hooks';
 import { PageLoadingSkeleton } from '../../components/LoadingSkeleton';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -45,8 +47,10 @@ import {
   type CreateModuleInput,
   createLessonSchema,
   type CreateLessonInput,
+  createAssessmentSchema,
+  type CreateAssessmentInput,
 } from '../../../../shared/schemas';
-import type { Course, Module, Lesson } from '../../types/schema';
+import type { Course, Module, Lesson, Assessment } from '../../types/schema';
 
 const tabs = [
   { id: 'geral', label: 'Geral', icon: <FileText size={14} strokeWidth={1.75} /> },
@@ -768,34 +772,243 @@ function MateriaisPane() {
 }
 
 function AvaliacoesPane({ course }: { course: Course }) {
+  const toast = useToast();
+  const upsertMut = useUpsertAssessment(course.id);
+  const deleteMut = useDeleteAssessment(course.id);
+
+  const [editing, setEditing] = useState<{
+    moduleId: string;
+    moduleTitle: string;
+    current: Assessment | null;
+  } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    assessmentId: string;
+    title: string;
+  } | null>(null);
+
   const assessments = course.modules.filter((m) => m.assessment);
+
+  const handleSubmit = async (data: CreateAssessmentInput) => {
+    if (!editing) return;
+    try {
+      await upsertMut.mutateAsync({ moduleId: editing.moduleId, input: data });
+      toast.success(
+        editing.current ? 'Avaliação atualizada' : 'Avaliação criada',
+        data.title,
+      );
+      setEditing(null);
+    } catch (err) {
+      toast.error('Falha ao salvar', err instanceof Error ? err.message : 'Erro');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      await deleteMut.mutateAsync(confirmDelete.assessmentId);
+      toast.success('Avaliação excluída', confirmDelete.title);
+      setConfirmDelete(null);
+    } catch (err) {
+      toast.error('Falha ao excluir', err instanceof Error ? err.message : 'Erro');
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-pco-deep">
-          Avaliações · {assessments.length}
+          Avaliações · {assessments.length} de {course.modules.length} módulos
         </h3>
-        <button className="pco-btn-secondary text-xs">
-          <Plus size={12} strokeWidth={2} />
-          Nova avaliação
-        </button>
       </div>
-      {assessments.map((m) => (
+
+      {course.modules.length === 0 && (
+        <div className="pco-card text-center py-6">
+          <p className="text-sm text-ink-muted">
+            Crie módulos primeiro (aba Módulos) para adicionar avaliações.
+          </p>
+        </div>
+      )}
+
+      {course.modules.map((m, i) => (
         <div key={m.id} className="pco-card flex items-center gap-3">
-          <ScrollText size={16} className="text-pco-orange" strokeWidth={1.75} />
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-pco-deep">{m.assessment?.title}</div>
-            <div className="text-[11px] text-ink-subtle">
-              {m.assessment?.questionCount} questões · aprovação {m.assessment?.passingScore}%
-            </div>
+          <div className="h-8 w-8 rounded-lg bg-pco-blue/10 grid place-items-center text-xs font-bold text-pco-blue shrink-0">
+            {i + 1}
           </div>
-          <button className="pco-btn-ghost text-xs">
-            <Edit3 size={12} strokeWidth={1.75} />
-            Editar
-          </button>
+          <ScrollText
+            size={16}
+            className={m.assessment ? 'text-pco-orange' : 'text-ink-subtle'}
+            strokeWidth={1.75}
+          />
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+              {m.title}
+            </div>
+            {m.assessment ? (
+              <>
+                <div className="text-sm font-semibold text-pco-deep">{m.assessment.title}</div>
+                <div className="text-[11px] text-ink-subtle">
+                  {m.assessment.questionCount} questões · aprovação {m.assessment.passingScore}%
+                  {m.assessment.timeLimitMinutes
+                    ? ` · ${m.assessment.timeLimitMinutes} min`
+                    : ''}
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-ink-muted italic">Sem avaliação configurada</div>
+            )}
+          </div>
+          {m.assessment ? (
+            <>
+              <button
+                onClick={() =>
+                  setEditing({
+                    moduleId: m.id,
+                    moduleTitle: m.title,
+                    current: m.assessment ?? null,
+                  })
+                }
+                className="pco-btn-ghost text-xs"
+              >
+                <Edit3 size={12} strokeWidth={1.75} />
+                Editar
+              </button>
+              <button
+                onClick={() =>
+                  setConfirmDelete({
+                    assessmentId: m.assessment!.id,
+                    title: m.assessment!.title,
+                  })
+                }
+                className="pco-btn-ghost text-xs px-2.5 text-status-danger hover:bg-status-danger/10"
+              >
+                <Trash2 size={12} strokeWidth={1.75} />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setEditing({ moduleId: m.id, moduleTitle: m.title, current: null })}
+              className="pco-btn-secondary text-xs"
+            >
+              <Plus size={12} strokeWidth={2} />
+              Criar avaliação
+            </button>
+          )}
         </div>
       ))}
+
+      {editing && (
+        <AssessmentEditor
+          assessment={editing.current}
+          moduleTitle={editing.moduleTitle}
+          submitting={upsertMut.isPending}
+          onClose={() => setEditing(null)}
+          onSubmit={handleSubmit}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Excluir avaliação?"
+        description={
+          confirmDelete && (
+            <>
+              <span className="font-semibold text-pco-deep">{confirmDelete.title}</span> será
+              removida do módulo.
+            </>
+          )
+        }
+        confirmLabel="Excluir"
+        variant="danger"
+        loading={deleteMut.isPending}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
+  );
+}
+
+interface AssessmentEditorProps {
+  assessment: Assessment | null;
+  moduleTitle: string;
+  submitting: boolean;
+  onClose: () => void;
+  onSubmit: (data: CreateAssessmentInput) => Promise<void>;
+}
+
+function AssessmentEditor({
+  assessment,
+  moduleTitle,
+  submitting,
+  onClose,
+  onSubmit,
+}: AssessmentEditorProps) {
+  const isNew = assessment === null;
+  type FormInput = z.input<typeof createAssessmentSchema>;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormInput, unknown, CreateAssessmentInput>({
+    resolver: zodResolver(createAssessmentSchema),
+    defaultValues: {
+      title: assessment?.title ?? `Avaliação — ${moduleTitle}`,
+      questionCount: assessment?.questionCount ?? 10,
+      passingScore: assessment?.passingScore ?? 70,
+      timeLimitMinutes: assessment?.timeLimitMinutes,
+    },
+  });
+
+  return (
+    <ModalShell
+      title={isNew ? 'Nova avaliação' : 'Editar avaliação'}
+      subtitle={moduleTitle}
+      submitting={submitting}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4" noValidate>
+        <Field label="Título" error={errors.title?.message}>
+          <input {...register('title')} className="pco-input" />
+        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Quantidade de questões" error={errors.questionCount?.message}>
+            <input
+              type="number"
+              min={1}
+              max={200}
+              {...register('questionCount', { valueAsNumber: true })}
+              className="pco-input"
+            />
+          </Field>
+          <Field label="Nota de aprovação (%)" error={errors.passingScore?.message}>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              {...register('passingScore', { valueAsNumber: true })}
+              className="pco-input"
+            />
+          </Field>
+        </div>
+        <Field label="Tempo limite (min, opcional)" error={errors.timeLimitMinutes?.message}>
+          <input
+            type="number"
+            min={1}
+            max={600}
+            {...register('timeLimitMinutes', {
+              setValueAs: (v) => (v === '' || v === null ? undefined : Number(v)),
+            })}
+            className="pco-input w-32"
+            placeholder="Sem limite"
+          />
+        </Field>
+        <ModalFooter
+          onClose={onClose}
+          submitting={submitting}
+          isNew={isNew}
+          entityLabel="avaliação"
+        />
+      </form>
+    </ModalShell>
   );
 }
 

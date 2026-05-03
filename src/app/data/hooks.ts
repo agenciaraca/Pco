@@ -432,3 +432,28 @@ export function useDeleteAdminStudent() {
     onSuccess: () => invalidateStudents(qc),
   });
 }
+
+// ---- Admin: assessments writes ----
+
+export function useUpsertAssessment(courseId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ moduleId, input }: { moduleId: string; input: api.AssessmentPayload }) =>
+      api.upsertAssessment(moduleId, input),
+    onSuccess: () => {
+      if (courseId) qc.invalidateQueries({ queryKey: queryKeys.course(courseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+    },
+  });
+}
+
+export function useDeleteAssessment(courseId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteAssessment,
+    onSuccess: () => {
+      if (courseId) qc.invalidateQueries({ queryKey: queryKeys.course(courseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+    },
+  });
+}

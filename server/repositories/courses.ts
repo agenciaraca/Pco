@@ -11,6 +11,8 @@ import type {
   UpdateModuleInput,
   CreateLessonInput,
   UpdateLessonInput,
+  CreateAssessmentInput,
+  UpdateAssessmentInput,
 } from '../../shared/schemas';
 
 async function loadFromDb(): Promise<Course[]> {
@@ -402,5 +404,167 @@ function rowToLesson(r: typeof schema.lessons.$inferSelect): Lesson {
     description: r.description ?? undefined,
     isMandatory: r.isMandatory,
     order: r.order,
+  };
+}
+
+// ---------- Assessments ----------
+
+function newAssessmentId(moduleId: string) {
+  return `${moduleId}-aval-${Date.now()}`;
+}
+
+export async function upsertAssessment(
+  moduleId: string,
+  input: CreateAssessmentInput,
+): Promise<Assessment | null> {
+  const db = getDb();
+
+  if (!db) {
+    for (const course of seedCourses) {
+      const m = course.modules.find((x) => x.id === moduleId);
+      if (m) {
+        const id = m.assessment?.id ?? newAssessmentId(moduleId);
+        const assessment: Assessment = {
+          id,
+          moduleId,
+          courseId: course.id,
+          title: input.title,
+          questionCount: input.questionCount,
+          passingScore: input.passingScore,
+          timeLimitMinutes: input.timeLimitMinutes,
+        };
+        m.assessment = assessment;
+        return assessment;
+      }
+    }
+    return null;
+  }
+
+  const moduleRow = await db
+    .select()
+    .from(schema.modules)
+    .where(eq(schema.modules.id, moduleId));
+  if (moduleRow.length === 0) return null;
+  const courseId = moduleRow[0].courseId;
+
+  // Existe avaliação para esse módulo?
+  const existing = await db
+    .select()
+    .from(schema.assessments)
+    .where(eq(schema.assessments.moduleId, moduleId));
+
+  if (existing.length === 0) {
+    const id = newAssessmentId(moduleId);
+    await db.insert(schema.assessments).values({
+      id,
+      moduleId,
+      courseId,
+      title: input.title,
+      questionCount: input.questionCount,
+      passingScore: input.passingScore,
+      timeLimitMinutes: input.timeLimitMinutes ?? null,
+    });
+    return {
+      id,
+      moduleId,
+      courseId,
+      title: input.title,
+      questionCount: input.questionCount,
+      passingScore: input.passingScore,
+      timeLimitMinutes: input.timeLimitMinutes,
+    };
+  }
+
+  // Update
+  const id = existing[0].id;
+  await db
+    .update(schema.assessments)
+    .set({
+      title: input.title,
+      questionCount: input.questionCount,
+      passingScore: input.passingScore,
+      timeLimitMinutes: input.timeLimitMinutes ?? null,
+    })
+    .where(eq(schema.assessments.id, id));
+  return {
+    id,
+    moduleId,
+    courseId,
+    title: input.title,
+    questionCount: input.questionCount,
+    passingScore: input.passingScore,
+    timeLimitMinutes: input.timeLimitMinutes,
+  };
+}
+
+export async function updateAssessment(
+  assessmentId: string,
+  patch: UpdateAssessmentInput,
+): Promise<Assessment | null> {
+  const db = getDb();
+  if (!db) {
+    for (const course of seedCourses) {
+      for (const m of course.modules) {
+        if (m.assessment?.id === assessmentId) {
+          m.assessment = { ...m.assessment, ...patch } as Assessment;
+          return m.assessment;
+        }
+      }
+    }
+    return null;
+  }
+
+  const update: Partial<typeof schema.assessments.$inferInsert> = {};
+  if (patch.title !== undefined) update.title = patch.title;
+  if (patch.questionCount !== undefined) update.questionCount = patch.questionCount;
+  if (patch.passingScore !== undefined) update.passingScore = patch.passingScore;
+  if (patch.timeLimitMinutes !== undefined)
+    update.timeLimitMinutes = patch.timeLimitMinutes ?? null;
+
+  if (Object.keys(update).length === 0) {
+    const rows = await db
+      .select()
+      .from(schema.assessments)
+      .where(eq(schema.assessments.id, assessmentId));
+    return rows[0] ? rowToAssessment(rows[0]) : null;
+  }
+
+  const rows = await db
+    .update(schema.assessments)
+    .set(update)
+    .where(eq(schema.assessments.id, assessmentId))
+    .returning();
+  return rows[0] ? rowToAssessment(rows[0]) : null;
+}
+
+export async function deleteAssessment(assessmentId: string): Promise<boolean> {
+  const db = getDb();
+  if (!db) {
+    for (const course of seedCourses) {
+      for (const m of course.modules) {
+        if (m.assessment?.id === assessmentId) {
+          m.assessment = undefined;
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  const rows = await db
+    .delete(schema.assessments)
+    .where(eq(schema.assessments.id, assessmentId))
+    .returning({ id: schema.assessments.id });
+  return rows.length > 0;
+}
+
+function rowToAssessment(r: typeof schema.assessments.$inferSelect): Assessment {
+  return {
+    id: r.id,
+    moduleId: r.moduleId,
+    courseId: r.courseId,
+    title: r.title,
+    questionCount: r.questionCount,
+    passingScore: r.passingScore,
+    timeLimitMinutes: r.timeLimitMinutes ?? undefined,
   };
 }

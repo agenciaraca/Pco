@@ -264,6 +264,19 @@ export const updateStudentSchema = z.object({
 });
 export type UpdateStudentInput = z.infer<typeof updateStudentSchema>;
 
+// ---- Assessment writes ----
+
+export const createAssessmentSchema = z.object({
+  title: z.string().min(2, 'Título muito curto').max(200),
+  questionCount: z.number().int().min(1).max(200).default(10),
+  passingScore: z.number().int().min(0).max(100).default(70),
+  timeLimitMinutes: z.number().int().min(1).max(600).optional(),
+});
+export type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;
+
+export const updateAssessmentSchema = createAssessmentSchema.partial();
+export type UpdateAssessmentInput = z.infer<typeof updateAssessmentSchema>;
+
 // Filters
 export const studentsFilterSchema = z.object({
   search: z.string().optional(),

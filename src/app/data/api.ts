@@ -6,6 +6,7 @@ import type {
   Course,
   Module,
   Lesson,
+  Assessment,
   Student,
   NewsArticle,
   PodcastEpisode,
@@ -445,6 +446,36 @@ export async function unblockStudent(id: string): Promise<AdminStudentRow> {
 
 export async function deleteAdminStudent(id: string): Promise<{ ok: true }> {
   return http.delete(`/admin/students/${encodeURIComponent(id)}`);
+}
+
+// ---------- Admin: Assessments ----------
+
+export interface AssessmentPayload {
+  title: string;
+  questionCount?: number;
+  passingScore?: number;
+  timeLimitMinutes?: number;
+}
+
+export async function upsertAssessment(
+  moduleId: string,
+  input: AssessmentPayload,
+): Promise<Assessment> {
+  return http.post<Assessment>(
+    `/admin/modules/${encodeURIComponent(moduleId)}/assessment`,
+    input,
+  );
+}
+
+export async function updateAssessment(
+  id: string,
+  patch: Partial<AssessmentPayload>,
+): Promise<Assessment> {
+  return http.put<Assessment>(`/admin/assessments/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteAssessment(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/assessments/${encodeURIComponent(id)}`);
 }
 
 // ---------- Recovery plans ----------
