@@ -1,4 +1,5 @@
 import type {
+  ID,
   Course,
   Student,
   NewsArticle,
@@ -422,6 +423,109 @@ export const aiConfigurations: AiConfiguration[] = [
     blockedTopics: ['cobrança', 'venda'],
     fallbackResponse: 'Plano não pôde ser gerado automaticamente.',
     active: true,
+  },
+];
+
+export interface AdminStudentRow {
+  id: ID;
+  name: string;
+  email: string;
+  enrolledCourseIds: ID[];
+  progressByCourse: Record<ID, number>;
+  status: 'ativo' | 'em_risco' | 'bloqueado' | 'inativo';
+  riskScore: number;
+  lastAccessAt: string;
+  createdAt: string;
+}
+
+export const adminStudents: AdminStudentRow[] = [
+  {
+    id: 's-101',
+    name: 'Carla Mendes',
+    email: 'carla.m@example.com',
+    enrolledCourseIds: ['c-psi'],
+    progressByCourse: { 'c-psi': 14 },
+    status: 'em_risco',
+    riskScore: 82,
+    lastAccessAt: '2026-04-11',
+    createdAt: '2025-11-03',
+  },
+  {
+    id: 's-102',
+    name: 'Diego Ribeiro',
+    email: 'diego.r@example.com',
+    enrolledCourseIds: ['c-psi', 'c-tfs'],
+    progressByCourse: { 'c-psi': 32, 'c-tfs': 18 },
+    status: 'em_risco',
+    riskScore: 64,
+    lastAccessAt: '2026-04-26',
+    createdAt: '2025-09-21',
+  },
+  {
+    id: 's-103',
+    name: 'Renata Borges',
+    email: 'renata.b@example.com',
+    enrolledCourseIds: ['c-tfs'],
+    progressByCourse: { 'c-tfs': 52 },
+    status: 'ativo',
+    riskScore: 41,
+    lastAccessAt: '2026-04-29',
+    createdAt: '2025-08-12',
+  },
+  {
+    id: 's-104',
+    name: 'Pedro Oliveira',
+    email: 'pedro.o@example.com',
+    enrolledCourseIds: ['c-hipno'],
+    progressByCourse: { 'c-hipno': 67 },
+    status: 'ativo',
+    riskScore: 22,
+    lastAccessAt: '2026-05-01',
+    createdAt: '2025-10-04',
+  },
+  {
+    id: 's-105',
+    name: 'Beatriz Lima',
+    email: 'bia.l@example.com',
+    enrolledCourseIds: ['c-psi', 'c-hipno'],
+    progressByCourse: { 'c-psi': 71, 'c-hipno': 24 },
+    status: 'ativo',
+    riskScore: 18,
+    lastAccessAt: '2026-05-02',
+    createdAt: '2025-07-18',
+  },
+  {
+    id: 's-106',
+    name: 'Thiago Souza',
+    email: 'thiago.s@example.com',
+    enrolledCourseIds: ['c-psi'],
+    progressByCourse: { 'c-psi': 5 },
+    status: 'bloqueado',
+    riskScore: 70,
+    lastAccessAt: '2026-03-15',
+    createdAt: '2025-12-01',
+  },
+  {
+    id: 's-107',
+    name: 'Mariana Castro',
+    email: 'mariana.c@example.com',
+    enrolledCourseIds: ['c-tfs', 'c-hipno'],
+    progressByCourse: { 'c-tfs': 88, 'c-hipno': 12 },
+    status: 'ativo',
+    riskScore: 12,
+    lastAccessAt: '2026-05-03',
+    createdAt: '2025-06-28',
+  },
+  {
+    id: 's-108',
+    name: 'Lucas Almeida',
+    email: 'lucas.a@example.com',
+    enrolledCourseIds: ['c-psi'],
+    progressByCourse: { 'c-psi': 0 },
+    status: 'inativo',
+    riskScore: 88,
+    lastAccessAt: '2026-02-08',
+    createdAt: '2026-01-15',
   },
 ];
 
