@@ -1,5 +1,7 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ArrowLeft,
   FileText,
@@ -15,9 +17,14 @@ import {
   Save,
   Upload,
   Eye,
+  Loader2,
 } from 'lucide-react';
 import Tabs from '../../components/Tabs';
-import { courses } from '../../data/seed';
+import { useCourse, useUpdateCourse } from '../../data/hooks';
+import { PageLoadingSkeleton } from '../../components/LoadingSkeleton';
+import { useToast } from '../../components/Toast';
+import { updateCourseSchema, type UpdateCourseInput } from '../../../../shared/schemas';
+import type { Course } from '../../types/schema';
 
 const tabs = [
   { id: 'geral', label: 'Geral', icon: <FileText size={14} strokeWidth={1.75} /> },
@@ -30,10 +37,13 @@ const tabs = [
 
 export default function AdminCourseEditor() {
   const { id } = useParams<{ id: string }>();
-  const course = courses.find((c) => c.id === id);
+  const courseQ = useCourse(id);
   const [active, setActive] = useState('geral');
 
-  if (!course) return <Navigate to="/admin/cursos" replace />;
+  if (courseQ.isLoading) return <PageLoadingSkeleton />;
+  if (!courseQ.data) return <Navigate to="/admin/cursos" replace />;
+
+  const course = courseQ.data;
 
   return (
     <div className="space-y-6">
@@ -63,10 +73,6 @@ export default function AdminCourseEditor() {
             <Eye size={12} strokeWidth={2} />
             Pré-visualizar
           </Link>
-          <button className="pco-btn-primary text-xs">
-            <Save size={12} strokeWidth={2} />
-            Salvar alterações
-          </button>
         </div>
       </header>
 
@@ -82,47 +88,120 @@ export default function AdminCourseEditor() {
   );
 }
 
-function GeralPane({ course }: { course: (typeof courses)[number] }) {
+function GeralPane({ course }: { course: Course }) {
+  const toast = useToast();
+  const update = useUpdateCourse();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isDirty },
+    reset,
+  } = useForm<UpdateCourseInput>({
+    resolver: zodResolver(updateCourseSchema),
+    defaultValues: {
+      title: course.title,
+      slug: course.slug,
+      shortTitle: course.shortTitle,
+      description: course.description,
+      totalHours: course.totalHours,
+      certificateAvailable: course.certificateAvailable,
+      coverColor: course.coverColor,
+    },
+  });
+
+  const onSubmit = async (data: UpdateCourseInput) => {
+    try {
+      const updated = await update.mutateAsync({ id: course.id, patch: data });
+      toast.success('Curso atualizado', updated.title);
+      reset({
+        title: updated.title,
+        slug: updated.slug,
+        shortTitle: updated.shortTitle,
+        description: updated.description,
+        totalHours: updated.totalHours,
+        certificateAvailable: updated.certificateAvailable,
+        coverColor: updated.coverColor,
+      });
+    } catch (err) {
+      toast.error('Falha ao salvar', err instanceof Error ? err.message : 'Erro');
+    }
+  };
+
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-5 lg:grid-cols-3">
       <div className="lg:col-span-2 pco-card space-y-5">
-        <Field label="Título do curso">
-          <input className="pco-input" defaultValue={course.title} />
+        <Field label="Título do curso" error={errors.title?.message}>
+          <input {...register('title')} className="pco-input" />
         </Field>
-        <Field label="Slug (URL)">
-          <input className="pco-input font-mono" defaultValue={course.slug} />
+        <Field label="Slug (URL)" error={errors.slug?.message}>
+          <input {...register('slug')} className="pco-input font-mono" />
         </Field>
-        <Field label="Título curto (badges)">
-          <input className="pco-input" defaultValue={course.shortTitle} />
+        <Field label="Título curto (badges)" error={errors.shortTitle?.message}>
+          <input {...register('shortTitle')} className="pco-input" />
         </Field>
-        <Field label="Descrição">
-          <textarea
-            className="pco-input resize-none"
-            rows={4}
-            defaultValue={course.description}
-          />
+        <Field label="Descrição" error={errors.description?.message}>
+          <textarea {...register('description')} className="pco-input resize-none" rows={4} />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Carga horária (h)">
-            <input type="number" className="pco-input" defaultValue={course.totalHours} />
+          <Field label="Carga horária (h)" error={errors.totalHours?.message}>
+            <input
+              type="number"
+              {...register('totalHours', { valueAsNumber: true })}
+              className="pco-input"
+            />
           </Field>
-          <Field label="Status">
-            <select className="pco-input">
-              <option>Ativo</option>
-              <option>Em revisão</option>
-              <option>Arquivado</option>
-            </select>
+          <Field label="Certificado">
+            <label className="inline-flex items-center gap-2 mt-2 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('certificateAvailable')}
+                className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
+              />
+              <span className="text-sm text-pco-deep">Habilitado</span>
+            </label>
           </Field>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-gray">
+          <button
+            type="button"
+            onClick={() =>
+              reset({
+                title: course.title,
+                slug: course.slug,
+                shortTitle: course.shortTitle,
+                description: course.description,
+                totalHours: course.totalHours,
+                certificateAvailable: course.certificateAvailable,
+                coverColor: course.coverColor,
+              })
+            }
+            disabled={!isDirty || update.isPending}
+            className="pco-btn-ghost text-xs"
+          >
+            Reverter
+          </button>
+          <button
+            type="submit"
+            disabled={!isDirty || update.isPending}
+            className="pco-btn-primary text-xs"
+          >
+            {update.isPending ? (
+              <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+            ) : (
+              <Save size={12} strokeWidth={2} />
+            )}
+            Salvar alterações
+          </button>
         </div>
       </div>
 
       <div className="space-y-5">
         <div className="pco-card">
           <Field label="Capa do curso">
-            <div
-              className={`h-32 rounded-xl bg-gradient-to-br ${course.coverColor} mb-3`}
-            />
-            <button className="pco-btn-secondary w-full justify-center text-xs">
+            <div className={`h-32 rounded-xl bg-gradient-to-br ${course.coverColor} mb-3`} />
+            <button type="button" className="pco-btn-secondary w-full justify-center text-xs">
               <Upload size={12} strokeWidth={2} />
               Substituir imagem
             </button>
@@ -137,11 +216,11 @@ function GeralPane({ course }: { course: (typeof courses)[number] }) {
           <Row label="Certificado" value={course.certificateAvailable ? 'Sim' : 'Não'} />
         </div>
       </div>
-    </div>
+    </form>
   );
 }
 
-function ModulosPane({ course }: { course: (typeof courses)[number] }) {
+function ModulosPane({ course }: { course: Course }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -199,7 +278,7 @@ function MateriaisPane() {
   );
 }
 
-function AvaliacoesPane({ course }: { course: (typeof courses)[number] }) {
+function AvaliacoesPane({ course }: { course: Course }) {
   const assessments = course.modules.filter((m) => m.assessment);
   return (
     <div className="space-y-3">
@@ -231,7 +310,7 @@ function AvaliacoesPane({ course }: { course: (typeof courses)[number] }) {
   );
 }
 
-function CertificadoPane({ course }: { course: (typeof courses)[number] }) {
+function CertificadoPane({ course }: { course: Course }) {
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <div className="pco-card space-y-4">
@@ -307,11 +386,20 @@ function RetencaoPane() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+  error,
+}: {
+  label: string;
+  children: React.ReactNode;
+  error?: string;
+}) {
   return (
     <label className="block">
       <div className="text-xs font-medium text-ink-muted mb-1.5">{label}</div>
       {children}
+      {error && <p className="mt-1 text-xs text-status-danger">{error}</p>}
     </label>
   );
 }

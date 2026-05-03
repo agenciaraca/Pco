@@ -253,6 +253,81 @@ export async function fetchAdminStudent(id: string): Promise<AdminStudentRow | n
   return http.get<AdminStudentRow>(`/admin/students/${encodeURIComponent(id)}`).catch(() => null);
 }
 
+// ---------- Admin: Course writes ----------
+
+export interface UpdateCoursePatch {
+  title?: string;
+  slug?: string;
+  shortTitle?: string;
+  description?: string;
+  totalHours?: number;
+  certificateAvailable?: boolean;
+  coverColor?: string;
+  active?: boolean;
+}
+
+export async function updateCourse(id: string, patch: UpdateCoursePatch): Promise<Course> {
+  return http.put<Course>(`/admin/courses/${encodeURIComponent(id)}`, patch);
+}
+
+// ---------- Admin: News writes ----------
+
+export interface CreateNewsPayload {
+  title: string;
+  excerpt: string;
+  body?: string;
+  category: string;
+  tags?: string[];
+  coverColor?: string;
+  authorName?: string;
+  publishedAt: string;
+  featured?: boolean;
+  relatedCourseIds?: string[];
+}
+
+export async function createNews(input: CreateNewsPayload): Promise<NewsArticle> {
+  return http.post<NewsArticle>('/admin/news', input);
+}
+
+export async function updateNews(
+  id: string,
+  patch: Partial<CreateNewsPayload>,
+): Promise<NewsArticle> {
+  return http.put<NewsArticle>(`/admin/news/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteNews(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/news/${encodeURIComponent(id)}`);
+}
+
+// ---------- Admin: Library writes ----------
+
+export interface CreateLibraryPayload {
+  title: string;
+  author: string;
+  type: 'pdf' | 'apostila' | 'leitura' | 'artigo';
+  mandatory?: boolean;
+  fileMockUrl?: string;
+  relatedCourseIds?: string[];
+  relatedModuleIds?: string[];
+  theme?: string;
+}
+
+export async function createLibrary(input: CreateLibraryPayload): Promise<LibraryItem> {
+  return http.post<LibraryItem>('/admin/library', input);
+}
+
+export async function updateLibrary(
+  id: string,
+  patch: Partial<CreateLibraryPayload>,
+): Promise<LibraryItem> {
+  return http.put<LibraryItem>(`/admin/library/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteLibrary(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/library/${encodeURIComponent(id)}`);
+}
+
 // ---------- Recovery plans ----------
 
 export async function generateRecoveryPlan(input: RecoveryPlanInput): Promise<{

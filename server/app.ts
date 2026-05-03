@@ -10,6 +10,11 @@ import {
   loginSchema,
   updateAiConfigSchema,
   tutorAskSchema,
+  updateCourseSchema,
+  createNewsSchema,
+  updateNewsSchema,
+  createLibrarySchema,
+  updateLibrarySchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -327,6 +332,67 @@ export function buildApp() {
         status: 'draft',
       },
     });
+  });
+
+  // ---------- Admin: Course writes ----------
+
+  app.put('/admin/courses/:id', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateCourseSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await coursesRepo.updateCourse(c.req.param('id'), v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
+    return c.json(updated);
+  });
+
+  // ---------- Admin: News writes ----------
+
+  app.post('/admin/news', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createNewsSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const created = await newsRepo.createNews(v.data);
+    return c.json(created, 201);
+  });
+
+  app.put('/admin/news/:id', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateNewsSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await newsRepo.updateNews(c.req.param('id'), v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Artigo não encontrado');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/news/:id', async (c) => {
+    const ok = await newsRepo.deleteNews(c.req.param('id'));
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Artigo não encontrado');
+    return c.json({ ok: true });
+  });
+
+  // ---------- Admin: Library writes ----------
+
+  app.post('/admin/library', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createLibrarySchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const created = await libraryRepo.createLibrary(v.data);
+    return c.json(created, 201);
+  });
+
+  app.put('/admin/library/:id', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateLibrarySchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await libraryRepo.updateLibrary(c.req.param('id'), v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Material não encontrado');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/library/:id', async (c) => {
+    const ok = await libraryRepo.deleteLibrary(c.req.param('id'));
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Material não encontrado');
+    return c.json({ ok: true });
   });
 
   // 404 catch-all

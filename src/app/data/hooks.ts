@@ -204,3 +204,71 @@ export function useCreateSupportTicket() {
 export function useGenerateRecoveryPlan() {
   return useMutation({ mutationFn: api.generateRecoveryPlan });
 }
+
+// ---- Admin: course writes ----
+
+export function useUpdateCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: api.UpdateCoursePatch }) =>
+      api.updateCourse(id, patch),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+      qc.invalidateQueries({ queryKey: queryKeys.course(variables.id) });
+    },
+  });
+}
+
+// ---- Admin: news writes ----
+
+export function useCreateNews() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createNews,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.news }),
+  });
+}
+
+export function useUpdateNews() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<api.CreateNewsPayload> }) =>
+      api.updateNews(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.news }),
+  });
+}
+
+export function useDeleteNews() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteNews,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.news }),
+  });
+}
+
+// ---- Admin: library writes ----
+
+export function useCreateLibrary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createLibrary,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['library'] }),
+  });
+}
+
+export function useUpdateLibrary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<api.CreateLibraryPayload> }) =>
+      api.updateLibrary(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['library'] }),
+  });
+}
+
+export function useDeleteLibrary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteLibrary,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['library'] }),
+  });
+}

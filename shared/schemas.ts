@@ -136,6 +136,63 @@ export const tutorAskSchema = z.object({
 });
 export type TutorAskInput = z.infer<typeof tutorAskSchema>;
 
+// ---- Course writes ----
+
+export const updateCourseSchema = z.object({
+  title: z.string().min(2).max(200).optional(),
+  slug: z
+    .string()
+    .min(2)
+    .max(80)
+    .regex(/^[a-z0-9-]+$/, 'Slug aceita apenas letras minúsculas, números e hífens')
+    .optional(),
+  shortTitle: z.string().min(1).max(60).optional(),
+  description: z.string().max(2000).optional(),
+  totalHours: z.number().int().min(0).max(10000).optional(),
+  certificateAvailable: z.boolean().optional(),
+  coverColor: z.string().max(120).optional(),
+  active: z.boolean().optional(),
+});
+export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
+
+// ---- News writes ----
+
+export const createNewsSchema = z.object({
+  title: z.string().min(4, 'Título muito curto').max(200),
+  excerpt: z.string().min(10, 'Resumo muito curto').max(600),
+  body: z.string().max(20000).optional(),
+  category: z.string().min(1).max(60),
+  tags: z.array(z.string().max(40)).max(20).default([]),
+  coverColor: z.string().max(120).default('from-pco-blue to-pco-cyan'),
+  authorName: z.string().min(2).max(80).default('Equipe PCO'),
+  publishedAt: z.string().min(8).max(20),
+  featured: z.boolean().default(false),
+  relatedCourseIds: z.array(z.string().max(40)).max(50).default([]),
+});
+export type CreateNewsInput = z.infer<typeof createNewsSchema>;
+
+export const updateNewsSchema = createNewsSchema.partial();
+export type UpdateNewsInput = z.infer<typeof updateNewsSchema>;
+
+// ---- Library writes ----
+
+export const libraryTypeSchema = z.enum(['pdf', 'apostila', 'leitura', 'artigo']);
+
+export const createLibrarySchema = z.object({
+  title: z.string().min(2).max(200),
+  author: z.string().min(2).max(120),
+  type: libraryTypeSchema,
+  mandatory: z.boolean().default(false),
+  fileMockUrl: z.string().min(1).max(500).default('#'),
+  relatedCourseIds: z.array(z.string().max(40)).max(50).default([]),
+  relatedModuleIds: z.array(z.string().max(40)).max(100).default([]),
+  theme: z.string().max(80).optional(),
+});
+export type CreateLibraryInput = z.infer<typeof createLibrarySchema>;
+
+export const updateLibrarySchema = createLibrarySchema.partial();
+export type UpdateLibraryInput = z.infer<typeof updateLibrarySchema>;
+
 // Filters
 export const studentsFilterSchema = z.object({
   search: z.string().optional(),

@@ -5,6 +5,7 @@ import { eq, asc } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
 import { courses as seedCourses } from '../../src/app/data/seed';
 import type { Course, Module, Lesson, Assessment } from '../../src/app/types/schema';
+import type { UpdateCourseInput } from '../../shared/schemas';
 
 async function loadFromDb(): Promise<Course[]> {
   const db = getDb();
@@ -82,4 +83,46 @@ export async function listCourses(): Promise<Course[]> {
 export async function findCourse(id: string): Promise<Course | null> {
   const all = await listCourses();
   return all.find((c) => c.id === id) ?? null;
+}
+
+export async function updateCourse(
+  id: string,
+  patch: UpdateCourseInput,
+): Promise<Course | null> {
+  const db = getDb();
+
+  if (!db) {
+    const idx = seedCourses.findIndex((c) => c.id === id);
+    if (idx === -1) return null;
+    const current = seedCourses[idx];
+    seedCourses[idx] = {
+      ...current,
+      ...(patch.title !== undefined ? { title: patch.title } : {}),
+      ...(patch.slug !== undefined ? { slug: patch.slug } : {}),
+      ...(patch.shortTitle !== undefined ? { shortTitle: patch.shortTitle } : {}),
+      ...(patch.description !== undefined ? { description: patch.description } : {}),
+      ...(patch.totalHours !== undefined ? { totalHours: patch.totalHours } : {}),
+      ...(patch.certificateAvailable !== undefined
+        ? { certificateAvailable: patch.certificateAvailable }
+        : {}),
+      ...(patch.coverColor !== undefined ? { coverColor: patch.coverColor } : {}),
+    };
+    return seedCourses[idx];
+  }
+
+  const update: Partial<typeof schema.courses.$inferInsert> = {};
+  if (patch.title !== undefined) update.title = patch.title;
+  if (patch.slug !== undefined) update.slug = patch.slug;
+  if (patch.shortTitle !== undefined) update.shortTitle = patch.shortTitle;
+  if (patch.description !== undefined) update.description = patch.description;
+  if (patch.totalHours !== undefined) update.totalHours = patch.totalHours;
+  if (patch.certificateAvailable !== undefined)
+    update.certificateAvailable = patch.certificateAvailable;
+  if (patch.coverColor !== undefined) update.coverColor = patch.coverColor;
+  if (patch.active !== undefined) update.active = patch.active;
+
+  if (Object.keys(update).length === 0) return await findCourse(id);
+
+  await db.update(schema.courses).set(update).where(eq(schema.courses.id, id));
+  return await findCourse(id);
 }
