@@ -14,6 +14,7 @@ import NotFound from './pages/NotFound';
 // Public — lazy
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const VerifyCertificate = lazy(() => import('./pages/VerifyCertificate'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Landing = lazy(() => import('./pages/Landing'));
@@ -84,6 +85,7 @@ export const router = createBrowserRouter([
   { path: '/login', element: <Login />, errorElement: <RootError /> },
   { path: '/esqueci-senha', element: <S><ForgotPassword /></S>, errorElement: <RootError /> },
   { path: '/redefinir-senha', element: <S><ResetPassword /></S>, errorElement: <RootError /> },
+  { path: '/verificar/:code', element: <S><VerifyCertificate /></S>, errorElement: <RootError /> },
   { path: '/onboarding', element: <S><Onboarding /></S>, errorElement: <RootError /> },
   { path: '/termos', element: <S><Terms /></S>, errorElement: <RootError /> },
   { path: '/landing', element: <S><Landing /></S>, errorElement: <RootError /> },

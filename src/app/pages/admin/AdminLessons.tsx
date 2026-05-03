@@ -9,8 +9,9 @@ import {
   Circle,
   Edit3,
 } from 'lucide-react';
-import { useCourses } from '../../data/hooks';
+import { useCourses, useUpdateLesson } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import { useToast } from '../../components/Toast';
 
 export default function AdminLessons() {
   const [courseFilter, setCourseFilter] = useState<string>('todos');
@@ -18,6 +19,8 @@ export default function AdminLessons() {
   const [mandatoryOnly, setMandatoryOnly] = useState(false);
   const [search, setSearch] = useState('');
   const { data: courses, isLoading } = useCourses();
+  const updateMut = useUpdateLesson();
+  const toast = useToast();
 
   const allLessons = useMemo(() => {
     if (!courses) return [];
@@ -163,13 +166,37 @@ export default function AdminLessons() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {l.isMandatory ? (
-                      <span className="pco-badge bg-pco-orange/10 text-pco-orange">
-                        Obrigatória
-                      </span>
-                    ) : (
-                      <span className="pco-badge bg-surface-gray text-ink-muted">Opcional</span>
-                    )}
+                    <button
+                      type="button"
+                      disabled={updateMut.isPending}
+                      onClick={async () => {
+                        try {
+                          await updateMut.mutateAsync({
+                            id: l.id,
+                            patch: { isMandatory: !l.isMandatory },
+                          });
+                          toast.success(
+                            l.isMandatory ? 'Marcada como opcional' : 'Marcada como obrigatória',
+                          );
+                        } catch (err) {
+                          toast.error(
+                            'Falha ao atualizar',
+                            err instanceof Error ? err.message : 'Erro',
+                          );
+                        }
+                      }}
+                      title="Clique para alternar"
+                    >
+                      {l.isMandatory ? (
+                        <span className="pco-badge bg-pco-orange/10 text-pco-orange hover:bg-pco-orange/20">
+                          Obrigatória
+                        </span>
+                      ) : (
+                        <span className="pco-badge bg-surface-gray text-ink-muted hover:bg-surface-gray/70">
+                          Opcional
+                        </span>
+                      )}
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link

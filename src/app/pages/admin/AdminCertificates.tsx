@@ -82,7 +82,7 @@ export default function AdminCertificates() {
   }
 
   function copyValidationLink(code: string) {
-    const url = `${window.location.origin}/api/certificates/validate/${encodeURIComponent(code)}`;
+    const url = `${window.location.origin}/verificar/${encodeURIComponent(code)}`;
     navigator.clipboard.writeText(url).then(
       () => toast.success('Link de validação copiado'),
       () => toast.error('Não foi possível copiar'),

@@ -531,6 +531,23 @@ export function useDeleteSystemUser() {
   });
 }
 
+const settingsKey = ['settings'] as const;
+export function useSettings() {
+  return useQuery({
+    queryKey: settingsKey,
+    queryFn: api.fetchSettings,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useUpdateSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.updateSettings,
+    onSuccess: () => qc.invalidateQueries({ queryKey: settingsKey }),
+  });
+}
+
 const loginConfigKey = ['login-config'] as const;
 export function useLoginConfig() {
   return useQuery({

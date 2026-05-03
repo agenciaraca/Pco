@@ -114,6 +114,28 @@ export async function resetPassword(token: string, password: string): Promise<{ 
   });
 }
 
+// ---------- App settings ----------
+
+export interface AppSettingsDto {
+  siteName: string;
+  contactEmail: string;
+  timezone: string;
+  cookiePolicyText: string;
+  termsUrl: string;
+  privacyUrl: string;
+  helpEmail: string;
+  whatsappNumber: string;
+  updatedAt: string;
+}
+
+export async function fetchSettings(): Promise<AppSettingsDto> {
+  return http.get<AppSettingsDto>('/settings');
+}
+
+export async function updateSettings(patch: Partial<AppSettingsDto>): Promise<AppSettingsDto> {
+  return http.put<AppSettingsDto>('/admin/settings', patch);
+}
+
 // ---------- Login customization ----------
 
 export interface LoginConfigDto {

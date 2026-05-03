@@ -355,7 +355,7 @@ export default function AdminMetricas() {
             <TrendingUp size={16} className="text-pco-blue" strokeWidth={1.75} />
             Recomendações de melhoria
           </h3>
-          <p className="text-xs text-ink-muted mb-3">Oportunidades de SEO mockadas</p>
+          <p className="text-xs text-ink-muted mb-3">Oportunidades para os próximos sprints de SEO</p>
           <ul className="space-y-2 text-sm">
             <Recommendation text="Atualizar meta descriptions em 14 páginas." />
             <Recommendation text="Reduzir LCP da home (3.4s → meta 2.5s)." />
@@ -371,7 +371,7 @@ export default function AdminMetricas() {
           {[
             { name: 'Google Analytics', status: 'Não conectado' },
             { name: 'Google Search Console', status: 'Não conectado' },
-            { name: 'API própria', status: 'Mock ativo' },
+            { name: 'API própria', status: 'Ativa (JSON local)' },
           ].map((i) => (
             <div
               key={i.name}

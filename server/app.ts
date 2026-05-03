@@ -61,6 +61,7 @@ import * as studentsRepo from './repositories/students';
 import * as metricsRepo from './repositories/metrics';
 import * as notificationsRepo from './repositories/notifications';
 import * as loginConfigRepo from './repositories/login-config';
+import * as settingsRepo from './repositories/settings';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -85,6 +86,31 @@ export function buildApp() {
   app.use('*', rateLimit({ windowMs: 60_000, max: 120 }));
   app.use('*', attachUser);
   app.use('*', auditMiddleware);
+
+  // ---------- App settings ----------
+
+  // Público — branding/contato visíveis no rodapé etc.
+  app.get('/settings', async (c) => c.json(await settingsRepo.getSettings()));
+
+  app.put('/admin/settings', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const allowed = [
+      'siteName',
+      'contactEmail',
+      'timezone',
+      'cookiePolicyText',
+      'termsUrl',
+      'privacyUrl',
+      'helpEmail',
+      'whatsappNumber',
+    ] as const;
+    const patch: Record<string, unknown> = {};
+    for (const k of allowed) {
+      if (body[k] !== undefined) patch[k] = body[k];
+    }
+    const next = await settingsRepo.updateSettings(patch);
+    return c.json(next);
+  });
 
   // ---------- Login customization ----------
 

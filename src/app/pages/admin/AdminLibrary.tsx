@@ -389,8 +389,12 @@ function LibraryEditor({ item, courses, submitting, onClose, onSubmit }: Library
                 <option value="artigo">Artigo</option>
               </select>
             </Field>
-            <Field label="URL do arquivo (mock)">
-              <input {...register('fileMockUrl')} className="pco-input font-mono text-xs" />
+            <Field label="URL do arquivo">
+              <input
+                {...register('fileMockUrl')}
+                placeholder="/uploads/arquivo.pdf ou https://..."
+                className="pco-input font-mono text-xs"
+              />
             </Field>
             <Field label="Tema">
               <input {...register('theme')} className="pco-input" placeholder="Ex.: Fundamentos" />
