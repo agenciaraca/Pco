@@ -99,8 +99,11 @@ export default function Login() {
               id="email"
               label="E-mail"
               error={errors.email?.message}
-              type="email"
+              type="text"
+              inputMode="email"
               autoComplete="email"
+              autoCapitalize="off"
+              spellCheck={false}
               {...register('email')}
             />
 

@@ -12,8 +12,20 @@ if (staticRoot) {
   const root = new Hono();
   const api = buildApp();
 
-  // /api/* → API (Hono inteiro com basePath '/api')
+  // /api/* -> API (Hono inteiro com basePath '/api')
   root.all('/api/*', (c) => api.fetch(c.req.raw));
+
+  // Cache control: /assets/* é imutável (hash no nome), index.html nunca cacheia
+  root.use('/*', async (c, next) => {
+    await next();
+    const p = c.req.path;
+    if (p.startsWith('/assets/')) {
+      c.header('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (p === '/' || p.endsWith('.html')) {
+      c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+      c.header('Pragma', 'no-cache');
+    }
+  });
 
   // Arquivos estáticos (favicon, assets/*, etc.)
   root.use('/*', serveStatic({ root: staticRoot }));
