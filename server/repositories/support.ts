@@ -1,14 +1,24 @@
 import { eq, desc } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
+import { JsonStore } from '../db/json-store';
 import {
-  supportTickets as seedTickets,
+  supportTickets as defaults,
   currentStudent,
 } from '../../src/app/data/seed';
 import type { SupportTicket } from '../../src/app/types/schema';
 
+const store = new JsonStore<SupportTicket>('support-tickets.json', () =>
+  defaults.map((t) => ({ ...t })),
+);
+
 export async function listTicketsForStudent(studentId: string): Promise<SupportTicket[]> {
   const db = getDb();
-  if (!db) return seedTickets.filter((t) => t.studentId === studentId);
+  if (!db) {
+    const all = await store.getAll();
+    return all
+      .filter((t) => t.studentId === studentId)
+      .sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
+  }
 
   const rows = await db
     .select()
@@ -39,6 +49,7 @@ export async function createTicket(input: CreateInput): Promise<SupportTicket> {
   const studentId = input.studentId ?? currentStudent.id;
   const id = `t-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const now = new Date();
+  const nowIso = now.toISOString();
 
   if (!db) {
     const ticket: SupportTicket = {
@@ -48,11 +59,10 @@ export async function createTicket(input: CreateInput): Promise<SupportTicket> {
       category: input.category,
       status: 'open',
       message: input.message,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
+      createdAt: nowIso,
+      updatedAt: nowIso,
     };
-    seedTickets.unshift(ticket);
-    return ticket;
+    return await store.unshift(ticket);
   }
 
   const rows = await db

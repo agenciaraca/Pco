@@ -1,8 +1,17 @@
 import { eq, desc } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
-import { podcasts as seed } from '../../src/app/data/seed';
+import { JsonStore } from '../db/json-store';
+import { podcasts as defaults } from '../../src/app/data/seed';
 import type { PodcastEpisode } from '../../src/app/types/schema';
 import type { CreatePodcastInput, UpdatePodcastInput } from '../../shared/schemas';
+
+const store = new JsonStore<PodcastEpisode>('podcasts.json', () =>
+  defaults.map((d) => ({
+    ...d,
+    relatedCourseIds: [...(d.relatedCourseIds ?? [])],
+    relatedModuleIds: [...(d.relatedModuleIds ?? [])],
+  })),
+);
 
 function rowToEpisode(r: typeof schema.podcasts.$inferSelect): PodcastEpisode {
   return {
@@ -24,23 +33,20 @@ function newId() {
 
 export async function listPodcasts(): Promise<PodcastEpisode[]> {
   const db = getDb();
-  if (!db) return seed;
+  if (!db) return await store.getAll();
   const rows = await db
     .select()
     .from(schema.podcasts)
     .orderBy(desc(schema.podcasts.publishedAt));
-  if (rows.length === 0) return seed;
+  if (rows.length === 0) return await store.getAll();
   return rows.map(rowToEpisode);
 }
 
 export async function findPodcast(id: string): Promise<PodcastEpisode | null> {
   const db = getDb();
-  if (!db) return seed.find((p) => p.id === id) ?? null;
+  if (!db) return await store.findOne((p) => p.id === id);
   const rows = await db.select().from(schema.podcasts).where(eq(schema.podcasts.id, id));
-  if (rows.length === 0) {
-    const fromSeed = seed.find((p) => p.id === id);
-    return fromSeed ?? null;
-  }
+  if (rows.length === 0) return await store.findOne((p) => p.id === id);
   return rowToEpisode(rows[0]);
 }
 
@@ -59,10 +65,7 @@ export async function createPodcast(input: CreatePodcastInput): Promise<PodcastE
   };
 
   const db = getDb();
-  if (!db) {
-    seed.unshift(ep);
-    return ep;
-  }
+  if (!db) return await store.unshift(ep);
 
   await db.insert(schema.podcasts).values({
     id,
@@ -84,10 +87,10 @@ export async function updatePodcast(
 ): Promise<PodcastEpisode | null> {
   const db = getDb();
   if (!db) {
-    const idx = seed.findIndex((p) => p.id === id);
-    if (idx === -1) return null;
-    seed[idx] = { ...seed[idx], ...patch } as PodcastEpisode;
-    return seed[idx];
+    return await store.update(
+      (p) => p.id === id,
+      (p) => ({ ...p, ...patch }) as PodcastEpisode,
+    );
   }
 
   const update: Partial<typeof schema.podcasts.$inferInsert> = {};
@@ -112,12 +115,7 @@ export async function updatePodcast(
 
 export async function deletePodcast(id: string): Promise<boolean> {
   const db = getDb();
-  if (!db) {
-    const idx = seed.findIndex((p) => p.id === id);
-    if (idx === -1) return false;
-    seed.splice(idx, 1);
-    return true;
-  }
+  if (!db) return await store.remove((p) => p.id === id);
   const rows = await db
     .delete(schema.podcasts)
     .where(eq(schema.podcasts.id, id))
