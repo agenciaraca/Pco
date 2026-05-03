@@ -139,21 +139,68 @@ npm install @clerk/clerk-react
 4. Em `src/app/auth/AuthContext.tsx`, substitua `api.login` por
    `useUser()` + `useAuth()` do Clerk
 
-### 2. Database com Neon + Drizzle
+### 2. Database com Neon + Drizzle (já implementado)
 
+Schema completo, repositórios, criptografia AES-GCM e migrações **já estão
+implementados**. Para ativar, basta definir as env vars.
+
+**Passo a passo:**
+
+1. **Crie database no Neon**: https://console.neon.tech → New Project →
+   copie a connection string (formato `postgres://USER:PASSWORD@HOST/db?sslmode=require`)
+
+2. **Gere uma master key de criptografia** para chaves de IA:
+   ```bash
+   openssl rand -hex 32
+   ```
+
+3. **Adicione no Vercel** (Settings → Environment Variables) — **NUNCA cole
+   no chat ou em commits**:
+   ```
+   DATABASE_URL=postgres://...
+   AI_KEY_ENCRYPTION_SECRET=<output-do-openssl>
+   ```
+   Em dev local, copie os mesmos valores para `.env`.
+
+4. **Aplique o schema**:
+   ```bash
+   npm run db:migrate    # cria todas as tabelas
+   npm run db:seed       # popula dados iniciais (cursos, alunos demo, etc.)
+   ```
+
+5. **Verifique**: `GET /api/health` agora responde `{ db: "connected" }`.
+
+**O que muda quando o DB está plugado:**
+- Configurações de IA: persistidas com chaves **criptografadas AES-GCM
+  256-bit**. Trocar provider/chave em `/admin/ias` agora persiste entre
+  deploys e restarts.
+- Tickets de suporte: gravados em DB.
+- Cursos/módulos/aulas: lidos do DB (com fallback no seed se a tabela
+  estiver vazia, para casos de "DB recém-criado").
+- Logs de uso de IA: histórico permanente em `ai_usage_logs` para
+  auditoria, billing e enforcement de limites por aluno.
+
+**Sem `DATABASE_URL`** o sistema continua funcionando 100% no fallback
+in-memory — útil para dev rápido sem subir Neon.
+
+**Comandos disponíveis:**
 ```bash
-npm install drizzle-orm @neondatabase/serverless
-npm install -D drizzle-kit
+npm run db:generate   # gera SQL de migração após mudar schema
+npm run db:migrate    # aplica migrações em remote
+npm run db:push       # sincroniza schema sem migration (dev only)
+npm run db:studio     # abre UI do Drizzle pra inspecionar dados
+npm run db:seed       # popula dados iniciais (idempotente, usa onConflictDoNothing)
 ```
 
-1. Crie banco em https://console.neon.tech/
-2. Adicione no `.env`:
-   ```
-   DATABASE_URL=postgres://user:pass@host/db?sslmode=require
-   ```
-3. Crie `server/db/schema.ts` com tipos Drizzle (espelhando
-   `src/app/types/schema.ts`)
-4. Substitua imports de `seed.ts` em `server/app.ts` por queries Drizzle
+**Tabelas criadas (17):** users, students, courses, modules, lessons,
+assessments, enrollments, news_articles, podcasts, library_items,
+certificates, retention_risks, professionals, session_services,
+support_tickets, ai_configurations, ai_usage_logs.
+
+**Estratégia de migração para entidades restantes:** o padrão de repositório
+está em `server/repositories/*`. Para migrar uma entidade que ainda lê do
+seed, basta criar o `<entidade>.ts` seguindo o template de `courses.ts`
+(consulta DB primeiro, fallback seed quando vazio).
 
 ### 3. IAs do AVA (Tutor, Plano de Retomada, etc.)
 

@@ -3,7 +3,6 @@ import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import {
-  courses,
   newsArticles,
   podcasts,
   libraryItems,
@@ -13,7 +12,6 @@ import {
   sessionServices,
   seoTimeseries,
   keywords,
-  supportTickets,
   adminStudents,
   currentStudent,
 } from '../src/app/data/seed';
@@ -27,22 +25,12 @@ import {
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
-import {
-  getProvider,
-  listProviders,
-  calculateCost,
-} from './ai/providers';
-import {
-  listConfigs,
-  getConfig,
-  getActiveByModule,
-  updateConfig,
-  recordUsage,
-  aggregateUsage,
-  countUsageInWindow,
-  toPublic,
-} from './ai/store';
+import { getProvider, listProviders, calculateCost } from './ai/providers';
+import * as aiConfigRepo from './repositories/ai-configs';
+import * as supportRepo from './repositories/support';
+import * as coursesRepo from './repositories/courses';
 import { AiError } from './ai/types';
+import { hasDb } from './db/client';
 
 export function buildApp() {
   const app = new Hono().basePath('/api');
@@ -64,7 +52,9 @@ export function buildApp() {
   );
   app.use('*', rateLimit({ windowMs: 60_000, max: 120 }));
 
-  app.get('/health', (c) => c.json({ ok: true, ts: Date.now() }));
+  app.get('/health', (c) =>
+    c.json({ ok: true, ts: Date.now(), db: hasDb() ? 'connected' : 'fallback' }),
+  );
 
   // ---------- Auth (mock) ----------
 
@@ -89,9 +79,9 @@ export function buildApp() {
 
   // ---------- Courses ----------
 
-  app.get('/courses', (c) => c.json(courses));
-  app.get('/courses/:id', (c) => {
-    const course = courses.find((x) => x.id === c.req.param('id'));
+  app.get('/courses', async (c) => c.json(await coursesRepo.listCourses()));
+  app.get('/courses/:id', async (c) => {
+    const course = await coursesRepo.findCourse(c.req.param('id'));
     if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
     return c.json(course);
   });
@@ -158,21 +148,22 @@ export function buildApp() {
 
   // ---------- AI: configurations (admin) ----------
 
-  app.get('/admin/ai/configurations', (c) => c.json(listConfigs()));
+  app.get('/admin/ai/configurations', async (c) => c.json(await aiConfigRepo.listConfigs()));
 
-  app.get('/admin/ai/configurations/:id', (c) => {
-    const cfg = getConfig(c.req.param('id'));
+  app.get('/admin/ai/configurations/:id', async (c) => {
+    const cfg = await aiConfigRepo.getConfig(c.req.param('id'));
     if (!cfg) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
-    return c.json({ ...toPublic(cfg), usage: aggregateUsage(cfg.id) });
+    const usage = await aiConfigRepo.aggregateUsage(cfg.id);
+    return c.json({ ...aiConfigRepo.toPublic(cfg), usage });
   });
 
   app.put('/admin/ai/configurations/:id', async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateAiConfigSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = updateConfig(c.req.param('id'), v.data);
+    const updated = await aiConfigRepo.updateConfig(c.req.param('id'), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
-    return c.json(toPublic(updated));
+    return c.json(aiConfigRepo.toPublic(updated));
   });
 
   // Test connection com a chave fornecida (não persiste).
@@ -195,7 +186,7 @@ export function buildApp() {
     const v = validate(tutorAskSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
 
-    const config = getActiveByModule('tutor');
+    const config = await aiConfigRepo.getActiveByModule('tutor');
     if (!config) {
       return c.json({
         message:
@@ -206,10 +197,13 @@ export function buildApp() {
       });
     }
 
-    // Limites por aluno (mock — usaria o studentId real do JWT)
     const studentId = currentStudent.id;
-    const dailyUse = countUsageInWindow(config.id, studentId, 24 * 60 * 60 * 1000);
-    if (dailyUse >= config.perStudentLimit) {
+    const monthlyUse = await aiConfigRepo.countUsageInWindow(
+      config.id,
+      studentId,
+      30 * 24 * 60 * 60 * 1000,
+    );
+    if (monthlyUse >= config.perStudentLimit) {
       return jsonError(
         c,
         429,
@@ -244,7 +238,7 @@ export function buildApp() {
         result.inputTokens,
         result.outputTokens,
       );
-      recordUsage({
+      await aiConfigRepo.recordUsage({
         configId: config.id,
         studentId,
         inputTokens: result.inputTokens,
@@ -264,7 +258,7 @@ export function buildApp() {
         },
       });
     } catch (err) {
-      recordUsage({
+      await aiConfigRepo.recordUsage({
         configId: config.id,
         studentId,
         inputTokens: 0,
@@ -277,8 +271,7 @@ export function buildApp() {
           return jsonError(c, 502, 'AI_INVALID_KEY', 'Chave do provider inválida.');
         if (err.code === 'RATE_LIMIT')
           return jsonError(c, 502, 'AI_RATE_LIMIT', 'Provider rejeitou por excesso de uso.');
-        if (err.code === 'TIMEOUT')
-          return jsonError(c, 504, 'AI_TIMEOUT', err.message);
+        if (err.code === 'TIMEOUT') return jsonError(c, 504, 'AI_TIMEOUT', err.message);
       }
       return jsonError(c, 502, 'AI_UPSTREAM', 'Falha ao chamar provider IA.');
     }
@@ -286,21 +279,19 @@ export function buildApp() {
 
   // ---------- Support ----------
 
-  app.get('/support/tickets', (c) => c.json(supportTickets));
+  app.get('/support/tickets', async (c) =>
+    c.json(await supportRepo.listTicketsForStudent(currentStudent.id)),
+  );
   app.post('/support/tickets', async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createSupportTicketSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const ticket = {
-      id: `t-${Date.now()}`,
+    const ticket = await supportRepo.createTicket({
       studentId: currentStudent.id,
       subject: v.data.subject,
       category: v.data.category,
-      status: 'open' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
       message: v.data.message,
-    };
+    });
     return c.json(ticket, 201);
   });
 
