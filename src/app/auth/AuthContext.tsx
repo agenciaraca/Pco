@@ -14,6 +14,7 @@ interface AuthUser {
   name: string;
   email: string;
   role: Role;
+  avatarUrl?: string | null;
 }
 
 interface AuthContextValue {
@@ -22,6 +23,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
   logoutAllDevices: () => Promise<void>;
+  patchUser: (patch: Partial<AuthUser>) => void;
 }
 
 const STORAGE_KEY = 'ava-pco-auth';
@@ -80,8 +82,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const patchUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      const session = readSession();
+      if (session) writeSession({ ...session, user: next });
+      return next;
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, logoutAllDevices }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, logoutAllDevices, patchUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

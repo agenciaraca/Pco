@@ -13,6 +13,60 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { retentionRisks } from '../../data/seed';
+import { useHealth } from '../../data/hooks';
+import { Cpu, HardDrive, AlertOctagon, Clock } from 'lucide-react';
+
+function formatUptime(sec: number): string {
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h ${min % 60}m`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
+}
+
+function HealthMiniCard() {
+  const { data } = useHealth();
+  if (!data) return null;
+  const items = [
+    { Icon: Clock, label: 'Uptime', value: formatUptime(data.uptimeSec), color: 'text-pco-blue' },
+    { Icon: Cpu, label: 'Memória', value: `${data.memMB} MB`, color: 'text-pco-cyan' },
+    { Icon: HardDrive, label: 'Dados', value: `${data.dataSizeMB} MB`, color: 'text-status-success' },
+    {
+      Icon: AlertOctagon,
+      label: 'Erros 24h',
+      value: String(data.errors24h),
+      color: data.errors24h > 0 ? 'text-status-danger' : 'text-ink-muted',
+    },
+  ];
+  return (
+    <div className="pco-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-pco-deep">Saúde do sistema</h3>
+        <span className="text-[10px] text-ink-subtle">
+          {data.db === 'connected' ? 'DB conectado' : 'JSON fallback'} · node {data.nodeVersion}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {items.map((it) => {
+          const Icon = it.Icon;
+          return (
+            <div key={it.label} className="rounded-lg bg-surface-mute/40 p-3">
+              <div className="flex items-center gap-1.5">
+                <Icon size={12} strokeWidth={2} className={it.color} />
+                <span className="text-[10px] uppercase tracking-wide text-ink-muted">
+                  {it.label}
+                </span>
+              </div>
+              <div className="mt-1 text-lg font-bold text-pco-deep">{it.value}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const kpis = [
   { icon: Users, label: 'Alunos ativos', value: '342', delta: '+8%', positive: true, color: 'blue' },
@@ -42,6 +96,8 @@ export default function AdminDashboard() {
           Visão geral de retenção, conteúdo, certificados e uso do AVA.
         </p>
       </header>
+
+      <HealthMiniCard />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => {

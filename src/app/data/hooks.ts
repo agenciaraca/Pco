@@ -503,6 +503,15 @@ export function useDeleteSystemUser() {
   });
 }
 
+const healthKey = ['admin', 'health'] as const;
+export function useHealth() {
+  return useQuery({
+    queryKey: healthKey,
+    queryFn: api.fetchHealth,
+    refetchInterval: 30_000,
+  });
+}
+
 const errorLogKey = ['admin', 'error-log'] as const;
 export function useErrorLog(limit = 200) {
   return useQuery({

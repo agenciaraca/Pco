@@ -1,10 +1,12 @@
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
+import path from 'node:path';
 import { buildApp } from './app';
 
 const port = Number(process.env.PORT ?? 3001);
 const staticRoot = process.env.SERVE_STATIC; // ex.: "./dist"
+const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
 
 let appToServe;
 
@@ -14,6 +16,14 @@ if (staticRoot) {
 
   // /api/* -> API (Hono inteiro com basePath '/api')
   root.all('/api/*', (c) => api.fetch(c.req.raw));
+
+  // /uploads/* -> arquivos persistidos pelos usuários (data/uploads/)
+  // Cache curto (1h) para permitir invalidação simples
+  root.use('/uploads/*', async (c, next) => {
+    await next();
+    c.header('Cache-Control', 'public, max-age=3600');
+  });
+  root.use('/uploads/*', serveStatic({ root: path.relative(process.cwd(), dataDir) || '.' }));
 
   // Cache control: /assets/* é imutável (hash no nome), index.html nunca cacheia
   root.use('/*', async (c, next) => {

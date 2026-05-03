@@ -10,6 +10,9 @@ import { createResetToken, consumeResetToken } from './auth/password-reset';
 import { auditMiddleware } from './audit/middleware';
 import { listAudit } from './audit/log';
 import { recordError, listErrors } from './errors/store';
+import { saveUpload, UploadError } from './uploads/store';
+import { gatherHealth } from './monitoring/health';
+import { search as adminSearch } from './search/admin-search';
 import {
   createSupportTicketSchema,
   recoveryPlanSchema,
@@ -39,6 +42,8 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   broadcastNotificationSchema,
+  updateProfileSchema,
+  selfChangePasswordSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -80,9 +85,16 @@ export function buildApp() {
   app.use('*', attachUser);
   app.use('*', auditMiddleware);
 
+  // /health rápido — sem I/O caro (usado por crons)
   app.get('/health', (c) =>
     c.json({ ok: true, ts: Date.now(), db: hasDb() ? 'connected' : 'fallback' }),
   );
+
+  // /health/full — coleta uptime, mem, tamanho data/, erros 24h. Auth admin
+  app.get('/health/full', requireAuth('admin', 'superadmin'), async (c) => {
+    const stats = await gatherHealth(hasDb() ? 'connected' : 'fallback');
+    return c.json(stats);
+  });
 
   // ---------- Auth (mock) ----------
 
@@ -158,12 +170,72 @@ export function buildApp() {
     return c.json({ ok: true, email: tokenEntry.email });
   });
 
+  // Atualiza perfil do user logado (nome, avatar)
+  app.put('/auth/me', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateProfileSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    try {
+      const updated = await usersStore.updateUser(u.sub, v.data);
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
+      return c.json(updated);
+    } catch (err) {
+      return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
+    }
+  });
+
+  // Self-service: troca de senha (exige senha atual)
+  app.post('/auth/me/password', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(selfChangePasswordSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const result = await usersStore.verifyAndChangePassword(
+      u.sub,
+      v.data.currentPassword,
+      v.data.newPassword,
+    );
+    if (result === 'wrong-password') {
+      return jsonError(c, 400, 'WRONG_PASSWORD', 'Senha atual incorreta.');
+    }
+    if (result === 'not-found') {
+      return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
+    }
+    return c.json({ ok: true });
+  });
+
   // Revoga todos os tokens do user logado (logout em todos os dispositivos)
   app.post('/auth/logout-all-devices', requireAuth(), async (c) => {
     const u = c.get('user')!;
     const newTv = await usersStore.bumpTokenVersion(u.sub);
     if (newTv === null) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
     return c.json({ ok: true, tokenVersion: newTv });
+  });
+
+  // ---------- Uploads ----------
+
+  // Multipart limited a 5MB, mime allowlist (imagens). Requer auth.
+  app.post('/uploads', requireAuth(), async (c) => {
+    let form: FormData;
+    try {
+      form = await c.req.formData();
+    } catch {
+      return jsonError(c, 400, 'INVALID_FORM', 'Form-data inválido.');
+    }
+    const file = form.get('file');
+    if (!(file instanceof File)) {
+      return jsonError(c, 400, 'NO_FILE', 'Campo "file" ausente ou inválido.');
+    }
+    try {
+      const result = await saveUpload(file);
+      return c.json(result, 201);
+    } catch (err) {
+      if (err instanceof UploadError) {
+        return jsonError(c, err.status, err.code, err.message);
+      }
+      throw err;
+    }
   });
 
   // ---------- Notifications (usuário logado) ----------
@@ -757,6 +829,16 @@ export function buildApp() {
     } catch (err) {
       return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
     }
+  });
+
+  // ---------- Admin search ----------
+
+  app.get('/admin/search', requireAuth('admin', 'superadmin'), async (c) => {
+    const q = c.req.query('q') ?? '';
+    if (q.trim().length < 2) return c.json([]);
+    const limit = Number(c.req.query('limit') ?? '30');
+    const hits = await adminSearch(q, Number.isFinite(limit) ? limit : 30);
+    return c.json(hits);
   });
 
   // ---------- Error log ----------

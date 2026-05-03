@@ -36,6 +36,26 @@ export const resetPasswordSchema = z.object({
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
+// Profile (self-service)
+export const updateProfileSchema = z.object({
+  name: z.string().min(2, 'Nome muito curto').max(120, 'Nome muito longo').optional(),
+  avatarUrl: z
+    .string()
+    .max(500, 'URL muito longa')
+    .nullable()
+    .optional(),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const selfChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Senha atual obrigatória').max(128),
+  newPassword: z
+    .string()
+    .min(8, 'Nova senha precisa ter ao menos 8 caracteres')
+    .max(128, 'Senha muito longa'),
+});
+export type SelfChangePasswordInput = z.infer<typeof selfChangePasswordSchema>;
+
 // Notifications
 export const notificationCategoryEnum = z.enum([
   'info',
@@ -97,18 +117,6 @@ export const recoveryPlanSchema = z.object({
   includeLibrary: z.boolean(),
 });
 export type RecoveryPlanInput = z.infer<typeof recoveryPlanSchema>;
-
-// Profile
-export const updateProfileSchema = z.object({
-  name: z.string().min(2, 'Nome muito curto').max(80, 'Nome muito longo'),
-  email: z.string().email('E-mail inválido'),
-  weeklyGoalMinutes: z
-    .number({ message: 'Meta semanal precisa ser um número' })
-    .int()
-    .min(15, 'Meta mínima de 15 min')
-    .max(2400, 'Meta máxima de 40h'),
-});
-export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 // Generic API envelope
 export const errorResponseSchema = z.object({

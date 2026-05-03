@@ -1,98 +1,253 @@
-import { User, Mail, Calendar, Target, Save } from 'lucide-react';
-import { currentStudent } from '../data/seed';
+import { useState, useRef } from 'react';
+import { User, Save, Lock, Camera, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { useToast } from '../components/Toast';
+import * as api from '../data/api';
 
 export default function Profile() {
-  const initials = currentStudent.name
+  const { user, patchUser } = useAuth();
+  const toast = useToast();
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const [name, setName] = useState(user?.name ?? '');
+  const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(user?.avatarUrl);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  const [currentPwd, setCurrentPwd] = useState('');
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [savingPwd, setSavingPwd] = useState(false);
+  const [pwdError, setPwdError] = useState<string | null>(null);
+  const [pwdSuccess, setPwdSuccess] = useState(false);
+
+  if (!user) {
+    return (
+      <div className="pco-card p-8 text-center text-sm text-ink-muted">
+        Você precisa estar logado.
+      </div>
+    );
+  }
+
+  const initials = (name || user.name || 'U')
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
     .join('');
 
+  async function onSaveProfile(e: React.FormEvent) {
+    e.preventDefault();
+    setProfileError(null);
+    if (name.trim().length < 2) {
+      setProfileError('Informe seu nome.');
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const updated = await api.updateMyProfile({ name: name.trim(), avatarUrl: avatarUrl ?? null });
+      patchUser({ name: updated.name, avatarUrl: updated.avatarUrl ?? null });
+      toast.success('Perfil atualizado');
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : 'Erro ao salvar.');
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setProfileError(null);
+    try {
+      const res = await api.uploadFile(file);
+      setAvatarUrl(res.url);
+      toast.info('Avatar enviado — clique Salvar para confirmar.');
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : 'Falha no upload.');
+    } finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = '';
+    }
+  }
+
+  async function onChangePwd(e: React.FormEvent) {
+    e.preventDefault();
+    setPwdError(null);
+    setPwdSuccess(false);
+    if (newPwd.length < 8) {
+      setPwdError('A nova senha precisa ter ao menos 8 caracteres.');
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      setPwdError('As senhas não conferem.');
+      return;
+    }
+    setSavingPwd(true);
+    try {
+      await api.changeMyPassword(currentPwd, newPwd);
+      setPwdSuccess(true);
+      setCurrentPwd('');
+      setNewPwd('');
+      setConfirmPwd('');
+      toast.success('Senha alterada — outras sessões foram encerradas.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.toLowerCase().includes('senha atual')) {
+        setPwdError('Senha atual incorreta.');
+      } else {
+        setPwdError(msg || 'Erro ao alterar senha.');
+      }
+    } finally {
+      setSavingPwd(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header>
         <h1 className="pco-section-title">Meu Perfil</h1>
-        <p className="pco-section-subtitle mt-1">Seus dados acadêmicos e preferências.</p>
+        <p className="pco-section-subtitle mt-1">Seus dados pessoais e segurança da conta.</p>
       </header>
 
-      <div className="pco-card">
+      <div className="pco-card p-6">
         <div className="flex flex-wrap items-center gap-5">
-          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-2xl font-bold text-white shadow-soft">
-            {initials}
+          <div className="relative">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={name}
+                className="h-20 w-20 rounded-2xl object-cover shadow-soft"
+              />
+            ) : (
+              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-2xl font-bold text-white shadow-soft">
+                {initials}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-white border border-surface-gray grid place-items-center text-pco-blue shadow-soft hover:bg-pco-blue hover:text-white transition-colors"
+              title="Trocar avatar"
+              aria-label="Trocar avatar"
+              disabled={uploading}
+            >
+              {uploading ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Camera size={12} strokeWidth={2} />
+              )}
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={onPickAvatar}
+            />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-pco-deep">{currentStudent.name}</h2>
-            <p className="text-sm text-ink-muted">{currentStudent.email}</p>
-            <p className="text-xs text-ink-subtle mt-1">
-              Aluno desde {new Date(currentStudent.createdAt).toLocaleDateString('pt-BR')}
-            </p>
+            <h2 className="text-xl font-bold text-pco-deep">{user.name}</h2>
+            <p className="text-sm text-ink-muted">{user.email}</p>
+            <p className="text-xs text-ink-subtle mt-1 capitalize">{user.role}</p>
           </div>
         </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            alert('Salvo (mock).');
-          }}
-          className="pco-card space-y-4"
-        >
+        <form onSubmit={onSaveProfile} className="pco-card p-6 space-y-4">
           <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">
             <User size={16} className="text-pco-blue" strokeWidth={1.75} />
             Dados pessoais
           </h3>
           <div>
             <label className="block text-xs font-medium text-ink-muted mb-1.5">Nome completo</label>
-            <input className="pco-input" defaultValue={currentStudent.name} />
+            <input
+              className="pco-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={120}
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-ink-muted mb-1.5">E-mail</label>
-            <input className="pco-input" type="email" defaultValue={currentStudent.email} />
+            <input className="pco-input opacity-60" type="text" value={user.email} disabled />
+            <p className="text-[11px] text-ink-subtle mt-1">
+              Para alterar e-mail, contate o administrador.
+            </p>
           </div>
-          <button type="submit" className="pco-btn-primary">
+          {profileError && (
+            <div className="flex items-start gap-2 rounded-lg bg-status-danger/10 p-2 text-xs text-status-danger">
+              <AlertCircle size={14} strokeWidth={2} className="mt-0.5 shrink-0" />
+              <span>{profileError}</span>
+            </div>
+          )}
+          <button
+            type="submit"
+            className="pco-btn-primary"
+            disabled={savingProfile || uploading}
+          >
             <Save size={14} strokeWidth={2} />
-            Salvar alterações
+            {savingProfile ? 'Salvando...' : 'Salvar alterações'}
           </button>
         </form>
 
-        <div className="pco-card space-y-4">
+        <form onSubmit={onChangePwd} className="pco-card p-6 space-y-4">
           <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">
-            <Target size={16} className="text-pco-blue" strokeWidth={1.75} />
-            Plano de estudo
+            <Lock size={16} className="text-pco-blue" strokeWidth={1.75} />
+            Alterar senha
           </h3>
-          <div className="rounded-xl bg-surface-off p-4">
-            <div className="text-xs text-ink-muted">Meta semanal</div>
-            <div className="text-2xl font-bold text-pco-deep">
-              {currentStudent.weeklyGoalMinutes} min
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-ink-muted mb-1.5">Senha atual</label>
+            <input
+              className="pco-input"
+              type="password"
+              value={currentPwd}
+              onChange={(e) => setCurrentPwd(e.target.value)}
+              autoComplete="current-password"
+            />
           </div>
-          <div className="rounded-xl bg-surface-off p-4">
-            <div className="text-xs text-ink-muted">Total estudado</div>
-            <div className="text-2xl font-bold text-pco-deep">
-              {Math.round(currentStudent.totalStudyMinutes / 60)}h{' '}
-              {currentStudent.totalStudyMinutes % 60}min
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-ink-muted mb-1.5">Nova senha</label>
+            <input
+              className="pco-input"
+              type="password"
+              value={newPwd}
+              onChange={(e) => setNewPwd(e.target.value)}
+              placeholder="mínimo 8 caracteres"
+              autoComplete="new-password"
+            />
           </div>
-          <div className="rounded-xl bg-surface-off p-4 flex items-center gap-3">
-            <Calendar size={16} className="text-pco-blue" strokeWidth={1.75} />
-            <div className="text-xs text-ink-muted">
-              Último acesso:{' '}
-              <span className="font-semibold text-pco-deep">
-                {currentStudent.lastAccessAt
-                  ? new Date(currentStudent.lastAccessAt).toLocaleDateString('pt-BR')
-                  : '—'}
-              </span>
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-ink-muted mb-1.5">
+              Confirmar nova senha
+            </label>
+            <input
+              className="pco-input"
+              type="password"
+              value={confirmPwd}
+              onChange={(e) => setConfirmPwd(e.target.value)}
+              autoComplete="new-password"
+            />
           </div>
-          <div className="rounded-xl bg-surface-off p-4 flex items-center gap-3">
-            <Mail size={16} className="text-pco-blue" strokeWidth={1.75} />
-            <div className="text-xs text-ink-muted">
-              Notificações por e-mail{' '}
-              <span className="font-semibold text-pco-deep">ativadas</span>
+          {pwdError && (
+            <div className="flex items-start gap-2 rounded-lg bg-status-danger/10 p-2 text-xs text-status-danger">
+              <AlertCircle size={14} strokeWidth={2} className="mt-0.5 shrink-0" />
+              <span>{pwdError}</span>
             </div>
-          </div>
-        </div>
+          )}
+          {pwdSuccess && (
+            <div className="flex items-start gap-2 rounded-lg bg-status-success/10 p-2 text-xs text-status-success">
+              <CheckCircle2 size={14} strokeWidth={2} className="mt-0.5 shrink-0" />
+              <span>Senha alterada. Outros dispositivos foram desconectados.</span>
+            </div>
+          )}
+          <button type="submit" className="pco-btn-primary" disabled={savingPwd}>
+            <Lock size={14} strokeWidth={2} />
+            {savingPwd ? 'Alterando...' : 'Alterar senha'}
+          </button>
+        </form>
       </div>
     </div>
   );

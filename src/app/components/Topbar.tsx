@@ -1,18 +1,83 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, Menu, LogOut, UserCircle2, Settings as SettingsIcon, ShieldOff } from 'lucide-react';
+import {
+  Bell,
+  Search,
+  Menu,
+  LogOut,
+  UserCircle2,
+  Settings as SettingsIcon,
+  ShieldOff,
+  Loader2,
+  GraduationCap,
+  Layers,
+  PlayCircle,
+  BookOpen,
+  Newspaper,
+  Mic2,
+  User as UserIcon,
+} from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useUnreadCount } from '../data/hooks';
+import * as api from '../data/api';
 
 interface TopbarProps {
   onMenuClick?: () => void;
   variant?: 'student' | 'admin';
 }
 
+const TYPE_ICONS: Record<api.SearchHitDto['type'], typeof Search> = {
+  course: GraduationCap,
+  module: Layers,
+  lesson: PlayCircle,
+  library: BookOpen,
+  news: Newspaper,
+  podcast: Mic2,
+  user: UserIcon,
+};
+
 export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps) {
   const { user, logout, logoutAllDevices } = useAuth();
   const navigate = useNavigate();
   const unread = useUnreadCount();
+  const [searchQ, setSearchQ] = useState('');
+  const [searchResults, setSearchResults] = useState<api.SearchHitDto[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (variant !== 'admin' || searchQ.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const hits = await api.adminSearch(searchQ);
+        if (!cancelled) setSearchResults(hits);
+      } catch {
+        if (!cancelled) setSearchResults([]);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 220);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [searchQ, variant]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    if (searchOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [searchOpen]);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -57,15 +122,26 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
           <Menu size={20} strokeWidth={1.75} />
         </button>
 
-        <div className="flex-1 max-w-xl hidden md:block">
+        <div className="flex-1 max-w-xl hidden md:block relative" ref={searchRef}>
           <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
-              size={16}
-              strokeWidth={1.75}
-            />
+            {searching ? (
+              <Loader2
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle animate-spin"
+                size={16}
+                strokeWidth={1.75}
+              />
+            ) : (
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
+                size={16}
+                strokeWidth={1.75}
+              />
+            )}
             <input
               type="text"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              onFocus={() => setSearchOpen(true)}
               placeholder={
                 variant === 'admin'
                   ? 'Buscar alunos, cursos, materiais...'
@@ -74,6 +150,46 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
               className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-gray bg-surface-off text-ink-base placeholder:text-ink-subtle focus:outline-none focus:bg-white focus:border-pco-blue focus:ring-2 focus:ring-pco-blue/15 transition-all"
             />
           </div>
+          {variant === 'admin' && searchOpen && searchQ.trim().length >= 2 && (
+            <div className="absolute top-full mt-2 left-0 right-0 pco-card shadow-lift max-h-[420px] overflow-auto z-40">
+              {searchResults.length === 0 ? (
+                <div className="text-xs text-ink-muted px-4 py-6 text-center">
+                  {searching ? 'Buscando...' : 'Nenhum resultado'}
+                </div>
+              ) : (
+                <ul className="divide-y divide-surface-mute">
+                  {searchResults.map((h) => {
+                    const Icon = TYPE_ICONS[h.type] ?? Search;
+                    return (
+                      <li key={`${h.type}-${h.id}`}>
+                        <Link
+                          to={h.link}
+                          onClick={() => {
+                            setSearchOpen(false);
+                            setSearchQ('');
+                          }}
+                          className="flex items-start gap-2 px-3 py-2 hover:bg-surface-off"
+                        >
+                          <Icon size={14} strokeWidth={2} className="mt-0.5 text-pco-blue shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-pco-deep truncate">
+                              {h.title}
+                            </div>
+                            {h.snippet && (
+                              <div className="text-xs text-ink-muted truncate">{h.snippet}</div>
+                            )}
+                          </div>
+                          <span className="text-[10px] uppercase tracking-wide text-ink-subtle shrink-0 mt-1">
+                            {h.type}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 md:hidden" />
@@ -98,9 +214,17 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
             aria-haspopup="menu"
             aria-expanded={menuOpen}
           >
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white shadow-soft">
-              {initials}
-            </div>
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={name}
+                className="h-8 w-8 rounded-full object-cover shadow-soft"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white shadow-soft">
+                {initials}
+              </div>
+            )}
             <div className="hidden sm:block text-left leading-tight">
               <div className="text-xs font-semibold text-pco-deep truncate max-w-[120px]">
                 {name}

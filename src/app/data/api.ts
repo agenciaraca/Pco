@@ -50,6 +50,53 @@ export async function logoutAllDevices(): Promise<{ ok: true; tokenVersion: numb
   return http.post<{ ok: true; tokenVersion: number }>('/auth/logout-all-devices', {});
 }
 
+export interface UpdateProfileBody {
+  name?: string;
+  avatarUrl?: string | null;
+}
+export interface MyProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: 'student' | 'admin' | 'superadmin';
+  avatarUrl?: string | null;
+  active: boolean;
+}
+export async function updateMyProfile(body: UpdateProfileBody): Promise<MyProfile> {
+  return http.put<MyProfile>('/auth/me', body);
+}
+
+export async function changeMyPassword(currentPassword: string, newPassword: string): Promise<{ ok: true }> {
+  return http.post<{ ok: true }>('/auth/me/password', { currentPassword, newPassword });
+}
+
+// ---------- Uploads ----------
+
+export interface UploadResultDto {
+  url: string;
+  filename: string;
+  size: number;
+  mime: string;
+}
+
+export async function uploadFile(file: File): Promise<UploadResultDto> {
+  // http.post espera JSON — fazemos fetch direto pra multipart
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const form = new FormData();
+  form.set('file', file);
+  const res = await fetch('/api/uploads', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error?.message ?? `HTTP ${res.status}`);
+  }
+  return (await res.json()) as UploadResultDto;
+}
+
 export interface ForgotPasswordResponse {
   ok: true;
   devToken?: string;
@@ -65,6 +112,40 @@ export async function resetPassword(token: string, password: string): Promise<{ 
     token,
     password,
   });
+}
+
+// ---------- Admin search ----------
+
+export interface SearchHitDto {
+  type: 'course' | 'module' | 'lesson' | 'library' | 'news' | 'podcast' | 'user';
+  id: string;
+  title: string;
+  snippet: string;
+  link: string;
+}
+
+export async function adminSearch(q: string): Promise<SearchHitDto[]> {
+  if (q.trim().length < 2) return [];
+  return http.get<SearchHitDto[]>(`/admin/search?q=${encodeURIComponent(q)}`);
+}
+
+// ---------- Health (admin) ----------
+
+export interface HealthStatsDto {
+  ok: true;
+  ts: number;
+  uptimeSec: number;
+  startedAt: string;
+  nodeVersion: string;
+  pid: number;
+  memMB: number;
+  dataSizeMB: number;
+  errors24h: number;
+  db: 'connected' | 'fallback';
+}
+
+export async function fetchHealth(): Promise<HealthStatsDto> {
+  return http.get<HealthStatsDto>('/health/full');
 }
 
 // ---------- Notifications ----------

@@ -15,6 +15,7 @@ export interface SystemUser {
   role: Role;
   passwordHash: string;
   tokenVersion: number;
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
@@ -27,6 +28,7 @@ export interface SystemUserPublic {
   name: string;
   role: Role;
   tokenVersion: number;
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
@@ -206,6 +208,7 @@ interface UpdateInput {
   name?: string;
   role?: Role;
   active?: boolean;
+  avatarUrl?: string | null;
 }
 
 export async function updateUser(
@@ -228,11 +231,34 @@ export async function updateUser(
     ...(patch.name !== undefined ? { name: patch.name } : {}),
     ...(patch.role !== undefined ? { role: patch.role } : {}),
     ...(patch.active !== undefined ? { active: patch.active } : {}),
+    ...(patch.avatarUrl !== undefined ? { avatarUrl: patch.avatarUrl } : {}),
     ...(willDeactivate ? { tokenVersion: (users[i].tokenVersion ?? 0) + 1 } : {}),
     updatedAt: new Date().toISOString(),
   };
   await queueWrite();
   return toPublic(users[i]);
+}
+
+/**
+ * Self-service: troca senha exigindo senha atual correta.
+ * Bumpa tokenVersion (invalida todos tokens — força re-login em outros devices).
+ * Retorna 'ok' | 'wrong-password' | 'not-found'.
+ */
+export async function verifyAndChangePassword(
+  id: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<'ok' | 'wrong-password' | 'not-found'> {
+  await loadUsers();
+  const i = users.findIndex((u) => u.id === id);
+  if (i === -1) return 'not-found';
+  const ok = await bcrypt.compare(currentPassword, users[i].passwordHash);
+  if (!ok) return 'wrong-password';
+  users[i].passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  users[i].tokenVersion = (users[i].tokenVersion ?? 0) + 1;
+  users[i].updatedAt = new Date().toISOString();
+  await queueWrite();
+  return 'ok';
 }
 
 export async function changePassword(id: string, newPassword: string): Promise<boolean> {
