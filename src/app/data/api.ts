@@ -328,6 +328,34 @@ export async function deleteLibrary(id: string): Promise<{ ok: true }> {
   return http.delete(`/admin/library/${encodeURIComponent(id)}`);
 }
 
+// ---------- Admin: Podcasts writes ----------
+
+export interface CreatePodcastPayload {
+  title: string;
+  description: string;
+  durationMinutes?: number;
+  publishedAt: string;
+  coverColor?: string;
+  audioUrl?: string;
+  relatedCourseIds?: string[];
+  relatedModuleIds?: string[];
+}
+
+export async function createPodcast(input: CreatePodcastPayload): Promise<PodcastEpisode> {
+  return http.post<PodcastEpisode>('/admin/podcasts', input);
+}
+
+export async function updatePodcast(
+  id: string,
+  patch: Partial<CreatePodcastPayload>,
+): Promise<PodcastEpisode> {
+  return http.put<PodcastEpisode>(`/admin/podcasts/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deletePodcast(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/podcasts/${encodeURIComponent(id)}`);
+}
+
 // ---------- Recovery plans ----------
 
 export async function generateRecoveryPlan(input: RecoveryPlanInput): Promise<{

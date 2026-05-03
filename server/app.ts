@@ -15,6 +15,8 @@ import {
   updateNewsSchema,
   createLibrarySchema,
   updateLibrarySchema,
+  createPodcastSchema,
+  updatePodcastSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -392,6 +394,31 @@ export function buildApp() {
   app.delete('/admin/library/:id', async (c) => {
     const ok = await libraryRepo.deleteLibrary(c.req.param('id'));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Material não encontrado');
+    return c.json({ ok: true });
+  });
+
+  // ---------- Admin: Podcasts writes ----------
+
+  app.post('/admin/podcasts', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createPodcastSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const created = await podcastsRepo.createPodcast(v.data);
+    return c.json(created, 201);
+  });
+
+  app.put('/admin/podcasts/:id', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updatePodcastSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await podcastsRepo.updatePodcast(c.req.param('id'), v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Episódio não encontrado');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/podcasts/:id', async (c) => {
+    const ok = await podcastsRepo.deletePodcast(c.req.param('id'));
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Episódio não encontrado');
     return c.json({ ok: true });
   });
 

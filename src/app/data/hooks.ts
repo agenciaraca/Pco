@@ -272,3 +272,33 @@ export function useDeleteLibrary() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['library'] }),
   });
 }
+
+// ---- Admin: podcasts writes ----
+
+export function useCreatePodcast() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createPodcast,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.podcasts }),
+  });
+}
+
+export function useUpdatePodcast() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<api.CreatePodcastPayload> }) =>
+      api.updatePodcast(id, patch),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.podcasts });
+      qc.invalidateQueries({ queryKey: queryKeys.podcast(vars.id) });
+    },
+  });
+}
+
+export function useDeletePodcast() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deletePodcast,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.podcasts }),
+  });
+}

@@ -193,6 +193,27 @@ export type CreateLibraryInput = z.infer<typeof createLibrarySchema>;
 export const updateLibrarySchema = createLibrarySchema.partial();
 export type UpdateLibraryInput = z.infer<typeof updateLibrarySchema>;
 
+// ---- Podcast writes ----
+
+export const createPodcastSchema = z.object({
+  title: z.string().min(2, 'Título muito curto').max(200),
+  description: z.string().min(10, 'Descrição muito curta').max(2000),
+  durationMinutes: z.number().int().min(1).max(600).default(30),
+  publishedAt: z.string().min(8).max(20),
+  coverColor: z.string().max(120).default('from-pco-blue to-pco-cyan'),
+  audioUrl: z
+    .string()
+    .url('URL inválida')
+    .or(z.literal(''))
+    .optional(),
+  relatedCourseIds: z.array(z.string().max(40)).max(50).default([]),
+  relatedModuleIds: z.array(z.string().max(40)).max(100).default([]),
+});
+export type CreatePodcastInput = z.infer<typeof createPodcastSchema>;
+
+export const updatePodcastSchema = createPodcastSchema.partial();
+export type UpdatePodcastInput = z.infer<typeof updatePodcastSchema>;
+
 // Filters
 export const studentsFilterSchema = z.object({
   search: z.string().optional(),
