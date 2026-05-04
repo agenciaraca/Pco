@@ -65,12 +65,13 @@ export const notificationCategoryEnum = z.enum([
   'announcement',
 ]);
 
-export const notificationAudienceEnum = z.enum(['all', 'students', 'admins', 'user']);
+export const notificationAudienceEnum = z.enum(['all', 'students', 'admins', 'user', 'users']);
 
 export const broadcastNotificationSchema = z
   .object({
     audience: notificationAudienceEnum,
     userId: z.string().min(1).optional(),
+    userIds: z.array(z.string().min(1)).max(500).optional(),
     title: z.string().min(2, 'Título muito curto').max(120, 'Título muito longo'),
     body: z.string().min(2, 'Corpo muito curto').max(2000, 'Corpo muito longo'),
     category: notificationCategoryEnum.optional(),
@@ -79,6 +80,10 @@ export const broadcastNotificationSchema = z
   .refine((v) => v.audience !== 'user' || (v.userId && v.userId.length > 0), {
     message: 'userId é obrigatório quando audience = user',
     path: ['userId'],
+  })
+  .refine((v) => v.audience !== 'users' || (v.userIds && v.userIds.length > 0), {
+    message: 'userIds é obrigatório quando audience = users',
+    path: ['userIds'],
   });
 export type BroadcastNotificationInput = z.infer<typeof broadcastNotificationSchema>;
 

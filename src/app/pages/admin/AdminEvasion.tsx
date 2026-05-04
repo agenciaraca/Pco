@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { AlertTriangle, ArrowRight, Sparkles } from 'lucide-react';
-import { useRetentionRisks } from '../../data/hooks';
+import { AlertTriangle, ArrowRight, Sparkles, Send } from 'lucide-react';
+import { useRetentionRisks, useBroadcastNotification } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
+import { useToast } from '../../components/Toast';
 
 const levelStyles: Record<string, string> = {
   critico: 'bg-status-danger/15 text-status-danger',
@@ -15,6 +16,33 @@ const levelStyles: Record<string, string> = {
 export default function AdminEvasion() {
   const [level, setLevel] = useState('todos');
   const { data, isLoading, isError, refetch } = useRetentionRisks(level);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const broadcast = useBroadcastNotification();
+  const toast = useToast();
+
+  async function notifySelected() {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    const message = prompt(
+      `Mensagem para ${ids.length} aluno(s):`,
+      'Sentimos sua falta. Que tal retomar o curso essa semana?',
+    );
+    if (!message || message.trim().length < 2) return;
+    try {
+      const res = await broadcast.mutateAsync({
+        audience: 'users',
+        userIds: ids,
+        title: 'Que tal retomar o curso?',
+        body: message.trim(),
+        category: 'warning',
+        link: '/jornada',
+      });
+      toast.success(`Enviado para ${res.sent} aluno(s)`);
+      setSelected(new Set());
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -57,11 +85,50 @@ export default function AdminEvasion() {
       ) : !data || data.length === 0 ? (
         <EmptyState title="Nenhum risco no filtro atual" />
       ) : (
+      <>
+      {selected.size > 0 && (
+        <div className="pco-card p-3 flex items-center justify-between flex-wrap gap-3 bg-pco-blue/5 border-pco-blue/30">
+          <div className="text-sm text-pco-deep">
+            <strong>{selected.size}</strong> aluno{selected.size === 1 ? '' : 's'} selecionado{selected.size === 1 ? '' : 's'}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={notifySelected}
+              disabled={broadcast.isPending}
+              className="pco-btn-primary text-xs"
+            >
+              <Send size={11} strokeWidth={2} />
+              {broadcast.isPending ? 'Enviando...' : 'Notificar selecionados'}
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="pco-btn-ghost text-xs"
+            >
+              Limpar
+            </button>
+          </div>
+        </div>
+      )}
       <div className="pco-card p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-off">
               <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                <th className="px-3 py-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={
+                      data.length > 0 &&
+                      data.every((r) => selected.has(r.studentId))
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked) setSelected(new Set(data.map((r) => r.studentId)));
+                      else setSelected(new Set());
+                    }}
+                    className="h-3.5 w-3.5 rounded text-pco-blue focus:ring-pco-blue"
+                    aria-label="Selecionar todos"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left font-medium">Aluno</th>
                 <th className="px-4 py-3 text-left font-medium">Score</th>
                 <th className="px-4 py-3 text-left font-medium">Nível</th>
@@ -81,6 +148,20 @@ export default function AdminEvasion() {
                 const ratio = Math.round((r.realProgress / Math.max(1, r.expectedProgress)) * 100);
                 return (
                   <tr key={r.studentId} className="border-t border-surface-gray hover:bg-surface-off">
+                    <td className="px-3 py-3 w-8">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(r.studentId)}
+                        onChange={(e) => {
+                          const next = new Set(selected);
+                          if (e.target.checked) next.add(r.studentId);
+                          else next.delete(r.studentId);
+                          setSelected(next);
+                        }}
+                        className="h-3.5 w-3.5 rounded text-pco-blue focus:ring-pco-blue"
+                        aria-label={`Selecionar ${r.studentName}`}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white">
@@ -164,6 +245,7 @@ export default function AdminEvasion() {
           </table>
         </div>
       </div>
+      </>
       )}
 
       <div className="text-[11px] text-ink-subtle">

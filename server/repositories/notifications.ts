@@ -122,8 +122,9 @@ export async function createOne(input: CreateOneInput): Promise<Notification> {
 }
 
 interface BroadcastInput {
-  audience: 'all' | 'students' | 'admins' | 'user';
+  audience: 'all' | 'students' | 'admins' | 'user' | 'users';
   userId?: string; // requerido se audience === 'user'
+  userIds?: string[]; // requerido se audience === 'users'
   title: string;
   body: string;
   category?: NotificationCategory;
@@ -133,6 +134,7 @@ interface BroadcastInput {
 
 export async function broadcast(input: BroadcastInput): Promise<number> {
   const allUsers = await usersStore.listUsers();
+  const userIdsSet = new Set(input.userIds ?? []);
   const targets = allUsers
     .filter((u) => u.active)
     .filter((u) => {
@@ -140,9 +142,11 @@ export async function broadcast(input: BroadcastInput): Promise<number> {
       if (input.audience === 'students') return u.role === 'student';
       if (input.audience === 'admins') return u.role === 'admin' || u.role === 'superadmin';
       if (input.audience === 'user') return u.id === input.userId;
+      if (input.audience === 'users') return userIdsSet.has(u.id);
       return false;
     });
   if (input.audience === 'user' && targets.length === 0) return 0;
+  if (input.audience === 'users' && targets.length === 0) return 0;
   for (const t of targets) {
     await createOne({
       userId: t.id,

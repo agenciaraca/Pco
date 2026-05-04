@@ -460,8 +460,9 @@ export async function markAllNotificationsRead(): Promise<{ ok: true; updated: n
 }
 
 export interface BroadcastNotificationInput {
-  audience: 'all' | 'students' | 'admins' | 'user';
+  audience: 'all' | 'students' | 'admins' | 'user' | 'users';
   userId?: string;
+  userIds?: string[];
   title: string;
   body: string;
   category?: NotificationDto['category'];
