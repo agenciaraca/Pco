@@ -2448,6 +2448,94 @@ export async function fetchStudentAchievements(
   return http.get(`/admin/students/${encodeURIComponent(studentId)}/achievements`);
 }
 
+// ---------- Lesson discussions ----------
+
+export interface LessonCommentDto {
+  id: string;
+  lessonId: string;
+  courseId: string;
+  parentId: string | null;
+  authorId: string;
+  authorName: string;
+  authorRole: 'student' | 'admin' | 'superadmin';
+  body: string;
+  pinned: boolean;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchLessonComments(
+  lessonId: string,
+): Promise<LessonCommentDto[]> {
+  return http.get(`/lessons/${encodeURIComponent(lessonId)}/comments`);
+}
+
+export async function createLessonComment(input: {
+  lessonId: string;
+  courseId: string;
+  body: string;
+  parentId?: string;
+}): Promise<LessonCommentDto> {
+  return http.post(`/lessons/${encodeURIComponent(input.lessonId)}/comments`, {
+    body: input.body,
+    courseId: input.courseId,
+    parentId: input.parentId,
+  });
+}
+
+export async function updateLessonComment(
+  lessonId: string,
+  commentId: string,
+  patch: { body?: string; pinned?: boolean; hidden?: boolean },
+): Promise<LessonCommentDto> {
+  return http.put(
+    `/lessons/${encodeURIComponent(lessonId)}/comments/${encodeURIComponent(commentId)}`,
+    patch,
+  );
+}
+
+export async function deleteLessonComment(
+  lessonId: string,
+  commentId: string,
+): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(
+    `/lessons/${encodeURIComponent(lessonId)}/comments/${encodeURIComponent(commentId)}`,
+  );
+}
+
+// ---------- Jobs / cron viewer ----------
+
+export interface JobStatusDto {
+  name: string;
+  enabled: boolean;
+  intervalMs: number;
+  lastRunAt: string | null;
+  totalTicks: number;
+  // webhooks
+  running?: boolean;
+  lastRunProcessed?: number;
+  pending?: number;
+  totalDeliveries?: number;
+  // reengagement
+  lastRunResult?: {
+    scanned: number;
+    inactive: number;
+    sent: number;
+    skipped: number;
+    errors: number;
+  } | null;
+  recentEmails24h?: number;
+}
+
+export async function fetchJobs(): Promise<{ jobs: JobStatusDto[] }> {
+  return http.get('/admin/jobs');
+}
+
+export async function runJob(name: string, dryRun = false): Promise<unknown> {
+  return http.post(`/admin/jobs/${encodeURIComponent(name)}/run?dryRun=${dryRun}`, {});
+}
+
 export async function fetchActivityFeed(filter: {
   kinds?: ActivityKindDto[];
   since?: string;

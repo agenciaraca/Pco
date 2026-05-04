@@ -128,6 +128,7 @@ import { requireApiToken } from './auth/api-token-middleware';
 import * as activityFeed from './activity/feed';
 import { buildCsv, csvResponse } from './export/csv';
 import * as adminNotes from './admin/notes-store';
+import * as discussions from './discussions/store';
 import * as courseReviews from './reviews/store';
 import * as achievementsStore from './achievements/store';
 import * as achievementsEngine from './achievements/engine';
@@ -2742,6 +2743,52 @@ export function buildApp() {
     );
   });
 
+  // ---------- Cron / jobs viewer ----------
+
+  app.get('/admin/jobs', requireAuth('admin', 'superadmin'), async (c) => {
+    const [whPending, whAll, eqlogs] = await Promise.all([
+      webhookDeliveries.pending(),
+      webhookDeliveries.listAll(500),
+      emailLogs.listLogs(50),
+    ]);
+    const cutoff24h = Date.now() - 24 * 60 * 60_000;
+    const recentEmails = eqlogs.filter(
+      (l) => new Date(l.ts).getTime() >= cutoff24h,
+    ).length;
+    return c.json({
+      jobs: [
+        {
+          ...webhooksDispatcher.getStatus(),
+          pending: whPending.length,
+          totalDeliveries: whAll.length,
+        },
+        {
+          ...reengagementWorker.getStatus(),
+          recentEmails24h: recentEmails,
+        },
+      ],
+    });
+  });
+
+  app.post(
+    '/admin/jobs/:name/run',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const name = c.req.param('name') as string;
+      if (name === 'webhooks') {
+        const r = await webhooksDispatcher.tickWorker();
+        return c.json({ name, ok: true, processed: r.processed });
+      }
+      if (name === 'reengagement') {
+        const dryRun = c.req.query('dryRun') === 'true';
+        const r = await reengagementWorker.tickWorker({ dryRun });
+        return c.json({ name, ok: true, ...r, dryRun });
+      }
+      return jsonError(c, 404, 'NOT_FOUND', `Job desconhecido: ${name}`);
+    },
+  );
+
   // ---------- Achievements / badges ----------
 
   app.get('/me/achievements', requireAuth(), async (c) => {
@@ -2793,6 +2840,100 @@ export function buildApp() {
           : undefined,
     });
     return c.json(next);
+  });
+
+  // ---------- Lesson discussions ----------
+
+  app.get('/lessons/:id/comments', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const isAdmin = u.role === 'admin' || u.role === 'superadmin';
+    const list = await discussions.listForLesson(c.req.param('id') as string, {
+      includeHidden: isAdmin,
+    });
+    return c.json(list);
+  });
+
+  app.post(
+    '/lessons/:id/comments',
+    requireAuth(),
+    rateLimit({ windowMs: 60_000, max: 30 }),
+    async (c) => {
+      const u = c.get('user')!;
+      const lessonId = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const text = String(body.body ?? '').trim();
+      const courseId = String(body.courseId ?? '').trim();
+      const parentId =
+        typeof body.parentId === 'string' ? body.parentId : undefined;
+      if (!text) return jsonError(c, 400, 'INVALID_INPUT', 'body é obrigatório');
+      if (text.length > 3000) {
+        return jsonError(c, 400, 'TOO_LONG', 'máx 3000 caracteres');
+      }
+      if (!courseId) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'courseId é obrigatório');
+      }
+
+      // Aluno comum precisa estar matriculado nesse curso. Admin escapa.
+      if (u.role === 'student') {
+        const s = await studentsRepo.findAdminStudent(u.sub);
+        if (!s || !(s.enrolledCourseIds ?? []).includes(courseId)) {
+          return jsonError(c, 403, 'NOT_ENROLLED', 'Apenas matriculados comentam.');
+        }
+      }
+
+      // Se for resposta, valida pai
+      if (parentId) {
+        const parent = await discussions.findById(parentId);
+        if (!parent || parent.lessonId !== lessonId) {
+          return jsonError(c, 400, 'INVALID_PARENT', 'parent inexistente ou de outra aula.');
+        }
+        if (parent.parentId !== null) {
+          return jsonError(c, 400, 'NESTED_REPLY', 'Resposta a resposta não é permitida.');
+        }
+      }
+
+      const created = await discussions.createComment({
+        lessonId,
+        courseId,
+        parentId: parentId ?? null,
+        authorId: u.sub,
+        authorName: u.email.split('@')[0]!,
+        authorRole: u.role,
+        body: text,
+      });
+      return c.json(created, 201);
+    },
+  );
+
+  app.put('/lessons/:lessonId/comments/:commentId', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const commentId = c.req.param('commentId') as string;
+    const existing = await discussions.findById(commentId);
+    if (!existing) return jsonError(c, 404, 'NOT_FOUND', 'Comentário não encontrado');
+    const isAdmin = u.role === 'admin' || u.role === 'superadmin';
+    if (existing.authorId !== u.sub && !isAdmin) {
+      return jsonError(c, 403, 'FORBIDDEN', 'Apenas o autor ou um admin pode editar.');
+    }
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const patch: { body?: string; pinned?: boolean; hidden?: boolean } = {};
+    if (typeof body.body === 'string') patch.body = body.body.slice(0, 3000);
+    if (isAdmin && typeof body.pinned === 'boolean') patch.pinned = body.pinned;
+    if (isAdmin && typeof body.hidden === 'boolean') patch.hidden = body.hidden;
+    const updated = await discussions.updateComment(commentId, patch);
+    return c.json(updated);
+  });
+
+  app.delete('/lessons/:lessonId/comments/:commentId', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const commentId = c.req.param('commentId') as string;
+    const existing = await discussions.findById(commentId);
+    if (!existing) return jsonError(c, 404, 'NOT_FOUND', 'Comentário não encontrado');
+    const isAdmin = u.role === 'admin' || u.role === 'superadmin';
+    if (existing.authorId !== u.sub && !isAdmin) {
+      return jsonError(c, 403, 'FORBIDDEN', 'Apenas o autor ou um admin pode excluir.');
+    }
+    await discussions.deleteComment(commentId);
+    return c.json({ ok: true });
   });
 
   // ---------- Course reviews (alunos avaliam) ----------

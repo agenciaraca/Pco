@@ -1481,6 +1481,68 @@ export function useStudentAchievements(studentId: string | undefined) {
   });
 }
 
+const lessonCommentsKey = (lessonId: string) =>
+  ['lessons', lessonId, 'comments'] as const;
+
+export function useLessonComments(lessonId: string | undefined) {
+  return useQuery({
+    queryKey: lessonCommentsKey(lessonId ?? ''),
+    queryFn: () => api.fetchLessonComments(lessonId!),
+    enabled: !!lessonId,
+  });
+}
+
+export function useCreateLessonComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createLessonComment,
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: lessonCommentsKey(vars.lessonId) }),
+  });
+}
+
+export function useUpdateLessonComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      lessonId: string;
+      commentId: string;
+      patch: { body?: string; pinned?: boolean; hidden?: boolean };
+    }) => api.updateLessonComment(args.lessonId, args.commentId, args.patch),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: lessonCommentsKey(vars.lessonId) }),
+  });
+}
+
+export function useDeleteLessonComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { lessonId: string; commentId: string }) =>
+      api.deleteLessonComment(args.lessonId, args.commentId),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: lessonCommentsKey(vars.lessonId) }),
+  });
+}
+
+const jobsKey = ['admin', 'jobs'] as const;
+
+export function useJobs() {
+  return useQuery({
+    queryKey: jobsKey,
+    queryFn: api.fetchJobs,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useRunJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { name: string; dryRun?: boolean }) =>
+      api.runJob(args.name, args.dryRun ?? false),
+    onSuccess: () => qc.invalidateQueries({ queryKey: jobsKey }),
+  });
+}
+
 export function useUpsertMyCourseReview() {
   const qc = useQueryClient();
   return useMutation({

@@ -16,9 +16,11 @@ import {
   useUnmarkLessonCompleted,
   useLessonNote,
   useSaveLessonNote,
+  useCurrentStudent,
 } from '../data/hooks';
 import { useToast } from '../components/Toast';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
+import LessonComments from '../components/LessonComments';
 import { useState, useEffect } from 'react';
 
 export default function LMSLesson() {
@@ -29,6 +31,7 @@ export default function LMSLesson() {
   const unmarkMut = useUnmarkLessonCompleted();
   const noteQ = useLessonNote(lessonId);
   const saveNote = useSaveLessonNote();
+  const { data: student } = useCurrentStudent();
   const toast = useToast();
   const [noteDraft, setNoteDraft] = useState('');
 
@@ -255,6 +258,16 @@ export default function LMSLesson() {
           </Link>
         )}
       </div>
+
+      <LessonComments
+        lessonId={lesson.id}
+        courseId={course.id}
+        canPost={
+          (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds?.includes(
+            course.id,
+          ) ?? false
+        }
+      />
     </div>
   );
 }

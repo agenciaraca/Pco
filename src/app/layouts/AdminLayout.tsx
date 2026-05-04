@@ -100,6 +100,7 @@ const adminGroups = [
       { to: '/admin/api-tokens', label: 'API tokens', icon: SettingsIcon },
       { to: '/admin/atividade', label: 'Feed de atividade', icon: Activity },
       { to: '/admin/backup', label: 'Backup de configs', icon: DatabaseIcon },
+      { to: '/admin/jobs', label: 'Jobs / workers', icon: SettingsIcon },
       { to: '/admin/reengajamento-auto', label: 'Reengajamento auto.', icon: Sparkles },
       { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
       { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },

@@ -28,9 +28,14 @@ export async function emit(
 
 let workerRunning = false;
 let workerInterval: NodeJS.Timeout | null = null;
+let lastRunAt: string | null = null;
+let lastRunProcessed = 0;
+let totalTicks = 0;
+let intervalMsCfg = 30_000;
 
 export function startWorker(intervalMs = 30_000): void {
   if (workerInterval) return;
+  intervalMsCfg = intervalMs;
   workerInterval = setInterval(() => {
     void tickWorker();
   }, intervalMs);
@@ -43,6 +48,18 @@ export function stopWorker(): void {
     clearInterval(workerInterval);
     workerInterval = null;
   }
+}
+
+export function getStatus() {
+  return {
+    name: 'webhooks',
+    running: workerRunning,
+    intervalMs: intervalMsCfg,
+    lastRunAt,
+    lastRunProcessed,
+    totalTicks,
+    enabled: workerInterval !== null,
+  };
 }
 
 /** Processa todas as entregas pendentes vencidas. */
@@ -58,6 +75,9 @@ export async function tickWorker(): Promise<{ processed: number }> {
     }
   } finally {
     workerRunning = false;
+    lastRunAt = new Date().toISOString();
+    lastRunProcessed = processed;
+    totalTicks++;
   }
   return { processed };
 }

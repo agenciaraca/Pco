@@ -16,7 +16,7 @@ export interface RunResult {
   details?: string[];
 }
 
-export async function tickWorker(opts: { dryRun?: boolean } = {}): Promise<RunResult> {
+async function tickWorkerInternal(opts: { dryRun?: boolean } = {}): Promise<RunResult> {
   const cfg = await configStore.getConfig();
   if (!cfg.enabled && !opts.dryRun) {
     return { scanned: 0, inactive: 0, sent: 0, skipped: 0, errors: 0 };
@@ -94,15 +94,30 @@ export async function tickWorker(opts: { dryRun?: boolean } = {}): Promise<RunRe
   return { scanned, inactive, sent, skipped, errors, details };
 }
 
+export async function tickWorker(opts: { dryRun?: boolean } = {}): Promise<RunResult> {
+  const r = await tickWorkerInternal(opts);
+  if (!opts.dryRun) {
+    lastRunAt = new Date().toISOString();
+    lastRunResult = r;
+    totalTicks++;
+  }
+  return r;
+}
+
 function renderTemplate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? '');
 }
 
 let interval: NodeJS.Timeout | null = null;
+let lastRunAt: string | null = null;
+let lastRunResult: RunResult | null = null;
+let totalTicks = 0;
+let intervalMsCfg = 24 * 60 * 60_000;
 
 /** Loop diário. Se intervalMs omitido, usa 24h. */
 export function startWorker(intervalMs = 24 * 60 * 60_000): void {
   if (interval) return;
+  intervalMsCfg = intervalMs;
   interval = setInterval(() => {
     void tickWorker().catch(() => {
       /* swallow */
@@ -115,4 +130,15 @@ export function stopWorker(): void {
     clearInterval(interval);
     interval = null;
   }
+}
+
+export function getStatus() {
+  return {
+    name: 'reengagement',
+    enabled: interval !== null,
+    intervalMs: intervalMsCfg,
+    lastRunAt,
+    lastRunResult,
+    totalTicks,
+  };
 }
