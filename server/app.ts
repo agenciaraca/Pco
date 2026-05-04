@@ -128,6 +128,7 @@ import * as webhookDeliveries from './webhooks/delivery-store';
 import * as webhooksDispatcher from './webhooks/dispatcher';
 import { ALL_WEBHOOK_EVENTS, type WebhookEventType } from './webhooks/types';
 import * as emailLogs from './notifications/log-store';
+import * as emailBroadcasts from './notifications/broadcasts';
 import { sendWithConfig, pingConfig, sendSafe } from './notifications/sender';
 import { ALL_EMAIL_PROVIDERS } from './notifications/providers/registry';
 import {
@@ -1642,6 +1643,41 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
+  /**
+   * Inspector de sessões — retorna user list com hint de "está com sessão viva?"
+   * Considera "ativo" qualquer user com lastLoginAt nos últimos 30 dias e active=true.
+   */
+  app.get('/admin/sessions', requireAuth('admin', 'superadmin'), async (c) => {
+    const all = await usersStore.listUsers();
+    const cutoff = Date.now() - 30 * 24 * 60 * 60_000;
+    const result = all.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      active: u.active,
+      lastLoginAt: u.lastLoginAt ?? null,
+      tokenVersion: u.tokenVersion,
+      totpEnabled: u.totpEnabled === true,
+      hasLikelyActiveSession:
+        u.active &&
+        !!u.lastLoginAt &&
+        new Date(u.lastLoginAt).getTime() >= cutoff,
+    }));
+    return c.json(result);
+  });
+
+  app.post(
+    '/admin/users/:id/force-logout',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const tv = await usersStore.bumpTokenVersion(id);
+      if (tv === null) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
+      return c.json({ ok: true, tokenVersion: tv });
+    },
+  );
+
   app.delete('/admin/users/:id', requireAuth('admin', 'superadmin'), async (c) => {
     try {
       const id = c.req.param('id') as string;
@@ -1652,6 +1688,84 @@ export function buildApp() {
       return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
     }
   });
+
+  /**
+   * Bulk actions em alunos/users.
+   * body: { ids: string[], action: 'activate'|'deactivate'|'delete'|'unenroll'|'sendEmail'|'forceLogout',
+   *         courseId?: string,  // para unenroll
+   *         subject?: string, html?: string, text?: string  // para sendEmail
+   *       }
+   */
+  app.post(
+    '/admin/users/bulk',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 30 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        ids?: unknown;
+        action?: string;
+        courseId?: string;
+        subject?: string;
+        html?: string;
+        text?: string;
+      };
+      const ids = Array.isArray(body.ids)
+        ? body.ids.filter((x): x is string => typeof x === 'string')
+        : [];
+      if (ids.length === 0) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'ids vazio');
+      }
+      if (ids.length > 1000) {
+        return jsonError(c, 400, 'TOO_MANY', 'máximo 1000 ids por chamada');
+      }
+      const action = body.action ?? '';
+      let success = 0;
+      let failed = 0;
+      const errors: Array<{ id: string; message: string }> = [];
+
+      for (const id of ids) {
+        try {
+          if (action === 'activate') {
+            await usersStore.updateUser(id, { active: true });
+          } else if (action === 'deactivate') {
+            await usersStore.updateUser(id, { active: false });
+          } else if (action === 'delete') {
+            const ok = await usersStore.deleteUser(id);
+            if (!ok) throw new Error('not found');
+          } else if (action === 'unenroll') {
+            if (!body.courseId) throw new Error('courseId obrigatório');
+            await studentsRepo.unenrollFromCourse(id, body.courseId);
+          } else if (action === 'forceLogout') {
+            await usersStore.bumpTokenVersion(id);
+          } else if (action === 'sendEmail') {
+            if (!body.subject || !body.html) {
+              throw new Error('subject e html obrigatórios');
+            }
+            const u = await usersStore.findUserById(id);
+            if (!u || !u.active) throw new Error('user inativo');
+            const r = await sendSafe({
+              to: { email: u.email, name: u.name },
+              subject: body.subject,
+              html: body.html,
+              text: body.text,
+              tag: 'bulk_admin',
+            });
+            if (!r.ok) throw new Error(r.error ?? 'sender error');
+          } else {
+            throw new Error(`action desconhecida: ${action}`);
+          }
+          success++;
+        } catch (err) {
+          failed++;
+          errors.push({
+            id,
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+      return c.json({ total: ids.length, success, failed, errors: errors.slice(0, 50) });
+    },
+  );
 
   // ---------- Student search (logged) ----------
 
@@ -2733,6 +2847,57 @@ export function buildApp() {
 
   app.get('/admin/email/templates', requireAuth('admin', 'superadmin'), (c) =>
     c.json({ names: TEMPLATE_NAMES }),
+  );
+
+  app.get('/admin/email/broadcasts', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await emailBroadcasts.listBroadcasts()),
+  );
+
+  app.post(
+    '/admin/email/broadcasts/preview',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        audience?: string;
+        courseId?: string;
+        inactivityDays?: number;
+      };
+      const recipients = await emailBroadcasts.resolveAudience(
+        (body.audience ?? 'all') as Parameters<typeof emailBroadcasts.resolveAudience>[0],
+        { courseId: body.courseId, inactivityDays: body.inactivityDays },
+      );
+      return c.json({ count: recipients.length, sample: recipients.slice(0, 10) });
+    },
+  );
+
+  app.post(
+    '/admin/email/broadcasts',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        subject?: string;
+        html?: string;
+        text?: string;
+        audience?: string;
+        courseId?: string;
+        inactivityDays?: number;
+      };
+      const u = c.get('user')!;
+      if (!body.subject || !body.html) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'subject e html são obrigatórios.');
+      }
+      const broadcast = await emailBroadcasts.startBroadcast({
+        subject: body.subject,
+        html: body.html,
+        text: body.text,
+        audience: (body.audience ?? 'all') as Parameters<typeof emailBroadcasts.startBroadcast>[0]['audience'],
+        courseId: body.courseId,
+        inactivityDays: body.inactivityDays,
+        createdBy: u.email,
+      });
+      return c.json(broadcast, 202);
+    },
   );
 
   app.get(

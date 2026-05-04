@@ -431,7 +431,16 @@ export async function downloadBackup(name: string): Promise<void> {
 // ---------- Admin search ----------
 
 export interface SearchHitDto {
-  type: 'course' | 'module' | 'lesson' | 'library' | 'news' | 'podcast' | 'user';
+  type:
+    | 'course'
+    | 'module'
+    | 'lesson'
+    | 'library'
+    | 'news'
+    | 'podcast'
+    | 'user'
+    | 'order'
+    | 'product';
   id: string;
   title: string;
   snippet: string;
@@ -1999,4 +2008,113 @@ export async function fetchReengagementSent(): Promise<ReengagementSentDto[]> {
 
 export async function runReengagement(dryRun: boolean): Promise<ReengagementRunResult> {
   return http.post(`/admin/reengagement/run?dryRun=${dryRun ? 'true' : 'false'}`, {});
+}
+
+// ---------- Bulk actions em users ----------
+
+export type BulkUserAction =
+  | 'activate'
+  | 'deactivate'
+  | 'delete'
+  | 'unenroll'
+  | 'sendEmail'
+  | 'forceLogout';
+
+export interface BulkUserInput {
+  ids: string[];
+  action: BulkUserAction;
+  courseId?: string;
+  subject?: string;
+  html?: string;
+  text?: string;
+}
+
+export interface BulkUserResult {
+  total: number;
+  success: number;
+  failed: number;
+  errors: Array<{ id: string; message: string }>;
+}
+
+export async function bulkUserAction(input: BulkUserInput): Promise<BulkUserResult> {
+  return http.post('/admin/users/bulk', input);
+}
+
+// ---------- Email broadcasts ----------
+
+export type BroadcastAudienceDto =
+  | 'all'
+  | 'students_active'
+  | 'students_inactive'
+  | 'admins'
+  | 'enrolled_in_course'
+  | 'no_enrollment';
+
+export interface BroadcastDto {
+  id: string;
+  subject: string;
+  audience: BroadcastAudienceDto;
+  courseId?: string;
+  inactivityDays?: number;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  total: number;
+  sent: number;
+  failed: number;
+  createdBy: string;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+  errorMessage?: string;
+}
+
+export interface BroadcastInputDto {
+  subject: string;
+  html: string;
+  text?: string;
+  audience: BroadcastAudienceDto;
+  courseId?: string;
+  inactivityDays?: number;
+}
+
+export interface BroadcastPreviewDto {
+  count: number;
+  sample: Array<{ id: string; email: string; name?: string }>;
+}
+
+export async function fetchBroadcasts(): Promise<BroadcastDto[]> {
+  return http.get('/admin/email/broadcasts');
+}
+
+export async function previewBroadcast(input: {
+  audience: BroadcastAudienceDto;
+  courseId?: string;
+  inactivityDays?: number;
+}): Promise<BroadcastPreviewDto> {
+  return http.post('/admin/email/broadcasts/preview', input);
+}
+
+export async function startBroadcast(input: BroadcastInputDto): Promise<BroadcastDto> {
+  return http.post('/admin/email/broadcasts', input);
+}
+
+// ---------- Sessions inspector ----------
+
+export interface SessionInspectDto {
+  id: string;
+  email: string;
+  name: string;
+  role: 'student' | 'admin' | 'superadmin';
+  active: boolean;
+  lastLoginAt: string | null;
+  tokenVersion: number;
+  totpEnabled: boolean;
+  hasLikelyActiveSession: boolean;
+}
+
+export async function fetchSessions(): Promise<SessionInspectDto[]> {
+  return http.get('/admin/sessions');
+}
+
+export async function forceLogout(userId: string): Promise<{ ok: true; tokenVersion: number }> {
+  return http.post(`/admin/users/${encodeURIComponent(userId)}/force-logout`, {});
 }

@@ -6,9 +6,20 @@ import * as libraryRepo from '../repositories/library';
 import * as newsRepo from '../repositories/news';
 import * as podcastsRepo from '../repositories/podcasts';
 import * as usersStore from '../auth/users-store';
+import * as ordersRepo from '../payments/orders-repo';
+import * as productsRepo from '../payments/products-repo';
 
 export interface SearchHit {
-  type: 'course' | 'module' | 'lesson' | 'library' | 'news' | 'podcast' | 'user';
+  type:
+    | 'course'
+    | 'module'
+    | 'lesson'
+    | 'library'
+    | 'news'
+    | 'podcast'
+    | 'user'
+    | 'order'
+    | 'product';
   id: string;
   title: string;
   snippet: string;
@@ -125,9 +136,48 @@ export async function search(query: string, limit = 30): Promise<SearchHit[]> {
         id: u.id,
         title: u.name,
         snippet: `${u.email} · ${u.role}${u.active ? '' : ' · inativo'}`,
-        link: '/admin/usuarios',
+        link: u.role === 'student' ? `/admin/alunos/${u.id}` : '/admin/usuarios',
       });
     }
+  }
+
+  try {
+    const orders = await ordersRepo.listAll();
+    for (const o of orders) {
+      if (
+        matches(o.id, q) ||
+        matches(o.userEmail, q) ||
+        matches(o.productSnapshot.name, q) ||
+        matches(o.externalId ?? '', q)
+      ) {
+        hits.push({
+          type: 'order',
+          id: o.id,
+          title: `Pedido ${o.id}`,
+          snippet: `${o.userEmail} · ${o.productSnapshot.name} · ${o.status}`,
+          link: '/admin/pedidos',
+        });
+      }
+    }
+  } catch {
+    // ignora se módulo não pronto
+  }
+
+  try {
+    const products = await productsRepo.listAll();
+    for (const p of products) {
+      if (matches(p.name, q) || matches(p.description ?? '', q)) {
+        hits.push({
+          type: 'product',
+          id: p.id,
+          title: p.name,
+          snippet: `${p.kind} · ${(p.priceCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: p.currency || 'BRL' })}`,
+          link: '/admin/produtos',
+        });
+      }
+    }
+  } catch {
+    // ignora
   }
 
   return hits.slice(0, limit);

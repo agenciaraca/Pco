@@ -24,6 +24,7 @@ import {
   useUpdateSystemUser,
   useDeleteSystemUser,
   useChangeSystemUserPassword,
+  useBulkUserAction,
 } from '../../data/hooks';
 import { useAuth } from '../../auth/AuthContext';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
@@ -78,6 +79,8 @@ export default function AdminUsuarios() {
   const [roleFilter, setRoleFilter] = useState('todos');
   const [editing, setEditing] = useState<SystemUser | 'new' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<SystemUser | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const bulk = useBulkUserAction();
   const [resetting, setResetting] = useState<SystemUser | null>(null);
 
   const filtered = useMemo(() => {
@@ -190,12 +193,49 @@ export default function AdminUsuarios() {
         </div>
       )}
 
+      {selected.size > 0 && (
+        <BulkActionsBar
+          count={selected.size}
+          isPending={bulk.isPending}
+          onClear={() => setSelected(new Set())}
+          onAction={async (action, extras) => {
+            const ids = Array.from(selected);
+            try {
+              const r = await bulk.mutateAsync({ ids, action, ...(extras ?? {}) });
+              toast.success(
+                `Bulk ${action}`,
+                `${r.success} ok, ${r.failed} falha(s)`,
+              );
+              setSelected(new Set());
+            } catch (err) {
+              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+        />
+      )}
+
       {filtered.length > 0 && (
         <div className="pco-card p-0 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-off">
                 <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                  <th className="px-3 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={
+                        filtered.length > 0 &&
+                        filtered.every((u) => selected.has(u.id))
+                      }
+                      onChange={(e) => {
+                        const next = new Set(selected);
+                        if (e.target.checked) filtered.forEach((u) => next.add(u.id));
+                        else filtered.forEach((u) => next.delete(u.id));
+                        setSelected(next);
+                      }}
+                      className="accent-pco-blue"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left font-medium">Usuário</th>
                   <th className="px-4 py-3 text-left font-medium">Papel</th>
                   <th className="px-4 py-3 text-left font-medium">Status</th>
@@ -214,6 +254,19 @@ export default function AdminUsuarios() {
                   const isMe = actingUser?.id === u.id;
                   return (
                     <tr key={u.id} className="border-t border-surface-gray hover:bg-surface-off">
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(u.id)}
+                          onChange={(e) => {
+                            const next = new Set(selected);
+                            if (e.target.checked) next.add(u.id);
+                            else next.delete(u.id);
+                            setSelected(next);
+                          }}
+                          className="accent-pco-blue"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white">
@@ -663,5 +716,92 @@ function Field({
       {children}
       {error && <p className="mt-1 text-xs text-status-danger">{error}</p>}
     </label>
+  );
+}
+
+function BulkActionsBar({
+  count,
+  isPending,
+  onClear,
+  onAction,
+}: {
+  count: number;
+  isPending: boolean;
+  onClear: () => void;
+  onAction: (
+    action:
+      | "activate"
+      | "deactivate"
+      | "delete"
+      | "forceLogout"
+      | "sendEmail",
+    extras?: { subject?: string; html?: string },
+  ) => void;
+}) {
+  return (
+    <div className="pco-card border-pco-blue/40 bg-pco-blue/5 p-3 flex items-center gap-3 flex-wrap">
+      <span className="text-sm font-semibold text-pco-deep">
+        {count} selecionado(s)
+      </span>
+      <div className="flex flex-wrap gap-2 ml-auto">
+        <button
+          type="button"
+          onClick={() => onAction("activate")}
+          disabled={isPending}
+          className="pco-btn-ghost text-xs"
+        >
+          Ativar
+        </button>
+        <button
+          type="button"
+          onClick={() => onAction("deactivate")}
+          disabled={isPending}
+          className="pco-btn-ghost text-xs"
+        >
+          Desativar
+        </button>
+        <button
+          type="button"
+          onClick={() => onAction("forceLogout")}
+          disabled={isPending}
+          className="pco-btn-ghost text-xs"
+        >
+          Forçar logout
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const subject = prompt("Assunto do e-mail:");
+            if (!subject) return;
+            const html = prompt("HTML do corpo:");
+            if (!html) return;
+            onAction("sendEmail", { subject, html });
+          }}
+          disabled={isPending}
+          className="pco-btn-ghost text-xs"
+        >
+          Enviar e-mail
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm(`Excluir ${count} usuário(s)? Não pode ser desfeito.`)) {
+              onAction("delete");
+            }
+          }}
+          disabled={isPending}
+          className="pco-btn-ghost text-xs text-status-danger"
+        >
+          Excluir
+        </button>
+        <button
+          type="button"
+          onClick={onClear}
+          className="pco-btn-ghost text-xs"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
 }

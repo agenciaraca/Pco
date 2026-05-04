@@ -1271,3 +1271,54 @@ export function useRunReengagement() {
     onSuccess: () => qc.invalidateQueries({ queryKey: reengagementSentKey }),
   });
 }
+
+export function useBulkUserAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.bulkUserAction,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-students'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+  });
+}
+
+const broadcastsKey = ['admin', 'email', 'broadcasts'] as const;
+
+export function useBroadcasts() {
+  return useQuery({
+    queryKey: broadcastsKey,
+    queryFn: api.fetchBroadcasts,
+    refetchInterval: 5_000,
+  });
+}
+
+export function usePreviewBroadcast() {
+  return useMutation({ mutationFn: api.previewBroadcast });
+}
+
+export function useStartBroadcast() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.startBroadcast,
+    onSuccess: () => qc.invalidateQueries({ queryKey: broadcastsKey }),
+  });
+}
+
+const sessionsKey = ['admin', 'sessions'] as const;
+
+export function useSessions() {
+  return useQuery({
+    queryKey: sessionsKey,
+    queryFn: api.fetchSessions,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useForceLogout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.forceLogout,
+    onSuccess: () => qc.invalidateQueries({ queryKey: sessionsKey }),
+  });
+}

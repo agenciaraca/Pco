@@ -35,6 +35,7 @@ import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import MobileNav from '../components/MobileNav';
 import Footer from '../components/Footer';
+import AdminSearchPalette from '../components/AdminSearchPalette';
 
 const adminGroups = [
   {
@@ -92,8 +93,10 @@ const adminGroups = [
       { to: '/admin/pedidos', label: 'Pedidos', icon: CreditCard },
       { to: '/admin/imports', label: 'Importar dados', icon: UploadCloud },
       { to: '/admin/email', label: 'E-mail transacional', icon: Mail },
+      { to: '/admin/broadcasts', label: 'Campanhas', icon: Send },
       { to: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
       { to: '/admin/saude', label: 'Saúde do sistema', icon: Activity },
+      { to: '/admin/sessoes', label: 'Sessões', icon: ShieldCheck },
       { to: '/admin/reengajamento-auto', label: 'Reengajamento auto.', icon: Sparkles },
       { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
       { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
@@ -125,6 +128,7 @@ export default function AdminLayout() {
         </main>
         <Footer />
       </div>
+      <AdminSearchPalette />
     </div>
   );
 }

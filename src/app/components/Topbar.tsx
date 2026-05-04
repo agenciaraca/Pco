@@ -16,6 +16,8 @@ import {
   Newspaper,
   Mic2,
   User as UserIcon,
+  ShoppingBag,
+  Package,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useUnreadCount } from '../data/hooks';
@@ -35,6 +37,8 @@ const TYPE_ICONS: Record<api.SearchHitDto['type'], typeof Search> = {
   news: Newspaper,
   podcast: Mic2,
   user: UserIcon,
+  order: ShoppingBag,
+  product: Package,
 };
 
 export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps) {
