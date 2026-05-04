@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useUnreadCount } from '../data/hooks';
+import { useToast } from './Toast';
 import * as api from '../data/api';
 
 interface TopbarProps {
@@ -40,6 +41,21 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
   const { user, logout, logoutAllDevices } = useAuth();
   const navigate = useNavigate();
   const unread = useUnreadCount();
+  const toast = useToast();
+  const lastUnreadRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const current = unread.data?.count ?? 0;
+    const last = lastUnreadRef.current;
+    if (last !== null && current > last) {
+      const delta = current - last;
+      toast.info(
+        delta === 1 ? 'Nova notificação' : `${delta} novas notificações`,
+        'Clique no sino para visualizar.',
+      );
+    }
+    lastUnreadRef.current = current;
+  }, [unread.data?.count, toast]);
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState<api.SearchHitDto[]>([]);
   const [searching, setSearching] = useState(false);
