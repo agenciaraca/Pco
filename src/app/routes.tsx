@@ -16,6 +16,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyCertificate = lazy(() => import('./pages/VerifyCertificate'));
 const CheckoutMock = lazy(() => import('./pages/CheckoutMock'));
+const Pedidos = lazy(() => import('./pages/Pedidos'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacidade = lazy(() => import('./pages/Privacidade'));
@@ -73,6 +74,7 @@ const AdminSuporte = lazy(() => import('./pages/admin/AdminSuporte'));
 const AdminBackups = lazy(() => import('./pages/admin/AdminBackups'));
 const AdminGateways = lazy(() => import('./pages/admin/AdminGateways'));
 const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
 
 function S({ children }: { children: ReactNode }) {
   return <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>;
@@ -120,6 +122,7 @@ export const router = createBrowserRouter([
       { path: '/perfil', element: <S><Profile /></S> },
       { path: '/analise-supervisao', element: <S><AnaliseSupervisao /></S> },
       { path: '/notificacoes', element: <S><Notifications /></S> },
+      { path: '/pedidos', element: <S><Pedidos /></S> },
     ],
   },
 
@@ -178,6 +181,7 @@ export const router = createBrowserRouter([
       { path: 'backups', element: <S><AdminBackups /></S> },
       { path: 'gateways', element: <S><AdminGateways /></S> },
       { path: 'produtos', element: <S><AdminProducts /></S> },
+      { path: 'pedidos', element: <S><AdminOrders /></S> },
     ],
   },
 

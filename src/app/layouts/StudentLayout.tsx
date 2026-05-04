@@ -12,6 +12,7 @@ import {
   LifeBuoy,
   UserCircle2,
   Stethoscope,
+  ShoppingBag,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
@@ -41,6 +42,7 @@ const studentGroups = [
     title: 'Conta',
     items: [
       { to: '/certificados', label: 'Certificados', icon: Award },
+      { to: '/pedidos', label: 'Meus Pedidos', icon: ShoppingBag },
       { to: '/suporte', label: 'Suporte', icon: LifeBuoy },
       { to: '/perfil', label: 'Meu Perfil', icon: UserCircle2 },
     ],

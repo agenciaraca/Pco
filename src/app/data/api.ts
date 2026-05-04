@@ -589,6 +589,18 @@ export async function startCheckout(productId: string, gatewayId?: string): Prom
   return http.post<OrderDto>('/payments/checkout', { productId, gatewayId });
 }
 
+export async function cancelMyOrder(id: string): Promise<OrderDto> {
+  return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
+}
+
+export async function adminUpdateOrderStatus(
+  id: string,
+  status: 'canceled' | 'refunded' | 'failed',
+  note?: string,
+): Promise<OrderDto> {
+  return http.put<OrderDto>(`/admin/orders/${encodeURIComponent(id)}/status`, { status, note });
+}
+
 // ---------- Admin stats ----------
 
 export interface CompletionsStatsDto {

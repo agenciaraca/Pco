@@ -817,6 +817,30 @@ export function useStartCheckout() {
   });
 }
 
+export function useCancelMyOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.cancelMyOrder,
+    onSuccess: () => qc.invalidateQueries({ queryKey: myOrdersKey }),
+  });
+}
+
+export function useAdminUpdateOrderStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      status,
+      note,
+    }: {
+      id: string;
+      status: 'canceled' | 'refunded' | 'failed';
+      note?: string;
+    }) => api.adminUpdateOrderStatus(id, status, note),
+    onSuccess: () => qc.invalidateQueries({ queryKey: allOrdersKey }),
+  });
+}
+
 const completionsKey = ['admin', 'stats', 'completions'] as const;
 export function useCompletionsStats(days = 7) {
   return useQuery({

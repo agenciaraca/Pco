@@ -1689,6 +1689,46 @@ export function buildApp() {
     c.json(await ordersRepo.listAll()),
   );
 
+  // Admin: muda status manualmente (cancelar/refund)
+  app.put('/admin/orders/:id/status', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const allowed = new Set(['canceled', 'refunded', 'failed']);
+    const status = typeof body.status === 'string' ? body.status : '';
+    if (!allowed.has(status)) {
+      return jsonError(c, 400, 'INVALID_STATUS', 'Status inválido (canceled/refunded/failed).');
+    }
+    const u = c.get('user')!;
+    const updated = await ordersRepo.updateStatus(
+      id,
+      status as 'canceled' | 'refunded' | 'failed',
+      `Admin ${u.email}: ${typeof body.note === 'string' ? body.note : 'sem nota'}`,
+    );
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+    return c.json(updated);
+  });
+
+  // Aluno: cancela own pending order
+  app.post('/me/orders/:id/cancel', requireAuth(), async (c) => {
+    const id = c.req.param('id') as string;
+    const u = c.get('user')!;
+    const order = await ordersRepo.findById(id);
+    if (!order) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+    if (order.userId !== u.sub) {
+      return jsonError(c, 403, 'FORBIDDEN', 'Pedido de outro usuário.');
+    }
+    if (order.status !== 'pending' && order.status !== 'processing') {
+      return jsonError(
+        c,
+        400,
+        'INVALID_TRANSITION',
+        `Pedido não pode ser cancelado no status atual (${order.status}).`,
+      );
+    }
+    const updated = await ordersRepo.updateStatus(id, 'canceled', 'Cancelado pelo aluno');
+    return c.json(updated);
+  });
+
   // ---------- Checkout (cria order + chama provider) ----------
 
   app.post(
