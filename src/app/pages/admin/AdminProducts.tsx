@@ -47,8 +47,15 @@ export default function AdminProducts() {
 
   async function handleDelete() {
     if (!confirmDelete) return;
+    const typed = prompt(
+      `Confirme digitando o nome exato do produto:\n\n"${confirmDelete.name}"`,
+    );
+    if (typed === null) return;
     try {
-      await deleteMut.mutateAsync(confirmDelete.id);
+      await deleteMut.mutateAsync({
+        id: confirmDelete.id,
+        confirmName: typed,
+      });
       toast.success('Produto removido');
       setConfirmDelete(null);
     } catch (err) {

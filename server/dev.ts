@@ -2,7 +2,11 @@ import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import path from 'node:path';
+import { installConsoleCapture } from './monitoring/log-buffer';
 import { buildApp } from './app';
+
+// Captura console.* em ring buffer ANTES de qualquer log do app
+installConsoleCapture();
 
 const port = Number(process.env.PORT ?? 3001);
 const staticRoot = process.env.SERVE_STATIC; // ex.: "./dist"

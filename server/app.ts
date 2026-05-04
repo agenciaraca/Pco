@@ -129,6 +129,8 @@ import * as activityFeed from './activity/feed';
 import { buildCsv, csvResponse } from './export/csv';
 import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
+import { readConfirmHeader, confirmMatches } from './http/confirm';
+import * as logBuffer from './monitoring/log-buffer';
 import * as courseReviews from './reviews/store';
 import * as achievementsStore from './achievements/store';
 import * as achievementsEngine from './achievements/engine';
@@ -1718,6 +1720,17 @@ export function buildApp() {
   app.delete('/admin/users/:id', requireAuth('admin', 'superadmin'), async (c) => {
     try {
       const id = c.req.param('id') as string;
+      const target = await usersStore.findUserById(id);
+      if (!target) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+      const provided = readConfirmHeader(c);
+      if (!confirmMatches(provided, target.email)) {
+        return jsonError(
+          c,
+          428,
+          'CONFIRM_REQUIRED',
+          `Confirme digitando o e-mail "${target.email}" no header X-Confirm-Name.`,
+        );
+      }
       const ok = await usersStore.deleteUser(id);
       if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
       return c.json({ ok: true });
@@ -2058,6 +2071,17 @@ export function buildApp() {
 
   app.delete('/admin/products/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const id = c.req.param('id') as string;
+    const target = await productsRepo.findById(id);
+    if (!target) return jsonError(c, 404, 'NOT_FOUND', 'Produto não encontrado');
+    const provided = readConfirmHeader(c);
+    if (!confirmMatches(provided, target.name)) {
+      return jsonError(
+        c,
+        428,
+        'CONFIRM_REQUIRED',
+        `Confirme digitando o nome "${target.name}" no header X-Confirm-Name.`,
+      );
+    }
     const ok = await productsRepo.deleteProduct(id);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Produto não encontrado');
     return c.json({ ok: true });
@@ -2741,6 +2765,22 @@ export function buildApp() {
         ),
       })),
     );
+  });
+
+  // ---------- System logs (ring buffer in-memory) ----------
+
+  app.get('/admin/logs', requireAuth('admin', 'superadmin'), (c) => {
+    const level = c.req.query('level') as logBuffer.LogLevel | undefined;
+    const q = c.req.query('q') ?? undefined;
+    const limit = Number(c.req.query('limit') ?? '500');
+    return c.json({
+      total: logBuffer.size(),
+      lines: logBuffer.query({
+        level,
+        q,
+        limit: Number.isFinite(limit) ? limit : 500,
+      }),
+    });
   });
 
   // ---------- Cron / jobs viewer ----------

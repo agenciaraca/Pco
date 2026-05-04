@@ -594,8 +594,13 @@ export async function updateProduct(
   return http.put<ProductDto>(`/admin/products/${encodeURIComponent(id)}`, patch);
 }
 
-export async function deleteProduct(id: string): Promise<{ ok: true }> {
-  return http.delete<{ ok: true }>(`/admin/products/${encodeURIComponent(id)}`);
+export async function deleteProduct(
+  id: string,
+  confirmName: string,
+): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/products/${encodeURIComponent(id)}`, {
+    headers: { 'X-Confirm-Name': confirmName },
+  });
 }
 
 // Orders
@@ -1736,8 +1741,13 @@ export async function changeSystemUserPassword(
   return http.put<{ ok: true }>(`/admin/users/${encodeURIComponent(id)}/password`, { password });
 }
 
-export async function deleteSystemUser(id: string): Promise<{ ok: true }> {
-  return http.delete(`/admin/users/${encodeURIComponent(id)}`);
+export async function deleteSystemUser(
+  id: string,
+  confirmEmail: string,
+): Promise<{ ok: true }> {
+  return http.delete(`/admin/users/${encodeURIComponent(id)}`, {
+    headers: { 'X-Confirm-Name': confirmEmail },
+  });
 }
 
 // ---------- Recovery plans ----------
@@ -2534,6 +2544,34 @@ export async function fetchJobs(): Promise<{ jobs: JobStatusDto[] }> {
 
 export async function runJob(name: string, dryRun = false): Promise<unknown> {
   return http.post(`/admin/jobs/${encodeURIComponent(name)}/run?dryRun=${dryRun}`, {});
+}
+
+// ---------- System logs ----------
+
+export type LogLevelDto = 'log' | 'warn' | 'error' | 'info' | 'debug';
+
+export interface LogLineDto {
+  ts: string;
+  level: LogLevelDto;
+  message: string;
+}
+
+export interface LogsResponseDto {
+  total: number;
+  lines: LogLineDto[];
+}
+
+export async function fetchLogs(query: {
+  level?: LogLevelDto;
+  q?: string;
+  limit?: number;
+} = {}): Promise<LogsResponseDto> {
+  const qs = new URLSearchParams();
+  if (query.level) qs.set('level', query.level);
+  if (query.q) qs.set('q', query.q);
+  if (query.limit) qs.set('limit', String(query.limit));
+  const path = `/admin/logs${qs.toString() ? `?${qs.toString()}` : ''}`;
+  return http.get(path);
 }
 
 export async function fetchActivityFeed(filter: {

@@ -109,8 +109,15 @@ export default function AdminUsuarios() {
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
+    const typed = prompt(
+      `Confirme digitando o e-mail exato do usuário:\n\n"${confirmDelete.email}"`,
+    );
+    if (typed === null) return;
     try {
-      await deleteMut.mutateAsync(confirmDelete.id);
+      await deleteMut.mutateAsync({
+        id: confirmDelete.id,
+        confirmEmail: typed,
+      });
       toast.success('Usuário excluído', confirmDelete.email);
       setConfirmDelete(null);
     } catch (err) {

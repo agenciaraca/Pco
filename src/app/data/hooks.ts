@@ -539,7 +539,8 @@ export function useChangeSystemUserPassword() {
 export function useDeleteSystemUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: api.deleteSystemUser,
+    mutationFn: (args: { id: string; confirmEmail: string }) =>
+      api.deleteSystemUser(args.id, args.confirmEmail),
     onSuccess: () => qc.invalidateQueries({ queryKey: systemUsersKey }),
   });
 }
@@ -793,7 +794,8 @@ export function useUpdateProduct() {
 export function useDeleteProduct() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: api.deleteProduct,
+    mutationFn: (args: { id: string; confirmName: string }) =>
+      api.deleteProduct(args.id, args.confirmName),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: productsKey });
       qc.invalidateQueries({ queryKey: adminProductsKey });
@@ -1540,6 +1542,14 @@ export function useRunJob() {
     mutationFn: (args: { name: string; dryRun?: boolean }) =>
       api.runJob(args.name, args.dryRun ?? false),
     onSuccess: () => qc.invalidateQueries({ queryKey: jobsKey }),
+  });
+}
+
+export function useLogs(filter: Parameters<typeof api.fetchLogs>[0] = {}) {
+  return useQuery({
+    queryKey: ['admin', 'logs', filter] as const,
+    queryFn: () => api.fetchLogs(filter),
+    refetchInterval: 5_000,
   });
 }
 

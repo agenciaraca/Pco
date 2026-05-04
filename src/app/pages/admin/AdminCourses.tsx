@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Plus, Edit3, Layers, Clock, Copy, Download } from 'lucide-react';
+import { Plus, Edit3, Layers, Clock, Copy, Download, Eye } from 'lucide-react';
 import { useCourses, useDuplicateCourse } from '../../data/hooks';
 import { downloadCoursesCsv } from '../../data/api';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
@@ -97,6 +97,13 @@ export default function AdminCourses() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex gap-1">
+                        <Link
+                          to={`/admin/cursos/${c.id}/preview`}
+                          className="pco-btn-ghost text-xs"
+                          title="Preview como aluno"
+                        >
+                          <Eye size={12} strokeWidth={2} />
+                        </Link>
                         <button
                           type="button"
                           onClick={async () => {

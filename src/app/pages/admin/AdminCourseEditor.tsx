@@ -95,9 +95,13 @@ export default function AdminCourseEditor() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link to={`/curso/${course.id}`} className="pco-btn-secondary text-xs">
+          <Link
+            to={`/admin/cursos/${course.id}/preview`}
+            className="pco-btn-secondary text-xs"
+            title="Renderiza como aluno (sem afetar progresso real)"
+          >
             <Eye size={12} strokeWidth={2} />
-            Pré-visualizar
+            Preview como aluno
           </Link>
         </div>
       </header>
