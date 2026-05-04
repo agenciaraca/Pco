@@ -14,6 +14,42 @@ if (staticRoot) {
   const root = new Hono();
   const api = buildApp();
 
+  // Security headers em toda response (HTML + assets + uploads + API)
+  // CSP, HSTS, X-Frame, Permissions-Policy
+  root.use('*', async (c, next) => {
+    await next();
+    if (!c.res.headers.has('Content-Security-Policy')) {
+      c.header(
+        'Content-Security-Policy',
+        "default-src 'self'; " +
+          "script-src 'self'; " +
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+          "img-src 'self' data: blob: https:; " +
+          "font-src 'self' https://fonts.gstatic.com data:; " +
+          "connect-src 'self' https:; " +
+          "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+      );
+    }
+    if (!c.res.headers.has('Strict-Transport-Security')) {
+      c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    if (!c.res.headers.has('X-Frame-Options')) {
+      c.header('X-Frame-Options', 'DENY');
+    }
+    if (!c.res.headers.has('Referrer-Policy')) {
+      c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    }
+    if (!c.res.headers.has('Permissions-Policy')) {
+      c.header(
+        'Permissions-Policy',
+        'camera=(), microphone=(), geolocation=(), payment=()',
+      );
+    }
+    if (!c.res.headers.has('X-Content-Type-Options')) {
+      c.header('X-Content-Type-Options', 'nosniff');
+    }
+  });
+
   // /api/* -> API (Hono inteiro com basePath '/api')
   root.all('/api/*', (c) => api.fetch(c.req.raw));
 
