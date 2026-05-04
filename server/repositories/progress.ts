@@ -40,6 +40,56 @@ export async function distinctActivityDays(
   return dayKeys.size;
 }
 
+/**
+ * Calcula sequência de dias consecutivos (current streak) e o maior streak
+ * histórico (longest). "Streak" considera dias COM atividade (completou aula).
+ * Tolerância: hoje sem atividade ainda mantém streak de ontem.
+ */
+export async function streakInfo(
+  userId: string,
+): Promise<{ current: number; longest: number; lastActiveDay: string | null }> {
+  const list = await listForUser(userId);
+  if (list.length === 0) return { current: 0, longest: 0, lastActiveDay: null };
+  const days = new Set<string>();
+  for (const p of list) days.add(p.completedAt.slice(0, 10));
+  const sortedDays = Array.from(days).sort();
+
+  // longest streak
+  let longest = 0;
+  let run = 0;
+  let prev: string | null = null;
+  for (const d of sortedDays) {
+    if (prev && isNextDay(prev, d)) run++;
+    else run = 1;
+    if (run > longest) longest = run;
+    prev = d;
+  }
+
+  // current streak — conta de hoje pra trás
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 24 * 60 * 60_000).toISOString().slice(0, 10);
+  let current = 0;
+  let cursor = days.has(today) ? today : days.has(yesterday) ? yesterday : null;
+  while (cursor && days.has(cursor)) {
+    current++;
+    const next = new Date(cursor);
+    next.setDate(next.getDate() - 1);
+    cursor = next.toISOString().slice(0, 10);
+  }
+
+  return {
+    current,
+    longest,
+    lastActiveDay: sortedDays[sortedDays.length - 1] ?? null,
+  };
+}
+
+function isNextDay(a: string, b: string): boolean {
+  const ta = new Date(a).getTime();
+  const tb = new Date(b).getTime();
+  return Math.round((tb - ta) / (24 * 60 * 60_000)) === 1;
+}
+
 export async function isCompleted(userId: string, lessonId: string): Promise<boolean> {
   const found = await store.findOne((p) => p.userId === userId && p.lessonId === lessonId);
   return !!found;

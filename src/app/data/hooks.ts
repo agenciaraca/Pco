@@ -1553,6 +1553,13 @@ export function useLogs(filter: Parameters<typeof api.fetchLogs>[0] = {}) {
   });
 }
 
+export function useMyStreak() {
+  return useQuery({
+    queryKey: ['me', 'streak'] as const,
+    queryFn: api.fetchMyStreak,
+  });
+}
+
 export function useUpsertMyCourseReview() {
   const qc = useQueryClient();
   return useMutation({

@@ -19,13 +19,17 @@ export const ALL_WEBHOOK_EVENTS: WebhookEventType[] = [
   'lesson.completed',
 ];
 
+export type WebhookChannelType = 'generic' | 'slack' | 'discord';
+
 export interface WebhookEndpoint {
   id: string;
   name: string;
   url: string;
   events: WebhookEventType[];
   enabled: boolean;
-  // Secret HMAC — sempre criptografado em repouso
+  // Tipo de canal — determina como o payload é formatado
+  channelType?: WebhookChannelType;
+  // Secret HMAC — sempre criptografado em repouso (não usado para slack/discord)
   secretEncrypted?: string;
   // Headers extras opcionais (ex: X-Token), criptografado como JSON string
   headersEncrypted?: string;

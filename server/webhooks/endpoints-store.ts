@@ -3,7 +3,11 @@
 import crypto from 'node:crypto';
 import { JsonStore } from '../db/json-store';
 import { encryptApiKey, decryptApiKey } from '../db/encryption';
-import type { WebhookEndpoint, WebhookEventType } from './types';
+import type {
+  WebhookEndpoint,
+  WebhookEventType,
+  WebhookChannelType,
+} from './types';
 
 const store = new JsonStore<WebhookEndpoint>('webhook-endpoints.json', () => []);
 
@@ -44,6 +48,7 @@ export interface EndpointInput {
   url: string;
   events: WebhookEventType[];
   enabled?: boolean;
+  channelType?: WebhookChannelType;
   secret?: string;
   headers?: Record<string, string>;
 }
@@ -56,6 +61,7 @@ export async function createEndpoint(input: EndpointInput): Promise<PublicEndpoi
     url: input.url,
     events: input.events,
     enabled: input.enabled !== false,
+    channelType: input.channelType ?? 'generic',
     secretEncrypted: input.secret ? encryptApiKey(input.secret) : undefined,
     headersEncrypted: input.headers
       ? encryptApiKey(JSON.stringify(input.headers))
@@ -79,6 +85,7 @@ export async function updateEndpoint(
       url: patch.url ?? e.url,
       events: patch.events ?? e.events,
       enabled: patch.enabled ?? e.enabled,
+      channelType: patch.channelType ?? e.channelType,
       secretEncrypted:
         patch.secret !== undefined && patch.secret !== ''
           ? encryptApiKey(patch.secret)

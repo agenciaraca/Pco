@@ -297,6 +297,7 @@ function EndpointEditor({
     url: string;
     events: WebhookEventTypeDto[];
     enabled: boolean;
+    channelType: 'generic' | 'slack' | 'discord';
     secret?: string;
   }) => void;
   onCancel: () => void;
@@ -306,6 +307,9 @@ function EndpointEditor({
   const [enabled, setEnabled] = useState(editing?.enabled ?? true);
   const [events, setEvents] = useState<WebhookEventTypeDto[]>(editing?.events ?? []);
   const [secret, setSecret] = useState('');
+  const [channelType, setChannelType] = useState<'generic' | 'slack' | 'discord'>(
+    editing?.channelType ?? 'generic',
+  );
 
   useMemo(() => {
     setName(editing?.name ?? '');
@@ -313,6 +317,7 @@ function EndpointEditor({
     setEnabled(editing?.enabled ?? true);
     setEvents(editing?.events ?? []);
     setSecret('');
+    setChannelType(editing?.channelType ?? 'generic');
   }, [editing]);
 
   function toggleEvent(e: WebhookEventTypeDto) {
@@ -329,19 +334,43 @@ function EndpointEditor({
       </h2>
       <div className="grid gap-3 sm:grid-cols-2">
         <Input label="Nome" value={name} onChange={setName} placeholder="Ex: Zapier produção" />
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            Tipo de canal
+          </span>
+          <select
+            value={channelType}
+            onChange={(e) =>
+              setChannelType(e.target.value as 'generic' | 'slack' | 'discord')
+            }
+            className="pco-input mt-1 text-sm w-full"
+          >
+            <option value="generic">Genérico (JSON cru, com HMAC)</option>
+            <option value="slack">Slack (incoming webhook)</option>
+            <option value="discord">Discord (webhook URL)</option>
+          </select>
+        </label>
         <Input
           label="URL"
           value={url}
           onChange={setUrl}
-          placeholder="https://hooks.zapier.com/..."
+          placeholder={
+            channelType === 'slack'
+              ? 'https://hooks.slack.com/services/...'
+              : channelType === 'discord'
+                ? 'https://discord.com/api/webhooks/...'
+                : 'https://meu-app.com/webhook'
+          }
         />
-        <Input
-          label={editing?.hasSecret ? 'Secret HMAC (vazio = manter)' : 'Secret HMAC (opcional)'}
-          value={secret}
-          onChange={setSecret}
-          type="password"
-          placeholder="whsec_..."
-        />
+        {channelType === 'generic' && (
+          <Input
+            label={editing?.hasSecret ? 'Secret HMAC (vazio = manter)' : 'Secret HMAC (opcional)'}
+            value={secret}
+            onChange={setSecret}
+            type="password"
+            placeholder="whsec_..."
+          />
+        )}
         <label className="flex items-center gap-2 mt-5">
           <input
             type="checkbox"
@@ -387,6 +416,7 @@ function EndpointEditor({
               url,
               events,
               enabled,
+              channelType,
               secret: secret || undefined,
             })
           }

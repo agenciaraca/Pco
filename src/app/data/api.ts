@@ -1871,12 +1871,15 @@ export type WebhookEventTypeDto =
   | 'course.completed'
   | 'lesson.completed';
 
+export type WebhookChannelTypeDto = 'generic' | 'slack' | 'discord';
+
 export interface WebhookEndpointDto {
   id: string;
   name: string;
   url: string;
   events: WebhookEventTypeDto[];
   enabled: boolean;
+  channelType?: WebhookChannelTypeDto;
   hasSecret: boolean;
   hasHeaders: boolean;
   createdAt: string;
@@ -1891,6 +1894,7 @@ export interface WebhookEndpointInputDto {
   url: string;
   events: WebhookEventTypeDto[];
   enabled?: boolean;
+  channelType?: WebhookChannelTypeDto;
   secret?: string;
   headers?: Record<string, string>;
 }
@@ -2559,6 +2563,18 @@ export interface LogLineDto {
 export interface LogsResponseDto {
   total: number;
   lines: LogLineDto[];
+}
+
+// ---------- Streak ----------
+
+export interface StreakDto {
+  current: number;
+  longest: number;
+  lastActiveDay: string | null;
+}
+
+export async function fetchMyStreak(): Promise<StreakDto> {
+  return http.get('/me/streak');
 }
 
 export async function fetchLogs(query: {

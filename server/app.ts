@@ -2829,6 +2829,13 @@ export function buildApp() {
     },
   );
 
+  // ---------- Streak ----------
+
+  app.get('/me/streak', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    return c.json(await progressRepo.streakInfo(u.sub));
+  });
+
   // ---------- Achievements / badges ----------
 
   app.get('/me/achievements', requireAuth(), async (c) => {
@@ -3677,11 +3684,16 @@ export function buildApp() {
       if (validEvents.length === 0) {
         return jsonError(c, 400, 'INVALID_EVENTS', 'Selecione ao menos um evento válido.');
       }
+      const channelType =
+        body.channelType === 'slack' || body.channelType === 'discord'
+          ? body.channelType
+          : 'generic';
       const created = await webhookEndpoints.createEndpoint({
         name,
         url,
         events: validEvents,
         enabled: body.enabled !== false,
+        channelType,
         secret: body.secret ? String(body.secret) : undefined,
         headers:
           body.headers && typeof body.headers === 'object'
@@ -3701,11 +3713,18 @@ export function buildApp() {
       const events = Array.isArray(body.events)
         ? (body.events as WebhookEventType[]).filter((e) => ALL_WEBHOOK_EVENTS.includes(e))
         : undefined;
+      const channelType =
+        body.channelType === 'slack' ||
+        body.channelType === 'discord' ||
+        body.channelType === 'generic'
+          ? body.channelType
+          : undefined;
       const updated = await webhookEndpoints.updateEndpoint(id, {
         name: body.name ? String(body.name) : undefined,
         url: body.url ? String(body.url) : undefined,
         events,
         enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+        channelType,
         secret: body.secret !== undefined ? String(body.secret) : undefined,
         headers:
           body.headers && typeof body.headers === 'object'
