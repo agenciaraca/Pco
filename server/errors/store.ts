@@ -99,6 +99,29 @@ export interface ErrorsQuery {
   since?: string;
 }
 
+export async function errorsByDay(
+  days = 7,
+): Promise<Array<{ day: string; client: number; server: number; total: number }>> {
+  const all = await store.getAll();
+  const now = Date.now();
+  const cutoff = now - days * 24 * 60 * 60 * 1000;
+  const buckets = new Map<string, { client: number; server: number; total: number }>();
+  for (let i = days - 1; i >= 0; i--) {
+    const key = new Date(now - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    buckets.set(key, { client: 0, server: 0, total: 0 });
+  }
+  for (const e of all) {
+    if (new Date(e.ts).getTime() < cutoff) continue;
+    const key = e.ts.slice(0, 10);
+    const b = buckets.get(key) ?? { client: 0, server: 0, total: 0 };
+    if (e.method === 'CLIENT') b.client += 1;
+    else b.server += 1;
+    b.total += 1;
+    buckets.set(key, b);
+  }
+  return Array.from(buckets.entries()).map(([day, b]) => ({ day, ...b }));
+}
+
 export async function listErrors(q: ErrorsQuery = {}): Promise<ErrorEntry[]> {
   const all = await store.getAll();
   let filtered = all;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { RefreshCw, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
-import { useErrorLog } from '../../data/hooks';
+import { useErrorLog, useErrorsStats } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 
@@ -14,6 +14,7 @@ function formatTs(iso: string): string {
 
 export default function AdminErros() {
   const { data, isLoading, isError, refetch, isFetching } = useErrorLog(500);
+  const stats = useErrorsStats(7);
   const [openId, setOpenId] = useState<string | null>(null);
   const [source, setSource] = useState<'all' | 'client' | 'server'>('all');
 
@@ -57,6 +58,54 @@ export default function AdminErros() {
           </button>
         </div>
       </header>
+
+      {stats.data && (
+        <div className="pco-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-pco-deep">Erros por dia</h3>
+              <span className="text-[11px] text-ink-subtle">
+                {stats.data.totalServer} servidor · {stats.data.totalClient} client (últimos {stats.data.days}d)
+              </span>
+            </div>
+            <span
+              className={`text-2xl font-bold ${
+                stats.data.total > 0 ? 'text-status-danger' : 'text-status-success'
+              }`}
+            >
+              {stats.data.total}
+            </span>
+          </div>
+          <div className="flex items-end gap-1 h-12">
+            {stats.data.series.map((d) => {
+              const max = Math.max(1, ...stats.data!.series.map((x) => x.total));
+              return (
+                <div
+                  key={d.day}
+                  title={`${d.day}: ${d.server} servidor + ${d.client} client = ${d.total}`}
+                  className="flex-1 flex flex-col-reverse rounded-sm overflow-hidden"
+                  style={{ height: `${(d.total / max) * 100}%`, minHeight: '2px' }}
+                >
+                  <div
+                    className="bg-status-danger/40"
+                    style={{
+                      flex: d.server,
+                      minHeight: d.server > 0 ? '2px' : 0,
+                    }}
+                  />
+                  <div
+                    className="bg-pco-orange/40"
+                    style={{
+                      flex: d.client,
+                      minHeight: d.client > 0 ? '2px' : 0,
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <CardListSkeleton count={5} />
