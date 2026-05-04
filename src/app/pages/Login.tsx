@@ -4,12 +4,17 @@ import { ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../auth/AuthContext';
 import { useLoginConfig } from '../data/hooks';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
   const { data: cfg } = useLoginConfig();
+  useDocumentMeta({
+    title: 'Entrar — AVA PCO',
+    description: cfg?.subtitle ?? 'Acesse o ambiente virtual de aprendizagem da PCO.',
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);

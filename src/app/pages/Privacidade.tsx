@@ -2,9 +2,14 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useSettings } from '../data/hooks';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 export default function Privacidade() {
   const { data } = useSettings();
+  useDocumentMeta({
+    title: 'Política de Privacidade — AVA PCO',
+    description: 'Política de privacidade da plataforma AVA PCO conforme LGPD.',
+  });
   const siteName = data?.siteName ?? 'AVA PCO';
   const contact = data?.contactEmail ?? 'contato@psicanaliseclinica.online';
 

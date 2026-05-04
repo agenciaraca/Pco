@@ -3,10 +3,15 @@ import { Link, useParams } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
 import Logo from '../components/Logo';
 import { validateCertificate } from '../data/api';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import type { Certificate } from '../types/schema';
 
 export default function VerifyCertificate() {
   const { code } = useParams<{ code: string }>();
+  useDocumentMeta({
+    title: `Verificar certificado ${code ?? ''} — AVA PCO`,
+    description: 'Verificação pública de autenticidade de certificado emitido pela PCO.',
+  });
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<{ valid: boolean; cert?: Certificate } | null>(null);
 
