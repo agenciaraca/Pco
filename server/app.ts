@@ -99,6 +99,9 @@ import {
   listAllTemplates,
   generateCsvTemplate,
 } from './imports/schemas/csv-templates';
+import { parseCsvBuffer } from './imports/connectors/csv';
+import { runDryRun } from './imports/service';
+import type { ImportEntityType, ImportSource } from './imports/types';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -1778,6 +1781,95 @@ export function buildApp() {
     if (!job) return jsonError(c, 404, 'NOT_FOUND', 'Job não encontrado.');
     return c.json(job);
   });
+
+  /**
+   * Dry-run via CSV multipart.
+   * Aceita campos: file_<entity> (ex: file_student, file_course...).
+   * Cada arquivo é um CSV com cabeçalhos canônicos (vide /admin/imports/templates).
+   * Retorna o jobId imediatamente; o cliente faz polling em /admin/imports/jobs/:id.
+   */
+  app.post(
+    '/admin/imports/dry-run/csv',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      let form: FormData;
+      try {
+        form = await c.req.formData();
+      } catch {
+        return jsonError(c, 400, 'INVALID_FORM', 'Multipart inválido.');
+      }
+      const u = c.get('user')!;
+
+      const rowsByEntity: Partial<
+        Record<ImportEntityType, Array<Record<string, unknown>>>
+      > = {};
+      let totalRows = 0;
+      const ENTITIES: ImportEntityType[] = [
+        'student',
+        'course',
+        'module',
+        'lesson',
+        'product',
+        'order',
+        'enrollment',
+        'progress',
+      ];
+      for (const entity of ENTITIES) {
+        const file = form.get(`file_${entity}`);
+        if (!(file instanceof File)) continue;
+        if (file.size > 20 * 1024 * 1024) {
+          return jsonError(c, 413, 'FILE_TOO_LARGE', `${entity}: arquivo > 20MB`);
+        }
+        const buf = Buffer.from(await file.arrayBuffer());
+        const parsed = parseCsvBuffer(buf);
+        if (parsed.errors.length > 0 && parsed.rows.length === 0) {
+          return jsonError(
+            c,
+            400,
+            'CSV_INVALID',
+            `${entity}: ${parsed.errors[0]?.message ?? 'CSV inválido'}`,
+          );
+        }
+        rowsByEntity[entity] = parsed.rows;
+        totalRows += parsed.rows.length;
+      }
+      if (totalRows === 0) {
+        return jsonError(
+          c,
+          400,
+          'NO_FILES',
+          'Nenhum CSV reconhecido (use campos file_student/file_course/etc.).',
+        );
+      }
+
+      const job = await importJobs.createJob({
+        source: 'csv' as ImportSource,
+        mode: 'csv',
+        dryRun: true,
+        entities: [],
+        enrollment: {
+          startRule: 'paid_date',
+          expirationRule: 'start_plus_duration',
+          wcStatusMap: {},
+        },
+        startedBy: u.email,
+        startedById: u.sub,
+      });
+
+      // Roda dry-run em background (sem await — cliente polla)
+      void runDryRun({ rowsByEntity, jobId: job.id }).catch(async (err) => {
+        await importJobs.addNote(
+          job.id,
+          'error',
+          `Dry-run falhou: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        await importJobs.setStatus(job.id, 'failed', true);
+      });
+
+      return c.json({ jobId: job.id, totalRows }, 202);
+    },
+  );
 
   // ---------- Coupons (admin CRUD + validação pública) ----------
 

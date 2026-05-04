@@ -698,6 +698,31 @@ export async function fetchImportJob(id: string): Promise<ImportJobDto> {
   return http.get<ImportJobDto>(`/admin/imports/jobs/${encodeURIComponent(id)}`);
 }
 
+/**
+ * Faz upload multipart de CSVs por entidade.
+ * Cada chave em `files` deve ser um File com cabeçalhos canônicos (vide template).
+ */
+export async function startCsvDryRun(
+  files: Partial<Record<ImportEntityTypeDto, File>>,
+): Promise<{ jobId: string; totalRows: number }> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const form = new FormData();
+  for (const [entity, file] of Object.entries(files)) {
+    if (file instanceof File) form.set(`file_${entity}`, file);
+  }
+  const res = await fetch('/api/admin/imports/dry-run/csv', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j?.error?.message ?? `HTTP ${res.status}`);
+  }
+  return (await res.json()) as { jobId: string; totalRows: number };
+}
+
 // ---------- Admin stats ----------
 
 export interface CompletionsStatsDto {
