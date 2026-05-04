@@ -3,10 +3,19 @@
 import type { PaymentProvider } from '../types';
 import type { PaymentProviderImpl } from './types';
 import { mockProvider } from './mock';
+import { stripeProvider } from './stripe';
+import { asaasProvider } from './asaas';
+import { pagarmeProvider } from './pagarme';
+import { paypalProvider } from './paypal';
+import { mercadopagoProvider } from './mercadopago';
 
-// Por enquanto só mock. Sprint 4 adiciona Stripe/Asaas/Pagar.me/PayPal/MP.
 const registry: Partial<Record<PaymentProvider, PaymentProviderImpl>> = {
   mock: mockProvider,
+  stripe: stripeProvider,
+  asaas: asaasProvider,
+  pagarme: pagarmeProvider,
+  paypal: paypalProvider,
+  mercadopago: mercadopagoProvider,
 };
 
 export function getPaymentProvider(name: PaymentProvider): PaymentProviderImpl | null {
@@ -19,9 +28,9 @@ export function listImplementedProviders(): PaymentProvider[] {
 
 export const ALL_PROVIDERS: Array<{ id: PaymentProvider; label: string; implemented: boolean }> = [
   { id: 'mock', label: 'Sandbox (mock)', implemented: true },
-  { id: 'stripe', label: 'Stripe', implemented: false },
-  { id: 'asaas', label: 'Asaas', implemented: false },
-  { id: 'pagarme', label: 'Pagar.me', implemented: false },
-  { id: 'paypal', label: 'PayPal', implemented: false },
-  { id: 'mercadopago', label: 'Mercado Pago (PIX)', implemented: false },
+  { id: 'stripe', label: 'Stripe', implemented: true },
+  { id: 'asaas', label: 'Asaas (PIX/Boleto/Cartão)', implemented: true },
+  { id: 'pagarme', label: 'Pagar.me', implemented: true },
+  { id: 'paypal', label: 'PayPal', implemented: true },
+  { id: 'mercadopago', label: 'Mercado Pago', implemented: true },
 ];
