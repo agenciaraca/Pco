@@ -32,6 +32,14 @@ function formatUptime(sec: number): string {
 function HealthMiniCard() {
   const { data } = useHealth();
   if (!data) return null;
+  const lastBackup = data.lastBackupAt
+    ? new Date(data.lastBackupAt).toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '—';
   const items = [
     { Icon: Clock, label: 'Uptime', value: formatUptime(data.uptimeSec), color: 'text-pco-blue' },
     { Icon: Cpu, label: 'Memória', value: `${data.memMB} MB`, color: 'text-pco-cyan' },
@@ -42,6 +50,7 @@ function HealthMiniCard() {
       value: String(data.errors24h),
       color: data.errors24h > 0 ? 'text-status-danger' : 'text-ink-muted',
     },
+    { Icon: HardDrive, label: 'Último backup', value: lastBackup, color: 'text-pco-orange' },
   ];
   return (
     <div className="pco-card p-4">

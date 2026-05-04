@@ -81,7 +81,7 @@ export default function Login() {
               className="h-12 w-auto object-contain self-start"
             />
           ) : (
-            <Logo />
+            <Logo variant="dark" className="self-start" />
           )}
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur text-xs font-medium">
