@@ -1,13 +1,27 @@
 import { useState, useRef } from 'react';
-import { User, Save, Lock, Camera, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  User,
+  Save,
+  Lock,
+  Camera,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Flame,
+  Award,
+  PlayCircle,
+} from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
+import { useMyProgress, useCertificates } from '../data/hooks';
 import * as api from '../data/api';
 
 export default function Profile() {
   const { user, patchUser } = useAuth();
   const toast = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
+  const progressQ = useMyProgress();
+  const certsQ = useCertificates();
 
   const [name, setName] = useState(user?.name ?? '');
   const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(user?.avatarUrl);
@@ -155,6 +169,31 @@ export default function Profile() {
         </div>
       </div>
 
+      {user.role === 'student' && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <StatCard
+            Icon={PlayCircle}
+            label="Aulas concluídas"
+            value={String(progressQ.data?.completedLessonIds.length ?? 0)}
+            color="text-pco-blue"
+          />
+          <StatCard
+            Icon={Flame}
+            label="Sequência"
+            value={`${progressQ.data?.streakDays ?? 0} dia(s)`}
+            color="text-pco-orange"
+          />
+          <StatCard
+            Icon={Award}
+            label="Certificados emitidos"
+            value={String(
+              (certsQ.data ?? []).filter((c) => c.status === 'issued').length,
+            )}
+            color="text-status-gold"
+          />
+        </div>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-2">
         <form onSubmit={onSaveProfile} className="pco-card p-6 space-y-4">
           <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">
@@ -249,6 +288,28 @@ export default function Profile() {
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+function StatCard({
+  Icon,
+  label,
+  value,
+  color,
+}: {
+  Icon: typeof Flame;
+  label: string;
+  value: string;
+  color: string;
+}) {
+  return (
+    <div className="pco-card p-4">
+      <div className="flex items-center gap-2">
+        <Icon size={14} strokeWidth={2} className={color} />
+        <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      </div>
+      <div className="mt-1 text-2xl font-bold text-pco-deep">{value}</div>
     </div>
   );
 }

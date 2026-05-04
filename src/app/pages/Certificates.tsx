@@ -1,10 +1,21 @@
-import { Award, Download, Eye, QrCode } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Award, Download, Eye, Copy, ExternalLink } from 'lucide-react';
 import { useCertificates, useCourses } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
+import { useToast } from '../components/Toast';
 
 export default function Certificates() {
   const { data: certificates = [], isLoading } = useCertificates();
   const { data: courses = [] } = useCourses();
+  const toast = useToast();
+
+  function copyShareLink(code: string) {
+    const url = `${window.location.origin}/verificar/${encodeURIComponent(code)}`;
+    navigator.clipboard.writeText(url).then(
+      () => toast.success('Link de validação copiado'),
+      () => toast.error('Não foi possível copiar'),
+    );
+  }
 
   if (isLoading) return <CardListSkeleton count={3} />;
 
@@ -82,21 +93,44 @@ export default function Certificates() {
                 </div>
               </div>
 
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <button
-                  disabled={cert.status === 'in_progress'}
-                  className="pco-btn-primary flex-1 justify-center text-xs"
+                  disabled={cert.status !== 'issued'}
+                  onClick={() => toast.info('Download', 'Geração de PDF em desenvolvimento.')}
+                  className="pco-btn-primary flex-1 justify-center text-xs disabled:opacity-50"
                 >
                   <Download size={12} strokeWidth={2} />
                   Baixar PDF
                 </button>
-                <button className="pco-btn-secondary text-xs">
-                  <Eye size={12} strokeWidth={2} />
-                  Validar
-                </button>
-                <button className="pco-btn-ghost text-xs px-3">
-                  <QrCode size={14} strokeWidth={1.75} />
-                </button>
+                {cert.status === 'issued' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => copyShareLink(cert.validationCode)}
+                      className="pco-btn-secondary text-xs"
+                      title="Copiar link de validação pública"
+                    >
+                      <Copy size={12} strokeWidth={2} />
+                      Compartilhar
+                    </button>
+                    <Link
+                      to={`/verificar/${encodeURIComponent(cert.validationCode)}`}
+                      className="pco-btn-ghost text-xs"
+                      title="Abrir página pública"
+                    >
+                      <ExternalLink size={12} strokeWidth={2} />
+                    </Link>
+                  </>
+                )}
+                {cert.status !== 'issued' && (
+                  <button
+                    onClick={() => toast.info('Concluindo', 'Continue completando aulas.')}
+                    className="pco-btn-secondary text-xs"
+                  >
+                    <Eye size={12} strokeWidth={2} />
+                    Validar
+                  </button>
+                )}
               </div>
             </div>
           );
