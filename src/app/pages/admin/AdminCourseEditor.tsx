@@ -17,6 +17,7 @@ import {
   Save,
   Upload,
   Eye,
+  BarChart3,
   Loader2,
   ChevronDown,
   ChevronRight,
@@ -95,6 +96,14 @@ export default function AdminCourseEditor() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to={`/admin/cursos/${course.id}/analytics`}
+            className="pco-btn-ghost text-xs"
+            title="Analytics consolidado"
+          >
+            <BarChart3 size={12} strokeWidth={2} />
+            Analytics
+          </Link>
           <Link
             to={`/admin/cursos/${course.id}/preview`}
             className="pco-btn-secondary text-xs"

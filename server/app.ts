@@ -75,6 +75,7 @@ import {
   updateCouponSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
+import * as rateLimitTelemetry from './rate-limit';
 import { jsonError, validate } from './http';
 import { getProvider, listProviders, calculateCost } from './ai/providers';
 import * as aiConfigRepo from './repositories/ai-configs';
@@ -805,6 +806,75 @@ export function buildApp() {
     '/admin/courses/:id/watch-stats',
     requireAuth('admin', 'superadmin'),
     async (c) => c.json(await watchTimeRepo.aggregateCourse(c.req.param('id') as string)),
+  );
+
+  /**
+   * Analytics consolidado por curso: matriculados + completion + watch-time + rating.
+   */
+  app.get(
+    '/admin/courses/:id/analytics',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const courseId = c.req.param('id') as string;
+      const course = await coursesRepo.findCourse(courseId);
+      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
+
+      const allLessons = (course.modules ?? []).flatMap((m) => m.lessons ?? []);
+      const totalLessonsInCourse = allLessons.length;
+
+      // Matriculados
+      const allStudents = await studentsRepo.listAdminStudents({ limit: 5000 } as never);
+      const enrolled = allStudents.filter((s) =>
+        (s.enrolledCourseIds ?? []).includes(courseId),
+      );
+
+      // Progress: completion por aluno
+      const allProgress = await progressRepo.listAll();
+      const progressByUser = new Map<string, Set<string>>();
+      for (const p of allProgress) {
+        if (p.courseId !== courseId) continue;
+        const set = progressByUser.get(p.userId) ?? new Set<string>();
+        set.add(p.lessonId);
+        progressByUser.set(p.userId, set);
+      }
+
+      const distribution = { notStarted: 0, inProgress: 0, completed: 0 };
+      const completionRates: number[] = [];
+      for (const s of enrolled) {
+        const done = (progressByUser.get(s.id) ?? new Set()).size;
+        const rate = totalLessonsInCourse > 0 ? done / totalLessonsInCourse : 0;
+        completionRates.push(rate);
+        if (done === 0) distribution.notStarted++;
+        else if (rate >= 1) distribution.completed++;
+        else distribution.inProgress++;
+      }
+      const avgCompletion =
+        completionRates.length === 0
+          ? 0
+          : completionRates.reduce((s, r) => s + r, 0) / completionRates.length;
+
+      // Watch time
+      const watchAgg = await watchTimeRepo.aggregateCourse(courseId);
+
+      // Reviews
+      const ratingSummary = await courseReviews.summary(courseId);
+
+      return c.json({
+        course: {
+          id: course.id,
+          title: course.title,
+          totalLessons: totalLessonsInCourse,
+          totalModules: (course.modules ?? []).length,
+        },
+        enrollment: {
+          total: enrolled.length,
+          ...distribution,
+          avgCompletionPct: Math.round(avgCompletion * 100),
+        },
+        watchTime: watchAgg,
+        rating: ratingSummary,
+      });
+    },
   );
 
   app.delete('/lessons/:id/complete', requireAuth(), async (c) => {
@@ -2854,6 +2924,17 @@ export function buildApp() {
           0,
         ),
       })),
+    );
+  });
+
+  // ---------- Rate-limit telemetry ----------
+
+  app.get('/admin/rate-limits', requireAuth('admin', 'superadmin'), (c) => {
+    const windowMs = Number(c.req.query('windowMs') ?? '');
+    return c.json(
+      rateLimitTelemetry.summarize(
+        Number.isFinite(windowMs) && windowMs > 0 ? windowMs : 24 * 60 * 60_000,
+      ),
     );
   });
 

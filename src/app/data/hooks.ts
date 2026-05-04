@@ -1560,6 +1560,22 @@ export function useMyStreak() {
   });
 }
 
+export function useRateLimitSummary(windowMs?: number) {
+  return useQuery({
+    queryKey: ['admin', 'rate-limits', windowMs] as const,
+    queryFn: () => api.fetchRateLimitSummary(windowMs),
+    refetchInterval: 10_000,
+  });
+}
+
+export function useCourseAnalytics(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'courses', courseId, 'analytics'] as const,
+    queryFn: () => api.fetchCourseAnalytics(courseId!),
+    enabled: !!courseId,
+  });
+}
+
 export function useUpsertMyCourseReview() {
   const qc = useQueryClient();
   return useMutation({

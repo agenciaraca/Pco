@@ -13,6 +13,77 @@ interface Options {
 
 const store = new Map<string, Bucket>();
 
+// ---------- Telemetria de rate limit ----------
+
+export interface RateLimitHit {
+  ts: number;
+  ip: string;
+  path: string;
+  method: string;
+  blocked: boolean; // true se bateu 429
+}
+
+const HIT_BUFFER_MAX = 10_000;
+const hits: RateLimitHit[] = [];
+
+function recordHit(h: RateLimitHit): void {
+  hits.push(h);
+  if (hits.length > HIT_BUFFER_MAX) hits.splice(0, hits.length - HIT_BUFFER_MAX);
+}
+
+export function getHits(): readonly RateLimitHit[] {
+  return hits;
+}
+
+export interface RateLimitSummary {
+  totalHits: number;
+  blockedCount: number;
+  windowMs: number;
+  topIps: Array<{ ip: string; count: number; blocked: number }>;
+  topPaths: Array<{ path: string; count: number; blocked: number }>;
+  recentBlocks: Array<{
+    ts: number;
+    ip: string;
+    path: string;
+    method: string;
+  }>;
+}
+
+export function summarize(windowMs = 24 * 60 * 60_000): RateLimitSummary {
+  const cutoff = Date.now() - windowMs;
+  const inWindow = hits.filter((h) => h.ts >= cutoff);
+  const ipCounts = new Map<string, { count: number; blocked: number }>();
+  const pathCounts = new Map<string, { count: number; blocked: number }>();
+  for (const h of inWindow) {
+    const ip = ipCounts.get(h.ip) ?? { count: 0, blocked: 0 };
+    ip.count++;
+    if (h.blocked) ip.blocked++;
+    ipCounts.set(h.ip, ip);
+    const p = pathCounts.get(h.path) ?? { count: 0, blocked: 0 };
+    p.count++;
+    if (h.blocked) p.blocked++;
+    pathCounts.set(h.path, p);
+  }
+  return {
+    totalHits: inWindow.length,
+    blockedCount: inWindow.filter((h) => h.blocked).length,
+    windowMs,
+    topIps: Array.from(ipCounts.entries())
+      .map(([ip, v]) => ({ ip, ...v }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20),
+    topPaths: Array.from(pathCounts.entries())
+      .map(([path, v]) => ({ path, ...v }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20),
+    recentBlocks: inWindow
+      .filter((h) => h.blocked)
+      .slice(-50)
+      .reverse()
+      .map((h) => ({ ts: h.ts, ip: h.ip, path: h.path, method: h.method })),
+  };
+}
+
 export function rateLimit({ windowMs, max, keyFn }: Options) {
   return async (c: Context, next: Next) => {
     const ip =
@@ -23,22 +94,27 @@ export function rateLimit({ windowMs, max, keyFn }: Options) {
     const key = keyFn ? keyFn(c) : `${ip}:${c.req.path}`;
     const now = Date.now();
     let bucket = store.get(key);
+    let blocked = false;
     if (!bucket || bucket.resetAt < now) {
       bucket = { count: 1, resetAt: now + windowMs };
       store.set(key, bucket);
     } else {
       bucket.count += 1;
       if (bucket.count > max) {
-        const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
-        c.header('Retry-After', retryAfter.toString());
-        c.header('RateLimit-Limit', max.toString());
-        c.header('RateLimit-Remaining', '0');
-        c.header('RateLimit-Reset', retryAfter.toString());
-        c.status(429);
-        return c.json({
-          error: { code: 'RATE_LIMITED', message: 'Muitas requisições. Tente em instantes.' },
-        });
+        blocked = true;
       }
+    }
+    recordHit({ ts: now, ip, path: c.req.path, method: c.req.method, blocked });
+    if (blocked) {
+      const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+      c.header('Retry-After', retryAfter.toString());
+      c.header('RateLimit-Limit', max.toString());
+      c.header('RateLimit-Remaining', '0');
+      c.header('RateLimit-Reset', retryAfter.toString());
+      c.status(429);
+      return c.json({
+        error: { code: 'RATE_LIMITED', message: 'Muitas requisições. Tente em instantes.' },
+      });
     }
     await next();
     const remaining = Math.max(0, max - bucket.count);

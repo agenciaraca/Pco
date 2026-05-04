@@ -2550,6 +2550,24 @@ export async function runJob(name: string, dryRun = false): Promise<unknown> {
   return http.post(`/admin/jobs/${encodeURIComponent(name)}/run?dryRun=${dryRun}`, {});
 }
 
+// ---------- Rate-limit telemetry ----------
+
+export interface RateLimitSummaryDto {
+  totalHits: number;
+  blockedCount: number;
+  windowMs: number;
+  topIps: Array<{ ip: string; count: number; blocked: number }>;
+  topPaths: Array<{ path: string; count: number; blocked: number }>;
+  recentBlocks: Array<{ ts: number; ip: string; path: string; method: string }>;
+}
+
+export async function fetchRateLimitSummary(
+  windowMs?: number,
+): Promise<RateLimitSummaryDto> {
+  const qs = windowMs ? `?windowMs=${windowMs}` : '';
+  return http.get(`/admin/rate-limits${qs}`);
+}
+
 // ---------- System logs ----------
 
 export type LogLevelDto = 'log' | 'warn' | 'error' | 'info' | 'debug';
@@ -2613,6 +2631,35 @@ export async function fetchCourseWatchStats(
   courseId: string,
 ): Promise<CourseWatchStatsDto> {
   return http.get(`/admin/courses/${encodeURIComponent(courseId)}/watch-stats`);
+}
+
+export interface CourseAnalyticsDto {
+  course: {
+    id: string;
+    title: string;
+    totalLessons: number;
+    totalModules: number;
+  };
+  enrollment: {
+    total: number;
+    notStarted: number;
+    inProgress: number;
+    completed: number;
+    avgCompletionPct: number;
+  };
+  watchTime: CourseWatchStatsDto;
+  rating: {
+    courseId: string;
+    count: number;
+    avg: number;
+    distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+  };
+}
+
+export async function fetchCourseAnalytics(
+  courseId: string,
+): Promise<CourseAnalyticsDto> {
+  return http.get(`/admin/courses/${encodeURIComponent(courseId)}/analytics`);
 }
 
 // ---------- Streak ----------
