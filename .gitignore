@@ -44,3 +44,14 @@ data/news.json
 data/library.json
 data/podcasts.json
 data/retention-risks.json
+data/webhook-endpoints.json
+data/webhook-deliveries.json
+data/email-configs.json
+data/email-logs.json
+data/import-jobs.json
+data/import-connections.json
+data/external-references.json
+data/payment-gateways.json
+data/products.json
+data/orders.json
+data/coupons.json
