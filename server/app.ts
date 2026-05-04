@@ -131,6 +131,7 @@ import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
 import * as logBuffer from './monitoring/log-buffer';
+import * as watchTimeRepo from './repositories/watch-time';
 import * as courseReviews from './reviews/store';
 import * as achievementsStore from './achievements/store';
 import * as achievementsEngine from './achievements/engine';
@@ -166,6 +167,43 @@ import { hasDb } from './db/client';
  * - course: enroll no curso (adiciona ao enrolledCourseIds do estudante)
  * - session_pack/tutor_pack: registra em metadata para uso futuro (sprint subsequente)
  */
+function renderUnsubPage(
+  kind: 'ok' | 'error',
+  title: string,
+  message: string,
+): string {
+  const accent = kind === 'ok' ? '#10b981' : '#dc2626';
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title} — AVA PCO</title>
+<style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f6f7f9;color:#1a1a1a}
+.box{max-width:520px;margin:80px auto;background:#fff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center}
+h1{margin:0 0 12px;color:${accent}}
+p{margin:0 0 16px;color:#555;line-height:1.5}
+.brand{font-size:14px;color:#999;margin-top:24px}
+a{color:#0070f3;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="box">
+<h1>${escapeHtmlBasic(title)}</h1>
+<p>${escapeHtmlBasic(message)}</p>
+<p class="brand">AVA PCO · <a href="https://ava.psicanaliseclinica.online">ava.psicanaliseclinica.online</a></p>
+</div>
+</body>
+</html>`;
+}
+
+function escapeHtmlBasic(s: string): string {
+  return s.replace(/[&<>"']/g, (m) =>
+    m === '&' ? '&amp;' : m === '<' ? '&lt;' : m === '>' ? '&gt;' : m === '"' ? '&quot;' : '&#39;',
+  );
+}
+
 async function grantAccessForOrder(order: import('./payments/types').Order): Promise<void> {
   if (order.productSnapshot.kind === 'course' && order.productSnapshot.refId) {
     await studentsRepo.enrollInCourse(order.userId, order.productSnapshot.refId);
@@ -716,6 +754,58 @@ export function buildApp() {
 
     return c.json(entry, 201);
   });
+
+  // Watch-time heartbeat — cliente envia chunks pequenos (até 60s) durante a reprodução
+  app.post(
+    '/me/lessons/:id/watch',
+    requireAuth(),
+    rateLimit({ windowMs: 60_000, max: 240 }),
+    async (c) => {
+      const u = c.get('user')!;
+      const lessonId = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as {
+        courseId?: string;
+        deltaSeconds?: number;
+        lessonDurationSeconds?: number;
+      };
+      if (!body.courseId) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'courseId é obrigatório');
+      }
+      const delta = Number(body.deltaSeconds ?? 0);
+      if (!Number.isFinite(delta) || delta < 0) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'deltaSeconds inválido');
+      }
+      const entry = await watchTimeRepo.addChunk({
+        userId: u.sub,
+        lessonId,
+        courseId: body.courseId,
+        deltaSeconds: delta,
+        lessonDurationSeconds: body.lessonDurationSeconds,
+      });
+      return c.json({
+        totalSeconds: entry.totalSeconds,
+        lessonId: entry.lessonId,
+      });
+    },
+  );
+
+  app.get('/me/lessons/:id/watch', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const entry = await watchTimeRepo.getEntry(u.sub, c.req.param('id') as string);
+    return c.json(entry ?? { totalSeconds: 0 });
+  });
+
+  app.get(
+    '/admin/lessons/:id/watch-stats',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(await watchTimeRepo.aggregateLesson(c.req.param('id') as string)),
+  );
+
+  app.get(
+    '/admin/courses/:id/watch-stats',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(await watchTimeRepo.aggregateCourse(c.req.param('id') as string)),
+  );
 
   app.delete('/lessons/:id/complete', requireAuth(), async (c) => {
     const u = c.get('user')!;
@@ -2865,6 +2955,49 @@ export function buildApp() {
       });
     },
   );
+
+  /**
+   * Unsubscribe público — token assinado com scope=unsubscribe.
+   * GET /unsubscribe?token=... → seta receiveBroadcasts=false e retorna HTML de
+   * confirmação. Não exige autenticação (o token JÁ identifica o usuário).
+   */
+  app.get('/unsubscribe', rateLimit({ windowMs: 60_000, max: 30 }), async (c) => {
+    const token = c.req.query('token') ?? '';
+    if (!token) {
+      return c.html(
+        renderUnsubPage('error', 'Token ausente.', 'Link inválido ou incompleto.'),
+        400,
+      );
+    }
+    const claims = (await verifyToken(token).catch(() => null)) as
+      | { sub: string; email: string; scope?: string }
+      | null;
+    if (!claims || claims.scope !== 'unsubscribe') {
+      return c.html(
+        renderUnsubPage('error', 'Token inválido', 'Link expirado ou adulterado.'),
+        400,
+      );
+    }
+    try {
+      await notificationPrefs.setPrefs(claims.sub, { receiveBroadcasts: false });
+      return c.html(
+        renderUnsubPage(
+          'ok',
+          'Tudo certo!',
+          `O e-mail ${claims.email} não receberá mais comunicados/campanhas. Você ainda receberá e-mails essenciais (reset de senha, confirmações de pagamento). Para reativar, acesse seu perfil.`,
+        ),
+      );
+    } catch (err) {
+      return c.html(
+        renderUnsubPage(
+          'error',
+          'Falha',
+          err instanceof Error ? err.message : 'Erro inesperado.',
+        ),
+        500,
+      );
+    }
+  });
 
   // ---------- Notification preferences ----------
 

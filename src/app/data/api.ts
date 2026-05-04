@@ -2565,6 +2565,56 @@ export interface LogsResponseDto {
   lines: LogLineDto[];
 }
 
+// ---------- Lesson watch-time ----------
+
+export async function postWatchHeartbeat(
+  lessonId: string,
+  courseId: string,
+  deltaSeconds: number,
+  lessonDurationSeconds?: number,
+): Promise<{ totalSeconds: number; lessonId: string }> {
+  return http.post(`/me/lessons/${encodeURIComponent(lessonId)}/watch`, {
+    courseId,
+    deltaSeconds,
+    lessonDurationSeconds,
+  });
+}
+
+export interface WatchEntryDto {
+  totalSeconds: number;
+  lessonId?: string;
+}
+
+export async function fetchMyWatch(lessonId: string): Promise<WatchEntryDto> {
+  return http.get(`/me/lessons/${encodeURIComponent(lessonId)}/watch`);
+}
+
+export interface LessonWatchStatsDto {
+  lessonId: string;
+  uniqueViewers: number;
+  totalSeconds: number;
+  avgSecondsPerViewer: number;
+}
+
+export async function fetchLessonWatchStats(
+  lessonId: string,
+): Promise<LessonWatchStatsDto> {
+  return http.get(`/admin/lessons/${encodeURIComponent(lessonId)}/watch-stats`);
+}
+
+export interface CourseWatchStatsDto {
+  courseId: string;
+  totalSeconds: number;
+  uniqueLearners: number;
+  byLesson: Array<{ lessonId: string; totalSeconds: number; viewers: number }>;
+}
+
+export async function fetchCourseWatchStats(
+  courseId: string,
+): Promise<CourseWatchStatsDto> {
+  return http.get(`/admin/courses/${encodeURIComponent(courseId)}/watch-stats`);
+}
+
 // ---------- Streak ----------
 
 export interface StreakDto {

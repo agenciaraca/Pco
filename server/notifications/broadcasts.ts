@@ -7,6 +7,7 @@ import * as usersStore from '../auth/users-store';
 import * as studentsRepo from '../repositories/students';
 import * as notificationPrefs from './prefs-store';
 import { sendSafe } from './sender';
+import { signToken } from '../auth/jwt';
 
 export type BroadcastAudience =
   | 'all'
@@ -160,7 +161,7 @@ export async function startBroadcast(input: SendBroadcastInput): Promise<Broadca
 
 async function runBroadcast(
   id: string,
-  recipients: Array<{ email: string; name?: string }>,
+  recipients: Array<{ id: string; email: string; name?: string }>,
   input: SendBroadcastInput,
 ): Promise<void> {
   await store.update(
@@ -169,11 +170,26 @@ async function runBroadcast(
   );
   let sent = 0;
   let failed = 0;
+  const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
   for (const r of recipients) {
+    // Token de unsubscribe — TTL longo (1 ano), scope=unsubscribe
+    const unsubToken = await signToken(
+      {
+        sub: r.id,
+        email: r.email,
+        role: 'student',
+        tv: 0,
+        scope: 'unsubscribe',
+      },
+      365 * 24 * 60 * 60,
+    );
+    const unsubUrl = `${base}/api/unsubscribe?token=${encodeURIComponent(unsubToken)}`;
+    const footer = `\n<hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">\n<p style="font-size:11px;color:#999;text-align:center;margin:8px 0;">\nVocê recebeu este e-mail porque é cadastrado no AVA PCO.\n<a href="${unsubUrl}" style="color:#0070f3;">Cancelar inscrição em comunicados</a>\n(e-mails essenciais como reset de senha continuam).\n</p>`;
+    const html = input.html + footer;
     const result = await sendSafe({
       to: { email: r.email, name: r.name },
       subject: input.subject,
-      html: input.html,
+      html,
       text: input.text,
       tag: 'broadcast',
     });

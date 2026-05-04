@@ -21,6 +21,7 @@ import {
 import { useToast } from '../components/Toast';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import LessonComments from '../components/LessonComments';
+import { useLessonWatchHeartbeat } from '../hooks/useLessonWatchHeartbeat';
 import { useState, useEffect } from 'react';
 
 export default function LMSLesson() {
@@ -39,6 +40,17 @@ export default function LMSLesson() {
     if (noteQ.data?.content !== undefined) setNoteDraft(noteQ.data.content);
     else setNoteDraft('');
   }, [noteQ.data]);
+
+  const isEnrolled =
+    (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds?.includes(
+      courseId ?? '',
+    ) ?? false;
+  // Heartbeat de watch-time — só conta se aluno está matriculado
+  useLessonWatchHeartbeat({
+    lessonId,
+    courseId,
+    enabled: isEnrolled,
+  });
 
   if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
