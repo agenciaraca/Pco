@@ -63,6 +63,8 @@ import {
   createProductSchema,
   updateProductSchema,
   checkoutSchema,
+  createCouponSchema,
+  updateCouponSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -89,6 +91,7 @@ import * as certValidationsRepo from './repositories/cert-validations';
 import * as gatewaysRepo from './payments/gateways-repo';
 import * as productsRepo from './payments/products-repo';
 import * as ordersRepo from './payments/orders-repo';
+import * as couponsRepo from './payments/coupons-repo';
 import { ALL_PROVIDERS, getPaymentProvider } from './payments/providers/registry';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
@@ -1729,6 +1732,69 @@ export function buildApp() {
     return c.json(updated);
   });
 
+  // ---------- Coupons (admin CRUD + validação pública) ----------
+
+  app.get('/admin/coupons', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await couponsRepo.listAll()),
+  );
+
+  app.post('/admin/coupons', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createCouponSchema, body);
+    if (!v.ok)
+      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    try {
+      const created = await couponsRepo.createCoupon(v.data);
+      return c.json(created, 201);
+    } catch (err) {
+      return jsonError(
+        c,
+        409,
+        'CONFLICT',
+        err instanceof Error ? err.message : 'Erro ao criar cupom.',
+      );
+    }
+  });
+
+  app.put('/admin/coupons/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateCouponSchema, body);
+    if (!v.ok)
+      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await couponsRepo.updateCoupon(id, v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Cupom não encontrado');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/coupons/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const ok = await couponsRepo.deleteCoupon(id);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Cupom não encontrado');
+    return c.json({ ok: true });
+  });
+
+  // Aluno consulta validade de um cupom para um produto antes do checkout
+  app.get('/coupons/check', requireAuth(), async (c) => {
+    const code = c.req.query('code') ?? '';
+    const productId = c.req.query('productId') ?? '';
+    if (!code || !productId)
+      return jsonError(c, 400, 'INVALID_INPUT', 'code e productId obrigatórios');
+    const product = await productsRepo.findById(productId);
+    if (!product || !product.active) {
+      return jsonError(c, 404, 'PRODUCT_NOT_FOUND', 'Produto não encontrado');
+    }
+    const coupon = await couponsRepo.findByCode(code);
+    const result = couponsRepo.validateCoupon(coupon, productId, product.priceCents);
+    if (!result.ok) return jsonError(c, 400, 'COUPON_INVALID', result.reason);
+    return c.json({
+      ok: true,
+      discountCents: result.discountCents,
+      finalAmountCents: product.priceCents - result.discountCents,
+      coupon: { code: coupon!.code, description: coupon!.description, discount: coupon!.discount },
+    });
+  });
+
   // ---------- Checkout (cria order + chama provider) ----------
 
   app.post(
@@ -1780,6 +1846,23 @@ export function buildApp() {
       const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
       if (!creds) return jsonError(c, 500, 'INTERNAL', 'Falha ao ler credenciais do gateway.');
 
+      // Aplica cupom se informado
+      let amountCents = product.priceCents;
+      let appliedCouponId: string | null = null;
+      let appliedCouponCode: string | null = null;
+      let discountCents = 0;
+      if (v.data.couponCode) {
+        const coupon = await couponsRepo.findByCode(v.data.couponCode);
+        const valid = couponsRepo.validateCoupon(coupon, product.id, amountCents);
+        if (!valid.ok) {
+          return jsonError(c, 400, 'COUPON_INVALID', valid.reason);
+        }
+        discountCents = valid.discountCents;
+        amountCents = product.priceCents - discountCents;
+        appliedCouponId = coupon!.id;
+        appliedCouponCode = coupon!.code;
+      }
+
       // Cria order primeiro pra ter o id no metadata
       const order = await ordersRepo.createOrder({
         userId: u.sub,
@@ -1794,15 +1877,18 @@ export function buildApp() {
         },
         gatewayId: gw.id,
         gatewayProvider: gw.provider,
-        amountCents: product.priceCents,
+        amountCents,
         currency: product.currency,
       });
 
       try {
         const result = await provider.createPayment(gw, creds, {
-          amountCents: product.priceCents,
+          amountCents,
           currency: product.currency,
-          description: product.name,
+          description:
+            discountCents > 0
+              ? `${product.name} (cupom ${appliedCouponCode})`
+              : product.name,
           customerEmail: u.email,
           metadata: { orderId: order.id, userId: u.sub },
         });
@@ -1812,6 +1898,13 @@ export function buildApp() {
           qrCode: result.qrCode,
           status: result.status,
         });
+        if (appliedCouponId) {
+          await ordersRepo.updateStatus(
+            order.id,
+            updated?.status ?? 'pending',
+            `couponId=${appliedCouponId} discount=${discountCents}`,
+          );
+        }
         return c.json(updated, 201);
       } catch (err) {
         await ordersRepo.updateStatus(
@@ -1882,6 +1975,16 @@ export function buildApp() {
 
       // Liberação de acesso quando paga
       if (event.status === 'paid' && updated) {
+        // Incrementa uso do cupom (se aplicado)
+        try {
+          const couponEvent = updated.events.find((e) => e.note?.includes('couponId='));
+          const match = couponEvent?.note?.match(/couponId=(\S+)/);
+          if (match) {
+            await couponsRepo.incrementUsage(match[1]!);
+          }
+        } catch (err) {
+          console.error('[coupon increment]', err);
+        }
         try {
           await grantAccessForOrder(updated);
           await notificationsRepo.createOne({

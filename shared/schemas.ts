@@ -181,8 +181,30 @@ export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export const checkoutSchema = z.object({
   productId: z.string().min(1),
   gatewayId: z.string().min(1).optional(), // se omitido, usa o ativo
+  couponCode: z.string().max(40).optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
+
+// Cupons
+export const couponDiscountSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('percent'), value: z.number().int().min(1).max(100) }),
+  z.object({ kind: z.literal('amount'), value: z.number().int().min(1).max(10_000_00) }),
+]);
+
+export const createCouponSchema = z.object({
+  code: z.string().min(2).max(40),
+  description: z.string().max(200).optional(),
+  discount: couponDiscountSchema,
+  appliesToProductIds: z.array(z.string().min(1)).max(100).optional(),
+  maxUses: z.number().int().min(1).max(1_000_000).nullable().optional(),
+  validFrom: z.string().nullable().optional(),
+  validUntil: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+});
+export type CreateCouponInput = z.infer<typeof createCouponSchema>;
+
+export const updateCouponSchema = createCouponSchema.partial().omit({ code: true });
+export type UpdateCouponInput = z.infer<typeof updateCouponSchema>;
 
 // Generic API envelope
 export const errorResponseSchema = z.object({
