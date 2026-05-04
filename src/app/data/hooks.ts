@@ -1068,3 +1068,87 @@ export function useBroadcastNotification() {
     },
   });
 }
+
+// ---------- Email transacional ----------
+
+const emailConfigsKey = ['admin', 'email', 'configs'] as const;
+const emailLogsKey = ['admin', 'email', 'logs'] as const;
+const emailTemplatesKey = ['admin', 'email', 'templates'] as const;
+
+export function useEmailProviders() {
+  return useQuery({
+    queryKey: ['admin', 'email', 'providers'] as const,
+    queryFn: api.fetchEmailProviders,
+    staleTime: Infinity,
+  });
+}
+
+export function useEmailConfigs() {
+  return useQuery({ queryKey: emailConfigsKey, queryFn: api.fetchEmailConfigs });
+}
+
+export function useCreateEmailConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createEmailConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: emailConfigsKey }),
+  });
+}
+
+export function useUpdateEmailConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; input: Partial<api.EmailConfigInputDto> }) =>
+      api.updateEmailConfig(args.id, args.input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: emailConfigsKey }),
+  });
+}
+
+export function useDeleteEmailConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteEmailConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: emailConfigsKey }),
+  });
+}
+
+export function useTestEmailConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.testEmailConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: emailConfigsKey }),
+  });
+}
+
+export function useSendTestEmail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; to: string }) =>
+      api.sendTestEmail(args.id, args.to),
+    onSuccess: () => qc.invalidateQueries({ queryKey: emailLogsKey }),
+  });
+}
+
+export function useEmailLogs() {
+  return useQuery({
+    queryKey: emailLogsKey,
+    queryFn: api.fetchEmailLogs,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useEmailTemplates() {
+  return useQuery({
+    queryKey: emailTemplatesKey,
+    queryFn: api.fetchEmailTemplates,
+    staleTime: Infinity,
+  });
+}
+
+export function usePreviewEmailTemplate(name: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'email', 'preview', name] as const,
+    queryFn: () => api.previewEmailTemplate(name!),
+    enabled: !!name,
+  });
+}

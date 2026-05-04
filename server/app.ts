@@ -111,6 +111,17 @@ import * as importConnections from './imports/connections-store';
 import { pingWp } from './imports/connectors/wp';
 import { pingWc } from './imports/connectors/wc';
 import { collectFromApi } from './imports/connectors/orchestrator';
+import * as emailConfigs from './notifications/config-store';
+import * as emailLogs from './notifications/log-store';
+import { sendWithConfig, pingConfig, sendSafe } from './notifications/sender';
+import { ALL_EMAIL_PROVIDERS } from './notifications/providers/registry';
+import {
+  renderPasswordReset,
+  renderOrderPaid,
+  previewTemplate,
+  TEMPLATE_NAMES,
+} from './notifications/templates';
+import type { EmailProviderId } from './notifications/types';
 import type {
   ImportEntityType,
   ImportSource,
@@ -319,15 +330,26 @@ export function buildApp() {
     const u = await usersStore.findUserByEmail(v.data.email);
     if (u && u.active) {
       const token = createResetToken(u.id, u.email);
-      // Em produção real: dispara e-mail. Por enquanto, log + também devolve
-      // o token na resposta SE NODE_ENV != 'production' (debugging em dev).
       // eslint-disable-next-line no-console
       console.log(`[forgot-password] reset token para ${u.email}: ${token.token}`);
+      const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+      const resetUrl = `${base}/redefinir-senha?token=${encodeURIComponent(token.token)}`;
+      const tpl = renderPasswordReset({
+        userName: u.name,
+        resetUrl,
+        expiresInMinutes: 30,
+      });
+      void sendSafe({
+        to: { email: u.email, name: u.name },
+        subject: tpl.subject,
+        html: tpl.html,
+        text: tpl.text,
+        tag: 'password_reset',
+      });
       if (process.env.NODE_ENV !== 'production') {
         return c.json({ ok: true, devToken: token.token, expiresIn: 30 * 60 });
       }
     }
-    // Sempre retorna ok pra não revelar se o e-mail existe
     return c.json({ ok: true });
   });
 
@@ -2245,6 +2267,152 @@ export function buildApp() {
     },
   );
 
+  // ---------- Email transacional (admin CRUD + send test + logs) ----------
+
+  app.get('/admin/email/providers', requireAuth('admin', 'superadmin'), (c) =>
+    c.json({ providers: ALL_EMAIL_PROVIDERS }),
+  );
+
+  app.get('/admin/email/configs', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await emailConfigs.listConfigs()),
+  );
+
+  app.post(
+    '/admin/email/configs',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 30 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const provider = String(body.provider ?? '') as EmailProviderId;
+      const fromEmail = String(body.fromEmail ?? '').trim();
+      if (!provider || !ALL_EMAIL_PROVIDERS.includes(provider)) {
+        return jsonError(c, 400, 'INVALID_PROVIDER', 'Provider inválido.');
+      }
+      if (!fromEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail)) {
+        return jsonError(c, 400, 'INVALID_FROM', 'fromEmail inválido.');
+      }
+      const created = await emailConfigs.createConfig({
+        provider,
+        enabled: body.enabled !== false,
+        fromEmail,
+        fromName: body.fromName ? String(body.fromName) : undefined,
+        replyToEmail: body.replyToEmail ? String(body.replyToEmail) : undefined,
+        apiKey: body.apiKey ? String(body.apiKey) : undefined,
+        smtpHost: body.smtpHost ? String(body.smtpHost) : undefined,
+        smtpPort: body.smtpPort ? Number(body.smtpPort) : undefined,
+        smtpUser: body.smtpUser ? String(body.smtpUser) : undefined,
+        smtpPassword: body.smtpPassword ? String(body.smtpPassword) : undefined,
+        smtpSecure: body.smtpSecure === true,
+      });
+      return c.json(created, 201);
+    },
+  );
+
+  app.put('/admin/email/configs/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const updated = await emailConfigs.updateConfig(id, {
+      provider: body.provider ? (String(body.provider) as EmailProviderId) : undefined,
+      enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+      fromEmail: body.fromEmail ? String(body.fromEmail) : undefined,
+      fromName: body.fromName !== undefined ? String(body.fromName) : undefined,
+      replyToEmail:
+        body.replyToEmail !== undefined ? String(body.replyToEmail) : undefined,
+      apiKey: body.apiKey !== undefined ? String(body.apiKey) : undefined,
+      smtpHost: body.smtpHost !== undefined ? String(body.smtpHost) : undefined,
+      smtpPort: body.smtpPort !== undefined ? Number(body.smtpPort) : undefined,
+      smtpUser: body.smtpUser !== undefined ? String(body.smtpUser) : undefined,
+      smtpPassword:
+        body.smtpPassword !== undefined ? String(body.smtpPassword) : undefined,
+      smtpSecure: typeof body.smtpSecure === 'boolean' ? body.smtpSecure : undefined,
+    });
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
+    return c.json(updated);
+  });
+
+  app.delete(
+    '/admin/email/configs/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const ok = await emailConfigs.deleteConfig(c.req.param('id') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
+      return c.json({ ok: true });
+    },
+  );
+
+  app.post(
+    '/admin/email/configs/:id/test',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const cfg = await emailConfigs.getConfig(id);
+      if (!cfg) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
+      const result = await pingConfig(id);
+      await emailConfigs.recordTest(id, result.ok ? 'ok' : 'error', result.message);
+      return c.json(result);
+    },
+  );
+
+  app.post(
+    '/admin/email/configs/:id/send-test',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as { to?: string };
+      const cfg = await emailConfigs.getConfig(id);
+      if (!cfg) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
+      const u = c.get('user')!;
+      const to = body.to && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.to) ? body.to : u.email;
+      try {
+        const r = await sendWithConfig(cfg, {
+          to: { email: to },
+          subject: 'AVA PCO — teste de envio',
+          html: `<p>Olá! Esta é uma mensagem de teste enviada via <strong>${cfg.provider}</strong>.</p><p>Configuração: <code>${cfg.id}</code></p>`,
+          text: `AVA PCO — teste de envio. Configuração ${cfg.id} via ${cfg.provider}.`,
+          tag: 'admin_test',
+        });
+        return c.json({ ok: true, result: r });
+      } catch (err) {
+        return jsonError(
+          c,
+          500,
+          'EMAIL_FAILED',
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    },
+  );
+
+  app.get('/admin/email/logs', requireAuth('admin', 'superadmin'), async (c) => {
+    const limit = Number(c.req.query('limit') ?? '200');
+    return c.json(await emailLogs.listLogs(Number.isFinite(limit) ? limit : 200));
+  });
+
+  app.get('/admin/email/templates', requireAuth('admin', 'superadmin'), (c) =>
+    c.json({ names: TEMPLATE_NAMES }),
+  );
+
+  app.get(
+    '/admin/email/templates/:name/preview',
+    requireAuth('admin', 'superadmin'),
+    (c) => {
+      const name = c.req.param('name') as string;
+      try {
+        const r = previewTemplate(name);
+        return c.json(r);
+      } catch (err) {
+        return jsonError(
+          c,
+          404,
+          'NOT_FOUND',
+          err instanceof Error ? err.message : 'Template não encontrado.',
+        );
+      }
+    },
+  );
+
   // ---------- Coupons (admin CRUD + validação pública) ----------
 
   app.get('/admin/coupons', requireAuth('admin', 'superadmin'), async (c) =>
@@ -2513,6 +2681,33 @@ export function buildApp() {
           });
         } catch (err) {
           console.error('[grantAccessForOrder] erro:', err);
+        }
+        // E-mail de confirmação (best-effort)
+        try {
+          const buyer = await usersStore.findUserById(updated.userId);
+          if (buyer) {
+            const amount = (updated.amountCents / 100).toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: updated.currency || 'BRL',
+            });
+            const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+            const tpl = renderOrderPaid({
+              userName: buyer.name,
+              productName: updated.productSnapshot.name,
+              amountFormatted: amount,
+              orderUrl: `${base}/pedidos`,
+            });
+            void sendSafe({
+              to: { email: buyer.email, name: buyer.name },
+              subject: tpl.subject,
+              html: tpl.html,
+              text: tpl.text,
+              tag: 'order_paid',
+              metadata: { orderId: updated.id },
+            });
+          }
+        } catch (err) {
+          console.error('[order paid email]', err);
         }
       }
 

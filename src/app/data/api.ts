@@ -1676,3 +1676,104 @@ export async function generateRecoveryPlan(input: RecoveryPlanInput): Promise<{
 }> {
   return http.post('/admin/recovery-plan', input);
 }
+
+// ---------- Email transacional ----------
+
+export type EmailProviderIdDto = 'mock' | 'resend' | 'sendgrid' | 'postmark' | 'smtp';
+
+export interface EmailConfigDto {
+  id: string;
+  provider: EmailProviderIdDto;
+  enabled: boolean;
+  fromEmail: string;
+  fromName?: string;
+  replyToEmail?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpSecure?: boolean;
+  hasApiKey: boolean;
+  hasSmtpPassword: boolean;
+  lastTestedAt?: string;
+  lastTestStatus?: 'ok' | 'error';
+  lastTestMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailConfigInputDto {
+  provider: EmailProviderIdDto;
+  enabled?: boolean;
+  fromEmail: string;
+  fromName?: string;
+  replyToEmail?: string;
+  apiKey?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpPassword?: string;
+  smtpSecure?: boolean;
+}
+
+export interface EmailLogDto {
+  id: string;
+  configId: string;
+  provider: EmailProviderIdDto;
+  to: string;
+  subject: string;
+  tag?: string;
+  status: 'queued' | 'sent' | 'failed';
+  externalId?: string;
+  error?: string;
+  ts: string;
+}
+
+export async function fetchEmailProviders(): Promise<{ providers: EmailProviderIdDto[] }> {
+  return http.get('/admin/email/providers');
+}
+
+export async function fetchEmailConfigs(): Promise<EmailConfigDto[]> {
+  return http.get('/admin/email/configs');
+}
+
+export async function createEmailConfig(input: EmailConfigInputDto): Promise<EmailConfigDto> {
+  return http.post('/admin/email/configs', input);
+}
+
+export async function updateEmailConfig(
+  id: string,
+  input: Partial<EmailConfigInputDto>,
+): Promise<EmailConfigDto> {
+  return http.put(`/admin/email/configs/${encodeURIComponent(id)}`, input);
+}
+
+export async function deleteEmailConfig(id: string): Promise<void> {
+  await http.delete<{ ok: true }>(`/admin/email/configs/${encodeURIComponent(id)}`);
+}
+
+export async function testEmailConfig(
+  id: string,
+): Promise<{ ok: boolean; message: string }> {
+  return http.post(`/admin/email/configs/${encodeURIComponent(id)}/test`, {});
+}
+
+export async function sendTestEmail(
+  id: string,
+  to: string,
+): Promise<{ ok: boolean }> {
+  return http.post(`/admin/email/configs/${encodeURIComponent(id)}/send-test`, { to });
+}
+
+export async function fetchEmailLogs(): Promise<EmailLogDto[]> {
+  return http.get('/admin/email/logs');
+}
+
+export async function fetchEmailTemplates(): Promise<{ names: string[] }> {
+  return http.get('/admin/email/templates');
+}
+
+export async function previewEmailTemplate(
+  name: string,
+): Promise<{ subject: string; html: string; text: string }> {
+  return http.get(`/admin/email/templates/${encodeURIComponent(name)}/preview`);
+}
