@@ -189,7 +189,11 @@ export async function setPodcastEngagement(
   );
 }
 
-// ---------- LGPD export ----------
+// ---------- LGPD export + delete ----------
+
+export async function requestAccountDeletion(): Promise<{ ok: true }> {
+  return http.post<{ ok: true }>('/me/request-deletion', {});
+}
 
 export async function exportMyData(): Promise<void> {
   const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');

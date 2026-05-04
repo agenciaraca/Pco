@@ -11,6 +11,7 @@ import {
   Award,
   PlayCircle,
   Download,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
@@ -37,6 +38,7 @@ export default function Profile() {
   const [pwdError, setPwdError] = useState<string | null>(null);
   const [pwdSuccess, setPwdSuccess] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [requestingDeletion, setRequestingDeletion] = useState(false);
 
   if (!user) {
     return (
@@ -85,6 +87,25 @@ export default function Profile() {
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = '';
+    }
+  }
+
+  async function handleRequestDeletion() {
+    if (
+      !confirm(
+        'Solicitar exclusão da conta?\n\nUm administrador receberá a solicitação e processará a remoção de todos os seus dados conforme LGPD. Você continua com acesso até a aprovação.',
+      )
+    ) {
+      return;
+    }
+    setRequestingDeletion(true);
+    try {
+      await api.requestAccountDeletion();
+      toast.success('Solicitação enviada', 'Os administradores foram notificados.');
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    } finally {
+      setRequestingDeletion(false);
     }
   }
 
@@ -320,6 +341,26 @@ export default function Profile() {
         >
           <Download size={12} strokeWidth={2} />
           {exporting ? 'Preparando...' : 'Baixar meus dados'}
+        </button>
+      </div>
+
+      <div className="pco-card p-6 border-status-danger/30 bg-status-danger/[0.03]">
+        <h3 className="text-base font-semibold text-status-danger flex items-center gap-2">
+          <Trash2 size={16} className="text-status-danger" strokeWidth={1.75} />
+          Excluir minha conta
+        </h3>
+        <p className="mt-2 text-xs text-ink-muted">
+          Direito ao esquecimento (LGPD Art. 18). Sua solicitação será enviada aos
+          administradores, que processarão a remoção de todos os seus dados pessoais.
+        </p>
+        <button
+          type="button"
+          onClick={handleRequestDeletion}
+          disabled={requestingDeletion}
+          className="mt-3 pco-btn-ghost text-xs text-status-danger hover:bg-status-danger/10"
+        >
+          <Trash2 size={12} strokeWidth={2} />
+          {requestingDeletion ? 'Enviando solicitação...' : 'Solicitar exclusão da conta'}
         </button>
       </div>
     </div>

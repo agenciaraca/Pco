@@ -416,6 +416,25 @@ export function buildApp() {
     return c.json(entry);
   });
 
+  // ---------- Solicitação de exclusão de conta (LGPD) ----------
+
+  app.post('/me/request-deletion', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    try {
+      await notificationsRepo.broadcast({
+        audience: 'admins',
+        title: `Pedido de exclusão de conta: ${u.email}`,
+        body: `O usuário ${u.email} (id ${u.sub}) solicitou exclusão de sua conta conforme LGPD Art. 18. Avaliar e remover via /admin/usuarios.`,
+        category: 'warning',
+        link: '/admin/usuarios',
+        authorEmail: 'sistema',
+      });
+    } catch (err) {
+      console.error('[deletion-request notify]', err);
+    }
+    return c.json({ ok: true });
+  });
+
   // ---------- Export de dados (LGPD) ----------
 
   app.get('/me/export', requireAuth(), async (c) => {
