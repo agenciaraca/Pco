@@ -716,6 +716,14 @@ export function useCompletionsStats(days = 7) {
   });
 }
 
+const tutorUsageStatsKey = ['admin', 'stats', 'tutor-usage'] as const;
+export function useTutorUsageStats(days = 30) {
+  return useQuery({
+    queryKey: [...tutorUsageStatsKey, days],
+    queryFn: () => api.fetchTutorUsageStats(days),
+  });
+}
+
 const healthKey = ['admin', 'health'] as const;
 export function useHealth() {
   return useQuery({

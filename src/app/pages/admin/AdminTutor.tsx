@@ -4,16 +4,22 @@ import {
   AlertCircle,
   Save,
   Users,
+  TrendingUp,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Tabs from '../../components/Tabs';
-import { useAiConfigurations, useUpdateAiConfiguration } from '../../data/hooks';
+import {
+  useAiConfigurations,
+  useUpdateAiConfiguration,
+  useTutorUsageStats,
+} from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useToast } from '../../components/Toast';
 
 const tabs = [
   { id: 'limites', label: 'Limites', icon: <Users size={14} strokeWidth={1.75} /> },
   { id: 'escopo', label: 'Escopo e mensagens', icon: <AlertCircle size={14} strokeWidth={1.75} /> },
+  { id: 'uso', label: 'Uso (30d)', icon: <TrendingUp size={14} strokeWidth={1.75} /> },
 ];
 
 export default function AdminTutor() {
@@ -251,6 +257,77 @@ export default function AdminTutor() {
           </div>
         </div>
       )}
+
+      {active === 'uso' && <UsoPane />}
+    </div>
+  );
+}
+
+function UsoPane() {
+  const { data, isLoading } = useTutorUsageStats(30);
+  if (isLoading || !data) {
+    return <div className="pco-card p-6 text-sm text-ink-muted">Carregando...</div>;
+  }
+  const max = Math.max(1, ...data.byDay.map((d) => d.count));
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="pco-card p-4">
+          <div className="text-[11px] uppercase tracking-wide text-ink-muted">Perguntas</div>
+          <div className="mt-1 text-2xl font-bold text-pco-deep">{data.totalTurns}</div>
+          <div className="text-[11px] text-ink-subtle">últimos {data.days} dias</div>
+        </div>
+        <div className="pco-card p-4">
+          <div className="text-[11px] uppercase tracking-wide text-ink-muted">Alunos únicos</div>
+          <div className="mt-1 text-2xl font-bold text-pco-deep">{data.uniqueUsers}</div>
+          <div className="text-[11px] text-ink-subtle">interagiram com o Tutor</div>
+        </div>
+        <div className="pco-card p-4">
+          <div className="text-[11px] uppercase tracking-wide text-ink-muted">Média/aluno</div>
+          <div className="mt-1 text-2xl font-bold text-pco-deep">
+            {data.uniqueUsers > 0 ? (data.totalTurns / data.uniqueUsers).toFixed(1) : 0}
+          </div>
+          <div className="text-[11px] text-ink-subtle">perguntas/aluno</div>
+        </div>
+      </div>
+
+      <div className="pco-card p-4">
+        <h3 className="text-sm font-semibold text-pco-deep mb-3">Por dia (últimos 30)</h3>
+        <div className="flex items-end gap-1 h-24">
+          {data.byDay.map((d) => (
+            <div
+              key={d.day}
+              title={`${d.day}: ${d.count}`}
+              className="flex-1 bg-pco-blue/30 hover:bg-pco-blue/50 rounded-sm"
+              style={{ height: `${(d.count / max) * 100}%`, minHeight: '2px' }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="pco-card p-4">
+        <h3 className="text-sm font-semibold text-pco-deep mb-3">Top usuários</h3>
+        {data.topUsers.length === 0 ? (
+          <p className="text-xs text-ink-muted">Sem perguntas no período.</p>
+        ) : (
+          <ul className="divide-y divide-surface-mute">
+            {data.topUsers.map((u, i) => (
+              <li key={u.userId} className="py-2 flex items-center gap-3">
+                <span className="text-xs text-ink-subtle w-5">#{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-pco-deep truncate">
+                    {u.name ?? u.email ?? u.userId}
+                  </div>
+                  {u.email && (
+                    <div className="text-[11px] text-ink-subtle truncate">{u.email}</div>
+                  )}
+                </div>
+                <div className="text-sm font-bold text-pco-blue">{u.count}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

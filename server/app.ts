@@ -1578,6 +1578,21 @@ export function buildApp() {
 
   // ---------- Stats agregadas (admin) ----------
 
+  app.get('/admin/stats/tutor-usage', requireAuth('admin', 'superadmin'), async (c) => {
+    const days = Number(c.req.query('days') ?? '30');
+    const safeDays = Number.isFinite(days) ? Math.max(1, Math.min(days, 90)) : 30;
+    const stats = await tutorHistory.usageStats(safeDays);
+    // Enriquece topUsers com email do user
+    const allUsers = await usersStore.listUsers();
+    const userMap = new Map(allUsers.map((u) => [u.id, { email: u.email, name: u.name }]));
+    const topUsers = stats.topUsers.map((tu) => ({
+      ...tu,
+      email: userMap.get(tu.userId)?.email ?? null,
+      name: userMap.get(tu.userId)?.name ?? null,
+    }));
+    return c.json({ ...stats, days: safeDays, topUsers });
+  });
+
   app.get('/admin/stats/completions', requireAuth('admin', 'superadmin'), async (c) => {
     const days = Number(c.req.query('days') ?? '7');
     const safeDays = Number.isFinite(days) ? Math.max(1, Math.min(days, 90)) : 7;

@@ -422,6 +422,18 @@ export async function fetchCompletionsStats(days = 7): Promise<CompletionsStatsD
   return http.get<CompletionsStatsDto>(`/admin/stats/completions?days=${days}`);
 }
 
+export interface TutorUsageStatsDto {
+  days: number;
+  totalTurns: number;
+  uniqueUsers: number;
+  byDay: Array<{ day: string; count: number }>;
+  topUsers: Array<{ userId: string; count: number; email: string | null; name: string | null }>;
+}
+
+export async function fetchTutorUsageStats(days = 30): Promise<TutorUsageStatsDto> {
+  return http.get<TutorUsageStatsDto>(`/admin/stats/tutor-usage?days=${days}`);
+}
+
 // ---------- Health (admin) ----------
 
 export interface HealthStatsDto {
