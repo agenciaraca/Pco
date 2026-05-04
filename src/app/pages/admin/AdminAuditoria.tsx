@@ -51,14 +51,19 @@ export default function AdminAuditoria() {
   const [actionFilter, setActionFilter] = useState('');
   const [targetType, setTargetType] = useState('');
   const [search, setSearch] = useState('');
+  const [since, setSince] = useState('');
+  const [until, setUntil] = useState('');
 
   const filter = useMemo<AuditFilter>(
     () => ({
       action: actionFilter || undefined,
       targetType: targetType || undefined,
+      // ISO 8601 — datepicker dá formato YYYY-MM-DD, expande pra meia-noite/fim do dia
+      since: since ? `${since}T00:00:00.000Z` : undefined,
+      until: until ? `${until}T23:59:59.999Z` : undefined,
       limit: 500,
     }),
-    [actionFilter, targetType],
+    [actionFilter, targetType, since, until],
   );
 
   const { data, isLoading, isError, refetch, isFetching } = useAuditLog(filter);
@@ -169,6 +174,41 @@ export default function AdminAuditoria() {
               />
             </div>
           </label>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3 border-t border-surface-mute pt-3">
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">De</span>
+            <input
+              type="date"
+              value={since}
+              onChange={(e) => setSince(e.target.value)}
+              className="pco-input mt-1 text-sm"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">Até</span>
+            <input
+              type="date"
+              value={until}
+              onChange={(e) => setUntil(e.target.value)}
+              className="pco-input mt-1 text-sm"
+            />
+          </label>
+          <div className="flex items-end">
+            <button
+              type="button"
+              onClick={() => {
+                setSince('');
+                setUntil('');
+                setActionFilter('');
+                setTargetType('');
+                setSearch('');
+              }}
+              className="pco-btn-ghost text-xs"
+            >
+              Limpar filtros
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2 text-xs text-ink-muted">
           <Filter size={12} strokeWidth={2} />

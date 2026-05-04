@@ -15,6 +15,13 @@ function formatTs(iso: string): string {
 export default function AdminErros() {
   const { data, isLoading, isError, refetch, isFetching } = useErrorLog(500);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [source, setSource] = useState<'all' | 'client' | 'server'>('all');
+
+  const filtered = (data ?? []).filter((e) => {
+    if (source === 'client') return e.method === 'CLIENT';
+    if (source === 'server') return e.method !== 'CLIENT';
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -22,18 +29,33 @@ export default function AdminErros() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep">Erros do servidor</h1>
           <p className="text-sm text-ink-muted">
-            Erros não tratados capturados pelo backend. Mantém os últimos 2.000.
+            Erros não tratados capturados pelo backend e pelo client. Mantém os últimos 2.000.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="pco-btn-secondary text-xs"
-          disabled={isFetching}
-        >
-          <RefreshCw size={12} strokeWidth={2} className={isFetching ? 'animate-spin' : ''} />
-          Atualizar
-        </button>
+        <div className="flex gap-2 items-center">
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value as 'all' | 'client' | 'server')}
+            className="pco-input w-auto text-xs"
+          >
+            <option value="all">Todos ({data?.length ?? 0})</option>
+            <option value="server">
+              Servidor ({(data ?? []).filter((e) => e.method !== 'CLIENT').length})
+            </option>
+            <option value="client">
+              Client ({(data ?? []).filter((e) => e.method === 'CLIENT').length})
+            </option>
+          </select>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="pco-btn-secondary text-xs"
+            disabled={isFetching}
+          >
+            <RefreshCw size={12} strokeWidth={2} className={isFetching ? 'animate-spin' : ''} />
+            Atualizar
+          </button>
+        </div>
       </header>
 
       {isLoading ? (
@@ -46,7 +68,7 @@ export default function AdminErros() {
             </button>
           }
         />
-      ) : !data || data.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <EmptyState
           title="Nenhum erro registrado"
           description="O servidor não capturou erros não tratados ainda."
@@ -54,7 +76,7 @@ export default function AdminErros() {
       ) : (
         <div className="pco-card overflow-hidden">
           <ul className="divide-y divide-surface-mute">
-            {data.map((e) => (
+            {filtered.map((e) => (
               <li key={e.id} className="p-3 hover:bg-surface-off">
                 <button
                   type="button"
