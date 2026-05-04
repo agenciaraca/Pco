@@ -35,7 +35,7 @@ export interface PaymentGatewayPublic
 }
 
 // Tipos de produto vendido
-export type ProductKind = 'course' | 'session_pack' | 'tutor_pack';
+export type ProductKind = 'course' | 'session_pack' | 'tutor_pack' | 'bundle';
 
 export interface Product {
   id: string;

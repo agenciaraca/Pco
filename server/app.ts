@@ -122,6 +122,8 @@ import { collectFromApi } from './imports/connectors/orchestrator';
 import * as emailConfigs from './notifications/config-store';
 import * as webhookEndpoints from './webhooks/endpoints-store';
 import { buildSnapshot as buildHealthSnapshot } from './health/dashboard';
+import * as reengagementCfg from './reengagement/config-store';
+import * as reengagementWorker from './reengagement/worker';
 import * as webhookDeliveries from './webhooks/delivery-store';
 import * as webhooksDispatcher from './webhooks/dispatcher';
 import { ALL_WEBHOOK_EVENTS, type WebhookEventType } from './webhooks/types';
@@ -153,6 +155,13 @@ import { hasDb } from './db/client';
 async function grantAccessForOrder(order: import('./payments/types').Order): Promise<void> {
   if (order.productSnapshot.kind === 'course' && order.productSnapshot.refId) {
     await studentsRepo.enrollInCourse(order.userId, order.productSnapshot.refId);
+    return;
+  }
+  if (order.productSnapshot.kind === 'bundle') {
+    const ids = await getBundleCourseIds(order.productId);
+    for (const courseId of ids) {
+      await studentsRepo.enrollInCourse(order.userId, courseId);
+    }
   }
   // Demais kinds: por ora apenas registrado na order (events). Sprint futuro implementa.
 }
@@ -163,7 +172,22 @@ async function grantAccessForOrder(order: import('./payments/types').Order): Pro
 async function revokeAccessForOrder(order: import('./payments/types').Order): Promise<void> {
   if (order.productSnapshot.kind === 'course' && order.productSnapshot.refId) {
     await studentsRepo.unenrollFromCourse(order.userId, order.productSnapshot.refId);
+    return;
   }
+  if (order.productSnapshot.kind === 'bundle') {
+    const ids = await getBundleCourseIds(order.productId);
+    for (const courseId of ids) {
+      await studentsRepo.unenrollFromCourse(order.userId, courseId);
+    }
+  }
+}
+
+async function getBundleCourseIds(productId: string): Promise<string[]> {
+  const p = await productsRepo.findById(productId);
+  if (!p || p.kind !== 'bundle') return [];
+  const arr = (p.metadata as { courseIds?: unknown } | undefined)?.courseIds;
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((x): x is string => typeof x === 'string');
 }
 
 export function buildApp() {
@@ -2366,6 +2390,49 @@ export function buildApp() {
       });
 
       return c.json({ jobId: job.id, totalRows }, 202);
+    },
+  );
+
+  // ---------- Reengajamento automático ----------
+
+  app.get('/admin/reengagement/config', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await reengagementCfg.getConfig()),
+  );
+
+  app.put('/admin/reengagement/config', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const next = await reengagementCfg.setConfig({
+      enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+      inactivityDays:
+        typeof body.inactivityDays === 'number' && body.inactivityDays >= 1
+          ? Math.min(365, Math.floor(body.inactivityDays))
+          : undefined,
+      cooldownDays:
+        typeof body.cooldownDays === 'number' && body.cooldownDays >= 1
+          ? Math.min(180, Math.floor(body.cooldownDays))
+          : undefined,
+      onlyEnrolled: typeof body.onlyEnrolled === 'boolean' ? body.onlyEnrolled : undefined,
+      subject: typeof body.subject === 'string' ? body.subject : undefined,
+      bodyHtml: typeof body.bodyHtml === 'string' ? body.bodyHtml : undefined,
+    });
+    return c.json(next);
+  });
+
+  app.get('/admin/reengagement/sent', requireAuth('admin', 'superadmin'), async (c) => {
+    const limit = Number(c.req.query('limit') ?? '200');
+    return c.json(
+      await reengagementCfg.listRecentSends(Number.isFinite(limit) ? limit : 200),
+    );
+  });
+
+  app.post(
+    '/admin/reengagement/run',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const dryRun = c.req.query('dryRun') === 'true';
+      const result = await reengagementWorker.tickWorker({ dryRun });
+      return c.json({ dryRun, ...result });
     },
   );
 

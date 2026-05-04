@@ -1237,3 +1237,37 @@ export function useHealthSnapshot() {
     refetchInterval: 60_000,
   });
 }
+
+const reengagementCfgKey = ['admin', 'reengagement', 'config'] as const;
+const reengagementSentKey = ['admin', 'reengagement', 'sent'] as const;
+
+export function useReengagementConfig() {
+  return useQuery({
+    queryKey: reengagementCfgKey,
+    queryFn: api.fetchReengagementConfig,
+  });
+}
+
+export function useUpdateReengagementConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.updateReengagementConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: reengagementCfgKey }),
+  });
+}
+
+export function useReengagementSent() {
+  return useQuery({
+    queryKey: reengagementSentKey,
+    queryFn: api.fetchReengagementSent,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useRunReengagement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.runReengagement,
+    onSuccess: () => qc.invalidateQueries({ queryKey: reengagementSentKey }),
+  });
+}

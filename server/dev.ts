@@ -144,3 +144,6 @@ serve({ fetch: appToServe.fetch, port, hostname: process.env.HOST ?? '127.0.0.1'
 
 // Worker de webhooks — processa entregas pendentes a cada 30s
 import('./webhooks/dispatcher').then((m) => m.startWorker(30_000));
+
+// Worker de reengajamento — varre alunos inativos uma vez por dia
+import('./reengagement/worker').then((m) => m.startWorker(24 * 60 * 60_000));

@@ -94,6 +94,7 @@ const adminGroups = [
       { to: '/admin/email', label: 'E-mail transacional', icon: Mail },
       { to: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
       { to: '/admin/saude', label: 'Saúde do sistema', icon: Activity },
+      { to: '/admin/reengajamento-auto', label: 'Reengajamento auto.', icon: Sparkles },
       { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
       { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
       { to: '/admin/configuracoes', label: 'Configurações Gerais', icon: SettingsIcon },

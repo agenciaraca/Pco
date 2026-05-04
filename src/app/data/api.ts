@@ -539,7 +539,7 @@ export async function deletePaymentGateway(id: string): Promise<{ ok: true }> {
 }
 
 // Products
-export type ProductKind = 'course' | 'session_pack' | 'tutor_pack';
+export type ProductKind = 'course' | 'session_pack' | 'tutor_pack' | 'bundle';
 
 export interface ProductDto {
   id: string;
@@ -571,6 +571,7 @@ export interface CreateProductInput {
   priceCents: number;
   currency?: string;
   active?: boolean;
+  metadata?: Record<string, unknown>;
 }
 
 export async function createProduct(input: CreateProductInput): Promise<ProductDto> {
@@ -1952,4 +1953,50 @@ export interface HealthSnapshotDto {
 
 export async function fetchHealthSnapshot(): Promise<HealthSnapshotDto> {
   return http.get('/admin/saude');
+}
+
+// ---------- Reengajamento automático ----------
+
+export interface ReengagementConfigDto {
+  enabled: boolean;
+  inactivityDays: number;
+  cooldownDays: number;
+  onlyEnrolled: boolean;
+  subject: string;
+  bodyHtml: string;
+  updatedAt: string;
+}
+
+export interface ReengagementSentDto {
+  userId: string;
+  email: string;
+  ts: string;
+}
+
+export interface ReengagementRunResult {
+  dryRun: boolean;
+  scanned: number;
+  inactive: number;
+  sent: number;
+  skipped: number;
+  errors: number;
+  details?: string[];
+}
+
+export async function fetchReengagementConfig(): Promise<ReengagementConfigDto> {
+  return http.get('/admin/reengagement/config');
+}
+
+export async function updateReengagementConfig(
+  patch: Partial<ReengagementConfigDto>,
+): Promise<ReengagementConfigDto> {
+  return http.put('/admin/reengagement/config', patch);
+}
+
+export async function fetchReengagementSent(): Promise<ReengagementSentDto[]> {
+  return http.get('/admin/reengagement/sent');
+}
+
+export async function runReengagement(dryRun: boolean): Promise<ReengagementRunResult> {
+  return http.post(`/admin/reengagement/run?dryRun=${dryRun ? 'true' : 'false'}`, {});
 }

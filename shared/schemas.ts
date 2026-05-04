@@ -160,7 +160,7 @@ export const updatePaymentGatewaySchema = z.object({
 export type UpdatePaymentGatewayInput = z.infer<typeof updatePaymentGatewaySchema>;
 
 // Products
-export const productKindEnum = z.enum(['course', 'session_pack', 'tutor_pack']);
+export const productKindEnum = z.enum(['course', 'session_pack', 'tutor_pack', 'bundle']);
 
 export const createProductSchema = z.object({
   kind: productKindEnum,

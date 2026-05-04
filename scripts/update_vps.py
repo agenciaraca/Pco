@@ -6,10 +6,11 @@ import paramiko
 
 host = os.environ['HOST']
 user = os.environ['USER_NAME']
+port = int(os.environ.get('PORT', '22'))
 pkey = paramiko.Ed25519Key.from_private_key_file(os.environ['KEY_PATH'])
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect(host, username=user, pkey=pkey, look_for_keys=False, allow_agent=False, timeout=15)
+c.connect(host, port=port, username=user, pkey=pkey, look_for_keys=False, allow_agent=False, timeout=15)
 
 def run(cmd, check=True, timeout=600):
     si, so, se = c.exec_command(cmd, get_pty=False, timeout=timeout)

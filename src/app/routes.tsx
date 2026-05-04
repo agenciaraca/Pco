@@ -82,6 +82,7 @@ const ImportsHistory = lazy(() => import('./pages/admin/imports/ImportsHistory')
 const AdminEmail = lazy(() => import('./pages/admin/AdminEmail'));
 const AdminWebhooks = lazy(() => import('./pages/admin/AdminWebhooks'));
 const AdminSaude = lazy(() => import('./pages/admin/AdminSaude'));
+const AdminReengagementAuto = lazy(() => import('./pages/admin/AdminReengagementAuto'));
 const ImportWizardApi = lazy(() => import('./pages/admin/imports/ImportWizardApi'));
 
 function S({ children }: { children: ReactNode }) {
@@ -193,6 +194,7 @@ export const router = createBrowserRouter([
       { path: 'email', element: <S><AdminEmail /></S> },
       { path: 'webhooks', element: <S><AdminWebhooks /></S> },
       { path: 'saude', element: <S><AdminSaude /></S> },
+      { path: 'reengajamento-auto', element: <S><AdminReengagementAuto /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },
       { path: 'imports/wizard', element: <S><ImportWizardCsv /></S> },
       { path: 'imports/wizard-api', element: <S><ImportWizardApi /></S> },

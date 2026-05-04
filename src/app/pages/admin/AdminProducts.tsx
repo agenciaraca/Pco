@@ -25,6 +25,7 @@ import type { ProductDto, ProductKind } from '../../data/api';
 
 const kindLabel: Record<ProductKind, string> = {
   course: 'Curso',
+  bundle: 'Pacote de cursos',
   session_pack: 'Pacote de sessões',
   tutor_pack: 'Pacote Tutor',
 };
@@ -226,6 +227,7 @@ interface EditorProps {
     priceCents: number;
     currency: string;
     active: boolean;
+    metadata?: Record<string, unknown>;
   }) => Promise<void>;
 }
 
@@ -240,6 +242,12 @@ function ProductEditor({ editing, courses, submitting, onClose, onSubmit }: Edit
   const [currency, setCurrency] = useState(editing?.currency ?? 'BRL');
   const [active, setActive] = useState(editing?.active ?? true);
   const [error, setError] = useState<string | null>(null);
+  const initialBundle = (editing?.metadata as { courseIds?: unknown } | undefined)?.courseIds;
+  const [bundleCourseIds, setBundleCourseIds] = useState<string[]>(
+    Array.isArray(initialBundle)
+      ? initialBundle.filter((x): x is string => typeof x === 'string')
+      : [],
+  );
 
   return (
     <div
@@ -267,14 +275,22 @@ function ProductEditor({ editing, courses, submitting, onClose, onSubmit }: Edit
               setError('Nome e preço válidos são obrigatórios.');
               return;
             }
+            if (kind === 'bundle' && bundleCourseIds.length === 0) {
+              setError('Selecione pelo menos um curso para o pacote.');
+              return;
+            }
             void onSubmit({
               kind,
-              refId: refId || null,
+              refId: kind === 'bundle' ? null : refId || null,
               name: name.trim(),
               description: description.trim() || undefined,
               priceCents: cents,
               currency,
               active,
+              metadata:
+                kind === 'bundle'
+                  ? { courseIds: bundleCourseIds }
+                  : undefined,
             });
           }}
           className="p-6 space-y-4"
@@ -286,10 +302,50 @@ function ProductEditor({ editing, courses, submitting, onClose, onSubmit }: Edit
               className="pco-input"
             >
               <option value="course">Curso</option>
+              <option value="bundle">Pacote de cursos (bundle)</option>
               <option value="session_pack">Pacote de sessões</option>
               <option value="tutor_pack">Pacote Tutor</option>
             </select>
           </Field>
+
+          {kind === 'bundle' && (
+            <Field
+              label="Cursos inclusos no pacote"
+              hint="Todos esses cursos serão liberados quando o aluno comprar o pacote"
+            >
+              <div className="space-y-1 max-h-60 overflow-y-auto pco-card p-2">
+                {courses.length === 0 && (
+                  <div className="text-xs text-ink-muted p-2">Nenhum curso disponível.</div>
+                )}
+                {courses.map((c) => (
+                  <label
+                    key={c.id}
+                    className="flex items-center gap-2 text-xs p-1.5 rounded hover:bg-surface-mute cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={bundleCourseIds.includes(c.id)}
+                      onChange={(e) => {
+                        setBundleCourseIds((prev) =>
+                          e.target.checked
+                            ? [...prev, c.id]
+                            : prev.filter((x) => x !== c.id),
+                        );
+                      }}
+                      className="accent-pco-blue"
+                    />
+                    <span className="flex-1">{c.title}</span>
+                    <span className="text-ink-subtle text-[10px]">{c.id}</span>
+                  </label>
+                ))}
+              </div>
+              {bundleCourseIds.length > 0 && (
+                <div className="text-[11px] text-ink-muted mt-1">
+                  {bundleCourseIds.length} curso(s) selecionado(s)
+                </div>
+              )}
+            </Field>
+          )}
 
           {kind === 'course' && (
             <Field label="Curso vinculado" hint="ID do curso que será liberado pós-pagamento">
