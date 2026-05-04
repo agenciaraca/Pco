@@ -174,10 +174,12 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
                           <Icon size={14} strokeWidth={2} className="mt-0.5 text-pco-blue shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold text-pco-deep truncate">
-                              {h.title}
+                              <Highlight text={h.title} query={searchQ} />
                             </div>
                             {h.snippet && (
-                              <div className="text-xs text-ink-muted truncate">{h.snippet}</div>
+                              <div className="text-xs text-ink-muted truncate">
+                                <Highlight text={h.snippet} query={searchQ} />
+                              </div>
                             )}
                           </div>
                           <span className="text-[10px] uppercase tracking-wide text-ink-subtle shrink-0 mt-1">
@@ -289,5 +291,32 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
         </div>
       </div>
     </header>
+  );
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function Highlight({ text, query }: { text: string; query: string }) {
+  const q = query.trim();
+  if (q.length < 2) return <>{text}</>;
+  const pattern = new RegExp(`(${escapeRegex(q)})`, 'i');
+  const parts = text.split(new RegExp(`(${escapeRegex(q)})`, 'ig'));
+  return (
+    <>
+      {parts.map((part, i) =>
+        pattern.test(part) ? (
+          <mark
+            key={i}
+            className="bg-status-gold/30 text-pco-deep rounded px-0.5"
+          >
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
   );
 }
