@@ -21,7 +21,7 @@ import { signToken } from './auth/jwt';
 import { attachUser, requireAuth } from './auth/middleware';
 import { createResetToken, consumeResetToken } from './auth/password-reset';
 import { auditMiddleware } from './audit/middleware';
-import { listAudit } from './audit/log';
+import { listAudit, auditByDay } from './audit/log';
 import { recordError, listErrors, recordClientError, errorsByDay } from './errors/store';
 import { saveUpload, UploadError } from './uploads/store';
 import { gatherHealth } from './monitoring/health';
@@ -1591,6 +1591,14 @@ export function buildApp() {
       name: userMap.get(tu.userId)?.name ?? null,
     }));
     return c.json({ ...stats, days: safeDays, topUsers });
+  });
+
+  app.get('/admin/stats/audit', requireAuth('admin', 'superadmin'), async (c) => {
+    const days = Number(c.req.query('days') ?? '7');
+    const safeDays = Number.isFinite(days) ? Math.max(1, Math.min(days, 30)) : 7;
+    const series = await auditByDay(safeDays);
+    const total = series.reduce((s, d) => s + d.total, 0);
+    return c.json({ days: safeDays, total, series });
   });
 
   app.get('/admin/stats/errors', requireAuth('admin', 'superadmin'), async (c) => {

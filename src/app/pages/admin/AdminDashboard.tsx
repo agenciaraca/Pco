@@ -19,6 +19,7 @@ import {
 } from '../../data/hooks';
 import { Cpu, HardDrive, AlertOctagon, Clock, History, ScrollText } from 'lucide-react';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import Sparkline from '../../components/Sparkline';
 
 function formatUptime(sec: number): string {
   if (sec < 60) return `${sec}s`;
@@ -33,7 +34,6 @@ function formatUptime(sec: number): string {
 function CompletionsCard() {
   const { data } = useCompletionsStats(7);
   if (!data) return null;
-  const max = Math.max(1, ...data.series.map((d) => d.count));
   const today = data.series[data.series.length - 1]?.count ?? 0;
   return (
     <div className="pco-card p-4">
@@ -48,21 +48,12 @@ function CompletionsCard() {
             total · hoje: <strong className="text-pco-blue">{today}</strong>
           </div>
         </div>
-        <div className="flex-1 flex items-end gap-1 h-12">
-          {data.series.map((d) => (
-            <div
-              key={d.day}
-              title={`${d.day}: ${d.count}`}
-              className="flex-1 bg-pco-blue/20 hover:bg-pco-blue/40 rounded-sm relative"
-              style={{ height: `${(d.count / max) * 100}%`, minHeight: '2px' }}
-            >
-              {d.count > 0 && (
-                <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] text-pco-deep font-semibold">
-                  {d.count}
-                </span>
-              )}
-            </div>
-          ))}
+        <div className="flex-1">
+          <Sparkline
+            data={data.series.map((d) => ({ label: d.day, value: d.count }))}
+            height={48}
+            showValueLabels
+          />
         </div>
       </div>
     </div>

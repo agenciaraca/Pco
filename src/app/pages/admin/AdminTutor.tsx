@@ -13,6 +13,7 @@ import {
   useUpdateAiConfiguration,
   useTutorUsageStats,
 } from '../../data/hooks';
+import Sparkline from '../../components/Sparkline';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useToast } from '../../components/Toast';
 
@@ -268,7 +269,6 @@ function UsoPane() {
   if (isLoading || !data) {
     return <div className="pco-card p-6 text-sm text-ink-muted">Carregando...</div>;
   }
-  const max = Math.max(1, ...data.byDay.map((d) => d.count));
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -293,16 +293,10 @@ function UsoPane() {
 
       <div className="pco-card p-4">
         <h3 className="text-sm font-semibold text-pco-deep mb-3">Por dia (últimos 30)</h3>
-        <div className="flex items-end gap-1 h-24">
-          {data.byDay.map((d) => (
-            <div
-              key={d.day}
-              title={`${d.day}: ${d.count}`}
-              className="flex-1 bg-pco-blue/30 hover:bg-pco-blue/50 rounded-sm"
-              style={{ height: `${(d.count / max) * 100}%`, minHeight: '2px' }}
-            />
-          ))}
-        </div>
+        <Sparkline
+          height={96}
+          data={data.byDay.map((d) => ({ label: d.day, value: d.count }))}
+        />
       </div>
 
       <div className="pco-card p-4">

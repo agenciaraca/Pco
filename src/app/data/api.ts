@@ -446,6 +446,16 @@ export async function fetchErrorsStats(days = 7): Promise<ErrorsStatsDto> {
   return http.get<ErrorsStatsDto>(`/admin/stats/errors?days=${days}`);
 }
 
+export interface AuditStatsDto {
+  days: number;
+  total: number;
+  series: Array<{ day: string; ok: number; error: number; total: number }>;
+}
+
+export async function fetchAuditStats(days = 7): Promise<AuditStatsDto> {
+  return http.get<AuditStatsDto>(`/admin/stats/audit?days=${days}`);
+}
+
 // ---------- Health (admin) ----------
 
 export interface HealthStatsDto {

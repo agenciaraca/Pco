@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useErrorLog, useErrorsStats } from '../../data/hooks';
+import Sparkline from '../../components/Sparkline';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 
@@ -76,34 +77,17 @@ export default function AdminErros() {
               {stats.data.total}
             </span>
           </div>
-          <div className="flex items-end gap-1 h-12">
-            {stats.data.series.map((d) => {
-              const max = Math.max(1, ...stats.data!.series.map((x) => x.total));
-              return (
-                <div
-                  key={d.day}
-                  title={`${d.day}: ${d.server} servidor + ${d.client} client = ${d.total}`}
-                  className="flex-1 flex flex-col-reverse rounded-sm overflow-hidden"
-                  style={{ height: `${(d.total / max) * 100}%`, minHeight: '2px' }}
-                >
-                  <div
-                    className="bg-status-danger/40"
-                    style={{
-                      flex: d.server,
-                      minHeight: d.server > 0 ? '2px' : 0,
-                    }}
-                  />
-                  <div
-                    className="bg-pco-orange/40"
-                    style={{
-                      flex: d.client,
-                      minHeight: d.client > 0 ? '2px' : 0,
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <Sparkline
+            height={48}
+            data={stats.data.series.map((d) => ({
+              label: `${d.day}: ${d.server} servidor + ${d.client} client`,
+              value: d.total,
+              segments: [
+                { value: d.server, className: 'bg-status-danger/40' },
+                { value: d.client, className: 'bg-pco-orange/40' },
+              ],
+            }))}
+          />
         </div>
       )}
 

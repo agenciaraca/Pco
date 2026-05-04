@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   Download,
 } from 'lucide-react';
-import { useAuditLog } from '../../data/hooks';
+import { useAuditLog, useAuditStats } from '../../data/hooks';
+import Sparkline from '../../components/Sparkline';
 import { downloadAuditLogCsv } from '../../data/api';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -67,6 +68,7 @@ export default function AdminAuditoria() {
   );
 
   const { data, isLoading, isError, refetch, isFetching } = useAuditLog(filter);
+  const auditStats = useAuditStats(7);
   const toast = useToast();
 
   const filtered = useMemo<AuditEntryDto[]>(() => {
@@ -217,6 +219,28 @@ export default function AdminAuditoria() {
           {data && data.length !== filtered.length ? ` (de ${data.length})` : ''}
         </div>
       </div>
+
+      {auditStats.data && (
+        <div className="pco-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-pco-deep">
+              Eventos por dia (últimos {auditStats.data.days}d)
+            </h3>
+            <span className="text-2xl font-bold text-pco-deep">{auditStats.data.total}</span>
+          </div>
+          <Sparkline
+            height={48}
+            data={auditStats.data.series.map((d) => ({
+              label: `${d.day}: ${d.ok} ok + ${d.error} erros`,
+              value: d.total,
+              segments: [
+                { value: d.ok, className: 'bg-status-success/40' },
+                { value: d.error, className: 'bg-status-danger/40' },
+              ],
+            }))}
+          />
+        </div>
+      )}
 
       {isLoading ? (
         <CardListSkeleton count={6} />
