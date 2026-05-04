@@ -119,6 +119,12 @@ ${urls
   // Arquivos estáticos (favicon, assets/*, etc.)
   root.use('/*', serveStatic({ root: staticRoot }));
 
+  // 404 puro para /assets/* faltantes (chunks antigos pós-deploy):
+  // SPA fallback retornaria HTML, mas o navegador recusa executar HTML como JS
+  // (Content-Type mismatch + nosniff), causando 'error loading dynamically imported module'.
+  // 404 dispara Vite a fazer fallback de import dinâmico, que o auto-reload captura.
+  root.get('/assets/*', (c) => c.text('Not found', 404));
+
   // SPA fallback: qualquer GET não casado retorna index.html
   root.get('*', serveStatic({ path: 'index.html', root: staticRoot }));
 

@@ -63,7 +63,13 @@ function isStaleChunkError(message: string): boolean {
     /Failed to fetch dynamically imported module/i.test(message) ||
     /Loading chunk \d+ failed/i.test(message) ||
     /ChunkLoadError/i.test(message) ||
-    /error loading dynamically imported module/i.test(message)
+    /error loading dynamically imported module/i.test(message) ||
+    // Chrome quando chunk retorna HTML em vez de JS (MIME mismatch + nosniff)
+    /Failed to load module script/i.test(message) ||
+    /expected a JavaScript module/i.test(message) ||
+    /strict MIME type checking is enabled/i.test(message) ||
+    // Firefox equivalente
+    /Loading module from .* was blocked/i.test(message)
   );
 }
 
