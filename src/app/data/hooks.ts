@@ -1322,3 +1322,46 @@ export function useForceLogout() {
     onSuccess: () => qc.invalidateQueries({ queryKey: sessionsKey }),
   });
 }
+
+const apiTokensKey = ['admin', 'api-tokens'] as const;
+
+export function useApiTokens() {
+  return useQuery({
+    queryKey: apiTokensKey,
+    queryFn: api.fetchApiTokens,
+  });
+}
+
+export function useCreateApiToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createApiToken,
+    onSuccess: () => qc.invalidateQueries({ queryKey: apiTokensKey }),
+  });
+}
+
+export function useRevokeApiToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.revokeApiToken,
+    onSuccess: () => qc.invalidateQueries({ queryKey: apiTokensKey }),
+  });
+}
+
+export function useDeleteApiToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteApiToken,
+    onSuccess: () => qc.invalidateQueries({ queryKey: apiTokensKey }),
+  });
+}
+
+export function useActivityFeed(
+  filter: Parameters<typeof api.fetchActivityFeed>[0] = {},
+) {
+  return useQuery({
+    queryKey: ['admin', 'activity', filter] as const,
+    queryFn: () => api.fetchActivityFeed(filter),
+    refetchInterval: 30_000,
+  });
+}

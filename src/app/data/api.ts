@@ -2118,3 +2118,98 @@ export async function fetchSessions(): Promise<SessionInspectDto[]> {
 export async function forceLogout(userId: string): Promise<{ ok: true; tokenVersion: number }> {
   return http.post(`/admin/users/${encodeURIComponent(userId)}/force-logout`, {});
 }
+
+// ---------- API tokens ----------
+
+export type ApiTokenScopeDto =
+  | 'stats:read'
+  | 'students:read'
+  | 'orders:read'
+  | 'courses:read'
+  | 'all:read';
+
+export interface ApiTokenDto {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: ApiTokenScopeDto[];
+  createdBy: string;
+  createdAt: string;
+  expiresAt?: string;
+  lastUsedAt?: string;
+  usageCount: number;
+  active: boolean;
+}
+
+export interface CreateApiTokenInput {
+  name: string;
+  scopes: ApiTokenScopeDto[];
+  expiresAt?: string;
+}
+
+export interface CreateApiTokenResult {
+  token: ApiTokenDto;
+  secret: string;
+}
+
+export async function fetchApiTokens(): Promise<{
+  tokens: ApiTokenDto[];
+  scopes: ApiTokenScopeDto[];
+}> {
+  return http.get('/admin/api-tokens');
+}
+
+export async function createApiToken(
+  input: CreateApiTokenInput,
+): Promise<CreateApiTokenResult> {
+  return http.post('/admin/api-tokens', input);
+}
+
+export async function revokeApiToken(id: string): Promise<{ ok: true }> {
+  return http.post(`/admin/api-tokens/${encodeURIComponent(id)}/revoke`, {});
+}
+
+export async function deleteApiToken(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/api-tokens/${encodeURIComponent(id)}`);
+}
+
+// ---------- Activity feed ----------
+
+export type ActivityKindDto =
+  | 'audit'
+  | 'email_sent'
+  | 'email_failed'
+  | 'webhook_success'
+  | 'webhook_failed'
+  | 'reengagement'
+  | 'order_paid'
+  | 'order_refunded'
+  | 'order_canceled';
+
+export interface ActivityItemDto {
+  id: string;
+  ts: string;
+  kind: ActivityKindDto;
+  label: string;
+  detail?: string;
+  actor?: string;
+  target?: string;
+  link?: string;
+}
+
+export async function fetchActivityFeed(filter: {
+  kinds?: ActivityKindDto[];
+  since?: string;
+  until?: string;
+  q?: string;
+  limit?: number;
+} = {}): Promise<ActivityItemDto[]> {
+  const qs = new URLSearchParams();
+  if (filter.kinds && filter.kinds.length > 0) qs.set('kinds', filter.kinds.join(','));
+  if (filter.since) qs.set('since', filter.since);
+  if (filter.until) qs.set('until', filter.until);
+  if (filter.q) qs.set('q', filter.q);
+  if (filter.limit) qs.set('limit', String(filter.limit));
+  const path = `/admin/activity${qs.toString() ? `?${qs.toString()}` : ''}`;
+  return http.get(path);
+}

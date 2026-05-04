@@ -123,6 +123,9 @@ import * as emailConfigs from './notifications/config-store';
 import * as webhookEndpoints from './webhooks/endpoints-store';
 import { buildSnapshot as buildHealthSnapshot } from './health/dashboard';
 import * as reengagementCfg from './reengagement/config-store';
+import * as apiTokens from './auth/api-tokens';
+import { requireApiToken } from './auth/api-token-middleware';
+import * as activityFeed from './activity/feed';
 import * as reengagementWorker from './reengagement/worker';
 import * as webhookDeliveries from './webhooks/delivery-store';
 import * as webhooksDispatcher from './webhooks/dispatcher';
@@ -2549,6 +2552,181 @@ export function buildApp() {
       return c.json({ dryRun, ...result });
     },
   );
+
+  // ---------- API tokens (admin CRUD) ----------
+
+  app.get('/admin/api-tokens', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json({
+      tokens: await apiTokens.listTokens(),
+      scopes: apiTokens.ALL_SCOPES,
+    }),
+  );
+
+  app.post(
+    '/admin/api-tokens',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const name = String(body.name ?? '').trim();
+      const scopes = Array.isArray(body.scopes)
+        ? (body.scopes as string[]).filter((s): s is apiTokens.ApiTokenScope =>
+            apiTokens.ALL_SCOPES.includes(s as apiTokens.ApiTokenScope),
+          )
+        : [];
+      if (!name) return jsonError(c, 400, 'INVALID_INPUT', 'name é obrigatório');
+      if (scopes.length === 0) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'selecione ao menos um escopo');
+      }
+      const u = c.get('user')!;
+      const result = await apiTokens.createToken({
+        name,
+        scopes,
+        expiresAt: body.expiresAt ? String(body.expiresAt) : undefined,
+        createdBy: u.email,
+      });
+      return c.json(result, 201);
+    },
+  );
+
+  app.post(
+    '/admin/api-tokens/:id/revoke',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const ok = await apiTokens.revokeToken(c.req.param('id') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Token não encontrado.');
+      return c.json({ ok: true });
+    },
+  );
+
+  app.delete('/admin/api-tokens/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await apiTokens.deleteToken(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Token não encontrado.');
+    return c.json({ ok: true });
+  });
+
+  // ---------- API pública v1 (autenticada por API token) ----------
+
+  app.get('/v1/me', requireApiToken(), async (c) => {
+    const t = c.get('apiToken')!;
+    return c.json({
+      id: t.id,
+      name: t.name,
+      scopes: t.scopes,
+      prefix: t.prefix,
+      createdAt: t.createdAt,
+      expiresAt: t.expiresAt ?? null,
+      usageCount: t.usageCount + 1,
+    });
+  });
+
+  app.get('/v1/stats/summary', requireApiToken('stats:read'), async (c) => {
+    const orders = await ordersRepo.listAll();
+    const revenue = orders
+      .filter((o) => o.status === 'paid')
+      .reduce((s, o) => s + o.amountCents, 0);
+    const refunded = orders
+      .filter((o) => o.status === 'refunded')
+      .reduce((s, o) => s + o.amountCents, 0);
+    const users = await usersStore.listUsers();
+    return c.json({
+      generatedAt: new Date().toISOString(),
+      users: {
+        total: users.length,
+        active: users.filter((u) => u.active).length,
+        students: users.filter((u) => u.role === 'student').length,
+        admins: users.filter((u) => u.role === 'admin' || u.role === 'superadmin').length,
+      },
+      orders: {
+        total: orders.length,
+        paid: orders.filter((o) => o.status === 'paid').length,
+        refunded: orders.filter((o) => o.status === 'refunded').length,
+        canceled: orders.filter((o) => o.status === 'canceled').length,
+      },
+      revenue: {
+        currency: orders[0]?.currency ?? 'BRL',
+        netCents: revenue - refunded,
+        grossCents: revenue,
+        refundedCents: refunded,
+      },
+    });
+  });
+
+  app.get('/v1/students', requireApiToken('students:read'), async (c) => {
+    const limit = Number(c.req.query('limit') ?? '100');
+    const all = await usersStore.listUsers();
+    return c.json(
+      all
+        .filter((u) => u.role === 'student')
+        .slice(0, Math.min(Number.isFinite(limit) ? limit : 100, 1000))
+        .map((u) => ({
+          id: u.id,
+          email: u.email,
+          name: u.name,
+          active: u.active,
+          createdAt: u.createdAt,
+          lastLoginAt: u.lastLoginAt ?? null,
+        })),
+    );
+  });
+
+  app.get('/v1/orders', requireApiToken('orders:read'), async (c) => {
+    const limit = Number(c.req.query('limit') ?? '100');
+    const status = c.req.query('status');
+    let all = await ordersRepo.listAll();
+    if (status) all = all.filter((o) => o.status === status);
+    return c.json(
+      all.slice(0, Math.min(Number.isFinite(limit) ? limit : 100, 1000)).map((o) => ({
+        id: o.id,
+        userId: o.userId,
+        userEmail: o.userEmail,
+        productId: o.productId,
+        productName: o.productSnapshot.name,
+        amountCents: o.amountCents,
+        currency: o.currency,
+        status: o.status,
+        gatewayProvider: o.gatewayProvider,
+        externalId: o.externalId,
+        createdAt: o.createdAt,
+        paidAt: o.paidAt ?? null,
+      })),
+    );
+  });
+
+  app.get('/v1/courses', requireApiToken('courses:read'), async (c) => {
+    const courses = await coursesRepo.listCourses();
+    return c.json(
+      courses.map((co) => ({
+        id: co.id,
+        title: co.title,
+        slug: co.slug ?? null,
+        moduleCount: (co.modules ?? []).length,
+        lessonCount: (co.modules ?? []).reduce(
+          (s, m) => s + (m.lessons ?? []).length,
+          0,
+        ),
+      })),
+    );
+  });
+
+  // ---------- Activity feed agregado ----------
+
+  app.get('/admin/activity', requireAuth('admin', 'superadmin'), async (c) => {
+    const kindsRaw = c.req.query('kinds');
+    const kinds = kindsRaw
+      ? (kindsRaw.split(',').map((s) => s.trim()) as activityFeed.ActivityKind[])
+      : undefined;
+    const limit = Number(c.req.query('limit') ?? '200');
+    return c.json(
+      await activityFeed.buildFeed({
+        kinds,
+        since: c.req.query('since') ?? undefined,
+        until: c.req.query('until') ?? undefined,
+        q: c.req.query('q') ?? undefined,
+        limit: Number.isFinite(limit) ? limit : 200,
+      }),
+    );
+  });
 
   // ---------- Health check agregado ----------
 

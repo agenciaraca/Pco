@@ -97,6 +97,8 @@ const adminGroups = [
       { to: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
       { to: '/admin/saude', label: 'Saúde do sistema', icon: Activity },
       { to: '/admin/sessoes', label: 'Sessões', icon: ShieldCheck },
+      { to: '/admin/api-tokens', label: 'API tokens', icon: SettingsIcon },
+      { to: '/admin/atividade', label: 'Feed de atividade', icon: Activity },
       { to: '/admin/reengajamento-auto', label: 'Reengajamento auto.', icon: Sparkles },
       { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
       { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
