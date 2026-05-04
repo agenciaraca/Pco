@@ -141,3 +141,6 @@ serve({ fetch: appToServe.fetch, port, hostname: process.env.HOST ?? '127.0.0.1'
   // eslint-disable-next-line no-console
   console.log(`[ava-pco] http://${info.address}:${info.port}`);
 });
+
+// Worker de webhooks — processa entregas pendentes a cada 30s
+import('./webhooks/dispatcher').then((m) => m.startWorker(30_000));

@@ -31,7 +31,10 @@ export interface JwtPayload {
 }
 
 export async function signToken(
-  payload: { sub: string; email: string; role: Role; tv: number },
+  payload: { sub: string; email: string; role: Role; tv: number } & Record<
+    string,
+    unknown
+  >,
   ttlSeconds = DEFAULT_TTL_SECONDS,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);

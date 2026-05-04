@@ -33,13 +33,59 @@ export interface AuthUserDto {
   name: string;
   email: string;
   role: 'student' | 'admin' | 'superadmin';
+  totpEnabled?: boolean;
 }
 
-export async function login(email: string, password: string) {
-  return http.post<{ user: AuthUserDto; token: string }>('/auth/login', {
-    email,
-    password,
+export interface LoginResponseDto {
+  user?: AuthUserDto;
+  token?: string;
+  totpRequired?: boolean;
+  ticket?: string;
+}
+
+export async function login(email: string, password: string): Promise<LoginResponseDto> {
+  return http.post<LoginResponseDto>('/auth/login', { email, password });
+}
+
+export async function loginVerifyTotp(
+  ticket: string,
+  code: string,
+): Promise<{ user: AuthUserDto; token: string }> {
+  return http.post<{ user: AuthUserDto; token: string }>('/auth/login/totp', {
+    ticket,
+    code,
   });
+}
+
+export interface TotpSetupResponse {
+  secret: string;
+  uri: string;
+}
+
+export async function totpSetup(): Promise<TotpSetupResponse> {
+  return http.post<TotpSetupResponse>('/auth/me/totp/setup', {});
+}
+
+export async function totpEnable(
+  code: string,
+): Promise<{ enabled: true; backupCodes: string[] }> {
+  return http.post<{ enabled: true; backupCodes: string[] }>(
+    '/auth/me/totp/enable',
+    { code },
+  );
+}
+
+export async function totpDisable(code: string): Promise<{ enabled: false }> {
+  return http.post<{ enabled: false }>('/auth/me/totp/disable', { code });
+}
+
+export async function totpRegenBackupCodes(
+  code: string,
+): Promise<{ backupCodes: string[] }> {
+  return http.post<{ backupCodes: string[] }>(
+    '/auth/me/totp/backup-codes/regenerate',
+    { code },
+  );
 }
 
 export async function fetchCurrentStudent(): Promise<Student> {
@@ -1776,4 +1822,97 @@ export async function previewEmailTemplate(
   name: string,
 ): Promise<{ subject: string; html: string; text: string }> {
   return http.get(`/admin/email/templates/${encodeURIComponent(name)}/preview`);
+}
+
+// ---------- Webhooks de saída ----------
+
+export type WebhookEventTypeDto =
+  | 'order.paid'
+  | 'order.canceled'
+  | 'order.refunded'
+  | 'enrollment.created'
+  | 'user.created'
+  | 'course.completed'
+  | 'lesson.completed';
+
+export interface WebhookEndpointDto {
+  id: string;
+  name: string;
+  url: string;
+  events: WebhookEventTypeDto[];
+  enabled: boolean;
+  hasSecret: boolean;
+  hasHeaders: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastSuccessAt?: string;
+  lastFailureAt?: string;
+  lastErrorMessage?: string;
+}
+
+export interface WebhookEndpointInputDto {
+  name: string;
+  url: string;
+  events: WebhookEventTypeDto[];
+  enabled?: boolean;
+  secret?: string;
+  headers?: Record<string, string>;
+}
+
+export interface WebhookDeliveryDto {
+  id: string;
+  endpointId: string;
+  event: WebhookEventTypeDto;
+  payload: Record<string, unknown>;
+  status: 'pending' | 'success' | 'failed' | 'retrying';
+  attempts: number;
+  nextAttemptAt?: string;
+  lastResponseStatus?: number;
+  lastResponseBody?: string;
+  lastError?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+}
+
+export async function fetchWebhookEvents(): Promise<{ events: WebhookEventTypeDto[] }> {
+  return http.get('/admin/webhooks/events');
+}
+
+export async function fetchWebhookEndpoints(): Promise<WebhookEndpointDto[]> {
+  return http.get('/admin/webhooks/endpoints');
+}
+
+export async function createWebhookEndpoint(
+  input: WebhookEndpointInputDto,
+): Promise<WebhookEndpointDto> {
+  return http.post('/admin/webhooks/endpoints', input);
+}
+
+export async function updateWebhookEndpoint(
+  id: string,
+  input: Partial<WebhookEndpointInputDto>,
+): Promise<WebhookEndpointDto> {
+  return http.put(`/admin/webhooks/endpoints/${encodeURIComponent(id)}`, input);
+}
+
+export async function deleteWebhookEndpoint(id: string): Promise<void> {
+  await http.delete<{ ok: true }>(`/admin/webhooks/endpoints/${encodeURIComponent(id)}`);
+}
+
+export async function testWebhookEndpoint(
+  id: string,
+): Promise<{ ok: boolean; status?: number; body?: string; error?: string }> {
+  return http.post(`/admin/webhooks/endpoints/${encodeURIComponent(id)}/test`, {});
+}
+
+export async function fetchWebhookDeliveries(
+  endpointId?: string,
+): Promise<WebhookDeliveryDto[]> {
+  const qs = endpointId ? `?endpointId=${encodeURIComponent(endpointId)}` : '';
+  return http.get(`/admin/webhooks/deliveries${qs}`);
+}
+
+export async function retryWebhookDelivery(id: string): Promise<{ ok: true }> {
+  return http.post(`/admin/webhooks/deliveries/${encodeURIComponent(id)}/retry`, {});
 }

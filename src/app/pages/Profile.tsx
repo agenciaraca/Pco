@@ -17,6 +17,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
 import { useMyProgress, useCertificates } from '../data/hooks';
 import * as api from '../data/api';
+import TwoFactorAuthCard from '../components/TwoFactorAuthCard';
 
 export default function Profile() {
   const { user, patchUser } = useAuth();
@@ -323,6 +324,11 @@ export default function Profile() {
           </button>
         </form>
       </div>
+
+      <TwoFactorAuthCard
+        enabled={user?.totpEnabled === true}
+        onChanged={(enabled) => patchUser({ totpEnabled: enabled })}
+      />
 
       <div className="pco-card p-6">
         <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">

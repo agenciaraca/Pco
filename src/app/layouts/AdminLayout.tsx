@@ -28,6 +28,7 @@ import {
   CreditCard,
   UploadCloud,
   Mail,
+  Webhook,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
@@ -90,6 +91,7 @@ const adminGroups = [
       { to: '/admin/pedidos', label: 'Pedidos', icon: CreditCard },
       { to: '/admin/imports', label: 'Importar dados', icon: UploadCloud },
       { to: '/admin/email', label: 'E-mail transacional', icon: Mail },
+      { to: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
       { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
       { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
       { to: '/admin/configuracoes', label: 'Configurações Gerais', icon: SettingsIcon },

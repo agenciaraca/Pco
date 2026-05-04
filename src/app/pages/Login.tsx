@@ -9,7 +9,7 @@ import { useDocumentMeta } from '../hooks/useDocumentMeta';
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, completeTotpLogin } = useAuth();
   const { data: cfg } = useLoginConfig();
   useDocumentMeta({
     title: 'Entrar — AVA PCO',
@@ -20,6 +20,8 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totpTicket, setTotpTicket] = useState<string | null>(null);
+  const [totpCode, setTotpCode] = useState('');
 
   useEffect(() => {
     try {
@@ -49,13 +51,39 @@ export default function Login() {
     }
     setSubmitting(true);
     try {
-      const u = await login(cleanEmail, password);
-      const target = u.role === 'admin' || u.role === 'superadmin' ? '/admin/dashboard' : from;
+      const result = await login(cleanEmail, password);
+      if ('totpRequired' in result) {
+        setTotpTicket(result.ticket);
+        setSubmitting(false);
+        return;
+      }
+      const target =
+        result.role === 'admin' || result.role === 'superadmin' ? '/admin/dashboard' : from;
       navigate(target, { replace: true });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Não foi possível entrar. Verifique seus dados.',
       );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleTotpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!totpTicket) return;
+    setError(null);
+    if (!totpCode.trim()) {
+      setError('Digite o código do app autenticador.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const u = await completeTotpLogin(totpTicket, totpCode.trim());
+      const target = u.role === 'admin' || u.role === 'superadmin' ? '/admin/dashboard' : from;
+      navigate(target, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Código inválido.');
     } finally {
       setSubmitting(false);
     }
@@ -115,11 +143,66 @@ export default function Login() {
           <div className="lg:hidden mb-8">
             <Logo />
           </div>
-          <h2 className="text-2xl font-bold text-pco-deep">Entrar no AVA</h2>
+          <h2 className="text-2xl font-bold text-pco-deep">
+            {totpTicket ? 'Verificação em duas etapas' : 'Entrar no AVA'}
+          </h2>
           <p className="mt-1 text-sm text-ink-muted">
-            Bem-vindo de volta. Continue de onde parou.
+            {totpTicket
+              ? 'Digite o código de 6 dígitos do seu app autenticador (ou um código de backup).'
+              : 'Bem-vindo de volta. Continue de onde parou.'}
           </p>
 
+          {totpTicket ? (
+            <form className="mt-8 space-y-4" onSubmit={handleTotpSubmit} noValidate>
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-status-danger/30 bg-status-danger/5 p-3 flex items-start gap-2 text-xs text-status-danger"
+                >
+                  <AlertCircle size={14} strokeWidth={1.75} className="shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
+              <div>
+                <label
+                  htmlFor="totp"
+                  className="block text-xs font-medium text-ink-muted mb-1.5"
+                >
+                  Código de verificação
+                </label>
+                <input
+                  id="totp"
+                  name="totp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value)}
+                  className="pco-input text-center text-lg tracking-[0.4em]"
+                  placeholder="000000"
+                  required
+                />
+                <p className="mt-2 text-[11px] text-ink-subtle">
+                  Sem o app? Use um <strong>código de backup</strong> (formato XXXX-XXXX).
+                </p>
+              </div>
+              <button type="submit" disabled={submitting} className="pco-btn-primary w-full">
+                {submitting ? 'Verificando...' : 'Verificar e entrar'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTotpTicket(null);
+                  setTotpCode('');
+                  setError(null);
+                }}
+                className="pco-btn-ghost w-full text-xs"
+              >
+                Voltar ao login
+              </button>
+            </form>
+          ) : (
           <form className="mt-8 space-y-4" onSubmit={handleSubmit} noValidate>
             {error && (
               <div
@@ -199,6 +282,7 @@ export default function Login() {
               {!submitting && <ArrowRight size={16} strokeWidth={2} />}
             </button>
           </form>
+          )}
 
           <div className="mt-6 text-center text-xs text-ink-muted">
             Primeiro acesso?{' '}

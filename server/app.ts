@@ -17,7 +17,15 @@ const AVA_VERSION = (() => {
 })();
 const AVA_STARTED_AT = new Date().toISOString();
 import * as usersStore from './auth/users-store';
-import { signToken } from './auth/jwt';
+import { signToken, verifyToken } from './auth/jwt';
+import {
+  generateSecret,
+  generateBackupCodes,
+  hashBackupCode,
+  buildOtpauthUri,
+  verifyTotp,
+} from './auth/totp';
+import { encryptApiKey, decryptApiKey } from './db/encryption';
 import { attachUser, requireAuth } from './auth/middleware';
 import { createResetToken, consumeResetToken } from './auth/password-reset';
 import { auditMiddleware } from './audit/middleware';
@@ -112,6 +120,10 @@ import { pingWp } from './imports/connectors/wp';
 import { pingWc } from './imports/connectors/wc';
 import { collectFromApi } from './imports/connectors/orchestrator';
 import * as emailConfigs from './notifications/config-store';
+import * as webhookEndpoints from './webhooks/endpoints-store';
+import * as webhookDeliveries from './webhooks/delivery-store';
+import * as webhooksDispatcher from './webhooks/dispatcher';
+import { ALL_WEBHOOK_EVENTS, type WebhookEventType } from './webhooks/types';
 import * as emailLogs from './notifications/log-store';
 import { sendWithConfig, pingConfig, sendSafe } from './notifications/sender';
 import { ALL_EMAIL_PROVIDERS } from './notifications/providers/registry';
@@ -285,6 +297,22 @@ export function buildApp() {
     const { email, password } = parsed.data;
     const user = await usersStore.verifyPassword(email, password);
     if (!user) return jsonError(c, 401, 'INVALID_CREDENTIALS', 'E-mail ou senha incorretos.');
+
+    // Se 2FA ativado, retorna challenge — token só após verificar TOTP
+    if (user.totpEnabled) {
+      const ticket = await signToken(
+        {
+          sub: user.id,
+          email: user.email,
+          role: user.role,
+          tv: user.tokenVersion ?? 0,
+          totp: 'pending',
+        },
+        600,
+      );
+      return c.json({ totpRequired: true, ticket });
+    }
+
     const token = await signToken({
       sub: user.id,
       email: user.email,
@@ -292,6 +320,128 @@ export function buildApp() {
       tv: user.tokenVersion ?? 0,
     });
     return c.json({ user, token });
+  });
+
+  // Conclui login após TOTP. Aceita 6-digit ou backup code (formato AAAA-AAAA).
+  app.post(
+    '/auth/login/totp',
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        ticket?: string;
+        code?: string;
+      };
+      if (!body.ticket || !body.code) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'Ticket e code são obrigatórios.');
+      }
+      const claims = await verifyToken(body.ticket).catch(() => null);
+      if (!claims || (claims as { totp?: string }).totp !== 'pending') {
+        return jsonError(c, 401, 'INVALID_TICKET', 'Ticket inválido ou expirado.');
+      }
+      const raw = await usersStore.findRawById(claims.sub);
+      if (!raw || !raw.totpEnabled || !raw.totpSecretEncrypted) {
+        return jsonError(c, 400, 'NO_TOTP', 'Usuário sem 2FA ativo.');
+      }
+
+      const code = body.code.trim();
+      let valid = false;
+
+      // Tenta TOTP primeiro
+      if (/^\d{6}$/.test(code.replace(/\s+/g, ''))) {
+        const secret = decryptApiKey(raw.totpSecretEncrypted);
+        valid = verifyTotp(secret, code);
+      } else {
+        // Senão tenta backup code
+        const hash = hashBackupCode(code);
+        valid = await usersStore.consumeBackupCode(raw.id, hash);
+      }
+
+      if (!valid) {
+        return jsonError(c, 401, 'INVALID_CODE', 'Código 2FA inválido.');
+      }
+
+      const user = usersStore.toPublic(raw);
+      const token = await signToken({
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+        tv: user.tokenVersion ?? 0,
+      });
+      return c.json({ user, token });
+    },
+  );
+
+  // Setup TOTP — gera secret novo e devolve URI otpauth://. Só persiste após /enable.
+  app.post('/auth/me/totp/setup', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const raw = await usersStore.findRawById(u.sub);
+    if (!raw) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
+    if (raw.totpEnabled) {
+      return jsonError(c, 409, 'ALREADY_ENABLED', '2FA já está ativo. Desative primeiro.');
+    }
+    const secret = generateSecret();
+    const uri = buildOtpauthUri({
+      secret,
+      accountName: raw.email,
+      issuer: 'AVA PCO',
+    });
+    await usersStore.setTotpSecret(raw.id, encryptApiKey(secret));
+    return c.json({ secret, uri });
+  });
+
+  // Enable TOTP — usuário envia primeiro código pra confirmar setup.
+  app.post('/auth/me/totp/enable', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const body = (await c.req.json().catch(() => ({}))) as { code?: string };
+    if (!body.code) return jsonError(c, 400, 'INVALID_INPUT', 'code é obrigatório.');
+    const raw = await usersStore.findRawById(u.sub);
+    if (!raw || !raw.totpSecretEncrypted) {
+      return jsonError(c, 400, 'NO_SETUP', 'Setup não iniciado. Chame /setup antes.');
+    }
+    const secret = decryptApiKey(raw.totpSecretEncrypted);
+    if (!verifyTotp(secret, body.code)) {
+      return jsonError(c, 401, 'INVALID_CODE', 'Código inválido.');
+    }
+    const codes = generateBackupCodes(10);
+    const hashes = codes.map(hashBackupCode);
+    await usersStore.enableTotp(raw.id, hashes);
+    return c.json({ enabled: true, backupCodes: codes });
+  });
+
+  // Disable TOTP — exige código atual para evitar lockout indireto.
+  app.post('/auth/me/totp/disable', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const body = (await c.req.json().catch(() => ({}))) as { code?: string };
+    const raw = await usersStore.findRawById(u.sub);
+    if (!raw || !raw.totpEnabled || !raw.totpSecretEncrypted) {
+      return jsonError(c, 400, 'NOT_ENABLED', '2FA não está ativo.');
+    }
+    const secret = decryptApiKey(raw.totpSecretEncrypted);
+    const code = (body.code ?? '').trim();
+    let valid = false;
+    if (/^\d{6}$/.test(code)) valid = verifyTotp(secret, code);
+    else if (code) valid = await usersStore.consumeBackupCode(raw.id, hashBackupCode(code));
+    if (!valid) return jsonError(c, 401, 'INVALID_CODE', 'Código inválido.');
+    await usersStore.disableTotp(raw.id);
+    return c.json({ enabled: false });
+  });
+
+  // Regenera backup codes (revoga todos os antigos).
+  app.post('/auth/me/totp/backup-codes/regenerate', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const body = (await c.req.json().catch(() => ({}))) as { code?: string };
+    const raw = await usersStore.findRawById(u.sub);
+    if (!raw || !raw.totpEnabled || !raw.totpSecretEncrypted) {
+      return jsonError(c, 400, 'NOT_ENABLED', '2FA não está ativo.');
+    }
+    const secret = decryptApiKey(raw.totpSecretEncrypted);
+    if (!body.code || !verifyTotp(secret, body.code)) {
+      return jsonError(c, 401, 'INVALID_CODE', 'Código TOTP inválido.');
+    }
+    const codes = generateBackupCodes(10);
+    const hashes = codes.map(hashBackupCode);
+    await usersStore.regenBackupCodes(raw.id, hashes);
+    return c.json({ backupCodes: codes });
   });
 
   app.get('/auth/me', async (c) => {
@@ -2413,6 +2563,124 @@ export function buildApp() {
     },
   );
 
+  // ---------- Webhooks de saída ----------
+
+  app.get(
+    '/admin/webhooks/events',
+    requireAuth('admin', 'superadmin'),
+    (c) => c.json({ events: ALL_WEBHOOK_EVENTS }),
+  );
+
+  app.get(
+    '/admin/webhooks/endpoints',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(await webhookEndpoints.listEndpoints()),
+  );
+
+  app.post(
+    '/admin/webhooks/endpoints',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 30 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const name = String(body.name ?? '').trim();
+      const url = String(body.url ?? '').trim();
+      const events = Array.isArray(body.events) ? (body.events as WebhookEventType[]) : [];
+      if (!name || !url) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'name e url são obrigatórios.');
+      }
+      if (!/^https?:\/\//.test(url)) {
+        return jsonError(c, 400, 'INVALID_URL', 'URL deve começar com http(s)://.');
+      }
+      const validEvents = events.filter((e) => ALL_WEBHOOK_EVENTS.includes(e));
+      if (validEvents.length === 0) {
+        return jsonError(c, 400, 'INVALID_EVENTS', 'Selecione ao menos um evento válido.');
+      }
+      const created = await webhookEndpoints.createEndpoint({
+        name,
+        url,
+        events: validEvents,
+        enabled: body.enabled !== false,
+        secret: body.secret ? String(body.secret) : undefined,
+        headers:
+          body.headers && typeof body.headers === 'object'
+            ? (body.headers as Record<string, string>)
+            : undefined,
+      });
+      return c.json(created, 201);
+    },
+  );
+
+  app.put(
+    '/admin/webhooks/endpoints/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const events = Array.isArray(body.events)
+        ? (body.events as WebhookEventType[]).filter((e) => ALL_WEBHOOK_EVENTS.includes(e))
+        : undefined;
+      const updated = await webhookEndpoints.updateEndpoint(id, {
+        name: body.name ? String(body.name) : undefined,
+        url: body.url ? String(body.url) : undefined,
+        events,
+        enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+        secret: body.secret !== undefined ? String(body.secret) : undefined,
+        headers:
+          body.headers && typeof body.headers === 'object'
+            ? (body.headers as Record<string, string>)
+            : undefined,
+      });
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Endpoint não encontrado.');
+      return c.json(updated);
+    },
+  );
+
+  app.delete(
+    '/admin/webhooks/endpoints/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const ok = await webhookEndpoints.deleteEndpoint(c.req.param('id') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Endpoint não encontrado.');
+      return c.json({ ok: true });
+    },
+  );
+
+  app.post(
+    '/admin/webhooks/endpoints/:id/test',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) =>
+      c.json(await webhooksDispatcher.testEndpoint(c.req.param('id') as string)),
+  );
+
+  app.get(
+    '/admin/webhooks/deliveries',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const limit = Number(c.req.query('limit') ?? '200');
+      const endpointId = c.req.query('endpointId');
+      const list = endpointId
+        ? await webhookDeliveries.listByEndpoint(endpointId, Number.isFinite(limit) ? limit : 200)
+        : await webhookDeliveries.listAll(Number.isFinite(limit) ? limit : 200);
+      return c.json(list);
+    },
+  );
+
+  app.post(
+    '/admin/webhooks/deliveries/:id/retry',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const d = await webhookDeliveries.findById(id);
+      if (!d) return jsonError(c, 404, 'NOT_FOUND', 'Entrega não encontrada.');
+      await webhookDeliveries.resetForRetry(id);
+      // Tick imediato
+      void webhooksDispatcher.tickWorker();
+      return c.json({ ok: true });
+    },
+  );
+
   // ---------- Coupons (admin CRUD + validação pública) ----------
 
   app.get('/admin/coupons', requireAuth('admin', 'superadmin'), async (c) =>
@@ -2709,6 +2977,28 @@ export function buildApp() {
         } catch (err) {
           console.error('[order paid email]', err);
         }
+        // Webhook outbound — order.paid
+        void webhooksDispatcher.emit('order.paid', {
+          orderId: updated.id,
+          userId: updated.userId,
+          userEmail: updated.userEmail,
+          productId: updated.productId,
+          productName: updated.productSnapshot.name,
+          amountCents: updated.amountCents,
+          currency: updated.currency,
+          paidAt: updated.paidAt,
+        });
+      } else if (event.status === 'canceled' && updated) {
+        void webhooksDispatcher.emit('order.canceled', {
+          orderId: updated.id,
+          userId: updated.userId,
+        });
+      } else if (event.status === 'refunded' && updated) {
+        void webhooksDispatcher.emit('order.refunded', {
+          orderId: updated.id,
+          userId: updated.userId,
+          amountCents: updated.amountCents,
+        });
       }
 
       return c.json({ ok: true });

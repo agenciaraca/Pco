@@ -15,12 +15,17 @@ interface AuthUser {
   email: string;
   role: Role;
   avatarUrl?: string | null;
+  totpEnabled?: boolean;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<AuthUser>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<AuthUser | { totpRequired: true; ticket: string }>;
+  completeTotpLogin: (ticket: string, code: string) => Promise<AuthUser>;
   logout: () => void;
   logoutAllDevices: () => Promise<void>;
   patchUser: (patch: Partial<AuthUser>) => void;
@@ -81,13 +86,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('auth:expired', handleExpired);
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { user: u, token } = await api.login(email, password);
-    const stored: StoredSession = { user: u as AuthUser, token };
-    writeSession(stored);
-    setUser(u as AuthUser);
-    return u as AuthUser;
-  }, []);
+  const login = useCallback(
+    async (
+      email: string,
+      password: string,
+    ): Promise<AuthUser | { totpRequired: true; ticket: string }> => {
+      const res = await api.login(email, password);
+      if (res.totpRequired && res.ticket) {
+        return { totpRequired: true, ticket: res.ticket };
+      }
+      if (!res.user || !res.token) {
+        throw new Error('Resposta de login inválida.');
+      }
+      const stored: StoredSession = { user: res.user as AuthUser, token: res.token };
+      writeSession(stored);
+      setUser(res.user as AuthUser);
+      return res.user as AuthUser;
+    },
+    [],
+  );
+
+  const completeTotpLogin = useCallback(
+    async (ticket: string, code: string): Promise<AuthUser> => {
+      const { user: u, token } = await api.loginVerifyTotp(ticket, code);
+      const stored: StoredSession = { user: u as AuthUser, token };
+      writeSession(stored);
+      setUser(u as AuthUser);
+      return u as AuthUser;
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     writeSession(null);
@@ -115,7 +143,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, logout, logoutAllDevices, patchUser }}
+      value={{
+        user,
+        loading,
+        login,
+        completeTotpLogin,
+        logout,
+        logoutAllDevices,
+        patchUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

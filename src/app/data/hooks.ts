@@ -1152,3 +1152,68 @@ export function usePreviewEmailTemplate(name: string | undefined) {
     enabled: !!name,
   });
 }
+
+// ---------- Webhooks de saída ----------
+
+const webhookEndpointsKey = ['admin', 'webhooks', 'endpoints'] as const;
+const webhookDeliveriesKey = ['admin', 'webhooks', 'deliveries'] as const;
+
+export function useWebhookEvents() {
+  return useQuery({
+    queryKey: ['admin', 'webhooks', 'events'] as const,
+    queryFn: api.fetchWebhookEvents,
+    staleTime: Infinity,
+  });
+}
+
+export function useWebhookEndpoints() {
+  return useQuery({
+    queryKey: webhookEndpointsKey,
+    queryFn: api.fetchWebhookEndpoints,
+  });
+}
+
+export function useCreateWebhookEndpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createWebhookEndpoint,
+    onSuccess: () => qc.invalidateQueries({ queryKey: webhookEndpointsKey }),
+  });
+}
+
+export function useUpdateWebhookEndpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; input: Partial<api.WebhookEndpointInputDto> }) =>
+      api.updateWebhookEndpoint(args.id, args.input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: webhookEndpointsKey }),
+  });
+}
+
+export function useDeleteWebhookEndpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteWebhookEndpoint,
+    onSuccess: () => qc.invalidateQueries({ queryKey: webhookEndpointsKey }),
+  });
+}
+
+export function useTestWebhookEndpoint() {
+  return useMutation({ mutationFn: api.testWebhookEndpoint });
+}
+
+export function useWebhookDeliveries(endpointId?: string) {
+  return useQuery({
+    queryKey: [...webhookDeliveriesKey, endpointId] as const,
+    queryFn: () => api.fetchWebhookDeliveries(endpointId),
+    refetchInterval: 10_000,
+  });
+}
+
+export function useRetryWebhookDelivery() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.retryWebhookDelivery,
+    onSuccess: () => qc.invalidateQueries({ queryKey: webhookDeliveriesKey }),
+  });
+}

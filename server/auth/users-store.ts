@@ -20,6 +20,11 @@ export interface SystemUser {
   updatedAt: string;
   lastLoginAt?: string;
   active: boolean;
+  // 2FA TOTP
+  totpEnabled?: boolean;
+  totpSecretEncrypted?: string;
+  // Códigos de backup — guardamos só os hashes (sha256)
+  totpBackupCodes?: string[];
 }
 
 export interface SystemUserPublic {
@@ -33,6 +38,7 @@ export interface SystemUserPublic {
   updatedAt: string;
   lastLoginAt?: string;
   active: boolean;
+  totpEnabled?: boolean;
 }
 
 const DATA_DIR = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
@@ -58,8 +64,15 @@ export function generatePassword(length = 16): string {
 }
 
 export function toPublic(u: SystemUser): SystemUserPublic {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { passwordHash, ...rest } = u;
+  const {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    passwordHash,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    totpSecretEncrypted,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    totpBackupCodes,
+    ...rest
+  } = u;
   return rest;
 }
 
@@ -267,6 +280,87 @@ export async function changePassword(id: string, newPassword: string): Promise<b
   if (i === -1) return false;
   users[i].passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
   users[i].tokenVersion = (users[i].tokenVersion ?? 0) + 1;
+  users[i].updatedAt = new Date().toISOString();
+  await queueWrite();
+  return true;
+}
+
+// ---------- 2FA / TOTP ----------
+
+export async function findRawById(id: string): Promise<SystemUser | null> {
+  await loadUsers();
+  return users.find((u) => u.id === id) ?? null;
+}
+
+export async function setTotpSecret(
+  id: string,
+  secretEncrypted: string,
+): Promise<boolean> {
+  await loadUsers();
+  const i = users.findIndex((u) => u.id === id);
+  if (i === -1) return false;
+  users[i].totpSecretEncrypted = secretEncrypted;
+  users[i].totpEnabled = false; // só ativa após verificar
+  users[i].updatedAt = new Date().toISOString();
+  await queueWrite();
+  return true;
+}
+
+export async function enableTotp(
+  id: string,
+  backupCodeHashes: string[],
+): Promise<boolean> {
+  await loadUsers();
+  const i = users.findIndex((u) => u.id === id);
+  if (i === -1) return false;
+  if (!users[i].totpSecretEncrypted) return false;
+  users[i].totpEnabled = true;
+  users[i].totpBackupCodes = backupCodeHashes;
+  // Bump tokenVersion para invalidar sessions antigas — força re-login com 2FA
+  users[i].tokenVersion = (users[i].tokenVersion ?? 0) + 1;
+  users[i].updatedAt = new Date().toISOString();
+  await queueWrite();
+  return true;
+}
+
+export async function disableTotp(id: string): Promise<boolean> {
+  await loadUsers();
+  const i = users.findIndex((u) => u.id === id);
+  if (i === -1) return false;
+  users[i].totpEnabled = false;
+  users[i].totpSecretEncrypted = undefined;
+  users[i].totpBackupCodes = undefined;
+  users[i].updatedAt = new Date().toISOString();
+  await queueWrite();
+  return true;
+}
+
+/** Consume um código de backup. Retorna true se removido (válido), false caso contrário. */
+export async function consumeBackupCode(
+  id: string,
+  hash: string,
+): Promise<boolean> {
+  await loadUsers();
+  const i = users.findIndex((u) => u.id === id);
+  if (i === -1) return false;
+  const codes = users[i].totpBackupCodes ?? [];
+  const idx = codes.indexOf(hash);
+  if (idx === -1) return false;
+  codes.splice(idx, 1);
+  users[i].totpBackupCodes = codes;
+  users[i].updatedAt = new Date().toISOString();
+  await queueWrite();
+  return true;
+}
+
+export async function regenBackupCodes(
+  id: string,
+  hashes: string[],
+): Promise<boolean> {
+  await loadUsers();
+  const i = users.findIndex((u) => u.id === id);
+  if (i === -1) return false;
+  users[i].totpBackupCodes = hashes;
   users[i].updatedAt = new Date().toISOString();
   await queueWrite();
   return true;
