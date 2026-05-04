@@ -410,6 +410,18 @@ export async function studentSearch(q: string): Promise<StudentSearchHitDto[]> {
   return http.get<StudentSearchHitDto[]>(`/search?q=${encodeURIComponent(q)}`);
 }
 
+// ---------- Admin stats ----------
+
+export interface CompletionsStatsDto {
+  days: number;
+  total: number;
+  series: Array<{ day: string; count: number }>;
+}
+
+export async function fetchCompletionsStats(days = 7): Promise<CompletionsStatsDto> {
+  return http.get<CompletionsStatsDto>(`/admin/stats/completions?days=${days}`);
+}
+
 // ---------- Health (admin) ----------
 
 export interface HealthStatsDto {

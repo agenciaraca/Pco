@@ -707,6 +707,15 @@ export function useResetLoginConfig() {
   });
 }
 
+const completionsKey = ['admin', 'stats', 'completions'] as const;
+export function useCompletionsStats(days = 7) {
+  return useQuery({
+    queryKey: [...completionsKey, days],
+    queryFn: () => api.fetchCompletionsStats(days),
+    refetchInterval: 60_000,
+  });
+}
+
 const healthKey = ['admin', 'health'] as const;
 export function useHealth() {
   return useQuery({

@@ -1576,6 +1576,16 @@ export function buildApp() {
     return c.json(entries);
   });
 
+  // ---------- Stats agregadas (admin) ----------
+
+  app.get('/admin/stats/completions', requireAuth('admin', 'superadmin'), async (c) => {
+    const days = Number(c.req.query('days') ?? '7');
+    const safeDays = Number.isFinite(days) ? Math.max(1, Math.min(days, 90)) : 7;
+    const series = await progressRepo.completionsByDay(safeDays);
+    const total = series.reduce((s, d) => s + d.count, 0);
+    return c.json({ days: safeDays, total, series });
+  });
+
   // ---------- Audit log ----------
 
   app.get('/admin/audit-log.csv', requireAuth('admin', 'superadmin'), async (c) => {

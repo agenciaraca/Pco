@@ -46,6 +46,30 @@ export async function unmarkCompleted(userId: string, lessonId: string): Promise
   return await store.remove((p) => p.userId === userId && p.lessonId === lessonId);
 }
 
+export async function listAll(): Promise<LessonProgress[]> {
+  return await store.getAll();
+}
+
+export async function completionsByDay(days = 7): Promise<Array<{ day: string; count: number }>> {
+  const all = await listAll();
+  const now = Date.now();
+  const cutoff = now - days * 24 * 60 * 60 * 1000;
+  const buckets = new Map<string, number>();
+  // Inicializa todos os dias com 0
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now - i * 24 * 60 * 60 * 1000);
+    const key = d.toISOString().slice(0, 10);
+    buckets.set(key, 0);
+  }
+  for (const p of all) {
+    const ts = new Date(p.completedAt).getTime();
+    if (ts < cutoff) continue;
+    const key = p.completedAt.slice(0, 10);
+    buckets.set(key, (buckets.get(key) ?? 0) + 1);
+  }
+  return Array.from(buckets.entries()).map(([day, count]) => ({ day, count }));
+}
+
 export async function progressByCourse(
   userId: string,
 ): Promise<Record<string, { lessonsCompleted: number; lastAt: string | null }>> {

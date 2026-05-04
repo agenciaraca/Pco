@@ -15,6 +15,7 @@ import {
   useCourses,
   useAllCertificates,
   useAuditLog,
+  useCompletionsStats,
 } from '../../data/hooks';
 import { Cpu, HardDrive, AlertOctagon, Clock, History, ScrollText } from 'lucide-react';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -27,6 +28,45 @@ function formatUptime(sec: number): string {
   if (h < 24) return `${h}h ${min % 60}m`;
   const d = Math.floor(h / 24);
   return `${d}d ${h % 24}h`;
+}
+
+function CompletionsCard() {
+  const { data } = useCompletionsStats(7);
+  if (!data) return null;
+  const max = Math.max(1, ...data.series.map((d) => d.count));
+  const today = data.series[data.series.length - 1]?.count ?? 0;
+  return (
+    <div className="pco-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-pco-deep">Aulas concluídas</h3>
+        <span className="text-[10px] text-ink-subtle">últimos {data.days} dias</span>
+      </div>
+      <div className="flex items-end gap-3">
+        <div>
+          <div className="text-2xl font-bold text-pco-deep">{data.total}</div>
+          <div className="text-[11px] text-ink-subtle">
+            total · hoje: <strong className="text-pco-blue">{today}</strong>
+          </div>
+        </div>
+        <div className="flex-1 flex items-end gap-1 h-12">
+          {data.series.map((d) => (
+            <div
+              key={d.day}
+              title={`${d.day}: ${d.count}`}
+              className="flex-1 bg-pco-blue/20 hover:bg-pco-blue/40 rounded-sm relative"
+              style={{ height: `${(d.count / max) * 100}%`, minHeight: '2px' }}
+            >
+              {d.count > 0 && (
+                <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] text-pco-deep font-semibold">
+                  {d.count}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function HealthMiniCard() {
@@ -161,7 +201,10 @@ export default function AdminDashboard() {
         </p>
       </header>
 
-      <HealthMiniCard />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <CompletionsCard />
+        <HealthMiniCard />
+      </div>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {dynamicKpis.map((k) => {
