@@ -1,8 +1,11 @@
 import { Link, useRouteError, isRouteErrorResponse } from 'react-router-dom';
-import { AlertTriangle, Home } from 'lucide-react';
+import { AlertTriangle, Home, LogIn, ShieldCheck, RefreshCw } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 
 export default function RootError() {
   const error = useRouteError();
+  const { user } = useAuth();
+  const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
 
   let title = 'Algo deu errado';
   let message = 'Ocorreu um erro inesperado nesta página.';
@@ -27,10 +30,34 @@ export default function RootError() {
         </div>
         <h1 className="text-2xl font-semibold text-pco-deep mb-2">{title}</h1>
         <p className="text-sm text-ink-muted mb-8">{message}</p>
-        <Link to="/dashboard" className="pco-btn-primary inline-flex">
-          <Home size={16} strokeWidth={2} />
-          Voltar ao início
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => location.reload()}
+            className="pco-btn-secondary text-xs"
+          >
+            <RefreshCw size={14} strokeWidth={2} />
+            Recarregar página
+          </button>
+          {!user && (
+            <Link to="/login" className="pco-btn-primary inline-flex">
+              <LogIn size={14} strokeWidth={2} />
+              Entrar
+            </Link>
+          )}
+          {user && isAdmin && (
+            <Link to="/admin/dashboard" className="pco-btn-primary inline-flex">
+              <ShieldCheck size={14} strokeWidth={2} />
+              Painel admin
+            </Link>
+          )}
+          {user && !isAdmin && (
+            <Link to="/dashboard" className="pco-btn-primary inline-flex">
+              <Home size={14} strokeWidth={2} />
+              Voltar ao início
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

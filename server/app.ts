@@ -1155,6 +1155,81 @@ export function buildApp() {
     return c.json(hits);
   });
 
+  // ---------- Backups (admin) ----------
+
+  app.get('/admin/backups', requireAuth('admin', 'superadmin'), async (c) => {
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
+      const backupsDir = path.join(dataDir, 'backups');
+      let entries: import('node:fs').Dirent[];
+      try {
+        entries = await fs.readdir(backupsDir, { withFileTypes: true });
+      } catch {
+        return c.json([]);
+      }
+      const out = await Promise.all(
+        entries
+          .filter((e) => e.isFile() && e.name.endsWith('.tar.gz'))
+          .map(async (e) => {
+            const st = await fs.stat(path.join(backupsDir, e.name));
+            return {
+              name: e.name,
+              sizeBytes: st.size,
+              mtime: st.mtime.toISOString(),
+            };
+          }),
+      );
+      out.sort((a, b) => (b.mtime > a.mtime ? 1 : -1));
+      return c.json(out);
+    } catch (err) {
+      return jsonError(c, 500, 'INTERNAL', err instanceof Error ? err.message : String(err));
+    }
+  });
+
+  app.get('/admin/backups/:name/download', requireAuth('admin', 'superadmin'), async (c) => {
+    const name = c.req.param('name') as string;
+    if (!/^[a-zA-Z0-9_.-]+\.tar\.gz$/.test(name)) {
+      return jsonError(c, 400, 'INVALID_NAME', 'Nome inválido.');
+    }
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
+    const filepath = path.join(dataDir, 'backups', name);
+    try {
+      const buf = await fs.readFile(filepath);
+      // Hono supports body as Uint8Array
+      return new Response(buf, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/gzip',
+          'Content-Disposition': `attachment; filename="${name}"`,
+          'Content-Length': String(buf.length),
+        },
+      });
+    } catch {
+      return jsonError(c, 404, 'NOT_FOUND', 'Backup não encontrado.');
+    }
+  });
+
+  app.delete('/admin/backups/:name', requireAuth('admin', 'superadmin'), async (c) => {
+    const name = c.req.param('name') as string;
+    if (!/^[a-zA-Z0-9_.-]+\.tar\.gz$/.test(name)) {
+      return jsonError(c, 400, 'INVALID_NAME', 'Nome inválido.');
+    }
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
+      const filepath = path.join(dataDir, 'backups', name);
+      await fs.unlink(filepath);
+      return c.json({ ok: true });
+    } catch (err) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Backup não encontrado.');
+    }
+  });
+
   // ---------- Error log ----------
 
   app.get('/admin/errors', requireAuth('admin', 'superadmin'), async (c) => {

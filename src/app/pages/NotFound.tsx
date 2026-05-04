@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Home, Compass } from 'lucide-react';
+import { Home, Compass, LogIn, ShieldCheck } from 'lucide-react';
 import Logo from '../components/Logo';
+import { useAuth } from '../auth/AuthContext';
 
 export default function NotFound() {
+  const { user } = useAuth();
+  const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
   return (
     <div className="min-h-screen grid place-items-center bg-surface-off px-6">
       <div className="text-center max-w-md">
@@ -20,15 +23,31 @@ export default function NotFound() {
         <p className="mt-2 text-sm text-ink-muted">
           A rota que você acessou não existe no AVA PCO. Talvez ela tenha sido movida ou renomeada.
         </p>
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <Link to="/dashboard" className="pco-btn-primary">
-            <Home size={16} strokeWidth={2} />
-            Ir ao início
-          </Link>
-          <Link to="/jornada" className="pco-btn-secondary">
-            <Compass size={16} strokeWidth={2} />
-            Minha Jornada
-          </Link>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          {!user && (
+            <Link to="/login" className="pco-btn-primary">
+              <LogIn size={16} strokeWidth={2} />
+              Entrar
+            </Link>
+          )}
+          {user && isAdmin && (
+            <Link to="/admin/dashboard" className="pco-btn-primary">
+              <ShieldCheck size={16} strokeWidth={2} />
+              Painel admin
+            </Link>
+          )}
+          {user && !isAdmin && (
+            <>
+              <Link to="/dashboard" className="pco-btn-primary">
+                <Home size={16} strokeWidth={2} />
+                Ir ao início
+              </Link>
+              <Link to="/jornada" className="pco-btn-secondary">
+                <Compass size={16} strokeWidth={2} />
+                Minha Jornada
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </div>

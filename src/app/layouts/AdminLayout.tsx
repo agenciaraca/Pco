@@ -24,6 +24,7 @@ import {
   Bell as BellIcon,
   AlertOctagon,
   LifeBuoy,
+  Database as DatabaseIcon,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
@@ -80,6 +81,7 @@ const adminGroups = [
       { to: '/admin/usuarios', label: 'Usuários do Sistema', icon: ShieldCheck },
       { to: '/admin/auditoria', label: 'Auditoria', icon: ScrollText },
       { to: '/admin/erros', label: 'Erros do servidor', icon: AlertOctagon },
+      { to: '/admin/backups', label: 'Backups', icon: DatabaseIcon },
       { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
       { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
       { to: '/admin/configuracoes', label: 'Configurações Gerais', icon: SettingsIcon },

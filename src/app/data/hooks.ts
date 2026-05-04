@@ -666,6 +666,19 @@ export function useHealth() {
   });
 }
 
+const backupsKey = ['admin', 'backups'] as const;
+export function useBackups() {
+  return useQuery({ queryKey: backupsKey, queryFn: api.fetchBackups });
+}
+
+export function useDeleteBackup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteBackup,
+    onSuccess: () => qc.invalidateQueries({ queryKey: backupsKey }),
+  });
+}
+
 const errorLogKey = ['admin', 'error-log'] as const;
 export function useErrorLog(limit = 200) {
   return useQuery({

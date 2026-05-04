@@ -253,6 +253,40 @@ export async function resetLoginConfig(): Promise<LoginConfigDto> {
   return http.post<LoginConfigDto>('/admin/login-config/reset', {});
 }
 
+// ---------- Backups ----------
+
+export interface BackupDto {
+  name: string;
+  sizeBytes: number;
+  mtime: string;
+}
+
+export async function fetchBackups(): Promise<BackupDto[]> {
+  return http.get<BackupDto[]>('/admin/backups');
+}
+
+export async function deleteBackup(name: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/backups/${encodeURIComponent(name)}`);
+}
+
+export async function downloadBackup(name: string): Promise<void> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const res = await fetch(`/api/admin/backups/${encodeURIComponent(name)}/download`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ---------- Admin search ----------
 
 export interface SearchHitDto {
