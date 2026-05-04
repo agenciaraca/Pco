@@ -3,8 +3,10 @@ import { ArrowRight, Clock, Layers, PlayCircle } from 'lucide-react';
 import { useCourses, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 export default function Courses() {
+  useDocumentMeta({ title: 'Meus Cursos — AVA PCO' });
   const { data: courses, isLoading, isError } = useCourses();
   const { data: progress } = useMyProgress();
   const doneIds = new Set(progress?.completedLessonIds ?? []);

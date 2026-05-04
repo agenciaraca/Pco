@@ -36,6 +36,7 @@ import EmptyState, { ErrorState } from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import type { AdminStudentRow } from '../../data/seed';
+import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 
 const statusStyles: Record<AdminStudentRow['status'], string> = {
   ativo: 'bg-status-success/10 text-status-success',
@@ -52,6 +53,7 @@ const statusLabel: Record<AdminStudentRow['status'], string> = {
 };
 
 export default function AdminUsers() {
+  useDocumentMeta({ title: 'Alunos — Admin AVA PCO' });
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] =

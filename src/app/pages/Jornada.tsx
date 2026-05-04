@@ -12,12 +12,14 @@ import {
 import { useCourses, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import type { LessonStatus } from '../types/schema';
 
 export default function Jornada() {
   const { data: courses = [], isLoading } = useCourses();
   const { data: progress } = useMyProgress();
   const course = courses[0];
+  useDocumentMeta({ title: 'Minha Jornada — AVA PCO' });
   const doneIds = new Set(progress?.completedLessonIds ?? []);
 
   // Calcula progresso real

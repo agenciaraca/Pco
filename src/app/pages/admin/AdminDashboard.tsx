@@ -17,6 +17,7 @@ import {
   useAuditLog,
 } from '../../data/hooks';
 import { Cpu, HardDrive, AlertOctagon, Clock, History, ScrollText } from 'lucide-react';
+import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 
 function formatUptime(sec: number): string {
   if (sec < 60) return `${sec}s`;
@@ -95,6 +96,7 @@ export default function AdminDashboard() {
   const coursesQ = useCourses();
   const certsQ = useAllCertificates();
   const auditQ = useAuditLog({ limit: 8 });
+  useDocumentMeta({ title: 'Painel Admin — AVA PCO' });
 
   const students = studentsQ.data ?? [];
   const courses = coursesQ.data ?? [];

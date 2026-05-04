@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useAuditLog } from '../../data/hooks';
+import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import type { AuditEntryDto, AuditFilter } from '../../data/api';
@@ -43,6 +44,7 @@ function actionLabel(a: string): string {
 }
 
 export default function AdminAuditoria() {
+  useDocumentMeta({ title: 'Auditoria — Admin AVA PCO' });
   const [actionFilter, setActionFilter] = useState('');
   const [targetType, setTargetType] = useState('');
   const [search, setSearch] = useState('');

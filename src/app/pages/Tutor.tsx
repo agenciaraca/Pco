@@ -8,6 +8,7 @@ import {
 } from '../data/hooks';
 import { useToast } from '../components/Toast';
 import { ApiError } from '../data/client';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const ATTRIB_NOTICE =
   'O Tutor Virtual responde apenas dúvidas pedagógicas relacionadas aos cursos da PCO. Ele não substitui professores, supervisão clínica, atendimento psicológico, médico ou jurídico.';
@@ -22,6 +23,7 @@ export default function Tutor() {
   const history = useTutorHistory();
   const clearHistory = useClearTutorHistory();
   const usage = useTutorUsage();
+  useDocumentMeta({ title: 'Tutor Virtual — AVA PCO' });
   const toast = useToast();
   const [messages, setMessages] = useState<Msg[]>([
     {

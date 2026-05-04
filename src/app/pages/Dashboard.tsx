@@ -1,5 +1,6 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import {
   ArrowRight,
   Flame,
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const podcastsQ = usePodcasts();
   const progressQ = useMyProgress();
   const certsQ = useCertificates();
+  useDocumentMeta({ title: 'Início — AVA PCO' });
 
   // Admin/superadmin não tem dashboard de aluno — redireciona pro admin.
   // Após todos os hooks pra não violar rules-of-hooks.
