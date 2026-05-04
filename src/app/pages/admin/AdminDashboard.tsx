@@ -4,16 +4,19 @@ import {
   AlertTriangle,
   GraduationCap,
   Award,
-  Bot,
-  Mic2,
+  ArrowRight,
   Send,
   TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
-  ArrowRight,
 } from 'lucide-react';
-import { useHealth, useRetentionRisks } from '../../data/hooks';
-import { Cpu, HardDrive, AlertOctagon, Clock } from 'lucide-react';
+import {
+  useHealth,
+  useRetentionRisks,
+  useAdminStudents,
+  useCourses,
+  useAllCertificates,
+  useAuditLog,
+} from '../../data/hooks';
+import { Cpu, HardDrive, AlertOctagon, Clock, History, ScrollText } from 'lucide-react';
 
 function formatUptime(sec: number): string {
   if (sec < 60) return `${sec}s`;
@@ -67,17 +70,6 @@ function HealthMiniCard() {
   );
 }
 
-const kpis = [
-  { icon: Users, label: 'Alunos ativos', value: '342', delta: '+8%', positive: true, color: 'blue' },
-  { icon: AlertTriangle, label: 'Em risco', value: '47', delta: '+3', positive: false, color: 'orange' },
-  { icon: GraduationCap, label: 'Cursos ativos', value: '3', delta: '0', positive: true, color: 'cyan' },
-  { icon: TrendingUp, label: 'Taxa conclusão', value: '64%', delta: '+4pp', positive: true, color: 'green' },
-  { icon: Award, label: 'Certificados', value: '128', delta: '+12', positive: true, color: 'gold' },
-  { icon: Bot, label: 'Tutor (uso)', value: '1.2k', delta: '+22%', positive: true, color: 'blue' },
-  { icon: Mic2, label: 'PCO POD plays', value: '870', delta: '+18%', positive: true, color: 'cyan' },
-  { icon: Send, label: 'Reengajados', value: '23', delta: '+9', positive: true, color: 'orange' },
-] as const;
-
 const colorMap: Record<string, { bg: string; text: string }> = {
   blue: { bg: 'bg-pco-blue/10', text: 'text-pco-blue' },
   cyan: { bg: 'bg-pco-cyan/15', text: 'text-pco-cyan' },
@@ -86,8 +78,68 @@ const colorMap: Record<string, { bg: string; text: string }> = {
   gold: { bg: 'bg-status-gold/15', text: 'text-status-gold' },
 };
 
+function formatTs(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const sec = Math.round(diff / 1000);
+  if (sec < 60) return 'agora';
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}min atrás`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h}h atrás`;
+  return new Date(iso).toLocaleDateString('pt-BR');
+}
+
 export default function AdminDashboard() {
   const { data: retentionRisks = [] } = useRetentionRisks();
+  const studentsQ = useAdminStudents({ status: 'todos', sortBy: 'name' });
+  const coursesQ = useCourses();
+  const certsQ = useAllCertificates();
+  const auditQ = useAuditLog({ limit: 8 });
+
+  const students = studentsQ.data ?? [];
+  const courses = coursesQ.data ?? [];
+  const certs = certsQ.data ?? [];
+  const audit = auditQ.data ?? [];
+
+  const activeStudents = students.filter((s) => s.status === 'ativo').length;
+  const atRisk = students.filter((s) => s.status === 'em_risco').length;
+  const blocked = students.filter((s) => s.status === 'bloqueado').length;
+  const issuedCerts = certs.filter((c) => c.status === 'issued').length;
+
+  const dynamicKpis = [
+    {
+      icon: Users,
+      label: 'Alunos ativos',
+      value: String(activeStudents),
+      sub: `${students.length} cadastrados`,
+      color: 'blue' as const,
+    },
+    {
+      icon: AlertTriangle,
+      label: 'Em risco',
+      value: String(atRisk),
+      sub: `${blocked} bloqueado${blocked === 1 ? '' : 's'}`,
+      color: 'orange' as const,
+    },
+    {
+      icon: GraduationCap,
+      label: 'Cursos ativos',
+      value: String(courses.length),
+      sub:
+        courses.reduce(
+          (s, c) => s + c.modules.reduce((mm, m) => mm + (m.lessons?.length ?? 0), 0),
+          0,
+        ) + ' aulas total',
+      color: 'cyan' as const,
+    },
+    {
+      icon: Award,
+      label: 'Certificados emitidos',
+      value: String(issuedCerts),
+      sub: `${certs.length - issuedCerts} em andamento`,
+      color: 'gold' as const,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -101,7 +153,7 @@ export default function AdminDashboard() {
       <HealthMiniCard />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => {
+        {dynamicKpis.map((k) => {
           const Icon = k.icon;
           const c = colorMap[k.color];
           return (
@@ -114,20 +166,59 @@ export default function AdminDashboard() {
                   <Icon size={16} className={c.text} strokeWidth={1.75} />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <div className="text-2xl font-bold tracking-tight text-pco-deep">{k.value}</div>
-                <span
-                  className={`text-[11px] font-semibold inline-flex items-center gap-0.5 ${
-                    k.positive ? 'text-status-success' : 'text-status-danger'
-                  }`}
-                >
-                  {k.positive ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                  {k.delta}
-                </span>
+              <div className="mt-2 text-2xl font-bold tracking-tight text-pco-deep">
+                {k.value}
               </div>
+              {k.sub && <div className="text-[11px] text-ink-subtle mt-0.5">{k.sub}</div>}
             </div>
           );
         })}
+      </section>
+
+      <section className="pco-card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">
+            <History size={16} className="text-pco-blue" strokeWidth={1.75} />
+            Atividade recente
+          </h3>
+          <Link to="/admin/auditoria" className="text-xs text-pco-blue hover:underline">
+            Ver auditoria completa →
+          </Link>
+        </div>
+        {audit.length === 0 ? (
+          <p className="text-xs text-ink-muted">Sem ações registradas ainda.</p>
+        ) : (
+          <ul className="divide-y divide-surface-mute">
+            {audit.map((e) => (
+              <li key={e.id} className="py-2 flex items-start gap-2 text-xs">
+                <ScrollText size={12} strokeWidth={2} className="text-ink-muted mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="font-semibold text-pco-deep truncate">
+                      {e.actorEmail ?? 'sistema'}
+                    </span>
+                    <code className="text-[11px] text-pco-blue truncate">{e.action}</code>
+                    {e.targetId && (
+                      <span className="text-[11px] text-ink-muted truncate">
+                        · {e.targetId}
+                      </span>
+                    )}
+                    <span
+                      className={
+                        e.status === 'ok'
+                          ? 'pco-badge bg-status-success/10 text-status-success'
+                          : 'pco-badge bg-status-danger/15 text-status-danger'
+                      }
+                    >
+                      {e.status}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-ink-subtle shrink-0">{formatTs(e.ts)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="grid gap-5 lg:grid-cols-3">
