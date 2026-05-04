@@ -88,7 +88,32 @@ export function buildApp() {
   const app = new Hono().basePath('/api');
 
   app.use('*', logger());
-  app.use('*', secureHeaders());
+  app.use(
+    '*',
+    secureHeaders({
+      contentSecurityPolicy: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        connectSrc: ["'self'", 'https:'],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+      permissionsPolicy: {
+        camera: [],
+        microphone: [],
+        geolocation: [],
+        payment: [],
+      },
+      strictTransportSecurity: 'max-age=31536000; includeSubDomains',
+      xFrameOptions: 'DENY',
+      xContentTypeOptions: 'nosniff',
+      referrerPolicy: 'strict-origin-when-cross-origin',
+    }),
+  );
   app.use(
     '*',
     cors({
