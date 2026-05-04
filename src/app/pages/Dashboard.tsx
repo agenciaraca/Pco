@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import {
   ArrowRight,
   Flame,
@@ -24,12 +25,19 @@ import { Skeleton } from '../components/LoadingSkeleton';
 import { ErrorState } from '../components/EmptyState';
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const studentQ = useCurrentStudent();
   const coursesQ = useCourses();
   const newsQ = useNews();
   const podcastsQ = usePodcasts();
   const progressQ = useMyProgress();
   const certsQ = useCertificates();
+
+  // Admin/superadmin não tem dashboard de aluno — redireciona pro admin.
+  // Após todos os hooks pra não violar rules-of-hooks.
+  if (user && (user.role === 'admin' || user.role === 'superadmin')) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   const isLoading = studentQ.isLoading || coursesQ.isLoading;
   const isError = studentQ.isError || coursesQ.isError;
@@ -55,10 +63,13 @@ export default function Dashboard() {
   }
 
   const student = studentQ.data;
-  const enrolled = coursesQ.data.filter((c) => student.enrolledCourseIds.includes(c.id));
+  const enrolledIds = (student as { enrolledCourseIds?: string[] }).enrolledCourseIds ?? [];
+  const enrolled = coursesQ.data.filter((c) => enrolledIds.includes(c.id));
+  const totalMinutes = (student as { totalStudyMinutes?: number }).totalStudyMinutes ?? 0;
+  const weeklyGoal = (student as { weeklyGoalMinutes?: number }).weeklyGoalMinutes ?? 240;
   const weeklyProgress = Math.min(
     100,
-    Math.round(((student.totalStudyMinutes % 240) / student.weeklyGoalMinutes) * 100),
+    Math.round(((totalMinutes % 240) / weeklyGoal) * 100),
   );
   const completedLessons = progressQ.data?.completedLessonIds.length ?? 0;
   const totalEnrolledLessons = enrolled.reduce(
