@@ -621,6 +621,15 @@ export function useSaveLessonNote() {
   });
 }
 
+const tutorUsageKey = ['tutor', 'usage'] as const;
+export function useTutorUsage() {
+  return useQuery({
+    queryKey: tutorUsageKey,
+    queryFn: api.fetchTutorUsage,
+    refetchInterval: 60_000,
+  });
+}
+
 const tutorHistoryKey = ['tutor', 'history'] as const;
 export function useTutorHistory() {
   return useQuery({ queryKey: tutorHistoryKey, queryFn: () => api.fetchTutorHistory() });

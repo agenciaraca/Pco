@@ -444,6 +444,36 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
+  // ---------- Tutor usage (usuário logado) ----------
+
+  app.get('/me/tutor/usage', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const config = await aiConfigRepo.getActiveByModule('tutor');
+    if (!config) {
+      return c.json({
+        configured: false,
+        used: 0,
+        limit: 0,
+        remaining: 0,
+        windowDays: 30,
+      });
+    }
+    const used = await aiConfigRepo.countUsageInWindow(
+      config.id,
+      u.sub,
+      30 * 24 * 60 * 60 * 1000,
+    );
+    return c.json({
+      configured: true,
+      used,
+      limit: config.perStudentLimit,
+      remaining: Math.max(0, config.perStudentLimit - used),
+      windowDays: 30,
+      provider: config.provider,
+      model: config.model,
+    });
+  });
+
   // ---------- Tutor history (usuário logado) ----------
 
   app.get('/tutor/history', requireAuth(), async (c) => {

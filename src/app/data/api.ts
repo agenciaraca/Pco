@@ -206,6 +206,22 @@ export async function saveLessonNote(lessonId: string, content: string): Promise
   return http.put<LessonNoteDto>(`/lessons/${encodeURIComponent(lessonId)}/note`, { content });
 }
 
+// ---------- Tutor usage ----------
+
+export interface TutorUsageDto {
+  configured: boolean;
+  used: number;
+  limit: number;
+  remaining: number;
+  windowDays: number;
+  provider?: string;
+  model?: string;
+}
+
+export async function fetchTutorUsage(): Promise<TutorUsageDto> {
+  return http.get<TutorUsageDto>('/me/tutor/usage');
+}
+
 // ---------- Tutor history ----------
 
 export interface TutorTurnDto {

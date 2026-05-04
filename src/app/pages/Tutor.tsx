@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bot, Send, AlertCircle, Sparkles, Loader2, Trash2 } from 'lucide-react';
-import { useAskTutor, useTutorHistory, useClearTutorHistory } from '../data/hooks';
+import {
+  useAskTutor,
+  useTutorHistory,
+  useClearTutorHistory,
+  useTutorUsage,
+} from '../data/hooks';
 import { useToast } from '../components/Toast';
 import { ApiError } from '../data/client';
 
@@ -16,6 +21,7 @@ export default function Tutor() {
   const ask = useAskTutor();
   const history = useTutorHistory();
   const clearHistory = useClearTutorHistory();
+  const usage = useTutorUsage();
   const toast = useToast();
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -154,6 +160,36 @@ export default function Tutor() {
         )}
       </div>
 
+      {usage.data?.configured && usage.data.limit > 0 && (
+        <div className="pco-card p-3">
+          <div className="flex justify-between text-[11px] text-ink-muted">
+            <span>Uso mensal</span>
+            <span className="font-semibold text-pco-deep">
+              {usage.data.used} / {usage.data.limit} perguntas
+            </span>
+          </div>
+          <div className="mt-1.5 h-1.5 rounded-full bg-surface-gray overflow-hidden">
+            <div
+              className={
+                usage.data.remaining === 0
+                  ? 'h-full rounded-full bg-status-danger'
+                  : usage.data.used / usage.data.limit > 0.8
+                    ? 'h-full rounded-full bg-pco-orange'
+                    : 'h-full rounded-full bg-gradient-to-r from-pco-blue to-pco-cyan'
+              }
+              style={{
+                width: `${Math.min(100, Math.round((usage.data.used / usage.data.limit) * 100))}%`,
+              }}
+            />
+          </div>
+          {usage.data.remaining === 0 && (
+            <p className="mt-2 text-[11px] text-status-danger">
+              Limite mensal atingido. Pacotes adicionais em breve.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="pco-card p-0 overflow-hidden flex flex-col h-[60vh] min-h-[420px]">
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
           {messages.map((m, i) => (
@@ -182,14 +218,25 @@ export default function Tutor() {
                   send();
                 }
               }}
-              placeholder="Pergunte sobre uma aula, conceito ou leitura..."
+              placeholder={
+                usage.data?.configured && usage.data.remaining === 0
+                  ? 'Limite mensal atingido'
+                  : 'Pergunte sobre uma aula, conceito ou leitura...'
+              }
               className="pco-input flex-1"
               maxLength={2000}
-              disabled={ask.isPending}
+              disabled={
+                ask.isPending ||
+                (usage.data?.configured === true && usage.data.remaining === 0)
+              }
             />
             <button
               onClick={send}
-              disabled={ask.isPending || !draft.trim()}
+              disabled={
+                ask.isPending ||
+                !draft.trim() ||
+                (usage.data?.configured === true && usage.data.remaining === 0)
+              }
               className="pco-btn-primary"
               aria-label="Enviar"
             >
