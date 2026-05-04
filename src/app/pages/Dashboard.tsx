@@ -160,8 +160,8 @@ export default function Dashboard() {
         <KpiCard
           icon={<Flame size={18} className="text-pco-orange" strokeWidth={2} />}
           label="Sequência"
-          value="7"
-          unit="dias"
+          value={String(progressQ.data?.streakDays ?? 0)}
+          unit="dia(s) consecutivos"
           accent="orange"
         />
         <KpiCard

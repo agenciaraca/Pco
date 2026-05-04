@@ -119,6 +119,8 @@ export async function resetPassword(token: string, password: string): Promise<{ 
 export interface MyProgressDto {
   completedLessonIds: string[];
   byCourse: Record<string, { lessonsCompleted: number; lastAt: string | null }>;
+  streakDays: number;
+  lastCompletedAt: string | null;
 }
 
 export async function fetchMyProgress(): Promise<MyProgressDto> {

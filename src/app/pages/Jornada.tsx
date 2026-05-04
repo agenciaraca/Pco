@@ -9,14 +9,26 @@ import {
   Sparkles,
   Flag,
 } from 'lucide-react';
-import { useCourses } from '../data/hooks';
+import { useCourses, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import type { LessonStatus } from '../types/schema';
 
 export default function Jornada() {
   const { data: courses = [], isLoading } = useCourses();
+  const { data: progress } = useMyProgress();
   const course = courses[0];
+  const doneIds = new Set(progress?.completedLessonIds ?? []);
+
+  // Calcula progresso real
+  const totalLessons = course?.modules.reduce((s, m) => s + m.lessons.length, 0) ?? 0;
+  const doneLessons =
+    course?.modules.reduce(
+      (s, m) =>
+        s + m.lessons.filter((l) => doneIds.has(l.id) || l.status === 'completed').length,
+      0,
+    ) ?? 0;
+  const overallPct = totalLessons > 0 ? Math.round((doneLessons / totalLessons) * 100) : 0;
 
   if (isLoading) return <CardListSkeleton count={3} />;
   if (!course) return <EmptyState title="Sem cursos disponíveis" />;
@@ -41,12 +53,14 @@ export default function Jornada() {
           <div className="flex-1 min-w-[200px]">
             <div className="flex justify-between text-xs text-ink-muted mb-1">
               <span>Progresso geral</span>
-              <span className="font-semibold text-pco-deep">38%</span>
+              <span className="font-semibold text-pco-deep">
+                {overallPct}% · {doneLessons}/{totalLessons} aulas
+              </span>
             </div>
             <div className="h-2 rounded-full bg-surface-gray overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-pco-blue to-pco-cyan"
-                style={{ width: '38%' }}
+                style={{ width: `${overallPct}%` }}
               />
             </div>
           </div>
@@ -61,7 +75,18 @@ export default function Jornada() {
         <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-pco-blue/30 via-pco-cyan/30 to-transparent hidden md:block" />
         <ul className="relative space-y-4">
           {course.modules.map((module, idx) => {
-            const status: LessonStatus = module.status ?? 'available';
+            // Status real: completed se todas aulas concluídas, in_progress se alguma, etc.
+            const moduleDone = module.lessons.every(
+              (l) => doneIds.has(l.id) || l.status === 'completed',
+            );
+            const moduleStarted = module.lessons.some(
+              (l) => doneIds.has(l.id) || l.status === 'completed',
+            );
+            const status: LessonStatus = moduleDone
+              ? 'completed'
+              : moduleStarted
+                ? 'in_progress'
+                : (module.status ?? 'available');
             const side = idx % 2 === 0 ? 'left' : 'right';
             return (
               <li
@@ -72,7 +97,13 @@ export default function Jornada() {
                 )}
               >
                 <div className={clsx(side === 'left' ? 'md:pr-12' : 'md:pl-12')}>
-                  <NodeCard module={module} status={status} order={idx + 1} courseId={course.id} />
+                  <NodeCard
+                    module={module}
+                    status={status}
+                    order={idx + 1}
+                    courseId={course.id}
+                    doneIds={doneIds}
+                  />
                 </div>
                 <div />
               </li>
@@ -111,11 +142,13 @@ function NodeCard({
   status,
   order,
   courseId,
+  doneIds,
 }: {
   module: import('../types/schema').Module;
   status: LessonStatus;
   order: number;
   courseId: string;
+  doneIds: Set<string>;
 }) {
   const isLocked = status === 'locked';
   const isInProgress = status === 'in_progress';
@@ -140,7 +173,9 @@ function NodeCard({
         : 'Disponível';
 
   const lessons = module.lessons.length;
-  const completed = module.lessons.filter((l) => l.status === 'completed').length;
+  const completed = module.lessons.filter(
+    (l) => doneIds.has(l.id) || l.status === 'completed',
+  ).length;
 
   return (
     <div

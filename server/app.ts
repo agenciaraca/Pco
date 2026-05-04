@@ -314,9 +314,21 @@ export function buildApp() {
     const u = c.get('user')!;
     const list = await progressRepo.listForUser(u.sub);
     const byCourse = await progressRepo.progressByCourse(u.sub);
+
+    // Streak: dias distintos com pelo menos 1 lesson concluída, contados pra trás a partir de hoje (UTC)
+    const distinctDays = new Set(list.map((p) => p.completedAt.slice(0, 10)));
+    let streak = 0;
+    const day = new Date();
+    while (distinctDays.has(day.toISOString().slice(0, 10))) {
+      streak += 1;
+      day.setUTCDate(day.getUTCDate() - 1);
+    }
+
     return c.json({
       completedLessonIds: list.map((p) => p.lessonId),
       byCourse,
+      streakDays: streak,
+      lastCompletedAt: list[0]?.completedAt ?? null,
     });
   });
 

@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Clock, Layers, PlayCircle } from 'lucide-react';
-import { useCourses } from '../data/hooks';
+import { useCourses, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
 
 export default function Courses() {
   const { data: courses, isLoading, isError } = useCourses();
+  const { data: progress } = useMyProgress();
+  const doneIds = new Set(progress?.completedLessonIds ?? []);
 
   return (
     <div className="space-y-6">
@@ -36,10 +38,13 @@ export default function Courses() {
           {courses.map((course) => {
             const totalLessons = course.modules.reduce((s, m) => s + m.lessons.length, 0);
             const done = course.modules.reduce(
-              (s, m) => s + m.lessons.filter((l) => l.status === 'completed').length,
+              (s, m) =>
+                s +
+                m.lessons.filter((l) => doneIds.has(l.id) || l.status === 'completed')
+                  .length,
               0,
             );
-            const pct = Math.round((done / totalLessons) * 100);
+            const pct = totalLessons > 0 ? Math.round((done / totalLessons) * 100) : 0;
 
             return (
               <article key={course.id} className="pco-card pco-card-hover overflow-hidden p-0">
