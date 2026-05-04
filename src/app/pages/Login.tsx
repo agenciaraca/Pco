@@ -62,7 +62,15 @@ export default function Login() {
           <div className="absolute bottom-12 right-0 w-[28rem] h-[28rem] rounded-full bg-pco-orange/30 blur-3xl" />
         </div>
         <div className="relative flex flex-col justify-between w-full max-w-md">
-          <Logo />
+          {cfg?.logoUrl ? (
+            <img
+              src={cfg.logoUrl}
+              alt="Logo"
+              className="h-12 w-auto object-contain self-start"
+            />
+          ) : (
+            <Logo />
+          )}
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur text-xs font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-pco-cyan-light animate-pulse" />

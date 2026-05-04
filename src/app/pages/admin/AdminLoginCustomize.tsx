@@ -1,7 +1,16 @@
-import { useState, useEffect } from 'react';
-import { Save, RotateCcw, Image as ImageIcon, Eye, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  Save,
+  RotateCcw,
+  Image as ImageIcon,
+  Eye,
+  ArrowRight,
+  Loader2,
+  X,
+} from 'lucide-react';
 import { useLoginConfig, useUpdateLoginConfig, useResetLoginConfig } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
+import { uploadFile } from '../../data/api';
 
 const presets = [
   { name: 'Split Screen Premium', from: '#063B49', via: '#0097B2', to: '#0CC0DF' },
@@ -24,6 +33,9 @@ export default function AdminLoginCustomize() {
   const [to, setTo] = useState('#0CC0DF');
   const [position, setPosition] = useState<'left' | 'right'>('right');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const c = cfgQ.data;
@@ -36,6 +48,7 @@ export default function AdminLoginCustomize() {
     setTo(c.toColor);
     setPosition(c.position);
     setTheme(c.theme);
+    setLogoUrl(c.logoUrl ?? null);
   }, [cfgQ.data]);
 
   async function handleSave() {
@@ -49,6 +62,7 @@ export default function AdminLoginCustomize() {
         toColor: to,
         position,
         theme,
+        logoUrl,
       });
       toast.success('Customização salva');
     } catch (err) {
@@ -63,6 +77,22 @@ export default function AdminLoginCustomize() {
       toast.success('Padrão restaurado');
     } catch (err) {
       toast.error('Falha ao restaurar', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
+  async function handleLogoPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const res = await uploadFile(file);
+      setLogoUrl(res.url);
+      toast.info('Logo carregada — clique Salvar para aplicar.');
+    } catch (err) {
+      toast.error('Falha no upload', err instanceof Error ? err.message : 'Erro');
+    } finally {
+      setUploadingLogo(false);
+      if (fileInput.current) fileInput.current.value = '';
     }
   }
 
@@ -194,11 +224,46 @@ export default function AdminLoginCustomize() {
               </div>
             </Field>
 
-            <Field label="Imagem de fundo (opcional)">
-              <button className="pco-btn-secondary w-full justify-center text-xs">
-                <ImageIcon size={12} strokeWidth={2} />
-                Enviar imagem
-              </button>
+            <Field label="Logo (substitui o ícone padrão)">
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleLogoPick}
+                className="hidden"
+              />
+              {logoUrl ? (
+                <div className="flex items-center gap-2 rounded-lg border border-surface-gray p-2">
+                  <img
+                    src={logoUrl}
+                    alt="Logo"
+                    className="h-10 w-10 rounded-md object-contain bg-surface-off"
+                  />
+                  <code className="text-[11px] text-ink-muted truncate flex-1">{logoUrl}</code>
+                  <button
+                    type="button"
+                    onClick={() => setLogoUrl(null)}
+                    className="pco-btn-ghost text-xs px-2"
+                    title="Remover logo"
+                  >
+                    <X size={12} strokeWidth={2} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInput.current?.click()}
+                  disabled={uploadingLogo}
+                  className="pco-btn-secondary w-full justify-center text-xs"
+                >
+                  {uploadingLogo ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <ImageIcon size={12} strokeWidth={2} />
+                  )}
+                  {uploadingLogo ? 'Enviando...' : 'Enviar logo'}
+                </button>
+              )}
             </Field>
           </div>
         </div>
