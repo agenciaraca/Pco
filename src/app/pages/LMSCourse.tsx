@@ -1,12 +1,14 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowRight, Clock, Layers, PlayCircle } from 'lucide-react';
-import { useCourses, useMyProgress } from '../data/hooks';
+import { useCourses, useMyProgress, useCurrentStudent } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
+import CourseReviews from '../components/CourseReviews';
 
 export default function LMSCourse() {
   const { courseId } = useParams<{ courseId: string }>();
   const { data: courses = [], isLoading } = useCourses();
   const progress = useMyProgress();
+  const { data: student } = useCurrentStudent();
 
   if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
@@ -94,6 +96,15 @@ export default function LMSCourse() {
           ))}
         </div>
       </section>
+
+      <CourseReviews
+        courseId={course.id}
+        canReview={
+          (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds?.includes(
+            course.id,
+          ) ?? false
+        }
+      />
     </div>
   );
 }

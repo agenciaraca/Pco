@@ -1481,6 +1481,7 @@ export interface UpdateCoursePatch {
   certificateAvailable?: boolean;
   coverColor?: string;
   active?: boolean;
+  tags?: string[];
 }
 
 export async function updateCourse(id: string, patch: UpdateCoursePatch): Promise<Course> {
@@ -2283,6 +2284,104 @@ export async function restoreSettings(
   dryRun = false,
 ): Promise<RestoreResultDto> {
   return http.post('/admin/settings/restore', { ...payload, dryRun });
+}
+
+// ---------- Admin notes ----------
+
+export interface AdminNoteDto {
+  id: string;
+  studentId: string;
+  authorId: string;
+  authorEmail: string;
+  body: string;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchAdminNotes(studentId: string): Promise<AdminNoteDto[]> {
+  return http.get(`/admin/students/${encodeURIComponent(studentId)}/notes`);
+}
+
+export async function createAdminNote(
+  studentId: string,
+  body: string,
+  pinned = false,
+): Promise<AdminNoteDto> {
+  return http.post(`/admin/students/${encodeURIComponent(studentId)}/notes`, {
+    body,
+    pinned,
+  });
+}
+
+export async function updateAdminNote(
+  studentId: string,
+  noteId: string,
+  patch: { body?: string; pinned?: boolean },
+): Promise<AdminNoteDto> {
+  return http.put(
+    `/admin/students/${encodeURIComponent(studentId)}/notes/${encodeURIComponent(noteId)}`,
+    patch,
+  );
+}
+
+export async function deleteAdminNote(
+  studentId: string,
+  noteId: string,
+): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(
+    `/admin/students/${encodeURIComponent(studentId)}/notes/${encodeURIComponent(noteId)}`,
+  );
+}
+
+// ---------- Course reviews ----------
+
+export interface CourseRatingSummaryDto {
+  courseId: string;
+  count: number;
+  avg: number;
+  distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+}
+
+export interface CourseReviewDto {
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface MyCourseReviewDto {
+  id: string;
+  courseId: string;
+  rating: number;
+  comment?: string;
+  updatedAt: string;
+}
+
+export async function fetchCourseRating(courseId: string): Promise<CourseRatingSummaryDto> {
+  return http.get(`/courses/${encodeURIComponent(courseId)}/rating`);
+}
+
+export async function fetchCourseReviews(courseId: string): Promise<CourseReviewDto[]> {
+  return http.get(`/courses/${encodeURIComponent(courseId)}/reviews`);
+}
+
+export async function fetchMyCourseReview(
+  courseId: string,
+): Promise<MyCourseReviewDto | null> {
+  return http.get(`/me/courses/${encodeURIComponent(courseId)}/review`);
+}
+
+export async function upsertMyCourseReview(
+  courseId: string,
+  rating: number,
+  comment?: string,
+): Promise<MyCourseReviewDto> {
+  return http.put(`/me/courses/${encodeURIComponent(courseId)}/review`, {
+    rating,
+    comment,
+  });
 }
 
 export async function fetchActivityFeed(filter: {

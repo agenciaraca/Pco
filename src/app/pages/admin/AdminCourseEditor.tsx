@@ -136,9 +136,22 @@ function GeralPane({ course }: { course: Course }) {
     },
   });
 
+  const [tags, setTags] = useState<string[]>(course.tags ?? []);
+  const [tagInput, setTagInput] = useState('');
+
+  function addTag() {
+    const v = tagInput.trim();
+    if (!v || tags.includes(v) || tags.length >= 20) return;
+    setTags([...tags, v]);
+    setTagInput('');
+  }
+
   const onSubmit = async (data: UpdateCourseInput) => {
     try {
-      const updated = await update.mutateAsync({ id: course.id, patch: data });
+      const updated = await update.mutateAsync({
+        id: course.id,
+        patch: { ...data, tags },
+      });
       toast.success('Curso atualizado', updated.title);
       reset({
         title: updated.title,
@@ -169,6 +182,52 @@ function GeralPane({ course }: { course: Course }) {
         <Field label="Descrição" error={errors.description?.message}>
           <textarea {...register('description')} className="pco-input resize-none" rows={4} />
         </Field>
+        <Field label="Tags / categorias">
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {tags.map((t) => (
+              <span
+                key={t}
+                className="pco-badge bg-pco-blue/10 text-pco-blue inline-flex items-center gap-1"
+              >
+                {t}
+                <button
+                  type="button"
+                  onClick={() => setTags(tags.filter((x) => x !== t))}
+                  className="hover:text-status-danger"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {tags.length === 0 && (
+              <span className="text-xs text-ink-subtle">Nenhuma tag</span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addTag();
+                }
+              }}
+              className="pco-input flex-1"
+              placeholder="Nova tag e Enter (ex: introdutório)"
+              maxLength={40}
+            />
+            <button
+              type="button"
+              onClick={addTag}
+              className="pco-btn-ghost text-xs"
+              disabled={!tagInput.trim() || tags.length >= 20}
+            >
+              Adicionar
+            </button>
+          </div>
+        </Field>
+
         <div className="grid grid-cols-2 gap-4">
           <Field label="Carga horária (h)" error={errors.totalHours?.message}>
             <input

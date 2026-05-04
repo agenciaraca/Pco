@@ -1373,3 +1373,81 @@ export function useActivityFeed(
     refetchInterval: 30_000,
   });
 }
+
+export function useAdminNotes(studentId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'notes', studentId] as const,
+    queryFn: () => api.fetchAdminNotes(studentId!),
+    enabled: !!studentId,
+  });
+}
+
+export function useCreateAdminNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { studentId: string; body: string; pinned?: boolean }) =>
+      api.createAdminNote(args.studentId, args.body, args.pinned),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['admin', 'notes', vars.studentId] }),
+  });
+}
+
+export function useUpdateAdminNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      studentId: string;
+      noteId: string;
+      patch: { body?: string; pinned?: boolean };
+    }) => api.updateAdminNote(args.studentId, args.noteId, args.patch),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['admin', 'notes', vars.studentId] }),
+  });
+}
+
+export function useDeleteAdminNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { studentId: string; noteId: string }) =>
+      api.deleteAdminNote(args.studentId, args.noteId),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['admin', 'notes', vars.studentId] }),
+  });
+}
+
+export function useCourseRating(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ['courses', courseId, 'rating'] as const,
+    queryFn: () => api.fetchCourseRating(courseId!),
+    enabled: !!courseId,
+  });
+}
+
+export function useCourseReviews(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ['courses', courseId, 'reviews'] as const,
+    queryFn: () => api.fetchCourseReviews(courseId!),
+    enabled: !!courseId,
+  });
+}
+
+export function useMyCourseReview(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ['me', 'courses', courseId, 'review'] as const,
+    queryFn: () => api.fetchMyCourseReview(courseId!),
+    enabled: !!courseId,
+  });
+}
+
+export function useUpsertMyCourseReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { courseId: string; rating: number; comment?: string }) =>
+      api.upsertMyCourseReview(args.courseId, args.rating, args.comment),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['courses', vars.courseId, 'rating'] });
+      qc.invalidateQueries({ queryKey: ['courses', vars.courseId, 'reviews'] });
+      qc.invalidateQueries({ queryKey: ['me', 'courses', vars.courseId, 'review'] });
+    },
+  });
+}

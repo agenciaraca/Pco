@@ -175,6 +175,7 @@ export async function updateCourse(
           ? { certificateAvailable: patch.certificateAvailable }
           : {}),
         ...(patch.coverColor !== undefined ? { coverColor: patch.coverColor } : {}),
+        ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
       }),
     );
   }

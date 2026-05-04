@@ -75,6 +75,7 @@ export interface Course {
   modules: Module[];
   totalHours: number;
   certificateAvailable: boolean;
+  tags?: string[];
 }
 
 export interface Certificate {

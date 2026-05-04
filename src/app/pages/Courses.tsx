@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Clock, Layers, PlayCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowRight, Clock, Layers, PlayCircle, Tag } from 'lucide-react';
 import {
   useCourses,
   useMyProgress,
@@ -24,6 +25,22 @@ export default function Courses() {
   const enrolledIds = new Set(
     (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds ?? [],
   );
+
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of courses ?? []) {
+      for (const t of c.tags ?? []) set.add(t);
+    }
+    return Array.from(set).sort();
+  }, [courses]);
+
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+
+  const visibleCourses = useMemo(() => {
+    if (!courses) return [];
+    if (!activeTag) return courses;
+    return courses.filter((c) => (c.tags ?? []).includes(activeTag));
+  }, [courses, activeTag]);
 
   async function handleBuy(productId: string) {
     try {
@@ -62,9 +79,40 @@ export default function Courses() {
         </div>
       )}
 
+      {!isLoading && !isError && allTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Tag size={12} className="text-pco-blue" strokeWidth={1.75} />
+          <button
+            type="button"
+            onClick={() => setActiveTag(null)}
+            className={`pco-badge text-xs px-2 py-1 ${
+              activeTag === null
+                ? 'bg-pco-blue/10 text-pco-blue'
+                : 'bg-surface-gray text-ink-muted'
+            }`}
+          >
+            Todos
+          </button>
+          {allTags.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setActiveTag(activeTag === t ? null : t)}
+              className={`pco-badge text-xs px-2 py-1 ${
+                activeTag === t
+                  ? 'bg-pco-blue/10 text-pco-blue'
+                  : 'bg-surface-gray text-ink-muted'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+
       {!isLoading && !isError && courses && courses.length > 0 && (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {courses.map((course) => {
+          {visibleCourses.map((course) => {
             const totalLessons = course.modules.reduce((s, m) => s + m.lessons.length, 0);
             const done = course.modules.reduce(
               (s, m) =>

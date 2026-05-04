@@ -127,6 +127,8 @@ import * as apiTokens from './auth/api-tokens';
 import { requireApiToken } from './auth/api-token-middleware';
 import * as activityFeed from './activity/feed';
 import { buildCsv, csvResponse } from './export/csv';
+import * as adminNotes from './admin/notes-store';
+import * as courseReviews from './reviews/store';
 import * as settingsBackup from './settings/backup';
 import * as reengagementWorker from './reengagement/worker';
 import * as webhookDeliveries from './webhooks/delivery-store';
@@ -2731,6 +2733,144 @@ export function buildApp() {
       })),
     );
   });
+
+  // ---------- Course reviews (alunos avaliam) ----------
+
+  // Público: resumo (avg + count) — sem token
+  app.get('/courses/:id/rating', async (c) =>
+    c.json(await courseReviews.summary(c.req.param('id') as string)),
+  );
+
+  // Público: lista de reviews (mostra na página do curso) — sem token
+  app.get('/courses/:id/reviews', async (c) => {
+    const limit = Number(c.req.query('limit') ?? '50');
+    const list = await courseReviews.listForCourse(c.req.param('id') as string);
+    return c.json(
+      list.slice(0, Math.max(1, Math.min(limit, 200))).map((r) => ({
+        id: r.id,
+        userName: r.userName,
+        rating: r.rating,
+        comment: r.comment ?? '',
+        createdAt: r.createdAt,
+      })),
+    );
+  });
+
+  // Aluno autenticado: meu review (se houver)
+  app.get('/me/courses/:id/review', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const r = await courseReviews.findMine(c.req.param('id') as string, u.sub);
+    return c.json(r ?? null);
+  });
+
+  // Aluno autenticado: cria/atualiza review. Só matriculados.
+  app.put(
+    '/me/courses/:id/review',
+    requireAuth(),
+    rateLimit({ windowMs: 60_000, max: 30 }),
+    async (c) => {
+      const u = c.get('user')!;
+      const courseId = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const rating = Number(body.rating ?? 0);
+      const comment =
+        typeof body.comment === 'string'
+          ? body.comment.slice(0, 2000).trim() || undefined
+          : undefined;
+      if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+        return jsonError(c, 400, 'INVALID_RATING', 'rating deve ser inteiro 1-5');
+      }
+      // Verifica matrícula
+      const student = await studentsRepo.findAdminStudent(u.sub);
+      if (!student || !(student.enrolledCourseIds ?? []).includes(courseId)) {
+        return jsonError(
+          c,
+          403,
+          'NOT_ENROLLED',
+          'Apenas alunos matriculados podem avaliar este curso.',
+        );
+      }
+      try {
+        const review = await courseReviews.upsertReview({
+          courseId,
+          userId: u.sub,
+          userEmail: u.email,
+          userName: student.name || u.email,
+          rating: Math.round(rating),
+          comment,
+        });
+        return c.json(review);
+      } catch (err) {
+        return jsonError(c, 400, 'INVALID', err instanceof Error ? err.message : 'Erro');
+      }
+    },
+  );
+
+  // Admin: deletar review
+  app.delete(
+    '/admin/courses/:courseId/reviews/:reviewId',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const ok = await courseReviews.deleteReview(c.req.param('reviewId') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Review não encontrado.');
+      return c.json({ ok: true });
+    },
+  );
+
+  // ---------- Admin notes (notas internas sobre alunos) ----------
+
+  app.get(
+    '/admin/students/:id/notes',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(await adminNotes.listForStudent(c.req.param('id') as string)),
+  );
+
+  app.post(
+    '/admin/students/:id/notes',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 60 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const note = String(body.body ?? '').trim();
+      if (!note) return jsonError(c, 400, 'INVALID_INPUT', 'body é obrigatório');
+      if (note.length > 5000) {
+        return jsonError(c, 400, 'TOO_LONG', 'body máx 5000 chars');
+      }
+      const u = c.get('user')!;
+      const created = await adminNotes.createNote({
+        studentId: c.req.param('id') as string,
+        authorId: u.sub,
+        authorEmail: u.email,
+        body: note,
+        pinned: body.pinned === true,
+      });
+      return c.json(created, 201);
+    },
+  );
+
+  app.put(
+    '/admin/students/:studentId/notes/:noteId',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const updated = await adminNotes.updateNote(c.req.param('noteId') as string, {
+        body: typeof body.body === 'string' ? body.body : undefined,
+        pinned: typeof body.pinned === 'boolean' ? body.pinned : undefined,
+      });
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Nota não encontrada');
+      return c.json(updated);
+    },
+  );
+
+  app.delete(
+    '/admin/students/:studentId/notes/:noteId',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const ok = await adminNotes.deleteNote(c.req.param('noteId') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Nota não encontrada');
+      return c.json({ ok: true });
+    },
+  );
 
   // ---------- CSV exports ----------
 
