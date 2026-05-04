@@ -187,9 +187,16 @@ export function buildApp() {
     const u = await usersStore.findUserById(jwt.sub);
     if (!u) return jsonError(c, 401, 'UNAUTHORIZED', 'Usuário não existe mais.');
     if (u.role === 'student') {
-      // Para aluno, devolve o perfil acadêmico ligado
+      // Para aluno, devolve o perfil acadêmico ligado, mas com nome/email/avatar do user
       const s = await studentsRepo.getCurrentStudent();
-      return c.json({ ...s, name: u.name, email: u.email, role: u.role });
+      return c.json({
+        ...s,
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        avatarUrl: u.avatarUrl ?? null,
+      });
     }
     return c.json(u);
   });

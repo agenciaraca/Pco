@@ -83,6 +83,34 @@ export default function Dashboard() {
   const issuedCerts = (certsQ.data ?? []).filter((c) => c.status === 'issued').length;
   const inProgressCerts = (certsQ.data ?? []).filter((c) => c.status !== 'issued').length;
 
+  // Próxima aula sugerida: primeira aula não-concluída do primeiro curso enrollado
+  const doneIds = new Set(progressQ.data?.completedLessonIds ?? []);
+  let nextLesson: {
+    courseId: string;
+    moduleId: string;
+    lessonId: string;
+    courseTitle: string;
+    moduleTitle: string;
+    lessonTitle: string;
+  } | null = null;
+  outer: for (const c of enrolled) {
+    for (const m of c.modules) {
+      for (const l of m.lessons) {
+        if (!doneIds.has(l.id) && l.status !== 'completed') {
+          nextLesson = {
+            courseId: c.id,
+            moduleId: m.id,
+            lessonId: l.id,
+            courseTitle: c.shortTitle,
+            moduleTitle: m.title,
+            lessonTitle: l.title,
+          };
+          break outer;
+        }
+      }
+    }
+  }
+
   return (
     <div className="space-y-8">
       <header className="flex items-end justify-between gap-4 flex-wrap">
@@ -100,6 +128,33 @@ export default function Dashboard() {
           <ArrowRight size={16} strokeWidth={2} />
         </Link>
       </header>
+
+{nextLesson && (
+        <Link
+          to={`/curso/${nextLesson.courseId}/aula/${nextLesson.lessonId}`}
+          className="pco-card p-6 flex items-center gap-4 hover:shadow-lift transition-shadow group bg-gradient-to-br from-pco-blue/5 to-pco-cyan/5"
+        >
+          <div className="h-12 w-12 rounded-xl bg-pco-blue/10 grid place-items-center group-hover:bg-pco-blue/15 transition-colors shrink-0">
+            <PlayCircle size={22} className="text-pco-blue" strokeWidth={2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
+              Continue de onde parou
+            </div>
+            <div className="mt-1 text-base font-semibold text-pco-deep truncate">
+              {nextLesson.lessonTitle}
+            </div>
+            <div className="text-xs text-ink-muted truncate">
+              {nextLesson.courseTitle} · {nextLesson.moduleTitle}
+            </div>
+          </div>
+          <ArrowRight
+            size={18}
+            strokeWidth={2}
+            className="text-pco-blue group-hover:translate-x-1 transition-transform shrink-0"
+          />
+        </Link>
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
