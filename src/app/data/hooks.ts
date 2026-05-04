@@ -853,11 +853,73 @@ export function useImportTemplates() {
   });
 }
 
-export function useImportJobs() {
+export function useImportJobs(filter: api.ImportJobsFilterDto = {}) {
   return useQuery({
-    queryKey: importJobsKey,
-    queryFn: api.fetchImportJobs,
+    queryKey: [...importJobsKey, filter],
+    queryFn: () => api.fetchImportJobs(filter),
     refetchInterval: 5_000, // polling rápido enquanto import roda
+  });
+}
+
+const importConnectionsKey = ['admin', 'imports', 'connections'] as const;
+
+export function useImportConnections() {
+  return useQuery({
+    queryKey: importConnectionsKey,
+    queryFn: api.fetchImportConnections,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateImportConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (i: api.ImportConnectionInputDto) => api.createImportConnection(i),
+    onSuccess: () => qc.invalidateQueries({ queryKey: importConnectionsKey }),
+  });
+}
+
+export function useUpdateImportConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; input: Partial<api.ImportConnectionInputDto> }) =>
+      api.updateImportConnection(args.id, args.input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: importConnectionsKey }),
+  });
+}
+
+export function useDeleteImportConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteImportConnection(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: importConnectionsKey }),
+  });
+}
+
+export function useTestImportConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.testImportConnection(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: importConnectionsKey }),
+  });
+}
+
+export function useStartApiRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (i: api.RunApiInputDto) => api.startApiRun(i),
+    onSuccess: () => qc.invalidateQueries({ queryKey: importJobsKey }),
+  });
+}
+
+export function useRollbackImportJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.rollbackImportJob(id),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: importJobsKey });
+      qc.invalidateQueries({ queryKey: ['admin', 'imports', 'jobs', id] });
+    },
   });
 }
 

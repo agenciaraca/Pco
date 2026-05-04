@@ -663,6 +663,11 @@ export interface ImportJobDto {
     field?: string;
   }>;
   notes: Array<{ ts: string; level: string; message: string }>;
+  createdRefs: Array<{
+    entity: string;
+    internalId: string;
+    externalId?: string;
+  }>;
 }
 
 export async function fetchImportTemplates(): Promise<ImportTemplateDto[]> {
@@ -690,18 +695,235 @@ export async function downloadImportTemplate(entity: ImportEntityTypeDto): Promi
   URL.revokeObjectURL(url);
 }
 
-export async function fetchImportJobs(): Promise<ImportJobDto[]> {
-  return http.get<ImportJobDto[]>('/admin/imports/jobs');
+export interface ImportJobsFilterDto {
+  status?: string;
+  source?: string;
+  mode?: string;
+  dryRun?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+  q?: string;
+  limit?: number;
+}
+
+export async function fetchImportJobs(
+  filter: ImportJobsFilterDto = {},
+): Promise<ImportJobDto[]> {
+  const qs = new URLSearchParams();
+  if (filter.status) qs.set('status', filter.status);
+  if (filter.source) qs.set('source', filter.source);
+  if (filter.mode) qs.set('mode', filter.mode);
+  if (filter.dryRun !== undefined) qs.set('dryRun', String(filter.dryRun));
+  if (filter.dateFrom) qs.set('dateFrom', filter.dateFrom);
+  if (filter.dateTo) qs.set('dateTo', filter.dateTo);
+  if (filter.q) qs.set('q', filter.q);
+  if (filter.limit) qs.set('limit', String(filter.limit));
+  const path = `/admin/imports/jobs${qs.toString() ? `?${qs.toString()}` : ''}`;
+  return http.get<ImportJobDto[]>(path);
 }
 
 export async function fetchImportJob(id: string): Promise<ImportJobDto> {
   return http.get<ImportJobDto>(`/admin/imports/jobs/${encodeURIComponent(id)}`);
 }
 
+export async function downloadImportJob(
+  id: string,
+  format: 'csv' | 'json',
+): Promise<void> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const res = await fetch(
+    `/api/admin/imports/jobs/${encodeURIComponent(id)}/export?format=${format}`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `import-${id}.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export interface RollbackPreviewDto {
+  refs: Array<{
+    id: string;
+    sourceType: string;
+    externalEntityType: string;
+    externalId: string;
+    internalEntityType: string;
+    internalId: string;
+    jobId: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  productsToDeactivate: ImportJobDto['createdRefs'];
+  studentsCreated: ImportJobDto['createdRefs'];
+  enrollmentsCreated: ImportJobDto['createdRefs'];
+}
+
+export async function previewImportRollback(id: string): Promise<RollbackPreviewDto> {
+  return http.get<RollbackPreviewDto>(
+    `/admin/imports/jobs/${encodeURIComponent(id)}/rollback/preview`,
+  );
+}
+
+export interface RollbackResultDto {
+  jobId: string;
+  refsRemoved: number;
+  productsDeactivated: number;
+  notes: string[];
+}
+
+export async function rollbackImportJob(id: string): Promise<RollbackResultDto> {
+  return http.post<RollbackResultDto>(
+    `/admin/imports/jobs/${encodeURIComponent(id)}/rollback`,
+    {},
+  );
+}
+
 /**
  * Faz upload multipart de CSVs por entidade.
  * Cada chave em `files` deve ser um File com cabeçalhos canônicos (vide template).
  */
+
+export type EnrollmentStartRuleDto =
+  | 'paid_date'
+  | 'completed_date'
+  | 'order_date'
+  | 'imported'
+  | 'now';
+export type EnrollmentExpirationRuleDto =
+  | 'start_plus_duration'
+  | 'order_plus_duration'
+  | 'paid_plus_duration'
+  | 'completed_plus_duration'
+  | 'explicit'
+  | 'lifetime'
+  | 'course_fixed_end';
+
+export interface RunRealOptions {
+  startRule?: EnrollmentStartRuleDto;
+  expirationRule?: EnrollmentExpirationRuleDto;
+  defaultAccessDurationDays?: number;
+}
+
+export async function startCsvRunReal(
+  files: Partial<Record<ImportEntityTypeDto, File>>,
+  options: RunRealOptions = {},
+): Promise<{ jobId: string; totalRows: number }> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const form = new FormData();
+  for (const [entity, file] of Object.entries(files)) {
+    if (file instanceof File) form.set(`file_${entity}`, file);
+  }
+  if (options.startRule) form.set('enrollment_start_rule', options.startRule);
+  if (options.expirationRule)
+    form.set('enrollment_expiration_rule', options.expirationRule);
+  if (options.defaultAccessDurationDays !== undefined)
+    form.set('default_access_duration_days', String(options.defaultAccessDurationDays));
+  const res = await fetch('/api/admin/imports/run/csv', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j?.error?.message ?? `HTTP ${res.status}`);
+  }
+  return (await res.json()) as { jobId: string; totalRows: number };
+}
+
+// ---------- Connections (REST WP/LD/WC) ----------
+
+export interface ImportConnectionDto {
+  id: string;
+  name: string;
+  kind: 'wp_ld_wc';
+  siteUrl: string;
+  wpUsername?: string;
+  hasWpAppPassword: boolean;
+  hasWcConsumerKey: boolean;
+  hasWcConsumerSecret: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastTestedAt?: string;
+  lastTestStatus?: 'ok' | 'error';
+  lastTestMessage?: string;
+}
+
+export interface ImportConnectionInputDto {
+  name: string;
+  siteUrl: string;
+  wpUsername?: string;
+  wpAppPassword?: string;
+  wcConsumerKey?: string;
+  wcConsumerSecret?: string;
+}
+
+export async function fetchImportConnections(): Promise<ImportConnectionDto[]> {
+  return http.get<ImportConnectionDto[]>('/admin/imports/connections');
+}
+
+export async function createImportConnection(
+  input: ImportConnectionInputDto,
+): Promise<ImportConnectionDto> {
+  return http.post<ImportConnectionDto>('/admin/imports/connections', input);
+}
+
+export async function updateImportConnection(
+  id: string,
+  input: Partial<ImportConnectionInputDto>,
+): Promise<ImportConnectionDto> {
+  return http.put<ImportConnectionDto>(
+    `/admin/imports/connections/${encodeURIComponent(id)}`,
+    input,
+  );
+}
+
+export async function deleteImportConnection(id: string): Promise<void> {
+  await http.delete<{ ok: true }>(
+    `/admin/imports/connections/${encodeURIComponent(id)}`,
+  );
+}
+
+export interface ConnectionTestResult {
+  wp: { ok: boolean; message: string };
+  wc: { ok: boolean; message: string };
+  overall: 'ok' | 'error';
+}
+
+export async function testImportConnection(id: string): Promise<ConnectionTestResult> {
+  return http.post<ConnectionTestResult>(
+    `/admin/imports/connections/${encodeURIComponent(id)}/test`,
+    {},
+  );
+}
+
+export interface RunApiInputDto {
+  connectionId: string;
+  entities: ImportEntityTypeDto[];
+  dryRun?: boolean;
+  enrollment?: {
+    startRule?: EnrollmentStartRuleDto;
+    expirationRule?: EnrollmentExpirationRuleDto;
+    defaultAccessDurationDays?: number;
+  };
+}
+
+export async function startApiRun(
+  input: RunApiInputDto,
+): Promise<{ jobId: string; dryRun: boolean; entities: string[] }> {
+  return http.post<{ jobId: string; dryRun: boolean; entities: string[] }>(
+    '/admin/imports/run/api',
+    input,
+  );
+}
+
 export async function startCsvDryRun(
   files: Partial<Record<ImportEntityTypeDto, File>>,
 ): Promise<{ jobId: string; totalRows: number }> {

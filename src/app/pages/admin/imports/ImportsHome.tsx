@@ -91,7 +91,7 @@ export default function ImportsHome() {
             <PlayCircle size={16} strokeWidth={1.75} className="text-pco-blue shrink-0" />
           </Link>
           <Link
-            to="/admin/imports/wizard?source=api"
+            to="/admin/imports/wizard-api"
             className="pco-card pco-card-hover p-4 flex items-start gap-3"
           >
             <div className="h-10 w-10 rounded-lg bg-pco-cyan/15 grid place-items-center shrink-0">

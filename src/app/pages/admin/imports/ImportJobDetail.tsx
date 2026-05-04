@@ -6,14 +6,47 @@ import {
   AlertCircle,
   Clock,
   AlertTriangle,
+  Download,
+  RotateCcw,
 } from 'lucide-react';
-import { useImportJob } from '../../../data/hooks';
+import { useImportJob, useRollbackImportJob } from '../../../data/hooks';
+import { downloadImportJob } from '../../../data/api';
+import { useToast } from '../../../components/Toast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
 
 export default function ImportJobDetail() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useImportJob(id);
+  const toast = useToast();
+  const rollback = useRollbackImportJob();
   useDocumentMeta({ title: data?.id ? `${data.id} — Imports` : 'Import job' });
+
+  async function handleExport(format: 'csv' | 'json') {
+    if (!data) return;
+    try {
+      await downloadImportJob(data.id, format);
+      toast.success(`Relatório ${format.toUpperCase()} baixado`);
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
+  async function handleRollback() {
+    if (!data) return;
+    const ok = confirm(
+      `Reverter ${data.id}?\n\n• Remove ${data.createdRefs.length} referência(s).\n• Desativa produtos criados.\n• Não exclui alunos/matrículas.`,
+    );
+    if (!ok) return;
+    rollback.mutate(data.id, {
+      onSuccess: (r) =>
+        toast.success(
+          'Rollback concluído',
+          `${r.refsRemoved} refs removidas, ${r.productsDeactivated} produtos desativados`,
+        ),
+      onError: (err) =>
+        toast.error('Falha', err instanceof Error ? err.message : 'Erro'),
+    });
+  }
 
   if (isLoading || !data) {
     return (
@@ -32,24 +65,60 @@ export default function ImportJobDetail() {
       : 0;
 
   const isRunning = data.status === 'running' || data.status === 'pending';
+  const canRollback =
+    !data.dryRun &&
+    data.status !== 'rolled_back' &&
+    data.status !== 'pending' &&
+    data.status !== 'running';
 
   return (
     <div className="space-y-6">
-      <header>
-        <Link
-          to="/admin/imports"
-          className="text-xs text-pco-blue hover:underline inline-flex items-center gap-1"
-        >
-          <ArrowLeft size={12} strokeWidth={2} />
-          Voltar
-        </Link>
-        <h1 className="text-2xl font-bold text-pco-deep mt-1">Importação {data.id}</h1>
-        <div className="text-xs text-ink-muted mt-1">
-          {data.source} · {data.mode} · {data.dryRun ? 'dry-run' : 'execução real'} ·{' '}
-          iniciada por {data.startedBy} em{' '}
-          {new Date(data.startedAt).toLocaleString('pt-BR')}
-          {data.finishedAt && (
-            <> · finalizada em {new Date(data.finishedAt).toLocaleString('pt-BR')}</>
+      <header className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <Link
+            to="/admin/imports"
+            className="text-xs text-pco-blue hover:underline inline-flex items-center gap-1"
+          >
+            <ArrowLeft size={12} strokeWidth={2} />
+            Voltar
+          </Link>
+          <h1 className="text-2xl font-bold text-pco-deep mt-1">Importação {data.id}</h1>
+          <div className="text-xs text-ink-muted mt-1">
+            {data.source} · {data.mode} · {data.dryRun ? 'dry-run' : 'execução real'} ·{' '}
+            iniciada por {data.startedBy} em{' '}
+            {new Date(data.startedAt).toLocaleString('pt-BR')}
+            {data.finishedAt && (
+              <> · finalizada em {new Date(data.finishedAt).toLocaleString('pt-BR')}</>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleExport('csv')}
+            className="pco-btn-ghost text-xs"
+            title="Exportar CSV"
+          >
+            <Download size={11} strokeWidth={2} /> CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExport('json')}
+            className="pco-btn-ghost text-xs"
+            title="Exportar JSON"
+          >
+            <Download size={11} strokeWidth={2} /> JSON
+          </button>
+          {canRollback && (
+            <button
+              type="button"
+              onClick={handleRollback}
+              disabled={rollback.isPending}
+              className="pco-btn-ghost text-xs text-status-danger"
+            >
+              <RotateCcw size={11} strokeWidth={2} />
+              {rollback.isPending ? 'Revertendo...' : 'Rollback'}
+            </button>
           )}
         </div>
       </header>

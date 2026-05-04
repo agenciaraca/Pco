@@ -100,8 +100,24 @@ import {
   generateCsvTemplate,
 } from './imports/schemas/csv-templates';
 import { parseCsvBuffer } from './imports/connectors/csv';
-import { runDryRun } from './imports/service';
-import type { ImportEntityType, ImportSource } from './imports/types';
+import { runDryRun, runReal } from './imports/service';
+import {
+  exportJobAsCsv,
+  exportJobAsJson,
+  listJobsFiltered,
+} from './imports/reports';
+import { rollbackJob, previewRollback } from './imports/rollback';
+import * as importConnections from './imports/connections-store';
+import { pingWp } from './imports/connectors/wp';
+import { pingWc } from './imports/connectors/wc';
+import { collectFromApi } from './imports/connectors/orchestrator';
+import type {
+  ImportEntityType,
+  ImportSource,
+  ImportEnrollmentConfig,
+  EnrollmentStartRule,
+  EnrollmentExpirationRule,
+} from './imports/types';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -1769,10 +1785,37 @@ export function buildApp() {
   });
 
   app.get('/admin/imports/jobs', requireAuth('admin', 'superadmin'), async (c) => {
-    const limit = Number(c.req.query('limit') ?? '100');
-    return c.json(
-      await importJobs.listJobs(Number.isFinite(limit) ? limit : 100),
-    );
+    const limit = Number(c.req.query('limit') ?? '200');
+    const status = c.req.query('status') as
+      | 'pending'
+      | 'running'
+      | 'completed'
+      | 'completed_with_errors'
+      | 'failed'
+      | 'canceled'
+      | 'rolled_back'
+      | undefined;
+    const source = c.req.query('source') as
+      | 'wordpress'
+      | 'learndash'
+      | 'woocommerce'
+      | 'csv'
+      | undefined;
+    const mode = c.req.query('mode') as 'api' | 'csv' | undefined;
+    const dryRunRaw = c.req.query('dryRun');
+    const dryRun =
+      dryRunRaw === 'true' ? true : dryRunRaw === 'false' ? false : undefined;
+    const data = await listJobsFiltered({
+      limit: Number.isFinite(limit) ? limit : 200,
+      status,
+      source,
+      mode,
+      dryRun,
+      dateFrom: c.req.query('dateFrom') ?? undefined,
+      dateTo: c.req.query('dateTo') ?? undefined,
+      q: c.req.query('q') ?? undefined,
+    });
+    return c.json(data);
   });
 
   app.get('/admin/imports/jobs/:id', requireAuth('admin', 'superadmin'), async (c) => {
@@ -1781,6 +1824,80 @@ export function buildApp() {
     if (!job) return jsonError(c, 404, 'NOT_FOUND', 'Job não encontrado.');
     return c.json(job);
   });
+
+  app.get(
+    '/admin/imports/jobs/:id/export',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const format = (c.req.query('format') ?? 'csv').toLowerCase();
+      try {
+        if (format === 'json') {
+          const body = await exportJobAsJson(id);
+          return new Response(body, {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'Content-Disposition': `attachment; filename="import-${id}.json"`,
+            },
+          });
+        }
+        const body = await exportJobAsCsv(id);
+        return new Response(body, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': `attachment; filename="import-${id}.csv"`,
+          },
+        });
+      } catch (err) {
+        return jsonError(
+          c,
+          404,
+          'NOT_FOUND',
+          err instanceof Error ? err.message : 'Job não encontrado.',
+        );
+      }
+    },
+  );
+
+  app.get(
+    '/admin/imports/jobs/:id/rollback/preview',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      try {
+        return c.json(await previewRollback(id));
+      } catch (err) {
+        return jsonError(
+          c,
+          404,
+          'NOT_FOUND',
+          err instanceof Error ? err.message : 'Job não encontrado.',
+        );
+      }
+    },
+  );
+
+  app.post(
+    '/admin/imports/jobs/:id/rollback',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      try {
+        const result = await rollbackJob(id);
+        return c.json(result);
+      } catch (err) {
+        return jsonError(
+          c,
+          400,
+          'ROLLBACK_FAILED',
+          err instanceof Error ? err.message : 'Falha no rollback.',
+        );
+      }
+    },
+  );
 
   /**
    * Dry-run via CSV multipart.
@@ -1868,6 +1985,263 @@ export function buildApp() {
       });
 
       return c.json({ jobId: job.id, totalRows }, 202);
+    },
+  );
+
+  /**
+   * Execução real CSV — persiste via adapters.
+   * Aceita `enrollment_start_rule`, `enrollment_expiration_rule`, `default_access_duration_days`
+   * como campos do form opcional.
+   * Estratégia de conflito padrão é 'update' (admin pode customizar via field 'strategy_<entity>').
+   */
+  app.post(
+    '/admin/imports/run/csv',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      let form: FormData;
+      try {
+        form = await c.req.formData();
+      } catch {
+        return jsonError(c, 400, 'INVALID_FORM', 'Multipart inválido.');
+      }
+      const u = c.get('user')!;
+
+      const startRule = (form.get('enrollment_start_rule') as string) || 'paid_date';
+      const expirationRule =
+        (form.get('enrollment_expiration_rule') as string) || 'start_plus_duration';
+      const defaultDuration = Number(form.get('default_access_duration_days') ?? '0');
+
+      const enrollmentRules: ImportEnrollmentConfig = {
+        startRule: startRule as EnrollmentStartRule,
+        expirationRule: expirationRule as EnrollmentExpirationRule,
+        defaultAccessDurationDays:
+          Number.isFinite(defaultDuration) && defaultDuration > 0
+            ? defaultDuration
+            : undefined,
+        wcStatusMap: {},
+      };
+
+      const rowsByEntity: Partial<
+        Record<ImportEntityType, Array<Record<string, unknown>>>
+      > = {};
+      let totalRows = 0;
+      const ENTITIES: ImportEntityType[] = [
+        'student',
+        'course',
+        'module',
+        'lesson',
+        'product',
+        'order',
+        'enrollment',
+        'progress',
+      ];
+      for (const entity of ENTITIES) {
+        const file = form.get(`file_${entity}`);
+        if (!(file instanceof File)) continue;
+        if (file.size > 20 * 1024 * 1024) {
+          return jsonError(c, 413, 'FILE_TOO_LARGE', `${entity}: arquivo > 20MB`);
+        }
+        const buf = Buffer.from(await file.arrayBuffer());
+        const parsed = parseCsvBuffer(buf);
+        rowsByEntity[entity] = parsed.rows;
+        totalRows += parsed.rows.length;
+      }
+      if (totalRows === 0) {
+        return jsonError(c, 400, 'NO_FILES', 'Nenhum CSV reconhecido.');
+      }
+
+      const job = await importJobs.createJob({
+        source: 'csv' as ImportSource,
+        mode: 'csv',
+        dryRun: false,
+        entities: [],
+        enrollment: enrollmentRules,
+        startedBy: u.email,
+        startedById: u.sub,
+      });
+
+      void runReal({
+        rowsByEntity,
+        jobId: job.id,
+        source: 'csv',
+        enrollmentRules,
+      }).catch(async (err) => {
+        await importJobs.addNote(
+          job.id,
+          'error',
+          `Run real falhou: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        await importJobs.setStatus(job.id, 'failed', true);
+      });
+
+      return c.json({ jobId: job.id, totalRows }, 202);
+    },
+  );
+
+  // ---------- Imports — connections REST (Sprint C) ----------
+
+  app.get(
+    '/admin/imports/connections',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(await importConnections.listConnections()),
+  );
+
+  app.post(
+    '/admin/imports/connections',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 30 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const name = String(body.name ?? '').trim();
+      const siteUrl = String(body.siteUrl ?? '').trim();
+      if (!name || !siteUrl) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'name e siteUrl são obrigatórios.');
+      }
+      const created = await importConnections.createConnection({
+        name,
+        siteUrl,
+        wpUsername: body.wpUsername ? String(body.wpUsername) : undefined,
+        wpAppPassword: body.wpAppPassword ? String(body.wpAppPassword) : undefined,
+        wcConsumerKey: body.wcConsumerKey ? String(body.wcConsumerKey) : undefined,
+        wcConsumerSecret: body.wcConsumerSecret
+          ? String(body.wcConsumerSecret)
+          : undefined,
+      });
+      return c.json(created, 201);
+    },
+  );
+
+  app.put(
+    '/admin/imports/connections/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const updated = await importConnections.updateConnection(id, {
+        name: body.name ? String(body.name) : undefined,
+        siteUrl: body.siteUrl ? String(body.siteUrl) : undefined,
+        wpUsername: body.wpUsername !== undefined ? String(body.wpUsername) : undefined,
+        wpAppPassword:
+          body.wpAppPassword !== undefined ? String(body.wpAppPassword) : undefined,
+        wcConsumerKey:
+          body.wcConsumerKey !== undefined ? String(body.wcConsumerKey) : undefined,
+        wcConsumerSecret:
+          body.wcConsumerSecret !== undefined
+            ? String(body.wcConsumerSecret)
+            : undefined,
+      });
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+      return c.json(updated);
+    },
+  );
+
+  app.delete(
+    '/admin/imports/connections/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const ok = await importConnections.deleteConnection(id);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+      return c.json({ ok: true });
+    },
+  );
+
+  app.post(
+    '/admin/imports/connections/:id/test',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 30 }),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const conn = await importConnections.getConnection(id);
+      if (!conn) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+      const wp = await pingWp(conn);
+      const wc = await pingWc(conn);
+      const overall = wp.ok && wc.ok ? 'ok' : 'error';
+      const msg = `WP: ${wp.message} | WC: ${wc.message}`;
+      await importConnections.recordTestResult(id, overall, msg);
+      return c.json({ wp, wc, overall });
+    },
+  );
+
+  /**
+   * Importação via API — body JSON: { connectionId, entities: ImportEntityType[],
+   * dryRun?: boolean, enrollment?: ImportEnrollmentConfig }.
+   * Cria job e dispara em background.
+   */
+  app.post(
+    '/admin/imports/run/api',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        connectionId?: string;
+        entities?: ImportEntityType[];
+        dryRun?: boolean;
+        enrollment?: Partial<ImportEnrollmentConfig>;
+      };
+      const u = c.get('user')!;
+      if (!body.connectionId) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'connectionId é obrigatório.');
+      }
+      const conn = await importConnections.getConnection(body.connectionId);
+      if (!conn) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+      const entities: ImportEntityType[] = (body.entities ?? []).filter(
+        (e): e is ImportEntityType =>
+          ['student', 'course', 'lesson', 'product', 'order', 'enrollment'].includes(e),
+      );
+      if (entities.length === 0) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'Selecione ao menos uma entidade.');
+      }
+
+      const enrollmentRules: ImportEnrollmentConfig = {
+        startRule: (body.enrollment?.startRule ?? 'paid_date') as EnrollmentStartRule,
+        expirationRule: (body.enrollment?.expirationRule ??
+          'start_plus_duration') as EnrollmentExpirationRule,
+        defaultAccessDurationDays: body.enrollment?.defaultAccessDurationDays,
+        wcStatusMap: body.enrollment?.wcStatusMap ?? {},
+      };
+      const dryRun = body.dryRun !== false;
+      const job = await importJobs.createJob({
+        source: 'wordpress' as ImportSource,
+        mode: 'api',
+        dryRun,
+        entities: [],
+        enrollment: enrollmentRules,
+        startedBy: u.email,
+        startedById: u.sub,
+      });
+
+      void (async () => {
+        try {
+          await importJobs.addNote(job.id, 'info', `Coletando via API (${entities.join(', ')})`);
+          const collected = await collectFromApi(conn, { entities });
+          await importJobs.addNote(
+            job.id,
+            'info',
+            `Coletados ${collected.totalRows} registros no total`,
+          );
+          if (dryRun) {
+            await runDryRun({ rowsByEntity: collected.rowsByEntity, jobId: job.id });
+          } else {
+            await runReal({
+              rowsByEntity: collected.rowsByEntity,
+              jobId: job.id,
+              source: 'wordpress',
+              enrollmentRules,
+            });
+          }
+        } catch (err) {
+          await importJobs.addNote(
+            job.id,
+            'error',
+            `Falha API: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          await importJobs.setStatus(job.id, 'failed', true);
+        }
+      })();
+
+      return c.json({ jobId: job.id, dryRun, entities }, 202);
     },
   );
 

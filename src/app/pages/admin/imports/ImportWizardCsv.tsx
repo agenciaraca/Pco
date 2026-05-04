@@ -10,10 +10,18 @@ import {
   ArrowLeft,
   Download,
 } from 'lucide-react';
-import { startCsvDryRun, downloadImportTemplate } from '../../../data/api';
+import {
+  startCsvDryRun,
+  startCsvRunReal,
+  downloadImportTemplate,
+} from '../../../data/api';
 import { useToast } from '../../../components/Toast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
-import type { ImportEntityTypeDto } from '../../../data/api';
+import type {
+  ImportEntityTypeDto,
+  EnrollmentStartRuleDto,
+  EnrollmentExpirationRuleDto,
+} from '../../../data/api';
 
 const ENTITIES: Array<{ id: ImportEntityTypeDto; label: string; hint: string }> = [
   { id: 'student', label: 'Alunos', hint: 'Importa users → students' },
@@ -31,6 +39,10 @@ export default function ImportWizardCsv() {
   const [files, setFiles] = useState<Partial<Record<ImportEntityTypeDto, File>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [startRule, setStartRule] = useState<EnrollmentStartRuleDto>('paid_date');
+  const [expirationRule, setExpirationRule] =
+    useState<EnrollmentExpirationRuleDto>('start_plus_duration');
+  const [defaultDuration, setDefaultDuration] = useState<number>(365);
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -43,16 +55,32 @@ export default function ImportWizardCsv() {
     });
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(real: boolean) {
     if (Object.keys(files).length === 0) {
       setError('Selecione ao menos um arquivo CSV.');
+      return;
+    }
+    if (
+      real &&
+      !confirm(
+        `Executar importação REAL?\n\nIsto irá criar/atualizar registros no AVA.\n\n${Object.keys(files).length} arquivo(s) selecionado(s).`,
+      )
+    ) {
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      const res = await startCsvDryRun(files);
-      toast.success(`Dry-run iniciado (${res.totalRows} linhas)`);
+      const res = real
+        ? await startCsvRunReal(files, {
+            startRule,
+            expirationRule,
+            defaultAccessDurationDays: defaultDuration,
+          })
+        : await startCsvDryRun(files);
+      toast.success(
+        `${real ? 'Execução real' : 'Dry-run'} iniciada (${res.totalRows} linhas)`,
+      );
       navigate(`/admin/imports/jobs/${res.jobId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro');
@@ -101,13 +129,73 @@ export default function ImportWizardCsv() {
         </div>
       )}
 
+      <section className="pco-card p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-pco-deep">Regras de matrícula</h3>
+        <p className="text-xs text-ink-muted">
+          Aplicadas apenas a CSVs de matrícula (e geradas a partir de pedidos quando vier
+          esse caminho). Para dry-run não importa.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Data inicial
+            </span>
+            <select
+              value={startRule}
+              onChange={(e) => setStartRule(e.target.value as EnrollmentStartRuleDto)}
+              className="pco-input mt-1 text-sm"
+            >
+              <option value="paid_date">Data de pagamento</option>
+              <option value="completed_date">Data de conclusão do pedido</option>
+              <option value="order_date">Data do pedido</option>
+              <option value="imported">Importada (CSV)</option>
+              <option value="now">Agora</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Data de expiração
+            </span>
+            <select
+              value={expirationRule}
+              onChange={(e) =>
+                setExpirationRule(e.target.value as EnrollmentExpirationRuleDto)
+              }
+              className="pco-input mt-1 text-sm"
+            >
+              <option value="start_plus_duration">Início + duração</option>
+              <option value="order_plus_duration">Pedido + duração</option>
+              <option value="paid_plus_duration">Pagamento + duração</option>
+              <option value="completed_plus_duration">Conclusão + duração</option>
+              <option value="explicit">Importada (CSV)</option>
+              <option value="lifetime">Vitalícia</option>
+              <option value="course_fixed_end">Data fixa do curso</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Duração padrão (dias)
+            </span>
+            <input
+              type="number"
+              value={defaultDuration}
+              onChange={(e) => setDefaultDuration(Number(e.target.value))}
+              min={0}
+              className="pco-input mt-1 text-sm"
+            />
+          </label>
+        </div>
+      </section>
+
       <div className="pco-card border-pco-blue/30 bg-pco-blue/5 p-4 flex gap-3 items-start text-xs text-ink-muted">
         <CheckCircle2 size={16} className="text-pco-blue shrink-0 mt-0.5" />
         <div>
-          <p className="text-pco-deep font-semibold mb-0.5">Dry-run não grava nada</p>
+          <p className="text-pco-deep font-semibold mb-0.5">
+            Dry-run primeiro, sempre
+          </p>
           <p>
-            O sistema vai ler, validar campos, normalizar e mostrar quantos registros são
-            válidos/inválidos por entidade. Você revisa antes de confirmar a execução real.
+            O dry-run não grava nada. Use-o para validar antes da execução real. A execução
+            real cria/atualiza registros usando os adapters seguros do AVA.
           </p>
         </div>
       </div>
@@ -115,7 +203,20 @@ export default function ImportWizardCsv() {
       <div className="flex items-center justify-end gap-2">
         <button
           type="button"
-          onClick={handleSubmit}
+          onClick={() => handleSubmit(false)}
+          disabled={submitting || Object.keys(files).length === 0}
+          className="pco-btn-secondary"
+        >
+          {submitting ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <PlayCircle size={14} strokeWidth={2} />
+          )}
+          Dry-run
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSubmit(true)}
           disabled={submitting || Object.keys(files).length === 0}
           className="pco-btn-primary"
         >
@@ -124,7 +225,7 @@ export default function ImportWizardCsv() {
           ) : (
             <PlayCircle size={14} strokeWidth={2} />
           )}
-          {submitting ? 'Enviando...' : 'Iniciar dry-run'}
+          Executar importação real
         </button>
       </div>
     </div>

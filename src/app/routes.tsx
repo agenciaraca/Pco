@@ -78,6 +78,8 @@ const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
 const ImportsHome = lazy(() => import('./pages/admin/imports/ImportsHome'));
 const ImportWizardCsv = lazy(() => import('./pages/admin/imports/ImportWizardCsv'));
 const ImportJobDetail = lazy(() => import('./pages/admin/imports/ImportJobDetail'));
+const ImportsHistory = lazy(() => import('./pages/admin/imports/ImportsHistory'));
+const ImportWizardApi = lazy(() => import('./pages/admin/imports/ImportWizardApi'));
 
 function S({ children }: { children: ReactNode }) {
   return <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>;
@@ -187,6 +189,8 @@ export const router = createBrowserRouter([
       { path: 'pedidos', element: <S><AdminOrders /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },
       { path: 'imports/wizard', element: <S><ImportWizardCsv /></S> },
+      { path: 'imports/wizard-api', element: <S><ImportWizardApi /></S> },
+      { path: 'imports/history', element: <S><ImportsHistory /></S> },
       { path: 'imports/jobs/:id', element: <S><ImportJobDetail /></S> },
     ],
   },
