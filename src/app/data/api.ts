@@ -523,6 +523,30 @@ export async function fetchErrorLog(limit = 200): Promise<ErrorEntryDto[]> {
 
 // ---------- Audit log ----------
 
+export async function downloadAuditLogCsv(filter: AuditFilter = {}): Promise<void> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const qs = new URLSearchParams();
+  Object.entries(filter).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+  });
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  const res = await fetch(`/api/admin/audit-log.csv${suffix}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().slice(0, 10);
+  a.download = `audit-log-${ts}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function fetchAuditLog(filter: AuditFilter = {}): Promise<AuditEntryDto[]> {
   const qs = new URLSearchParams();
   Object.entries(filter).forEach(([k, v]) => {

@@ -8,8 +8,11 @@ import {
   GraduationCap,
   AlertTriangle,
   CheckCircle2,
+  Download,
 } from 'lucide-react';
 import { useAuditLog } from '../../data/hooks';
+import { downloadAuditLogCsv } from '../../data/api';
+import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
@@ -59,6 +62,7 @@ export default function AdminAuditoria() {
   );
 
   const { data, isLoading, isError, refetch, isFetching } = useAuditLog(filter);
+  const toast = useToast();
 
   const filtered = useMemo<AuditEntryDto[]>(() => {
     if (!data) return [];
@@ -91,15 +95,32 @@ export default function AdminAuditoria() {
             eventos.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="pco-btn-secondary text-xs"
-          disabled={isFetching}
-        >
-          <RefreshCw size={12} strokeWidth={2} className={isFetching ? 'animate-spin' : ''} />
-          Atualizar
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await downloadAuditLogCsv(filter);
+                toast.success('Download iniciado');
+              } catch (err) {
+                toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+              }
+            }}
+            className="pco-btn-secondary text-xs"
+          >
+            <Download size={12} strokeWidth={2} />
+            Exportar CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="pco-btn-secondary text-xs"
+            disabled={isFetching}
+          >
+            <RefreshCw size={12} strokeWidth={2} className={isFetching ? 'animate-spin' : ''} />
+            Atualizar
+          </button>
+        </div>
       </header>
 
       <div className="pco-card p-4 space-y-3">

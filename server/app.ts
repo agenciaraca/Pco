@@ -1463,6 +1463,67 @@ export function buildApp() {
 
   // ---------- Audit log ----------
 
+  app.get('/admin/audit-log.csv', requireAuth('admin', 'superadmin'), async (c) => {
+    const q = c.req.query();
+    const limit = q.limit ? Number(q.limit) : 1000;
+    const entries = await listAudit({
+      action: q.action,
+      actorId: q.actorId,
+      targetType: q.targetType,
+      targetId: q.targetId,
+      since: q.since,
+      until: q.until,
+      limit: typeof limit === 'number' && Number.isFinite(limit) ? limit : 1000,
+    });
+    function esc(v: unknown): string {
+      const s = v === null || v === undefined ? '' : String(v);
+      // RFC 4180: aspa dupla escapada como ""
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    const header = [
+      'id',
+      'ts',
+      'actorId',
+      'actorEmail',
+      'actorRole',
+      'action',
+      'targetType',
+      'targetId',
+      'status',
+      'ip',
+      'userAgent',
+    ];
+    const rows = [
+      header.join(','),
+      ...entries.map((e) =>
+        [
+          e.id,
+          e.ts,
+          e.actorId,
+          e.actorEmail,
+          e.actorRole,
+          e.action,
+          e.targetType,
+          e.targetId,
+          e.status,
+          e.ip,
+          e.userAgent,
+        ]
+          .map(esc)
+          .join(','),
+      ),
+    ].join('\r\n');
+    return new Response(rows, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="audit-log-${new Date()
+          .toISOString()
+          .slice(0, 10)}.csv"`,
+      },
+    });
+  });
+
   app.get('/admin/audit-log', requireAuth('admin', 'superadmin'), async (c) => {
     const q = c.req.query();
     const limit = q.limit ? Number(q.limit) : undefined;
