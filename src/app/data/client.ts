@@ -70,6 +70,12 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       (body as { error?: { message?: string } })?.error?.message ??
       `Requisição falhou (${response.status})`;
     const details = (body as { error?: { details?: unknown } })?.error?.details;
+
+    // Sessão expirada/revogada: dispara evento global pra AuthContext desconectar
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:expired', { detail: { code, message } }));
+    }
+
     throw new ApiError(response.status, code, message, details);
   }
 

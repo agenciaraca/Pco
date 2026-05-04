@@ -60,6 +60,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  // Quando o http client detecta 401, faz logout local
+  useEffect(() => {
+    function handleExpired() {
+      const had = readSession();
+      if (!had) return;
+      writeSession(null);
+      setUser(null);
+      // Redireciona pra /login com mensagem (toast informativo via flag em sessionStorage)
+      try {
+        sessionStorage.setItem('auth:expired:reason', 'session-expired');
+      } catch {
+        // ignora
+      }
+      if (location.pathname !== '/login') {
+        location.assign('/login');
+      }
+    }
+    window.addEventListener('auth:expired', handleExpired);
+    return () => window.removeEventListener('auth:expired', handleExpired);
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const { user: u, token } = await api.login(email, password);
     const stored: StoredSession = { user: u as AuthUser, token };

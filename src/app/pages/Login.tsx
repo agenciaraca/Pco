@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../auth/AuthContext';
@@ -20,6 +20,18 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const reason = sessionStorage.getItem('auth:expired:reason');
+      if (reason === 'session-expired') {
+        sessionStorage.removeItem('auth:expired:reason');
+        setError('Sua sessão expirou. Faça login novamente.');
+      }
+    } catch {
+      // ignora
+    }
+  }, []);
 
   const from = (location.state as { from?: string } | null)?.from ?? '/dashboard';
 
