@@ -1,7 +1,23 @@
 import { useState } from 'react';
-import { Send, Megaphone, AlertCircle, CheckCircle2, Info, AlertTriangle } from 'lucide-react';
-import { useBroadcastNotification, useSystemUsers } from '../../data/hooks';
+import {
+  Send,
+  Megaphone,
+  AlertCircle,
+  CheckCircle2,
+  Info,
+  AlertTriangle,
+  History,
+  Users,
+} from 'lucide-react';
+import {
+  useBroadcastNotification,
+  useSystemUsers,
+  useSentBroadcasts,
+} from '../../data/hooks';
 import { useToast } from '../../components/Toast';
+import Tabs from '../../components/Tabs';
+import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import EmptyState from '../../components/EmptyState';
 import type { BroadcastNotificationInput, NotificationDto } from '../../data/api';
 
 const audiences: Array<{ value: BroadcastNotificationInput['audience']; label: string; desc: string }> = [
@@ -22,7 +38,9 @@ const categories: Array<{ value: NotificationDto['category']; label: string; Ico
 export default function AdminNotificacoes() {
   const broadcast = useBroadcastNotification();
   const users = useSystemUsers();
+  const sent = useSentBroadcasts();
   const toast = useToast();
+  const [tab, setTab] = useState<'compose' | 'history'>('compose');
 
   const [audience, setAudience] = useState<BroadcastNotificationInput['audience']>('students');
   const [userId, setUserId] = useState('');
@@ -70,10 +88,72 @@ export default function AdminNotificacoes() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep">Notificações</h1>
         <p className="text-sm text-ink-muted">
-          Dispare comunicados in-app para alunos ou administradores.
+          Dispare comunicados in-app e veja histórico de envios.
         </p>
       </header>
 
+      <Tabs
+        items={[
+          {
+            id: 'compose',
+            label: 'Novo broadcast',
+            icon: <Send size={14} strokeWidth={1.75} />,
+          },
+          {
+            id: 'history',
+            label: 'Histórico',
+            icon: <History size={14} strokeWidth={1.75} />,
+          },
+        ]}
+        active={tab}
+        onChange={(id) => setTab(id as typeof tab)}
+      />
+
+      {tab === 'history' && (
+        <div className="space-y-3">
+          {sent.isLoading ? (
+            <CardListSkeleton count={4} />
+          ) : !sent.data || sent.data.length === 0 ? (
+            <EmptyState
+              title="Nenhum broadcast enviado"
+              description="Quando você disparar uma notificação, ela aparecerá aqui."
+            />
+          ) : (
+            sent.data.map((b, i) => (
+              <div key={`${b.firstAt}-${i}`} className="pco-card p-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-pco-deep">{b.title}</div>
+                    <p className="mt-0.5 text-xs text-ink-muted line-clamp-2">{b.body}</p>
+                    <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-ink-subtle">
+                      <span>{new Date(b.firstAt).toLocaleString('pt-BR')}</span>
+                      {b.authorEmail && <span>· por {b.authorEmail}</span>}
+                      <span>· categoria {b.category}</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="inline-flex items-center gap-1 text-xs font-semibold text-pco-deep">
+                      <Users size={12} strokeWidth={2} />
+                      {b.recipientsCount}
+                    </div>
+                    <div className="text-[10px] text-ink-subtle">
+                      {b.readCount} leu{b.readCount === 1 ? '' : 'ram'}
+                    </div>
+                    <div className="text-[10px] text-ink-subtle">
+                      {b.recipientsCount > 0
+                        ? Math.round((b.readCount / b.recipientsCount) * 100)
+                        : 0}
+                      % aberto
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {tab === 'compose' && (
       <form onSubmit={onSubmit} className="pco-card p-6 space-y-5">
         <div>
           <label className="text-xs uppercase tracking-wide text-ink-muted">Destinatários</label>
@@ -198,6 +278,7 @@ export default function AdminNotificacoes() {
           {broadcast.isPending ? 'Enviando...' : 'Enviar notificação'}
         </button>
       </form>
+      )}
     </div>
   );
 }

@@ -777,6 +777,11 @@ export function useMarkAllNotificationsRead() {
   });
 }
 
+const sentBroadcastsKey = ['admin', 'notifications', 'sent'] as const;
+export function useSentBroadcasts() {
+  return useQuery({ queryKey: sentBroadcastsKey, queryFn: () => api.fetchSentBroadcasts(50) });
+}
+
 export function useBroadcastNotification() {
   const qc = useQueryClient();
   return useMutation({
@@ -784,6 +789,7 @@ export function useBroadcastNotification() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: notificationsKey });
       qc.invalidateQueries({ queryKey: unreadCountKey });
+      qc.invalidateQueries({ queryKey: sentBroadcastsKey });
     },
   });
 }

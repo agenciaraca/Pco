@@ -32,6 +32,48 @@ export async function listForUser(userId: string, limit = 100): Promise<Notifica
     .slice(0, limit);
 }
 
+export interface BroadcastEntry {
+  title: string;
+  body: string;
+  category: NotificationCategory;
+  authorEmail: string | null;
+  firstAt: string;
+  recipientsCount: number;
+  readCount: number;
+}
+
+/**
+ * Histórico agrupado: agrupa notificações por (title, body, authorEmail, minuto_de_criacao).
+ * Útil para admin ver "esse broadcast foi para X destinatários, Y leram".
+ */
+export async function listSentBroadcasts(limit = 50): Promise<BroadcastEntry[]> {
+  const all = await store.getAll();
+  const groups = new Map<string, BroadcastEntry>();
+  for (const n of all) {
+    const minuteBucket = n.createdAt.slice(0, 16); // YYYY-MM-DDTHH:MM
+    const key = `${n.title}|${n.authorEmail ?? ''}|${minuteBucket}`;
+    let entry = groups.get(key);
+    if (!entry) {
+      entry = {
+        title: n.title,
+        body: n.body,
+        category: n.category,
+        authorEmail: n.authorEmail ?? null,
+        firstAt: n.createdAt,
+        recipientsCount: 0,
+        readCount: 0,
+      };
+      groups.set(key, entry);
+    }
+    entry.recipientsCount += 1;
+    if (n.readAt) entry.readCount += 1;
+    if (n.createdAt < entry.firstAt) entry.firstAt = n.createdAt;
+  }
+  return Array.from(groups.values())
+    .sort((a, b) => (b.firstAt > a.firstAt ? 1 : -1))
+    .slice(0, limit);
+}
+
 export async function unreadCountForUser(userId: string): Promise<number> {
   const all = await store.getAll();
   return all.filter((n) => n.userId === userId && !n.readAt).length;

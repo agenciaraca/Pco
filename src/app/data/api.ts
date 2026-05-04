@@ -454,6 +454,20 @@ export interface BroadcastNotificationInput {
   link?: string;
 }
 
+export interface BroadcastEntryDto {
+  title: string;
+  body: string;
+  category: NotificationDto['category'];
+  authorEmail: string | null;
+  firstAt: string;
+  recipientsCount: number;
+  readCount: number;
+}
+
+export async function fetchSentBroadcasts(limit = 50): Promise<BroadcastEntryDto[]> {
+  return http.get<BroadcastEntryDto[]>(`/admin/notifications/sent?limit=${limit}`);
+}
+
 export async function broadcastNotification(
   input: BroadcastNotificationInput,
 ): Promise<{ ok: true; sent: number }> {

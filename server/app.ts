@@ -600,6 +600,15 @@ export function buildApp() {
     return c.json({ ok: true, updated });
   });
 
+  // Histórico de broadcasts (admin)
+  app.get('/admin/notifications/sent', requireAuth('admin', 'superadmin'), async (c) => {
+    const limit = Number(c.req.query('limit') ?? '50');
+    const list = await notificationsRepo.listSentBroadcasts(
+      Number.isFinite(limit) ? limit : 50,
+    );
+    return c.json(list);
+  });
+
   // Broadcast — admin/superadmin
   app.post(
     '/admin/notifications/broadcast',
