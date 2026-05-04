@@ -16,6 +16,7 @@ import {
   useRevokeCertificate,
   useCourses,
   useAdminStudents,
+  useCertValidations,
 } from '../../data/hooks';
 import * as api from '../../data/api';
 import { useToast } from '../../components/Toast';
@@ -39,6 +40,14 @@ export default function AdminCertificates() {
   const certs = useAllCertificates();
   const courses = useCourses();
   const students = useAdminStudents({ status: 'todos', sortBy: 'name' });
+  const validationsQ = useCertValidations();
+  const validationByCode = useMemo(() => {
+    const map = new Map<string, { count: number; lastAt: string }>();
+    (validationsQ.data ?? []).forEach((v) =>
+      map.set(v.code, { count: v.count, lastAt: v.lastAt }),
+    );
+    return map;
+  }, [validationsQ.data]);
   const issue = useIssueCertificate();
   const revoke = useRevokeCertificate();
   const toast = useToast();
@@ -164,6 +173,7 @@ export default function AdminCertificates() {
                       <th className="px-4 py-3 text-left font-medium">Status</th>
                       <th className="px-4 py-3 text-left font-medium">Emissão</th>
                       <th className="px-4 py-3 text-left font-medium">Código</th>
+                      <th className="px-4 py-3 text-left font-medium">Validações</th>
                       <th className="px-4 py-3 text-right font-medium">Ações</th>
                     </tr>
                   </thead>
@@ -205,6 +215,22 @@ export default function AdminCertificates() {
                           <span className="font-mono text-[11px] text-pco-deep">
                             {c.validationCode}
                           </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {(() => {
+                            const v = validationByCode.get(c.validationCode);
+                            if (!v) {
+                              return <span className="text-[11px] text-ink-subtle">0</span>;
+                            }
+                            return (
+                              <div className="text-[11px]">
+                                <span className="font-semibold text-pco-deep">{v.count}</span>
+                                <span className="ml-1 text-ink-muted">
+                                  · última {new Date(v.lastAt).toLocaleDateString('pt-BR')}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-1">

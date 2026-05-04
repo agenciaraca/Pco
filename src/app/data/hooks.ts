@@ -85,6 +85,11 @@ export function useAllCertificates() {
   return useQuery({ queryKey: allCertsKey, queryFn: api.fetchAllCertificates });
 }
 
+const certValidationsKey = ['admin', 'cert-validations'] as const;
+export function useCertValidations() {
+  return useQuery({ queryKey: certValidationsKey, queryFn: api.fetchCertValidations });
+}
+
 export function useIssueCertificate() {
   const qc = useQueryClient();
   return useMutation({

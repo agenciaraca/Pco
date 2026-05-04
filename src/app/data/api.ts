@@ -624,6 +624,17 @@ export async function fetchAllCertificates(): Promise<Certificate[]> {
   return http.get<Certificate[]>('/admin/certificates');
 }
 
+export interface ValidationStatDto {
+  code: string;
+  count: number;
+  firstAt: string;
+  lastAt: string;
+}
+
+export async function fetchCertValidations(): Promise<ValidationStatDto[]> {
+  return http.get<ValidationStatDto[]>('/admin/certificates/validations');
+}
+
 export async function validateCertificate(
   code: string,
 ): Promise<{ valid: boolean; certificate?: Certificate }> {

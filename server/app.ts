@@ -80,6 +80,7 @@ import * as tutorHistory from './repositories/tutor-history';
 import * as progressRepo from './repositories/progress';
 import * as lessonNotesRepo from './repositories/lesson-notes';
 import * as podcastEngagementRepo from './repositories/podcast-engagement';
+import * as certValidationsRepo from './repositories/cert-validations';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -678,8 +679,15 @@ export function buildApp() {
     const code = c.req.param('code') as string;
     const cert = await certsRepo.findByValidationCode(code);
     if (!cert) return c.json({ valid: false }, 404);
+    // Rastreia validação (não bloqueia resposta se falhar)
+    void certValidationsRepo.recordValidation(code);
     return c.json({ valid: true, certificate: cert });
   });
+
+  // Stats de validação (admin)
+  app.get('/admin/certificates/validations', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await certValidationsRepo.listAll()),
+  );
 
   // Admin: emite certificado manualmente
   app.post(
