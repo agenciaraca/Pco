@@ -12,7 +12,14 @@ import {
   Award,
   ChevronRight,
 } from 'lucide-react';
-import { useCourses, useCurrentStudent, useNews, usePodcasts } from '../data/hooks';
+import {
+  useCourses,
+  useCurrentStudent,
+  useNews,
+  usePodcasts,
+  useMyProgress,
+  useCertificates,
+} from '../data/hooks';
 import { Skeleton } from '../components/LoadingSkeleton';
 import { ErrorState } from '../components/EmptyState';
 
@@ -21,6 +28,8 @@ export default function Dashboard() {
   const coursesQ = useCourses();
   const newsQ = useNews();
   const podcastsQ = usePodcasts();
+  const progressQ = useMyProgress();
+  const certsQ = useCertificates();
 
   const isLoading = studentQ.isLoading || coursesQ.isLoading;
   const isError = studentQ.isError || coursesQ.isError;
@@ -51,6 +60,17 @@ export default function Dashboard() {
     100,
     Math.round(((student.totalStudyMinutes % 240) / student.weeklyGoalMinutes) * 100),
   );
+  const completedLessons = progressQ.data?.completedLessonIds.length ?? 0;
+  const totalEnrolledLessons = enrolled.reduce(
+    (s, c) => s + c.modules.reduce((mm, m) => mm + (m.lessons?.length ?? 0), 0),
+    0,
+  );
+  const overallPct =
+    totalEnrolledLessons > 0
+      ? Math.round((completedLessons / totalEnrolledLessons) * 100)
+      : 0;
+  const issuedCerts = (certsQ.data ?? []).filter((c) => c.status === 'issued').length;
+  const inProgressCerts = (certsQ.data ?? []).filter((c) => c.status !== 'issued').length;
 
   return (
     <div className="space-y-8">
@@ -89,15 +109,16 @@ export default function Dashboard() {
         <KpiCard
           icon={<TrendingUp size={18} className="text-status-success" strokeWidth={2} />}
           label="Progresso geral"
-          value="38%"
-          unit="dos cursos"
+          value={`${overallPct}%`}
+          unit={`${completedLessons}/${totalEnrolledLessons} aulas`}
           accent="green"
+          progress={overallPct}
         />
         <KpiCard
           icon={<Award size={18} className="text-status-gold" strokeWidth={2} />}
           label="Certificados"
-          value="0"
-          unit="emitidos · 2 em andamento"
+          value={String(issuedCerts)}
+          unit={`emitidos${inProgressCerts > 0 ? ` · ${inProgressCerts} em andamento` : ''}`}
           accent="gold"
         />
       </section>

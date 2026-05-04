@@ -1,17 +1,21 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Circle, Clock, PlayCircle, ScrollText } from 'lucide-react';
-import { useCourses } from '../data/hooks';
+import { useCourses, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function LMSModule() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>();
   const { data: courses = [], isLoading } = useCourses();
+  const progress = useMyProgress();
   if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
   const module = course?.modules.find((m) => m.id === moduleId);
   if (!course || !module) return <Navigate to="/cursos" replace />;
 
-  const completed = module.lessons.filter((l) => l.status === 'completed').length;
+  const doneIds = new Set(progress.data?.completedLessonIds ?? []);
+  const completed = module.lessons.filter(
+    (l) => doneIds.has(l.id) || l.status === 'completed',
+  ).length;
   const pct = Math.round((completed / module.lessons.length) * 100);
 
   return (
@@ -62,8 +66,8 @@ export default function LMSModule() {
         <h2 className="text-lg font-semibold text-pco-deep mb-3">Aulas</h2>
         <div className="space-y-2">
           {module.lessons.map((lesson) => {
-            const isCompleted = lesson.status === 'completed';
-            const isInProgress = lesson.status === 'in_progress';
+            const isCompleted = doneIds.has(lesson.id) || lesson.status === 'completed';
+            const isInProgress = !isCompleted && lesson.status === 'in_progress';
             return (
               <Link
                 key={lesson.id}

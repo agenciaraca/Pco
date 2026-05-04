@@ -1,22 +1,25 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowRight, Clock, Layers, PlayCircle } from 'lucide-react';
-import { useCourses } from '../data/hooks';
+import { useCourses, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function LMSCourse() {
   const { courseId } = useParams<{ courseId: string }>();
   const { data: courses = [], isLoading } = useCourses();
+  const progress = useMyProgress();
 
   if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
   if (!course) return <Navigate to="/cursos" replace />;
 
+  const doneIds = new Set(progress.data?.completedLessonIds ?? []);
   const totalLessons = course.modules.reduce((s, m) => s + m.lessons.length, 0);
   const done = course.modules.reduce(
-    (s, m) => s + m.lessons.filter((l) => l.status === 'completed').length,
+    (s, m) =>
+      s + m.lessons.filter((l) => doneIds.has(l.id) || l.status === 'completed').length,
     0,
   );
-  const pct = Math.round((done / totalLessons) * 100);
+  const pct = totalLessons > 0 ? Math.round((done / totalLessons) * 100) : 0;
   const nextModule =
     course.modules.find((m) => m.status === 'in_progress') ??
     course.modules.find((m) => m.status === 'available');

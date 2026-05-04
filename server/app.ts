@@ -327,6 +327,43 @@ export function buildApp() {
       courseId,
       moduleId,
     });
+
+    // Verifica se completou 100% do curso e auto-emite certificado
+    try {
+      const course = await coursesRepo.findCourse(courseId);
+      if (course) {
+        const total = course.modules.reduce((s, m) => s + (m.lessons?.length ?? 0), 0);
+        const done = await progressRepo.listForUser(u.sub);
+        const doneInThisCourse = done.filter((p) => p.courseId === courseId).length;
+        if (total > 0 && doneInThisCourse >= total) {
+          // Já tem cert emitido?
+          const allCerts = await certsRepo.listAllCertificates();
+          const existing = allCerts.find(
+            (cert) =>
+              cert.studentId === u.sub &&
+              cert.courseId === courseId &&
+              cert.status === 'issued',
+          );
+          if (!existing) {
+            const newCert = await certsRepo.issueCertificate({
+              studentId: u.sub,
+              courseId,
+            });
+            await notificationsRepo.createOne({
+              userId: u.sub,
+              title: `🎓 Certificado emitido — ${course.title}`,
+              body: `Parabéns! Você concluiu o curso. Código de validação: ${newCert.validationCode}.`,
+              category: 'announcement',
+              link: '/certificados',
+              authorEmail: 'sistema',
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[auto-issue cert] erro ao verificar:', err);
+    }
+
     return c.json(entry, 201);
   });
 
