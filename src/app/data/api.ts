@@ -189,6 +189,27 @@ export async function setPodcastEngagement(
   );
 }
 
+// ---------- LGPD export ----------
+
+export async function exportMyData(): Promise<void> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const res = await fetch('/api/me/export', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().slice(0, 10);
+  a.download = `ava-pco-export-${ts}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ---------- Lesson notes ----------
 
 export interface LessonNoteDto {

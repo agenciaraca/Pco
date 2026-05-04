@@ -10,6 +10,7 @@ import {
   Flame,
   Award,
   PlayCircle,
+  Download,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
@@ -35,6 +36,7 @@ export default function Profile() {
   const [savingPwd, setSavingPwd] = useState(false);
   const [pwdError, setPwdError] = useState<string | null>(null);
   const [pwdSuccess, setPwdSuccess] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   if (!user) {
     return (
@@ -83,6 +85,18 @@ export default function Profile() {
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = '';
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await api.exportMyData();
+      toast.success('Download iniciado');
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -287,6 +301,26 @@ export default function Profile() {
             {savingPwd ? 'Alterando...' : 'Alterar senha'}
           </button>
         </form>
+      </div>
+
+      <div className="pco-card p-6">
+        <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">
+          <Download size={16} className="text-pco-blue" strokeWidth={1.75} />
+          Exportar meus dados
+        </h3>
+        <p className="mt-2 text-xs text-ink-muted">
+          Baixe um arquivo JSON com todos os seus dados pessoais (perfil, progresso de aulas,
+          anotações, histórico do Tutor, certificados). Direito garantido pela LGPD (Art. 18).
+        </p>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={exporting}
+          className="mt-3 pco-btn-secondary text-xs"
+        >
+          <Download size={12} strokeWidth={2} />
+          {exporting ? 'Preparando...' : 'Baixar meus dados'}
+        </button>
       </div>
     </div>
   );

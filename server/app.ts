@@ -416,6 +416,37 @@ export function buildApp() {
     return c.json(entry);
   });
 
+  // ---------- Export de dados (LGPD) ----------
+
+  app.get('/me/export', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const profile = await usersStore.findUserById(u.sub);
+    const progress = await progressRepo.listForUser(u.sub);
+    const notes = await lessonNotesRepo.listForUser(u.sub);
+    const engagement = await podcastEngagementRepo.listForUser(u.sub);
+    const tutor = await tutorHistory.listForUser(u.sub, 1000);
+    const allCerts = await certsRepo.listAllCertificates();
+    const certs = allCerts.filter((cert) => cert.studentId === u.sub);
+
+    const dump = {
+      exportedAt: new Date().toISOString(),
+      user: profile,
+      progress,
+      lessonNotes: notes,
+      podcastEngagement: engagement,
+      tutorHistory: tutor,
+      certificates: certs,
+    };
+
+    return new Response(JSON.stringify(dump, null, 2), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="ava-pco-export-${u.sub}-${Date.now()}.json"`,
+      },
+    });
+  });
+
   // ---------- Lesson notes (usuário logado) ----------
 
   app.get('/lessons/:id/note', requireAuth(), async (c) => {
