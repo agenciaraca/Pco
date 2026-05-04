@@ -12,6 +12,7 @@ import type {
   CreatePaymentInput,
   CreatePaymentResult,
   WebhookEvent,
+  RefundResult,
 } from './types';
 
 export const mockProvider: PaymentProviderImpl = {
@@ -49,5 +50,13 @@ export const mockProvider: PaymentProviderImpl = {
     } catch {
       return null;
     }
+  },
+
+  async refundPayment(_gateway, _creds, externalId, amountCents): Promise<RefundResult> {
+    return {
+      externalRefundId: `refund_${externalId}_${Date.now()}`,
+      refundedCents: amountCents ?? 0,
+      status: 'refunded',
+    };
   },
 };

@@ -6,6 +6,7 @@ import type {
   CreatePaymentInput,
   CreatePaymentResult,
   WebhookEvent,
+  RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
 
@@ -129,5 +130,35 @@ export const asaasProvider: PaymentProviderImpl = {
     } catch {
       return null;
     }
+  },
+
+  async refundPayment(gateway, creds, externalId, amountCents): Promise<RefundResult> {
+    if (!creds.apiKey) {
+      throw new PaymentProviderError('NO_KEY', 'Asaas apiKey ausente.');
+    }
+    const base = apiBase(gateway.mode);
+    const body: Record<string, unknown> = {};
+    if (amountCents !== undefined) body.value = amountCents / 100;
+    const res = await fetch(`${base}/payments/${externalId}/refund`, {
+      method: 'POST',
+      headers: {
+        access_token: creds.apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => null);
+      throw new PaymentProviderError(
+        'ASAAS_REFUND_FAILED',
+        JSON.stringify(j) || `HTTP ${res.status}`,
+      );
+    }
+    const r = (await res.json()) as { id?: string; value?: number; status?: string };
+    return {
+      externalRefundId: r.id,
+      refundedCents: Math.round((r.value ?? 0) * 100),
+      status: r.status === 'REFUNDED' ? 'refunded' : 'pending',
+    };
   },
 };

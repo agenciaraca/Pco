@@ -6,6 +6,7 @@ import type {
   CreatePaymentInput,
   CreatePaymentResult,
   WebhookEvent,
+  RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
 
@@ -91,6 +92,37 @@ export const mercadopagoProvider: PaymentProviderImpl = {
     } catch {
       return null;
     }
+  },
+
+  async refundPayment(_gateway, creds, externalId, amountCents): Promise<RefundResult> {
+    if (!creds.apiKey) {
+      throw new PaymentProviderError('NO_KEY', 'Mercado Pago access_token ausente.');
+    }
+    // externalId em MP é o payment id (não preference). Reembolso direto via /v1/payments/{id}/refunds
+    const body: Record<string, unknown> = {};
+    if (amountCents !== undefined) body.amount = amountCents / 100;
+    const res = await fetch(`${API_BASE}/v1/payments/${externalId}/refunds`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${creds.apiKey}`,
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': `refund-${externalId}-${Date.now()}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => null);
+      throw new PaymentProviderError(
+        'MP_REFUND_FAILED',
+        JSON.stringify(j) || `HTTP ${res.status}`,
+      );
+    }
+    const r = (await res.json()) as { id?: number; amount?: number; status?: string };
+    return {
+      externalRefundId: r.id ? String(r.id) : undefined,
+      refundedCents: Math.round((r.amount ?? 0) * 100),
+      status: r.status === 'approved' ? 'refunded' : 'pending',
+    };
   },
 };
 

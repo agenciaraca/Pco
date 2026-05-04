@@ -179,6 +179,26 @@ export async function enrollInCourse(userId: string, courseId: string): Promise<
   });
 }
 
+/**
+ * Remove matrícula em curso. Mantém o registro do aluno e o progresso histórico
+ * por aula — apenas remove o curso da lista de enrolledCourseIds.
+ */
+export async function unenrollFromCourse(
+  userId: string,
+  courseId: string,
+): Promise<void> {
+  await adminStore.modify((rows) => {
+    const row = rows.find((s) => s.id === userId);
+    if (!row) return;
+    row.enrolledCourseIds = row.enrolledCourseIds.filter((c) => c !== courseId);
+    if (row.progressByCourse) {
+      const next = { ...row.progressByCourse };
+      delete next[courseId];
+      row.progressByCourse = next;
+    }
+  });
+}
+
 export async function deleteAdminStudent(id: string): Promise<boolean> {
   const db = getDb();
   if (!db) {

@@ -6,6 +6,7 @@ import type {
   CreatePaymentInput,
   CreatePaymentResult,
   WebhookEvent,
+  RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
 
@@ -117,6 +118,72 @@ export const paypalProvider: PaymentProviderImpl = {
     } catch {
       return null;
     }
+  },
+
+  async refundPayment(gateway, creds, externalId, amountCents): Promise<RefundResult> {
+    if (!creds.apiKey || !creds.apiSecret) {
+      throw new PaymentProviderError(
+        'NO_KEY',
+        'PayPal requer apiKey + apiSecret.',
+      );
+    }
+    const base = apiBase(gateway.mode);
+    const token = await getAccessToken(base, creds.apiKey, creds.apiSecret);
+
+    // externalId é o order id. Precisamos do capture id (capture.id dentro do purchase_unit).
+    const oRes = await fetch(`${base}/v2/checkout/orders/${externalId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!oRes.ok) {
+      throw new PaymentProviderError('PAYPAL_LOOKUP_FAILED', `HTTP ${oRes.status}`);
+    }
+    const order = (await oRes.json()) as {
+      purchase_units?: Array<{
+        payments?: { captures?: Array<{ id: string }> };
+      }>;
+      status?: string;
+    };
+    const captureId = order.purchase_units?.[0]?.payments?.captures?.[0]?.id;
+    if (!captureId) {
+      throw new PaymentProviderError(
+        'NO_CAPTURE',
+        'Order sem captures (não foi pago ainda?).',
+      );
+    }
+    const body: Record<string, unknown> = {};
+    if (amountCents !== undefined) {
+      body.amount = {
+        value: (amountCents / 100).toFixed(2),
+        currency_code: 'USD',
+      };
+    }
+    const r = await fetch(`${base}/v2/payments/captures/${captureId}/refund`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => null);
+      throw new PaymentProviderError(
+        'PAYPAL_REFUND_FAILED',
+        JSON.stringify(j) || `HTTP ${r.status}`,
+      );
+    }
+    const data = (await r.json()) as {
+      id?: string;
+      amount?: { value?: string };
+      status?: string;
+    };
+    return {
+      externalRefundId: data.id,
+      refundedCents: data.amount?.value
+        ? Math.round(Number(data.amount.value) * 100)
+        : amountCents ?? 0,
+      status: data.status === 'COMPLETED' ? 'refunded' : 'pending',
+    };
   },
 };
 

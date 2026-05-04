@@ -8,6 +8,7 @@ import type {
   CreatePaymentInput,
   CreatePaymentResult,
   WebhookEvent,
+  RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
 
@@ -122,6 +123,50 @@ export const stripeProvider: PaymentProviderImpl = {
     } catch {
       return null;
     }
+  },
+
+  async refundPayment(_gateway, creds, externalId, amountCents): Promise<RefundResult> {
+    if (!creds.apiKey) {
+      throw new PaymentProviderError('NO_KEY', 'Stripe apiKey ausente.');
+    }
+    // externalId é o session id (cs_...). Pegamos o payment_intent.
+    const sessRes = await fetch(`${API_BASE}/checkout/sessions/${externalId}`, {
+      headers: { Authorization: `Bearer ${creds.apiKey}` },
+    });
+    if (!sessRes.ok) {
+      const j = await sessRes.json().catch(() => null);
+      throw new PaymentProviderError(
+        'STRIPE_LOOKUP_FAILED',
+        (j as { error?: { message?: string } })?.error?.message ?? `HTTP ${sessRes.status}`,
+      );
+    }
+    const sess = (await sessRes.json()) as { payment_intent?: string | null };
+    if (!sess.payment_intent) {
+      throw new PaymentProviderError('NO_PAYMENT', 'Sessão sem payment_intent.');
+    }
+    const params: Record<string, string> = { payment_intent: sess.payment_intent };
+    if (amountCents !== undefined) params.amount = String(amountCents);
+    const refRes = await fetch(`${API_BASE}/refunds`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${creds.apiKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formEncode(params),
+    });
+    if (!refRes.ok) {
+      const j = await refRes.json().catch(() => null);
+      throw new PaymentProviderError(
+        'STRIPE_REFUND_FAILED',
+        (j as { error?: { message?: string } })?.error?.message ?? `HTTP ${refRes.status}`,
+      );
+    }
+    const r = (await refRes.json()) as { id: string; amount: number; status: string };
+    return {
+      externalRefundId: r.id,
+      refundedCents: r.amount,
+      status: r.status === 'succeeded' ? 'refunded' : 'pending',
+    };
   },
 };
 

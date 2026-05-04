@@ -121,6 +121,7 @@ import { pingWc } from './imports/connectors/wc';
 import { collectFromApi } from './imports/connectors/orchestrator';
 import * as emailConfigs from './notifications/config-store';
 import * as webhookEndpoints from './webhooks/endpoints-store';
+import { buildSnapshot as buildHealthSnapshot } from './health/dashboard';
 import * as webhookDeliveries from './webhooks/delivery-store';
 import * as webhooksDispatcher from './webhooks/dispatcher';
 import { ALL_WEBHOOK_EVENTS, type WebhookEventType } from './webhooks/types';
@@ -154,6 +155,15 @@ async function grantAccessForOrder(order: import('./payments/types').Order): Pro
     await studentsRepo.enrollInCourse(order.userId, order.productSnapshot.refId);
   }
   // Demais kinds: por ora apenas registrado na order (events). Sprint futuro implementa.
+}
+
+/**
+ * Revoga o acesso liberado pelo grantAccessForOrder. Inverso simétrico.
+ */
+async function revokeAccessForOrder(order: import('./payments/types').Order): Promise<void> {
+  if (order.productSnapshot.kind === 'course' && order.productSnapshot.refId) {
+    await studentsRepo.unenrollFromCourse(order.userId, order.productSnapshot.refId);
+  }
 }
 
 export function buildApp() {
@@ -1889,6 +1899,114 @@ export function buildApp() {
     c.json(await ordersRepo.listAll()),
   );
 
+  // Admin: dispara refund REAL via gateway (provider.refundPayment)
+  app.post(
+    '/admin/orders/:id/refund',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as {
+        amountCents?: number;
+        reason?: string;
+      };
+      const order = await ordersRepo.findById(id);
+      if (!order) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+      if (order.status !== 'paid') {
+        return jsonError(
+          c,
+          400,
+          'INVALID_STATE',
+          `Apenas pedidos pagos podem ser reembolsados (status atual=${order.status}).`,
+        );
+      }
+      if (!order.externalId) {
+        return jsonError(
+          c,
+          400,
+          'NO_EXTERNAL',
+          'Pedido sem externalId no gateway — não é possível reembolsar via API.',
+        );
+      }
+      const gw = await gatewaysRepo.findById(order.gatewayId);
+      if (!gw) {
+        return jsonError(c, 404, 'GATEWAY_NOT_FOUND', 'Gateway não encontrado.');
+      }
+      const provider = getPaymentProvider(gw.provider);
+      if (!provider || !provider.refundPayment) {
+        return jsonError(
+          c,
+          501,
+          'NOT_SUPPORTED',
+          `Provider ${gw.provider} não suporta refund automático. Faça manual no painel do gateway.`,
+        );
+      }
+      const u = c.get('user')!;
+      try {
+        const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
+        if (!creds) {
+          return jsonError(c, 500, 'NO_CREDENTIALS', 'Falha ao decifrar credenciais.');
+        }
+        const r = await provider.refundPayment(gw, creds, order.externalId, body.amountCents);
+        const partial =
+          r.status === 'partial' ||
+          (body.amountCents !== undefined && body.amountCents < order.amountCents);
+        const finalStatus = partial ? 'paid' : 'refunded';
+        const noteParts = [
+          `Refund por ${u.email}`,
+          body.reason ? `motivo: ${body.reason}` : null,
+          r.externalRefundId ? `refundId=${r.externalRefundId}` : null,
+          partial ? `parcial: ${r.refundedCents}c de ${order.amountCents}c` : 'total',
+        ].filter(Boolean);
+        const updated = await ordersRepo.updateStatus(
+          id,
+          finalStatus,
+          noteParts.join(' · '),
+        );
+        // Revoga acesso quando refund total
+        if (updated && finalStatus === 'refunded') {
+          try {
+            await revokeAccessForOrder(updated);
+          } catch (err) {
+            console.error('[refund revoke access]', err);
+          }
+          // Webhook outbound
+          void webhooksDispatcher.emit('order.refunded', {
+            orderId: updated.id,
+            userId: updated.userId,
+            amountCents: r.refundedCents,
+            externalRefundId: r.externalRefundId,
+          });
+          // E-mail (best-effort)
+          try {
+            const buyer = await usersStore.findUserById(updated.userId);
+            if (buyer) {
+              void sendSafe({
+                to: { email: buyer.email, name: buyer.name },
+                subject: `Reembolso processado — ${updated.productSnapshot.name}`,
+                html: `<p>Olá${buyer.name ? `, ${buyer.name}` : ''},</p><p>O reembolso de <strong>${updated.productSnapshot.name}</strong> foi processado.</p><p>Valor: <strong>${(r.refundedCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: updated.currency || 'BRL' })}</strong></p>${body.reason ? `<p>Motivo: ${body.reason}</p>` : ''}<p>O acesso ao conteúdo foi removido. Em caso de dúvida, fale com o suporte.</p>`,
+                text: `Reembolso de ${updated.productSnapshot.name} processado: ${(r.refundedCents / 100).toFixed(2)}.`,
+                tag: 'order_refunded',
+              });
+            }
+          } catch (err) {
+            console.error('[refund email]', err);
+          }
+        }
+        return c.json({
+          ok: true,
+          partial,
+          refundedCents: r.refundedCents,
+          externalRefundId: r.externalRefundId,
+          order: updated,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return jsonError(c, 502, 'REFUND_FAILED', msg);
+      }
+    },
+  );
+
   // Admin: muda status manualmente (cancelar/refund)
   app.put('/admin/orders/:id/status', requireAuth('admin', 'superadmin'), async (c) => {
     const id = c.req.param('id') as string;
@@ -2249,6 +2367,12 @@ export function buildApp() {
 
       return c.json({ jobId: job.id, totalRows }, 202);
     },
+  );
+
+  // ---------- Health check agregado ----------
+
+  app.get('/admin/saude', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await buildHealthSnapshot()),
   );
 
   // ---------- Imports — connections REST (Sprint C) ----------

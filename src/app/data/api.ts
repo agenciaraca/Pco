@@ -647,6 +647,21 @@ export async function adminUpdateOrderStatus(
   return http.put<OrderDto>(`/admin/orders/${encodeURIComponent(id)}/status`, { status, note });
 }
 
+export interface RefundResultDto {
+  ok: true;
+  partial: boolean;
+  refundedCents: number;
+  externalRefundId?: string;
+  order: OrderDto;
+}
+
+export async function adminRefundOrder(
+  id: string,
+  options: { amountCents?: number; reason?: string } = {},
+): Promise<RefundResultDto> {
+  return http.post<RefundResultDto>(`/admin/orders/${encodeURIComponent(id)}/refund`, options);
+}
+
 // ---------- Imports (admin) ----------
 
 export type ImportEntityTypeDto =
@@ -1915,4 +1930,26 @@ export async function fetchWebhookDeliveries(
 
 export async function retryWebhookDelivery(id: string): Promise<{ ok: true }> {
   return http.post(`/admin/webhooks/deliveries/${encodeURIComponent(id)}/retry`, {});
+}
+
+// ---------- Health check ----------
+
+export type HealthStatusDto = 'ok' | 'warn' | 'error' | 'na';
+
+export interface HealthCheckItemDto {
+  id: string;
+  label: string;
+  status: HealthStatusDto;
+  message: string;
+  metric?: string | number;
+}
+
+export interface HealthSnapshotDto {
+  generatedAt: string;
+  overall: HealthStatusDto;
+  checks: HealthCheckItemDto[];
+}
+
+export async function fetchHealthSnapshot(): Promise<HealthSnapshotDto> {
+  return http.get('/admin/saude');
 }

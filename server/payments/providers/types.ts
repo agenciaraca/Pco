@@ -29,6 +29,12 @@ export interface WebhookEvent {
   metadata?: Record<string, string>;
 }
 
+export interface RefundResult {
+  externalRefundId?: string;
+  refundedCents: number;
+  status: 'refunded' | 'partial' | 'pending';
+}
+
 export interface PaymentProviderImpl {
   /** Cria um payment no gateway. Retorna externalId + URL/QR para finalizar. */
   createPayment(
@@ -47,6 +53,17 @@ export interface PaymentProviderImpl {
     rawBody: string,
     headers: Record<string, string>,
   ): Promise<WebhookEvent | null>;
+
+  /**
+   * Reembolsa um payment. amountCents omitido = total.
+   * Lança PaymentProviderError se o provider não suporta ou falhar.
+   */
+  refundPayment?(
+    gateway: PaymentGateway,
+    credentials: { apiKey: string; apiSecret: string; webhookSecret: string },
+    externalId: string,
+    amountCents?: number,
+  ): Promise<RefundResult>;
 }
 
 export class PaymentProviderError extends Error {

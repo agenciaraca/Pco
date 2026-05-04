@@ -6,6 +6,7 @@ import type {
   CreatePaymentInput,
   CreatePaymentResult,
   WebhookEvent,
+  RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
 
@@ -87,6 +88,49 @@ export const pagarmeProvider: PaymentProviderImpl = {
     } catch {
       return null;
     }
+  },
+
+  async refundPayment(_gateway, creds, externalId, amountCents): Promise<RefundResult> {
+    if (!creds.apiKey) {
+      throw new PaymentProviderError('NO_KEY', 'Pagar.me apiKey ausente.');
+    }
+    // externalId é o order id. Precisamos do charge id (pega via GET order)
+    const oRes = await fetch(`${API_BASE}/orders/${externalId}`, {
+      headers: { Authorization: basicAuth(creds.apiKey) },
+    });
+    if (!oRes.ok) {
+      throw new PaymentProviderError('PAGARME_LOOKUP_FAILED', `HTTP ${oRes.status}`);
+    }
+    const order = (await oRes.json()) as {
+      charges?: Array<{ id: string; status: string }>;
+    };
+    const charge = order.charges?.find((c) => c.status === 'paid') ?? order.charges?.[0];
+    if (!charge) {
+      throw new PaymentProviderError('NO_CHARGE', 'Order sem charges para reembolsar.');
+    }
+    const body: Record<string, unknown> = {};
+    if (amountCents !== undefined) body.amount = amountCents;
+    const r = await fetch(`${API_BASE}/charges/${charge.id}/refund`, {
+      method: 'POST',
+      headers: {
+        Authorization: basicAuth(creds.apiKey),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => null);
+      throw new PaymentProviderError(
+        'PAGARME_REFUND_FAILED',
+        JSON.stringify(j) || `HTTP ${r.status}`,
+      );
+    }
+    const data = (await r.json()) as { id?: string; amount?: number; status?: string };
+    return {
+      externalRefundId: data.id,
+      refundedCents: data.amount ?? amountCents ?? 0,
+      status: data.status === 'refunded' || data.status === 'canceled' ? 'refunded' : 'pending',
+    };
   },
 };
 

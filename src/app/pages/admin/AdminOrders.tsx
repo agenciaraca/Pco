@@ -8,7 +8,11 @@ import {
   AlertCircle,
   Clock,
 } from 'lucide-react';
-import { useAllOrders, useAdminUpdateOrderStatus } from '../../data/hooks';
+import {
+  useAllOrders,
+  useAdminUpdateOrderStatus,
+  useAdminRefundOrder,
+} from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
@@ -53,9 +57,11 @@ export default function AdminOrders() {
   useDocumentMeta({ title: 'Pedidos — Admin AVA PCO' });
   const { data, isLoading, isError, refetch, isFetching } = useAllOrders();
   const updateStatusMut = useAdminUpdateOrderStatus();
+  const refundMut = useAdminRefundOrder();
   const toast = useToast();
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
   const [search, setSearch] = useState('');
+  const [refundOrder, setRefundOrder] = useState<OrderDto | null>(null);
 
   const filtered = useMemo(() => {
     let list = data ?? [];
@@ -248,9 +254,9 @@ export default function AdminOrders() {
                       <div className="inline-flex items-center gap-1">
                         {o.status === 'paid' && (
                           <button
-                            onClick={() => setStatus(o, 'refunded')}
+                            onClick={() => setRefundOrder(o)}
                             className="pco-btn-ghost text-[11px] text-pco-cyan"
-                            title="Reembolsar"
+                            title="Reembolsar via gateway"
                           >
                             Reembolsar
                           </button>
@@ -273,6 +279,141 @@ export default function AdminOrders() {
           </table>
         </div>
       )}
+
+      {refundOrder && (
+        <RefundModal
+          order={refundOrder}
+          onClose={() => setRefundOrder(null)}
+          isPending={refundMut.isPending}
+          onConfirm={async (amountCents, reason) => {
+            try {
+              const r = await refundMut.mutateAsync({
+                id: refundOrder.id,
+                amountCents,
+                reason,
+              });
+              toast.success(
+                'Reembolso processado',
+                `${(r.refundedCents / 100).toLocaleString('pt-BR')} ${refundOrder.currency} ${r.partial ? '(parcial)' : '(total)'}${r.externalRefundId ? ` · ${r.externalRefundId}` : ''}`,
+              );
+              setRefundOrder(null);
+            } catch (err) {
+              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function RefundModal({
+  order,
+  onClose,
+  onConfirm,
+  isPending,
+}: {
+  order: OrderDto;
+  onClose: () => void;
+  onConfirm: (amountCents: number | undefined, reason: string | undefined) => void;
+  isPending: boolean;
+}) {
+  const [partial, setPartial] = useState(false);
+  const [amount, setAmount] = useState<string>(
+    (order.amountCents / 100).toFixed(2),
+  );
+  const [reason, setReason] = useState('');
+
+  const amountCents = partial
+    ? Math.round(Number(amount.replace(',', '.')) * 100) || undefined
+    : undefined;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-bold text-pco-deep">Reembolsar pedido</h3>
+        <div className="text-xs text-ink-muted space-y-1">
+          <div>
+            <strong>Aluno:</strong> {order.userEmail}
+          </div>
+          <div>
+            <strong>Produto:</strong> {order.productSnapshot.name}
+          </div>
+          <div>
+            <strong>Total pago:</strong>{' '}
+            {(order.amountCents / 100).toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: order.currency || 'BRL',
+            })}
+          </div>
+          <div>
+            <strong>Gateway:</strong> {order.gatewayProvider}
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={partial}
+            onChange={(e) => setPartial(e.target.checked)}
+            className="accent-pco-blue"
+          />
+          Reembolso parcial
+        </label>
+
+        {partial && (
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Valor a reembolsar ({order.currency || 'BRL'})
+            </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="pco-input mt-1 text-sm"
+              placeholder="0,00"
+            />
+          </label>
+        )}
+
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            Motivo (opcional)
+          </span>
+          <input
+            type="text"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="pco-input mt-1 text-sm"
+            placeholder="Ex: Cliente solicitou reembolso por DM"
+          />
+        </label>
+
+        <div className="text-[11px] rounded bg-pco-orange/10 border border-pco-orange/30 p-2 text-pco-orange">
+          ⚠ Esta ação chama o gateway real e remove o acesso do aluno (refund total).
+          Não é reversível.
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="pco-btn-ghost text-xs">
+            Cancelar
+          </button>
+          <button
+            onClick={() => onConfirm(amountCents, reason || undefined)}
+            disabled={isPending || (partial && (!amountCents || amountCents <= 0))}
+            className="pco-btn-primary text-xs"
+          >
+            {isPending ? 'Processando...' : 'Confirmar refund'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

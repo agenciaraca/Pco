@@ -841,6 +841,18 @@ export function useAdminUpdateOrderStatus() {
   });
 }
 
+export function useAdminRefundOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; amountCents?: number; reason?: string }) =>
+      api.adminRefundOrder(args.id, {
+        amountCents: args.amountCents,
+        reason: args.reason,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: allOrdersKey }),
+  });
+}
+
 // Imports
 const importTemplatesKey = ['admin', 'imports', 'templates'] as const;
 const importJobsKey = ['admin', 'imports', 'jobs'] as const;
@@ -1215,5 +1227,13 @@ export function useRetryWebhookDelivery() {
   return useMutation({
     mutationFn: api.retryWebhookDelivery,
     onSuccess: () => qc.invalidateQueries({ queryKey: webhookDeliveriesKey }),
+  });
+}
+
+export function useHealthSnapshot() {
+  return useQuery({
+    queryKey: ['admin', 'health'] as const,
+    queryFn: api.fetchHealthSnapshot,
+    refetchInterval: 60_000,
   });
 }
