@@ -14,9 +14,12 @@ import {
   useMyProgress,
   useMarkLessonCompleted,
   useUnmarkLessonCompleted,
+  useLessonNote,
+  useSaveLessonNote,
 } from '../data/hooks';
 import { useToast } from '../components/Toast';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
+import { useState, useEffect } from 'react';
 
 export default function LMSLesson() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
@@ -24,7 +27,15 @@ export default function LMSLesson() {
   const progressQ = useMyProgress();
   const markMut = useMarkLessonCompleted();
   const unmarkMut = useUnmarkLessonCompleted();
+  const noteQ = useLessonNote(lessonId);
+  const saveNote = useSaveLessonNote();
   const toast = useToast();
+  const [noteDraft, setNoteDraft] = useState('');
+
+  useEffect(() => {
+    if (noteQ.data?.content !== undefined) setNoteDraft(noteQ.data.content);
+    else setNoteDraft('');
+  }, [noteQ.data]);
 
   if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
@@ -132,7 +143,7 @@ export default function LMSLesson() {
             </ul>
           </div>
 
-          <div className="pco-card">
+          <div className="pco-card p-4">
             <h3 className="text-base font-semibold text-pco-deep mb-3 flex items-center gap-2">
               <StickyNote size={16} className="text-pco-blue" strokeWidth={1.75} />
               Minhas anotações
@@ -141,8 +152,32 @@ export default function LMSLesson() {
               rows={4}
               placeholder="Suas anotações desta aula..."
               className="pco-input resize-none"
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              maxLength={10000}
             />
-            <button className="mt-3 pco-btn-primary text-xs">Salvar anotação</button>
+            <div className="mt-1 text-[10px] text-ink-subtle text-right">
+              {noteDraft.length}/10000
+              {noteQ.data?.updatedAt && (
+                <span className="ml-2">
+                  · salvo em {new Date(noteQ.data.updatedAt).toLocaleString('pt-BR')}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await saveNote.mutateAsync({ lessonId: lesson!.id, content: noteDraft });
+                  toast.success('Anotação salva');
+                } catch (err) {
+                  toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+                }
+              }}
+              disabled={saveNote.isPending}
+              className="mt-3 pco-btn-primary text-xs"
+            >
+              {saveNote.isPending ? 'Salvando...' : 'Salvar anotação'}
+            </button>
           </div>
         </div>
 

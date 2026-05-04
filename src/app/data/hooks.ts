@@ -560,6 +560,48 @@ export function useUnmarkLessonCompleted() {
   });
 }
 
+const allSupportKey = ['admin', 'support'] as const;
+export function useAllSupportTickets() {
+  return useQuery({ queryKey: allSupportKey, queryFn: api.fetchAllSupportTickets });
+}
+
+export function useUpdateSupportStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'open' | 'in_progress' | 'resolved' }) =>
+      api.updateSupportTicketStatus(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: allSupportKey }),
+  });
+}
+
+export function useRespondSupport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, message }: { id: string; message: string }) =>
+      api.respondSupportTicket(id, message),
+    onSuccess: () => qc.invalidateQueries({ queryKey: allSupportKey }),
+  });
+}
+
+export function useLessonNote(lessonId: string | undefined) {
+  return useQuery({
+    queryKey: ['lesson-note', lessonId],
+    queryFn: () => api.fetchLessonNote(lessonId!),
+    enabled: !!lessonId,
+  });
+}
+
+export function useSaveLessonNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ lessonId, content }: { lessonId: string; content: string }) =>
+      api.saveLessonNote(lessonId, content),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['lesson-note', vars.lessonId] });
+    },
+  });
+}
+
 const tutorHistoryKey = ['tutor', 'history'] as const;
 export function useTutorHistory() {
   return useQuery({ queryKey: tutorHistoryKey, queryFn: () => api.fetchTutorHistory() });

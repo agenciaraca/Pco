@@ -64,6 +64,7 @@ import * as loginConfigRepo from './repositories/login-config';
 import * as settingsRepo from './repositories/settings';
 import * as tutorHistory from './repositories/tutor-history';
 import * as progressRepo from './repositories/progress';
+import * as lessonNotesRepo from './repositories/lesson-notes';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -372,6 +373,35 @@ export function buildApp() {
     const lessonId = c.req.param('id') as string;
     const ok = await progressRepo.unmarkCompleted(u.sub, lessonId);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Não estava marcada como concluída');
+    return c.json({ ok: true });
+  });
+
+  // ---------- Lesson notes (usuário logado) ----------
+
+  app.get('/lessons/:id/note', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const lessonId = c.req.param('id') as string;
+    const note = await lessonNotesRepo.getNote(u.sub, lessonId);
+    return c.json(note);
+  });
+
+  app.put('/lessons/:id/note', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const lessonId = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const content = typeof body.content === 'string' ? body.content : '';
+    if (content.length > 10000) {
+      return jsonError(c, 400, 'TOO_LONG', 'Anotação muito longa (máx 10k chars)');
+    }
+    const entry = await lessonNotesRepo.upsertNote(u.sub, lessonId, content);
+    return c.json(entry);
+  });
+
+  app.delete('/lessons/:id/note', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const lessonId = c.req.param('id') as string;
+    const ok = await lessonNotesRepo.deleteNote(u.sub, lessonId);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Sem anotação');
     return c.json({ ok: true });
   });
 
@@ -692,20 +722,81 @@ export function buildApp() {
 
   // ---------- Support ----------
 
-  app.get('/support/tickets', async (c) =>
-    c.json(await supportRepo.listTicketsForStudent(currentStudent.id)),
-  );
+  app.get('/support/tickets', async (c) => {
+    const u = c.get('user');
+    const id = u?.sub ?? currentStudent.id;
+    return c.json(await supportRepo.listTicketsForStudent(id));
+  });
   app.post('/support/tickets', async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createSupportTicketSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const u = c.get('user');
+    const id = u?.sub ?? currentStudent.id;
     const ticket = await supportRepo.createTicket({
-      studentId: currentStudent.id,
+      studentId: id,
       subject: v.data.subject,
       category: v.data.category,
       message: v.data.message,
     });
+
+    // Notifica admins/superadmin
+    try {
+      await notificationsRepo.broadcast({
+        audience: 'admins',
+        title: `Novo ticket: ${ticket.subject}`,
+        body: `Categoria ${ticket.category}. De ${u?.email ?? 'aluno demo'}.`,
+        category: 'info',
+        link: '/admin/suporte',
+        authorEmail: 'sistema',
+      });
+    } catch (err) {
+      console.error('[notify admins on ticket]', err);
+    }
+
     return c.json(ticket, 201);
+  });
+
+  // Admin: lista tickets, atualiza status, responde via notif
+  app.get('/admin/support/tickets', requireAuth('admin', 'superadmin'), async (c) => {
+    const all = await supportRepo.listAllTickets();
+    return c.json(all);
+  });
+
+  app.put('/admin/support/tickets/:id/status', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const allowed = new Set(['open', 'in_progress', 'resolved']);
+    const status = typeof body.status === 'string' ? body.status : '';
+    if (!allowed.has(status)) {
+      return jsonError(c, 400, 'INVALID_STATUS', 'Status inválido (open/in_progress/resolved)');
+    }
+    const updated = await supportRepo.updateTicketStatus(
+      id,
+      status as 'open' | 'in_progress' | 'resolved',
+    );
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Ticket não encontrado');
+    return c.json(updated);
+  });
+
+  app.post('/admin/support/tickets/:id/respond', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const message = typeof body.message === 'string' ? body.message.trim() : '';
+    if (message.length < 2) return jsonError(c, 400, 'INVALID_INPUT', 'Mensagem requerida');
+    const ticket = await supportRepo.findTicket(id);
+    if (!ticket) return jsonError(c, 404, 'NOT_FOUND', 'Ticket não encontrado');
+    const u = c.get('user')!;
+    await notificationsRepo.createOne({
+      userId: ticket.studentId,
+      title: `Resposta ao ticket: ${ticket.subject}`,
+      body: message,
+      category: 'success',
+      link: '/suporte',
+      authorEmail: u.email,
+    });
+    await supportRepo.updateTicketStatus(id, 'in_progress');
+    return c.json({ ok: true });
   });
 
   // ---------- Admin students ----------

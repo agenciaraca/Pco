@@ -23,6 +23,7 @@ import {
   ScrollText,
   Bell as BellIcon,
   AlertOctagon,
+  LifeBuoy,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
@@ -70,6 +71,7 @@ const adminGroups = [
       { to: '/admin/plano-retomada-ia', label: 'Plano de Retomada IA', icon: Sparkles },
       { to: '/admin/reengajamento', label: 'Reengajamento', icon: Send },
       { to: '/admin/notificacoes', label: 'Notificações', icon: BellIcon },
+      { to: '/admin/suporte', label: 'Suporte', icon: LifeBuoy },
     ],
   },
   {

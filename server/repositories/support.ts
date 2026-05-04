@@ -37,6 +37,25 @@ export async function listTicketsForStudent(studentId: string): Promise<SupportT
   }));
 }
 
+export async function listAllTickets(): Promise<SupportTicket[]> {
+  const all = await store.getAll();
+  return [...all].sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
+}
+
+export async function findTicket(id: string): Promise<SupportTicket | null> {
+  return await store.findOne((t) => t.id === id);
+}
+
+export async function updateTicketStatus(
+  id: string,
+  status: SupportTicket['status'],
+): Promise<SupportTicket | null> {
+  return await store.update(
+    (t) => t.id === id,
+    (t) => ({ ...t, status, updatedAt: new Date().toISOString() }),
+  );
+}
+
 interface CreateInput {
   studentId?: string;
   subject: string;

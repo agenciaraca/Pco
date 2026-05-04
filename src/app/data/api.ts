@@ -140,6 +140,46 @@ export async function unmarkLessonCompleted(lessonId: string): Promise<{ ok: tru
   return http.delete<{ ok: true }>(`/lessons/${encodeURIComponent(lessonId)}/complete`);
 }
 
+// ---------- Admin support ----------
+
+export async function fetchAllSupportTickets(): Promise<SupportTicket[]> {
+  return http.get<SupportTicket[]>('/admin/support/tickets');
+}
+
+export async function updateSupportTicketStatus(
+  id: string,
+  status: 'open' | 'in_progress' | 'resolved',
+): Promise<SupportTicket> {
+  return http.put<SupportTicket>(
+    `/admin/support/tickets/${encodeURIComponent(id)}/status`,
+    { status },
+  );
+}
+
+export async function respondSupportTicket(id: string, message: string): Promise<{ ok: true }> {
+  return http.post<{ ok: true }>(
+    `/admin/support/tickets/${encodeURIComponent(id)}/respond`,
+    { message },
+  );
+}
+
+// ---------- Lesson notes ----------
+
+export interface LessonNoteDto {
+  userId: string;
+  lessonId: string;
+  content: string;
+  updatedAt: string;
+}
+
+export async function fetchLessonNote(lessonId: string): Promise<LessonNoteDto | null> {
+  return http.get<LessonNoteDto | null>(`/lessons/${encodeURIComponent(lessonId)}/note`);
+}
+
+export async function saveLessonNote(lessonId: string, content: string): Promise<LessonNoteDto> {
+  return http.put<LessonNoteDto>(`/lessons/${encodeURIComponent(lessonId)}/note`, { content });
+}
+
 // ---------- Tutor history ----------
 
 export interface TutorTurnDto {
