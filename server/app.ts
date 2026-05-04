@@ -2,7 +2,20 @@ import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
+import { readFileSync } from 'node:fs';
+import { resolve as pathResolve } from 'node:path';
 import { currentStudent } from '../src/app/data/seed';
+
+// Lê version do package.json no boot (sem reads em runtime)
+const AVA_VERSION = (() => {
+  try {
+    const pkg = JSON.parse(readFileSync(pathResolve(process.cwd(), 'package.json'), 'utf8'));
+    return typeof pkg.version === 'string' ? pkg.version : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+})();
+const AVA_STARTED_AT = new Date().toISOString();
 import * as usersStore from './auth/users-store';
 import { signToken } from './auth/jwt';
 import { attachUser, requireAuth } from './auth/middleware';
@@ -92,6 +105,12 @@ export function buildApp() {
   app.use('*', attachUser);
   app.use('*', auditMiddleware);
 
+  // Version header em toda response
+  app.use('*', async (c, next) => {
+    await next();
+    c.header('X-AVA-Version', AVA_VERSION);
+  });
+
   // ---------- App settings ----------
 
   // Público — branding/contato visíveis no rodapé etc.
@@ -149,6 +168,15 @@ export function buildApp() {
     const next = await loginConfigRepo.resetConfig();
     return c.json(next);
   });
+
+  // /version público — dev/debug
+  app.get('/version', (c) =>
+    c.json({
+      version: AVA_VERSION,
+      startedAt: AVA_STARTED_AT,
+      env: process.env.NODE_ENV ?? 'development',
+    }),
+  );
 
   // /health rápido — sem I/O caro (usado por crons)
   app.get('/health', (c) =>
