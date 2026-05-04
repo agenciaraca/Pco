@@ -44,7 +44,9 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
   const [searchResults, setSearchResults] = useState<api.SearchHitDto[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (searchQ.trim().length < 2) {
@@ -79,6 +81,32 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
     if (searchOpen) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [searchOpen]);
+
+  // Atalhos de teclado: Cmd/Ctrl+K foca a busca; ? abre modal de atalhos
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const inField = tag === 'input' || tag === 'textarea' || target?.isContentEditable;
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        setSearchOpen(true);
+        return;
+      }
+      if (e.key === '?' && !inField && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setShortcutsOpen((v) => !v);
+      }
+      if (e.key === 'Escape') {
+        setShortcutsOpen(false);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -139,14 +167,15 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
               />
             )}
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
               onFocus={() => setSearchOpen(true)}
               placeholder={
                 variant === 'admin'
-                  ? 'Buscar alunos, cursos, materiais...'
-                  : 'Buscar aulas, materiais, podcasts...'
+                  ? 'Buscar alunos, cursos, materiais... (Ctrl+K)'
+                  : 'Buscar aulas, materiais, podcasts... (Ctrl+K)'
               }
               className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-gray bg-surface-off text-ink-base placeholder:text-ink-subtle focus:outline-none focus:bg-white focus:border-pco-blue focus:ring-2 focus:ring-pco-blue/15 transition-all"
             />
@@ -290,7 +319,67 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
           )}
         </div>
       </div>
+
+      {shortcutsOpen && (
+        <ShortcutsModal onClose={() => setShortcutsOpen(false)} />
+      )}
     </header>
+  );
+}
+
+function ShortcutsModal({ onClose }: { onClose: () => void }) {
+  const items = [
+    { keys: ['Ctrl', 'K'], action: 'Focar busca global' },
+    { keys: ['?'], action: 'Abrir esta lista de atalhos' },
+    { keys: ['Esc'], action: 'Fechar diálogos' },
+  ];
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center px-4 py-6"
+      onClick={(e) => {
+        if (e.currentTarget === e.target) onClose();
+      }}
+    >
+      <div className="absolute inset-0 bg-pco-deep/50 backdrop-blur-sm" />
+      <div className="relative pco-card w-full max-w-md p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+              Atalhos
+            </div>
+            <h2 className="text-lg font-bold text-pco-deep">Teclado</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 grid place-items-center rounded-lg text-ink-muted hover:bg-surface-gray"
+            aria-label="Fechar"
+          >
+            ✕
+          </button>
+        </div>
+        <ul className="mt-4 space-y-2">
+          {items.map((it) => (
+            <li key={it.action} className="flex items-center justify-between gap-3">
+              <span className="text-sm text-ink-muted">{it.action}</span>
+              <span className="flex items-center gap-1">
+                {it.keys.map((k) => (
+                  <kbd
+                    key={k}
+                    className="px-2 py-0.5 rounded border border-surface-gray bg-surface-off text-xs font-mono text-pco-deep"
+                  >
+                    {k}
+                  </kbd>
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-[11px] text-ink-subtle">
+          Em Mac, use <kbd className="px-1.5 rounded bg-surface-gray text-[10px]">⌘</kbd> em
+          vez de <kbd className="px-1.5 rounded bg-surface-gray text-[10px]">Ctrl</kbd>.
+        </p>
+      </div>
+    </div>
   );
 }
 
