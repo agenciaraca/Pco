@@ -58,6 +58,8 @@ import {
   broadcastNotificationSchema,
   updateProfileSchema,
   selfChangePasswordSchema,
+  createPaymentGatewaySchema,
+  updatePaymentGatewaySchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -81,6 +83,8 @@ import * as progressRepo from './repositories/progress';
 import * as lessonNotesRepo from './repositories/lesson-notes';
 import * as podcastEngagementRepo from './repositories/podcast-engagement';
 import * as certValidationsRepo from './repositories/cert-validations';
+import * as gatewaysRepo from './payments/gateways-repo';
+import { ALL_PROVIDERS } from './payments/providers/registry';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -1574,6 +1578,43 @@ export function buildApp() {
       limit: typeof limit === 'number' && Number.isFinite(limit) ? limit : undefined,
     });
     return c.json(entries);
+  });
+
+  // ---------- Payment gateways (admin) ----------
+
+  app.get('/admin/payments/providers', requireAuth('admin', 'superadmin'), (c) =>
+    c.json(ALL_PROVIDERS),
+  );
+
+  app.get('/admin/payments/gateways', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await gatewaysRepo.listAll()),
+  );
+
+  app.post('/admin/payments/gateways', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createPaymentGatewaySchema, body);
+    if (!v.ok)
+      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const created = await gatewaysRepo.createGateway(v.data);
+    return c.json(created, 201);
+  });
+
+  app.put('/admin/payments/gateways/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updatePaymentGatewaySchema, body);
+    if (!v.ok)
+      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await gatewaysRepo.updateGateway(id, v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/payments/gateways/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const ok = await gatewaysRepo.deleteGateway(id);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado');
+    return c.json({ ok: true });
   });
 
   // ---------- Stats agregadas (admin) ----------

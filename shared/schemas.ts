@@ -123,6 +123,60 @@ export const recoveryPlanSchema = z.object({
 });
 export type RecoveryPlanInput = z.infer<typeof recoveryPlanSchema>;
 
+// Payment gateways
+export const paymentProviderEnum = z.enum([
+  'mock',
+  'stripe',
+  'asaas',
+  'pagarme',
+  'paypal',
+  'mercadopago',
+]);
+export const paymentModeEnum = z.enum(['test', 'live']);
+
+export const createPaymentGatewaySchema = z.object({
+  provider: paymentProviderEnum,
+  displayName: z.string().min(2).max(120),
+  mode: paymentModeEnum,
+  active: z.boolean().optional(),
+  apiKey: z.string().min(1, 'API key obrigatória').max(2000),
+  apiSecret: z.string().max(2000).optional(),
+  webhookSecret: z.string().max(2000).optional(),
+  publicKey: z.string().max(2000).optional(),
+  options: z.record(z.string(), z.unknown()).optional(),
+});
+export type CreatePaymentGatewayInput = z.infer<typeof createPaymentGatewaySchema>;
+
+export const updatePaymentGatewaySchema = z.object({
+  displayName: z.string().min(2).max(120).optional(),
+  mode: paymentModeEnum.optional(),
+  active: z.boolean().optional(),
+  apiKey: z.string().max(2000).optional(),
+  apiSecret: z.string().max(2000).nullable().optional(),
+  webhookSecret: z.string().max(2000).nullable().optional(),
+  publicKey: z.string().max(2000).nullable().optional(),
+  options: z.record(z.string(), z.unknown()).optional(),
+});
+export type UpdatePaymentGatewayInput = z.infer<typeof updatePaymentGatewaySchema>;
+
+// Products
+export const productKindEnum = z.enum(['course', 'session_pack', 'tutor_pack']);
+
+export const createProductSchema = z.object({
+  kind: productKindEnum,
+  refId: z.string().nullable().optional(),
+  name: z.string().min(2).max(120),
+  description: z.string().max(2000).optional(),
+  priceCents: z.number().int().min(0).max(10_000_00 /* R$ 10.000 */),
+  currency: z.string().length(3).default('BRL'),
+  active: z.boolean().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+export type CreateProductInput = z.infer<typeof createProductSchema>;
+
+export const updateProductSchema = createProductSchema.partial();
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+
 // Generic API envelope
 export const errorResponseSchema = z.object({
   error: z.object({

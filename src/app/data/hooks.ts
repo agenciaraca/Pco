@@ -707,6 +707,47 @@ export function useResetLoginConfig() {
   });
 }
 
+// Payment gateways
+const paymentProvidersKey = ['admin', 'payments', 'providers'] as const;
+const paymentGatewaysKey = ['admin', 'payments', 'gateways'] as const;
+
+export function usePaymentProviders() {
+  return useQuery({
+    queryKey: paymentProvidersKey,
+    queryFn: api.fetchPaymentProviders,
+    staleTime: 60 * 60_000,
+  });
+}
+
+export function usePaymentGateways() {
+  return useQuery({ queryKey: paymentGatewaysKey, queryFn: api.fetchPaymentGateways });
+}
+
+export function useCreatePaymentGateway() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createPaymentGateway,
+    onSuccess: () => qc.invalidateQueries({ queryKey: paymentGatewaysKey }),
+  });
+}
+
+export function useUpdatePaymentGateway() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: api.UpdateGatewayInput }) =>
+      api.updatePaymentGateway(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: paymentGatewaysKey }),
+  });
+}
+
+export function useDeletePaymentGateway() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deletePaymentGateway,
+    onSuccess: () => qc.invalidateQueries({ queryKey: paymentGatewaysKey }),
+  });
+}
+
 const completionsKey = ['admin', 'stats', 'completions'] as const;
 export function useCompletionsStats(days = 7) {
   return useQuery({

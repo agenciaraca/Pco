@@ -410,6 +410,88 @@ export async function studentSearch(q: string): Promise<StudentSearchHitDto[]> {
   return http.get<StudentSearchHitDto[]>(`/search?q=${encodeURIComponent(q)}`);
 }
 
+// ---------- Payment gateways (admin) ----------
+
+export type PaymentProviderId =
+  | 'mock'
+  | 'stripe'
+  | 'asaas'
+  | 'pagarme'
+  | 'paypal'
+  | 'mercadopago';
+
+export interface PaymentProviderInfoDto {
+  id: PaymentProviderId;
+  label: string;
+  implemented: boolean;
+}
+
+export interface PaymentGatewayDto {
+  id: string;
+  provider: PaymentProviderId;
+  displayName: string;
+  mode: 'test' | 'live';
+  active: boolean;
+  publicKey?: string | null;
+  options?: Record<string, unknown>;
+  hasApiKey: boolean;
+  hasApiSecret: boolean;
+  hasWebhookSecret: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateGatewayInput {
+  provider: PaymentProviderId;
+  displayName: string;
+  mode: 'test' | 'live';
+  active?: boolean;
+  apiKey: string;
+  apiSecret?: string;
+  webhookSecret?: string;
+  publicKey?: string;
+}
+
+export interface UpdateGatewayInput {
+  displayName?: string;
+  mode?: 'test' | 'live';
+  active?: boolean;
+  apiKey?: string;
+  apiSecret?: string | null;
+  webhookSecret?: string | null;
+  publicKey?: string | null;
+}
+
+export async function fetchPaymentProviders(): Promise<PaymentProviderInfoDto[]> {
+  return http.get<PaymentProviderInfoDto[]>('/admin/payments/providers');
+}
+
+export async function fetchPaymentGateways(): Promise<PaymentGatewayDto[]> {
+  return http.get<PaymentGatewayDto[]>('/admin/payments/gateways');
+}
+
+export async function createPaymentGateway(
+  input: CreateGatewayInput,
+): Promise<PaymentGatewayDto> {
+  return http.post<PaymentGatewayDto>('/admin/payments/gateways', input);
+}
+
+export async function updatePaymentGateway(
+  id: string,
+  patch: UpdateGatewayInput,
+): Promise<PaymentGatewayDto> {
+  return http.put<PaymentGatewayDto>(
+    `/admin/payments/gateways/${encodeURIComponent(id)}`,
+    patch,
+  );
+}
+
+export async function deletePaymentGateway(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(
+    `/admin/payments/gateways/${encodeURIComponent(id)}`,
+  );
+}
+
 // ---------- Admin stats ----------
 
 export interface CompletionsStatsDto {
