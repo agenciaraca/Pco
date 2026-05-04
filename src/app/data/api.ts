@@ -342,6 +342,10 @@ export async function fetchBackups(): Promise<BackupDto[]> {
   return http.get<BackupDto[]>('/admin/backups');
 }
 
+export async function runBackupNow(): Promise<BackupDto & { ok: true }> {
+  return http.post<BackupDto & { ok: true }>('/admin/backups/run', {});
+}
+
 export async function deleteBackup(name: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/backups/${encodeURIComponent(name)}`);
 }

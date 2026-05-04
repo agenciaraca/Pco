@@ -1315,6 +1315,56 @@ export function buildApp() {
     },
   );
 
+  // ---------- Backup sob demanda (admin) ----------
+
+  app.post('/admin/backups/run', requireAuth('admin', 'superadmin'), async (c) => {
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const { execFile } = await import('node:child_process');
+      const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
+      const backupsDir = path.join(dataDir, 'backups');
+      await fs.mkdir(backupsDir, { recursive: true });
+      const ts = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .replace('T', '_')
+        .slice(0, 19);
+      const filename = `manual-${ts}.tar.gz`;
+      const filepath = path.join(backupsDir, filename);
+
+      // Lista arquivos JSON em data/ (não recursivo, evita backups/)
+      const entries = await fs.readdir(dataDir, { withFileTypes: true });
+      const files = entries
+        .filter((e) => e.isFile() && e.name.endsWith('.json'))
+        .map((e) => e.name);
+      if (files.length === 0) {
+        return jsonError(c, 404, 'NO_DATA', 'Sem arquivos JSON para backup.');
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        execFile(
+          'tar',
+          ['-czf', filepath, '-C', dataDir, ...files],
+          { timeout: 30_000 },
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          },
+        );
+      });
+
+      const st = await fs.stat(filepath);
+      return c.json(
+        { ok: true, name: filename, sizeBytes: st.size, mtime: st.mtime.toISOString() },
+        201,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return jsonError(c, 500, 'BACKUP_FAILED', `Backup falhou: ${msg}`);
+    }
+  });
+
   // ---------- Backups (admin) ----------
 
   app.get('/admin/backups', requireAuth('admin', 'superadmin'), async (c) => {

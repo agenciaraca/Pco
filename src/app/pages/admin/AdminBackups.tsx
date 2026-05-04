@@ -5,8 +5,9 @@ import {
   RefreshCw,
   HardDrive,
   ShieldCheck,
+  PlayCircle,
 } from 'lucide-react';
-import { useBackups, useDeleteBackup } from '../../data/hooks';
+import { useBackups, useDeleteBackup, useRunBackupNow } from '../../data/hooks';
 import { downloadBackup } from '../../data/api';
 import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
@@ -24,6 +25,7 @@ function formatSize(bytes: number): string {
 export default function AdminBackups() {
   const backups = useBackups();
   const delMut = useDeleteBackup();
+  const runMut = useRunBackupNow();
   const toast = useToast();
   const [pending, setPending] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -62,14 +64,35 @@ export default function AdminBackups() {
             Backups automáticos diários (cron 03:00 UTC) das tabelas JSON. Retenção de 14 dias.
           </p>
         </div>
-        <button
-          onClick={() => backups.refetch()}
-          disabled={backups.isFetching}
-          className="pco-btn-secondary text-xs"
-        >
-          <RefreshCw size={12} strokeWidth={2} className={backups.isFetching ? 'animate-spin' : ''} />
-          Atualizar
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                const res = await runMut.mutateAsync();
+                toast.success('Backup criado', res.name);
+              } catch (err) {
+                toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+              }
+            }}
+            disabled={runMut.isPending}
+            className="pco-btn-primary text-xs"
+          >
+            <PlayCircle size={12} strokeWidth={2} />
+            {runMut.isPending ? 'Criando...' : 'Backup agora'}
+          </button>
+          <button
+            onClick={() => backups.refetch()}
+            disabled={backups.isFetching}
+            className="pco-btn-secondary text-xs"
+          >
+            <RefreshCw
+              size={12}
+              strokeWidth={2}
+              className={backups.isFetching ? 'animate-spin' : ''}
+            />
+            Atualizar
+          </button>
+        </div>
       </header>
 
       <div className="grid gap-3 sm:grid-cols-3">

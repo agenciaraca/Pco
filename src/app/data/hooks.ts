@@ -716,6 +716,14 @@ export function useDeleteBackup() {
   });
 }
 
+export function useRunBackupNow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.runBackupNow,
+    onSuccess: () => qc.invalidateQueries({ queryKey: backupsKey }),
+  });
+}
+
 const errorLogKey = ['admin', 'error-log'] as const;
 export function useErrorLog(limit = 200) {
   return useQuery({
