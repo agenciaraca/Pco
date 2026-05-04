@@ -43,6 +43,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
   const unread = useUnreadCount();
   const toast = useToast();
   const lastUnreadRef = useRef<number | null>(null);
+  const [badgePulse, setBadgePulse] = useState(false);
 
   useEffect(() => {
     const current = unread.data?.count ?? 0;
@@ -55,6 +56,11 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
       );
     }
     lastUnreadRef.current = current;
+    if (last !== null && current > last) {
+      setBadgePulse(true);
+      const t = setTimeout(() => setBadgePulse(false), 3000);
+      return () => clearTimeout(t);
+    }
   }, [unread.data?.count, toast]);
 
   // Atualiza document.title com unread count
@@ -262,7 +268,11 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
         >
           <Bell size={18} strokeWidth={1.75} />
           {unread.data && unread.data.count > 0 ? (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-pco-orange text-[9px] font-bold text-white grid place-items-center ring-2 ring-white">
+            <span
+              className={`absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-pco-orange text-[9px] font-bold text-white grid place-items-center ring-2 ring-white ${
+                badgePulse ? 'animate-pulse' : ''
+              }`}
+            >
               {unread.data.count > 99 ? '99+' : unread.data.count}
             </span>
           ) : null}
