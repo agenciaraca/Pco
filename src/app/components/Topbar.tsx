@@ -56,6 +56,19 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
     }
     lastUnreadRef.current = current;
   }, [unread.data?.count, toast]);
+
+  // Atualiza document.title com unread count
+  useEffect(() => {
+    const count = unread.data?.count ?? 0;
+    const original = document.title;
+    const prefixRegex = /^\(\d+\)\s/;
+    const stripped = original.replace(prefixRegex, '');
+    if (count > 0) {
+      document.title = `(${count > 99 ? '99+' : count}) ${stripped}`;
+    } else if (prefixRegex.test(original)) {
+      document.title = stripped;
+    }
+  }, [unread.data?.count]);
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState<api.SearchHitDto[]>([]);
   const [searching, setSearching] = useState(false);
