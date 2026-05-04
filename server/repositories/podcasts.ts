@@ -24,6 +24,7 @@ function rowToEpisode(r: typeof schema.podcasts.$inferSelect): PodcastEpisode {
     audioUrl: r.audioUrl ?? undefined,
     relatedCourseIds: r.relatedCourseIds ?? [],
     relatedModuleIds: r.relatedModuleIds ?? [],
+    tags: (r as { tags?: string[] }).tags,
   };
 }
 
@@ -62,6 +63,7 @@ export async function createPodcast(input: CreatePodcastInput): Promise<PodcastE
     audioUrl: input.audioUrl || undefined,
     relatedCourseIds: input.relatedCourseIds,
     relatedModuleIds: input.relatedModuleIds,
+    tags: input.tags,
   };
 
   const db = getDb();

@@ -1576,6 +1576,14 @@ export function useCourseAnalytics(courseId: string | undefined) {
   });
 }
 
+export function useStudentAnalytics(studentId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'students', studentId, 'analytics'] as const,
+    queryFn: () => api.fetchStudentAnalytics(studentId!),
+    enabled: !!studentId,
+  });
+}
+
 export function useUpsertMyCourseReview() {
   const qc = useQueryClient();
   return useMutation({

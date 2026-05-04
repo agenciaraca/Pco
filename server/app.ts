@@ -3024,6 +3024,80 @@ export function buildApp() {
     return c.json(r);
   });
 
+  /**
+   * Analytics consolidado por aluno: matrículas + watch time + progresso +
+   * reviews + última atividade + achievements.
+   */
+  app.get(
+    '/admin/students/:id/analytics',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const student = await studentsRepo.findAdminStudent(id);
+      if (!student) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+
+      const allCourses = await coursesRepo.listCourses();
+      const enrolledCourseIds = new Set(student.enrolledCourseIds ?? []);
+      const enrolledCourses = allCourses.filter((c) => enrolledCourseIds.has(c.id));
+
+      const myProgress = await progressRepo.listForUser(id);
+      const completedByCourse = new Map<string, Set<string>>();
+      for (const p of myProgress) {
+        const set = completedByCourse.get(p.courseId) ?? new Set<string>();
+        set.add(p.lessonId);
+        completedByCourse.set(p.courseId, set);
+      }
+
+      const perCourse = enrolledCourses.map((co) => {
+        const lessons = (co.modules ?? []).flatMap((m) => m.lessons ?? []);
+        const total = lessons.length;
+        const done = (completedByCourse.get(co.id) ?? new Set()).size;
+        return {
+          courseId: co.id,
+          title: co.title,
+          totalLessons: total,
+          completedLessons: done,
+          completionPct: total === 0 ? 0 : Math.round((done / total) * 100),
+        };
+      });
+
+      const myWatch = await watchTimeRepo.listForUser(id);
+      const totalSecondsWatched = myWatch.reduce((s, w) => s + w.totalSeconds, 0);
+
+      const allReviews = await courseReviews.listAll();
+      const myReviews = allReviews.filter((r) => r.userId === id);
+
+      const streak = await progressRepo.streakInfo(id);
+      const earned = await achievementsStore.listForUser(id);
+
+      return c.json({
+        student: {
+          id: student.id,
+          name: student.name,
+          email: student.email,
+          status: student.status,
+          createdAt: student.createdAt,
+          lastAccessAt: student.lastAccessAt ?? null,
+        },
+        enrollment: {
+          total: enrolledCourses.length,
+          courses: perCourse,
+          totalLessonsCompleted: myProgress.length,
+        },
+        watchTime: {
+          totalSeconds: totalSecondsWatched,
+          lessonsTouched: myWatch.length,
+        },
+        engagement: {
+          streak,
+          reviewsWritten: myReviews.length,
+          achievementsEarned: earned.length,
+          achievementIds: earned.map((b) => b.badgeId),
+        },
+      });
+    },
+  );
+
   app.get(
     '/admin/students/:id/achievements',
     requireAuth('admin', 'superadmin'),

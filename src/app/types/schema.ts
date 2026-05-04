@@ -115,6 +115,7 @@ export interface PodcastEpisode {
   relatedModuleIds?: ID[];
   listened?: boolean;
   favorite?: boolean;
+  tags?: string[];
 }
 
 export interface LibraryItem {
@@ -127,6 +128,7 @@ export interface LibraryItem {
   relatedCourseIds?: ID[];
   relatedModuleIds?: ID[];
   theme?: string;
+  tags?: string[];
 }
 
 export interface SupportTicket {

@@ -2662,6 +2662,44 @@ export async function fetchCourseAnalytics(
   return http.get(`/admin/courses/${encodeURIComponent(courseId)}/analytics`);
 }
 
+export interface StudentAnalyticsDto {
+  student: {
+    id: string;
+    name: string;
+    email: string;
+    status: string;
+    createdAt: string;
+    lastAccessAt: string | null;
+  };
+  enrollment: {
+    total: number;
+    totalLessonsCompleted: number;
+    courses: Array<{
+      courseId: string;
+      title: string;
+      totalLessons: number;
+      completedLessons: number;
+      completionPct: number;
+    }>;
+  };
+  watchTime: {
+    totalSeconds: number;
+    lessonsTouched: number;
+  };
+  engagement: {
+    streak: { current: number; longest: number; lastActiveDay: string | null };
+    reviewsWritten: number;
+    achievementsEarned: number;
+    achievementIds: string[];
+  };
+}
+
+export async function fetchStudentAnalytics(
+  studentId: string,
+): Promise<StudentAnalyticsDto> {
+  return http.get(`/admin/students/${encodeURIComponent(studentId)}/analytics`);
+}
+
 // ---------- Streak ----------
 
 export interface StreakDto {

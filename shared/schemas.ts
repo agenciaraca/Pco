@@ -327,6 +327,7 @@ export const createLibrarySchema = z.object({
   relatedCourseIds: z.array(z.string().max(40)).max(50).default([]),
   relatedModuleIds: z.array(z.string().max(40)).max(100).default([]),
   theme: z.string().max(80).optional(),
+  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
 });
 export type CreateLibraryInput = z.infer<typeof createLibrarySchema>;
 
@@ -348,6 +349,7 @@ export const createPodcastSchema = z.object({
     .optional(),
   relatedCourseIds: z.array(z.string().max(40)).max(50).default([]),
   relatedModuleIds: z.array(z.string().max(40)).max(100).default([]),
+  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
 });
 export type CreatePodcastInput = z.infer<typeof createPodcastSchema>;
 

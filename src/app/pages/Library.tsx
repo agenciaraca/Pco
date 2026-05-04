@@ -14,6 +14,15 @@ export default function Library() {
   const [courseFilter, setCourseFilter] = useState<CourseFilter>('all');
   const [mandatoryFilter, setMandatoryFilter] = useState<MandatoryFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const it of libraryItems) {
+      for (const t of it.tags ?? []) set.add(t);
+    }
+    return Array.from(set).sort();
+  }, [libraryItems]);
 
   const filtered = useMemo(() => {
     return libraryItems.filter((item) => {
@@ -23,9 +32,10 @@ export default function Library() {
       if (mandatoryFilter === 'mandatory' && !item.mandatory) return false;
       if (mandatoryFilter === 'optional' && item.mandatory) return false;
       if (typeFilter !== 'all' && item.type !== typeFilter) return false;
+      if (activeTag && !(item.tags ?? []).includes(activeTag)) return false;
       return true;
     });
-  }, [libraryItems, courseFilter, mandatoryFilter, typeFilter]);
+  }, [libraryItems, courseFilter, mandatoryFilter, typeFilter, activeTag]);
 
   if (isLoading) return <CardListSkeleton count={4} />;
 
@@ -80,6 +90,36 @@ export default function Library() {
             />
           ))}
         </div>
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <span className="text-[11px] text-ink-subtle uppercase mr-1">Tags:</span>
+            <button
+              type="button"
+              onClick={() => setActiveTag(null)}
+              className={`pco-badge text-xs ${
+                activeTag === null
+                  ? 'bg-pco-blue/10 text-pco-blue'
+                  : 'bg-surface-gray text-ink-muted'
+              }`}
+            >
+              Todas
+            </button>
+            {allTags.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setActiveTag(activeTag === t ? null : t)}
+                className={`pco-badge text-xs ${
+                  activeTag === t
+                    ? 'bg-pco-blue/10 text-pco-blue'
+                    : 'bg-surface-gray text-ink-muted'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex items-center gap-1 text-[11px] text-ink-muted">
           <Filter size={11} strokeWidth={2} />
           {filtered.length} item{filtered.length === 1 ? '' : 's'} de {libraryItems.length}

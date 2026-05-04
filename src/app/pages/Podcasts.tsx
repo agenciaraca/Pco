@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Mic2, PlayCircle, Heart, CheckCircle2, Clock } from 'lucide-react';
-import { useMemo } from 'react';
+import { Mic2, PlayCircle, Heart, CheckCircle2, Clock, Tag } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import {
   usePodcasts,
   useMyPodcastEngagement,
@@ -14,6 +14,7 @@ export default function Podcasts() {
   const engagementQ = useMyPodcastEngagement();
   const setEng = useSetPodcastEngagement();
   const toast = useToast();
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const engagementMap = useMemo(() => {
     const map = new Map<string, { listened: boolean; favorite: boolean }>();
@@ -22,6 +23,22 @@ export default function Podcasts() {
     );
     return map;
   }, [engagementQ.data]);
+
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of podcasts) {
+      for (const t of p.tags ?? []) set.add(t);
+    }
+    return Array.from(set).sort();
+  }, [podcasts]);
+
+  const visiblePodcasts = useMemo(
+    () =>
+      activeTag
+        ? podcasts.filter((p) => (p.tags ?? []).includes(activeTag))
+        : podcasts,
+    [podcasts, activeTag],
+  );
 
   if (isLoading) return <CardListSkeleton count={4} />;
 
@@ -42,8 +59,39 @@ export default function Podcasts() {
         </p>
       </header>
 
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <Tag size={12} className="text-pco-blue" strokeWidth={1.75} />
+          <button
+            type="button"
+            onClick={() => setActiveTag(null)}
+            className={`pco-badge text-xs ${
+              activeTag === null
+                ? 'bg-pco-blue/10 text-pco-blue'
+                : 'bg-surface-gray text-ink-muted'
+            }`}
+          >
+            Todos
+          </button>
+          {allTags.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setActiveTag(activeTag === t ? null : t)}
+              className={`pco-badge text-xs ${
+                activeTag === t
+                  ? 'bg-pco-blue/10 text-pco-blue'
+                  : 'bg-surface-gray text-ink-muted'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
-        {podcasts.map((p) => {
+        {visiblePodcasts.map((p) => {
           const eng = engagementMap.get(p.id);
           const listened = eng?.listened ?? p.listened ?? false;
           const favorite = eng?.favorite ?? p.favorite ?? false;

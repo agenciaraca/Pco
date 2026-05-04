@@ -30,6 +30,7 @@ function rowToItem(r: typeof schema.libraryItems.$inferSelect): LibraryItem {
     relatedCourseIds: r.relatedCourseIds ?? [],
     relatedModuleIds: r.relatedModuleIds ?? [],
     theme: r.theme ?? undefined,
+    tags: (r as { tags?: string[] }).tags,
   };
 }
 
@@ -90,6 +91,7 @@ export async function createLibrary(input: CreateLibraryInput): Promise<LibraryI
     relatedCourseIds: input.relatedCourseIds,
     relatedModuleIds: input.relatedModuleIds,
     theme: input.theme,
+    tags: input.tags,
   };
 
   const db = getDb();

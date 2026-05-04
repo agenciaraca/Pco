@@ -20,7 +20,8 @@ import {
 } from 'lucide-react';
 import Tabs from '../../components/Tabs';
 import AdminNotesPanel from '../../components/AdminNotesPanel';
-import { MessageSquare } from 'lucide-react';
+import StudentAnalyticsPanel from '../../components/StudentAnalyticsPanel';
+import { MessageSquare, BarChart3 } from 'lucide-react';
 import {
   useAdminStudents,
   useCourses,
@@ -86,6 +87,7 @@ export default function AdminUserDetail() {
     { id: 'recursos', label: 'Tutor / POD / Biblioteca', icon: <Bot size={14} strokeWidth={1.75} /> },
     { id: 'historico', label: 'Histórico', icon: <Send size={14} strokeWidth={1.75} /> },
     { id: 'notas', label: 'Notas', icon: <MessageSquare size={14} strokeWidth={1.75} /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={14} strokeWidth={1.75} /> },
   ];
 
   return (
@@ -391,6 +393,8 @@ export default function AdminUserDetail() {
       )}
 
       {active === 'notas' && <AdminNotesPanel studentId={student.id} />}
+
+      {active === 'analytics' && <StudentAnalyticsPanel studentId={student.id} />}
     </div>
   );
 }
