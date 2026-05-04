@@ -30,6 +30,41 @@ function clientIp(c: Context): string | null {
   );
 }
 
+interface ClientErrorInput {
+  message: string;
+  stack?: string | null;
+  path?: string | null;
+  userAgent?: string | null;
+}
+
+export async function recordClientError(c: Context, input: ClientErrorInput): Promise<void> {
+  try {
+    const u = c.get('user') as
+      | { sub: string; email?: string; role?: string }
+      | undefined
+      | null;
+    const entry: ErrorEntry = {
+      id: `c-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
+      ts: new Date().toISOString(),
+      message: input.message.slice(0, 1000),
+      stack: input.stack ? input.stack.slice(0, 5000) : null,
+      method: 'CLIENT',
+      path: (input.path ?? '').slice(0, 500),
+      status: 0,
+      actorId: u?.sub ?? null,
+      actorEmail: u?.email ?? null,
+      ip: clientIp(c),
+      userAgent: (input.userAgent ?? c.req.header('user-agent') ?? '').slice(0, 500),
+    };
+    await store.unshift(entry);
+    const all = await store.getAll();
+    if (all.length > MAX_ENTRIES) await store.setAll(all.slice(0, MAX_ENTRIES));
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('[client-errors] failed to record:', e);
+  }
+}
+
 export async function recordError(c: Context, err: unknown, status = 500): Promise<void> {
   try {
     const u = c.get('user') as

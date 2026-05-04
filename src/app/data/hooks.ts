@@ -583,6 +583,25 @@ export function useRespondSupport() {
   });
 }
 
+const podcastEngagementKey = ['me', 'podcast-engagement'] as const;
+export function useMyPodcastEngagement() {
+  return useQuery({ queryKey: podcastEngagementKey, queryFn: api.fetchMyPodcastEngagement });
+}
+
+export function useSetPodcastEngagement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      episodeId,
+      patch,
+    }: {
+      episodeId: string;
+      patch: { listened?: boolean; favorite?: boolean };
+    }) => api.setPodcastEngagement(episodeId, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: podcastEngagementKey }),
+  });
+}
+
 export function useLessonNote(lessonId: string | undefined) {
   return useQuery({
     queryKey: ['lesson-note', lessonId],

@@ -165,6 +165,30 @@ export async function respondSupportTicket(id: string, message: string): Promise
   );
 }
 
+// ---------- Podcast engagement ----------
+
+export interface PodcastEngagementDto {
+  userId: string;
+  episodeId: string;
+  listened: boolean;
+  favorite: boolean;
+  updatedAt: string;
+}
+
+export async function fetchMyPodcastEngagement(): Promise<PodcastEngagementDto[]> {
+  return http.get<PodcastEngagementDto[]>('/me/podcast-engagement');
+}
+
+export async function setPodcastEngagement(
+  episodeId: string,
+  patch: { listened?: boolean; favorite?: boolean },
+): Promise<PodcastEngagementDto> {
+  return http.put<PodcastEngagementDto>(
+    `/podcasts/${encodeURIComponent(episodeId)}/engagement`,
+    patch,
+  );
+}
+
 // ---------- Lesson notes ----------
 
 export interface LessonNoteDto {

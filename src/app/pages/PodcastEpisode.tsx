@@ -13,7 +13,12 @@ import {
   Clock,
   Calendar,
 } from 'lucide-react';
-import { usePodcasts, useCourses, useLibrary } from '../data/hooks';
+import {
+  usePodcasts,
+  useCourses,
+  useLibrary,
+  useSetPodcastEngagement,
+} from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function PodcastEpisode() {
@@ -21,9 +26,11 @@ export default function PodcastEpisode() {
   const { data: podcasts = [], isLoading } = usePodcasts();
   const { data: courses = [] } = useCourses();
   const { data: libraryItems = [] } = useLibrary();
+  const setEng = useSetPodcastEngagement();
   const episode = podcasts.find((p) => p.id === id);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [markedListened, setMarkedListened] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -41,7 +48,12 @@ export default function PodcastEpisode() {
 
   useEffect(() => {
     if (progress >= 100) setPlaying(false);
-  }, [progress]);
+    // Marca como ouvido quando atinge 80% (uma vez)
+    if (id && progress >= 80 && !markedListened) {
+      setMarkedListened(true);
+      setEng.mutate({ episodeId: id, patch: { listened: true } });
+    }
+  }, [progress, id, markedListened, setEng]);
 
   if (isLoading) return <CardListSkeleton count={2} />;
   if (!episode) return <Navigate to="/podcasts" replace />;

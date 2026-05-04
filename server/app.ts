@@ -9,7 +9,7 @@ import { attachUser, requireAuth } from './auth/middleware';
 import { createResetToken, consumeResetToken } from './auth/password-reset';
 import { auditMiddleware } from './audit/middleware';
 import { listAudit } from './audit/log';
-import { recordError, listErrors } from './errors/store';
+import { recordError, listErrors, recordClientError } from './errors/store';
 import { saveUpload, UploadError } from './uploads/store';
 import { gatherHealth } from './monitoring/health';
 import { search as adminSearch } from './search/admin-search';
@@ -65,6 +65,7 @@ import * as settingsRepo from './repositories/settings';
 import * as tutorHistory from './repositories/tutor-history';
 import * as progressRepo from './repositories/progress';
 import * as lessonNotesRepo from './repositories/lesson-notes';
+import * as podcastEngagementRepo from './repositories/podcast-engagement';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -393,6 +394,25 @@ export function buildApp() {
     const ok = await progressRepo.unmarkCompleted(u.sub, lessonId);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Não estava marcada como concluída');
     return c.json({ ok: true });
+  });
+
+  // ---------- Podcast engagement (usuário logado) ----------
+
+  app.get('/me/podcast-engagement', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const list = await podcastEngagementRepo.listForUser(u.sub);
+    return c.json(list);
+  });
+
+  app.put('/podcasts/:id/engagement', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const episodeId = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const patch: { listened?: boolean; favorite?: boolean } = {};
+    if (typeof body.listened === 'boolean') patch.listened = body.listened;
+    if (typeof body.favorite === 'boolean') patch.favorite = body.favorite;
+    const entry = await podcastEngagementRepo.upsert(u.sub, episodeId, patch);
+    return c.json(entry);
   });
 
   // ---------- Lesson notes (usuário logado) ----------
@@ -1154,6 +1174,27 @@ export function buildApp() {
     const hits = await adminSearch(q, Number.isFinite(limit) ? limit : 30);
     return c.json(hits);
   });
+
+  // ---------- Client error reporting (público, rate-limited) ----------
+
+  app.post(
+    '/client-errors',
+    rateLimit({ windowMs: 60_000, max: 30 }),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const message = typeof body.message === 'string' ? body.message : '';
+      if (!message || message.length > 1000) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'Mensagem ausente ou muito longa.');
+      }
+      await recordClientError(c, {
+        message,
+        stack: typeof body.stack === 'string' ? body.stack : null,
+        path: typeof body.path === 'string' ? body.path : null,
+        userAgent: typeof body.userAgent === 'string' ? body.userAgent : null,
+      });
+      return c.json({ ok: true });
+    },
+  );
 
   // ---------- Backups (admin) ----------
 
