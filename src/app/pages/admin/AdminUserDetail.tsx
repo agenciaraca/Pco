@@ -19,7 +19,13 @@ import {
   Calendar,
 } from 'lucide-react';
 import Tabs from '../../components/Tabs';
-import { useAdminStudents, useCourses, useRetentionRisks, useAllCertificates } from '../../data/hooks';
+import {
+  useAdminStudents,
+  useCourses,
+  useRetentionRisks,
+  useAllCertificates,
+  useUserTimeline,
+} from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 
 const statusStyles: Record<string, string> = {
@@ -42,6 +48,7 @@ export default function AdminUserDetail() {
   const coursesQ = useCourses();
   const risksQ = useRetentionRisks();
   const certsQ = useAllCertificates();
+  const timelineQ = useUserTimeline(id);
 
   if (studentsQ.isLoading || coursesQ.isLoading) {
     return <CardListSkeleton count={4} />;
@@ -336,32 +343,47 @@ export default function AdminUserDetail() {
 
       {active === 'historico' && (
         <div className="pco-card p-0 overflow-hidden">
-          <ul className="divide-y divide-surface-gray">
-            <Event
-              icon={<Send size={14} className="text-pco-orange" strokeWidth={1.75} />}
-              title="Plano de retomada enviado"
-              date="2026-04-28"
-              text="Mensagem acolhedora, canal in-app, intensidade média."
-            />
-            <Event
-              icon={<CheckCircle2 size={14} className="text-status-success" strokeWidth={1.75} />}
-              title="Avaliação aprovada"
-              date="2026-04-22"
-              text="Módulo 1 — Psicanálise Clínica · 84%."
-            />
-            <Event
-              icon={<PlayCircle size={14} className="text-pco-blue" strokeWidth={1.75} />}
-              title="Início de aula"
-              date="2026-04-22"
-              text="Aula 3 — Módulo 2 — Psicanálise Clínica."
-            />
-            <Event
-              icon={<Calendar size={14} className="text-ink-muted" strokeWidth={1.75} />}
-              title="Cadastro no AVA"
-              date={student.createdAt}
-              text="Primeiro acesso após aceite dos termos."
-            />
-          </ul>
+          {timelineQ.isLoading ? (
+            <div className="p-6 text-sm text-ink-muted">Carregando timeline...</div>
+          ) : !timelineQ.data || timelineQ.data.length === 0 ? (
+            <div className="p-6 text-sm text-ink-muted text-center">
+              Sem atividade registrada ainda.
+            </div>
+          ) : (
+            <ul className="divide-y divide-surface-gray">
+              {timelineQ.data.map((ev, i) => {
+                const Icon =
+                  ev.type === 'progress'
+                    ? PlayCircle
+                    : ev.type === 'cert'
+                      ? Award
+                      : ev.type === 'ticket'
+                        ? Send
+                        : ev.type === 'tutor'
+                          ? Bot
+                          : Calendar;
+                const color =
+                  ev.type === 'progress'
+                    ? 'text-pco-blue'
+                    : ev.type === 'cert'
+                      ? 'text-status-gold'
+                      : ev.type === 'ticket'
+                        ? 'text-pco-orange'
+                        : ev.type === 'tutor'
+                          ? 'text-pco-cyan'
+                          : 'text-ink-muted';
+                return (
+                  <Event
+                    key={`${ev.ts}-${i}`}
+                    icon={<Icon size={14} className={color} strokeWidth={1.75} />}
+                    title={ev.title}
+                    date={ev.ts}
+                    text={ev.body}
+                  />
+                );
+              })}
+            </ul>
+          )}
         </div>
       )}
     </div>

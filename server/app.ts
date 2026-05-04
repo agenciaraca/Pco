@@ -956,6 +956,88 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
+  // ---------- Timeline do aluno (admin) ----------
+
+  app.get(
+    '/admin/users/:id/timeline',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const userId = c.req.param('id') as string;
+      const events: Array<{
+        type: 'progress' | 'cert' | 'ticket' | 'tutor' | 'login';
+        ts: string;
+        title: string;
+        body: string;
+        meta?: Record<string, unknown>;
+      }> = [];
+
+      const progress = await progressRepo.listForUser(userId);
+      for (const p of progress) {
+        events.push({
+          type: 'progress',
+          ts: p.completedAt,
+          title: 'Aula concluída',
+          body: `lessonId ${p.lessonId} (curso ${p.courseId})`,
+          meta: { lessonId: p.lessonId, courseId: p.courseId },
+        });
+      }
+
+      const allCerts = await certsRepo.listAllCertificates();
+      for (const cert of allCerts.filter((x) => x.studentId === userId)) {
+        if (cert.issuedAt) {
+          events.push({
+            type: 'cert',
+            ts: cert.issuedAt,
+            title: 'Certificado emitido',
+            body: `Curso ${cert.courseId} — código ${cert.validationCode}`,
+            meta: { code: cert.validationCode },
+          });
+        }
+      }
+
+      const tickets = await supportRepo.listTicketsForStudent(userId);
+      for (const t of tickets) {
+        events.push({
+          type: 'ticket',
+          ts: t.createdAt,
+          title: `Ticket aberto: ${t.subject}`,
+          body: t.message.slice(0, 200),
+          meta: { id: t.id, status: t.status, category: t.category },
+        });
+      }
+
+      const tutorTurns = await tutorHistory.listForUser(userId, 1000);
+      // Conta por dia (não polui timeline com cada pergunta)
+      const tutorByDay = new Map<string, number>();
+      for (const t of tutorTurns) {
+        const day = t.ts.slice(0, 10);
+        tutorByDay.set(day, (tutorByDay.get(day) ?? 0) + 1);
+      }
+      for (const [day, count] of tutorByDay) {
+        events.push({
+          type: 'tutor',
+          ts: `${day}T23:59:59.000Z`,
+          title: `Tutor Virtual: ${count} pergunta${count === 1 ? '' : 's'}`,
+          body: `Interações com Tutor neste dia.`,
+          meta: { count },
+        });
+      }
+
+      const u = await usersStore.findUserById(userId);
+      if (u?.lastLoginAt) {
+        events.push({
+          type: 'login',
+          ts: u.lastLoginAt,
+          title: 'Último login',
+          body: u.email,
+        });
+      }
+
+      events.sort((a, b) => (b.ts > a.ts ? 1 : -1));
+      return c.json(events.slice(0, 200));
+    },
+  );
+
   // ---------- Admin students ----------
 
   app.get('/admin/students', async (c) => {

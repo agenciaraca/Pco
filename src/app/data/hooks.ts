@@ -560,6 +560,14 @@ export function useUnmarkLessonCompleted() {
   });
 }
 
+export function useUserTimeline(id: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'user-timeline', id],
+    queryFn: () => api.fetchUserTimeline(id!),
+    enabled: !!id,
+  });
+}
+
 const allSupportKey = ['admin', 'support'] as const;
 export function useAllSupportTickets() {
   return useQuery({ queryKey: allSupportKey, queryFn: api.fetchAllSupportTickets });

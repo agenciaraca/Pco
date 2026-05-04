@@ -142,6 +142,20 @@ export async function unmarkLessonCompleted(lessonId: string): Promise<{ ok: tru
   return http.delete<{ ok: true }>(`/lessons/${encodeURIComponent(lessonId)}/complete`);
 }
 
+// ---------- Admin user timeline ----------
+
+export interface TimelineEventDto {
+  type: 'progress' | 'cert' | 'ticket' | 'tutor' | 'login';
+  ts: string;
+  title: string;
+  body: string;
+  meta?: Record<string, unknown>;
+}
+
+export async function fetchUserTimeline(id: string): Promise<TimelineEventDto[]> {
+  return http.get<TimelineEventDto[]>(`/admin/users/${encodeURIComponent(id)}/timeline`);
+}
+
 // ---------- Admin support ----------
 
 export async function fetchAllSupportTickets(): Promise<SupportTicket[]> {

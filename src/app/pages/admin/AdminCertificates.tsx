@@ -33,6 +33,7 @@ const tabs = [
 export default function AdminCertificates() {
   const [active, setActive] = useState('emitidos');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | Certificate['status']>('all');
   const [confirmRevoke, setConfirmRevoke] = useState<Certificate | null>(null);
 
   const certs = useAllCertificates();
@@ -55,17 +56,20 @@ export default function AdminCertificates() {
   }, [students.data]);
 
   const filtered = useMemo(() => {
-    const list = certs.data ?? [];
-    if (!search.trim()) return list;
-    const q = search.trim().toLowerCase();
-    return list.filter((c) => {
-      return (
-        (c.validationCode ?? '').toLowerCase().includes(q) ||
-        (studentById.get(c.studentId) ?? '').toLowerCase().includes(q) ||
-        (courseById.get(c.courseId) ?? '').toLowerCase().includes(q)
-      );
-    });
-  }, [certs.data, search, studentById, courseById]);
+    let list = certs.data ?? [];
+    if (statusFilter !== 'all') list = list.filter((c) => c.status === statusFilter);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((c) => {
+        return (
+          (c.validationCode ?? '').toLowerCase().includes(q) ||
+          (studentById.get(c.studentId) ?? '').toLowerCase().includes(q) ||
+          (courseById.get(c.courseId) ?? '').toLowerCase().includes(q)
+        );
+      });
+    }
+    return list;
+  }, [certs.data, search, statusFilter, studentById, courseById]);
 
   const issued = (certs.data ?? []).filter((c) => c.status === 'issued');
   const inProgress = (certs.data ?? []).filter((c) => c.status !== 'issued');
@@ -110,14 +114,29 @@ export default function AdminCertificates() {
 
       {active === 'emitidos' && (
         <div className="space-y-4">
-          <div className="pco-card p-3 flex items-center gap-3">
+          <div className="pco-card p-3 flex items-center gap-3 flex-wrap">
             <Search className="text-ink-subtle ml-2" size={14} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pco-input border-0 shadow-none"
+              className="pco-input border-0 shadow-none flex-1 min-w-[200px]"
               placeholder="Buscar aluno, curso ou código..."
             />
+            <select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as 'all' | Certificate['status'])
+              }
+              className="pco-input w-auto text-sm"
+            >
+              <option value="all">Todos status</option>
+              <option value="issued">Emitidos</option>
+              <option value="available">Disponíveis</option>
+              <option value="in_progress">Em curso</option>
+            </select>
+            <span className="text-[11px] text-ink-muted">
+              {filtered.length}/{(certs.data ?? []).length}
+            </span>
           </div>
           {certs.isLoading ? (
             <CardListSkeleton count={4} />
