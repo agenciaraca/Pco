@@ -62,6 +62,7 @@ export default function AdminUsers() {
   const [sortBy, setSortBy] = useState<NonNullable<StudentsFilter['sortBy']>>('name');
   const [showCreate, setShowCreate] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<AdminStudentRow | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: courses } = useCourses();
   const studentsQ = useAdminStudents({
@@ -203,6 +204,80 @@ export default function AdminUsers() {
         </div>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="pco-card p-3 flex items-center justify-between flex-wrap gap-3 bg-pco-blue/5 border-pco-blue/30">
+          <div className="text-sm text-pco-deep">
+            <strong>{selectedIds.size}</strong> aluno{selectedIds.size === 1 ? '' : 's'} selecionado{selectedIds.size === 1 ? '' : 's'}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const rows = filtered.filter((s) => selectedIds.has(s.id));
+                if (rows.length === 0) return;
+                const headers = ['id', 'name', 'email', 'status', 'riskScore', 'lastAccessAt'];
+                const csv = [
+                  headers.join(','),
+                  ...rows.map((r) =>
+                    headers
+                      .map(
+                        (h) =>
+                          `"${String((r as unknown as Record<string, unknown>)[h] ?? '').replace(/"/g, '""')}"`,
+                      )
+                      .join(','),
+                  ),
+                ].join('\r\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `alunos-${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                toast.success(`${rows.length} aluno(s) exportados`);
+              }}
+              className="pco-btn-secondary text-xs"
+            >
+              Exportar CSV
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const rows = filtered.filter((s) => selectedIds.has(s.id));
+                if (
+                  !confirm(`Bloquear ${rows.length} aluno(s) selecionado(s)?`)
+                )
+                  return;
+                let ok = 0;
+                for (const r of rows) {
+                  if (r.status === 'bloqueado') continue;
+                  try {
+                    await blockMut.mutateAsync(r.id);
+                    ok++;
+                  } catch {
+                    // continua
+                  }
+                }
+                toast.success(`${ok} aluno(s) bloqueado(s)`);
+                setSelectedIds(new Set());
+              }}
+              className="pco-btn-secondary text-xs"
+            >
+              Bloquear
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="pco-btn-ghost text-xs"
+            >
+              Limpar seleção
+            </button>
+          </div>
+        </div>
+      )}
+
       {isLoading && <TableSkeleton rows={5} />}
 
       {isError && (
@@ -233,6 +308,24 @@ export default function AdminUsers() {
             <table className="w-full text-sm">
               <thead className="bg-surface-off">
                 <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                  <th className="px-3 py-3 text-left font-medium w-8">
+                    <input
+                      type="checkbox"
+                      checked={
+                        filtered.length > 0 &&
+                        filtered.every((s) => selectedIds.has(s.id))
+                      }
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedIds(new Set(filtered.map((s) => s.id)));
+                        } else {
+                          setSelectedIds(new Set());
+                        }
+                      }}
+                      className="h-3.5 w-3.5 rounded text-pco-blue focus:ring-pco-blue"
+                      aria-label="Selecionar todos"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left font-medium">Aluno</th>
                   <th className="px-4 py-3 text-left font-medium">Cursos</th>
                   <th className="px-4 py-3 text-left font-medium">Progresso</th>
@@ -265,6 +358,20 @@ export default function AdminUsers() {
                     Math.max(1, Object.keys(s.progressByCourse).length);
                   return (
                     <tr key={s.id} className="border-t border-surface-gray hover:bg-surface-off">
+                      <td className="px-3 py-3 w-8">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(s.id)}
+                          onChange={(e) => {
+                            const next = new Set(selectedIds);
+                            if (e.target.checked) next.add(s.id);
+                            else next.delete(s.id);
+                            setSelectedIds(next);
+                          }}
+                          className="h-3.5 w-3.5 rounded text-pco-blue focus:ring-pco-blue"
+                          aria-label={`Selecionar ${s.name}`}
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white">
