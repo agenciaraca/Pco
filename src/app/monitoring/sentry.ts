@@ -55,14 +55,48 @@ function send(payload: { message: string; stack?: string | null; path?: string }
   });
 }
 
+// Detecta erros de chunk antigo após deploy e força reload uma vez (auto-healing)
+const RELOAD_FLAG = 'ava-pco:chunk-reload-attempted';
+
+function isStaleChunkError(message: string): boolean {
+  return (
+    /Failed to fetch dynamically imported module/i.test(message) ||
+    /Loading chunk \d+ failed/i.test(message) ||
+    /ChunkLoadError/i.test(message) ||
+    /error loading dynamically imported module/i.test(message)
+  );
+}
+
+function tryAutoReload(message: string): boolean {
+  if (!isStaleChunkError(message)) return false;
+  try {
+    const flag = sessionStorage.getItem(RELOAD_FLAG);
+    if (flag) return false; // já tentou nesta sessão; evita loop
+    sessionStorage.setItem(RELOAD_FLAG, '1');
+  } catch {
+    // sessionStorage indisponível — ainda assim tenta
+  }
+  // Hard reload bypassando cache
+  location.reload();
+  return true;
+}
+
 export function initMonitoring() {
   if (initialized) return;
   initialized = true;
 
   if (typeof window === 'undefined') return;
 
+  // Limpa flag em load bem-sucedido
+  try {
+    sessionStorage.removeItem(RELOAD_FLAG);
+  } catch {
+    // ignora
+  }
+
   window.addEventListener('error', (e) => {
     if (!e.message) return;
+    if (tryAutoReload(e.message)) return;
     send({ message: e.message, stack: e.error?.stack ?? null });
   });
 
@@ -70,6 +104,7 @@ export function initMonitoring() {
     const reason = e.reason;
     const message =
       reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : 'unhandled rejection';
+    if (tryAutoReload(message)) return;
     send({ message, stack: reason instanceof Error ? reason.stack : null });
   });
 }
