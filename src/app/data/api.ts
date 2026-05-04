@@ -601,6 +601,103 @@ export async function adminUpdateOrderStatus(
   return http.put<OrderDto>(`/admin/orders/${encodeURIComponent(id)}/status`, { status, note });
 }
 
+// ---------- Imports (admin) ----------
+
+export type ImportEntityTypeDto =
+  | 'student'
+  | 'course'
+  | 'module'
+  | 'lesson'
+  | 'product'
+  | 'order'
+  | 'enrollment'
+  | 'progress';
+
+export interface ImportFieldDef {
+  name: string;
+  label: string;
+  required: boolean;
+  example?: string;
+  description?: string;
+}
+
+export interface ImportTemplateDto {
+  entity: ImportEntityTypeDto;
+  filename: string;
+  fields: ImportFieldDef[];
+}
+
+export type ImportJobStatusDto =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'completed_with_errors'
+  | 'failed'
+  | 'canceled'
+  | 'rolled_back';
+
+export interface ImportJobDto {
+  id: string;
+  source: 'wordpress' | 'learndash' | 'woocommerce' | 'csv';
+  mode: 'api' | 'csv';
+  status: ImportJobStatusDto;
+  dryRun: boolean;
+  stats: {
+    totalRead: number;
+    valid: number;
+    invalid: number;
+    created: number;
+    updated: number;
+    ignored: number;
+    errors: number;
+    durationMs: number;
+  };
+  perEntity: Record<string, unknown>;
+  startedBy: string;
+  startedAt: string;
+  finishedAt?: string;
+  errorsLog: Array<{
+    entity: string;
+    rowIndex: number;
+    message: string;
+    field?: string;
+  }>;
+  notes: Array<{ ts: string; level: string; message: string }>;
+}
+
+export async function fetchImportTemplates(): Promise<ImportTemplateDto[]> {
+  return http.get<ImportTemplateDto[]>('/admin/imports/templates');
+}
+
+export async function downloadImportTemplate(entity: ImportEntityTypeDto): Promise<void> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const res = await fetch(
+    `/api/admin/imports/templates/${encodeURIComponent(entity)}`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const cd = res.headers.get('content-disposition') ?? '';
+  const m = cd.match(/filename="([^"]+)"/);
+  a.download = m?.[1] ?? `${entity}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function fetchImportJobs(): Promise<ImportJobDto[]> {
+  return http.get<ImportJobDto[]>('/admin/imports/jobs');
+}
+
+export async function fetchImportJob(id: string): Promise<ImportJobDto> {
+  return http.get<ImportJobDto>(`/admin/imports/jobs/${encodeURIComponent(id)}`);
+}
+
 // ---------- Admin stats ----------
 
 export interface CompletionsStatsDto {

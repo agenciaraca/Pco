@@ -93,6 +93,12 @@ import * as productsRepo from './payments/products-repo';
 import * as ordersRepo from './payments/orders-repo';
 import * as couponsRepo from './payments/coupons-repo';
 import { ALL_PROVIDERS, getPaymentProvider } from './payments/providers/registry';
+import * as importJobs from './imports/job-store';
+import {
+  CSV_TEMPLATES,
+  listAllTemplates,
+  generateCsvTemplate,
+} from './imports/schemas/csv-templates';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 
@@ -1730,6 +1736,47 @@ export function buildApp() {
     }
     const updated = await ordersRepo.updateStatus(id, 'canceled', 'Cancelado pelo aluno');
     return c.json(updated);
+  });
+
+  // ---------- Imports — templates + jobs (Sprint A) ----------
+
+  app.get('/admin/imports/templates', requireAuth('admin', 'superadmin'), (c) =>
+    c.json(
+      listAllTemplates().map((t) => ({
+        entity: t.entity,
+        filename: t.filename,
+        fields: t.fields,
+      })),
+    ),
+  );
+
+  app.get('/admin/imports/templates/:entity', requireAuth('admin', 'superadmin'), (c) => {
+    const entity = c.req.param('entity') as keyof typeof CSV_TEMPLATES;
+    if (!(entity in CSV_TEMPLATES)) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Entidade desconhecida.');
+    }
+    const csv = generateCsvTemplate(entity);
+    return new Response(csv, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${CSV_TEMPLATES[entity].filename}"`,
+      },
+    });
+  });
+
+  app.get('/admin/imports/jobs', requireAuth('admin', 'superadmin'), async (c) => {
+    const limit = Number(c.req.query('limit') ?? '100');
+    return c.json(
+      await importJobs.listJobs(Number.isFinite(limit) ? limit : 100),
+    );
+  });
+
+  app.get('/admin/imports/jobs/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const job = await importJobs.findJob(id);
+    if (!job) return jsonError(c, 404, 'NOT_FOUND', 'Job não encontrado.');
+    return c.json(job);
   });
 
   // ---------- Coupons (admin CRUD + validação pública) ----------

@@ -26,6 +26,7 @@ import {
   LifeBuoy,
   Database as DatabaseIcon,
   CreditCard,
+  UploadCloud,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
@@ -86,6 +87,7 @@ const adminGroups = [
       { to: '/admin/gateways', label: 'Pagamentos', icon: CreditCard },
       { to: '/admin/produtos', label: 'Produtos', icon: CreditCard },
       { to: '/admin/pedidos', label: 'Pedidos', icon: CreditCard },
+      { to: '/admin/imports', label: 'Importar dados', icon: UploadCloud },
       { to: '/admin/login-modelos', label: 'Login Customizável', icon: Palette },
       { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
       { to: '/admin/configuracoes', label: 'Configurações Gerais', icon: SettingsIcon },

@@ -841,6 +841,39 @@ export function useAdminUpdateOrderStatus() {
   });
 }
 
+// Imports
+const importTemplatesKey = ['admin', 'imports', 'templates'] as const;
+const importJobsKey = ['admin', 'imports', 'jobs'] as const;
+
+export function useImportTemplates() {
+  return useQuery({
+    queryKey: importTemplatesKey,
+    queryFn: api.fetchImportTemplates,
+    staleTime: 60 * 60_000,
+  });
+}
+
+export function useImportJobs() {
+  return useQuery({
+    queryKey: importJobsKey,
+    queryFn: api.fetchImportJobs,
+    refetchInterval: 5_000, // polling rápido enquanto import roda
+  });
+}
+
+export function useImportJob(id: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'imports', 'jobs', id],
+    queryFn: () => api.fetchImportJob(id!),
+    enabled: !!id,
+    refetchInterval: (q) => {
+      const status = q.state.data?.status;
+      if (status === 'running' || status === 'pending') return 2_000;
+      return false;
+    },
+  });
+}
+
 const completionsKey = ['admin', 'stats', 'completions'] as const;
 export function useCompletionsStats(days = 7) {
   return useQuery({

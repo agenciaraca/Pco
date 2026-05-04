@@ -75,6 +75,7 @@ const AdminBackups = lazy(() => import('./pages/admin/AdminBackups'));
 const AdminGateways = lazy(() => import('./pages/admin/AdminGateways'));
 const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
 const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
+const ImportsHome = lazy(() => import('./pages/admin/imports/ImportsHome'));
 
 function S({ children }: { children: ReactNode }) {
   return <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>;
@@ -182,6 +183,7 @@ export const router = createBrowserRouter([
       { path: 'gateways', element: <S><AdminGateways /></S> },
       { path: 'produtos', element: <S><AdminProducts /></S> },
       { path: 'pedidos', element: <S><AdminOrders /></S> },
+      { path: 'imports', element: <S><ImportsHome /></S> },
     ],
   },
 
