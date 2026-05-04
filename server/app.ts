@@ -13,6 +13,7 @@ import { recordError, listErrors, recordClientError } from './errors/store';
 import { saveUpload, UploadError } from './uploads/store';
 import { gatherHealth } from './monitoring/health';
 import { search as adminSearch } from './search/admin-search';
+import { studentSearch } from './search/student-search';
 import {
   createSupportTicketSchema,
   recoveryPlanSchema,
@@ -1193,6 +1194,16 @@ export function buildApp() {
     } catch (err) {
       return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
     }
+  });
+
+  // ---------- Student search (logged) ----------
+
+  app.get('/search', requireAuth(), async (c) => {
+    const q = c.req.query('q') ?? '';
+    if (q.trim().length < 2) return c.json([]);
+    const limit = Number(c.req.query('limit') ?? '30');
+    const hits = await studentSearch(q, Number.isFinite(limit) ? limit : 30);
+    return c.json(hits);
   });
 
   // ---------- Admin search ----------

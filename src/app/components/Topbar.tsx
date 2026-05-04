@@ -47,7 +47,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (variant !== 'admin' || searchQ.trim().length < 2) {
+    if (searchQ.trim().length < 2) {
       setSearchResults([]);
       return;
     }
@@ -55,8 +55,9 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
     setSearching(true);
     const t = setTimeout(async () => {
       try {
-        const hits = await api.adminSearch(searchQ);
-        if (!cancelled) setSearchResults(hits);
+        const hits =
+          variant === 'admin' ? await api.adminSearch(searchQ) : await api.studentSearch(searchQ);
+        if (!cancelled) setSearchResults(hits as api.SearchHitDto[]);
       } catch {
         if (!cancelled) setSearchResults([]);
       } finally {
@@ -150,7 +151,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
               className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-gray bg-surface-off text-ink-base placeholder:text-ink-subtle focus:outline-none focus:bg-white focus:border-pco-blue focus:ring-2 focus:ring-pco-blue/15 transition-all"
             />
           </div>
-          {variant === 'admin' && searchOpen && searchQ.trim().length >= 2 && (
+          {searchOpen && searchQ.trim().length >= 2 && (
             <div className="absolute top-full mt-2 left-0 right-0 pco-card shadow-lift max-h-[420px] overflow-auto z-40">
               {searchResults.length === 0 ? (
                 <div className="text-xs text-ink-muted px-4 py-6 text-center">

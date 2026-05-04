@@ -342,6 +342,19 @@ export async function adminSearch(q: string): Promise<SearchHitDto[]> {
   return http.get<SearchHitDto[]>(`/admin/search?q=${encodeURIComponent(q)}`);
 }
 
+export interface StudentSearchHitDto {
+  type: 'course' | 'lesson' | 'library' | 'news' | 'podcast';
+  id: string;
+  title: string;
+  snippet: string;
+  link: string;
+}
+
+export async function studentSearch(q: string): Promise<StudentSearchHitDto[]> {
+  if (q.trim().length < 2) return [];
+  return http.get<StudentSearchHitDto[]>(`/search?q=${encodeURIComponent(q)}`);
+}
+
 // ---------- Health (admin) ----------
 
 export interface HealthStatsDto {
