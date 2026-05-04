@@ -2384,6 +2384,70 @@ export async function upsertMyCourseReview(
   });
 }
 
+// ---------- Notification preferences ----------
+
+export interface NotificationPrefsDto {
+  userId: string;
+  receiveBroadcasts: boolean;
+  receiveReengagement: boolean;
+  updatedAt: string;
+}
+
+export async function fetchMyNotificationPrefs(): Promise<NotificationPrefsDto> {
+  return http.get('/me/notification-prefs');
+}
+
+export async function updateMyNotificationPrefs(
+  patch: Partial<Pick<NotificationPrefsDto, 'receiveBroadcasts' | 'receiveReengagement'>>,
+): Promise<NotificationPrefsDto> {
+  return http.put('/me/notification-prefs', patch);
+}
+
+// ---------- Achievements ----------
+
+export type BadgeIdDto =
+  | 'first_lesson'
+  | 'first_course'
+  | 'streak_7'
+  | 'streak_30'
+  | 'three_courses'
+  | 'tutor_helper';
+
+export interface BadgeDefDto {
+  id: BadgeIdDto;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+export interface AwardedBadgeDto {
+  id: string;
+  userId: string;
+  badgeId: BadgeIdDto;
+  awardedAt: string;
+}
+
+export interface AchievementsResponseDto {
+  catalog: Record<BadgeIdDto, BadgeDefDto>;
+  awarded: AwardedBadgeDto[];
+}
+
+export async function fetchMyAchievements(): Promise<AchievementsResponseDto> {
+  return http.get('/me/achievements');
+}
+
+export async function refreshMyAchievements(): Promise<{
+  granted: AwardedBadgeDto[];
+}> {
+  return http.post('/me/achievements/refresh', {});
+}
+
+export async function fetchStudentAchievements(
+  studentId: string,
+): Promise<AchievementsResponseDto> {
+  return http.get(`/admin/students/${encodeURIComponent(studentId)}/achievements`);
+}
+
 export async function fetchActivityFeed(filter: {
   kinds?: ActivityKindDto[];
   since?: string;

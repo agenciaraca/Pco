@@ -15,9 +15,15 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
-import { useMyProgress, useCertificates } from '../data/hooks';
+import {
+  useMyProgress,
+  useCertificates,
+  useMyNotificationPrefs,
+  useUpdateMyNotificationPrefs,
+} from '../data/hooks';
 import * as api from '../data/api';
 import TwoFactorAuthCard from '../components/TwoFactorAuthCard';
+import AchievementsPanel from '../components/AchievementsPanel';
 
 export default function Profile() {
   const { user, patchUser } = useAuth();
@@ -25,6 +31,8 @@ export default function Profile() {
   const fileInput = useRef<HTMLInputElement>(null);
   const progressQ = useMyProgress();
   const certsQ = useCertificates();
+  const notifPrefsQ = useMyNotificationPrefs();
+  const updateNotifPrefs = useUpdateMyNotificationPrefs();
 
   const [name, setName] = useState(user?.name ?? '');
   const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(user?.avatarUrl);
@@ -324,6 +332,54 @@ export default function Profile() {
           </button>
         </form>
       </div>
+
+      <div className="pco-card p-6 space-y-3">
+        <h3 className="text-base font-semibold text-pco-deep">
+          Preferências de e-mail
+        </h3>
+        <p className="text-xs text-ink-muted">
+          E-mails essenciais (reset de senha, pagamento confirmado, matrícula) sempre são
+          enviados. Aqui você controla os opcionais.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={notifPrefsQ.data?.receiveBroadcasts !== false}
+            onChange={(e) => {
+              updateNotifPrefs.mutate(
+                { receiveBroadcasts: e.target.checked },
+                {
+                  onSuccess: () => toast.success('Preferências salvas'),
+                  onError: (err) =>
+                    toast.error('Falha', err instanceof Error ? err.message : 'Erro'),
+                },
+              );
+            }}
+            className="accent-pco-blue"
+          />
+          Quero receber comunicados e novidades (campanhas)
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={notifPrefsQ.data?.receiveReengagement !== false}
+            onChange={(e) => {
+              updateNotifPrefs.mutate(
+                { receiveReengagement: e.target.checked },
+                {
+                  onSuccess: () => toast.success('Preferências salvas'),
+                  onError: (err) =>
+                    toast.error('Falha', err instanceof Error ? err.message : 'Erro'),
+                },
+              );
+            }}
+            className="accent-pco-blue"
+          />
+          Quero receber lembretes quando ficar muito tempo sem entrar
+        </label>
+      </div>
+
+      <AchievementsPanel />
 
       <TwoFactorAuthCard
         enabled={user?.totpEnabled === true}

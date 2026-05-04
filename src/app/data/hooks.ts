@@ -1439,6 +1439,48 @@ export function useMyCourseReview(courseId: string | undefined) {
   });
 }
 
+const notifPrefsKey = ['me', 'notification-prefs'] as const;
+
+export function useMyNotificationPrefs() {
+  return useQuery({
+    queryKey: notifPrefsKey,
+    queryFn: api.fetchMyNotificationPrefs,
+  });
+}
+
+export function useUpdateMyNotificationPrefs() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.updateMyNotificationPrefs,
+    onSuccess: () => qc.invalidateQueries({ queryKey: notifPrefsKey }),
+  });
+}
+
+const myAchievementsKey = ['me', 'achievements'] as const;
+
+export function useMyAchievements() {
+  return useQuery({
+    queryKey: myAchievementsKey,
+    queryFn: api.fetchMyAchievements,
+  });
+}
+
+export function useRefreshMyAchievements() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.refreshMyAchievements,
+    onSuccess: () => qc.invalidateQueries({ queryKey: myAchievementsKey }),
+  });
+}
+
+export function useStudentAchievements(studentId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'students', studentId, 'achievements'] as const,
+    queryFn: () => api.fetchStudentAchievements(studentId!),
+    enabled: !!studentId,
+  });
+}
+
 export function useUpsertMyCourseReview() {
   const qc = useQueryClient();
   return useMutation({

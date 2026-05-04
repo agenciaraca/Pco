@@ -129,6 +129,8 @@ import * as activityFeed from './activity/feed';
 import { buildCsv, csvResponse } from './export/csv';
 import * as adminNotes from './admin/notes-store';
 import * as courseReviews from './reviews/store';
+import * as achievementsStore from './achievements/store';
+import * as achievementsEngine from './achievements/engine';
 import * as settingsBackup from './settings/backup';
 import * as reengagementWorker from './reengagement/worker';
 import * as webhookDeliveries from './webhooks/delivery-store';
@@ -136,6 +138,7 @@ import * as webhooksDispatcher from './webhooks/dispatcher';
 import { ALL_WEBHOOK_EVENTS, type WebhookEventType } from './webhooks/types';
 import * as emailLogs from './notifications/log-store';
 import * as emailBroadcasts from './notifications/broadcasts';
+import * as notificationPrefs from './notifications/prefs-store';
 import { sendWithConfig, pingConfig, sendSafe } from './notifications/sender';
 import { ALL_EMAIL_PROVIDERS } from './notifications/providers/registry';
 import {
@@ -702,6 +705,11 @@ export function buildApp() {
     } catch (err) {
       console.error('[auto-issue cert] erro ao verificar:', err);
     }
+
+    // Avalia achievements (best-effort, não bloqueia)
+    void achievementsEngine.evaluate(u.sub).catch((err) => {
+      console.error('[achievements] erro:', err);
+    });
 
     return c.json(entry, 201);
   });
@@ -2732,6 +2740,59 @@ export function buildApp() {
         ),
       })),
     );
+  });
+
+  // ---------- Achievements / badges ----------
+
+  app.get('/me/achievements', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const list = await achievementsStore.listForUser(u.sub);
+    return c.json({
+      catalog: achievementsStore.BADGES,
+      awarded: list,
+    });
+  });
+
+  app.post('/me/achievements/refresh', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const r = await achievementsEngine.evaluate(u.sub);
+    return c.json(r);
+  });
+
+  app.get(
+    '/admin/students/:id/achievements',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const list = await achievementsStore.listForUser(id);
+      return c.json({
+        catalog: achievementsStore.BADGES,
+        awarded: list,
+      });
+    },
+  );
+
+  // ---------- Notification preferences ----------
+
+  app.get('/me/notification-prefs', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    return c.json(await notificationPrefs.getPrefs(u.sub));
+  });
+
+  app.put('/me/notification-prefs', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const next = await notificationPrefs.setPrefs(u.sub, {
+      receiveBroadcasts:
+        typeof body.receiveBroadcasts === 'boolean'
+          ? body.receiveBroadcasts
+          : undefined,
+      receiveReengagement:
+        typeof body.receiveReengagement === 'boolean'
+          ? body.receiveReengagement
+          : undefined,
+    });
+    return c.json(next);
   });
 
   // ---------- Course reviews (alunos avaliam) ----------

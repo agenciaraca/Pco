@@ -4,6 +4,7 @@
 import * as configStore from './config-store';
 import * as studentsRepo from '../repositories/students';
 import * as usersStore from '../auth/users-store';
+import * as notificationPrefs from '../notifications/prefs-store';
 import { sendSafe } from '../notifications/sender';
 
 export interface RunResult {
@@ -21,6 +22,7 @@ export async function tickWorker(opts: { dryRun?: boolean } = {}): Promise<RunRe
     return { scanned: 0, inactive: 0, sent: 0, skipped: 0, errors: 0 };
   }
   const students = await studentsRepo.listAdminStudents({ limit: 5000 } as never);
+  const blockedReengagement = await notificationPrefs.blockedFromReengagement();
   const now = Date.now();
   const inactivityMs = cfg.inactivityDays * 24 * 60 * 60_000;
   const cooldownMs = cfg.cooldownDays * 24 * 60 * 60_000;
@@ -38,6 +40,10 @@ export async function tickWorker(opts: { dryRun?: boolean } = {}): Promise<RunRe
     const last = new Date(s.lastAccessAt).getTime();
     if (now - last < inactivityMs) continue;
     if (cfg.onlyEnrolled && (s.enrolledCourseIds?.length ?? 0) === 0) continue;
+    if (blockedReengagement.has(s.id)) {
+      skipped++;
+      continue;
+    }
     inactive++;
 
     // Cooldown

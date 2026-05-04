@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { JsonStore } from '../db/json-store';
 import * as usersStore from '../auth/users-store';
 import * as studentsRepo from '../repositories/students';
+import * as notificationPrefs from './prefs-store';
 import { sendSafe } from './sender';
 
 export type BroadcastAudience =
@@ -127,10 +128,13 @@ export async function resolveAudience(
  * Cria registro do broadcast e dispara em background. Não espera concluir.
  */
 export async function startBroadcast(input: SendBroadcastInput): Promise<Broadcast> {
-  const recipients = await resolveAudience(input.audience, {
+  const allRecipients = await resolveAudience(input.audience, {
     courseId: input.courseId,
     inactivityDays: input.inactivityDays,
   });
+  // Honra preferências: remove quem optou por não receber broadcasts
+  const blocked = await notificationPrefs.blockedFromBroadcasts();
+  const recipients = allRecipients.filter((r) => !blocked.has(r.id));
 
   const now = new Date().toISOString();
   const broadcast: Broadcast = {

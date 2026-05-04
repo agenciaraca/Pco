@@ -16,6 +16,30 @@ export async function listForUser(userId: string): Promise<LessonProgress[]> {
   return await store.filter((p) => p.userId === userId);
 }
 
+export async function getCompletedLessons(userId: string): Promise<string[]> {
+  const list = await listForUser(userId);
+  return list.map((p) => p.lessonId);
+}
+
+/**
+ * Quantos dias distintos o aluno teve atividade (completou alguma aula) nos
+ * últimos N dias. Usado por achievements.engine como aproximação de streak.
+ */
+export async function distinctActivityDays(
+  userId: string,
+  days = 30,
+): Promise<number> {
+  const list = await listForUser(userId);
+  const cutoff = Date.now() - days * 24 * 60 * 60_000;
+  const dayKeys = new Set<string>();
+  for (const p of list) {
+    const t = new Date(p.completedAt).getTime();
+    if (t < cutoff) continue;
+    dayKeys.add(p.completedAt.slice(0, 10));
+  }
+  return dayKeys.size;
+}
+
 export async function isCompleted(userId: string, lessonId: string): Promise<boolean> {
   const found = await store.findOne((p) => p.userId === userId && p.lessonId === lessonId);
   return !!found;
