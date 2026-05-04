@@ -42,6 +42,31 @@ export interface HealthStats {
   dataSizeMB: number;
   errors24h: number;
   db: 'connected' | 'fallback';
+  lastBackupAt: string | null;
+  backupsCount: number;
+}
+
+async function findLastBackup(): Promise<{ at: string | null; count: number }> {
+  const backupsDir = path.join(DATA_DIR, 'backups');
+  try {
+    const entries = await fs.readdir(backupsDir, { withFileTypes: true });
+    const files = entries.filter((e) => e.isFile() && e.name.endsWith('.tar.gz'));
+    let latest = 0;
+    for (const f of files) {
+      try {
+        const st = await fs.stat(path.join(backupsDir, f.name));
+        if (st.mtimeMs > latest) latest = st.mtimeMs;
+      } catch {
+        // ignora
+      }
+    }
+    return {
+      at: latest > 0 ? new Date(latest).toISOString() : null,
+      count: files.length,
+    };
+  } catch {
+    return { at: null, count: 0 };
+  }
 }
 
 export async function gatherHealth(db: 'connected' | 'fallback'): Promise<HealthStats> {
@@ -49,6 +74,7 @@ export async function gatherHealth(db: 'connected' | 'fallback'): Promise<Health
   const errs = await listErrors({ since, limit: 1000 });
   const dataSize = await dirSizeBytes(DATA_DIR);
   const mem = process.memoryUsage().rss;
+  const backup = await findLastBackup();
   return {
     ok: true,
     ts: Date.now(),
@@ -60,5 +86,7 @@ export async function gatherHealth(db: 'connected' | 'fallback'): Promise<Health
     dataSizeMB: Math.round((dataSize / (1024 * 1024)) * 100) / 100,
     errors24h: errs.length,
     db,
+    lastBackupAt: backup.at,
+    backupsCount: backup.count,
   };
 }

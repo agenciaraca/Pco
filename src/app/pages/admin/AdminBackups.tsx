@@ -95,7 +95,7 @@ export default function AdminBackups() {
         </div>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-4">
         <Stat
           Icon={Database}
           label="Total de backups"
@@ -113,6 +113,21 @@ export default function AdminBackups() {
           label="Cron"
           value="03:00 UTC"
           color="text-status-success"
+        />
+        <Stat
+          Icon={ShieldCheck}
+          label="Último backup"
+          value={
+            backups.data && backups.data.length > 0
+              ? new Date(backups.data[0]!.mtime).toLocaleString('pt-BR', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '—'
+          }
+          color="text-pco-orange"
         />
       </div>
 

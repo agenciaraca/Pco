@@ -423,6 +423,8 @@ export interface HealthStatsDto {
   dataSizeMB: number;
   errors24h: number;
   db: 'connected' | 'fallback';
+  lastBackupAt: string | null;
+  backupsCount: number;
 }
 
 export async function fetchHealth(): Promise<HealthStatsDto> {
