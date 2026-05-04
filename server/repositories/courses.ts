@@ -94,6 +94,54 @@ async function loadFromDb(): Promise<Course[]> {
   });
 }
 
+/**
+ * Duplica um curso completo (módulos + aulas) gerando novos IDs.
+ * Title vira "Cópia de X" e slug recebe sufixo "-copia".
+ * No modo DB, atualmente não suportado — admin deve criar manual e usar import.
+ */
+export async function duplicateCourse(sourceId: string): Promise<Course | null> {
+  const db = getDb();
+  const source = await findCourse(sourceId);
+  if (!source) return null;
+  if (db) {
+    throw new Error(
+      'Duplicação só implementada em modo JSON. Em DB, exporte e re-importe via /admin/imports.',
+    );
+  }
+
+  const newCourseId = `course-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`;
+  const cloned: Course = {
+    ...source,
+    id: newCourseId,
+    title: `Cópia de ${source.title}`,
+    slug: `${source.slug ?? newCourseId}-copia-${Date.now().toString(36).slice(-4)}`,
+    modules: (source.modules ?? []).map((m) => {
+      const newModuleId = `${newCourseId}-mod-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
+      return {
+        ...m,
+        id: newModuleId,
+        courseId: newCourseId,
+        lessons: (m.lessons ?? []).map((l) => ({
+          ...l,
+          id: `${newModuleId}-les-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+          moduleId: newModuleId,
+          courseId: newCourseId,
+        })),
+        assessment: m.assessment
+          ? {
+              ...m.assessment,
+              id: `${newModuleId}-asmt-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+              moduleId: newModuleId,
+              courseId: newCourseId,
+            }
+          : undefined,
+      };
+    }),
+  };
+  await store.unshift(cloned);
+  return cloned;
+}
+
 export async function listCourses(): Promise<Course[]> {
   if (getDb()) {
     const fromDb = await loadFromDb();

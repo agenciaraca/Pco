@@ -2197,6 +2197,94 @@ export interface ActivityItemDto {
   link?: string;
 }
 
+// ---------- CSV exports ----------
+
+async function downloadCsv(path: string, filename: string): Promise<void> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const res = await fetch(`/api${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadUsersCsv(): Promise<void> {
+  return downloadCsv(
+    '/admin/users/export.csv',
+    `users-${new Date().toISOString().slice(0, 10)}.csv`,
+  );
+}
+
+export async function downloadOrdersCsv(): Promise<void> {
+  return downloadCsv(
+    '/admin/orders/export.csv',
+    `orders-${new Date().toISOString().slice(0, 10)}.csv`,
+  );
+}
+
+export async function duplicateCourse(id: string): Promise<{ id: string; title: string }> {
+  return http.post(`/admin/courses/${encodeURIComponent(id)}/duplicate`, {});
+}
+
+export async function downloadCoursesCsv(): Promise<void> {
+  return downloadCsv(
+    '/admin/courses/export.csv',
+    `courses-${new Date().toISOString().slice(0, 10)}.csv`,
+  );
+}
+
+// ---------- Settings backup / restore ----------
+
+export interface SettingsBackupDto {
+  version: 1;
+  createdAt: string;
+  files: Array<{
+    file: string;
+    exists: boolean;
+    data: unknown;
+  }>;
+}
+
+export interface RestoreResultDto {
+  restored: string[];
+  skipped: Array<{ file: string; reason: string }>;
+  dryRun: boolean;
+}
+
+export async function downloadSettingsBackup(): Promise<void> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const res = await fetch('/api/admin/settings/backup', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ava-pco-backup-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function restoreSettings(
+  payload: SettingsBackupDto,
+  dryRun = false,
+): Promise<RestoreResultDto> {
+  return http.post('/admin/settings/restore', { ...payload, dryRun });
+}
+
 export async function fetchActivityFeed(filter: {
   kinds?: ActivityKindDto[];
   since?: string;

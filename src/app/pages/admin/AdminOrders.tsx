@@ -7,7 +7,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  Download,
 } from 'lucide-react';
+import * as api from '../../data/api';
 import {
   useAllOrders,
   useAdminUpdateOrderStatus,
@@ -119,14 +121,30 @@ export default function AdminOrders() {
             Compras feitas pelos alunos. Webhook do gateway atualiza status automaticamente.
           </p>
         </div>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="pco-btn-secondary text-xs"
-        >
-          <RefreshCw size={12} strokeWidth={2} className={isFetching ? 'animate-spin' : ''} />
-          Atualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              try {
+                await api.downloadOrdersCsv();
+                toast.success('CSV baixado');
+              } catch (err) {
+                toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+              }
+            }}
+            className="pco-btn-ghost text-xs"
+          >
+            <Download size={12} strokeWidth={2} />
+            Exportar CSV
+          </button>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="pco-btn-secondary text-xs"
+          >
+            <RefreshCw size={12} strokeWidth={2} className={isFetching ? 'animate-spin' : ''} />
+            Atualizar
+          </button>
+        </div>
       </header>
 
       <div className="grid gap-3 sm:grid-cols-4">

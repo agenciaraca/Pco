@@ -17,7 +17,9 @@ import {
   ShieldCheck,
   UserCog,
   GraduationCap,
+  Download,
 } from 'lucide-react';
+import { downloadUsersCsv } from '../../data/api';
 import {
   useSystemUsers,
   useCreateSystemUser,
@@ -134,10 +136,27 @@ export default function AdminUsuarios() {
             Contas de acesso, papéis (superadmin / admin / aluno) e senhas.
           </p>
         </div>
-        <button onClick={() => setEditing('new')} className="pco-btn-primary text-xs">
-          <Plus size={12} strokeWidth={2} />
-          Novo usuário
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await downloadUsersCsv();
+                toast.success('CSV baixado');
+              } catch (err) {
+                toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+              }
+            }}
+            className="pco-btn-ghost text-xs"
+          >
+            <Download size={12} strokeWidth={2} />
+            Exportar CSV
+          </button>
+          <button onClick={() => setEditing('new')} className="pco-btn-primary text-xs">
+            <Plus size={12} strokeWidth={2} />
+            Novo usuário
+          </button>
+        </div>
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

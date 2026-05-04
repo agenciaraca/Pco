@@ -240,6 +240,14 @@ export function useGenerateRecoveryPlan() {
 
 // ---- Admin: course writes ----
 
+export function useDuplicateCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.duplicateCourse,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.courses }),
+  });
+}
+
 export function useUpdateCourse() {
   const qc = useQueryClient();
   return useMutation({

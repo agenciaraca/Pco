@@ -87,6 +87,7 @@ const AdminBroadcasts = lazy(() => import('./pages/admin/AdminBroadcasts'));
 const AdminSessoes = lazy(() => import('./pages/admin/AdminSessoes'));
 const AdminApiTokens = lazy(() => import('./pages/admin/AdminApiTokens'));
 const AdminActivity = lazy(() => import('./pages/admin/AdminActivity'));
+const AdminBackup = lazy(() => import('./pages/admin/AdminBackup'));
 const ImportWizardApi = lazy(() => import('./pages/admin/imports/ImportWizardApi'));
 
 function S({ children }: { children: ReactNode }) {
@@ -203,6 +204,7 @@ export const router = createBrowserRouter([
       { path: 'sessoes', element: <S><AdminSessoes /></S> },
       { path: 'api-tokens', element: <S><AdminApiTokens /></S> },
       { path: 'atividade', element: <S><AdminActivity /></S> },
+      { path: 'backup', element: <S><AdminBackup /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },
       { path: 'imports/wizard', element: <S><ImportWizardCsv /></S> },
       { path: 'imports/wizard-api', element: <S><ImportWizardApi /></S> },

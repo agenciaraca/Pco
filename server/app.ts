@@ -126,6 +126,8 @@ import * as reengagementCfg from './reengagement/config-store';
 import * as apiTokens from './auth/api-tokens';
 import { requireApiToken } from './auth/api-token-middleware';
 import * as activityFeed from './activity/feed';
+import { buildCsv, csvResponse } from './export/csv';
+import * as settingsBackup from './settings/backup';
 import * as reengagementWorker from './reengagement/worker';
 import * as webhookDeliveries from './webhooks/delivery-store';
 import * as webhooksDispatcher from './webhooks/dispatcher';
@@ -1453,6 +1455,27 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
+  // Admin: Duplicar curso (clone completo com novos IDs)
+  app.post(
+    '/admin/courses/:id/duplicate',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      try {
+        const cloned = await coursesRepo.duplicateCourse(c.req.param('id') as string);
+        if (!cloned) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
+        return c.json(cloned, 201);
+      } catch (err) {
+        return jsonError(
+          c,
+          501,
+          'NOT_SUPPORTED',
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    },
+  );
+
   // ---------- Admin: Modules ----------
 
   app.post('/admin/courses/:courseId/modules', async (c) => {
@@ -2708,6 +2731,148 @@ export function buildApp() {
       })),
     );
   });
+
+  // ---------- CSV exports ----------
+
+  app.get('/admin/users/export.csv', requireAuth('admin', 'superadmin'), async () => {
+    const list = await usersStore.listUsers();
+    const csv = buildCsv(list, [
+      { key: 'id', label: 'id' },
+      { key: 'email', label: 'email' },
+      { key: 'name', label: 'name' },
+      { key: 'role', label: 'role' },
+      {
+        key: 'active',
+        label: 'active',
+        map: (u) => (u.active ? 'true' : 'false'),
+      },
+      { key: 'createdAt', label: 'created_at' },
+      {
+        key: 'lastLoginAt',
+        label: 'last_login_at',
+        map: (u) => u.lastLoginAt ?? '',
+      },
+      {
+        key: 'totpEnabled',
+        label: 'totp_enabled',
+        map: (u) => (u.totpEnabled ? 'true' : 'false'),
+      },
+    ]);
+    return csvResponse(
+      csv,
+      `users-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+  });
+
+  app.get('/admin/orders/export.csv', requireAuth('admin', 'superadmin'), async () => {
+    const list = await ordersRepo.listAll();
+    const csv = buildCsv(
+      list.map((o) => ({
+        id: o.id,
+        userEmail: o.userEmail,
+        productName: o.productSnapshot.name,
+        productKind: o.productSnapshot.kind,
+        amountCents: o.amountCents,
+        currency: o.currency,
+        status: o.status,
+        gatewayProvider: o.gatewayProvider,
+        externalId: o.externalId ?? '',
+        createdAt: o.createdAt,
+        paidAt: o.paidAt ?? '',
+        updatedAt: o.updatedAt,
+      })),
+      [
+        { key: 'id', label: 'id' },
+        { key: 'userEmail', label: 'user_email' },
+        { key: 'productName', label: 'product_name' },
+        { key: 'productKind', label: 'product_kind' },
+        { key: 'amountCents', label: 'amount_cents' },
+        { key: 'currency', label: 'currency' },
+        { key: 'status', label: 'status' },
+        { key: 'gatewayProvider', label: 'gateway' },
+        { key: 'externalId', label: 'external_id' },
+        { key: 'createdAt', label: 'created_at' },
+        { key: 'paidAt', label: 'paid_at' },
+        { key: 'updatedAt', label: 'updated_at' },
+      ],
+    );
+    return csvResponse(
+      csv,
+      `orders-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+  });
+
+  app.get('/admin/courses/export.csv', requireAuth('admin', 'superadmin'), async () => {
+    const courses = await coursesRepo.listCourses();
+    const csv = buildCsv(
+      courses.map((co) => ({
+        id: co.id,
+        title: co.title,
+        slug: co.slug ?? '',
+        description: co.description ?? '',
+        moduleCount: (co.modules ?? []).length,
+        lessonCount: (co.modules ?? []).reduce(
+          (s, m) => s + (m.lessons ?? []).length,
+          0,
+        ),
+      })),
+      [
+        { key: 'id', label: 'id' },
+        { key: 'title', label: 'title' },
+        { key: 'slug', label: 'slug' },
+        { key: 'description', label: 'description' },
+        { key: 'moduleCount', label: 'module_count' },
+        { key: 'lessonCount', label: 'lesson_count' },
+      ],
+    );
+    return csvResponse(
+      csv,
+      `courses-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+  });
+
+  // ---------- Settings backup / restore ----------
+
+  app.get(
+    '/admin/settings/backup',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const data = await settingsBackup.exportBackup();
+      const filename = `ava-pco-backup-${data.createdAt.slice(0, 19).replace(/[:T]/g, '-')}.json`;
+      return new Response(JSON.stringify(data, null, 2), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+        },
+      });
+    },
+  );
+
+  app.post(
+    '/admin/settings/restore',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 3 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => null)) as
+        | (settingsBackup.SettingsBackup & { dryRun?: boolean })
+        | null;
+      if (!body) return jsonError(c, 400, 'INVALID_INPUT', 'JSON inválido.');
+      try {
+        const result = await settingsBackup.restoreBackup(body, {
+          dryRun: body.dryRun === true,
+        });
+        return c.json(result);
+      } catch (err) {
+        return jsonError(
+          c,
+          400,
+          'RESTORE_FAILED',
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    },
+  );
 
   // ---------- Activity feed agregado ----------
 

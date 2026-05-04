@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom';
-import { Plus, Edit3, Layers, Clock } from 'lucide-react';
-import { useCourses } from '../../data/hooks';
+import { Plus, Edit3, Layers, Clock, Copy, Download } from 'lucide-react';
+import { useCourses, useDuplicateCourse } from '../../data/hooks';
+import { downloadCoursesCsv } from '../../data/api';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
+import { useToast } from '../../components/Toast';
 
 export default function AdminCourses() {
   const { data, isLoading, isError, refetch } = useCourses();
+  const duplicateMut = useDuplicateCourse();
+  const toast = useToast();
 
   return (
     <div className="space-y-6">
@@ -14,10 +18,27 @@ export default function AdminCourses() {
           <h1 className="pco-section-title">Gestão de Cursos</h1>
           <p className="pco-section-subtitle mt-1">Liste, crie e edite cursos do AVA.</p>
         </div>
-        <button className="pco-btn-primary text-xs" disabled title="Em desenvolvimento">
-          <Plus size={14} strokeWidth={2} />
-          Novo curso
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await downloadCoursesCsv();
+                toast.success('CSV baixado');
+              } catch (err) {
+                toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+              }
+            }}
+            className="pco-btn-ghost text-xs"
+          >
+            <Download size={12} strokeWidth={2} />
+            Exportar CSV
+          </button>
+          <button className="pco-btn-primary text-xs" disabled title="Em desenvolvimento">
+            <Plus size={14} strokeWidth={2} />
+            Novo curso
+          </button>
+        </div>
       </header>
 
       {isLoading ? (
@@ -75,10 +96,31 @@ export default function AdminCourses() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link to={`/admin/cursos/${c.id}`} className="pco-btn-secondary text-xs">
-                        <Edit3 size={12} strokeWidth={2} />
-                        Editar
-                      </Link>
+                      <div className="inline-flex gap-1">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm(`Duplicar "${c.title}"? Cria nova cópia editável.`)) return;
+                            try {
+                              const r = await duplicateMut.mutateAsync(c.id);
+                              toast.success('Curso duplicado', r.title);
+                            } catch (err) {
+                              toast.error(
+                                'Falha',
+                                err instanceof Error ? err.message : 'Erro',
+                              );
+                            }
+                          }}
+                          className="pco-btn-ghost text-xs"
+                          title="Duplicar curso"
+                        >
+                          <Copy size={12} strokeWidth={2} />
+                        </button>
+                        <Link to={`/admin/cursos/${c.id}`} className="pco-btn-secondary text-xs">
+                          <Edit3 size={12} strokeWidth={2} />
+                          Editar
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
