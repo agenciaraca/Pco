@@ -643,6 +643,15 @@ export function useClearTutorHistory() {
   });
 }
 
+const versionKey = ['version'] as const;
+export function useVersion() {
+  return useQuery({
+    queryKey: versionKey,
+    queryFn: api.fetchVersion,
+    staleTime: 60 * 60_000,
+  });
+}
+
 const settingsKey = ['settings'] as const;
 export function useSettings() {
   return useQuery({

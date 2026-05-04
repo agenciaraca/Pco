@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Mail, MessageCircle } from 'lucide-react';
-import { useSettings } from '../data/hooks';
+import { useSettings, useVersion } from '../data/hooks';
 
 export default function Footer() {
   const { data } = useSettings();
+  const { data: ver } = useVersion();
   const year = new Date().getFullYear();
   const siteName = data?.siteName ?? 'AVA PCO';
   const contactEmail = data?.contactEmail;
@@ -49,6 +50,14 @@ export default function Footer() {
           <Link to={privacyUrl} className="hover:text-pco-blue">
             Privacidade
           </Link>
+          {ver?.version && (
+            <span
+              className="text-[10px] text-ink-subtle"
+              title={`Iniciado em ${ver.startedAt} · ${ver.env}`}
+            >
+              v{ver.version}
+            </span>
+          )}
         </div>
       </div>
     </footer>

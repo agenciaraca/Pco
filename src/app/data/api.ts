@@ -189,6 +189,18 @@ export async function setPodcastEngagement(
   );
 }
 
+// ---------- Version ----------
+
+export interface VersionDto {
+  version: string;
+  startedAt: string;
+  env: string;
+}
+
+export async function fetchVersion(): Promise<VersionDto> {
+  return http.get<VersionDto>('/version');
+}
+
 // ---------- LGPD export + delete ----------
 
 export async function requestAccountDeletion(): Promise<{ ok: true }> {
