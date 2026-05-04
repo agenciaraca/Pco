@@ -492,6 +492,103 @@ export async function deletePaymentGateway(id: string): Promise<{ ok: true }> {
   );
 }
 
+// Products
+export type ProductKind = 'course' | 'session_pack' | 'tutor_pack';
+
+export interface ProductDto {
+  id: string;
+  kind: ProductKind;
+  refId: string | null;
+  name: string;
+  description?: string;
+  priceCents: number;
+  currency: string;
+  active: boolean;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchProducts(): Promise<ProductDto[]> {
+  return http.get<ProductDto[]>('/products');
+}
+
+export async function fetchAdminProducts(): Promise<ProductDto[]> {
+  return http.get<ProductDto[]>('/admin/products');
+}
+
+export interface CreateProductInput {
+  kind: ProductKind;
+  refId?: string | null;
+  name: string;
+  description?: string;
+  priceCents: number;
+  currency?: string;
+  active?: boolean;
+}
+
+export async function createProduct(input: CreateProductInput): Promise<ProductDto> {
+  return http.post<ProductDto>('/admin/products', input);
+}
+
+export async function updateProduct(
+  id: string,
+  patch: Partial<CreateProductInput>,
+): Promise<ProductDto> {
+  return http.put<ProductDto>(`/admin/products/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteProduct(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/products/${encodeURIComponent(id)}`);
+}
+
+// Orders
+export type OrderStatus =
+  | 'pending'
+  | 'processing'
+  | 'paid'
+  | 'failed'
+  | 'canceled'
+  | 'refunded';
+
+export interface OrderDto {
+  id: string;
+  userId: string;
+  userEmail: string;
+  productId: string;
+  productSnapshot: {
+    name: string;
+    priceCents: number;
+    currency: string;
+    kind: ProductKind;
+    refId: string | null;
+  };
+  gatewayId: string;
+  gatewayProvider: PaymentProviderId;
+  externalId: string | null;
+  status: OrderStatus;
+  amountCents: number;
+  currency: string;
+  events: Array<{ ts: string; status: OrderStatus; note?: string }>;
+  checkoutUrl?: string | null;
+  qrCode?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  paidAt?: string | null;
+}
+
+export async function fetchMyOrders(): Promise<OrderDto[]> {
+  return http.get<OrderDto[]>('/me/orders');
+}
+
+export async function fetchAllOrders(): Promise<OrderDto[]> {
+  return http.get<OrderDto[]>('/admin/orders');
+}
+
+export async function startCheckout(productId: string, gatewayId?: string): Promise<OrderDto> {
+  return http.post<OrderDto>('/payments/checkout', { productId, gatewayId });
+}
+
 // ---------- Admin stats ----------
 
 export interface CompletionsStatsDto {

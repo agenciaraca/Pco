@@ -748,6 +748,75 @@ export function useDeletePaymentGateway() {
   });
 }
 
+const productsKey = ['products'] as const;
+const adminProductsKey = ['admin', 'products'] as const;
+
+export function useProducts() {
+  return useQuery({ queryKey: productsKey, queryFn: api.fetchProducts });
+}
+
+export function useAdminProducts() {
+  return useQuery({ queryKey: adminProductsKey, queryFn: api.fetchAdminProducts });
+}
+
+export function useCreateProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createProduct,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productsKey });
+      qc.invalidateQueries({ queryKey: adminProductsKey });
+    },
+  });
+}
+
+export function useUpdateProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<api.CreateProductInput> }) =>
+      api.updateProduct(id, patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productsKey });
+      qc.invalidateQueries({ queryKey: adminProductsKey });
+    },
+  });
+}
+
+export function useDeleteProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteProduct,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productsKey });
+      qc.invalidateQueries({ queryKey: adminProductsKey });
+    },
+  });
+}
+
+const myOrdersKey = ['me', 'orders'] as const;
+const allOrdersKey = ['admin', 'orders'] as const;
+
+export function useMyOrders() {
+  return useQuery({ queryKey: myOrdersKey, queryFn: api.fetchMyOrders });
+}
+
+export function useAllOrders() {
+  return useQuery({
+    queryKey: allOrdersKey,
+    queryFn: api.fetchAllOrders,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useStartCheckout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ productId, gatewayId }: { productId: string; gatewayId?: string }) =>
+      api.startCheckout(productId, gatewayId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: myOrdersKey }),
+  });
+}
+
 const completionsKey = ['admin', 'stats', 'completions'] as const;
 export function useCompletionsStats(days = 7) {
   return useQuery({

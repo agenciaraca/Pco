@@ -60,6 +60,9 @@ import {
   selfChangePasswordSchema,
   createPaymentGatewaySchema,
   updatePaymentGatewaySchema,
+  createProductSchema,
+  updateProductSchema,
+  checkoutSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import { jsonError, validate } from './http';
@@ -84,9 +87,23 @@ import * as lessonNotesRepo from './repositories/lesson-notes';
 import * as podcastEngagementRepo from './repositories/podcast-engagement';
 import * as certValidationsRepo from './repositories/cert-validations';
 import * as gatewaysRepo from './payments/gateways-repo';
-import { ALL_PROVIDERS } from './payments/providers/registry';
+import * as productsRepo from './payments/products-repo';
+import * as ordersRepo from './payments/orders-repo';
+import { ALL_PROVIDERS, getPaymentProvider } from './payments/providers/registry';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
+
+/**
+ * Libera acesso do usuário ao produto pago.
+ * - course: enroll no curso (adiciona ao enrolledCourseIds do estudante)
+ * - session_pack/tutor_pack: registra em metadata para uso futuro (sprint subsequente)
+ */
+async function grantAccessForOrder(order: import('./payments/types').Order): Promise<void> {
+  if (order.productSnapshot.kind === 'course' && order.productSnapshot.refId) {
+    await studentsRepo.enrollInCourse(order.userId, order.productSnapshot.refId);
+  }
+  // Demais kinds: por ora apenas registrado na order (events). Sprint futuro implementa.
+}
 
 export function buildApp() {
   const app = new Hono().basePath('/api');
@@ -1616,6 +1633,236 @@ export function buildApp() {
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado');
     return c.json({ ok: true });
   });
+
+  // ---------- Products (admin CRUD + público lista ativos) ----------
+
+  app.get('/products', async (c) => c.json(await productsRepo.listActive()));
+
+  app.get('/admin/products', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await productsRepo.listAll()),
+  );
+
+  app.post('/admin/products', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createProductSchema, body);
+    if (!v.ok)
+      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const created = await productsRepo.createProduct({
+      kind: v.data.kind,
+      refId: v.data.refId ?? null,
+      name: v.data.name,
+      description: v.data.description,
+      priceCents: v.data.priceCents,
+      currency: v.data.currency,
+      active: v.data.active,
+      metadata: v.data.metadata,
+    });
+    return c.json(created, 201);
+  });
+
+  app.put('/admin/products/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateProductSchema, body);
+    if (!v.ok)
+      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const updated = await productsRepo.updateProduct(id, v.data);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Produto não encontrado');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/products/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const ok = await productsRepo.deleteProduct(id);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Produto não encontrado');
+    return c.json({ ok: true });
+  });
+
+  // ---------- Orders (user logado vê os seus, admin vê todos) ----------
+
+  app.get('/me/orders', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    return c.json(await ordersRepo.listForUser(u.sub));
+  });
+
+  app.get('/admin/orders', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await ordersRepo.listAll()),
+  );
+
+  // ---------- Checkout (cria order + chama provider) ----------
+
+  app.post(
+    '/payments/checkout',
+    requireAuth(),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const u = c.get('user')!;
+      const body = await c.req.json().catch(() => ({}));
+      const v = validate(checkoutSchema, body);
+      if (!v.ok)
+        return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+
+      const product = await productsRepo.findById(v.data.productId);
+      if (!product || !product.active) {
+        return jsonError(c, 404, 'PRODUCT_NOT_FOUND', 'Produto inexistente ou inativo.');
+      }
+
+      // Seleciona gateway: explícito > qualquer ativo (1º)
+      let gw = null;
+      if (v.data.gatewayId) {
+        gw = await gatewaysRepo.findById(v.data.gatewayId);
+        if (!gw || !gw.active) {
+          return jsonError(c, 400, 'GATEWAY_INACTIVE', 'Gateway selecionado inativo.');
+        }
+      } else {
+        const actives = await gatewaysRepo.listActive();
+        gw = actives[0] ?? null;
+      }
+      if (!gw) {
+        return jsonError(
+          c,
+          400,
+          'NO_ACTIVE_GATEWAY',
+          'Nenhum gateway de pagamento ativo configurado.',
+        );
+      }
+
+      const provider = getPaymentProvider(gw.provider);
+      if (!provider) {
+        return jsonError(
+          c,
+          501,
+          'PROVIDER_NOT_IMPLEMENTED',
+          `Provider ${gw.provider} ainda não tem implementação. Use o sandbox 'mock' ou aguarde Sprint 4.`,
+        );
+      }
+
+      const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
+      if (!creds) return jsonError(c, 500, 'INTERNAL', 'Falha ao ler credenciais do gateway.');
+
+      // Cria order primeiro pra ter o id no metadata
+      const order = await ordersRepo.createOrder({
+        userId: u.sub,
+        userEmail: u.email,
+        productId: product.id,
+        productSnapshot: {
+          name: product.name,
+          priceCents: product.priceCents,
+          currency: product.currency,
+          kind: product.kind,
+          refId: product.refId,
+        },
+        gatewayId: gw.id,
+        gatewayProvider: gw.provider,
+        amountCents: product.priceCents,
+        currency: product.currency,
+      });
+
+      try {
+        const result = await provider.createPayment(gw, creds, {
+          amountCents: product.priceCents,
+          currency: product.currency,
+          description: product.name,
+          customerEmail: u.email,
+          metadata: { orderId: order.id, userId: u.sub },
+        });
+        const updated = await ordersRepo.attachGatewayResult(order.id, {
+          externalId: result.externalId,
+          checkoutUrl: result.checkoutUrl,
+          qrCode: result.qrCode,
+          status: result.status,
+        });
+        return c.json(updated, 201);
+      } catch (err) {
+        await ordersRepo.updateStatus(
+          order.id,
+          'failed',
+          err instanceof Error ? err.message : 'Erro do provider',
+        );
+        return jsonError(
+          c,
+          502,
+          'GATEWAY_FAILED',
+          err instanceof Error ? err.message : 'Falha ao criar checkout no gateway.',
+        );
+      }
+    },
+  );
+
+  // ---------- Webhook (público; cada gateway tem URL própria) ----------
+
+  app.post(
+    '/payments/webhook/:gatewayId',
+    rateLimit({ windowMs: 60_000, max: 60 }),
+    async (c) => {
+      const gatewayId = c.req.param('gatewayId') as string;
+      const gw = await gatewaysRepo.findById(gatewayId);
+      if (!gw) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado.');
+
+      const provider = getPaymentProvider(gw.provider);
+      if (!provider) return jsonError(c, 501, 'NOT_IMPLEMENTED', 'Provider não implementado.');
+
+      const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
+      if (!creds) return jsonError(c, 500, 'INTERNAL', 'Falha ao ler credenciais.');
+
+      const rawBody = await c.req.text();
+      const headers: Record<string, string> = {};
+      for (const [k, v] of Object.entries(c.req.header())) {
+        if (typeof v === 'string') headers[k.toLowerCase()] = v;
+      }
+
+      let event;
+      try {
+        event = await provider.parseWebhook(gw, creds, rawBody, headers);
+      } catch (err) {
+        await recordError(c, err, 400);
+        return jsonError(c, 400, 'WEBHOOK_INVALID', 'Webhook inválido.');
+      }
+      if (!event) {
+        return jsonError(c, 400, 'WEBHOOK_INVALID', 'Não foi possível interpretar o webhook.');
+      }
+
+      // Localiza order pelo externalId
+      const order = await ordersRepo.findByExternalId(event.externalId);
+      if (!order) {
+        // Webhook duplicado / unknown — aceita 200 para não retentar indefinidamente
+        return c.json({ ok: true, ignored: true, reason: 'order-not-found' });
+      }
+
+      // Idempotência: se já paid, não duplica grant
+      if (order.status === 'paid' && event.status === 'paid') {
+        return c.json({ ok: true, ignored: true, reason: 'already-paid' });
+      }
+
+      const updated = await ordersRepo.updateStatus(
+        order.id,
+        event.status,
+        `Webhook do gateway ${gw.provider}`,
+      );
+
+      // Liberação de acesso quando paga
+      if (event.status === 'paid' && updated) {
+        try {
+          await grantAccessForOrder(updated);
+          await notificationsRepo.createOne({
+            userId: updated.userId,
+            title: '✅ Pagamento confirmado',
+            body: `Sua compra de "${updated.productSnapshot.name}" foi aprovada e o acesso foi liberado.`,
+            category: 'success',
+            link:
+              updated.productSnapshot.kind === 'course'
+                ? `/curso/${updated.productSnapshot.refId ?? ''}`
+                : '/perfil',
+            authorEmail: 'sistema',
+          });
+        } catch (err) {
+          console.error('[grantAccessForOrder] erro:', err);
+        }
+      }
+
+      return c.json({ ok: true });
+    },
+  );
 
   // ---------- Stats agregadas (admin) ----------
 

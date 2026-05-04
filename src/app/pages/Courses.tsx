@@ -1,15 +1,42 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Clock, Layers, PlayCircle } from 'lucide-react';
-import { useCourses, useMyProgress } from '../data/hooks';
+import {
+  useCourses,
+  useMyProgress,
+  useProducts,
+  useStartCheckout,
+  useCurrentStudent,
+} from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { useToast } from '../components/Toast';
 
 export default function Courses() {
   useDocumentMeta({ title: 'Meus Cursos — AVA PCO' });
   const { data: courses, isLoading, isError } = useCourses();
   const { data: progress } = useMyProgress();
+  const { data: products = [] } = useProducts();
+  const { data: student } = useCurrentStudent();
+  const checkout = useStartCheckout();
+  const toast = useToast();
   const doneIds = new Set(progress?.completedLessonIds ?? []);
+  const enrolledIds = new Set(
+    (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds ?? [],
+  );
+
+  async function handleBuy(productId: string) {
+    try {
+      const order = await checkout.mutateAsync({ productId });
+      if (order.checkoutUrl) {
+        window.location.assign(order.checkoutUrl);
+      } else {
+        toast.info('Pedido criado', `ID ${order.id}`);
+      }
+    } catch (err) {
+      toast.error('Falha ao iniciar checkout', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -90,15 +117,48 @@ export default function Courses() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Link to={`/curso/${course.id}`} className="pco-btn-primary flex-1 justify-center text-xs">
-                      {pct === 0 ? 'Começar' : pct === 100 ? 'Revisar' : 'Continuar'}
-                      <ArrowRight size={12} strokeWidth={2} />
-                    </Link>
-                    <Link to={`/jornada`} className="pco-btn-secondary text-xs">
-                      Jornada
-                    </Link>
-                  </div>
+                  {(() => {
+                    const isEnrolled = enrolledIds.has(course.id);
+                    const product = products.find(
+                      (p) => p.kind === 'course' && p.refId === course.id && p.active,
+                    );
+                    if (!isEnrolled && product) {
+                      const price = (product.priceCents / 100).toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: product.currency,
+                      });
+                      return (
+                        <div className="flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleBuy(product.id)}
+                            disabled={checkout.isPending}
+                            className="pco-btn-primary w-full justify-center text-xs"
+                          >
+                            Comprar por {price}
+                            <ArrowRight size={12} strokeWidth={2} />
+                          </button>
+                          <p className="text-[10px] text-ink-subtle text-center">
+                            Acesso liberado após confirmação do pagamento
+                          </p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="flex gap-2">
+                        <Link
+                          to={`/curso/${course.id}`}
+                          className="pco-btn-primary flex-1 justify-center text-xs"
+                        >
+                          {pct === 0 ? 'Começar' : pct === 100 ? 'Revisar' : 'Continuar'}
+                          <ArrowRight size={12} strokeWidth={2} />
+                        </Link>
+                        <Link to={`/jornada`} className="pco-btn-secondary text-xs">
+                          Jornada
+                        </Link>
+                      </div>
+                    );
+                  })()}
                 </div>
               </article>
             );

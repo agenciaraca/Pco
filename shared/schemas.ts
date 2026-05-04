@@ -177,6 +177,13 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 export const updateProductSchema = createProductSchema.partial();
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
+// Checkout
+export const checkoutSchema = z.object({
+  productId: z.string().min(1),
+  gatewayId: z.string().min(1).optional(), // se omitido, usa o ativo
+});
+export type CheckoutInput = z.infer<typeof checkoutSchema>;
+
 // Generic API envelope
 export const errorResponseSchema = z.object({
   error: z.object({

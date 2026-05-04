@@ -149,6 +149,36 @@ export async function setStudentStatus(
   return updateAdminStudent(id, { status });
 }
 
+/**
+ * Adiciona courseId ao enrolledCourseIds do aluno se ainda não estiver.
+ * Idempotente. Cria entrada mínima para o aluno se ele não existir como adminStudent.
+ */
+export async function enrollInCourse(userId: string, courseId: string): Promise<void> {
+  await adminStore.modify((rows) => {
+    let row = rows.find((s) => s.id === userId);
+    if (!row) {
+      const now = new Date().toISOString();
+      const fresh: AdminStudentDto = {
+        id: userId,
+        name: userId,
+        email: '',
+        status: 'ativo',
+        riskScore: 0,
+        enrolledCourseIds: [],
+        progressByCourse: {},
+        lastAccessAt: now,
+        createdAt: now,
+      };
+      rows.push(fresh);
+      row = fresh;
+    }
+    if (!row.enrolledCourseIds.includes(courseId)) {
+      row.enrolledCourseIds = [...row.enrolledCourseIds, courseId];
+      row.progressByCourse = { ...row.progressByCourse, [courseId]: 0 };
+    }
+  });
+}
+
 export async function deleteAdminStudent(id: string): Promise<boolean> {
   const db = getDb();
   if (!db) {

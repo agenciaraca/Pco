@@ -15,6 +15,7 @@ import NotFound from './pages/NotFound';
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyCertificate = lazy(() => import('./pages/VerifyCertificate'));
+const CheckoutMock = lazy(() => import('./pages/CheckoutMock'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacidade = lazy(() => import('./pages/Privacidade'));
@@ -71,6 +72,7 @@ const AdminErros = lazy(() => import('./pages/admin/AdminErros'));
 const AdminSuporte = lazy(() => import('./pages/admin/AdminSuporte'));
 const AdminBackups = lazy(() => import('./pages/admin/AdminBackups'));
 const AdminGateways = lazy(() => import('./pages/admin/AdminGateways'));
+const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
 
 function S({ children }: { children: ReactNode }) {
   return <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>;
@@ -90,6 +92,7 @@ export const router = createBrowserRouter([
   { path: '/esqueci-senha', element: <S><ForgotPassword /></S>, errorElement: <RootError /> },
   { path: '/redefinir-senha', element: <S><ResetPassword /></S>, errorElement: <RootError /> },
   { path: '/verificar/:code', element: <S><VerifyCertificate /></S>, errorElement: <RootError /> },
+  { path: '/checkout/mock', element: <S><CheckoutMock /></S>, errorElement: <RootError /> },
   { path: '/onboarding', element: <S><Onboarding /></S>, errorElement: <RootError /> },
   { path: '/termos', element: <S><Terms /></S>, errorElement: <RootError /> },
   { path: '/privacidade', element: <S><Privacidade /></S>, errorElement: <RootError /> },
@@ -174,6 +177,7 @@ export const router = createBrowserRouter([
       { path: 'suporte', element: <S><AdminSuporte /></S> },
       { path: 'backups', element: <S><AdminBackups /></S> },
       { path: 'gateways', element: <S><AdminGateways /></S> },
+      { path: 'produtos', element: <S><AdminProducts /></S> },
     ],
   },
 
