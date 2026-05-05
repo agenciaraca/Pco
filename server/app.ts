@@ -834,6 +834,50 @@ export function buildApp() {
     return c.json(entry ?? { totalSeconds: 0 });
   });
 
+  /** Lista todas anotações do aluno com nome de curso/aula resolvidos. */
+  app.get('/me/notes', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const search = c.req.query('search')?.toLowerCase().trim();
+    const notes = await lessonNotesRepo.listForUser(u.sub);
+    const courses = await coursesRepo.listCourses();
+    type Hit = {
+      lessonId: string;
+      lessonTitle: string;
+      moduleId: string;
+      moduleTitle: string;
+      courseId: string;
+      courseTitle: string;
+      content: string;
+      updatedAt: string;
+    };
+    const hits: Hit[] = [];
+    for (const n of notes) {
+      if (!n.content.trim()) continue;
+      if (search && !n.content.toLowerCase().includes(search)) continue;
+      for (const c of courses) {
+        const m = c.modules.find((mod) =>
+          mod.lessons.some((l) => l.id === n.lessonId),
+        );
+        if (m) {
+          const lesson = m.lessons.find((l) => l.id === n.lessonId)!;
+          hits.push({
+            lessonId: n.lessonId,
+            lessonTitle: lesson.title,
+            moduleId: m.id,
+            moduleTitle: m.title,
+            courseId: c.id,
+            courseTitle: c.title,
+            content: n.content,
+            updatedAt: n.updatedAt,
+          });
+          break;
+        }
+      }
+    }
+    hits.sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1));
+    return c.json(hits);
+  });
+
   /** Retorna a última aula visitada pelo aluno (com title/courseTitle). */
   app.get('/me/last-lesson', requireAuth(), async (c) => {
     const u = c.get('user')!;

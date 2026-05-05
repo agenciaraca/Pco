@@ -5,6 +5,7 @@ import {
   Compass,
   GraduationCap,
   Package,
+  StickyNote,
   BookOpen,
   Newspaper,
   Mic2,
@@ -28,6 +29,7 @@ const studentGroups = [
       { to: '/jornada', label: 'Minha Jornada', icon: Compass },
       { to: '/cursos', label: 'Meus Cursos', icon: GraduationCap },
       { to: '/pacotes', label: 'Pacotes', icon: Package },
+      { to: '/anotacoes', label: 'Minhas anotações', icon: StickyNote },
     ],
   },
   {

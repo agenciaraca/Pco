@@ -1748,6 +1748,13 @@ export function useLastLesson() {
   });
 }
 
+export function useMyNotes(search?: string) {
+  return useQuery({
+    queryKey: ['me', 'notes', search ?? ''],
+    queryFn: () => api.fetchMyNotes(search),
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {

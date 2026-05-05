@@ -2991,6 +2991,22 @@ export async function fetchLastLesson(): Promise<LastLessonDto | null> {
   return http.get<LastLessonDto | null>('/me/last-lesson');
 }
 
+export interface MyNoteHitDto {
+  lessonId: string;
+  lessonTitle: string;
+  moduleId: string;
+  moduleTitle: string;
+  courseId: string;
+  courseTitle: string;
+  content: string;
+  updatedAt: string;
+}
+
+export async function fetchMyNotes(search?: string): Promise<MyNoteHitDto[]> {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+  return http.get<MyNoteHitDto[]>(`/me/notes${qs}`);
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =

@@ -30,6 +30,7 @@ const Courses = lazy(() => import('./pages/Courses'));
 const Bundles = lazy(() => import('./pages/Bundles'));
 const Catalog = lazy(() => import('./pages/Catalog'));
 const CoursePreview = lazy(() => import('./pages/CoursePreview'));
+const MyNotes = lazy(() => import('./pages/MyNotes'));
 const Library = lazy(() => import('./pages/Library'));
 const News = lazy(() => import('./pages/News'));
 const Podcasts = lazy(() => import('./pages/Podcasts'));
@@ -148,6 +149,7 @@ export const router = createBrowserRouter([
       { path: '/jornada', element: <S><Jornada /></S> },
       { path: '/cursos', element: <S><Courses /></S> },
       { path: '/pacotes', element: <S><Bundles /></S> },
+      { path: '/anotacoes', element: <S><MyNotes /></S> },
       { path: '/biblioteca', element: <S><Library /></S> },
       { path: '/news', element: <S><News /></S> },
       { path: '/podcasts', element: <S><Podcasts /></S> },
