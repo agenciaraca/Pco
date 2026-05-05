@@ -3094,6 +3094,22 @@ export async function fetchCourseStudents(
   );
 }
 
+export interface BulkEnrollResultDto {
+  enrolled: number;
+  alreadyEnrolled: number;
+  errors: Array<{ studentId: string; message: string }>;
+}
+
+export async function bulkEnrollInCourse(
+  courseId: string,
+  studentIds: string[],
+): Promise<BulkEnrollResultDto> {
+  return http.post<BulkEnrollResultDto>(
+    `/admin/courses/${encodeURIComponent(courseId)}/enroll-bulk`,
+    { studentIds },
+  );
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =

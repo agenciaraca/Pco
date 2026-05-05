@@ -1773,6 +1773,54 @@ export function buildApp() {
 
   // ---------- Admin: Course writes ----------
 
+  /** Bulk enroll de alunos existentes num curso. body: { studentIds: string[] } */
+  app.post(
+    '/admin/courses/:id/enroll-bulk',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const courseId = c.req.param('id') as string;
+      const course = await coursesRepo.findCourse(courseId);
+      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const ids = Array.isArray(body.studentIds)
+        ? (body.studentIds as unknown[]).filter(
+            (x): x is string => typeof x === 'string',
+          )
+        : [];
+      if (ids.length === 0) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'studentIds vazio.');
+      }
+      if (ids.length > 500) {
+        return jsonError(c, 400, 'TOO_MANY', 'Máximo 500 por chamada.');
+      }
+      let enrolled = 0;
+      let already = 0;
+      const errors: Array<{ studentId: string; message: string }> = [];
+      for (const studentId of ids) {
+        try {
+          const s = await studentsRepo.findAdminStudent(studentId);
+          if (!s) {
+            errors.push({ studentId, message: 'aluno não encontrado' });
+            continue;
+          }
+          if ((s.enrolledCourseIds ?? []).includes(courseId)) {
+            already++;
+            continue;
+          }
+          await studentsRepo.enrollInCourse(studentId, courseId);
+          enrolled++;
+        } catch (err) {
+          errors.push({
+            studentId,
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+      return c.json({ enrolled, alreadyEnrolled: already, errors });
+    },
+  );
+
   /** Lista alunos matriculados num curso com progresso individual. */
   app.get(
     '/admin/courses/:id/students',

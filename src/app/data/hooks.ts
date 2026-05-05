@@ -1799,6 +1799,18 @@ export function useCourseStudents(courseId: string | undefined) {
   });
 }
 
+export function useBulkEnrollInCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, studentIds }: { courseId: string; studentIds: string[] }) =>
+      api.bulkEnrollInCourse(courseId, studentIds),
+    onSuccess: (_d, { courseId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'courses', courseId, 'students'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] });
+    },
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {
