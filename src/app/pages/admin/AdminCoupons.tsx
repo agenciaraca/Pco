@@ -8,6 +8,9 @@ import {
   Percent,
   DollarSign,
   AlertCircle,
+  Download,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import {
   useCoupons,
@@ -15,12 +18,14 @@ import {
   useUpdateCoupon,
   useDeleteCoupon,
   useAdminProducts,
+  useCreateCouponsBulk,
 } from '../../data/hooks';
+import { downloadCouponsCsv } from '../../data/api';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
-import type { CouponDto, CouponInputDto } from '../../data/api';
+import type { BulkCouponInputDto, CouponDto, CouponInputDto } from '../../data/api';
 
 export default function AdminCoupons() {
   useDocumentMeta({ title: 'Cupons — Admin AVA PCO' });
@@ -29,10 +34,21 @@ export default function AdminCoupons() {
   const create = useCreateCoupon();
   const update = useUpdateCoupon();
   const del = useDeleteCoupon();
+  const bulk = useCreateCouponsBulk();
   const toast = useToast();
 
   const [editing, setEditing] = useState<CouponDto | null>(null);
   const [creating, setCreating] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+
+  async function handleExport() {
+    try {
+      await downloadCouponsCsv();
+      toast.success('CSV baixado');
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -47,17 +63,56 @@ export default function AdminCoupons() {
             por produto, validade ou número de usos.
           </p>
         </div>
-        {!editing && !creating && (
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="pco-btn-primary"
-          >
-            <Plus size={12} strokeWidth={2} />
-            Novo cupom
-          </button>
+        {!editing && !creating && !bulkOpen && (
+          <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleExport}
+              className="pco-btn-ghost text-xs"
+              title="Exportar todos como CSV"
+            >
+              <Download size={11} strokeWidth={2} />
+              Exportar CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => setBulkOpen(true)}
+              className="pco-btn-ghost text-xs"
+            >
+              <Sparkles size={11} strokeWidth={2} />
+              Gerar lote
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="pco-btn-primary"
+            >
+              <Plus size={12} strokeWidth={2} />
+              Novo cupom
+            </button>
+          </div>
         )}
       </header>
+
+      {bulkOpen && (
+        <BulkEditor
+          products={products.data ?? []}
+          isPending={bulk.isPending}
+          onSave={async (input) => {
+            try {
+              const r = await bulk.mutateAsync(input);
+              toast.success(
+                'Lote gerado',
+                `${r.createdCount} criados, ${r.skippedCount} ignorados`,
+              );
+              setBulkOpen(false);
+            } catch (err) {
+              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+          onCancel={() => setBulkOpen(false)}
+        />
+      )}
 
       {coupons.isLoading ? (
         <CardListSkeleton count={3} />
@@ -449,6 +504,225 @@ function CouponEditor({
           className="pco-btn-primary"
         >
           {editing ? 'Salvar' : 'Criar'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function BulkEditor({
+  products,
+  isPending,
+  onSave,
+  onCancel,
+}: {
+  products: { id: string; name: string }[];
+  isPending: boolean;
+  onSave: (input: BulkCouponInputDto) => void;
+  onCancel: () => void;
+}) {
+  const [count, setCount] = useState(10);
+  const [prefix, setPrefix] = useState('');
+  const [sequential, setSequential] = useState(false);
+  const [randomLength, setRandomLength] = useState(8);
+  const [description, setDescription] = useState('');
+  const [kind, setKind] = useState<'percent' | 'amount'>('percent');
+  const [value, setValue] = useState(10);
+  const [maxUses, setMaxUses] = useState<number | ''>(1);
+  const [validUntil, setValidUntil] = useState('');
+  const [productIds, setProductIds] = useState<string[]>([]);
+
+  function toggleProduct(id: string) {
+    setProductIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    );
+  }
+
+  return (
+    <section className="pco-card p-4 space-y-4 border-pco-blue/30">
+      <h3 className="text-sm font-semibold text-pco-deep flex items-center gap-2">
+        <Sparkles size={14} strokeWidth={2} className="text-pco-blue" />
+        Gerar lote de cupons
+      </h3>
+      <p className="text-[11px] text-ink-muted">
+        Cria N cupons de uma vez. Use prefix+sequencial pra códigos legíveis
+        (BLACK01, BLACK02...) ou random pra anti-fraude.
+      </p>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            Quantidade (1-1000)
+          </span>
+          <input
+            type="number"
+            min={1}
+            max={1000}
+            value={count}
+            onChange={(e) => setCount(Number(e.target.value))}
+            className="pco-input mt-1 text-sm"
+          />
+        </label>
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            Prefixo (opcional)
+          </span>
+          <input
+            value={prefix}
+            onChange={(e) => setPrefix(e.target.value.toUpperCase())}
+            placeholder="BLACK"
+            maxLength={20}
+            className="pco-input mt-1 text-sm font-mono"
+          />
+        </label>
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            {sequential ? 'Modo' : 'Tamanho random'}
+          </span>
+          {sequential ? (
+            <div className="pco-input mt-1 text-sm bg-surface-mute text-ink-muted">
+              Sequencial (PREFIX01...)
+            </div>
+          ) : (
+            <input
+              type="number"
+              min={4}
+              max={20}
+              value={randomLength}
+              onChange={(e) => setRandomLength(Number(e.target.value))}
+              className="pco-input mt-1 text-sm"
+            />
+          )}
+        </label>
+      </div>
+
+      <label className="flex items-center gap-2 text-xs text-ink-muted">
+        <input
+          type="checkbox"
+          checked={sequential}
+          onChange={(e) => setSequential(e.target.checked)}
+          disabled={!prefix}
+          className="accent-pco-blue"
+        />
+        Numeração sequencial (precisa de prefix)
+      </label>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            Tipo
+          </span>
+          <select
+            value={kind}
+            onChange={(e) => setKind(e.target.value as 'percent' | 'amount')}
+            className="pco-input mt-1 text-sm"
+          >
+            <option value="percent">Percentual</option>
+            <option value="amount">Valor fixo</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            {kind === 'percent' ? '%' : 'Centavos'}
+          </span>
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => setValue(Number(e.target.value))}
+            min={0}
+            className="pco-input mt-1 text-sm"
+          />
+        </label>
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            Usos por cupom
+          </span>
+          <input
+            type="number"
+            value={maxUses}
+            onChange={(e) =>
+              setMaxUses(e.target.value === '' ? '' : Number(e.target.value))
+            }
+            min={1}
+            placeholder="ilimitado"
+            className="pco-input mt-1 text-sm"
+          />
+        </label>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            Descrição (todos)
+          </span>
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Black Friday 2025"
+            className="pco-input mt-1 text-sm w-full"
+          />
+        </label>
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            Válido até (opcional)
+          </span>
+          <input
+            type="date"
+            value={validUntil}
+            onChange={(e) => setValidUntil(e.target.value)}
+            className="pco-input mt-1 text-sm"
+          />
+        </label>
+      </div>
+
+      <div>
+        <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          Produtos (vazio = todos)
+        </span>
+        <div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-3 max-h-32 overflow-y-auto border border-pco-border rounded p-2 mt-1">
+          {products.map((p) => (
+            <label
+              key={p.id}
+              className="flex items-center gap-2 text-xs p-1 rounded hover:bg-surface-mute cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={productIds.includes(p.id)}
+                onChange={() => toggleProduct(p.id)}
+                className="accent-pco-blue"
+              />
+              <span className="truncate">{p.name}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 justify-end">
+        <button type="button" onClick={onCancel} className="pco-btn-ghost text-xs">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            onSave({
+              count,
+              prefix: prefix || undefined,
+              sequential: sequential && !!prefix,
+              randomLength,
+              description: description || undefined,
+              discount: { kind, value },
+              maxUsesPerCoupon: maxUses === '' ? null : maxUses,
+              validUntil: validUntil
+                ? new Date(validUntil + 'T23:59:59').toISOString()
+                : null,
+              appliesToProductIds: productIds,
+            })
+          }
+          disabled={isPending || count < 1 || count > 1000}
+          className="pco-btn-primary"
+        >
+          {isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} strokeWidth={2} />}
+          Gerar {count} cupons
         </button>
       </div>
     </section>

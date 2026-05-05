@@ -875,6 +875,14 @@ export function useCheckCoupon() {
   });
 }
 
+export function useCreateCouponsBulk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: api.BulkCouponInputDto) => api.createCouponsBulk(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: couponsKey }),
+  });
+}
+
 export function useCancelMyOrder() {
   const qc = useQueryClient();
   return useMutation({

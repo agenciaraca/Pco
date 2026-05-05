@@ -4612,6 +4612,65 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
+  app.post(
+    '/admin/coupons/bulk',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      try {
+        const r = await couponsRepo.createCouponsBulk({
+          count: Number(body.count ?? 0),
+          prefix: typeof body.prefix === 'string' ? body.prefix : undefined,
+          sequential: body.sequential === true,
+          randomLength: typeof body.randomLength === 'number' ? body.randomLength : 8,
+          description:
+            typeof body.description === 'string' ? body.description : undefined,
+          discount: body.discount as never,
+          appliesToProductIds: Array.isArray(body.appliesToProductIds)
+            ? (body.appliesToProductIds as string[])
+            : undefined,
+          maxUsesPerCoupon:
+            body.maxUsesPerCoupon === null
+              ? null
+              : typeof body.maxUsesPerCoupon === 'number'
+                ? body.maxUsesPerCoupon
+                : null,
+          validFrom: typeof body.validFrom === 'string' ? body.validFrom : null,
+          validUntil: typeof body.validUntil === 'string' ? body.validUntil : null,
+        });
+        return c.json({
+          createdCount: r.created.length,
+          skippedCount: r.skipped.length,
+          created: r.created,
+          skipped: r.skipped,
+        });
+      } catch (err) {
+        return jsonError(
+          c,
+          400,
+          'INVALID_INPUT',
+          err instanceof Error ? err.message : 'Erro ao gerar cupons.',
+        );
+      }
+    },
+  );
+
+  app.get(
+    '/admin/coupons/export',
+    requireAuth('admin', 'superadmin'),
+    async () => {
+      const csv = await couponsRepo.exportCouponsAsCsv();
+      return new Response(csv, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="cupons-${new Date().toISOString().slice(0, 10)}.csv"`,
+        },
+      });
+    },
+  );
+
   // Aluno consulta validade de um cupom para um produto antes do checkout
   app.get('/coupons/check', requireAuth(), async (c) => {
     const code = c.req.query('code') ?? '';

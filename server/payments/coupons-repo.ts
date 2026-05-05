@@ -143,3 +143,95 @@ export async function incrementUsage(id: string): Promise<void> {
     (c) => ({ ...c, usedCount: c.usedCount + 1, updatedAt: new Date().toISOString() }),
   );
 }
+
+const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem 0,O,1,I — clareza visual
+
+/** Gera código aleatório com `length` chars do alfabeto sem ambigüidade. */
+export function generateRandomCode(length: number): string {
+  const buf = crypto.randomBytes(length);
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += ALPHA[buf[i]! % ALPHA.length];
+  }
+  return out;
+}
+
+export interface BulkCreateInput {
+  // Se prefix definido + sequencial, gera PREFIX01, PREFIX02, ...
+  // Senão, gera códigos aleatórios.
+  count: number;
+  prefix?: string;
+  sequential?: boolean;
+  randomLength?: number; // default 8
+  description?: string;
+  discount: CouponDiscount;
+  appliesToProductIds?: string[];
+  maxUsesPerCoupon?: number | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+}
+
+export async function createCouponsBulk(
+  input: BulkCreateInput,
+): Promise<{ created: Coupon[]; skipped: string[] }> {
+  if (input.count < 1 || input.count > 1000) {
+    throw new Error('count deve ser entre 1 e 1000.');
+  }
+  const length = input.randomLength ?? 8;
+  if (length < 4 || length > 20) {
+    throw new Error('randomLength deve ser entre 4 e 20.');
+  }
+  const created: Coupon[] = [];
+  const skipped: string[] = [];
+
+  for (let i = 0; i < input.count; i++) {
+    let code: string;
+    if (input.prefix && input.sequential) {
+      const seq = (i + 1).toString().padStart(2, '0');
+      code = `${input.prefix.toUpperCase()}${seq}`;
+    } else if (input.prefix) {
+      code = `${input.prefix.toUpperCase()}${generateRandomCode(length)}`;
+    } else {
+      code = generateRandomCode(length);
+    }
+    try {
+      const c = await createCoupon({
+        code,
+        description: input.description,
+        discount: input.discount,
+        appliesToProductIds: input.appliesToProductIds,
+        maxUses: input.maxUsesPerCoupon ?? null,
+        validFrom: input.validFrom ?? null,
+        validUntil: input.validUntil ?? null,
+        active: true,
+      });
+      created.push(c);
+    } catch {
+      skipped.push(code);
+    }
+  }
+
+  return { created, skipped };
+}
+
+/** CSV simples com header + rows. Coluna code, discount, valid_until, max_uses, used_count. */
+export async function exportCouponsAsCsv(): Promise<string> {
+  const all = await store.getAll();
+  const rows: string[] = [];
+  rows.push('code,description,discount_kind,discount_value,valid_from,valid_until,max_uses,used_count,active');
+  for (const c of all) {
+    const cells = [
+      c.code,
+      (c.description ?? '').replace(/[",\n]/g, ' '),
+      c.discount.kind,
+      String(c.discount.value),
+      c.validFrom ?? '',
+      c.validUntil ?? '',
+      c.maxUses === null ? '' : String(c.maxUses),
+      String(c.usedCount),
+      c.active ? '1' : '0',
+    ];
+    rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
+  }
+  return rows.join('\n');
+}

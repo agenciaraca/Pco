@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { validateCoupon } from '../server/payments/coupons-repo';
+import {
+  validateCoupon,
+  generateRandomCode,
+} from '../server/payments/coupons-repo';
 import type { Coupon } from '../server/payments/coupons-repo';
 
 const baseCoupon: Coupon = {
@@ -113,5 +116,26 @@ describe('validateCoupon', () => {
     const r = validateCoupon(c, 'p1', 10000);
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.discountCents).toBe(3300);
+  });
+});
+
+describe('generateRandomCode', () => {
+  it('respeita o tamanho solicitado', () => {
+    expect(generateRandomCode(8)).toHaveLength(8);
+    expect(generateRandomCode(12)).toHaveLength(12);
+    expect(generateRandomCode(4)).toHaveLength(4);
+  });
+
+  it('só usa caracteres do alfabeto sem ambiguidade', () => {
+    const code = generateRandomCode(50);
+    expect(code).toMatch(/^[A-HJ-NP-Z2-9]+$/);
+    // não contém 0, O, 1, I
+    expect(code).not.toMatch(/[01OI]/);
+  });
+
+  it('gera códigos únicos em sequência', () => {
+    const codes = new Set<string>();
+    for (let i = 0; i < 100; i++) codes.add(generateRandomCode(10));
+    expect(codes.size).toBeGreaterThan(95); // colisões raras com 32^10
   });
 });

@@ -724,6 +724,48 @@ export async function checkCoupon(
   return http.get<CouponCheckResultDto>(`/coupons/check?${qs}`);
 }
 
+export interface BulkCouponInputDto {
+  count: number;
+  prefix?: string;
+  sequential?: boolean;
+  randomLength?: number;
+  description?: string;
+  discount: CouponDiscountDto;
+  appliesToProductIds?: string[];
+  maxUsesPerCoupon?: number | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+}
+
+export async function createCouponsBulk(
+  input: BulkCouponInputDto,
+): Promise<{
+  createdCount: number;
+  skippedCount: number;
+  created: CouponDto[];
+  skipped: string[];
+}> {
+  return http.post('/admin/coupons/bulk', input);
+}
+
+export async function downloadCouponsCsv(): Promise<void> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const res = await fetch('/api/admin/coupons/export', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cupons-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
   return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
 }
