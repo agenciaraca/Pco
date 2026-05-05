@@ -27,6 +27,11 @@
   ],
   "shortcuts": [
     {
+      "name": "Meus Cursos",
+      "url": "/cursos",
+      "description": "Acessar cursos matriculados"
+    },
+    {
       "name": "Minha Jornada",
       "url": "/jornada",
       "description": "Acompanhe seu caminho de estudos"
@@ -35,6 +40,24 @@
       "name": "Tutor Virtual",
       "url": "/tutor",
       "description": "Tire dúvidas com IA"
+    },
+    {
+      "name": "Minhas Anotações",
+      "url": "/anotacoes",
+      "description": "Buscar nas suas notas"
+    },
+    {
+      "name": "Suporte",
+      "url": "/suporte",
+      "description": "Abrir ticket"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icone-pco.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide"
     }
   ]
 }
