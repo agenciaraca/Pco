@@ -154,6 +154,10 @@ export default function Pedidos() {
                   </div>
                 </div>
 
+                {o.status === 'pending' && o.qrCode && (
+                  <PixBlock qrCode={o.qrCode} amountCents={o.amountCents} currency={o.currency} />
+                )}
+
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {o.status === 'pending' && o.checkoutUrl && (
                     <a
@@ -201,6 +205,78 @@ export default function Pedidos() {
           })}
         </ul>
       )}
+    </div>
+  );
+}
+
+/**
+ * Mostra QR Code PIX (base64 ou string copia-cola) com botão de copiar.
+ * Aceita: data:image/png;base64,xxx (renderiza img) ou plain string EMV.
+ */
+function PixBlock({
+  qrCode,
+  amountCents,
+  currency,
+}: {
+  qrCode: string;
+  amountCents: number;
+  currency: string;
+}) {
+  const isImage = qrCode.startsWith('data:image') || qrCode.startsWith('iVBOR');
+  const imgSrc = qrCode.startsWith('data:image')
+    ? qrCode
+    : isImage
+      ? `data:image/png;base64,${qrCode}`
+      : '';
+  const copyText = isImage ? '' : qrCode;
+  const price = (amountCents / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency,
+  });
+  return (
+    <div className="mt-3 pco-card border-pco-cyan/40 bg-pco-cyan/5 p-3">
+      <div className="text-[11px] uppercase tracking-wide text-pco-cyan font-semibold mb-2">
+        Pagamento via PIX — {price}
+      </div>
+      <div className="flex items-start gap-3 flex-wrap">
+        {isImage && imgSrc && (
+          <img
+            src={imgSrc}
+            alt="QR Code PIX"
+            className="h-32 w-32 rounded border border-pco-border bg-white"
+          />
+        )}
+        {copyText && (
+          <div className="flex-1 min-w-[200px] space-y-2">
+            <p className="text-[11px] text-ink-muted">
+              Use seu app bancário para escanear o QR ou copie o código abaixo.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-[10px] font-mono break-all bg-white p-2 rounded border border-pco-border max-h-16 overflow-y-auto">
+                {copyText}
+              </code>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(copyText);
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="pco-btn-secondary text-xs"
+              >
+                Copiar
+              </button>
+            </div>
+          </div>
+        )}
+        {isImage && !copyText && (
+          <p className="text-[11px] text-ink-muted flex-1">
+            Escaneie com o app do seu banco para concluir o pagamento.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
