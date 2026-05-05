@@ -134,6 +134,7 @@ import { buildCsv, csvResponse } from './export/csv';
 import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
 import { buildSalesSummary } from './payments/sales-analytics';
+import { renderInvoiceHtml } from './payments/invoice';
 import * as adminDigest from './notifications/admin-digest';
 import * as welcome from './notifications/welcome';
 import * as wishlistStore from './activity/wishlist-store';
@@ -2539,6 +2540,36 @@ export function buildApp() {
   });
 
   // Aluno: cancela own pending order
+  app.get('/me/orders/:id/invoice', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const id = c.req.param('id') as string;
+    const order = await ordersRepo.findById(id);
+    if (!order || order.userId !== u.sub) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+    }
+    if (order.status !== 'paid' && order.status !== 'refunded') {
+      return jsonError(
+        c,
+        400,
+        'NOT_PAID',
+        'Recibo disponível apenas para pedidos pagos ou reembolsados.',
+      );
+    }
+    const user = await usersStore.findUserById(u.sub);
+    const html = renderInvoiceHtml({
+      order,
+      user: {
+        name: user?.name ?? u.email,
+        email: user?.email ?? u.email,
+        document: (user as { document?: string | null } | null)?.document ?? null,
+      },
+    });
+    return new Response(html, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  });
+
   app.post('/me/orders/:id/cancel', requireAuth(), async (c) => {
     const id = c.req.param('id') as string;
     const u = c.get('user')!;

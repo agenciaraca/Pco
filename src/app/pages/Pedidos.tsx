@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShoppingBag, ExternalLink, X, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { ShoppingBag, ExternalLink, X, CheckCircle2, AlertCircle, Clock, FileText } from 'lucide-react';
 import { useMyOrders, useCancelMyOrder } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
@@ -55,6 +55,31 @@ export default function Pedidos() {
     } catch (err) {
       toast.error('Falha', err instanceof Error ? err.message : 'Erro');
     }
+  }
+
+  function openInvoice(orderId: string) {
+    const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+    const token = session?.token;
+    // Para passar Authorization header pra um GET aberto em nova aba, usamos
+    // uma URL com token no query? Não — backend não aceita. Fazemos fetch
+    // e abrimos blob URL.
+    void (async () => {
+      try {
+        const res = await fetch(`/api/me/orders/${encodeURIComponent(orderId)}/invoice`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) {
+          toast.error('Falha', `HTTP ${res.status}`);
+          return;
+        }
+        const html = await res.text();
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } catch (err) {
+        toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+      }
+    })();
   }
 
   return (
@@ -148,6 +173,17 @@ export default function Pedidos() {
                     >
                       Ir ao curso
                     </Link>
+                  )}
+                  {(o.status === 'paid' || o.status === 'refunded') && (
+                    <button
+                      type="button"
+                      onClick={() => openInvoice(o.id)}
+                      className="pco-btn-ghost text-xs"
+                      title="Abrir recibo (use Cmd+P para salvar como PDF)"
+                    >
+                      <FileText size={11} strokeWidth={2} />
+                      Recibo
+                    </button>
                   )}
                   {(o.status === 'pending' || o.status === 'processing') && (
                     <button
