@@ -96,6 +96,7 @@ const adminGroups = [
       { to: '/admin/produtos', label: 'Produtos', icon: CreditCard },
       { to: '/admin/cupons', label: 'Cupons', icon: TagIcon },
       { to: '/admin/pedidos', label: 'Pedidos', icon: CreditCard },
+      { to: '/admin/vendas', label: 'Vendas (analytics)', icon: TrendingUp },
       { to: '/admin/moderacao', label: 'Moderação', icon: ShieldIcon },
       { to: '/admin/imports', label: 'Importar dados', icon: UploadCloud },
       { to: '/admin/sessoes-ao-vivo', label: 'Sessões ao vivo', icon: Mic2 },

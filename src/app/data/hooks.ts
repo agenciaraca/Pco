@@ -920,6 +920,13 @@ export function useDeleteAdminReview() {
   });
 }
 
+export function useSalesSummary(days = 30) {
+  return useQuery({
+    queryKey: ['admin', 'sales', 'summary', days],
+    queryFn: () => api.fetchSalesSummary(days),
+  });
+}
+
 export function useCancelMyOrder() {
   const qc = useQueryClient();
   return useMutation({

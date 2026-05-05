@@ -133,6 +133,7 @@ import * as activityFeed from './activity/feed';
 import { buildCsv, csvResponse } from './export/csv';
 import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
+import { buildSalesSummary } from './payments/sales-analytics';
 import * as liveSessions from './live-sessions/store';
 import * as savedSearches from './saved-searches/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
@@ -3736,6 +3737,13 @@ export function buildApp() {
       return c.json({ ok: true });
     },
   );
+
+  // Admin: dashboard de vendas
+  app.get('/admin/sales/summary', requireAuth('admin', 'superadmin'), async (c) => {
+    const days = Number(c.req.query('days') ?? '30');
+    const r = await buildSalesSummary(Number.isFinite(days) ? days : 30);
+    return c.json(r);
+  });
 
   // Admin: lista global de reviews para moderação
   app.get('/admin/reviews', requireAuth('admin', 'superadmin'), async (c) => {

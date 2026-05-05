@@ -838,6 +838,38 @@ export async function deleteAdminReview(
   );
 }
 
+// ---------- Sales analytics ----------
+
+export interface SalesSummaryDto {
+  range: { from: string; to: string; days: number };
+  series: Array<{ date: string; revenueCents: number; orders: number }>;
+  totals: {
+    revenueCents: number;
+    refundedCents: number;
+    paidOrders: number;
+    pendingOrders: number;
+    canceledOrders: number;
+    refundedOrders: number;
+    failedOrders: number;
+  };
+  topProducts: Array<{
+    productId: string;
+    name: string;
+    revenueCents: number;
+    orders: number;
+  }>;
+  statusDistribution: Record<OrderStatus, number>;
+  comparison: {
+    previousRange: { from: string; to: string };
+    revenuePctChange: number | null;
+    ordersPctChange: number | null;
+  };
+}
+
+export async function fetchSalesSummary(days = 30): Promise<SalesSummaryDto> {
+  return http.get<SalesSummaryDto>(`/admin/sales/summary?days=${days}`);
+}
+
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
   return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
 }
