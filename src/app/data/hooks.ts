@@ -1861,6 +1861,14 @@ export function useUpdateAdminDeletionRequest() {
   });
 }
 
+export function useAdminCoursesSummary() {
+  return useQuery({
+    queryKey: ['admin', 'courses-summary'],
+    queryFn: () => api.fetchAdminCoursesSummary(),
+    staleTime: 30_000,
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {

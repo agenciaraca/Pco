@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Plus, Edit3, Layers, Clock, Copy, Download, Eye, Users } from 'lucide-react';
-import { useCourses, useDuplicateCourse } from '../../data/hooks';
+import { useCourses, useDuplicateCourse, useAdminCoursesSummary } from '../../data/hooks';
+import { useMemo } from 'react';
 import { downloadCoursesCsv } from '../../data/api';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
@@ -9,7 +10,12 @@ import { useToast } from '../../components/Toast';
 export default function AdminCourses() {
   const { data, isLoading, isError, refetch } = useCourses();
   const duplicateMut = useDuplicateCourse();
+  const summaryQ = useAdminCoursesSummary();
   const toast = useToast();
+  const summaryMap = useMemo(
+    () => new Map((summaryQ.data ?? []).map((s) => [s.courseId, s])),
+    [summaryQ.data],
+  );
 
   return (
     <div className="space-y-6">
@@ -62,6 +68,8 @@ export default function AdminCourses() {
                   <th className="px-4 py-3 text-left font-medium">Curso</th>
                   <th className="px-4 py-3 text-left font-medium">Módulos</th>
                   <th className="px-4 py-3 text-left font-medium">Horas</th>
+                  <th className="px-4 py-3 text-left font-medium">Alunos</th>
+                  <th className="px-4 py-3 text-left font-medium">Progresso</th>
                   <th className="px-4 py-3 text-left font-medium">Status</th>
                   <th className="px-4 py-3 text-right font-medium">Ações</th>
                 </tr>
@@ -89,6 +97,38 @@ export default function AdminCourses() {
                         <Clock size={12} className="text-pco-blue" />
                         {c.totalHours}h
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-ink-muted">
+                      <span className="inline-flex items-center gap-1">
+                        <Users size={12} className="text-pco-blue" />
+                        {summaryMap.get(c.id)?.enrolledCount ?? 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const sum = summaryMap.get(c.id);
+                        if (!sum || sum.enrolledCount === 0) {
+                          return <span className="text-[11px] text-ink-subtle">—</span>;
+                        }
+                        const pct = sum.avgProgressPct;
+                        return (
+                          <div className="flex items-center gap-2 min-w-[120px]">
+                            <div className="flex-1 h-1.5 rounded-full bg-surface-gray overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  pct === 100
+                                    ? 'bg-status-success'
+                                    : 'bg-gradient-to-r from-pco-blue to-pco-cyan'
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="text-[11px] font-bold text-pco-deep w-8 text-right">
+                              {pct}%
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <span className="pco-badge bg-status-success/10 text-status-success">

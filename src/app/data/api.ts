@@ -3171,6 +3171,19 @@ export async function adminUpdateDeletionRequest(
   );
 }
 
+// ---------- Admin: courses summary ----------
+
+export interface CourseSummaryDto {
+  courseId: string;
+  enrolledCount: number;
+  completedCount: number;
+  avgProgressPct: number;
+}
+
+export async function fetchAdminCoursesSummary(): Promise<CourseSummaryDto[]> {
+  return http.get<CourseSummaryDto[]>('/admin/courses-summary');
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =

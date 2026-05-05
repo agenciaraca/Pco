@@ -1846,6 +1846,49 @@ export function buildApp() {
 
   // ---------- Admin: Course writes ----------
 
+  /** Resumo agregado por curso pra tabela admin: enrolledCount + avgPct. */
+  app.get(
+    '/admin/courses-summary',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const courses = await coursesRepo.listCourses();
+      const allStudents = await studentsRepo.listAdminStudents({
+        limit: 5000,
+      } as never);
+      const allProgress = await progressRepo.listAll();
+      const out = courses.map((course) => {
+        const totalLessons = course.modules.reduce(
+          (s, m) => s + m.lessons.length,
+          0,
+        );
+        const enrolled = allStudents.filter((s) =>
+          (s.enrolledCourseIds ?? []).includes(course.id),
+        );
+        const progressByUser = new Map<string, number>();
+        for (const p of allProgress) {
+          if (p.courseId !== course.id) continue;
+          progressByUser.set(p.userId, (progressByUser.get(p.userId) ?? 0) + 1);
+        }
+        const rates = enrolled.map((s) => {
+          const done = progressByUser.get(s.id) ?? 0;
+          return totalLessons > 0 ? done / totalLessons : 0;
+        });
+        const avgPct =
+          rates.length > 0
+            ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100)
+            : 0;
+        const completed = rates.filter((r) => r >= 1).length;
+        return {
+          courseId: course.id,
+          enrolledCount: enrolled.length,
+          completedCount: completed,
+          avgProgressPct: avgPct,
+        };
+      });
+      return c.json(out);
+    },
+  );
+
   /** Bulk enroll de alunos existentes num curso. body: { studentIds: string[] } */
   app.post(
     '/admin/courses/:id/enroll-bulk',
