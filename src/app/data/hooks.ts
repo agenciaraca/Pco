@@ -1729,6 +1729,17 @@ export function useUpdateMyNotificationPrefs() {
   });
 }
 
+export function useSnoozeNotifications() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (days: number) => api.snoozeNotifications(days),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: notifPrefsKey });
+      qc.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
+    },
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {

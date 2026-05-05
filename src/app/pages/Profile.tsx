@@ -19,6 +19,7 @@ import {
   useMyProgress,
   useCertificates,
   useMyNotificationPrefs,
+  useSnoozeNotifications,
   useUpdateMyNotificationPrefs,
 } from '../data/hooks';
 import * as api from '../data/api';
@@ -33,6 +34,7 @@ export default function Profile() {
   const certsQ = useCertificates();
   const notifPrefsQ = useMyNotificationPrefs();
   const updateNotifPrefs = useUpdateMyNotificationPrefs();
+  const snoozeMut = useSnoozeNotifications();
 
   const [name, setName] = useState(user?.name ?? '');
   const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(user?.avatarUrl);
@@ -377,6 +379,56 @@ export default function Profile() {
           />
           Quero receber lembretes quando ficar muito tempo sem entrar
         </label>
+
+        <div className="border-t border-pco-border pt-3 mt-3">
+          <h4 className="text-sm font-semibold text-pco-deep mb-1">
+            Pausar notificações in-app
+          </h4>
+          <p className="text-[11px] text-ink-muted mb-2">
+            O sininho fica em silêncio. Notificações continuam chegando, mas
+            o badge não aparece até a data escolhida.
+          </p>
+          {notifPrefsQ.data?.snoozedUntil &&
+          new Date(notifPrefsQ.data.snoozedUntil) > new Date() ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-pco-orange">
+                Pausado até{' '}
+                {new Date(notifPrefsQ.data.snoozedUntil).toLocaleString('pt-BR')}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  snoozeMut.mutate(0, {
+                    onSuccess: () => toast.success('Notificações reativadas'),
+                  })
+                }
+                disabled={snoozeMut.isPending}
+                className="pco-btn-ghost text-xs"
+              >
+                Reativar agora
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {[1, 3, 7, 14, 30].map((days) => (
+                <button
+                  key={days}
+                  type="button"
+                  onClick={() =>
+                    snoozeMut.mutate(days, {
+                      onSuccess: () =>
+                        toast.success(`Pausado por ${days} dia${days > 1 ? 's' : ''}`),
+                    })
+                  }
+                  disabled={snoozeMut.isPending}
+                  className="pco-btn-ghost text-xs"
+                >
+                  {days}d
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <AchievementsPanel />

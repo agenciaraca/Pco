@@ -8,6 +8,8 @@ export interface NotificationPrefs {
   userId: string;
   receiveBroadcasts: boolean;
   receiveReengagement: boolean;
+  /** ISO timestamp até quando todas notificações in-app estão silenciadas; null = não. */
+  snoozedUntil: string | null;
   updatedAt: string;
 }
 
@@ -16,6 +18,7 @@ const store = new JsonStore<NotificationPrefs>('notification-prefs.json', () => 
 const DEFAULT_PREFS: Omit<NotificationPrefs, 'userId' | 'updatedAt'> = {
   receiveBroadcasts: true,
   receiveReengagement: true,
+  snoozedUntil: null,
 };
 
 export async function getPrefs(userId: string): Promise<NotificationPrefs> {
@@ -30,7 +33,9 @@ export async function getPrefs(userId: string): Promise<NotificationPrefs> {
 
 export async function setPrefs(
   userId: string,
-  patch: Partial<Pick<NotificationPrefs, 'receiveBroadcasts' | 'receiveReengagement'>>,
+  patch: Partial<
+    Pick<NotificationPrefs, 'receiveBroadcasts' | 'receiveReengagement' | 'snoozedUntil'>
+  >,
 ): Promise<NotificationPrefs> {
   const cur = await getPrefs(userId);
   const next: NotificationPrefs = {
@@ -59,4 +64,9 @@ export async function blockedFromBroadcasts(): Promise<Set<string>> {
 export async function blockedFromReengagement(): Promise<Set<string>> {
   const all = await store.getAll();
   return new Set(all.filter((p) => !p.receiveReengagement).map((p) => p.userId));
+}
+
+export function isSnoozeActive(prefs: NotificationPrefs): boolean {
+  if (!prefs.snoozedUntil) return false;
+  return new Date(prefs.snoozedUntil).getTime() > Date.now();
 }

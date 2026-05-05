@@ -2951,6 +2951,7 @@ export interface NotificationPrefsDto {
   userId: string;
   receiveBroadcasts: boolean;
   receiveReengagement: boolean;
+  snoozedUntil: string | null;
   updatedAt: string;
 }
 
@@ -2959,9 +2960,20 @@ export async function fetchMyNotificationPrefs(): Promise<NotificationPrefsDto> 
 }
 
 export async function updateMyNotificationPrefs(
-  patch: Partial<Pick<NotificationPrefsDto, 'receiveBroadcasts' | 'receiveReengagement'>>,
+  patch: Partial<
+    Pick<
+      NotificationPrefsDto,
+      'receiveBroadcasts' | 'receiveReengagement' | 'snoozedUntil'
+    >
+  >,
 ): Promise<NotificationPrefsDto> {
   return http.put('/me/notification-prefs', patch);
+}
+
+export async function snoozeNotifications(
+  days: number,
+): Promise<NotificationPrefsDto> {
+  return http.post('/me/notification-prefs/snooze', { days });
 }
 
 // ---------- Achievements ----------

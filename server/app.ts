@@ -1080,6 +1080,11 @@ export function buildApp() {
 
   app.get('/notifications/unread-count', requireAuth(), async (c) => {
     const u = c.get('user')!;
+    // Snooze: mascara badge enquanto pausado, sem perder estado real
+    const prefs = await notificationPrefs.getPrefs(u.sub);
+    if (notificationPrefs.isSnoozeActive(prefs)) {
+      return c.json({ count: 0, snoozedUntil: prefs.snoozedUntil });
+    }
     const count = await notificationsRepo.unreadCountForUser(u.sub);
     return c.json({ count });
   });
@@ -3461,6 +3466,9 @@ export function buildApp() {
   app.put('/me/notification-prefs', requireAuth(), async (c) => {
     const u = c.get('user')!;
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    let snoozedUntil: string | null | undefined = undefined;
+    if (body.snoozedUntil === null) snoozedUntil = null;
+    else if (typeof body.snoozedUntil === 'string') snoozedUntil = body.snoozedUntil;
     const next = await notificationPrefs.setPrefs(u.sub, {
       receiveBroadcasts:
         typeof body.receiveBroadcasts === 'boolean'
@@ -3470,7 +3478,21 @@ export function buildApp() {
         typeof body.receiveReengagement === 'boolean'
           ? body.receiveReengagement
           : undefined,
+      snoozedUntil,
     });
+    return c.json(next);
+  });
+
+  /** Conveniência: snooze por N dias a partir de agora. body: { days: number } */
+  app.post('/me/notification-prefs/snooze', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const days = Math.max(0, Math.min(Number(body.days ?? 0), 90));
+    const snoozedUntil =
+      days > 0
+        ? new Date(Date.now() + days * 24 * 60 * 60_000).toISOString()
+        : null;
+    const next = await notificationPrefs.setPrefs(u.sub, { snoozedUntil });
     return c.json(next);
   });
 
