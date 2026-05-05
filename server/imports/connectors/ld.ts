@@ -1,37 +1,134 @@
-// Connector LearnDash — REST sob /wp-json/ldlms/v2/.
-// Cobre: courses, lessons, topics; pulls enrollments via /users/{id}/courses (uma chamada extra).
+// Connector LearnDash — REST v2 (https://developers.learndash.com/learndash-rest-api-ldlms-v2/).
+// Cobertura ampla:
+//   - sfwd-courses (cursos)
+//   - sfwd-lessons (aulas)
+//   - sfwd-topic   (tópicos dentro de aulas)
+//   - sfwd-quiz    (quizzes)
+//   - sfwd-question (questões dos quizzes)
+//   - groups       (grupos de alunos)
+//   - sfwd-courses/{id}/users        (matrículas)
+//   - sfwd-courses/{id}/groups       (relação curso↔grupo)
+//   - sfwd-courses/{id}/steps        (estrutura completa)
+//   - sfwd-courses/{id}/prerequisites
+//   - users/{id}/course-progress
+//   - users/{id}/courses
+//
+// Os endpoints que podem não existir em LD < 4.5 são tratados com try/catch — pulamos silenciosamente.
 
-import { paginate } from './http';
+import { paginate, getJson } from './http';
 import type { ImportConnection } from '../connections-store';
 import { decryptCreds } from '../connections-store';
 
+// ---------- Tipos LearnDash (parcial — só o que usamos) ----------
+
+interface LdRendered {
+  rendered?: string;
+}
+
 interface LdCourse {
   id: number;
-  title?: { rendered?: string } | string;
+  title?: LdRendered | string;
   slug?: string;
   link?: string;
   date?: string;
   status?: string;
+  excerpt?: LdRendered | string;
+  content?: LdRendered | string;
   meta?: Record<string, unknown>;
-  course_access_list?: number[]; // user ids com acesso (nem sempre existe)
+  course_access_list?: number[];
+  course_categories?: number[];
 }
 
 interface LdLesson {
   id: number;
-  title?: { rendered?: string } | string;
+  title?: LdRendered | string;
   slug?: string;
   link?: string;
   status?: string;
   parent?: number;
   course?: number;
   menu_order?: number;
+  excerpt?: LdRendered | string;
+  content?: LdRendered | string;
 }
 
-function unwrapTitle(t: LdCourse['title'] | LdLesson['title']): string {
+interface LdTopic {
+  id: number;
+  title?: LdRendered | string;
+  slug?: string;
+  status?: string;
+  course?: number;
+  lesson?: number;
+  menu_order?: number;
+  content?: LdRendered | string;
+}
+
+interface LdQuiz {
+  id: number;
+  title?: LdRendered | string;
+  slug?: string;
+  status?: string;
+  course?: number;
+  lesson?: number;
+  date?: string;
+}
+
+interface LdQuestion {
+  id: number;
+  title?: LdRendered | string;
+  slug?: string;
+  quiz?: number;
+  type?: string;
+  points?: number;
+}
+
+interface LdGroup {
+  id: number;
+  title?: LdRendered | string;
+  slug?: string;
+  status?: string;
+  date?: string;
+}
+
+function unwrap(t: LdRendered | string | undefined | null): string {
   if (!t) return '';
   if (typeof t === 'string') return t;
   return t.rendered ?? '';
 }
+
+function basicAuthHeader(c: ImportConnection): Record<string, string> {
+  const creds = decryptCreds(c);
+  if (!creds.wpUsername || !creds.wpAppPassword) return {};
+  return {
+    Authorization: `Basic ${Buffer.from(
+      `${creds.wpUsername}:${creds.wpAppPassword}`,
+    ).toString('base64')}`,
+  };
+}
+
+async function tryFetchJson<T = unknown>(
+  c: ImportConnection,
+  path: string,
+  opts: { query?: Record<string, string | number> } = {},
+): Promise<T | null> {
+  try {
+    const res = await getJson<T>({
+      baseUrl: c.siteUrl,
+      path,
+      query: opts.query,
+      ...(() => {
+        const creds = decryptCreds(c);
+        return { username: creds.wpUsername, password: creds.wpAppPassword };
+      })(),
+      timeoutMs: 20_000,
+    });
+    return res.data;
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Cursos ----------
 
 export async function fetchLdCourses(
   c: ImportConnection,
@@ -52,16 +149,22 @@ export async function fetchLdCourses(
       out.push({
         external_course_id: String(co.id),
         learndash_course_id: String(co.id),
-        title: unwrapTitle(co.title),
+        title: unwrap(co.title),
         slug: co.slug ?? '',
         wp_status: co.status ?? '',
         published_at: co.date ?? '',
         access_duration_days: '',
+        excerpt: unwrap(co.excerpt),
+        content_html: unwrap(co.content),
+        link: co.link ?? '',
+        categories: (co.course_categories ?? []).join('|'),
       });
     }
   }
   return out;
 }
+
+// ---------- Aulas ----------
 
 export async function fetchLdLessons(
   c: ImportConnection,
@@ -82,51 +185,236 @@ export async function fetchLdLessons(
       out.push({
         external_lesson_id: String(ls.id),
         learndash_lesson_id: String(ls.id),
-        title: unwrapTitle(ls.title),
+        title: unwrap(ls.title),
         slug: ls.slug ?? '',
         course_external_id: ls.course ? String(ls.course) : '',
         order: ls.menu_order ?? 0,
+        excerpt: unwrap(ls.excerpt),
+        content_html: unwrap(ls.content),
+        wp_status: ls.status ?? '',
       });
     }
   }
   return out;
 }
 
-/**
- * Para cada course, lê /sfwd-courses/{id}/users para inferir matrículas.
- * Retorna rows no formato canônico de enrollment.
- */
+// ---------- Tópicos (dentro de aulas) ----------
+
+export async function fetchLdTopics(
+  c: ImportConnection,
+  perPage = 100,
+): Promise<Array<Record<string, unknown>>> {
+  const creds = decryptCreds(c);
+  const out: Array<Record<string, unknown>> = [];
+  for await (const batch of paginate<LdTopic>(
+    {
+      baseUrl: c.siteUrl,
+      path: 'wp-json/ldlms/v2/sfwd-topic',
+      username: creds.wpUsername,
+      password: creds.wpAppPassword,
+    },
+    perPage,
+  )) {
+    for (const t of batch) {
+      out.push({
+        external_topic_id: String(t.id),
+        learndash_topic_id: String(t.id),
+        title: unwrap(t.title),
+        slug: t.slug ?? '',
+        course_external_id: t.course ? String(t.course) : '',
+        lesson_external_id: t.lesson ? String(t.lesson) : '',
+        order: t.menu_order ?? 0,
+        content_html: unwrap(t.content),
+        wp_status: t.status ?? '',
+      });
+    }
+  }
+  return out;
+}
+
+// ---------- Quizzes ----------
+
+export async function fetchLdQuizzes(
+  c: ImportConnection,
+  perPage = 100,
+): Promise<Array<Record<string, unknown>>> {
+  const creds = decryptCreds(c);
+  const out: Array<Record<string, unknown>> = [];
+  for await (const batch of paginate<LdQuiz>(
+    {
+      baseUrl: c.siteUrl,
+      path: 'wp-json/ldlms/v2/sfwd-quiz',
+      username: creds.wpUsername,
+      password: creds.wpAppPassword,
+    },
+    perPage,
+  )) {
+    for (const q of batch) {
+      out.push({
+        external_quiz_id: String(q.id),
+        learndash_quiz_id: String(q.id),
+        title: unwrap(q.title),
+        slug: q.slug ?? '',
+        course_external_id: q.course ? String(q.course) : '',
+        lesson_external_id: q.lesson ? String(q.lesson) : '',
+        wp_status: q.status ?? '',
+        published_at: q.date ?? '',
+      });
+    }
+  }
+  return out;
+}
+
+// ---------- Questões dos quizzes ----------
+
+export async function fetchLdQuestions(
+  c: ImportConnection,
+  perPage = 100,
+): Promise<Array<Record<string, unknown>>> {
+  const creds = decryptCreds(c);
+  const out: Array<Record<string, unknown>> = [];
+  for await (const batch of paginate<LdQuestion>(
+    {
+      baseUrl: c.siteUrl,
+      path: 'wp-json/ldlms/v2/sfwd-question',
+      username: creds.wpUsername,
+      password: creds.wpAppPassword,
+    },
+    perPage,
+  )) {
+    for (const q of batch) {
+      out.push({
+        external_question_id: String(q.id),
+        learndash_question_id: String(q.id),
+        title: unwrap(q.title),
+        slug: q.slug ?? '',
+        quiz_external_id: q.quiz ? String(q.quiz) : '',
+        type: q.type ?? '',
+        points: q.points ?? 1,
+      });
+    }
+  }
+  return out;
+}
+
+// ---------- Grupos de alunos ----------
+
+export async function fetchLdGroups(
+  c: ImportConnection,
+  perPage = 100,
+): Promise<Array<Record<string, unknown>>> {
+  const creds = decryptCreds(c);
+  const out: Array<Record<string, unknown>> = [];
+  // LearnDash 4.x usa /groups; em versões antigas é /sfwd-groups. Tenta primeiro o moderno.
+  const paths = ['wp-json/ldlms/v2/groups', 'wp-json/ldlms/v2/sfwd-groups'];
+  for (const path of paths) {
+    try {
+      for await (const batch of paginate<LdGroup>(
+        {
+          baseUrl: c.siteUrl,
+          path,
+          username: creds.wpUsername,
+          password: creds.wpAppPassword,
+        },
+        perPage,
+      )) {
+        for (const g of batch) {
+          out.push({
+            external_group_id: String(g.id),
+            learndash_group_id: String(g.id),
+            title: unwrap(g.title),
+            slug: g.slug ?? '',
+            wp_status: g.status ?? '',
+            published_at: g.date ?? '',
+          });
+        }
+      }
+      if (out.length > 0) return out;
+    } catch {
+      // tenta o próximo path
+    }
+  }
+  return out;
+}
+
+// ---------- Estrutura completa do curso ----------
+
+export interface LdCourseSteps {
+  courseId: string;
+  // Árvore lessons → topics/quizzes
+  lessons: Array<{
+    lessonId: string;
+    title?: string;
+    topics: string[];
+    quizzes: string[];
+  }>;
+  quizzes: string[]; // quizzes diretamente no curso
+}
+
+export async function fetchLdCourseSteps(
+  c: ImportConnection,
+  courseId: string,
+): Promise<LdCourseSteps | null> {
+  const data = await tryFetchJson<Record<string, unknown>>(
+    c,
+    `wp-json/ldlms/v2/sfwd-courses/${courseId}/steps`,
+  );
+  if (!data) return null;
+
+  const lessonsRaw = (data['sfwd-lessons'] ?? {}) as Record<string, unknown>;
+  const courseQuizzes = Object.keys(
+    (data['sfwd-quiz'] ?? {}) as Record<string, unknown>,
+  );
+
+  const lessons: LdCourseSteps['lessons'] = Object.entries(lessonsRaw).map(
+    ([lessonId, lessonNode]) => {
+      const node = (lessonNode ?? {}) as Record<string, unknown>;
+      const topics = Object.keys((node['sfwd-topic'] ?? {}) as Record<string, unknown>);
+      const quizzes = Object.keys((node['sfwd-quiz'] ?? {}) as Record<string, unknown>);
+      return { lessonId, topics, quizzes };
+    },
+  );
+
+  return { courseId, lessons, quizzes: courseQuizzes };
+}
+
+// ---------- Pré-requisitos do curso ----------
+
+export async function fetchLdCoursePrerequisites(
+  c: ImportConnection,
+  courseId: string,
+): Promise<string[]> {
+  const data = await tryFetchJson<unknown>(
+    c,
+    `wp-json/ldlms/v2/sfwd-courses/${courseId}/prerequisites`,
+  );
+  if (!data) return [];
+  if (Array.isArray(data)) {
+    return data.map((x) => (typeof x === 'number' ? String(x) : String((x as { id?: number }).id ?? '')));
+  }
+  return [];
+}
+
+// ---------- Matrículas via /courses/{id}/users ----------
+
 export async function fetchLdEnrollments(
   c: ImportConnection,
 ): Promise<Array<Record<string, unknown>>> {
-  const creds = decryptCreds(c);
   const courses = await fetchLdCourses(c, 100);
   const out: Array<Record<string, unknown>> = [];
+  const auth = basicAuthHeader(c);
 
   for (const co of courses) {
     const courseId = String(co.external_course_id);
     try {
-      // /sfwd-courses/{id}/users — endpoint LearnDash 4.x retorna lista com user_id, ou raw int[]
       const res = await fetch(
         `${c.siteUrl}/wp-json/ldlms/v2/sfwd-courses/${courseId}/users?per_page=100`,
-        {
-          headers: {
-            Accept: 'application/json',
-            ...(creds.wpUsername && creds.wpAppPassword
-              ? {
-                  Authorization: `Basic ${Buffer.from(
-                    `${creds.wpUsername}:${creds.wpAppPassword}`,
-                  ).toString('base64')}`,
-                }
-              : {}),
-          },
-        },
+        { headers: { Accept: 'application/json', ...auth } },
       );
       if (!res.ok) continue;
       const arr = (await res.json()) as Array<number | { id?: number; user_id?: number }>;
       for (const u of arr) {
-        const userId =
-          typeof u === 'number' ? u : (u.id ?? u.user_id);
+        const userId = typeof u === 'number' ? u : (u.id ?? u.user_id);
         if (!userId) continue;
         out.push({
           external_enrollment_id: `ld:${courseId}:${userId}`,
@@ -137,8 +425,106 @@ export async function fetchLdEnrollments(
         });
       }
     } catch {
-      // ignora cursos sem permissão/sem endpoint
+      /* ignora */
     }
   }
   return out;
+}
+
+// ---------- Progresso por aluno ----------
+
+interface LdUserCourseProgress {
+  course_id?: number;
+  status?: string;
+  completed?: number;
+  total?: number;
+  last_step?: number;
+  date_completed?: string | null;
+  steps?: Array<{
+    post_id: number;
+    post_type: string;
+    status?: string;
+    date?: string;
+  }>;
+}
+
+/**
+ * Para cada matrícula → busca course-progress detalhado em /users/{id}/course-progress.
+ * Retorna rows no formato canônico de progress.
+ */
+export async function fetchLdProgress(
+  c: ImportConnection,
+): Promise<Array<Record<string, unknown>>> {
+  const enrollments = await fetchLdEnrollments(c);
+  const userIds = Array.from(new Set(enrollments.map((e) => String(e.user_external_id))));
+  const out: Array<Record<string, unknown>> = [];
+  const auth = basicAuthHeader(c);
+
+  // Limite defensivo — não passar de 500 users em um único job
+  for (const userId of userIds.slice(0, 500)) {
+    try {
+      const res = await fetch(
+        `${c.siteUrl}/wp-json/ldlms/v2/users/${userId}/course-progress?per_page=100`,
+        { headers: { Accept: 'application/json', ...auth } },
+      );
+      if (!res.ok) continue;
+      const data = (await res.json()) as LdUserCourseProgress[];
+      for (const p of Array.isArray(data) ? data : []) {
+        if (!p.course_id) continue;
+        out.push({
+          user_external_id: userId,
+          course_external_id: String(p.course_id),
+          learndash_course_id: String(p.course_id),
+          status: p.status ?? '',
+          completed_steps: p.completed ?? 0,
+          total_steps: p.total ?? 0,
+          last_step: p.last_step ? String(p.last_step) : '',
+          completed_at: p.date_completed ?? '',
+          progress_percentage:
+            p.total && p.total > 0
+              ? Math.round(((p.completed ?? 0) / p.total) * 100)
+              : 0,
+        });
+        // Steps detalhadas (se vier — vira lista de progress por aula/topic/quiz)
+        for (const step of p.steps ?? []) {
+          out.push({
+            user_external_id: userId,
+            course_external_id: String(p.course_id),
+            external_step_id: String(step.post_id),
+            step_type: step.post_type,
+            status: step.status ?? '',
+            completed_at: step.date ?? '',
+          });
+        }
+      }
+    } catch {
+      /* ignora */
+    }
+  }
+  return out;
+}
+
+// ---------- Ping da API LearnDash ----------
+
+export async function pingLd(c: ImportConnection): Promise<{ ok: boolean; message: string; counts?: Record<string, number> }> {
+  try {
+    const courses = await tryFetchJson<unknown[]>(c, 'wp-json/ldlms/v2/sfwd-courses', {
+      query: { per_page: 1 },
+    });
+    if (courses === null) {
+      return {
+        ok: false,
+        message: 'LearnDash REST não acessível (plugin desativado ou sem permissão).',
+      };
+    }
+    return {
+      ok: true,
+      message: `LearnDash OK · ${Array.isArray(courses) ? courses.length : 0} curso(s) na primeira página`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
 }

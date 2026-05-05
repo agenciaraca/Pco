@@ -4,7 +4,16 @@
 import type { ImportConnection } from '../connections-store';
 import type { ImportEntityType } from '../types';
 import { fetchWpStudents } from './wp';
-import { fetchLdCourses, fetchLdLessons, fetchLdEnrollments } from './ld';
+import {
+  fetchLdCourses,
+  fetchLdLessons,
+  fetchLdTopics,
+  fetchLdQuizzes,
+  fetchLdQuestions,
+  fetchLdGroups,
+  fetchLdEnrollments,
+  fetchLdProgress,
+} from './ld';
 import { fetchWcProducts, fetchWcOrders } from './wc';
 
 export interface CollectOptions {
@@ -55,10 +64,40 @@ export async function collectFromApi(
     perEntity.order = r.length;
     total += r.length;
   }
+  if (opts.entities.includes('topic')) {
+    const r = await fetchLdTopics(c);
+    rowsByEntity.topic = r;
+    perEntity.topic = r.length;
+    total += r.length;
+  }
+  if (opts.entities.includes('quiz')) {
+    const r = await fetchLdQuizzes(c);
+    rowsByEntity.quiz = r;
+    perEntity.quiz = r.length;
+    total += r.length;
+  }
+  if (opts.entities.includes('question')) {
+    const r = await fetchLdQuestions(c);
+    rowsByEntity.question = r;
+    perEntity.question = r.length;
+    total += r.length;
+  }
+  if (opts.entities.includes('group')) {
+    const r = await fetchLdGroups(c);
+    rowsByEntity.group = r;
+    perEntity.group = r.length;
+    total += r.length;
+  }
   if (opts.entities.includes('enrollment')) {
     const r = await fetchLdEnrollments(c);
     rowsByEntity.enrollment = r;
     perEntity.enrollment = r.length;
+    total += r.length;
+  }
+  if (opts.entities.includes('progress')) {
+    const r = await fetchLdProgress(c);
+    rowsByEntity.progress = r;
+    perEntity.progress = r.length;
     total += r.length;
   }
 

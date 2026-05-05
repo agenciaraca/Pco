@@ -32,9 +32,14 @@ const ALL_ENTITIES: Array<{ id: ImportEntityTypeDto; label: string; hint: string
   { id: 'student', label: 'Alunos', hint: 'WP /wp-json/wp/v2/users' },
   { id: 'course', label: 'Cursos', hint: 'LD /ldlms/v2/sfwd-courses' },
   { id: 'lesson', label: 'Aulas', hint: 'LD /ldlms/v2/sfwd-lessons' },
+  { id: 'topic', label: 'Tópicos', hint: 'LD /ldlms/v2/sfwd-topic' },
+  { id: 'quiz', label: 'Quizzes', hint: 'LD /ldlms/v2/sfwd-quiz' },
+  { id: 'question', label: 'Questões', hint: 'LD /ldlms/v2/sfwd-question' },
+  { id: 'group', label: 'Grupos', hint: 'LD /ldlms/v2/groups' },
   { id: 'product', label: 'Produtos WC', hint: 'WC /wc/v3/products' },
   { id: 'order', label: 'Pedidos WC', hint: 'WC /wc/v3/orders' },
   { id: 'enrollment', label: 'Matrículas', hint: 'LD courses/{id}/users' },
+  { id: 'progress', label: 'Progresso', hint: 'LD users/{id}/course-progress' },
 ];
 
 export default function ImportWizardApi() {

@@ -178,6 +178,63 @@ export const CSV_TEMPLATES: Record<ImportEntityType, EntityTemplate> = {
       { name: 'last_access_at', label: 'Último acesso', required: false, example: '2026-04-12T17:30:00Z' },
     ],
   },
+
+  topic: {
+    entity: 'topic',
+    filename: 'topicos.csv',
+    fields: [
+      { name: 'external_topic_id', label: 'ID externo', required: false, example: 'ext_top_001' },
+      { name: 'learndash_topic_id', label: 'ID LearnDash', required: false, example: '321' },
+      { name: 'title', label: 'Título', required: true, example: 'A função paterna' },
+      { name: 'slug', label: 'Slug', required: false, example: 'funcao-paterna' },
+      { name: 'lesson_external_id', label: 'ID externo da aula pai', required: false, example: 'ext_les_001' },
+      { name: 'course_external_id', label: 'ID externo do curso', required: false, example: 'ext_course_psi' },
+      { name: 'order', label: 'Ordem', required: false, example: '1' },
+      { name: 'content_html', label: 'Conteúdo HTML', required: false, example: '' },
+      { name: 'wp_status', label: 'Status WP', required: false, example: 'publish' },
+    ],
+  },
+
+  quiz: {
+    entity: 'quiz',
+    filename: 'quizzes.csv',
+    fields: [
+      { name: 'external_quiz_id', label: 'ID externo', required: false, example: 'ext_qz_001' },
+      { name: 'learndash_quiz_id', label: 'ID LearnDash', required: false, example: '999' },
+      { name: 'title', label: 'Título', required: true, example: 'Quiz - Edipiana' },
+      { name: 'slug', label: 'Slug', required: false, example: 'quiz-edipiana' },
+      { name: 'course_external_id', label: 'ID externo do curso', required: false, example: 'ext_course_psi' },
+      { name: 'lesson_external_id', label: 'ID externo da aula (opc.)', required: false, example: '' },
+      { name: 'wp_status', label: 'Status WP', required: false, example: 'publish' },
+      { name: 'published_at', label: 'Data de publicação', required: false, example: '' },
+    ],
+  },
+
+  question: {
+    entity: 'question',
+    filename: 'questoes.csv',
+    fields: [
+      { name: 'external_question_id', label: 'ID externo', required: false, example: '' },
+      { name: 'learndash_question_id', label: 'ID LearnDash', required: false, example: '8888' },
+      { name: 'title', label: 'Pergunta', required: true, example: 'Qual o conceito de gozo?' },
+      { name: 'quiz_external_id', label: 'ID externo do quiz', required: false, example: '' },
+      { name: 'type', label: 'Tipo (single/multiple/free_answer/...)', required: false, example: 'single' },
+      { name: 'points', label: 'Pontos', required: false, example: '1' },
+    ],
+  },
+
+  group: {
+    entity: 'group',
+    filename: 'grupos.csv',
+    fields: [
+      { name: 'external_group_id', label: 'ID externo', required: false, example: '' },
+      { name: 'learndash_group_id', label: 'ID LearnDash', required: false, example: '4321' },
+      { name: 'title', label: 'Nome do grupo', required: true, example: 'Turma 2026.1' },
+      { name: 'slug', label: 'Slug', required: false, example: 'turma-2026-1' },
+      { name: 'wp_status', label: 'Status WP', required: false, example: 'publish' },
+      { name: 'published_at', label: 'Data de publicação', required: false, example: '' },
+    ],
+  },
 };
 
 // ---------- Geração ----------

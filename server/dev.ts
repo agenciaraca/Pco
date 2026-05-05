@@ -151,3 +151,6 @@ import('./webhooks/dispatcher').then((m) => m.startWorker(30_000));
 
 // Worker de reengajamento — varre alunos inativos uma vez por dia
 import('./reengagement/worker').then((m) => m.startWorker(24 * 60 * 60_000));
+
+// Seed de conexões de import pré-configuradas (idempotente)
+import('./imports/seeds/portalpco').then((m) => m.seedPortalpcoConnection());
