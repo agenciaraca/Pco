@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { ArrowRight, Clock, Layers, PlayCircle, Tag, Heart } from 'lucide-react';
 import {
@@ -60,7 +60,16 @@ export default function Courses() {
     return Array.from(set).sort();
   }, [courses]);
 
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTag = searchParams.get('tag');
+
+  function setActiveTag(tag: string | null) {
+    if (tag) {
+      setSearchParams({ tag }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  }
 
   const visibleCourses = useMemo(() => {
     if (!courses) return [];
