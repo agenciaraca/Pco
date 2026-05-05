@@ -20,6 +20,7 @@ import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import MobileNav from '../components/MobileNav';
 import StudentSearchPalette from '../components/StudentSearchPalette';
+import ScrollToTop from '../components/ScrollToTop';
 import Footer from '../components/Footer';
 
 const studentGroups = [
@@ -60,6 +61,7 @@ export default function StudentLayout() {
 
   return (
     <div className="flex min-h-screen bg-surface-off">
+      <ScrollToTop />
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-2 focus:rounded-lg focus:bg-pco-blue focus:text-white text-xs"
