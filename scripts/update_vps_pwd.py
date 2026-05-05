@@ -54,14 +54,26 @@ run(f'bash -lc \'{nvm} && cd ~/ava-pco && npm run build 2>&1 | tail -10\'', time
 print("[*] Restart ...")
 out = run('systemctl --user restart ava-pco.service 2>&1', check=False)
 if 'Failed' in out or 'not loaded' in out or 'not be found' in out:
-    print("[*] systemd --user falhou, tentando pkill + nohup ...")
-    run("pkill -f 'tsx server/dev.ts' 2>/dev/null; pkill -f 'node.*server' 2>/dev/null", check=False)
-    time.sleep(1)
-    if os.path.exists:
-        run('test -x ~/ava-pco/start.sh && nohup ~/ava-pco/start.sh > ~/ava-pco/app.log 2>&1 & echo started || echo "no start.sh"',
-            check=False)
+    print("[*] systemd --user falhou, tentando pkill + setsid nohup ...")
+    run("pkill -f 'tsx server/dev.ts' 2>/dev/null || true", check=False)
+    run("pkill -f 'node.*server/dev' 2>/dev/null || true", check=False)
+    run("pkill -f 'ava-pco' 2>/dev/null || true", check=False)
+    time.sleep(2)
+    # Detach total — setsid + nohup + redirect stdin pra evitar travar o channel
+    start = (
+        'bash -lc \'export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && cd ~/ava-pco && '
+        'setsid nohup env PORT=3035 SERVE_STATIC=./dist HOST=0.0.0.0 '
+        'npx tsx server/dev.ts '
+        '>> ~/ava-pco/app.log 2>&1 < /dev/null &\' && echo dispatched'
+    )
+    si, so, se = c.exec_command(start)
+    time.sleep(2)
+    try:
+        so.channel.close()
+    except Exception:
+        pass
 
-time.sleep(3)
+time.sleep(5)
 print("[*] Health check ...")
 run(f'curl -s -m 5 http://127.0.0.1:{port if port==3035 else 3035}/api/health || tail -30 ~/ava-pco/app.log',
     check=False)
