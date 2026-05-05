@@ -7,6 +7,7 @@ import {
   History as HistoryIcon,
   PlayCircle,
   Info,
+  Calendar,
 } from 'lucide-react';
 import { useImportTemplates, useImportJobs } from '../../../data/hooks';
 import { downloadImportTemplate } from '../../../data/api';
@@ -109,6 +110,22 @@ export default function ImportsHome() {
               </p>
             </div>
             <PlayCircle size={16} strokeWidth={1.75} className="text-pco-cyan shrink-0" />
+          </Link>
+          <Link
+            to="/admin/imports/schedules"
+            className="pco-card pco-card-hover p-4 flex items-start gap-3"
+          >
+            <div className="h-10 w-10 rounded-lg bg-pco-orange/10 grid place-items-center shrink-0">
+              <Calendar size={18} strokeWidth={1.75} className="text-pco-orange" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-pco-deep">Schedules recorrentes</div>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                Importações automáticas diárias ou semanais. Configure uma vez,
+                deixe rodar.
+              </p>
+            </div>
+            <PlayCircle size={16} strokeWidth={1.75} className="text-pco-orange shrink-0" />
           </Link>
         </div>
       </section>

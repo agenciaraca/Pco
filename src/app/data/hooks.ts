@@ -956,6 +956,57 @@ export function useCancelImportJob() {
   });
 }
 
+const importSchedulesKey = ['admin', 'imports', 'schedules'] as const;
+
+export function useImportSchedules() {
+  return useQuery({
+    queryKey: importSchedulesKey,
+    queryFn: () => api.fetchImportSchedules(),
+  });
+}
+
+export function useCreateImportSchedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: api.ImportScheduleInputDto) =>
+      api.createImportSchedule(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: importSchedulesKey }),
+  });
+}
+
+export function useUpdateImportSchedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: Partial<api.ImportScheduleInputDto>;
+    }) => api.updateImportSchedule(id, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: importSchedulesKey }),
+  });
+}
+
+export function useDeleteImportSchedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteImportSchedule(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: importSchedulesKey }),
+  });
+}
+
+export function useRunImportScheduleNow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.runImportScheduleNow(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: importSchedulesKey });
+      qc.invalidateQueries({ queryKey: importJobsKey });
+    },
+  });
+}
+
 export function useImportJob(id: string | undefined) {
   return useQuery({
     queryKey: ['admin', 'imports', 'jobs', id],

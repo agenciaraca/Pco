@@ -97,6 +97,7 @@ const AdminCourseAnalytics = lazy(() => import('./pages/admin/AdminCourseAnalyti
 const AdminLiveSessions = lazy(() => import('./pages/admin/AdminLiveSessions'));
 const AdminSetup = lazy(() => import('./pages/admin/AdminSetup'));
 const ImportWizardApi = lazy(() => import('./pages/admin/imports/ImportWizardApi'));
+const ImportSchedules = lazy(() => import('./pages/admin/imports/ImportSchedules'));
 
 function S({ children }: { children: ReactNode }) {
   return <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>;
@@ -224,6 +225,7 @@ export const router = createBrowserRouter([
       { path: 'imports', element: <S><ImportsHome /></S> },
       { path: 'imports/wizard', element: <S><ImportWizardCsv /></S> },
       { path: 'imports/wizard-api', element: <S><ImportWizardApi /></S> },
+      { path: 'imports/schedules', element: <S><ImportSchedules /></S> },
       { path: 'imports/history', element: <S><ImportsHistory /></S> },
       { path: 'imports/jobs/:id', element: <S><ImportJobDetail /></S> },
     ],

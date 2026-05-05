@@ -1032,6 +1032,85 @@ export async function startApiRun(
   );
 }
 
+// ---------- Schedules ----------
+
+export type ScheduleFrequencyDto = 'daily' | 'weekly';
+export type WeekdayDto = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface ImportScheduleDto {
+  id: string;
+  name: string;
+  connectionId: string;
+  enabled: boolean;
+  frequency: ScheduleFrequencyDto;
+  hourUtc: number;
+  minute: number;
+  weekday?: WeekdayDto;
+  entities: ImportEntityTypeDto[];
+  dryRun: boolean;
+  enrollment?: {
+    startRule?: EnrollmentStartRuleDto;
+    expirationRule?: EnrollmentExpirationRuleDto;
+    defaultAccessDurationDays?: number;
+    userMatchKeys?: UserMatchKeyDto[];
+    conflictStrategy?: ConflictStrategyDto;
+    unmatchedUserPolicy?: 'skip' | 'create_stub' | 'error';
+  };
+  createdAt: string;
+  updatedAt: string;
+  lastRunAt?: string;
+  lastJobId?: string;
+  nextRunAt?: string;
+}
+
+export interface ImportScheduleInputDto {
+  name: string;
+  connectionId: string;
+  enabled?: boolean;
+  frequency: ScheduleFrequencyDto;
+  hourUtc: number;
+  minute: number;
+  weekday?: WeekdayDto;
+  entities: ImportEntityTypeDto[];
+  dryRun?: boolean;
+  enrollment?: ImportScheduleDto['enrollment'];
+}
+
+export async function fetchImportSchedules(): Promise<ImportScheduleDto[]> {
+  return http.get<ImportScheduleDto[]>('/admin/imports/schedules');
+}
+
+export async function createImportSchedule(
+  input: ImportScheduleInputDto,
+): Promise<ImportScheduleDto> {
+  return http.post<ImportScheduleDto>('/admin/imports/schedules', input);
+}
+
+export async function updateImportSchedule(
+  id: string,
+  input: Partial<ImportScheduleInputDto>,
+): Promise<ImportScheduleDto> {
+  return http.put<ImportScheduleDto>(
+    `/admin/imports/schedules/${encodeURIComponent(id)}`,
+    input,
+  );
+}
+
+export async function deleteImportSchedule(id: string): Promise<void> {
+  await http.delete<{ ok: true }>(
+    `/admin/imports/schedules/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function runImportScheduleNow(
+  id: string,
+): Promise<{ jobId: string; dryRun: boolean; entities: string[] }> {
+  return http.post<{ jobId: string; dryRun: boolean; entities: string[] }>(
+    `/admin/imports/schedules/${encodeURIComponent(id)}/run-now`,
+    {},
+  );
+}
+
 export interface CsvPreviewDto {
   entity: ImportEntityTypeDto;
   headers: string[];
