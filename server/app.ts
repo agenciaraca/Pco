@@ -763,12 +763,31 @@ export function buildApp() {
       console.error('[auto-issue cert] erro ao verificar:', err);
     }
 
-    // Avalia achievements (best-effort, não bloqueia)
-    void achievementsEngine.evaluate(u.sub).catch((err) => {
+    // Avalia achievements (síncrono — retorna newly-granted ao cliente para UI celebrar)
+    let newAchievements: Array<{
+      badgeId: string;
+      title: string;
+      description: string;
+      icon: string;
+      awardedAt: string;
+    }> = [];
+    try {
+      const r = await achievementsEngine.evaluate(u.sub);
+      newAchievements = r.granted.map((g) => {
+        const def = achievementsStore.BADGES[g.badgeId];
+        return {
+          badgeId: g.badgeId,
+          title: def?.name ?? g.badgeId,
+          description: def?.description ?? '',
+          icon: def?.icon ?? '🏆',
+          awardedAt: g.awardedAt,
+        };
+      });
+    } catch (err) {
       console.error('[achievements] erro:', err);
-    });
+    }
 
-    return c.json(entry, 201);
+    return c.json({ ...entry, newAchievements }, 201);
   });
 
   // Watch-time heartbeat — cliente envia chunks pequenos (até 60s) durante a reprodução

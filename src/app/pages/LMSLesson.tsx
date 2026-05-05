@@ -21,8 +21,10 @@ import {
 import { useToast } from '../components/Toast';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import LessonComments from '../components/LessonComments';
+import AchievementCelebration from '../components/AchievementCelebration';
 import { useLessonWatchHeartbeat } from '../hooks/useLessonWatchHeartbeat';
 import { useState, useEffect } from 'react';
+import type { NewAchievementDto } from '../data/api';
 
 export default function LMSLesson() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
@@ -73,18 +75,23 @@ export default function LMSLesson() {
   const next = module.lessons[idxInModule + 1];
   const isCompleted = progressQ.data?.completedLessonIds.includes(lesson!.id) ?? false;
 
+  const [newAchievements, setNewAchievements] = useState<NewAchievementDto[]>([]);
+
   async function handleToggleCompleted() {
     try {
       if (isCompleted) {
         await unmarkMut.mutateAsync(lesson!.id);
         toast.info('Aula desmarcada');
       } else {
-        await markMut.mutateAsync({
+        const r = await markMut.mutateAsync({
           lessonId: lesson!.id,
           courseId: course!.id,
           moduleId: module!.id,
         });
         toast.success('Aula marcada como concluída');
+        if (r.newAchievements && r.newAchievements.length > 0) {
+          setNewAchievements(r.newAchievements);
+        }
       }
     } catch (err) {
       toast.error('Falha', err instanceof Error ? err.message : 'Erro');
@@ -280,6 +287,13 @@ export default function LMSLesson() {
           ) ?? false
         }
       />
+
+      {newAchievements.length > 0 && (
+        <AchievementCelebration
+          achievements={newAchievements}
+          onClose={() => setNewAchievements([])}
+        />
+      )}
     </div>
   );
 }

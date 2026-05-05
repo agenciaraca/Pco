@@ -173,15 +173,27 @@ export async function fetchMyProgress(): Promise<MyProgressDto> {
   return http.get<MyProgressDto>('/me/progress');
 }
 
+export interface NewAchievementDto {
+  badgeId: string;
+  title: string;
+  description: string;
+  icon: string;
+  awardedAt: string;
+}
+
 export async function markLessonCompleted(
   lessonId: string,
   courseId: string,
   moduleId: string,
-): Promise<{ lessonId: string; completedAt: string }> {
-  return http.post<{ lessonId: string; completedAt: string }>(
-    `/lessons/${encodeURIComponent(lessonId)}/complete`,
-    { courseId, moduleId },
-  );
+): Promise<{
+  lessonId: string;
+  completedAt: string;
+  newAchievements?: NewAchievementDto[];
+}> {
+  return http.post(`/lessons/${encodeURIComponent(lessonId)}/complete`, {
+    courseId,
+    moduleId,
+  });
 }
 
 export async function unmarkLessonCompleted(lessonId: string): Promise<{ ok: true }> {
