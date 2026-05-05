@@ -119,6 +119,7 @@ import { rollbackJob, previewRollback } from './imports/rollback';
 import * as importConnections from './imports/connections-store';
 import { pingWp } from './imports/connectors/wp';
 import { pingWc } from './imports/connectors/wc';
+import { pingLd } from './imports/connectors/ld';
 import { collectFromApi } from './imports/connectors/orchestrator';
 import * as emailConfigs from './notifications/config-store';
 import * as webhookEndpoints from './webhooks/endpoints-store';
@@ -4011,12 +4012,19 @@ export function buildApp() {
       const id = c.req.param('id') as string;
       const conn = await importConnections.getConnection(id);
       if (!conn) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+      // WP é o teste fundamental — se WP funciona, LearnDash funciona (mesma REST).
+      // WC e LD são opcionais; cada um diz se está disponível ou não.
       const wp = await pingWp(conn);
+      const ld = await pingLd(conn);
       const wc = await pingWc(conn);
-      const overall = wp.ok && wc.ok ? 'ok' : 'error';
-      const msg = `WP: ${wp.message} | WC: ${wc.message}`;
+      // overall: ok se WP funciona + nenhum dos opcionais com erro real
+      const overall = wp.ok && ld.ok && (wc.ok || wc.skipped === true) ? 'ok' : 'error';
+      const msg =
+        `WP: ${wp.message}` +
+        ` | LD: ${ld.message}` +
+        ` | WC: ${wc.skipped ? '(não configurado)' : wc.message}`;
       await importConnections.recordTestResult(id, overall, msg);
-      return c.json({ wp, wc, overall });
+      return c.json({ wp, ld, wc, overall });
     },
   );
 

@@ -49,10 +49,21 @@ interface WcOrder {
   line_items?: WcLineItem[];
 }
 
-export async function pingWc(c: ImportConnection): Promise<{ ok: boolean; message: string }> {
+export interface WcPingResult {
+  ok: boolean;
+  skipped?: boolean;
+  message: string;
+}
+
+export async function pingWc(c: ImportConnection): Promise<WcPingResult> {
   const creds = decryptCreds(c);
   if (!creds.wcConsumerKey || !creds.wcConsumerSecret) {
-    return { ok: false, message: 'WC credenciais ausentes (consumer_key/secret).' };
+    return {
+      ok: true, // não é erro — só não há WC configurado
+      skipped: true,
+      message:
+        'WooCommerce não configurado. Adicione consumer_key/secret só se for importar produtos/pedidos.',
+    };
   }
   try {
     const res = await getJson<{ environment?: { version?: string } }>({

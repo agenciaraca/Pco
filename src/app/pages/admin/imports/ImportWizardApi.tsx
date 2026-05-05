@@ -211,9 +211,17 @@ export default function ImportWizardApi() {
                   onClick={async () => {
                     try {
                       const r = await test.mutateAsync(c.id);
+                      const lines: string[] = [];
+                      lines.push(`WP: ${r.wp.ok ? 'OK' : 'FALHOU'} — ${r.wp.message}`);
+                      lines.push(`LD: ${r.ld.ok ? 'OK' : 'FALHOU'} — ${r.ld.message}`);
+                      if (r.wc.skipped) {
+                        lines.push('WC: não configurado (opcional)');
+                      } else {
+                        lines.push(`WC: ${r.wc.ok ? 'OK' : 'FALHOU'} — ${r.wc.message}`);
+                      }
                       toast[r.overall === 'ok' ? 'success' : 'error'](
                         `Teste ${r.overall.toUpperCase()}`,
-                        `WP: ${r.wp.message.slice(0, 80)}\nWC: ${r.wc.message.slice(0, 80)}`,
+                        lines.join('\n'),
                       );
                     } catch (err) {
                       toast.error(

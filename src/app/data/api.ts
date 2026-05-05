@@ -973,7 +973,8 @@ export async function deleteImportConnection(id: string): Promise<void> {
 
 export interface ConnectionTestResult {
   wp: { ok: boolean; message: string };
-  wc: { ok: boolean; message: string };
+  ld: { ok: boolean; message: string };
+  wc: { ok: boolean; skipped?: boolean; message: string };
   overall: 'ok' | 'error';
 }
 

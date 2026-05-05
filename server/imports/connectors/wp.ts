@@ -1,7 +1,7 @@
 // Connector WordPress — usa /wp-json/wp/v2/users com Basic Auth (Application Password).
 // Retorna rows no formato canônico esperado pelo importer (mesmas chaves do CSV de students).
 
-import { paginate, getJson } from './http';
+import { paginate } from './http';
 import type { ImportConnection } from '../connections-store';
 import { decryptCreds } from '../connections-store';
 
@@ -19,23 +19,66 @@ interface WpUser {
 
 export async function pingWp(c: ImportConnection): Promise<{ ok: boolean; message: string }> {
   const creds = decryptCreds(c);
+  // Tenta /wp-json (raiz da REST API). Se 401 sem creds, ainda significa que existe.
   try {
-    const res = await getJson<{ name?: string; namespaces?: string[] }>({
-      baseUrl: c.siteUrl,
-      path: 'wp-json',
-      username: creds.wpUsername,
-      password: creds.wpAppPassword,
-      timeoutMs: 10_000,
+    const url = `${c.siteUrl.replace(/\/+$/, '')}/wp-json`;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12_000);
+    const res = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'AVA-PCO-Importer/1.0',
+        ...(creds.wpUsername && creds.wpAppPassword
+          ? {
+              Authorization: `Basic ${Buffer.from(
+                `${creds.wpUsername}:${creds.wpAppPassword}`,
+              ).toString('base64')}`,
+            }
+          : {}),
+      },
+      signal: ctrl.signal,
+      redirect: 'follow',
     });
-    const ns = (res.data.namespaces ?? []).join(',');
+    clearTimeout(t);
+    if (!res.ok && res.status !== 401) {
+      return {
+        ok: false,
+        message: `${url} → HTTP ${res.status}. Verifique se o WordPress responde nessa URL.`,
+      };
+    }
+    const ctype = res.headers.get('content-type') ?? '';
+    if (!ctype.includes('application/json')) {
+      return {
+        ok: false,
+        message: `${url} respondeu ${res.status} mas content-type=${ctype} (esperado JSON). REST API talvez esteja bloqueada.`,
+      };
+    }
+    const j = (await res.json().catch(() => null)) as
+      | { name?: string; namespaces?: string[]; code?: string }
+      | null;
+    if (!j) {
+      return { ok: false, message: `${url} retornou JSON inválido` };
+    }
+    if (res.status === 401) {
+      // REST existe mas creds rejeitadas
+      return {
+        ok: false,
+        message: `WP REST acessível em ${url} mas autenticação rejeitada. Verifique usuário e Application Password.`,
+      };
+    }
+    const ns = (j.namespaces ?? []).join(',');
     return {
       ok: true,
-      message: `OK · WP: ${res.data.name ?? 'sem nome'} · namespaces: ${ns.slice(0, 120)}`,
+      message: `OK · WP: ${j.name ?? 'sem nome'} · namespaces: ${ns.slice(0, 200)}`,
     };
   } catch (err) {
+    const e = err as { name?: string; cause?: { code?: string }; message?: string };
+    if (e?.name === 'AbortError') {
+      return { ok: false, message: 'Timeout (12s) ao acessar WP' };
+    }
     return {
       ok: false,
-      message: err instanceof Error ? err.message : String(err),
+      message: `fetch failed (${e.cause?.code ?? e.message ?? 'unknown'}). Verifique URL/SSL/firewall.`,
     };
   }
 }
