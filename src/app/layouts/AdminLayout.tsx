@@ -113,6 +113,7 @@ const adminGroups = [
       { to: '/admin/suporte', label: 'Suporte', icon: LifeBuoy },
       { to: '/admin/wishlist', label: 'Wishlist', icon: BellIcon },
       { to: '/admin/lgpd-exclusoes', label: 'LGPD — Exclusões', icon: ShieldCheck },
+      { to: '/admin/alertas', label: 'Centro de alertas', icon: BellIcon },
       { to: '/admin/backup', label: 'Backup de configs', icon: DatabaseIcon },
       { to: '/admin/jobs', label: 'Jobs / workers', icon: SettingsIcon },
       { to: '/admin/logs', label: 'Logs do servidor', icon: ScrollText },

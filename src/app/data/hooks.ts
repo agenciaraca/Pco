@@ -1869,6 +1869,14 @@ export function useAdminCoursesSummary() {
   });
 }
 
+export function useAlertsCenter() {
+  return useQuery({
+    queryKey: ['admin', 'alerts', 'center'],
+    queryFn: () => api.fetchAlertsCenter(),
+    refetchInterval: 60_000,
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {

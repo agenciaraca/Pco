@@ -4477,6 +4477,83 @@ export function buildApp() {
     },
   );
 
+  /** Centro de alertas — agrega itens de várias fontes que precisam atenção. */
+  app.get('/admin/alerts/center', requireAuth('admin', 'superadmin'), async (c) => {
+    const [
+      healthSnap,
+      deletionPending,
+      ticketsAll,
+      hiddenComments,
+      failedJobs,
+      failedDeliveries,
+    ] = await Promise.all([
+      buildHealthSnapshot(),
+      deletionRequests
+        .listAll()
+        .then((all) => all.filter((r) => r.status === 'pending')),
+      supportRepo
+        .listAllTickets()
+        .then((all) => all.filter((t) => t.status === 'open')),
+      discussions.listAll({ hidden: true, limit: 20 }),
+      importJobs
+        .listJobs(50)
+        .then((all) => all.filter((j) => j.status === 'failed')),
+      webhookDeliveries
+        .listAll(100)
+        .then((all) => all.filter((d) => d.status === 'failed')),
+    ]);
+    const issues = healthSnap.checks.filter(
+      (c) => c.status === 'warn' || c.status === 'error',
+    );
+    return c.json({
+      generatedAt: new Date().toISOString(),
+      health: { issues, overall: healthSnap.overall },
+      lgpdDeletionRequests: {
+        count: deletionPending.length,
+        items: deletionPending.slice(0, 5).map((r) => ({
+          id: r.id,
+          userEmail: r.userEmail,
+          requestedAt: r.requestedAt,
+        })),
+      },
+      supportTicketsOpen: {
+        count: ticketsAll.length,
+        items: ticketsAll.slice(0, 5).map((t) => ({
+          id: t.id,
+          subject: t.subject,
+          studentId: t.studentId,
+          createdAt: t.createdAt,
+        })),
+      },
+      moderatedComments: {
+        count: hiddenComments.length,
+        recent: hiddenComments.slice(0, 5).map((c) => ({
+          id: c.id,
+          authorName: c.authorName,
+          createdAt: c.createdAt,
+        })),
+      },
+      failedImportJobs: {
+        count: failedJobs.length,
+        items: failedJobs.slice(0, 5).map((j) => ({
+          id: j.id,
+          source: j.source,
+          mode: j.mode,
+          startedAt: j.startedAt,
+        })),
+      },
+      failedWebhookDeliveries: {
+        count: failedDeliveries.length,
+        items: failedDeliveries.slice(0, 5).map((d) => ({
+          id: d.id,
+          event: d.event,
+          attempts: d.attempts,
+          createdAt: d.createdAt,
+        })),
+      },
+    });
+  });
+
   /** Resumo de alertas que admin precisa ver no Dashboard. */
   app.get('/admin/alerts', requireAuth('admin', 'superadmin'), async (c) => {
     const snap = await buildHealthSnapshot();

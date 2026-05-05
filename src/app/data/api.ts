@@ -3200,6 +3200,52 @@ export async function downloadStudentsCsv(
   return downloadCsv(path, `alunos-${new Date().toISOString().slice(0, 10)}.csv`);
 }
 
+// ---------- Alerts center ----------
+
+export interface AlertsCenterDto {
+  generatedAt: string;
+  health: { issues: AdminAlertItemDto[]; overall: HealthStatusDto };
+  lgpdDeletionRequests: {
+    count: number;
+    items: Array<{ id: string; userEmail: string; requestedAt: string }>;
+  };
+  supportTicketsOpen: {
+    count: number;
+    items: Array<{
+      id: string;
+      subject: string;
+      studentId: string;
+      createdAt: string;
+    }>;
+  };
+  moderatedComments: {
+    count: number;
+    recent: Array<{ id: string; authorName: string; createdAt: string }>;
+  };
+  failedImportJobs: {
+    count: number;
+    items: Array<{
+      id: string;
+      source: string;
+      mode: string;
+      startedAt: string;
+    }>;
+  };
+  failedWebhookDeliveries: {
+    count: number;
+    items: Array<{
+      id: string;
+      event: string;
+      attempts: number;
+      createdAt: string;
+    }>;
+  };
+}
+
+export async function fetchAlertsCenter(): Promise<AlertsCenterDto> {
+  return http.get<AlertsCenterDto>('/admin/alerts/center');
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =
