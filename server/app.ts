@@ -1820,6 +1820,46 @@ export function buildApp() {
     return c.json(await studentsRepo.listAdminStudents(filters));
   });
 
+  /** Export CSV de alunos respeitando os mesmos filtros. */
+  app.get(
+    '/admin/students/export.csv',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const filtersResult = studentsFilterSchema.safeParse({
+        search: c.req.query('search'),
+        status: c.req.query('status'),
+        courseId: c.req.query('courseId'),
+        sortBy: c.req.query('sortBy'),
+      });
+      const filters = filtersResult.success ? filtersResult.data : {};
+      const list = await studentsRepo.listAdminStudents(filters);
+      const rows: string[] = [];
+      rows.push(
+        'id,name,email,status,risk_score,enrolled_courses,last_access_at,created_at',
+      );
+      for (const s of list) {
+        const cells = [
+          s.id,
+          (s.name ?? '').replace(/[",\n]/g, ' '),
+          s.email,
+          s.status,
+          String(s.riskScore ?? 0),
+          String((s.enrolledCourseIds ?? []).length),
+          s.lastAccessAt ?? '',
+          s.createdAt,
+        ];
+        rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
+      }
+      return new Response(rows.join('\n'), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="alunos-${new Date().toISOString().slice(0, 10)}.csv"`,
+        },
+      });
+    },
+  );
+
   app.get('/admin/students/:id', async (c) => {
     const s = await studentsRepo.findAdminStudent(c.req.param('id'));
     if (!s) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');

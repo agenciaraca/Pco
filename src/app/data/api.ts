@@ -3184,6 +3184,22 @@ export async function fetchAdminCoursesSummary(): Promise<CourseSummaryDto[]> {
   return http.get<CourseSummaryDto[]>('/admin/courses-summary');
 }
 
+export async function downloadStudentsCsv(
+  filters: {
+    search?: string;
+    status?: string;
+    courseId?: string;
+    sortBy?: string;
+  } = {},
+): Promise<void> {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v) qs.set(k, String(v));
+  }
+  const path = `/admin/students/export.csv${qs.size > 0 ? `?${qs.toString()}` : ''}`;
+  return downloadCsv(path, `alunos-${new Date().toISOString().slice(0, 10)}.csv`);
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =
