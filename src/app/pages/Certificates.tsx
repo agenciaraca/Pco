@@ -17,6 +17,29 @@ export default function Certificates() {
     );
   }
 
+  function openCertificate(certId: string) {
+    const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+    const token = session?.token;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/certificates/${encodeURIComponent(certId)}/render`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+        );
+        if (!res.ok) {
+          toast.error('Falha', `HTTP ${res.status}`);
+          return;
+        }
+        const html = await res.text();
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } catch (err) {
+        toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+      }
+    })();
+  }
+
   if (isLoading) return <CardListSkeleton count={3} />;
 
   return (
@@ -96,11 +119,12 @@ export default function Certificates() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   disabled={cert.status !== 'issued'}
-                  onClick={() => toast.info('Download', 'Geração de PDF em desenvolvimento.')}
+                  onClick={() => openCertificate(cert.id)}
                   className="pco-btn-primary flex-1 justify-center text-xs disabled:opacity-50"
+                  title="Abrir certificado (use Cmd+P para salvar como PDF)"
                 >
                   <Download size={12} strokeWidth={2} />
-                  Baixar PDF
+                  Baixar / Imprimir
                 </button>
                 {cert.status === 'issued' && (
                   <>

@@ -135,6 +135,7 @@ import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
 import { buildSalesSummary } from './payments/sales-analytics';
 import { renderInvoiceHtml } from './payments/invoice';
+import { renderCertificateHtml } from './repositories/certificate-render';
 import * as adminDigest from './notifications/admin-digest';
 import * as welcome from './notifications/welcome';
 import * as wishlistStore from './activity/wishlist-store';
@@ -1164,6 +1165,37 @@ export function buildApp() {
   app.get('/certificates', async (c) =>
     c.json(await certsRepo.listCertificatesForStudent(currentStudent.id)),
   );
+
+  // Renderiza HTML do certificado para impressão. Aluno dono ou admin.
+  app.get('/certificates/:id/render', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const id = c.req.param('id') as string;
+    const all = await certsRepo.listAllCertificates();
+    const cert = all.find((x) => x.id === id);
+    if (!cert) return jsonError(c, 404, 'NOT_FOUND', 'Certificado não encontrado.');
+
+    const isAdmin = u.role === 'admin' || u.role === 'superadmin';
+    if (!isAdmin && cert.studentId !== u.sub) {
+      return jsonError(c, 403, 'FORBIDDEN', 'Acesso negado.');
+    }
+
+    const student = await usersStore.findUserById(cert.studentId);
+    const course = await coursesRepo.findCourse(cert.courseId);
+    const html = renderCertificateHtml({
+      certificate: cert,
+      studentName: student?.name ?? 'Aluno',
+      courseName: course?.title ?? 'Curso',
+      courseHours:
+        typeof (course as { totalHours?: number } | null)?.totalHours === 'number'
+          ? (course as { totalHours?: number }).totalHours
+          : undefined,
+      validationBaseUrl: process.env.PUBLIC_ORIGIN,
+    });
+    return new Response(html, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  });
 
   // Admin: lista todos
   app.get('/admin/certificates', requireAuth('admin', 'superadmin'), async (c) =>
