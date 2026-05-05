@@ -22,6 +22,7 @@ import { useToast } from '../components/Toast';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import LessonComments from '../components/LessonComments';
 import AchievementCelebration from '../components/AchievementCelebration';
+import MarkdownLite from '../components/MarkdownLite';
 import { useLessonWatchHeartbeat } from '../hooks/useLessonWatchHeartbeat';
 import { useState, useEffect } from 'react';
 import type { NewAchievementDto } from '../data/api';
@@ -37,6 +38,7 @@ export default function LMSLesson() {
   const { data: student } = useCurrentStudent();
   const toast = useToast();
   const [noteDraft, setNoteDraft] = useState('');
+  const [notePreview, setNotePreview] = useState(false);
 
   useEffect(() => {
     if (noteQ.data?.content !== undefined) setNoteDraft(noteQ.data.content);
@@ -166,18 +168,61 @@ export default function LMSLesson() {
           </div>
 
           <div className="pco-card p-4">
-            <h3 className="text-base font-semibold text-pco-deep mb-3 flex items-center gap-2">
-              <StickyNote size={16} className="text-pco-blue" strokeWidth={1.75} />
-              Minhas anotações
-            </h3>
-            <textarea
-              rows={4}
-              placeholder="Suas anotações desta aula..."
-              className="pco-input resize-none"
-              value={noteDraft}
-              onChange={(e) => setNoteDraft(e.target.value)}
-              maxLength={10000}
-            />
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">
+                <StickyNote size={16} className="text-pco-blue" strokeWidth={1.75} />
+                Minhas anotações
+              </h3>
+              <div className="flex rounded-lg border border-pco-border overflow-hidden text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setNotePreview(false)}
+                  className={`px-2 py-1 ${
+                    !notePreview
+                      ? 'bg-pco-blue/10 text-pco-blue font-semibold'
+                      : 'text-ink-muted'
+                  }`}
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNotePreview(true)}
+                  className={`px-2 py-1 ${
+                    notePreview
+                      ? 'bg-pco-blue/10 text-pco-blue font-semibold'
+                      : 'text-ink-muted'
+                  }`}
+                >
+                  Preview
+                </button>
+              </div>
+            </div>
+            {notePreview ? (
+              noteDraft.trim() ? (
+                <div className="border border-pco-border rounded-lg p-3 min-h-[110px] bg-white">
+                  <MarkdownLite source={noteDraft} />
+                </div>
+              ) : (
+                <div className="text-xs text-ink-subtle italic min-h-[110px] grid place-items-center border border-pco-border rounded-lg">
+                  Sem anotações ainda.
+                </div>
+              )
+            ) : (
+              <>
+                <textarea
+                  rows={5}
+                  placeholder="Use **bold**, *italic*, # cabeçalho, - lista, ``` código..."
+                  className="pco-input resize-none font-mono text-[12px]"
+                  value={noteDraft}
+                  onChange={(e) => setNoteDraft(e.target.value)}
+                  maxLength={10000}
+                />
+                <p className="text-[10px] text-ink-subtle mt-1">
+                  Suporta markdown: **bold**, *italic*, `code`, # H1, - lista, &gt; quote, [link](url), ```code block```
+                </p>
+              </>
+            )}
             <div className="mt-1 text-[10px] text-ink-subtle text-right">
               {noteDraft.length}/10000
               {noteQ.data?.updatedAt && (
