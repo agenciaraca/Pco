@@ -83,18 +83,50 @@ if (staticRoot) {
     return c.text(body, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
   });
 
-  root.get('/sitemap.xml', (c) => {
+  root.get('/sitemap.xml', async (c) => {
     const host = c.req.header('host') ?? 'ava.psicanaliseclinica.online';
     const proto = c.req.header('x-forwarded-proto') ?? 'https';
     const base = `${proto}://${host}`;
     const today = new Date().toISOString().slice(0, 10);
-    const urls = ['/', '/catalogo', '/login', '/landing', '/termos', '/privacidade', '/esqueci-senha'];
+
+    const staticUrls = [
+      { path: '/', priority: '1.0', changefreq: 'weekly' },
+      { path: '/catalogo', priority: '0.9', changefreq: 'weekly' },
+      { path: '/login', priority: '0.5', changefreq: 'monthly' },
+      { path: '/landing', priority: '0.7', changefreq: 'monthly' },
+      { path: '/termos', priority: '0.3', changefreq: 'yearly' },
+      { path: '/privacidade', priority: '0.3', changefreq: 'yearly' },
+      { path: '/esqueci-senha', priority: '0.2', changefreq: 'yearly' },
+    ];
+
+    // Pega cursos com produto ativo para incluir no sitemap
+    let courseUrls: Array<{ path: string; priority: string; changefreq: string }> = [];
+    try {
+      const coursesRepo = await import('./repositories/courses');
+      const productsRepo = await import('./payments/products-repo');
+      const courses = await coursesRepo.listCourses();
+      const products = await productsRepo.listActive();
+      const activeRefs = new Set(
+        products.filter((p) => p.kind === 'course').map((p) => p.refId),
+      );
+      courseUrls = courses
+        .filter((co) => activeRefs.has(co.id))
+        .map((co) => ({
+          path: `/curso-preview/${co.id}`,
+          priority: '0.8',
+          changefreq: 'weekly',
+        }));
+    } catch {
+      /* ignore */
+    }
+
+    const allUrls = [...staticUrls, ...courseUrls];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls
+${allUrls
   .map(
     (u) =>
-      `  <url><loc>${base}${u}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq></url>`,
+      `  <url><loc>${base}${u.path}</loc><lastmod>${today}</lastmod><changefreq>${u.changefreq}</changefreq><priority>${u.priority}</priority></url>`,
   )
   .join('\n')}
 </urlset>`;
