@@ -13,7 +13,9 @@ Header `Authorization: Bearer pcok_<token>`. Tokens criados em `/admin/api-token
 | `stats:read` | `/v1/stats/*` |
 | `students:read` | `/v1/students` |
 | `orders:read` | `/v1/orders` |
-| `courses:read` | `/v1/courses` |
+| `courses:read` | `/v1/courses`, `/v1/courses/:id` |
+| `certificates:read` | `/v1/certificates`, `/v1/certificates/:id` |
+| `products:read` | `/v1/products` |
 | `all:read` | qualquer GET v1 |
 
 Token sem escopo suficiente recebe **403 INSUFFICIENT_SCOPE**.
@@ -116,6 +118,83 @@ Escopo: `courses:read`.
     "slug": "edipiana",
     "moduleCount": 8,
     "lessonCount": 42
+  }
+]
+```
+
+### `GET /api/v1/courses/:id`
+
+Escopo: `courses:read`. Detalhe completo com módulos e aulas (sem player content).
+
+```json
+{
+  "id": "course-1",
+  "title": "Edipiana",
+  "slug": "edipiana",
+  "shortTitle": "EDIP",
+  "description": "...",
+  "totalHours": 80,
+  "tags": ["fundamentos"],
+  "modules": [
+    {
+      "id": "m1",
+      "title": "Introdução",
+      "description": "...",
+      "order": 1,
+      "lessons": [
+        { "id": "l1", "title": "...", "durationMinutes": 22, "isMandatory": true, "order": 1 }
+      ]
+    }
+  ]
+}
+```
+
+### `GET /api/v1/certificates`
+
+Escopo: `certificates:read`. Lista certificados emitidos.
+
+```json
+[
+  {
+    "id": "cert-...",
+    "studentId": "u-...",
+    "courseId": "course-...",
+    "validationCode": "ABC123XYZ",
+    "issuedAt": "2025-03-15T..."
+  }
+]
+```
+
+### `GET /api/v1/certificates/:id`
+
+Escopo: `certificates:read`. Inclui URL pública de validação.
+
+```json
+{
+  "id": "cert-...",
+  "studentId": "...",
+  "courseId": "...",
+  "status": "issued",
+  "validationCode": "ABC123XYZ",
+  "validationUrl": "https://ava.psicanaliseclinica.online/verificar/ABC123XYZ",
+  "issuedAt": "..."
+}
+```
+
+### `GET /api/v1/products`
+
+Escopo: `products:read`. Lista produtos (cursos, bundles, packs).
+
+```json
+[
+  {
+    "id": "prod-...",
+    "kind": "course",
+    "name": "Edipiana — acesso vitalício",
+    "priceCents": 49700,
+    "currency": "BRL",
+    "active": true,
+    "refId": "course-1"
   }
 ]
 ```
