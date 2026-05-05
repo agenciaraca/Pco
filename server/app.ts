@@ -1442,7 +1442,17 @@ export function buildApp() {
     if (!cert) return c.json({ valid: false }, 404);
     // Rastreia validação (não bloqueia resposta se falhar)
     void certValidationsRepo.recordValidation(code);
-    return c.json({ valid: true, certificate: cert });
+
+    // Enriquece com nomes humanos (sem dados sensíveis)
+    const course = await coursesRepo.findCourse(cert.courseId);
+    const student = await usersStore.findUserById(cert.studentId);
+    return c.json({
+      valid: true,
+      certificate: cert,
+      courseTitle: course?.title ?? null,
+      courseHours: course?.totalHours ?? null,
+      studentName: student?.name ?? null,
+    });
   });
 
   // Stats de validação (admin)

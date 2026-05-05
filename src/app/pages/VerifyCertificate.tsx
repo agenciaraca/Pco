@@ -13,7 +13,13 @@ export default function VerifyCertificate() {
     description: 'Verificação pública de autenticidade de certificado emitido pela PCO.',
   });
   const [loading, setLoading] = useState(true);
-  const [result, setResult] = useState<{ valid: boolean; cert?: Certificate } | null>(null);
+  const [result, setResult] = useState<{
+    valid: boolean;
+    cert?: Certificate;
+    courseTitle?: string | null;
+    courseHours?: number | null;
+    studentName?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!code) {
@@ -21,7 +27,13 @@ export default function VerifyCertificate() {
       return;
     }
     validateCertificate(code).then((r) => {
-      setResult({ valid: r.valid, cert: r.certificate });
+      setResult({
+        valid: r.valid,
+        cert: r.certificate,
+        courseTitle: r.courseTitle ?? null,
+        courseHours: r.courseHours ?? null,
+        studentName: r.studentName ?? null,
+      });
       setLoading(false);
     });
   }, [code]);
@@ -66,6 +78,19 @@ export default function VerifyCertificate() {
                 Este certificado foi emitido pela PCO e consta no nosso registro oficial.
               </p>
               <div className="mt-6 grid gap-2 text-left max-w-sm mx-auto">
+                {result.studentName && (
+                  <DetailRow label="Aluno" value={result.studentName} />
+                )}
+                {result.courseTitle && (
+                  <DetailRow
+                    label="Curso"
+                    value={
+                      result.courseHours
+                        ? `${result.courseTitle} (${result.courseHours}h)`
+                        : result.courseTitle
+                    }
+                  />
+                )}
                 <DetailRow label="Código" value={result.cert.validationCode} mono />
                 <DetailRow
                   label="Emissão"
@@ -79,8 +104,6 @@ export default function VerifyCertificate() {
                       : '—'
                   }
                 />
-                <DetailRow label="Curso (id)" value={result.cert.courseId} />
-                <DetailRow label="Aluno (id)" value={result.cert.studentId} />
                 <DetailRow
                   label="Status"
                   value={result.cert.status === 'issued' ? 'Emitido' : result.cert.status}

@@ -1838,13 +1838,15 @@ export async function fetchCertValidations(): Promise<ValidationStatDto[]> {
   return http.get<ValidationStatDto[]>('/admin/certificates/validations');
 }
 
-export async function validateCertificate(
-  code: string,
-): Promise<{ valid: boolean; certificate?: Certificate }> {
+export async function validateCertificate(code: string): Promise<{
+  valid: boolean;
+  certificate?: Certificate;
+  courseTitle?: string | null;
+  courseHours?: number | null;
+  studentName?: string | null;
+}> {
   try {
-    return await http.get<{ valid: boolean; certificate?: Certificate }>(
-      `/certificates/validate/${encodeURIComponent(code)}`,
-    );
+    return await http.get(`/certificates/validate/${encodeURIComponent(code)}`);
   } catch {
     return { valid: false };
   }
