@@ -21,7 +21,11 @@ import {
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
-import type { WebhookEndpointDto, WebhookEventTypeDto } from '../../data/api';
+import type {
+  WebhookEndpointDto,
+  WebhookEventTypeDto,
+  WebhookDeliveryDto,
+} from '../../data/api';
 
 export default function AdminWebhooks() {
   useDocumentMeta({ title: 'Webhooks — Admin AVA PCO' });
@@ -40,6 +44,7 @@ export default function AdminWebhooks() {
   );
   const [filterEndpoint, setFilterEndpoint] = useState<string | undefined>();
   const deliveries = useWebhookDeliveries(filterEndpoint);
+  const [selectedDelivery, setSelectedDelivery] = useState<WebhookDeliveryDto | null>(null);
 
   return (
     <div className="space-y-6">
@@ -222,7 +227,11 @@ export default function AdminWebhooks() {
               </thead>
               <tbody className="divide-y divide-surface-mute">
                 {(deliveries.data ?? []).map((d) => (
-                  <tr key={d.id}>
+                  <tr
+                    key={d.id}
+                    onClick={() => setSelectedDelivery(d)}
+                    className="cursor-pointer hover:bg-surface-mute/40"
+                  >
                     <td className="px-3 py-2 text-ink-muted whitespace-nowrap">
                       {new Date(d.createdAt).toLocaleString('pt-BR')}
                     </td>
@@ -280,6 +289,155 @@ export default function AdminWebhooks() {
           </div>
         )}
       </section>
+
+      {selectedDelivery && (
+        <DeliveryDetailDrawer
+          delivery={selectedDelivery}
+          onClose={() => setSelectedDelivery(null)}
+          onRetry={async () => {
+            try {
+              await retry.mutateAsync(selectedDelivery.id);
+              toast.success('Reagendado');
+              setSelectedDelivery(null);
+            } catch (err) {
+              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeliveryDetailDrawer({
+  delivery,
+  onClose,
+  onRetry,
+}: {
+  delivery: WebhookDeliveryDto;
+  onClose: () => void;
+  onRetry: () => void;
+}) {
+  const payloadStr = JSON.stringify(delivery.payload, null, 2);
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 grid place-items-end"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-2xl h-full overflow-y-auto p-5 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-pco-deep">Delivery</h2>
+            <code className="text-[10px] text-ink-subtle">{delivery.id}</code>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="pco-btn-ghost text-xs"
+          >
+            Fechar
+          </button>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 text-xs">
+          <Field label="Evento" value={delivery.event} mono />
+          <Field label="Status" value={delivery.status} />
+          <Field
+            label="Tentativas"
+            value={String(delivery.attempts)}
+          />
+          <Field
+            label="HTTP"
+            value={delivery.lastResponseStatus?.toString() ?? '—'}
+          />
+          <Field
+            label="Criada"
+            value={new Date(delivery.createdAt).toLocaleString('pt-BR')}
+          />
+          {delivery.completedAt && (
+            <Field
+              label="Completou"
+              value={new Date(delivery.completedAt).toLocaleString('pt-BR')}
+            />
+          )}
+          {delivery.nextAttemptAt && delivery.status !== 'success' && (
+            <Field
+              label="Próxima tentativa"
+              value={new Date(delivery.nextAttemptAt).toLocaleString('pt-BR')}
+            />
+          )}
+        </div>
+
+        {delivery.lastError && (
+          <div className="pco-card border-status-danger/40 bg-status-danger/5 p-3">
+            <div className="text-[11px] uppercase tracking-wide text-status-danger mb-1">
+              Último erro
+            </div>
+            <pre className="text-xs whitespace-pre-wrap break-all">
+              {delivery.lastError}
+            </pre>
+          </div>
+        )}
+
+        <div>
+          <h3 className="text-[11px] uppercase tracking-wide text-ink-muted mb-1">
+            Payload enviado
+          </h3>
+          <pre className="bg-surface-mute p-3 rounded text-[10px] font-mono overflow-x-auto max-h-80">
+            {payloadStr}
+          </pre>
+        </div>
+
+        {delivery.lastResponseBody && (
+          <div>
+            <h3 className="text-[11px] uppercase tracking-wide text-ink-muted mb-1">
+              Resposta do destino (truncada)
+            </h3>
+            <pre className="bg-surface-mute p-3 rounded text-[10px] font-mono overflow-x-auto max-h-60">
+              {delivery.lastResponseBody}
+            </pre>
+          </div>
+        )}
+
+        {delivery.status === 'failed' && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onRetry}
+              className="pco-btn-primary text-xs"
+            >
+              <RefreshCw size={11} strokeWidth={2} />
+              Reenviar agora
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wide text-ink-muted">
+        {label}
+      </div>
+      <div
+        className={`text-pco-deep ${mono ? 'font-mono text-[11px]' : 'font-semibold'}`}
+      >
+        {value}
+      </div>
     </div>
   );
 }
