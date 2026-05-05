@@ -1773,6 +1773,75 @@ export function buildApp() {
 
   // ---------- Admin: Course writes ----------
 
+  /** Lista alunos matriculados num curso com progresso individual. */
+  app.get(
+    '/admin/courses/:id/students',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const courseId = c.req.param('id') as string;
+      const course = await coursesRepo.findCourse(courseId);
+      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+
+      const allLessons = course.modules.flatMap((m) => m.lessons);
+      const totalLessons = allLessons.length;
+
+      const allStudents = await studentsRepo.listAdminStudents({
+        limit: 5000,
+      } as never);
+      const enrolled = allStudents.filter((s) =>
+        (s.enrolledCourseIds ?? []).includes(courseId),
+      );
+
+      const allProgress = await progressRepo.listAll();
+      const progressByUser = new Map<
+        string,
+        { done: number; lastCompletedAt: string | null }
+      >();
+      for (const p of allProgress) {
+        if (p.courseId !== courseId) continue;
+        const cur = progressByUser.get(p.userId) ?? {
+          done: 0,
+          lastCompletedAt: null as string | null,
+        };
+        cur.done++;
+        if (
+          !cur.lastCompletedAt ||
+          (p.completedAt && p.completedAt > cur.lastCompletedAt)
+        ) {
+          cur.lastCompletedAt = p.completedAt ?? null;
+        }
+        progressByUser.set(p.userId, cur);
+      }
+
+      const result = enrolled.map((s) => {
+        const prog = progressByUser.get(s.id) ?? { done: 0, lastCompletedAt: null };
+        const pct =
+          totalLessons > 0 ? Math.round((prog.done / totalLessons) * 100) : 0;
+        return {
+          studentId: s.id,
+          name: s.name,
+          email: s.email,
+          status: s.status,
+          lessonsCompleted: prog.done,
+          totalLessons,
+          progressPct: pct,
+          lastCompletedAt: prog.lastCompletedAt,
+          lastAccessAt: s.lastAccessAt,
+          riskScore: s.riskScore,
+        };
+      });
+
+      result.sort((a, b) => b.progressPct - a.progressPct);
+      return c.json({
+        courseId,
+        courseTitle: course.title,
+        totalLessons,
+        enrolledCount: result.length,
+        students: result,
+      });
+    },
+  );
+
   app.put('/admin/courses/:id', async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateCourseSchema, body);

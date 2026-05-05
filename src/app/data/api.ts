@@ -3063,6 +3063,37 @@ export async function fetchAdminAlerts(): Promise<AdminAlertsDto> {
   return http.get<AdminAlertsDto>('/admin/alerts');
 }
 
+// ---------- Course students ----------
+
+export interface CourseStudentDto {
+  studentId: string;
+  name: string;
+  email: string;
+  status: 'ativo' | 'em_risco' | 'bloqueado' | string;
+  lessonsCompleted: number;
+  totalLessons: number;
+  progressPct: number;
+  lastCompletedAt: string | null;
+  lastAccessAt: string | null;
+  riskScore: number;
+}
+
+export interface CourseStudentsDto {
+  courseId: string;
+  courseTitle: string;
+  totalLessons: number;
+  enrolledCount: number;
+  students: CourseStudentDto[];
+}
+
+export async function fetchCourseStudents(
+  courseId: string,
+): Promise<CourseStudentsDto> {
+  return http.get<CourseStudentsDto>(
+    `/admin/courses/${encodeURIComponent(courseId)}/students`,
+  );
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =

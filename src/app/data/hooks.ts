@@ -1791,6 +1791,14 @@ export function useAdminAlerts() {
   });
 }
 
+export function useCourseStudents(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'courses', courseId, 'students'],
+    queryFn: () => api.fetchCourseStudents(courseId!),
+    enabled: !!courseId,
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {

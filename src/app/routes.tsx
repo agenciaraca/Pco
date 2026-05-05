@@ -87,6 +87,7 @@ const AdminDigest = lazy(() => import('./pages/admin/AdminDigest'));
 const AdminLeaderboard = lazy(() => import('./pages/admin/AdminLeaderboard'));
 const AdminWishlist = lazy(() => import('./pages/admin/AdminWishlist'));
 const AdminSupport = lazy(() => import('./pages/admin/AdminSupport'));
+const AdminCourseStudents = lazy(() => import('./pages/admin/AdminCourseStudents'));
 const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
 const ImportsHome = lazy(() => import('./pages/admin/imports/ImportsHome'));
 const ImportWizardCsv = lazy(() => import('./pages/admin/imports/ImportWizardCsv'));
@@ -244,6 +245,7 @@ export const router = createBrowserRouter([
       { path: 'rate-limits', element: <S><AdminRateLimits /></S> },
       { path: 'cursos/:courseId/preview', element: <S><AdminCoursePreview /></S> },
       { path: 'cursos/:courseId/analytics', element: <S><AdminCourseAnalytics /></S> },
+      { path: 'cursos/:courseId/alunos', element: <S><AdminCourseStudents /></S> },
       { path: 'sessoes-ao-vivo', element: <S><AdminLiveSessions /></S> },
       { path: 'setup', element: <S><AdminSetup /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },
