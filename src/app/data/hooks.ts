@@ -821,9 +821,57 @@ export function useAllOrders() {
 export function useStartCheckout() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ productId, gatewayId }: { productId: string; gatewayId?: string }) =>
-      api.startCheckout(productId, gatewayId),
+    mutationFn: ({
+      productId,
+      gatewayId,
+      couponCode,
+    }: {
+      productId: string;
+      gatewayId?: string;
+      couponCode?: string;
+    }) => api.startCheckout(productId, gatewayId, couponCode),
     onSuccess: () => qc.invalidateQueries({ queryKey: myOrdersKey }),
+  });
+}
+
+const couponsKey = ['admin', 'coupons'] as const;
+
+export function useCoupons() {
+  return useQuery({
+    queryKey: couponsKey,
+    queryFn: () => api.fetchCoupons(),
+  });
+}
+
+export function useCreateCoupon() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: api.CouponInputDto) => api.createCoupon(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: couponsKey }),
+  });
+}
+
+export function useUpdateCoupon() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: Partial<api.CouponInputDto> }) =>
+      api.updateCoupon(id, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: couponsKey }),
+  });
+}
+
+export function useDeleteCoupon() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteCoupon(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: couponsKey }),
+  });
+}
+
+export function useCheckCoupon() {
+  return useMutation({
+    mutationFn: ({ code, productId }: { code: string; productId: string }) =>
+      api.checkCoupon(code, productId),
   });
 }
 

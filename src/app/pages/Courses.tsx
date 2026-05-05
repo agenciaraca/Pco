@@ -12,6 +12,8 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { useToast } from '../components/Toast';
+import CheckoutDialog from '../components/CheckoutDialog';
+import type { ProductDto } from '../data/api';
 
 export default function Courses() {
   useDocumentMeta({ title: 'Meus Cursos — AVA PCO' });
@@ -21,6 +23,7 @@ export default function Courses() {
   const { data: student } = useCurrentStudent();
   const checkout = useStartCheckout();
   const toast = useToast();
+  const [pendingProduct, setPendingProduct] = useState<ProductDto | null>(null);
   const doneIds = new Set(progress?.completedLessonIds ?? []);
   const enrolledIds = new Set(
     (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds ?? [],
@@ -42,17 +45,8 @@ export default function Courses() {
     return courses.filter((c) => (c.tags ?? []).includes(activeTag));
   }, [courses, activeTag]);
 
-  async function handleBuy(productId: string) {
-    try {
-      const order = await checkout.mutateAsync({ productId });
-      if (order.checkoutUrl) {
-        window.location.assign(order.checkoutUrl);
-      } else {
-        toast.info('Pedido criado', `ID ${order.id}`);
-      }
-    } catch (err) {
-      toast.error('Falha ao iniciar checkout', err instanceof Error ? err.message : 'Erro');
-    }
+  function handleBuy(product: ProductDto) {
+    setPendingProduct(product);
   }
 
   return (
@@ -179,7 +173,7 @@ export default function Courses() {
                         <div className="flex flex-col gap-2">
                           <button
                             type="button"
-                            onClick={() => handleBuy(product.id)}
+                            onClick={() => handleBuy(product)}
                             disabled={checkout.isPending}
                             className="pco-btn-primary w-full justify-center text-xs"
                           >
@@ -212,6 +206,21 @@ export default function Courses() {
             );
           })}
         </div>
+      )}
+
+      {pendingProduct && (
+        <CheckoutDialog
+          product={pendingProduct}
+          open={!!pendingProduct}
+          onClose={() => setPendingProduct(null)}
+          onSuccess={(order) => {
+            if (order.checkoutUrl) {
+              window.location.assign(order.checkoutUrl);
+            } else {
+              toast.info('Pedido criado', `ID ${order.id}`);
+            }
+          }}
+        />
       )}
     </div>
   );

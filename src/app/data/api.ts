@@ -646,8 +646,82 @@ export async function fetchAllOrders(): Promise<OrderDto[]> {
   return http.get<OrderDto[]>('/admin/orders');
 }
 
-export async function startCheckout(productId: string, gatewayId?: string): Promise<OrderDto> {
-  return http.post<OrderDto>('/payments/checkout', { productId, gatewayId });
+export async function startCheckout(
+  productId: string,
+  gatewayId?: string,
+  couponCode?: string,
+): Promise<OrderDto> {
+  return http.post<OrderDto>('/payments/checkout', {
+    productId,
+    gatewayId,
+    couponCode,
+  });
+}
+
+// ---------- Coupons ----------
+
+export type CouponDiscountDto =
+  | { kind: 'percent'; value: number }
+  | { kind: 'amount'; value: number };
+
+export interface CouponDto {
+  id: string;
+  code: string;
+  description?: string;
+  discount: CouponDiscountDto;
+  appliesToProductIds: string[];
+  maxUses: number | null;
+  usedCount: number;
+  validFrom: string | null;
+  validUntil: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CouponInputDto {
+  code: string;
+  description?: string;
+  discount: CouponDiscountDto;
+  appliesToProductIds?: string[];
+  maxUses?: number | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  active?: boolean;
+}
+
+export interface CouponCheckResultDto {
+  ok: true;
+  discountCents: number;
+  finalAmountCents: number;
+  coupon: { code: string; description?: string; discount: CouponDiscountDto };
+}
+
+export async function fetchCoupons(): Promise<CouponDto[]> {
+  return http.get<CouponDto[]>('/admin/coupons');
+}
+
+export async function createCoupon(input: CouponInputDto): Promise<CouponDto> {
+  return http.post<CouponDto>('/admin/coupons', input);
+}
+
+export async function updateCoupon(
+  id: string,
+  input: Partial<CouponInputDto>,
+): Promise<CouponDto> {
+  return http.put<CouponDto>(`/admin/coupons/${encodeURIComponent(id)}`, input);
+}
+
+export async function deleteCoupon(id: string): Promise<void> {
+  await http.delete<{ ok: true }>(`/admin/coupons/${encodeURIComponent(id)}`);
+}
+
+export async function checkCoupon(
+  code: string,
+  productId: string,
+): Promise<CouponCheckResultDto> {
+  const qs = new URLSearchParams({ code, productId }).toString();
+  return http.get<CouponCheckResultDto>(`/coupons/check?${qs}`);
 }
 
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
