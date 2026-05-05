@@ -84,6 +84,11 @@ export async function addNote(
   );
 }
 
+/**
+ * Adiciona ao log de erros. NÃO incrementa stats.errors — isso é
+ * responsabilidade do caller via bumpEntityStat('errors'), evitando
+ * dupla contagem quando o erro é gerado por validação (que já bumpa 'invalid').
+ */
 export async function addError(
   id: string,
   err: ImportJob['errorsLog'][number],
@@ -94,11 +99,7 @@ export async function addError(
       const errorsLog = [...j.errorsLog, err];
       if (errorsLog.length > MAX_ERROR_ENTRIES)
         errorsLog.splice(0, errorsLog.length - MAX_ERROR_ENTRIES);
-      return {
-        ...j,
-        errorsLog,
-        stats: { ...j.stats, errors: j.stats.errors + 1 },
-      };
+      return { ...j, errorsLog };
     },
   );
 }
