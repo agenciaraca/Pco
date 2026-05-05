@@ -72,6 +72,12 @@ export default function ImportWizardApi() {
   const [expirationRule, setExpirationRule] =
     useState<EnrollmentExpirationRuleDto>('start_plus_duration');
   const [defaultDuration, setDefaultDuration] = useState<number>(365);
+  const [userMatchStrategy, setUserMatchStrategy] = useState<
+    'email_first' | 'external_id_first' | 'email_only' | 'external_id_only'
+  >('email_first');
+  const [unmatchedUserPolicy, setUnmatchedUserPolicy] = useState<
+    'skip' | 'create_stub' | 'error'
+  >('skip');
 
   function toggleEntity(e: ImportEntityTypeDto) {
     setEntities((prev) =>
@@ -103,6 +109,8 @@ export default function ImportWizardApi() {
           startRule,
           expirationRule,
           defaultAccessDurationDays: defaultDuration,
+          userMatchStrategy,
+          unmatchedUserPolicy,
         },
       });
       toast.success(`${r.dryRun ? 'Dry-run' : 'Execução real'} iniciada`);
@@ -272,6 +280,64 @@ export default function ImportWizardApi() {
               </div>
             </label>
           ))}
+        </div>
+      </section>
+
+      <section className="pco-card p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-pco-deep">
+          Vínculo aluno → matrícula / pedido / progresso
+        </h3>
+        <p className="text-[11px] text-ink-muted">
+          Como o sistema decide a qual aluno interno cada matrícula/pedido/progresso
+          pertence. <strong>E-mail</strong> é a chave universal — útil pra consolidar
+          alunos vindos de múltiplos sites/fontes.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Estratégia de match
+            </span>
+            <select
+              value={userMatchStrategy}
+              onChange={(e) =>
+                setUserMatchStrategy(
+                  e.target.value as typeof userMatchStrategy,
+                )
+              }
+              className="pco-input mt-1 text-sm"
+            >
+              <option value="email_first">
+                E-mail primeiro, fallback ID externo (recomendado)
+              </option>
+              <option value="external_id_first">
+                ID externo primeiro, fallback e-mail
+              </option>
+              <option value="email_only">
+                Apenas e-mail (consolida cross-source)
+              </option>
+              <option value="external_id_only">
+                Apenas ID externo (mantém fontes separadas)
+              </option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Quando aluno não encontrado
+            </span>
+            <select
+              value={unmatchedUserPolicy}
+              onChange={(e) =>
+                setUnmatchedUserPolicy(
+                  e.target.value as typeof unmatchedUserPolicy,
+                )
+              }
+              className="pco-input mt-1 text-sm"
+            >
+              <option value="skip">Ignorar registro (recomendado)</option>
+              <option value="create_stub">Criar aluno mínimo com o e-mail</option>
+              <option value="error">Marcar como erro</option>
+            </select>
+          </label>
         </div>
       </section>
 

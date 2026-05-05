@@ -32,6 +32,28 @@ export type ConflictStrategy =
   | 'create_duplicate' // só onde fizer sentido (raro)
   | 'error';
 
+/**
+ * Estratégia para resolver "este registro pertence a qual aluno interno?".
+ * - email_first (default): tenta external_id, senão email — funciona pra multi-source
+ * - external_id_first: tenta external_id da fonte, senão email
+ * - email_only: ignora external_id, só email (consolida usuários de várias fontes)
+ * - external_id_only: ignora email, só external_id (mantém fontes separadas)
+ */
+export type UserMatchStrategy =
+  | 'email_first'
+  | 'external_id_first'
+  | 'email_only'
+  | 'external_id_only';
+
+/**
+ * O que fazer quando importa entidade-filha (matrícula, pedido, progresso) e o
+ * usuário-pai não existe no sistema.
+ * - skip (default): ignora a row, registra erro suave
+ * - create_stub: cria um user mínimo com o email/external_id que veio
+ * - error: interrompe e marca como erro
+ */
+export type UnmatchedUserPolicy = 'skip' | 'create_stub' | 'error';
+
 export type EnrollmentStartRule =
   | 'paid_date'
   | 'completed_date'
@@ -211,6 +233,12 @@ export interface ImportEnrollmentConfig {
   defaultAccessDurationDays?: number; // fallback quando course não define
   // Mapeia status WC → status interno de enrollment
   wcStatusMap: Record<string, NormalizedEnrollment['status']>;
+  // Como resolver o aluno-pai em entidades filhas (enrollment, order, progress).
+  // Default 'email_first' — consolida usuários cross-source.
+  userMatchStrategy?: UserMatchStrategy;
+  // O que fazer quando o aluno-pai não é encontrado.
+  // Default 'skip'.
+  unmatchedUserPolicy?: UnmatchedUserPolicy;
 }
 
 export interface ImportApiConfig {

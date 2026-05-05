@@ -32,6 +32,99 @@ interface UpsertResult {
   message?: string;
 }
 
+/**
+ * Resolve userId interno a partir de external_id e/ou email,
+ * honrando userMatchStrategy + unmatchedUserPolicy do config.
+ *
+ * Retorna { userId } se achou; { error } se não. Com policy=create_stub,
+ * cria um user mínimo se tiver pelo menos email.
+ */
+async function resolveUserOrPolicy(
+  args: {
+    externalId?: string | null;
+    email?: string | null;
+    name?: string | null;
+  },
+  ctx: AdapterContext,
+): Promise<{ userId?: string; error?: string }> {
+  const strategy = ctx.enrollmentRules?.userMatchStrategy ?? 'email_first';
+  const policy = ctx.enrollmentRules?.unmatchedUserPolicy ?? 'skip';
+  const { externalId, email, name } = args;
+
+  let userId: string | null = null;
+
+  // ordem de tentativa
+  const tryByExternal = async () => {
+    if (!externalId) return null;
+    const ref = await refsStore.find(ctx.source, 'student', externalId);
+    return ref?.internalId ?? null;
+  };
+  const tryByEmail = async () => {
+    if (!email) return null;
+    const u = await usersStore.findUserByEmail(email);
+    return u?.id ?? null;
+  };
+
+  if (strategy === 'email_first') {
+    userId = (await tryByEmail()) ?? (await tryByExternal());
+  } else if (strategy === 'external_id_first') {
+    userId = (await tryByExternal()) ?? (await tryByEmail());
+  } else if (strategy === 'email_only') {
+    userId = await tryByEmail();
+  } else if (strategy === 'external_id_only') {
+    userId = await tryByExternal();
+  }
+
+  if (userId) return { userId };
+
+  if (policy === 'error') {
+    return {
+      error: `Aluno não encontrado (email=${email ?? '—'}, externalId=${externalId ?? '—'}).`,
+    };
+  }
+  if (policy === 'skip') {
+    return {
+      error: `[skip] aluno não encontrado: ${email ?? externalId ?? '—'}`,
+    };
+  }
+  // create_stub
+  if (!email) {
+    return {
+      error: 'Não foi possível criar stub — sem email para o novo usuário.',
+    };
+  }
+  try {
+    const passwordTmp = `pco-stub-${Date.now().toString(36)}`;
+    const created = await usersStore.createUser({
+      email,
+      name: name || email,
+      role: 'student',
+      password: passwordTmp,
+      active: true,
+    });
+    if (externalId) {
+      await refsStore.upsert({
+        sourceType: ctx.source,
+        externalEntityType: 'student',
+        externalId,
+        internalEntityType: 'student',
+        internalId: created.id,
+        jobId: ctx.jobId,
+      });
+    }
+    await jobs.appendCreatedRef(ctx.jobId, {
+      entity: 'student',
+      internalId: created.id,
+      externalId: externalId ?? email,
+    });
+    return { userId: created.id };
+  } catch (err) {
+    return {
+      error: `Falha ao criar stub: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 // ---------- Student ----------
 
 /**
@@ -313,22 +406,24 @@ export async function applyEnrollment(
   cfg: ImportEntityConfig,
   ctx: AdapterContext,
 ): Promise<UpsertResult> {
-  // Resolve aluno
-  let userId: string | null = null;
-  if (norm.userExternalId) {
-    const ref = await refsStore.find(ctx.source, 'student', norm.userExternalId);
-    if (ref) userId = ref.internalId;
-  }
-  if (!userId && norm.userEmail) {
-    const u = await usersStore.findUserByEmail(norm.userEmail);
-    if (u) userId = u.id;
-  }
-  if (!userId) {
+  // Resolve aluno usando estratégia configurada (email_first | external_id_first | only)
+  // + policy para usuário não-encontrado (skip | create_stub | error).
+  const resolved = await resolveUserOrPolicy(
+    {
+      externalId: norm.userExternalId,
+      email: norm.userEmail,
+      name: norm.userEmail,
+    },
+    ctx,
+  );
+  if (!resolved.userId) {
+    const policy = ctx.enrollmentRules?.unmatchedUserPolicy ?? 'skip';
     return {
-      outcome: 'error',
-      message: `Aluno não encontrado (${norm.userEmail ?? norm.userExternalId}).`,
+      outcome: policy === 'skip' ? 'ignored' : 'error',
+      message: resolved.error,
     };
   }
+  const userId = resolved.userId;
 
   // Resolve curso (apenas refId externo — aliasing simplifica)
   const courseExternal = norm.courseExternalId ?? norm.learndashCourseId;

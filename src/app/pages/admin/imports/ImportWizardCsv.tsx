@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ArrowLeft,
   Download,
+  Wand2,
 } from 'lucide-react';
 import {
   startCsvDryRun,
@@ -17,6 +18,7 @@ import {
 } from '../../../data/api';
 import { useToast } from '../../../components/Toast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
+import CsvFieldMapper from '../../../components/CsvFieldMapper';
 import type {
   ImportEntityTypeDto,
   EnrollmentStartRuleDto,
@@ -47,6 +49,13 @@ export default function ImportWizardCsv() {
   const [expirationRule, setExpirationRule] =
     useState<EnrollmentExpirationRuleDto>('start_plus_duration');
   const [defaultDuration, setDefaultDuration] = useState<number>(365);
+  const [mapper, setMapper] = useState<{
+    entity: ImportEntityTypeDto;
+    file: File;
+  } | null>(null);
+  const [mappingsByEntity, setMappingsByEntity] = useState<
+    Partial<Record<ImportEntityTypeDto, Array<{ source: string; target: string | null }>>>
+  >({});
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -121,7 +130,9 @@ export default function ImportWizardCsv() {
             label={e.label}
             hint={e.hint}
             file={files[e.id]}
+            mapping={mappingsByEntity[e.id]}
             onChange={(f) => setFile(e.id, f)}
+            onMap={(f) => setMapper({ entity: e.id, file: f })}
           />
         ))}
       </div>
@@ -232,6 +243,22 @@ export default function ImportWizardCsv() {
           Executar importação real
         </button>
       </div>
+
+      {mapper && (
+        <CsvFieldMapper
+          entity={mapper.entity}
+          file={mapper.file}
+          onClose={() => setMapper(null)}
+          onConfirm={(mapping) => {
+            setMappingsByEntity((prev) => ({
+              ...prev,
+              [mapper.entity]: mapping,
+            }));
+            toast.success('Mapeamento salvo localmente');
+            setMapper(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -241,16 +268,22 @@ function EntityFileRow({
   label,
   hint,
   file,
+  mapping,
   onChange,
+  onMap,
 }: {
   entity: ImportEntityTypeDto;
   label: string;
   hint: string;
   file: File | undefined;
+  mapping?: Array<{ source: string; target: string | null }>;
   onChange: (f: File | null) => void;
+  onMap: (f: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+
+  const mappedCount = mapping ? mapping.filter((m) => m.target).length : 0;
 
   return (
     <div className="pco-card p-3 flex items-center gap-3 flex-wrap">
@@ -259,6 +292,11 @@ function EntityFileRow({
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-pco-deep">{label}</div>
           <div className="text-[11px] text-ink-subtle">{hint}</div>
+          {mapping && (
+            <div className="text-[10px] text-status-success mt-0.5">
+              ✓ {mappedCount} campo(s) mapeado(s)
+            </div>
+          )}
         </div>
       </div>
       <button
@@ -292,6 +330,17 @@ function EntityFileRow({
         <Upload size={11} strokeWidth={2} />
         {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : 'Selecionar CSV'}
       </button>
+      {file && (
+        <button
+          type="button"
+          onClick={() => onMap(file)}
+          className="pco-btn-ghost text-xs"
+          title="Mapear campos do CSV para os campos do AVA"
+        >
+          <Wand2 size={11} strokeWidth={2} />
+          Mapear
+        </button>
+      )}
       {file && (
         <button
           type="button"

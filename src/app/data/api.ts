@@ -992,6 +992,12 @@ export interface RunApiInputDto {
     startRule?: EnrollmentStartRuleDto;
     expirationRule?: EnrollmentExpirationRuleDto;
     defaultAccessDurationDays?: number;
+    userMatchStrategy?:
+      | 'email_first'
+      | 'external_id_first'
+      | 'email_only'
+      | 'external_id_only';
+    unmatchedUserPolicy?: 'skip' | 'create_stub' | 'error';
   };
 }
 
@@ -1002,6 +1008,35 @@ export async function startApiRun(
     '/admin/imports/run/api',
     input,
   );
+}
+
+export interface CsvPreviewDto {
+  entity: ImportEntityTypeDto;
+  headers: string[];
+  totalRows: number;
+  sampleRows: Array<Record<string, string>>;
+  targetFields: ImportFieldDef[];
+  suggestedMapping: Array<{ source: string; target: string | null }>;
+}
+
+export async function previewCsv(
+  entity: ImportEntityTypeDto,
+  file: File,
+): Promise<CsvPreviewDto> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const form = new FormData();
+  form.set(`file_${entity}`, file);
+  const res = await fetch('/api/admin/imports/preview/csv', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j?.error?.message ?? `HTTP ${res.status}`);
+  }
+  return (await res.json()) as CsvPreviewDto;
 }
 
 export async function startCsvDryRun(

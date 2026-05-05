@@ -2420,6 +2420,66 @@ export function buildApp() {
     ),
   );
 
+  /**
+   * Preview de CSV: retorna headers detectados + primeiras 10 rows +
+   * sugestão de mapeamento auto (case-insensitive matching contra nomes/labels canônicos).
+   * Multipart com file_<entity>, max 5MB.
+   */
+  app.post(
+    '/admin/imports/preview/csv',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 30 }),
+    async (c) => {
+      let entity: string | null = null;
+      let headers: string[] = [];
+      let sampleRows: Array<Record<string, string>> = [];
+      let totalRows = 0;
+      try {
+        const form = await c.req.formData();
+        for (const k of form.keys()) {
+          if (k.startsWith('file_')) {
+            entity = k.replace('file_', '');
+            const f = form.get(k);
+            if (f instanceof File) {
+              if (f.size > 5 * 1024 * 1024) {
+                return jsonError(c, 413, 'FILE_TOO_LARGE', 'Preview limitado a 5MB.');
+              }
+              const buf = Buffer.from(await f.arrayBuffer());
+              const parsed = parseCsvBuffer(buf);
+              headers = parsed.headers;
+              totalRows = parsed.rows.length;
+              sampleRows = parsed.rows.slice(0, 10);
+            }
+          }
+        }
+      } catch {
+        return jsonError(c, 400, 'INVALID_FORM', 'Multipart inválido.');
+      }
+      if (!entity || !(entity in CSV_TEMPLATES)) {
+        return jsonError(c, 400, 'INVALID_ENTITY', 'Entidade inválida.');
+      }
+      const tpl = CSV_TEMPLATES[entity as keyof typeof CSV_TEMPLATES];
+      const norm = (s: string) => s.toLowerCase().trim().replace(/[\s_-]+/g, '_');
+      const targetByNorm = new Map<string, string>();
+      for (const f of tpl.fields) {
+        targetByNorm.set(norm(f.name), f.name);
+        if (f.label) targetByNorm.set(norm(f.label), f.name);
+      }
+      const suggestedMapping = headers.map((h) => ({
+        source: h,
+        target: targetByNorm.get(norm(h)) ?? null,
+      }));
+      return c.json({
+        entity,
+        headers,
+        totalRows,
+        sampleRows,
+        targetFields: tpl.fields,
+        suggestedMapping,
+      });
+    },
+  );
+
   app.get('/admin/imports/templates/:entity', requireAuth('admin', 'superadmin'), (c) => {
     const entity = c.req.param('entity') as keyof typeof CSV_TEMPLATES;
     if (!(entity in CSV_TEMPLATES)) {
@@ -3996,6 +4056,8 @@ export function buildApp() {
           'start_plus_duration') as EnrollmentExpirationRule,
         defaultAccessDurationDays: body.enrollment?.defaultAccessDurationDays,
         wcStatusMap: body.enrollment?.wcStatusMap ?? {},
+        userMatchStrategy: body.enrollment?.userMatchStrategy,
+        unmatchedUserPolicy: body.enrollment?.unmatchedUserPolicy,
       };
       const dryRun = body.dryRun !== false;
       const job = await importJobs.createJob({
