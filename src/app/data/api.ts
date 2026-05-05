@@ -3156,6 +3156,21 @@ export async function downloadMyDataExport(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+export async function fetchAdminDeletionRequests(): Promise<DeletionRequestDto[]> {
+  return http.get<DeletionRequestDto[]>('/admin/deletion-requests');
+}
+
+export async function adminUpdateDeletionRequest(
+  id: string,
+  status: 'approved' | 'rejected' | 'completed',
+  note?: string,
+): Promise<DeletionRequestDto> {
+  return http.put<DeletionRequestDto>(
+    `/admin/deletion-requests/${encodeURIComponent(id)}`,
+    { status, note },
+  );
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =

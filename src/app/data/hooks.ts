@@ -1836,6 +1836,31 @@ export function useCancelDeletionRequest() {
   });
 }
 
+const adminDeletionsKey = ['admin', 'deletion-requests'] as const;
+
+export function useAdminDeletionRequests() {
+  return useQuery({
+    queryKey: adminDeletionsKey,
+    queryFn: () => api.fetchAdminDeletionRequests(),
+  });
+}
+
+export function useUpdateAdminDeletionRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      status,
+      note,
+    }: {
+      id: string;
+      status: 'approved' | 'rejected' | 'completed';
+      note?: string;
+    }) => api.adminUpdateDeletionRequest(id, status, note),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminDeletionsKey }),
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {
