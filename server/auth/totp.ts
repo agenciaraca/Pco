@@ -21,9 +21,9 @@ export function generateSecret(bytes = 20): string {
 export function generateBackupCodes(count = 10): string[] {
   const codes: string[] = [];
   for (let i = 0; i < count; i++) {
-    const buf = crypto.randomBytes(5);
+    const buf = crypto.randomBytes(8);
     let s = '';
-    for (let j = 0; j < buf.length; j++) {
+    for (let j = 0; j < 8; j++) {
       s += BASE32_ALPHABET[buf[j]! % BASE32_ALPHABET.length];
     }
     codes.push(s.slice(0, 4) + '-' + s.slice(4, 8));
