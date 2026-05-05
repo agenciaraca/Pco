@@ -64,6 +64,9 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-3">
+            <Link to="/catalogo" className="pco-btn-ghost hidden sm:inline-flex">
+              Catálogo
+            </Link>
             <Link to="/login" className="pco-btn-ghost">
               Entrar
             </Link>

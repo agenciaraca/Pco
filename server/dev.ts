@@ -77,6 +77,7 @@ if (staticRoot) {
       'Allow: /verificar/',
       'Allow: /termos',
       'Allow: /privacidade',
+      'Allow: /catalogo',
       `Sitemap: ${proto}://${host}/sitemap.xml`,
     ].join('\n');
     return c.text(body, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -87,7 +88,7 @@ if (staticRoot) {
     const proto = c.req.header('x-forwarded-proto') ?? 'https';
     const base = `${proto}://${host}`;
     const today = new Date().toISOString().slice(0, 10);
-    const urls = ['/', '/login', '/landing', '/termos', '/privacidade', '/esqueci-senha'];
+    const urls = ['/', '/catalogo', '/login', '/landing', '/termos', '/privacidade', '/esqueci-senha'];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls
