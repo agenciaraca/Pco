@@ -110,6 +110,7 @@ const adminGroups = [
       { to: '/admin/api-tokens', label: 'API tokens', icon: SettingsIcon },
       { to: '/admin/atividade', label: 'Feed de atividade', icon: Activity },
       { to: '/admin/leaderboard', label: 'Leaderboard', icon: Trophy },
+      { to: '/admin/suporte', label: 'Suporte', icon: LifeBuoy },
       { to: '/admin/wishlist', label: 'Wishlist', icon: BellIcon },
       { to: '/admin/backup', label: 'Backup de configs', icon: DatabaseIcon },
       { to: '/admin/jobs', label: 'Jobs / workers', icon: SettingsIcon },
