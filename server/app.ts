@@ -4125,6 +4125,22 @@ export function buildApp() {
     },
   );
 
+  /** Resumo de alertas que admin precisa ver no Dashboard. */
+  app.get('/admin/alerts', requireAuth('admin', 'superadmin'), async (c) => {
+    const snap = await buildHealthSnapshot();
+    const issues = snap.checks.filter(
+      (c) => c.status === 'warn' || c.status === 'error',
+    );
+    return c.json({
+      generatedAt: snap.generatedAt,
+      overall: snap.overall,
+      total: issues.length,
+      warn: issues.filter((i) => i.status === 'warn').length,
+      error: issues.filter((i) => i.status === 'error').length,
+      items: issues,
+    });
+  });
+
   // Backup snapshots
   app.get('/admin/backups/snapshots', requireAuth('admin', 'superadmin'), async (c) =>
     c.json(await backupWorker.listSnapshots()),

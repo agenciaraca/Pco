@@ -16,6 +16,7 @@ import {
   useAllCertificates,
   useAuditLog,
   useCompletionsStats,
+  useAdminAlerts,
 } from '../../data/hooks';
 import { Cpu, HardDrive, AlertOctagon, Clock, History, ScrollText } from 'lucide-react';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -136,6 +137,7 @@ export default function AdminDashboard() {
   const coursesQ = useCourses();
   const certsQ = useAllCertificates();
   const auditQ = useAuditLog({ limit: 8 });
+  const alertsQ = useAdminAlerts();
   useDocumentMeta({ title: 'Painel Admin — AVA PCO' });
 
   const students = studentsQ.data ?? [];
@@ -191,6 +193,52 @@ export default function AdminDashboard() {
           Visão geral de retenção, conteúdo, certificados e uso do AVA.
         </p>
       </header>
+
+      {alertsQ.data && alertsQ.data.total > 0 && (
+        <Link
+          to="/admin/saude"
+          className={`pco-card pco-card-hover p-4 flex items-start gap-3 block ${
+            alertsQ.data.error > 0
+              ? 'border-status-danger/40 bg-status-danger/5'
+              : 'border-pco-orange/40 bg-pco-orange/5'
+          }`}
+        >
+          <AlertTriangle
+            size={20}
+            className={
+              alertsQ.data.error > 0
+                ? 'text-status-danger shrink-0'
+                : 'text-pco-orange shrink-0'
+            }
+          />
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-pco-deep">
+              {alertsQ.data.total} alerta{alertsQ.data.total !== 1 ? 's' : ''} requer{alertsQ.data.total !== 1 ? 'em' : ''} atenção
+            </div>
+            <div className="text-[11px] text-ink-muted mt-0.5">
+              {alertsQ.data.error > 0 && (
+                <span className="text-status-danger font-semibold">
+                  {alertsQ.data.error} erro{alertsQ.data.error !== 1 ? 's' : ''}
+                </span>
+              )}
+              {alertsQ.data.error > 0 && alertsQ.data.warn > 0 && ' · '}
+              {alertsQ.data.warn > 0 && (
+                <span className="text-pco-orange font-semibold">
+                  {alertsQ.data.warn} aviso{alertsQ.data.warn !== 1 ? 's' : ''}
+                </span>
+              )}
+              <span className="ml-2 text-ink-subtle">
+                {alertsQ.data.items
+                  .slice(0, 3)
+                  .map((i) => i.label)
+                  .join(' · ')}
+                {alertsQ.data.items.length > 3 ? ' ...' : ''}
+              </span>
+            </div>
+          </div>
+          <span className="text-pco-blue text-xs shrink-0">Ver detalhes →</span>
+        </Link>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <CompletionsCard />

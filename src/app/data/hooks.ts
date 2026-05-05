@@ -1782,6 +1782,15 @@ export function useRunBackupSnapshotNow() {
   });
 }
 
+export function useAdminAlerts() {
+  return useQuery({
+    queryKey: ['admin', 'alerts'],
+    queryFn: () => api.fetchAdminAlerts(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {

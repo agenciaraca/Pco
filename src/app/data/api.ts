@@ -3040,6 +3040,29 @@ export async function runBackupSnapshotNow(): Promise<BackupRunResultDto> {
   return http.post<BackupRunResultDto>('/admin/backups/run-now', {});
 }
 
+// ---------- Admin alerts ----------
+
+export interface AdminAlertItemDto {
+  id: string;
+  label: string;
+  status: HealthStatusDto;
+  message: string;
+  metric?: string | number;
+}
+
+export interface AdminAlertsDto {
+  generatedAt: string;
+  overall: HealthStatusDto;
+  total: number;
+  warn: number;
+  error: number;
+  items: AdminAlertItemDto[];
+}
+
+export async function fetchAdminAlerts(): Promise<AdminAlertsDto> {
+  return http.get<AdminAlertsDto>('/admin/alerts');
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =
