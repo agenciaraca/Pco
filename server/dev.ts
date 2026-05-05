@@ -157,3 +157,6 @@ import('./imports/seeds/portalpco').then((m) => m.seedPortalpcoConnection());
 
 // Worker do scheduler de imports — varre a cada 60s
 import('./imports/schedules-worker').then((m) => m.startWorker(60_000));
+
+// Worker de digest diário admin — verifica a cada 30min se chegou a hora
+import('./notifications/admin-digest').then((m) => m.startWorker());

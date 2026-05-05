@@ -927,6 +927,38 @@ export function useSalesSummary(days = 30) {
   });
 }
 
+const digestConfigKey = ['admin', 'digest', 'config'] as const;
+const digestPreviewKey = ['admin', 'digest', 'preview'] as const;
+
+export function useDigestConfig() {
+  return useQuery({
+    queryKey: digestConfigKey,
+    queryFn: () => api.fetchDigestConfig(),
+  });
+}
+
+export function useUpdateDigestConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Partial<api.DigestConfigDto>) =>
+      api.updateDigestConfig(patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: digestConfigKey }),
+  });
+}
+
+export function useDigestPreview() {
+  return useQuery({
+    queryKey: digestPreviewKey,
+    queryFn: () => api.previewDigest(),
+  });
+}
+
+export function useRunDigestNow() {
+  return useMutation({
+    mutationFn: (dryRun: boolean) => api.runDigestNow(dryRun),
+  });
+}
+
 export function useCancelMyOrder() {
   const qc = useQueryClient();
   return useMutation({

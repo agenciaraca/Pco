@@ -870,6 +870,55 @@ export async function fetchSalesSummary(days = 30): Promise<SalesSummaryDto> {
   return http.get<SalesSummaryDto>(`/admin/sales/summary?days=${days}`);
 }
 
+// ---------- Admin daily digest ----------
+
+export interface DigestConfigDto {
+  enabled: boolean;
+  hourUtc: number;
+  recipientRoles: Array<'admin' | 'superadmin'>;
+}
+
+export interface DigestPreviewDto {
+  subject: string;
+  html: string;
+  data: {
+    windowFrom: string;
+    windowTo: string;
+    newOrders: number;
+    paidOrders: number;
+    revenueCents: number;
+    refundedOrders: number;
+    newUsers: number;
+    certificatesIssued: number;
+    topProducts: Array<{ name: string; revenueCents: number; count: number }>;
+  };
+}
+
+export interface DigestRunResultDto {
+  recipientCount: number;
+  sent: number;
+  errors: number;
+  data: DigestPreviewDto['data'];
+}
+
+export async function fetchDigestConfig(): Promise<DigestConfigDto> {
+  return http.get<DigestConfigDto>('/admin/digest/config');
+}
+
+export async function updateDigestConfig(
+  patch: Partial<DigestConfigDto>,
+): Promise<DigestConfigDto> {
+  return http.put<DigestConfigDto>('/admin/digest/config', patch);
+}
+
+export async function previewDigest(): Promise<DigestPreviewDto> {
+  return http.get<DigestPreviewDto>('/admin/digest/preview');
+}
+
+export async function runDigestNow(dryRun = false): Promise<DigestRunResultDto> {
+  return http.post<DigestRunResultDto>('/admin/digest/run-now', { dryRun });
+}
+
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
   return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
 }

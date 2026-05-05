@@ -134,6 +134,7 @@ import { buildCsv, csvResponse } from './export/csv';
 import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
 import { buildSalesSummary } from './payments/sales-analytics';
+import * as adminDigest from './notifications/admin-digest';
 import * as liveSessions from './live-sessions/store';
 import * as savedSearches from './saved-searches/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
@@ -3737,6 +3738,40 @@ export function buildApp() {
       return c.json({ ok: true });
     },
   );
+
+  // Admin digest config + run
+  app.get('/admin/digest/config', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await adminDigest.getConfig()),
+  );
+
+  app.put('/admin/digest/config', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const updated = await adminDigest.setConfig({
+      enabled: body.enabled === true,
+      hourUtc: typeof body.hourUtc === 'number' ? body.hourUtc : undefined,
+      recipientRoles: Array.isArray(body.recipientRoles)
+        ? (body.recipientRoles as Array<'admin' | 'superadmin'>)
+        : undefined,
+    });
+    return c.json(updated);
+  });
+
+  app.post(
+    '/admin/digest/run-now',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const r = await adminDigest.sendDigestNow({ dryRun: body.dryRun === true });
+      return c.json(r);
+    },
+  );
+
+  app.get('/admin/digest/preview', requireAuth('admin', 'superadmin'), async (c) => {
+    const data = await adminDigest.buildDigestData();
+    const r = adminDigest.renderDigestHtml(data);
+    return c.json({ ...r, data });
+  });
 
   // Admin: dashboard de vendas
   app.get('/admin/sales/summary', requireAuth('admin', 'superadmin'), async (c) => {

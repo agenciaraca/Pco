@@ -101,6 +101,7 @@ const adminGroups = [
       { to: '/admin/imports', label: 'Importar dados', icon: UploadCloud },
       { to: '/admin/sessoes-ao-vivo', label: 'Sessões ao vivo', icon: Mic2 },
       { to: '/admin/email', label: 'E-mail transacional', icon: Mail },
+      { to: '/admin/digest', label: 'Digest diário', icon: Mail },
       { to: '/admin/broadcasts', label: 'Campanhas', icon: Send },
       { to: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
       { to: '/admin/saude', label: 'Saúde do sistema', icon: Activity },
