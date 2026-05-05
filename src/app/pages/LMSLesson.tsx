@@ -1,4 +1,4 @@
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, Link, Navigate, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
   ChevronRight,
@@ -24,11 +24,12 @@ import LessonComments from '../components/LessonComments';
 import AchievementCelebration from '../components/AchievementCelebration';
 import MarkdownLite from '../components/MarkdownLite';
 import { useLessonWatchHeartbeat } from '../hooks/useLessonWatchHeartbeat';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { NewAchievementDto } from '../data/api';
 
 export default function LMSLesson() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
+  const navigate = useNavigate();
   const { data: courses = [], isLoading } = useCourses();
   const progressQ = useMyProgress();
   const markMut = useMarkLessonCompleted();
@@ -39,6 +40,8 @@ export default function LMSLesson() {
   const toast = useToast();
   const [noteDraft, setNoteDraft] = useState('');
   const [notePreview, setNotePreview] = useState(false);
+  const [newAchievements, setNewAchievements] = useState<NewAchievementDto[]>([]);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   useEffect(() => {
     if (noteQ.data?.content !== undefined) setNoteDraft(noteQ.data.content);
@@ -49,35 +52,77 @@ export default function LMSLesson() {
     (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds?.includes(
       courseId ?? '',
     ) ?? false;
-  // Heartbeat de watch-time — só conta se aluno está matriculado
   useLessonWatchHeartbeat({
     lessonId,
     courseId,
     enabled: isEnrolled,
   });
 
-  if (isLoading) return <CardListSkeleton count={3} />;
-  const course = courses.find((c) => c.id === courseId);
-  let lesson;
-  let module;
-  if (course) {
+  // Lookup course/module/lesson + adjacents — antes do early return pra
+  // que useEffect de shortcuts veja valores estáveis
+  const lookup = useMemo(() => {
+    const course = courses.find((c) => c.id === courseId);
+    if (!course) return null;
     for (const m of course.modules) {
       const l = m.lessons.find((x) => x.id === lessonId);
       if (l) {
-        lesson = l;
-        module = m;
-        break;
+        const idx = m.lessons.findIndex((x) => x.id === l.id);
+        return {
+          course,
+          module: m,
+          lesson: l,
+          prev: m.lessons[idx - 1] ?? null,
+          next: m.lessons[idx + 1] ?? null,
+        };
       }
     }
-  }
-  if (!course || !lesson || !module) return <Navigate to="/cursos" replace />;
+    return null;
+  }, [courses, courseId, lessonId]);
 
-  const idxInModule = module.lessons.findIndex((l) => l.id === lesson!.id);
-  const prev = module.lessons[idxInModule - 1];
-  const next = module.lessons[idxInModule + 1];
-  const isCompleted = progressQ.data?.completedLessonIds.includes(lesson!.id) ?? false;
+  const isCompleted =
+    lookup && progressQ.data?.completedLessonIds.includes(lookup.lesson.id)
+      ? true
+      : false;
 
-  const [newAchievements, setNewAchievements] = useState<NewAchievementDto[]>([]);
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === 'INPUT' ||
+          t.tagName === 'TEXTAREA' ||
+          t.isContentEditable)
+      )
+        return;
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        setShowShortcuts((v) => !v);
+        return;
+      }
+      if (e.key === 'Escape' && showShortcuts) {
+        setShowShortcuts(false);
+        return;
+      }
+      if (!lookup) return;
+      if (e.key === 'j' && lookup.next) {
+        e.preventDefault();
+        navigate(`/curso/${courseId}/modulo/${lookup.module.id}/aula/${lookup.next.id}`);
+      } else if (e.key === 'k' && lookup.prev) {
+        e.preventDefault();
+        navigate(`/curso/${courseId}/modulo/${lookup.module.id}/aula/${lookup.prev.id}`);
+      } else if (e.key === 'c') {
+        e.preventDefault();
+        void handleToggleCompleted();
+      }
+    }
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId, lookup?.module.id, lookup?.prev?.id, lookup?.next?.id, isCompleted, showShortcuts]);
+
+  if (isLoading) return <CardListSkeleton count={3} />;
+  if (!lookup) return <Navigate to="/cursos" replace />;
+  const { course, module, lesson, prev, next } = lookup;
 
   async function handleToggleCompleted() {
     try {
@@ -339,6 +384,52 @@ export default function LMSLesson() {
           onClose={() => setNewAchievements([])}
         />
       )}
+
+      {showShortcuts && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4"
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div
+            className="pco-card w-full max-w-sm p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-pco-deep mb-3">
+              Atalhos de teclado
+            </h3>
+            <ul className="space-y-2 text-sm">
+              <ShortcutRow keyLabel="J" desc="Próxima aula" />
+              <ShortcutRow keyLabel="K" desc="Aula anterior" />
+              <ShortcutRow keyLabel="C" desc="Marcar/desmarcar concluída" />
+              <ShortcutRow keyLabel="?" desc="Mostrar/esconder este painel" />
+              <ShortcutRow keyLabel="Esc" desc="Fechar painel" />
+            </ul>
+            <p className="text-[11px] text-ink-subtle mt-3">
+              Atalhos não funcionam enquanto digita em inputs ou textareas.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setShowShortcuts(true)}
+        className="fixed bottom-4 right-4 h-9 w-9 rounded-full bg-pco-blue/10 text-pco-blue grid place-items-center text-sm font-bold hover:bg-pco-blue/20 z-40"
+        title="Atalhos de teclado (?)"
+      >
+        ?
+      </button>
     </div>
+  );
+}
+
+function ShortcutRow({ keyLabel, desc }: { keyLabel: string; desc: string }) {
+  return (
+    <li className="flex items-center gap-3">
+      <kbd className="px-2 py-1 text-[11px] font-mono bg-surface-mute text-pco-deep rounded border border-pco-border min-w-8 text-center">
+        {keyLabel}
+      </kbd>
+      <span className="text-ink-muted">{desc}</span>
+    </li>
   );
 }
