@@ -959,6 +959,20 @@ export function useRunDigestNow() {
   });
 }
 
+export function useLeaderboard(days = 30, limit = 20) {
+  return useQuery({
+    queryKey: ['admin', 'leaderboard', days, limit],
+    queryFn: () => api.fetchLeaderboard(days, limit),
+  });
+}
+
+export function useMyRank(days = 30) {
+  return useQuery({
+    queryKey: ['me', 'leaderboard', days],
+    queryFn: () => api.fetchMyRank(days),
+  });
+}
+
 export function useCancelMyOrder() {
   const qc = useQueryClient();
   return useMutation({

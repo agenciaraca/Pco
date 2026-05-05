@@ -135,6 +135,7 @@ import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
 import { buildSalesSummary } from './payments/sales-analytics';
 import * as adminDigest from './notifications/admin-digest';
+import { buildLeaderboard, getUserRank } from './activity/leaderboard';
 import * as liveSessions from './live-sessions/store';
 import * as savedSearches from './saved-searches/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
@@ -3777,6 +3778,24 @@ export function buildApp() {
   app.get('/admin/sales/summary', requireAuth('admin', 'superadmin'), async (c) => {
     const days = Number(c.req.query('days') ?? '30');
     const r = await buildSalesSummary(Number.isFinite(days) ? days : 30);
+    return c.json(r);
+  });
+
+  // Leaderboard global (admin) e self (aluno)
+  app.get('/admin/leaderboard', requireAuth('admin', 'superadmin'), async (c) => {
+    const days = Number(c.req.query('days') ?? '30');
+    const limit = Number(c.req.query('limit') ?? '20');
+    const r = await buildLeaderboard(
+      Number.isFinite(days) ? days : 30,
+      Number.isFinite(limit) ? limit : 20,
+    );
+    return c.json(r);
+  });
+
+  app.get('/me/leaderboard', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const days = Number(c.req.query('days') ?? '30');
+    const r = await getUserRank(u.sub, Number.isFinite(days) ? days : 30);
     return c.json(r);
   });
 

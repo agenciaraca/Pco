@@ -919,6 +919,44 @@ export async function runDigestNow(dryRun = false): Promise<DigestRunResultDto> 
   return http.post<DigestRunResultDto>('/admin/digest/run-now', { dryRun });
 }
 
+// ---------- Leaderboard ----------
+
+export interface LeaderboardEntryDto {
+  rank: number;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  lessonsCompleted: number;
+  activeDays: number;
+  achievements: number;
+  score: number;
+}
+
+export interface LeaderboardResultDto {
+  range: { from: string; to: string; days: number };
+  total: number;
+  entries: LeaderboardEntryDto[];
+}
+
+export interface MyRankDto {
+  rank: number;
+  total: number;
+  entry?: LeaderboardEntryDto;
+}
+
+export async function fetchLeaderboard(
+  days = 30,
+  limit = 20,
+): Promise<LeaderboardResultDto> {
+  return http.get<LeaderboardResultDto>(
+    `/admin/leaderboard?days=${days}&limit=${limit}`,
+  );
+}
+
+export async function fetchMyRank(days = 30): Promise<MyRankDto> {
+  return http.get<MyRankDto>(`/me/leaderboard?days=${days}`);
+}
+
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
   return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
 }
