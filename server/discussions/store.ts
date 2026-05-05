@@ -95,3 +95,27 @@ export async function deleteComment(id: string): Promise<boolean> {
   await store.setAll(keep);
   return true;
 }
+
+export interface ListAllFilter {
+  courseId?: string;
+  authorId?: string;
+  hidden?: boolean | 'all'; // default = all
+  search?: string; // busca em body
+  limit?: number;
+}
+
+export async function listAll(filter: ListAllFilter = {}): Promise<LessonComment[]> {
+  const all = await store.getAll();
+  const search = filter.search?.toLowerCase().trim();
+  const filtered = all.filter((c) => {
+    if (filter.courseId && c.courseId !== filter.courseId) return false;
+    if (filter.authorId && c.authorId !== filter.authorId) return false;
+    if (filter.hidden !== undefined && filter.hidden !== 'all') {
+      if (Boolean(filter.hidden) !== c.hidden) return false;
+    }
+    if (search && !c.body.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  filtered.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+  return filter.limit ? filtered.slice(0, filter.limit) : filtered;
+}

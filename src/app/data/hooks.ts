@@ -883,6 +883,43 @@ export function useCreateCouponsBulk() {
   });
 }
 
+// ---------- Moderation hooks ----------
+
+const adminCommentsKey = ['admin', 'comments'] as const;
+const adminReviewsKey = ['admin', 'reviews'] as const;
+
+export function useAdminComments(filter: api.ListCommentsFilter = {}) {
+  return useQuery({
+    queryKey: [...adminCommentsKey, filter],
+    queryFn: () => api.fetchAdminComments(filter),
+  });
+}
+
+export function useBulkCommentAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, action }: { ids: string[]; action: 'hide' | 'show' | 'delete' }) =>
+      api.bulkCommentAction(ids, action),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminCommentsKey }),
+  });
+}
+
+export function useAdminReviews(filter: api.ListReviewsFilter = {}) {
+  return useQuery({
+    queryKey: [...adminReviewsKey, filter],
+    queryFn: () => api.fetchAdminReviews(filter),
+  });
+}
+
+export function useDeleteAdminReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, reviewId }: { courseId: string; reviewId: string }) =>
+      api.deleteAdminReview(courseId, reviewId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminReviewsKey }),
+  });
+}
+
 export function useCancelMyOrder() {
   const qc = useQueryClient();
   return useMutation({

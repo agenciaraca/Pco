@@ -749,21 +749,93 @@ export async function createCouponsBulk(
 }
 
 export async function downloadCouponsCsv(): Promise<void> {
-  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
-  const token = session?.token;
-  const res = await fetch('/api/admin/coupons/export', {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `cupons-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  return downloadCsv(
+    '/admin/coupons/export',
+    `cupons-${new Date().toISOString().slice(0, 10)}.csv`,
+  );
+}
+
+// ---------- Moderation: comments + reviews ----------
+
+export interface AdminCommentDto {
+  id: string;
+  lessonId: string;
+  courseId: string;
+  parentId: string | null;
+  authorId: string;
+  authorName: string;
+  authorRole: 'student' | 'admin' | 'superadmin';
+  body: string;
+  pinned: boolean;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminReviewDto {
+  id: string;
+  courseId: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListCommentsFilter {
+  search?: string;
+  courseId?: string;
+  authorId?: string;
+  hidden?: 'true' | 'false' | 'all';
+}
+
+export async function fetchAdminComments(
+  filter: ListCommentsFilter = {},
+): Promise<AdminCommentDto[]> {
+  const qs = new URLSearchParams();
+  if (filter.search) qs.set('search', filter.search);
+  if (filter.courseId) qs.set('courseId', filter.courseId);
+  if (filter.authorId) qs.set('authorId', filter.authorId);
+  if (filter.hidden) qs.set('hidden', filter.hidden);
+  const path = `/admin/comments${qs.size > 0 ? `?${qs.toString()}` : ''}`;
+  return http.get<AdminCommentDto[]>(path);
+}
+
+export async function bulkCommentAction(
+  ids: string[],
+  action: 'hide' | 'show' | 'delete',
+): Promise<{ updated: number; removed: number }> {
+  return http.post('/admin/comments/bulk', { ids, action });
+}
+
+export interface ListReviewsFilter {
+  search?: string;
+  courseId?: string;
+  minRating?: number;
+  maxRating?: number;
+}
+
+export async function fetchAdminReviews(
+  filter: ListReviewsFilter = {},
+): Promise<AdminReviewDto[]> {
+  const qs = new URLSearchParams();
+  if (filter.search) qs.set('search', filter.search);
+  if (filter.courseId) qs.set('courseId', filter.courseId);
+  if (filter.minRating !== undefined) qs.set('minRating', String(filter.minRating));
+  if (filter.maxRating !== undefined) qs.set('maxRating', String(filter.maxRating));
+  const path = `/admin/reviews${qs.size > 0 ? `?${qs.toString()}` : ''}`;
+  return http.get<AdminReviewDto[]>(path);
+}
+
+export async function deleteAdminReview(
+  courseId: string,
+  reviewId: string,
+): Promise<void> {
+  await http.delete<{ ok: true }>(
+    `/admin/courses/${encodeURIComponent(courseId)}/reviews/${encodeURIComponent(reviewId)}`,
+  );
 }
 
 export async function cancelMyOrder(id: string): Promise<OrderDto> {

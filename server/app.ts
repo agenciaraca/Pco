@@ -3737,6 +3737,76 @@ export function buildApp() {
     },
   );
 
+  // Admin: lista global de reviews para moderação
+  app.get('/admin/reviews', requireAuth('admin', 'superadmin'), async (c) => {
+    const search = c.req.query('search')?.toLowerCase().trim();
+    const courseId = c.req.query('courseId');
+    const minRating = Number(c.req.query('minRating') ?? 0);
+    const maxRating = Number(c.req.query('maxRating') ?? 5);
+    const all = await courseReviews.listAll();
+    const filtered = all.filter((r) => {
+      if (courseId && r.courseId !== courseId) return false;
+      if (r.rating < minRating || r.rating > maxRating) return false;
+      if (search) {
+        const hay = `${r.userName} ${r.userEmail} ${r.comment ?? ''}`.toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    });
+    filtered.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+    return c.json(filtered);
+  });
+
+  // Admin: lista global de comentários para moderação
+  app.get('/admin/comments', requireAuth('admin', 'superadmin'), async (c) => {
+    const search = c.req.query('search') ?? undefined;
+    const courseId = c.req.query('courseId') ?? undefined;
+    const authorId = c.req.query('authorId') ?? undefined;
+    const hiddenParam = c.req.query('hidden');
+    const hidden: boolean | 'all' =
+      hiddenParam === 'true' ? true : hiddenParam === 'false' ? false : 'all';
+    const list = await discussions.listAll({
+      search,
+      courseId,
+      authorId,
+      hidden,
+      limit: 500,
+    });
+    return c.json(list);
+  });
+
+  // Admin: bulk action em comments (hide/show/delete)
+  app.post(
+    '/admin/comments/bulk',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 20 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const ids = Array.isArray(body.ids) ? (body.ids as string[]) : [];
+      const action = String(body.action ?? '');
+      if (ids.length === 0) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'ids vazio.');
+      }
+      let updated = 0;
+      let removed = 0;
+      for (const id of ids) {
+        if (action === 'hide') {
+          const r = await discussions.updateComment(id, { hidden: true });
+          if (r) updated++;
+        } else if (action === 'show') {
+          const r = await discussions.updateComment(id, { hidden: false });
+          if (r) updated++;
+        } else if (action === 'delete') {
+          const ok = await discussions.deleteComment(id);
+          if (ok) removed++;
+        } else {
+          return jsonError(c, 400, 'INVALID_ACTION', `Ação desconhecida: ${action}`);
+        }
+      }
+      return c.json({ updated, removed });
+    },
+  );
+
   // ---------- Admin notes (notas internas sobre alunos) ----------
 
   app.get(
