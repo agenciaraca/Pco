@@ -161,4 +161,41 @@ describe('buildSalesSummary', () => {
     expect(r.statusDistribution.refunded).toBe(1);
     expect(r.statusDistribution.pending).toBe(1);
   });
+
+  it('clamp days=0 → 1', async () => {
+    const r = await buildSalesSummary(0);
+    expect(r.range.days).toBe(1);
+    expect(r.series.length).toBe(1);
+  });
+
+  it('clamp days negativo → 1', async () => {
+    const r = await buildSalesSummary(-100);
+    expect(r.range.days).toBe(1);
+  });
+
+  it('topProducts limite 10 itens', async () => {
+    const r = await buildSalesSummary(30);
+    expect(r.topProducts.length).toBeLessThanOrEqual(10);
+  });
+
+  it('comparison contém previousRange', async () => {
+    const r = await buildSalesSummary(30);
+    expect(r.comparison.previousRange.from).toBeDefined();
+    expect(r.comparison.previousRange.to).toBeDefined();
+    // previous range tem mesma duração
+    const fromMs = new Date(r.comparison.previousRange.from).getTime();
+    const toMs = new Date(r.comparison.previousRange.to).getTime();
+    const days = (toMs - fromMs) / (24 * 60 * 60_000);
+    expect(days).toBeCloseTo(30, 0);
+  });
+
+  it('totals.pendingOrders inclui pending+processing', async () => {
+    const r = await buildSalesSummary(30);
+    expect(r.totals.pendingOrders).toBeGreaterThanOrEqual(1); // u5 pending
+  });
+
+  it('range.from < range.to', async () => {
+    const r = await buildSalesSummary(7);
+    expect(new Date(r.range.from) < new Date(r.range.to)).toBe(true);
+  });
 });
