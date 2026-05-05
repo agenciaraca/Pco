@@ -20,6 +20,8 @@ export interface SystemUser {
   updatedAt: string;
   lastLoginAt?: string;
   active: boolean;
+  // Documento (CPF/RG/passport) — opcional, normalizado (só dígitos para CPF/RG)
+  document?: string | null;
   // 2FA TOTP
   totpEnabled?: boolean;
   totpSecretEncrypted?: string;
@@ -38,6 +40,7 @@ export interface SystemUserPublic {
   updatedAt: string;
   lastLoginAt?: string;
   active: boolean;
+  document?: string | null;
   totpEnabled?: boolean;
 }
 
@@ -170,6 +173,20 @@ export async function findUserById(id: string): Promise<SystemUserPublic | null>
 export async function findUserByEmail(email: string): Promise<SystemUser | null> {
   await loadUsers();
   return users.find((u) => u.email.toLowerCase() === email.toLowerCase()) ?? null;
+}
+
+/** Normaliza CPF/RG removendo pontuação. */
+export function normalizeDocument(doc: string): string {
+  return doc.replace(/\D/g, '');
+}
+
+export async function findUserByDocument(document: string): Promise<SystemUser | null> {
+  await loadUsers();
+  const norm = normalizeDocument(document);
+  if (!norm) return null;
+  return (
+    users.find((u) => u.document && normalizeDocument(u.document) === norm) ?? null
+  );
 }
 
 export async function verifyPassword(

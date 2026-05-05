@@ -140,11 +140,16 @@ export async function runReal(input: RealRunInput): Promise<void> {
   for (const entity of ORDER) {
     const rows = rowsByEntity[entity];
     if (!rows || rows.length === 0) continue;
+    // Prioridade: per-entity > enrollment.conflictStrategy global > default 'update'
+    const conflictStrategy =
+      input.entityConfigs?.[entity]?.conflictStrategy ??
+      input.enrollmentRules?.conflictStrategy ??
+      'update';
     const cfg: ImportEntityConfig = {
       entity,
       enabled: true,
       mappings: [],
-      conflictStrategy: input.entityConfigs?.[entity]?.conflictStrategy ?? 'update',
+      conflictStrategy,
       matchKeys: [],
     };
     await jobs.addNote(jobId, 'info', `Aplicando ${rows.length} ${entity}(s)`);

@@ -985,6 +985,14 @@ export async function testImportConnection(id: string): Promise<ConnectionTestRe
   );
 }
 
+export type UserMatchKeyDto = 'email' | 'document' | 'external_id' | 'wp_user_id';
+export type ConflictStrategyDto =
+  | 'ignore'
+  | 'update'
+  | 'merge'
+  | 'create_duplicate'
+  | 'error';
+
 export interface RunApiInputDto {
   connectionId: string;
   entities: ImportEntityTypeDto[];
@@ -993,12 +1001,14 @@ export interface RunApiInputDto {
     startRule?: EnrollmentStartRuleDto;
     expirationRule?: EnrollmentExpirationRuleDto;
     defaultAccessDurationDays?: number;
+    userMatchKeys?: UserMatchKeyDto[];
     userMatchStrategy?:
       | 'email_first'
       | 'external_id_first'
       | 'email_only'
       | 'external_id_only';
     unmatchedUserPolicy?: 'skip' | 'create_stub' | 'error';
+    conflictStrategy?: ConflictStrategyDto;
   };
 }
 

@@ -33,48 +33,72 @@ interface UpsertResult {
 }
 
 /**
- * Resolve userId interno a partir de external_id e/ou email,
- * honrando userMatchStrategy + unmatchedUserPolicy do config.
+ * Resolve userId interno seguindo a lista ordenada userMatchKeys.
+ * Suporta: 'email' | 'document' | 'external_id' | 'wp_user_id'.
+ * Tenta uma chave por vez; primeira a achar vence.
  *
- * Retorna { userId } se achou; { error } se não. Com policy=create_stub,
- * cria um user mínimo se tiver pelo menos email.
+ * Mantém compat com userMatchStrategy legado quando matchKeys não está setado.
+ *
+ * Retorna { userId } se achou; { error } caso contrário.
+ * Com policy=create_stub e email presente, cria user mínimo.
  */
 async function resolveUserOrPolicy(
   args: {
     externalId?: string | null;
     email?: string | null;
+    document?: string | null;
+    wpUserId?: string | null;
     name?: string | null;
   },
   ctx: AdapterContext,
 ): Promise<{ userId?: string; error?: string }> {
-  const strategy = ctx.enrollmentRules?.userMatchStrategy ?? 'email_first';
-  const policy = ctx.enrollmentRules?.unmatchedUserPolicy ?? 'skip';
-  const { externalId, email, name } = args;
+  const cfg = ctx.enrollmentRules;
+  const policy = cfg?.unmatchedUserPolicy ?? 'skip';
+  const { externalId, email, document, wpUserId, name } = args;
 
-  let userId: string | null = null;
-
-  // ordem de tentativa
-  const tryByExternal = async () => {
-    if (!externalId) return null;
-    const ref = await refsStore.find(ctx.source, 'student', externalId);
-    return ref?.internalId ?? null;
-  };
-  const tryByEmail = async () => {
-    if (!email) return null;
-    const u = await usersStore.findUserByEmail(email);
-    return u?.id ?? null;
-  };
-
-  if (strategy === 'email_first') {
-    userId = (await tryByEmail()) ?? (await tryByExternal());
-  } else if (strategy === 'external_id_first') {
-    userId = (await tryByExternal()) ?? (await tryByEmail());
-  } else if (strategy === 'email_only') {
-    userId = await tryByEmail();
-  } else if (strategy === 'external_id_only') {
-    userId = await tryByExternal();
+  // Determina ordem de tentativa
+  let keys: import('./types').UserMatchKey[];
+  if (cfg?.userMatchKeys && cfg.userMatchKeys.length > 0) {
+    keys = cfg.userMatchKeys;
+  } else {
+    // Compat: traduz strategy legado para keys
+    const s = cfg?.userMatchStrategy ?? 'email_first';
+    if (s === 'email_first') keys = ['email', 'external_id'];
+    else if (s === 'external_id_first') keys = ['external_id', 'email'];
+    else if (s === 'email_only') keys = ['email'];
+    else keys = ['external_id'];
   }
 
+  const tryByKey = async (key: import('./types').UserMatchKey): Promise<string | null> => {
+    if (key === 'email') {
+      if (!email) return null;
+      const u = await usersStore.findUserByEmail(email);
+      return u?.id ?? null;
+    }
+    if (key === 'document') {
+      if (!document) return null;
+      const u = await usersStore.findUserByDocument(document);
+      return u?.id ?? null;
+    }
+    if (key === 'external_id') {
+      if (!externalId) return null;
+      const ref = await refsStore.find(ctx.source, 'student', externalId);
+      return ref?.internalId ?? null;
+    }
+    if (key === 'wp_user_id') {
+      if (!wpUserId) return null;
+      // wp_user_id é guardado em refs como external_id quando vindo do WP
+      const ref = await refsStore.find(ctx.source, 'student', wpUserId);
+      return ref?.internalId ?? null;
+    }
+    return null;
+  };
+
+  let userId: string | null = null;
+  for (const k of keys) {
+    userId = await tryByKey(k);
+    if (userId) break;
+  }
   if (userId) return { userId };
 
   if (policy === 'error') {
@@ -412,6 +436,8 @@ export async function applyEnrollment(
     {
       externalId: norm.userExternalId,
       email: norm.userEmail,
+      document: norm.userDocument,
+      wpUserId: norm.userWpId,
       name: norm.userEmail,
     },
     ctx,

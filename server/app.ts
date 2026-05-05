@@ -4064,8 +4064,14 @@ export function buildApp() {
           'start_plus_duration') as EnrollmentExpirationRule,
         defaultAccessDurationDays: body.enrollment?.defaultAccessDurationDays,
         wcStatusMap: body.enrollment?.wcStatusMap ?? {},
+        userMatchKeys: Array.isArray(body.enrollment?.userMatchKeys)
+          ? (body.enrollment.userMatchKeys as Array<
+              'email' | 'document' | 'external_id' | 'wp_user_id'
+            >)
+          : undefined,
         userMatchStrategy: body.enrollment?.userMatchStrategy,
         unmatchedUserPolicy: body.enrollment?.unmatchedUserPolicy,
+        conflictStrategy: body.enrollment?.conflictStrategy,
       };
       const dryRun = body.dryRun !== false;
       const job = await importJobs.createJob({

@@ -157,6 +157,8 @@ export function normalizeEnrollment(row: Record<string, unknown>): NormalizedEnr
     externalEnrollmentId: s(row.external_enrollment_id) ?? null,
     userExternalId: s(row.user_external_id) ?? null,
     userEmail: (s(row.user_email) ?? '').toLowerCase() || null,
+    userDocument: s(row.user_document) ?? s(row.user_cpf) ?? s(row.cpf) ?? null,
+    userWpId: s(row.wp_user_id) ?? null,
     courseExternalId: s(row.course_external_id) ?? null,
     learndashCourseId: s(row.learndash_course_id) ?? null,
     orderExternalId: s(row.order_external_id) ?? s(row.wc_order_id) ?? null,

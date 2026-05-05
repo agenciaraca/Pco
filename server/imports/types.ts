@@ -181,6 +181,8 @@ export interface NormalizedEnrollment {
   externalEnrollmentId?: string | null;
   userExternalId?: string | null;
   userEmail?: string | null;
+  userDocument?: string | null; // CPF/RG vindo no CSV/API
+  userWpId?: string | null; // wp_user_id se vier separado
   courseExternalId?: string | null;
   learndashCourseId?: string | null;
   orderExternalId?: string | null;
@@ -227,18 +229,28 @@ export interface ImportEntityConfig {
   matchKeys: string[]; // ex: ['email', 'externalUserId']
 }
 
+/**
+ * Chaves disponíveis para identificar um aluno na importação.
+ * O array é ordenado: tenta a primeira; se falhar, tenta a próxima.
+ */
+export type UserMatchKey = 'email' | 'document' | 'external_id' | 'wp_user_id';
+
 export interface ImportEnrollmentConfig {
   startRule: EnrollmentStartRule;
   expirationRule: EnrollmentExpirationRule;
   defaultAccessDurationDays?: number; // fallback quando course não define
   // Mapeia status WC → status interno de enrollment
   wcStatusMap: Record<string, NormalizedEnrollment['status']>;
-  // Como resolver o aluno-pai em entidades filhas (enrollment, order, progress).
-  // Default 'email_first' — consolida usuários cross-source.
+  // Ordem de chaves para resolver o aluno-pai em entidades filhas.
+  // Default ['email', 'external_id'] — consolida usuários cross-source.
+  userMatchKeys?: UserMatchKey[];
+  // Estratégia legada (mantida para compat). Quando matchKeys está presente, é ignorada.
   userMatchStrategy?: UserMatchStrategy;
   // O que fazer quando o aluno-pai não é encontrado.
   // Default 'skip'.
   unmatchedUserPolicy?: UnmatchedUserPolicy;
+  // Estratégia de conflito global (sobrescreve a do ImportEntityConfig se setada)
+  conflictStrategy?: ConflictStrategy;
 }
 
 export interface ImportApiConfig {
