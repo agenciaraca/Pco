@@ -19,6 +19,7 @@ import {
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import MobileNav from '../components/MobileNav';
+import StudentSearchPalette from '../components/StudentSearchPalette';
 import Footer from '../components/Footer';
 
 const studentGroups = [
@@ -81,6 +82,7 @@ export default function StudentLayout() {
         </main>
         <Footer />
       </div>
+      <StudentSearchPalette />
     </div>
   );
 }
