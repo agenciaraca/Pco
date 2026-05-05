@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   UserPlus,
+  Award,
   X,
   Loader2,
 } from 'lucide-react';
@@ -15,6 +16,7 @@ import {
   useCourseStudents,
   useAdminStudents,
   useBulkEnrollInCourse,
+  useBulkIssueCertsForCourse,
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
@@ -93,14 +95,22 @@ export default function AdminCourseStudents() {
             {data.courseTitle} · {data.enrolledCount} matriculado(s) · {data.totalLessons} aulas
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setEnrollOpen(true)}
-          className="pco-btn-primary"
-        >
-          <UserPlus size={12} strokeWidth={2} />
-          Matricular alunos
-        </button>
+        <div className="flex items-center gap-2">
+          <BulkIssueCertsButton
+            courseId={courseId!}
+            completedCount={
+              data.students.filter((s) => s.progressPct === 100).length
+            }
+          />
+          <button
+            type="button"
+            onClick={() => setEnrollOpen(true)}
+            className="pco-btn-primary"
+          >
+            <UserPlus size={12} strokeWidth={2} />
+            Matricular alunos
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
@@ -400,5 +410,49 @@ function Stat({
       </div>
       <div className="text-2xl font-bold text-pco-deep mt-1">{value}</div>
     </div>
+  );
+}
+
+function BulkIssueCertsButton({
+  courseId,
+  completedCount,
+}: {
+  courseId: string;
+  completedCount: number;
+}) {
+  const mut = useBulkIssueCertsForCourse();
+  const toast = useToast();
+  if (completedCount === 0) return null;
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        if (
+          !confirm(
+            `Emitir certificados para todos que concluíram o curso?\n\n${completedCount} aluno(s) elegível(is). Apenas quem completou 100% recebe.`,
+          )
+        )
+          return;
+        try {
+          const r = await mut.mutateAsync(courseId);
+          toast.success(
+            'Certificados emitidos',
+            `${r.issued} novos · ${r.alreadyIssued} já tinham · ${r.notCompleted} não concluíram`,
+          );
+        } catch (err) {
+          toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+        }
+      }}
+      disabled={mut.isPending}
+      className="pco-btn-ghost text-xs"
+      title="Emite certificados retroativos para alunos que concluíram"
+    >
+      {mut.isPending ? (
+        <Loader2 size={12} className="animate-spin" />
+      ) : (
+        <Award size={12} strokeWidth={2} />
+      )}
+      Emitir certs ({completedCount})
+    </button>
   );
 }

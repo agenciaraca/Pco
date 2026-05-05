@@ -3106,6 +3106,23 @@ export async function bulkEnrollInCourse(
   );
 }
 
+export interface BulkIssueCertsResultDto {
+  courseTitle: string;
+  enrolled: number;
+  issued: number;
+  alreadyIssued: number;
+  notCompleted: number;
+}
+
+export async function bulkIssueCertsForCourse(
+  courseId: string,
+): Promise<BulkIssueCertsResultDto> {
+  return http.post<BulkIssueCertsResultDto>(
+    `/admin/courses/${encodeURIComponent(courseId)}/issue-certs-bulk`,
+    {},
+  );
+}
+
 // ---------- LGPD: account deletion ----------
 
 export type DeletionStatusDto = 'pending' | 'approved' | 'rejected' | 'completed';

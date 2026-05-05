@@ -1886,6 +1886,70 @@ export function buildApp() {
 
   // ---------- Admin: Course writes ----------
 
+  /** Emite certificados em massa para alunos que concluíram um curso. */
+  app.post(
+    '/admin/courses/:id/issue-certs-bulk',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const courseId = c.req.param('id') as string;
+      const course = await coursesRepo.findCourse(courseId);
+      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+      const totalLessons = course.modules.reduce(
+        (s, m) => s + m.lessons.length,
+        0,
+      );
+      if (totalLessons === 0) {
+        return jsonError(c, 400, 'NO_LESSONS', 'Curso sem aulas.');
+      }
+      const allStudents = await studentsRepo.listAdminStudents({
+        limit: 5000,
+      } as never);
+      const enrolled = allStudents.filter((s) =>
+        (s.enrolledCourseIds ?? []).includes(courseId),
+      );
+      const allProgress = await progressRepo.listAll();
+      const progressByUser = new Map<string, number>();
+      for (const p of allProgress) {
+        if (p.courseId !== courseId) continue;
+        progressByUser.set(p.userId, (progressByUser.get(p.userId) ?? 0) + 1);
+      }
+      const allCerts = await certsRepo.listAllCertificates();
+      const issuedSet = new Set(
+        allCerts
+          .filter((cert) => cert.courseId === courseId && cert.status === 'issued')
+          .map((cert) => cert.studentId),
+      );
+      let issued = 0;
+      let alreadyIssued = 0;
+      let notCompleted = 0;
+      for (const s of enrolled) {
+        const done = progressByUser.get(s.id) ?? 0;
+        if (done < totalLessons) {
+          notCompleted++;
+          continue;
+        }
+        if (issuedSet.has(s.id)) {
+          alreadyIssued++;
+          continue;
+        }
+        try {
+          await certsRepo.issueCertificate({ studentId: s.id, courseId });
+          issued++;
+        } catch (err) {
+          console.error('[bulk issue cert]', err);
+        }
+      }
+      return c.json({
+        courseTitle: course.title,
+        enrolled: enrolled.length,
+        issued,
+        alreadyIssued,
+        notCompleted,
+      });
+    },
+  );
+
   /** Resumo agregado por curso pra tabela admin: enrolledCount + avgPct. */
   app.get(
     '/admin/courses-summary',

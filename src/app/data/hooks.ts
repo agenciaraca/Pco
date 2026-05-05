@@ -1811,6 +1811,16 @@ export function useBulkEnrollInCourse() {
   });
 }
 
+export function useBulkIssueCertsForCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (courseId: string) => api.bulkIssueCertsForCourse(courseId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'certificates'] });
+    },
+  });
+}
+
 const myDeletionKey = ['me', 'account', 'deletion'] as const;
 
 export function useMyDeletionRequest() {
