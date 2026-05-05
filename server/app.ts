@@ -243,6 +243,13 @@ async function revokeAccessForOrder(order: import('./payments/types').Order): Pr
   }
 }
 
+function maskName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0]!;
+  return `${parts[0]} ${parts[parts.length - 1]!.charAt(0).toUpperCase()}.`;
+}
+
 async function getBundleCourseIds(productId: string): Promise<string[]> {
   const p = await productsRepo.findById(productId);
   if (!p || p.kind !== 'bundle') return [];
@@ -3797,6 +3804,29 @@ export function buildApp() {
     const days = Number(c.req.query('days') ?? '30');
     const r = await getUserRank(u.sub, Number.isFinite(days) ? days : 30);
     return c.json(r);
+  });
+
+  // Top 5 com nomes mascarados (privacidade): "Maria S." em vez de "Maria Silva"
+  app.get('/leaderboard/top', requireAuth(), async (c) => {
+    const days = Number(c.req.query('days') ?? '30');
+    const limit = Math.min(Number(c.req.query('limit') ?? '5'), 20);
+    const r = await buildLeaderboard(
+      Number.isFinite(days) ? days : 30,
+      Number.isFinite(limit) ? limit : 5,
+    );
+    return c.json({
+      ...r,
+      entries: r.entries.map((e) => ({
+        rank: e.rank,
+        userId: e.userId,
+        // Nome de exibição: primeiro nome + inicial do último
+        displayName: maskName(e.userName),
+        lessonsCompleted: e.lessonsCompleted,
+        activeDays: e.activeDays,
+        achievements: e.achievements,
+        score: e.score,
+      })),
+    });
   });
 
   // Admin: lista global de reviews para moderação

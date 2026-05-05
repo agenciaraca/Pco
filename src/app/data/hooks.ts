@@ -973,6 +973,13 @@ export function useMyRank(days = 30) {
   });
 }
 
+export function usePublicLeaderboard(days = 30, limit = 5) {
+  return useQuery({
+    queryKey: ['leaderboard', 'public', days, limit],
+    queryFn: () => api.fetchPublicLeaderboard(days, limit),
+  });
+}
+
 export function useCancelMyOrder() {
   const qc = useQueryClient();
   return useMutation({

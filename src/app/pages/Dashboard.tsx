@@ -25,6 +25,7 @@ import {
 } from '../data/hooks';
 import { Skeleton } from '../components/LoadingSkeleton';
 import { ErrorState } from '../components/EmptyState';
+import LeaderboardWidget from '../components/LeaderboardWidget';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -133,30 +134,33 @@ export default function Dashboard() {
         </Link>
       </header>
 
-      {streakQ.data && streakQ.data.current > 0 && (
-        <div className="pco-card p-4 flex items-center gap-4 bg-gradient-to-r from-pco-orange/10 to-transparent">
-          <div className="text-3xl">🔥</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
-              Sequência atual
-            </div>
-            <div className="text-lg font-bold text-pco-deep">
-              {streakQ.data.current} dia{streakQ.data.current !== 1 ? 's' : ''} estudando
-              seguidos
-            </div>
-            <div className="text-[11px] text-ink-muted">
-              Recorde: {streakQ.data.longest} dia
-              {streakQ.data.longest !== 1 ? 's' : ''}
-              {streakQ.data.lastActiveDay && (
-                <>
-                  {' '}· última atividade:{' '}
-                  {new Date(streakQ.data.lastActiveDay).toLocaleDateString('pt-BR')}
-                </>
-              )}
+      <div className="grid gap-4 md:grid-cols-2">
+        {streakQ.data && streakQ.data.current > 0 && (
+          <div className="pco-card p-4 flex items-center gap-4 bg-gradient-to-r from-pco-orange/10 to-transparent">
+            <div className="text-3xl">🔥</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
+                Sequência atual
+              </div>
+              <div className="text-lg font-bold text-pco-deep">
+                {streakQ.data.current} dia{streakQ.data.current !== 1 ? 's' : ''} estudando
+                seguidos
+              </div>
+              <div className="text-[11px] text-ink-muted">
+                Recorde: {streakQ.data.longest} dia
+                {streakQ.data.longest !== 1 ? 's' : ''}
+                {streakQ.data.lastActiveDay && (
+                  <>
+                    {' '}· última atividade:{' '}
+                    {new Date(streakQ.data.lastActiveDay).toLocaleDateString('pt-BR')}
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+        <LeaderboardWidget />
+      </div>
 
 {nextLesson && (
         <Link

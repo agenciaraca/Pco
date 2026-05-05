@@ -957,6 +957,31 @@ export async function fetchMyRank(days = 30): Promise<MyRankDto> {
   return http.get<MyRankDto>(`/me/leaderboard?days=${days}`);
 }
 
+export interface PublicLeaderboardEntryDto {
+  rank: number;
+  userId: string;
+  displayName: string;
+  lessonsCompleted: number;
+  activeDays: number;
+  achievements: number;
+  score: number;
+}
+
+export interface PublicLeaderboardDto {
+  range: { from: string; to: string; days: number };
+  total: number;
+  entries: PublicLeaderboardEntryDto[];
+}
+
+export async function fetchPublicLeaderboard(
+  days = 30,
+  limit = 5,
+): Promise<PublicLeaderboardDto> {
+  return http.get<PublicLeaderboardDto>(
+    `/leaderboard/top?days=${days}&limit=${limit}`,
+  );
+}
+
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
   return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
 }
