@@ -1992,6 +1992,82 @@ export function buildApp() {
     },
   );
 
+  /**
+   * Import inline de alunos. Body: { rows: [{ email, name, courseIds?: string[] }] }.
+   * Para cada row:
+   *   - se email já existe: enrollInCourse (se courseIds), nunca sobrescreve dados
+   *   - senão: cria user com password aleatório + enroll
+   * Retorna {created, enrolled, skipped, errors}.
+   */
+  app.post(
+    '/admin/users/import',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        rows?: Array<{ email?: string; name?: string; courseIds?: string[] }>;
+      };
+      const rows = Array.isArray(body.rows) ? body.rows : [];
+      if (rows.length === 0) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'rows vazio.');
+      }
+      if (rows.length > 1000) {
+        return jsonError(c, 400, 'TOO_MANY', 'máximo 1000 linhas por chamada.');
+      }
+      let created = 0;
+      let enrolled = 0;
+      let skipped = 0;
+      const errors: Array<{ row: number; email?: string; message: string }> = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]!;
+        const email = (row.email ?? '').trim().toLowerCase();
+        if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+          skipped++;
+          errors.push({ row: i + 1, email, message: 'email inválido' });
+          continue;
+        }
+        const courseIds = Array.isArray(row.courseIds) ? row.courseIds : [];
+        try {
+          let userId: string;
+          const existing = await usersStore.findUserByEmail(email);
+          if (existing) {
+            userId = existing.id;
+          } else {
+            const passwordTmp = `pco-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+            const newUser = await usersStore.createUser({
+              email,
+              name: row.name?.trim() || email,
+              role: 'student',
+              password: passwordTmp,
+              active: true,
+            });
+            userId = newUser.id;
+            created++;
+          }
+          for (const courseId of courseIds) {
+            await studentsRepo.enrollInCourse(userId, courseId);
+            enrolled++;
+          }
+        } catch (err) {
+          errors.push({
+            row: i + 1,
+            email,
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
+      return c.json({
+        total: rows.length,
+        created,
+        enrolled,
+        skipped,
+        errors: errors.slice(0, 100),
+      });
+    },
+  );
+
   // ---------- Student search (logged) ----------
 
   app.get('/search', requireAuth(), async (c) => {

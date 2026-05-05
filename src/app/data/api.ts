@@ -982,6 +982,28 @@ export async function fetchPublicLeaderboard(
   );
 }
 
+// ---------- Bulk import users ----------
+
+export interface ImportUserRowDto {
+  email: string;
+  name?: string;
+  courseIds?: string[];
+}
+
+export interface ImportUsersResultDto {
+  total: number;
+  created: number;
+  enrolled: number;
+  skipped: number;
+  errors: Array<{ row: number; email?: string; message: string }>;
+}
+
+export async function importUsers(
+  rows: ImportUserRowDto[],
+): Promise<ImportUsersResultDto> {
+  return http.post<ImportUsersResultDto>('/admin/users/import', { rows });
+}
+
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
   return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
 }

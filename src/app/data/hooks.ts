@@ -980,6 +980,17 @@ export function usePublicLeaderboard(days = 30, limit = 5) {
   });
 }
 
+export function useImportUsers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rows: api.ImportUserRowDto[]) => api.importUsers(rows),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'users'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] });
+    },
+  });
+}
+
 export function useCancelMyOrder() {
   const qc = useQueryClient();
   return useMutation({

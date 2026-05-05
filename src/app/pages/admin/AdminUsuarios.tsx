@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,6 +19,7 @@ import {
   UserCog,
   GraduationCap,
   Download,
+  Upload,
 } from 'lucide-react';
 import { downloadUsersCsv } from '../../data/api';
 import {
@@ -159,6 +161,10 @@ export default function AdminUsuarios() {
             <Download size={12} strokeWidth={2} />
             Exportar CSV
           </button>
+          <Link to="/admin/usuarios/import" className="pco-btn-ghost text-xs">
+            <Upload size={12} strokeWidth={2} />
+            Importar CSV
+          </Link>
           <button onClick={() => setEditing('new')} className="pco-btn-primary text-xs">
             <Plus size={12} strokeWidth={2} />
             Novo usuário
