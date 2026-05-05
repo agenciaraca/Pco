@@ -1740,6 +1740,14 @@ export function useSnoozeNotifications() {
   });
 }
 
+export function useLastLesson() {
+  return useQuery({
+    queryKey: ['me', 'last-lesson'],
+    queryFn: () => api.fetchLastLesson(),
+    staleTime: 60_000,
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {

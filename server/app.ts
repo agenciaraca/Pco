@@ -834,6 +834,36 @@ export function buildApp() {
     return c.json(entry ?? { totalSeconds: 0 });
   });
 
+  /** Retorna a última aula visitada pelo aluno (com title/courseTitle). */
+  app.get('/me/last-lesson', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const last = await watchTimeRepo.getLastWatchedForUser(u.sub);
+    if (!last) return c.json(null);
+    const course = await coursesRepo.findCourse(last.courseId);
+    if (!course) return c.json(null);
+    let lesson: { id: string; title: string } | null = null;
+    let moduleInfo: { id: string; title: string } | null = null;
+    for (const m of course.modules) {
+      const found = m.lessons.find((l) => l.id === last.lessonId);
+      if (found) {
+        lesson = { id: found.id, title: found.title };
+        moduleInfo = { id: m.id, title: m.title };
+        break;
+      }
+    }
+    if (!lesson || !moduleInfo) return c.json(null);
+    return c.json({
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      moduleId: moduleInfo.id,
+      moduleTitle: moduleInfo.title,
+      courseId: course.id,
+      courseTitle: course.title,
+      totalSeconds: last.totalSeconds,
+      lastHeartbeatAt: last.lastHeartbeatAt,
+    });
+  });
+
   app.get(
     '/admin/lessons/:id/watch-stats',
     requireAuth('admin', 'superadmin'),

@@ -22,6 +22,7 @@ import {
   useMyProgress,
   useCertificates,
   useMyStreak,
+  useLastLesson,
 } from '../data/hooks';
 import { Skeleton } from '../components/LoadingSkeleton';
 import { ErrorState } from '../components/EmptyState';
@@ -36,6 +37,7 @@ export default function Dashboard() {
   const progressQ = useMyProgress();
   const streakQ = useMyStreak();
   const certsQ = useCertificates();
+  const lastLessonQ = useLastLesson();
   useDocumentMeta({ title: 'Início — AVA PCO' });
 
   // Admin/superadmin não tem dashboard de aluno — redireciona pro admin.
@@ -133,6 +135,29 @@ export default function Dashboard() {
           <ArrowRight size={16} strokeWidth={2} />
         </Link>
       </header>
+
+      {lastLessonQ.data && (
+        <Link
+          to={`/curso/${lastLessonQ.data.courseId}/modulo/${lastLessonQ.data.moduleId}/aula/${lastLessonQ.data.lessonId}`}
+          className="pco-card pco-card-hover p-4 flex items-center gap-4 bg-gradient-to-r from-pco-blue/5 to-transparent block"
+        >
+          <div className="h-12 w-12 rounded-xl bg-pco-blue/10 grid place-items-center text-pco-blue shrink-0">
+            <PlayCircle size={22} strokeWidth={1.75} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
+              Continuar de onde parou
+            </div>
+            <div className="text-base font-bold text-pco-deep truncate">
+              {lastLessonQ.data.lessonTitle}
+            </div>
+            <div className="text-[11px] text-ink-muted truncate">
+              {lastLessonQ.data.courseTitle} · {lastLessonQ.data.moduleTitle}
+            </div>
+          </div>
+          <ArrowRight size={16} className="text-pco-blue shrink-0" strokeWidth={2} />
+        </Link>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         {streakQ.data && streakQ.data.current > 0 && (

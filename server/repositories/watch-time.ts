@@ -25,6 +25,17 @@ export async function getEntry(
   );
 }
 
+/** Retorna a última aula visitada pelo usuário (maior lastHeartbeatAt). */
+export async function getLastWatchedForUser(
+  userId: string,
+): Promise<WatchTimeEntry | null> {
+  const all = await store.filter((e) => e.userId === userId);
+  if (all.length === 0) return null;
+  return [...all].sort(
+    (a, b) => (b.lastHeartbeatAt > a.lastHeartbeatAt ? 1 : -1),
+  )[0]!;
+}
+
 export interface AddChunkInput {
   userId: string;
   lessonId: string;

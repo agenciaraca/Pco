@@ -2976,6 +2976,21 @@ export async function snoozeNotifications(
   return http.post('/me/notification-prefs/snooze', { days });
 }
 
+export interface LastLessonDto {
+  lessonId: string;
+  lessonTitle: string;
+  moduleId: string;
+  moduleTitle: string;
+  courseId: string;
+  courseTitle: string;
+  totalSeconds: number;
+  lastHeartbeatAt: string;
+}
+
+export async function fetchLastLesson(): Promise<LastLessonDto | null> {
+  return http.get<LastLessonDto | null>('/me/last-lesson');
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =
