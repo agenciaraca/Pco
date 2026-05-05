@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { StickyNote, Search, ArrowRight, BookOpen } from 'lucide-react';
+import { StickyNote, Search, ArrowRight, BookOpen, Download } from 'lucide-react';
+import { useToast } from '../components/Toast';
 import { useMyNotes } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
@@ -12,6 +13,30 @@ export default function MyNotes() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const { data, isLoading } = useMyNotes(search || undefined);
+  const toast = useToast();
+
+  async function handleExport() {
+    const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+    const token = session?.token;
+    try {
+      const res = await fetch('/api/me/notes/export.md', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `anotacoes-${new Date().toISOString().slice(0, 10)}.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Anotações exportadas');
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   function handleSearch() {
     setSearch(searchInput.trim());
@@ -29,15 +54,27 @@ export default function MyNotes() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="pco-section-title flex items-center gap-2">
-          <StickyNote size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Minhas anotações
-        </h1>
-        <p className="pco-section-subtitle mt-1">
-          Tudo que você anotou nas aulas em um só lugar. Use a busca para
-          encontrar trechos rapidamente.
-        </p>
+      <header className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="pco-section-title flex items-center gap-2">
+            <StickyNote size={20} className="text-pco-blue" strokeWidth={1.75} />
+            Minhas anotações
+          </h1>
+          <p className="pco-section-subtitle mt-1">
+            Tudo que você anotou nas aulas em um só lugar. Use a busca para
+            encontrar trechos rapidamente.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={(data ?? []).length === 0}
+          className="pco-btn-ghost text-xs"
+          title="Baixar todas as anotações em markdown"
+        >
+          <Download size={11} strokeWidth={2} />
+          Exportar .md
+        </button>
       </header>
 
       <div className="pco-card p-3 flex items-center gap-2">

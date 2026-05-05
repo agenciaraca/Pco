@@ -834,6 +834,86 @@ export function buildApp() {
     return c.json(entry ?? { totalSeconds: 0 });
   });
 
+  /** Export markdown de todas anotações do aluno. */
+  app.get('/me/notes/export.md', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const notes = await lessonNotesRepo.listForUser(u.sub);
+    const courses = await coursesRepo.listCourses();
+    const lessonToCourse = new Map<
+      string,
+      { course: { id: string; title: string }; module: { id: string; title: string }; lesson: { id: string; title: string } }
+    >();
+    for (const course of courses) {
+      for (const m of course.modules) {
+        for (const l of m.lessons) {
+          lessonToCourse.set(l.id, {
+            course: { id: course.id, title: course.title },
+            module: { id: m.id, title: m.title },
+            lesson: { id: l.id, title: l.title },
+          });
+        }
+      }
+    }
+    // Agrupa por course → module → lesson
+    const grouped = new Map<
+      string,
+      Map<string, Array<{ lessonTitle: string; content: string; updatedAt: string }>>
+    >();
+    for (const n of notes) {
+      if (!n.content.trim()) continue;
+      const meta = lessonToCourse.get(n.lessonId);
+      if (!meta) continue;
+      const cKey = `${meta.course.id}|${meta.course.title}`;
+      const mKey = `${meta.module.id}|${meta.module.title}`;
+      let courseMap = grouped.get(cKey);
+      if (!courseMap) {
+        courseMap = new Map();
+        grouped.set(cKey, courseMap);
+      }
+      let lessonsArr = courseMap.get(mKey);
+      if (!lessonsArr) {
+        lessonsArr = [];
+        courseMap.set(mKey, lessonsArr);
+      }
+      lessonsArr.push({
+        lessonTitle: meta.lesson.title,
+        content: n.content,
+        updatedAt: n.updatedAt,
+      });
+    }
+
+    const lines: string[] = [];
+    lines.push(`# Minhas anotações — AVA PCO`);
+    lines.push(`> Exportado em ${new Date().toLocaleString('pt-BR')}`);
+    lines.push('');
+    for (const [cKey, courseMap] of grouped) {
+      const [, courseTitle] = cKey.split('|');
+      lines.push(`## ${courseTitle}`);
+      lines.push('');
+      for (const [mKey, lessonsArr] of courseMap) {
+        const [, moduleTitle] = mKey.split('|');
+        lines.push(`### ${moduleTitle}`);
+        lines.push('');
+        for (const note of lessonsArr) {
+          lines.push(`#### ${note.lessonTitle}`);
+          lines.push(`*Atualizado: ${new Date(note.updatedAt).toLocaleString('pt-BR')}*`);
+          lines.push('');
+          lines.push(note.content);
+          lines.push('');
+        }
+      }
+    }
+
+    const md = lines.join('\n');
+    return new Response(md, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+        'Content-Disposition': `attachment; filename="anotacoes-${new Date().toISOString().slice(0, 10)}.md"`,
+      },
+    });
+  });
+
   /** Lista todas anotações do aluno com nome de curso/aula resolvidos. */
   app.get('/me/notes', requireAuth(), async (c) => {
     const u = c.get('user')!;
