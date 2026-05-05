@@ -136,6 +136,7 @@ import * as discussions from './discussions/store';
 import { buildSalesSummary } from './payments/sales-analytics';
 import { renderInvoiceHtml } from './payments/invoice';
 import { renderCertificateHtml } from './repositories/certificate-render';
+import * as backupWorker from './db/backup-worker';
 import * as adminDigest from './notifications/admin-digest';
 import * as welcome from './notifications/welcome';
 import * as wishlistStore from './activity/wishlist-store';
@@ -4122,6 +4123,22 @@ export function buildApp() {
       if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Review não encontrado.');
       return c.json({ ok: true });
     },
+  );
+
+  // Backup snapshots
+  app.get('/admin/backups/snapshots', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await backupWorker.listSnapshots()),
+  );
+
+  app.post(
+    '/admin/backups/run-now',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 3 }),
+    async (c) => c.json(await backupWorker.runBackup()),
+  );
+
+  app.get('/admin/backups/status', requireAuth('admin', 'superadmin'), (c) =>
+    c.json(backupWorker.getStatus()),
   );
 
   // Admin digest config + run

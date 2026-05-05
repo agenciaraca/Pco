@@ -161,3 +161,6 @@ import('./imports/schedules-worker').then((m) => m.startWorker(60_000));
 
 // Worker de digest diário admin — verifica a cada 30min se chegou a hora
 import('./notifications/admin-digest').then((m) => m.startWorker());
+
+// Worker de backup automático — tick a cada 1h, dispara 1x/dia às 04h UTC
+import('./db/backup-worker').then((m) => m.startWorker());
