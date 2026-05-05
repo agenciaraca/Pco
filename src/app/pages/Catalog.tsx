@@ -80,9 +80,10 @@ export default function Catalog() {
                 });
 
               return (
-                <article
+                <Link
+                  to={`/curso-preview/${course.id}`}
                   key={course.id}
-                  className="pco-card pco-card-hover overflow-hidden p-0"
+                  className="pco-card pco-card-hover overflow-hidden p-0 block"
                 >
                   <div
                     className={`relative h-40 bg-gradient-to-br ${course.coverColor} p-5`}
@@ -131,13 +132,13 @@ export default function Catalog() {
                           </>
                         )}
                       </div>
-                      <Link to="/login" className="pco-btn-primary text-xs">
-                        Quero estudar
+                      <span className="pco-btn-primary text-xs">
+                        Ver detalhes
                         <ArrowRight size={12} strokeWidth={2} />
-                      </Link>
+                      </span>
                     </div>
                   </div>
-                </article>
+                </Link>
               );
             })}
           </div>
