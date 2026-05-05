@@ -7,7 +7,14 @@ import {
   ShieldCheck,
   PlayCircle,
 } from 'lucide-react';
-import { useBackups, useDeleteBackup, useRunBackupNow } from '../../data/hooks';
+import {
+  useBackups,
+  useDeleteBackup,
+  useRunBackupNow,
+  useBackupSnapshots,
+  useBackupStatus,
+  useRunBackupSnapshotNow,
+} from '../../data/hooks';
 import { downloadBackup } from '../../data/api';
 import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
@@ -193,6 +200,8 @@ export default function AdminBackups() {
         </div>
       )}
 
+      <SnapshotsSection />
+
       <ConfirmDialog
         open={!!confirm}
         title="Excluir backup?"
@@ -232,5 +241,98 @@ function Stat({
       </div>
       <div className="mt-1 text-xl font-bold text-pco-deep">{value}</div>
     </div>
+  );
+}
+
+function SnapshotsSection() {
+  const snapshots = useBackupSnapshots();
+  const status = useBackupStatus();
+  const runMut = useRunBackupSnapshotNow();
+  const toast = useToast();
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-end justify-between gap-3 flex-wrap pt-4 border-t border-pco-border">
+        <div>
+          <h2 className="text-base font-bold text-pco-deep">
+            Snapshots automáticos (JSON stores)
+          </h2>
+          <p className="text-xs text-ink-muted">
+            Cópia diária dos arquivos JSON do DATA_DIR. Roda 04h UTC (1h BRT).
+            Mantém os últimos {status.data?.keepDays ?? 14} dias.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              const r = await runMut.mutateAsync();
+              toast.success(
+                'Snapshot criado',
+                `${r.filesBackedUp} arquivo(s), ${(r.bytesTotal / 1024).toFixed(1)} kB`,
+              );
+            } catch (err) {
+              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+          disabled={runMut.isPending}
+          className="pco-btn-ghost text-xs"
+        >
+          <PlayCircle size={11} strokeWidth={2} />
+          Snapshot agora
+        </button>
+      </div>
+
+      {snapshots.isLoading ? (
+        <CardListSkeleton count={2} />
+      ) : (snapshots.data ?? []).length === 0 ? (
+        <p className="text-xs text-ink-subtle">
+          Nenhum snapshot ainda. Será criado às 04h UTC.
+        </p>
+      ) : (
+        <div className="pco-card overflow-hidden">
+          <table className="w-full text-xs">
+            <thead className="bg-surface-mute text-ink-muted">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium">Data</th>
+                <th className="text-left px-3 py-2 font-medium">Arquivos</th>
+                <th className="text-right px-3 py-2 font-medium">Tamanho total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-mute">
+              {(snapshots.data ?? []).map((s) => {
+                const total = s.files.reduce((sum, f) => sum + f.size, 0);
+                return (
+                  <tr key={s.date} className="hover:bg-surface-mute/40">
+                    <td className="px-3 py-2 font-mono text-pco-deep">{s.date}</td>
+                    <td className="px-3 py-2 text-ink-muted">
+                      {s.files.length} arquivo(s)
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-pco-blue text-[10px]">
+                          ver detalhes
+                        </summary>
+                        <ul className="mt-1 space-y-0.5">
+                          {s.files.map((f) => (
+                            <li key={f.name} className="text-[10px] font-mono">
+                              {f.name} —{' '}
+                              <span className="text-ink-subtle">
+                                {(f.size / 1024).toFixed(1)} kB
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    </td>
+                    <td className="px-3 py-2 text-right text-ink-muted">
+                      {(total / 1024).toFixed(1)} kB
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }

@@ -3007,6 +3007,39 @@ export async function fetchMyNotes(search?: string): Promise<MyNoteHitDto[]> {
   return http.get<MyNoteHitDto[]>(`/me/notes${qs}`);
 }
 
+// ---------- Snapshots de backup (auto) ----------
+
+export interface BackupSnapshotDto {
+  date: string;
+  files: Array<{ name: string; size: number }>;
+}
+
+export interface BackupRunResultDto {
+  date: string;
+  filesBackedUp: number;
+  bytesTotal: number;
+  errors: string[];
+}
+
+export interface BackupStatusDto {
+  enabled: boolean;
+  lastRunAt: string | null;
+  lastResult: BackupRunResultDto | null;
+  keepDays: number;
+}
+
+export async function fetchBackupSnapshots(): Promise<BackupSnapshotDto[]> {
+  return http.get<BackupSnapshotDto[]>('/admin/backups/snapshots');
+}
+
+export async function fetchBackupStatus(): Promise<BackupStatusDto> {
+  return http.get<BackupStatusDto>('/admin/backups/status');
+}
+
+export async function runBackupSnapshotNow(): Promise<BackupRunResultDto> {
+  return http.post<BackupRunResultDto>('/admin/backups/run-now', {});
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =

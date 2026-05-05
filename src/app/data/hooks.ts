@@ -1755,6 +1755,33 @@ export function useMyNotes(search?: string) {
   });
 }
 
+const backupSnapshotsKey = ['admin', 'backups', 'snapshots'] as const;
+
+export function useBackupSnapshots() {
+  return useQuery({
+    queryKey: backupSnapshotsKey,
+    queryFn: () => api.fetchBackupSnapshots(),
+  });
+}
+
+export function useBackupStatus() {
+  return useQuery({
+    queryKey: ['admin', 'backups', 'status'],
+    queryFn: () => api.fetchBackupStatus(),
+  });
+}
+
+export function useRunBackupSnapshotNow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.runBackupSnapshotNow(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: backupSnapshotsKey });
+      qc.invalidateQueries({ queryKey: ['admin', 'backups', 'status'] });
+    },
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {
