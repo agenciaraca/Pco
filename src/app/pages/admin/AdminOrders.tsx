@@ -15,6 +15,7 @@ import {
   useAdminUpdateOrderStatus,
   useAdminRefundOrder,
 } from '../../data/hooks';
+import SavedSearchesBar from '../../components/SavedSearchesBar';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
@@ -204,6 +205,23 @@ export default function AdminOrders() {
           {filtered.length} de {counts.all}
         </span>
       </div>
+
+      <SavedSearchesBar
+        scope="orders"
+        currentFilters={
+          statusFilter === 'all' && !search.trim()
+            ? {}
+            : { statusFilter, search: search.trim() }
+        }
+        onApply={(f) => {
+          if (typeof f.statusFilter === 'string') {
+            setStatusFilter(f.statusFilter as 'all' | OrderStatus);
+          }
+          if (typeof f.search === 'string') {
+            setSearch(f.search);
+          }
+        }}
+      />
 
       {isLoading ? (
         <CardListSkeleton count={4} />

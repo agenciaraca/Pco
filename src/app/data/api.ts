@@ -2462,6 +2462,114 @@ export async function fetchStudentAchievements(
   return http.get(`/admin/students/${encodeURIComponent(studentId)}/achievements`);
 }
 
+// ---------- Saved searches ----------
+
+export type SavedSearchScopeDto =
+  | 'students'
+  | 'orders'
+  | 'imports'
+  | 'activity'
+  | 'rate-limits'
+  | 'logs'
+  | 'broadcasts';
+
+export interface SavedSearchDto {
+  id: string;
+  ownerId: string;
+  ownerEmail: string;
+  scope: SavedSearchScopeDto;
+  name: string;
+  filters: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchSavedSearches(
+  scope?: SavedSearchScopeDto,
+): Promise<SavedSearchDto[]> {
+  const qs = scope ? `?scope=${scope}` : '';
+  return http.get(`/admin/saved-searches${qs}`);
+}
+
+export async function createSavedSearch(input: {
+  scope: SavedSearchScopeDto;
+  name: string;
+  filters: Record<string, unknown>;
+}): Promise<SavedSearchDto> {
+  return http.post('/admin/saved-searches', input);
+}
+
+export async function updateSavedSearch(
+  id: string,
+  patch: { name?: string; filters?: Record<string, unknown> },
+): Promise<SavedSearchDto> {
+  return http.put(`/admin/saved-searches/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteSavedSearch(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(
+    `/admin/saved-searches/${encodeURIComponent(id)}`,
+  );
+}
+
+// ---------- Live sessions ----------
+
+export type LiveSessionStatusDto = 'scheduled' | 'live' | 'ended' | 'canceled';
+
+export interface LiveSessionDto {
+  id: string;
+  title: string;
+  description?: string;
+  courseId?: string | null;
+  hostName?: string;
+  joinUrl: string;
+  startAt: string;
+  durationMinutes: number;
+  status: LiveSessionStatusDto;
+  statusComputed: LiveSessionStatusDto;
+  audience: 'all' | 'enrolled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LiveSessionInputDto {
+  title: string;
+  description?: string;
+  courseId?: string | null;
+  hostName?: string;
+  joinUrl: string;
+  startAt: string;
+  durationMinutes: number;
+  audience: 'all' | 'enrolled';
+}
+
+export async function fetchMyLiveSessions(): Promise<LiveSessionDto[]> {
+  return http.get('/me/live-sessions');
+}
+
+export async function fetchAdminLiveSessions(): Promise<LiveSessionDto[]> {
+  return http.get('/admin/live-sessions');
+}
+
+export async function createLiveSession(
+  input: LiveSessionInputDto,
+): Promise<LiveSessionDto> {
+  return http.post('/admin/live-sessions', input);
+}
+
+export async function updateLiveSession(
+  id: string,
+  patch: Partial<LiveSessionInputDto> & { status?: LiveSessionStatusDto },
+): Promise<LiveSessionDto> {
+  return http.put(`/admin/live-sessions/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteLiveSession(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(
+    `/admin/live-sessions/${encodeURIComponent(id)}`,
+  );
+}
+
 // ---------- Lesson discussions ----------
 
 export interface LessonCommentDto {

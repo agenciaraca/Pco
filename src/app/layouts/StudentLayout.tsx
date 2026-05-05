@@ -34,6 +34,7 @@ const studentGroups = [
       { to: '/biblioteca', label: 'Biblioteca PCO', icon: BookOpen },
       { to: '/news', label: 'PCO News', icon: Newspaper },
       { to: '/podcasts', label: 'PCO POD', icon: Mic2 },
+      { to: '/eventos', label: 'Encontros ao vivo', icon: Mic2 },
       { to: '/tutor', label: 'Tutor Virtual', icon: Bot },
       { to: '/analise-supervisao', label: 'Análise e Supervisão', icon: Stethoscope },
     ],

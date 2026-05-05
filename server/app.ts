@@ -130,6 +130,8 @@ import * as activityFeed from './activity/feed';
 import { buildCsv, csvResponse } from './export/csv';
 import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
+import * as liveSessions from './live-sessions/store';
+import * as savedSearches from './saved-searches/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
 import * as logBuffer from './monitoring/log-buffer';
 import * as watchTimeRepo from './repositories/watch-time';
@@ -3176,6 +3178,206 @@ export function buildApp() {
     });
     return c.json(next);
   });
+
+  // ---------- Saved searches/filters ----------
+
+  app.get('/admin/saved-searches', requireAuth('admin', 'superadmin'), async (c) => {
+    const u = c.get('user')!;
+    const scope = c.req.query('scope') as
+      | 'students'
+      | 'orders'
+      | 'imports'
+      | 'activity'
+      | 'rate-limits'
+      | 'logs'
+      | 'broadcasts'
+      | undefined;
+    return c.json(await savedSearches.listForOwner(u.sub, scope));
+  });
+
+  app.post(
+    '/admin/saved-searches',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 60 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const u = c.get('user')!;
+      const name = String(body.name ?? '').trim();
+      const scope = body.scope as Parameters<typeof savedSearches.createSearch>[0]['scope'];
+      const filters =
+        body.filters && typeof body.filters === 'object'
+          ? (body.filters as Record<string, unknown>)
+          : null;
+      if (!name) return jsonError(c, 400, 'INVALID_INPUT', 'name é obrigatório');
+      if (
+        ![
+          'students',
+          'orders',
+          'imports',
+          'activity',
+          'rate-limits',
+          'logs',
+          'broadcasts',
+        ].includes(String(scope))
+      ) {
+        return jsonError(c, 400, 'INVALID_SCOPE', 'scope inválido.');
+      }
+      if (!filters) {
+        return jsonError(c, 400, 'INVALID_FILTERS', 'filters obrigatório (objeto).');
+      }
+      const created = await savedSearches.createSearch({
+        ownerId: u.sub,
+        ownerEmail: u.email,
+        scope,
+        name,
+        filters,
+      });
+      return c.json(created, 201);
+    },
+  );
+
+  app.put('/admin/saved-searches/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const u = c.get('user')!;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const updated = await savedSearches.updateSearch(c.req.param('id') as string, u.sub, {
+      name: body.name ? String(body.name) : undefined,
+      filters:
+        body.filters && typeof body.filters === 'object'
+          ? (body.filters as Record<string, unknown>)
+          : undefined,
+    });
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Filtro não encontrado.');
+    return c.json(updated);
+  });
+
+  app.delete(
+    '/admin/saved-searches/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const u = c.get('user')!;
+      const ok = await savedSearches.deleteSearch(c.req.param('id') as string, u.sub);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Filtro não encontrado.');
+      return c.json({ ok: true });
+    },
+  );
+
+  // ---------- Live sessions ----------
+
+  // Aluno autenticado vê próximas (limitado a 50). Filtra por audiência.
+  app.get('/me/live-sessions', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const upcoming = await liveSessions.listUpcoming(50);
+    let result = upcoming;
+    if (u.role === 'student') {
+      const student = await studentsRepo.findAdminStudent(u.sub);
+      const enrolledSet = new Set(student?.enrolledCourseIds ?? []);
+      result = upcoming.filter((s) => {
+        if (s.audience === 'all') return true;
+        if (s.audience === 'enrolled' && s.courseId) {
+          return enrolledSet.has(s.courseId);
+        }
+        return false;
+      });
+    }
+    return c.json(
+      result.map((s) => ({
+        ...s,
+        statusComputed: liveSessions.computeStatus(s),
+      })),
+    );
+  });
+
+  app.get('/admin/live-sessions', requireAuth('admin', 'superadmin'), async (c) => {
+    const all = await liveSessions.listAll();
+    return c.json(
+      all.map((s) => ({
+        ...s,
+        statusComputed: liveSessions.computeStatus(s),
+      })),
+    );
+  });
+
+  app.post(
+    '/admin/live-sessions',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 20 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const title = String(body.title ?? '').trim();
+      const joinUrl = String(body.joinUrl ?? '').trim();
+      const startAt = String(body.startAt ?? '').trim();
+      const durationMinutes = Number(body.durationMinutes ?? 0);
+      const audience = body.audience === 'enrolled' ? 'enrolled' : 'all';
+      if (!title || !joinUrl || !startAt) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'title, joinUrl e startAt obrigatórios.');
+      }
+      if (!/^https?:\/\//.test(joinUrl)) {
+        return jsonError(c, 400, 'INVALID_URL', 'joinUrl deve começar com http(s)://');
+      }
+      if (!Number.isFinite(durationMinutes) || durationMinutes <= 0 || durationMinutes > 720) {
+        return jsonError(c, 400, 'INVALID_DURATION', 'duration entre 1 e 720 min');
+      }
+      const created = await liveSessions.createSession({
+        title,
+        description: body.description ? String(body.description) : undefined,
+        courseId: body.courseId ? String(body.courseId) : null,
+        hostName: body.hostName ? String(body.hostName) : undefined,
+        joinUrl,
+        startAt,
+        durationMinutes: Math.floor(durationMinutes),
+        audience,
+      });
+      return c.json(created, 201);
+    },
+  );
+
+  app.put(
+    '/admin/live-sessions/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const audience =
+        body.audience === 'enrolled' || body.audience === 'all'
+          ? body.audience
+          : undefined;
+      const status =
+        body.status === 'scheduled' ||
+        body.status === 'live' ||
+        body.status === 'ended' ||
+        body.status === 'canceled'
+          ? body.status
+          : undefined;
+      const updated = await liveSessions.updateSession(c.req.param('id') as string, {
+        title: body.title ? String(body.title) : undefined,
+        description: body.description !== undefined ? String(body.description) : undefined,
+        courseId:
+          body.courseId !== undefined
+            ? body.courseId
+              ? String(body.courseId)
+              : null
+            : undefined,
+        hostName: body.hostName !== undefined ? String(body.hostName) : undefined,
+        joinUrl: body.joinUrl ? String(body.joinUrl) : undefined,
+        startAt: body.startAt ? String(body.startAt) : undefined,
+        durationMinutes:
+          body.durationMinutes !== undefined ? Number(body.durationMinutes) : undefined,
+        audience,
+        status,
+      });
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Sessão não encontrada.');
+      return c.json(updated);
+    },
+  );
+
+  app.delete(
+    '/admin/live-sessions/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const ok = await liveSessions.deleteSession(c.req.param('id') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Sessão não encontrada.');
+      return c.json({ ok: true });
+    },
+  );
 
   // ---------- Lesson discussions ----------
 

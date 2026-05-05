@@ -17,6 +17,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyCertificate = lazy(() => import('./pages/VerifyCertificate'));
 const CheckoutMock = lazy(() => import('./pages/CheckoutMock'));
 const Pedidos = lazy(() => import('./pages/Pedidos'));
+const Eventos = lazy(() => import('./pages/Eventos'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacidade = lazy(() => import('./pages/Privacidade'));
@@ -93,6 +94,7 @@ const AdminLogs = lazy(() => import('./pages/admin/AdminLogs'));
 const AdminRateLimits = lazy(() => import('./pages/admin/AdminRateLimits'));
 const AdminCoursePreview = lazy(() => import('./pages/admin/AdminCoursePreview'));
 const AdminCourseAnalytics = lazy(() => import('./pages/admin/AdminCourseAnalytics'));
+const AdminLiveSessions = lazy(() => import('./pages/admin/AdminLiveSessions'));
 const ImportWizardApi = lazy(() => import('./pages/admin/imports/ImportWizardApi'));
 
 function S({ children }: { children: ReactNode }) {
@@ -142,6 +144,7 @@ export const router = createBrowserRouter([
       { path: '/analise-supervisao', element: <S><AnaliseSupervisao /></S> },
       { path: '/notificacoes', element: <S><Notifications /></S> },
       { path: '/pedidos', element: <S><Pedidos /></S> },
+      { path: '/eventos', element: <S><Eventos /></S> },
     ],
   },
 
@@ -215,6 +218,7 @@ export const router = createBrowserRouter([
       { path: 'rate-limits', element: <S><AdminRateLimits /></S> },
       { path: 'cursos/:courseId/preview', element: <S><AdminCoursePreview /></S> },
       { path: 'cursos/:courseId/analytics', element: <S><AdminCourseAnalytics /></S> },
+      { path: 'sessoes-ao-vivo', element: <S><AdminLiveSessions /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },
       { path: 'imports/wizard', element: <S><ImportWizardCsv /></S> },
       { path: 'imports/wizard-api', element: <S><ImportWizardApi /></S> },

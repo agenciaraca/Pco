@@ -1576,6 +1576,89 @@ export function useCourseAnalytics(courseId: string | undefined) {
   });
 }
 
+// Saved searches
+export function useSavedSearches(scope?: api.SavedSearchScopeDto) {
+  return useQuery({
+    queryKey: ['admin', 'saved-searches', scope] as const,
+    queryFn: () => api.fetchSavedSearches(scope),
+  });
+}
+
+export function useCreateSavedSearch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createSavedSearch,
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['admin', 'saved-searches', vars.scope] }),
+  });
+}
+
+export function useDeleteSavedSearch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteSavedSearch,
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ['admin', 'saved-searches'] }),
+  });
+}
+
+// Live sessions
+const liveSessionsAdminKey = ['admin', 'live-sessions'] as const;
+const liveSessionsMyKey = ['me', 'live-sessions'] as const;
+
+export function useMyLiveSessions() {
+  return useQuery({
+    queryKey: liveSessionsMyKey,
+    queryFn: api.fetchMyLiveSessions,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useAdminLiveSessions() {
+  return useQuery({
+    queryKey: liveSessionsAdminKey,
+    queryFn: api.fetchAdminLiveSessions,
+  });
+}
+
+export function useCreateLiveSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createLiveSession,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: liveSessionsAdminKey });
+      qc.invalidateQueries({ queryKey: liveSessionsMyKey });
+    },
+  });
+}
+
+export function useUpdateLiveSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      id: string;
+      patch: Partial<api.LiveSessionInputDto> & {
+        status?: api.LiveSessionStatusDto;
+      };
+    }) => api.updateLiveSession(args.id, args.patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: liveSessionsAdminKey });
+      qc.invalidateQueries({ queryKey: liveSessionsMyKey });
+    },
+  });
+}
+
+export function useDeleteLiveSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteLiveSession,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: liveSessionsAdminKey });
+      qc.invalidateQueries({ queryKey: liveSessionsMyKey });
+    },
+  });
+}
+
 export function useStudentAnalytics(studentId: string | undefined) {
   return useQuery({
     queryKey: ['admin', 'students', studentId, 'analytics'] as const,

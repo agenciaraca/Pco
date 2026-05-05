@@ -92,6 +92,7 @@ const adminGroups = [
       { to: '/admin/produtos', label: 'Produtos', icon: CreditCard },
       { to: '/admin/pedidos', label: 'Pedidos', icon: CreditCard },
       { to: '/admin/imports', label: 'Importar dados', icon: UploadCloud },
+      { to: '/admin/sessoes-ao-vivo', label: 'Sessões ao vivo', icon: Mic2 },
       { to: '/admin/email', label: 'E-mail transacional', icon: Mail },
       { to: '/admin/broadcasts', label: 'Campanhas', icon: Send },
       { to: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
