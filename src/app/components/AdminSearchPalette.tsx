@@ -86,22 +86,9 @@ export default function AdminSearchPalette() {
     }
   }
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-pco-border text-xs text-ink-muted hover:bg-surface-mute"
-        title="Buscar (Ctrl+K)"
-      >
-        <Search size={12} strokeWidth={1.75} />
-        Buscar
-        <kbd className="ml-2 px-1.5 py-0.5 rounded bg-surface-gray text-[10px] font-mono">
-          Ctrl K
-        </kbd>
-      </button>
-    );
-  }
+  // Quando fechado: não rendea nada (sem ocupar espaço no layout).
+  // O atalho Ctrl+K continua funcionando via window event listener.
+  if (!open) return null;
 
   return (
     <div
