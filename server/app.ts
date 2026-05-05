@@ -135,6 +135,7 @@ import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
 import { buildSalesSummary } from './payments/sales-analytics';
 import * as adminDigest from './notifications/admin-digest';
+import * as welcome from './notifications/welcome';
 import { buildLeaderboard, getUserRank } from './activity/leaderboard';
 import * as liveSessions from './live-sessions/store';
 import * as savedSearches from './saved-searches/store';
@@ -1823,16 +1824,17 @@ export function buildApp() {
   });
 
   app.post('/admin/users', requireAuth('admin', 'superadmin'), async (c) => {
-    const body = await c.req.json().catch(() => ({}));
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const v = validate(createSystemUserSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
     const acting = c.get('user');
     if (v.data.role === 'superadmin' && acting?.role !== 'superadmin') {
       return jsonError(c, 403, 'FORBIDDEN', 'Apenas superadmin pode criar superadmin.');
     }
+    const sendWelcome = body.sendWelcomeEmail === true;
     try {
       const created = await usersStore.createUser(v.data);
-      // Notificação de boas-vindas para o novo usuário
+      // Notificação de boas-vindas (in-app)
       await notificationsRepo.createOne({
         userId: created.id,
         title: `Bem-vindo(a) ao AVA PCO, ${created.name}!`,
@@ -1842,6 +1844,18 @@ export function buildApp() {
         link: '/perfil',
         authorEmail: acting?.email ?? null,
       });
+      // Email de boas-vindas (opcional)
+      if (sendWelcome) {
+        void welcome
+          .sendWelcomeEmail({
+            email: created.email,
+            name: created.name,
+            tempPassword: v.data.password,
+          })
+          .catch((err) =>
+            console.error('[welcome email]', err instanceof Error ? err.message : err),
+          );
+      }
       return c.json(created, 201);
     } catch (err) {
       return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
@@ -2025,8 +2039,10 @@ export function buildApp() {
     async (c) => {
       const body = (await c.req.json().catch(() => ({}))) as {
         rows?: Array<{ email?: string; name?: string; courseIds?: string[] }>;
+        sendWelcomeEmail?: boolean;
       };
       const rows = Array.isArray(body.rows) ? body.rows : [];
+      const sendWelcome = body.sendWelcomeEmail === true;
       if (rows.length === 0) {
         return jsonError(c, 400, 'INVALID_INPUT', 'rows vazio.');
       }
@@ -2049,24 +2065,50 @@ export function buildApp() {
         const courseIds = Array.isArray(row.courseIds) ? row.courseIds : [];
         try {
           let userId: string;
+          let userJustCreated = false;
+          let plainPassword: string | undefined;
+          let userName = '';
           const existing = await usersStore.findUserByEmail(email);
           if (existing) {
             userId = existing.id;
+            userName = existing.name;
           } else {
-            const passwordTmp = `pco-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+            plainPassword = `pco-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+            userName = row.name?.trim() || email;
             const newUser = await usersStore.createUser({
               email,
-              name: row.name?.trim() || email,
+              name: userName,
               role: 'student',
-              password: passwordTmp,
+              password: plainPassword,
               active: true,
             });
             userId = newUser.id;
             created++;
+            userJustCreated = true;
           }
           for (const courseId of courseIds) {
             await studentsRepo.enrollInCourse(userId, courseId);
             enrolled++;
+          }
+          if (userJustCreated && sendWelcome && plainPassword) {
+            const courseTitles: string[] = [];
+            for (const cid of courseIds) {
+              const course = await coursesRepo.findCourse(cid);
+              if (course) courseTitles.push(course.title);
+            }
+            void welcome
+              .sendWelcomeEmail({
+                email,
+                name: userName,
+                tempPassword: plainPassword,
+                enrolledCourseTitles: courseTitles,
+              })
+              .catch((err) =>
+                console.error(
+                  '[welcome email bulk]',
+                  err instanceof Error ? err.message : err,
+                ),
+              );
           }
         } catch (err) {
           errors.push({

@@ -23,6 +23,7 @@ export default function AdminUsersImport() {
 
   const [csvText, setCsvText] = useState('');
   const [defaultCourseId, setDefaultCourseId] = useState<string>('');
+  const [sendWelcome, setSendWelcome] = useState(true);
   const [result, setResult] = useState<ImportUsersResultDto | null>(null);
 
   const parsed = useMemo(() => parseCsv(csvText), [csvText]);
@@ -61,7 +62,7 @@ export default function AdminUsersImport() {
           : [],
     }));
     try {
-      const r = await importMut.mutateAsync(rows);
+      const r = await importMut.mutateAsync({ rows, sendWelcomeEmail: sendWelcome });
       setResult(r);
       toast.success(
         'Importação concluída',
@@ -173,7 +174,16 @@ export default function AdminUsersImport() {
         </select>
       </section>
 
-      <div className="flex items-center gap-2 justify-end">
+      <div className="flex items-center gap-3 justify-end flex-wrap">
+        <label className="flex items-center gap-2 text-xs text-ink-muted">
+          <input
+            type="checkbox"
+            checked={sendWelcome}
+            onChange={(e) => setSendWelcome(e.target.checked)}
+            className="accent-pco-blue"
+          />
+          Enviar email de boas-vindas com senha temporária
+        </label>
         <button
           type="button"
           onClick={handleImport}

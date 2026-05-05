@@ -1012,8 +1012,12 @@ export interface ImportUsersResultDto {
 
 export async function importUsers(
   rows: ImportUserRowDto[],
+  sendWelcomeEmail = false,
 ): Promise<ImportUsersResultDto> {
-  return http.post<ImportUsersResultDto>('/admin/users/import', { rows });
+  return http.post<ImportUsersResultDto>('/admin/users/import', {
+    rows,
+    sendWelcomeEmail,
+  });
 }
 
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
