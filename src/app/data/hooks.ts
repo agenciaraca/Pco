@@ -980,6 +980,45 @@ export function usePublicLeaderboard(days = 30, limit = 5) {
   });
 }
 
+const wishlistKey = ['me', 'wishlist'] as const;
+const wishlistAggKey = ['admin', 'wishlist', 'aggregate'] as const;
+
+export function useMyWishlist() {
+  return useQuery({
+    queryKey: wishlistKey,
+    queryFn: () => api.fetchMyWishlist(),
+  });
+}
+
+export function useAddToWishlist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (courseId: string) => api.addToWishlist(courseId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: wishlistKey });
+      qc.invalidateQueries({ queryKey: wishlistAggKey });
+    },
+  });
+}
+
+export function useRemoveFromWishlist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (courseId: string) => api.removeFromWishlist(courseId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: wishlistKey });
+      qc.invalidateQueries({ queryKey: wishlistAggKey });
+    },
+  });
+}
+
+export function useWishlistAggregate() {
+  return useQuery({
+    queryKey: wishlistAggKey,
+    queryFn: () => api.fetchWishlistAggregate(),
+  });
+}
+
 export function useImportUsers() {
   const qc = useQueryClient();
   return useMutation({

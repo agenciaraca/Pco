@@ -136,6 +136,7 @@ import * as discussions from './discussions/store';
 import { buildSalesSummary } from './payments/sales-analytics';
 import * as adminDigest from './notifications/admin-digest';
 import * as welcome from './notifications/welcome';
+import * as wishlistStore from './activity/wishlist-store';
 import { buildLeaderboard, getUserRank } from './activity/leaderboard';
 import * as liveSessions from './live-sessions/store';
 import * as savedSearches from './saved-searches/store';
@@ -3942,6 +3943,36 @@ export function buildApp() {
     const r = await getUserRank(u.sub, Number.isFinite(days) ? days : 30);
     return c.json(r);
   });
+
+  // ---------- Wishlist ----------
+
+  app.get('/me/wishlist', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const list = await wishlistStore.listForUser(u.sub);
+    return c.json(list);
+  });
+
+  app.post('/me/wishlist/:courseId', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const courseId = c.req.param('courseId') as string;
+    const course = await coursesRepo.findCourse(courseId);
+    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+    const e = await wishlistStore.add(u.sub, courseId);
+    return c.json(e, 201);
+  });
+
+  app.delete('/me/wishlist/:courseId', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const courseId = c.req.param('courseId') as string;
+    await wishlistStore.remove(u.sub, courseId);
+    return c.json({ ok: true });
+  });
+
+  app.get(
+    '/admin/wishlist/aggregate',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(await wishlistStore.aggregateByCourse()),
+  );
 
   // Top 5 com nomes mascarados (privacidade): "Maria S." em vez de "Maria Silva"
   app.get('/leaderboard/top', requireAuth(), async (c) => {

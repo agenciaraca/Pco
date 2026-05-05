@@ -82,6 +82,7 @@ const AdminModeration = lazy(() => import('./pages/admin/AdminModeration'));
 const AdminVendas = lazy(() => import('./pages/admin/AdminVendas'));
 const AdminDigest = lazy(() => import('./pages/admin/AdminDigest'));
 const AdminLeaderboard = lazy(() => import('./pages/admin/AdminLeaderboard'));
+const AdminWishlist = lazy(() => import('./pages/admin/AdminWishlist'));
 const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
 const ImportsHome = lazy(() => import('./pages/admin/imports/ImportsHome'));
 const ImportWizardCsv = lazy(() => import('./pages/admin/imports/ImportWizardCsv'));
@@ -219,6 +220,7 @@ export const router = createBrowserRouter([
       { path: 'vendas', element: <S><AdminVendas /></S> },
       { path: 'digest', element: <S><AdminDigest /></S> },
       { path: 'leaderboard', element: <S><AdminLeaderboard /></S> },
+      { path: 'wishlist', element: <S><AdminWishlist /></S> },
       { path: 'pedidos', element: <S><AdminOrders /></S> },
       { path: 'email', element: <S><AdminEmail /></S> },
       { path: 'webhooks', element: <S><AdminWebhooks /></S> },

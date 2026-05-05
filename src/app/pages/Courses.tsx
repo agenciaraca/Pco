@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom';
 import { useMemo, useState } from 'react';
-import { ArrowRight, Clock, Layers, PlayCircle, Tag } from 'lucide-react';
+import { ArrowRight, Clock, Layers, PlayCircle, Tag, Heart } from 'lucide-react';
 import {
   useCourses,
   useMyProgress,
   useProducts,
   useStartCheckout,
   useCurrentStudent,
+  useMyWishlist,
+  useAddToWishlist,
+  useRemoveFromWishlist,
 } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
@@ -24,6 +27,26 @@ export default function Courses() {
   const checkout = useStartCheckout();
   const toast = useToast();
   const [pendingProduct, setPendingProduct] = useState<ProductDto | null>(null);
+  const wishlistQ = useMyWishlist();
+  const addWish = useAddToWishlist();
+  const removeWish = useRemoveFromWishlist();
+  const wishedIds = useMemo(
+    () => new Set((wishlistQ.data ?? []).map((w) => w.courseId)),
+    [wishlistQ.data],
+  );
+
+  async function toggleWish(courseId: string) {
+    try {
+      if (wishedIds.has(courseId)) {
+        await removeWish.mutateAsync(courseId);
+      } else {
+        await addWish.mutateAsync(courseId);
+        toast.success('Adicionado à lista de interesse');
+      }
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
   const doneIds = new Set(progress?.completedLessonIds ?? []);
   const enrolledIds = new Set(
     (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds ?? [],
@@ -169,17 +192,33 @@ export default function Courses() {
                         style: 'currency',
                         currency: product.currency,
                       });
+                      const isWished = wishedIds.has(course.id);
                       return (
                         <div className="flex flex-col gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleBuy(product)}
-                            disabled={checkout.isPending}
-                            className="pco-btn-primary w-full justify-center text-xs"
-                          >
-                            Comprar por {price}
-                            <ArrowRight size={12} strokeWidth={2} />
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleBuy(product)}
+                              disabled={checkout.isPending}
+                              className="pco-btn-primary flex-1 justify-center text-xs"
+                            >
+                              Comprar por {price}
+                              <ArrowRight size={12} strokeWidth={2} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleWish(course.id)}
+                              disabled={addWish.isPending || removeWish.isPending}
+                              className="pco-btn-ghost text-xs"
+                              title={isWished ? 'Remover da lista' : 'Tenho interesse'}
+                            >
+                              <Heart
+                                size={13}
+                                strokeWidth={1.75}
+                                className={isWished ? 'fill-pco-orange text-pco-orange' : ''}
+                              />
+                            </button>
+                          </div>
                           <p className="text-[10px] text-ink-subtle text-center">
                             Acesso liberado após confirmação do pagamento
                           </p>

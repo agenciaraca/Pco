@@ -1020,6 +1020,43 @@ export async function importUsers(
   });
 }
 
+// ---------- Wishlist ----------
+
+export interface WishlistEntryDto {
+  userId: string;
+  courseId: string;
+  addedAt: string;
+}
+
+export interface CourseWishCountDto {
+  courseId: string;
+  count: number;
+  addedLastWeek: number;
+}
+
+export async function fetchMyWishlist(): Promise<WishlistEntryDto[]> {
+  return http.get<WishlistEntryDto[]>('/me/wishlist');
+}
+
+export async function addToWishlist(
+  courseId: string,
+): Promise<WishlistEntryDto> {
+  return http.post<WishlistEntryDto>(
+    `/me/wishlist/${encodeURIComponent(courseId)}`,
+    {},
+  );
+}
+
+export async function removeFromWishlist(courseId: string): Promise<void> {
+  await http.delete<{ ok: true }>(
+    `/me/wishlist/${encodeURIComponent(courseId)}`,
+  );
+}
+
+export async function fetchWishlistAggregate(): Promise<CourseWishCountDto[]> {
+  return http.get<CourseWishCountDto[]>('/admin/wishlist/aggregate');
+}
+
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
   return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
 }
