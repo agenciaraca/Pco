@@ -103,6 +103,10 @@ export default function ImportWizardApi() {
   );
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedConn = useMemo(
+    () => (conns.data ?? []).find((c) => c.id === selectedId) ?? null,
+    [conns.data, selectedId],
+  );
   // Auto-selecciona primeira conexão se ainda nenhuma escolhida
   useMemo(() => {
     if (!selectedId && conns.data && conns.data.length > 0) {
@@ -130,6 +134,26 @@ export default function ImportWizardApi() {
   >('skip');
   const [conflictStrategy, setConflictStrategy] =
     useState<ConflictStrategyDto>('update');
+
+  // Pré-carrega defaults da conexão selecionada (apenas quando muda de conexão)
+  const [lastAppliedDefaultsFor, setLastAppliedDefaultsFor] = useState<string | null>(
+    null,
+  );
+  useMemo(() => {
+    if (
+      selectedConn &&
+      selectedConn.id !== lastAppliedDefaultsFor &&
+      (selectedConn.defaultUserMatchKeys || selectedConn.defaultConflictStrategy)
+    ) {
+      if (selectedConn.defaultUserMatchKeys?.length) {
+        setMatchKeys(selectedConn.defaultUserMatchKeys);
+      }
+      if (selectedConn.defaultConflictStrategy) {
+        setConflictStrategy(selectedConn.defaultConflictStrategy);
+      }
+      setLastAppliedDefaultsFor(selectedConn.id);
+    }
+  }, [selectedConn, lastAppliedDefaultsFor]);
 
   function toggleEntity(e: ImportEntityTypeDto) {
     setEntities((prev) =>
@@ -668,6 +692,33 @@ export default function ImportWizardApi() {
       </div>
 
       <div className="flex items-center justify-end gap-3 flex-wrap">
+        {selectedConn && (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await update.mutateAsync({
+                  id: selectedConn.id,
+                  input: {
+                    defaultUserMatchKeys: matchKeys,
+                    defaultConflictStrategy: conflictStrategy,
+                  },
+                });
+                toast.success(
+                  'Padrões salvos',
+                  'Match keys e estratégia memorizados nessa conexão.',
+                );
+              } catch (err) {
+                toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+              }
+            }}
+            disabled={update.isPending}
+            className="pco-btn-ghost text-xs"
+            title="Memoriza match keys e conflict strategy nessa conexão para próximas runs"
+          >
+            Salvar como padrão da conexão
+          </button>
+        )}
         <label className="flex items-center gap-2 text-xs text-ink-muted">
           <input
             type="checkbox"

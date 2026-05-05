@@ -3964,6 +3964,17 @@ export function buildApp() {
         wcConsumerSecret: body.wcConsumerSecret
           ? String(body.wcConsumerSecret)
           : undefined,
+        defaultUserMatchKeys: Array.isArray(body.defaultUserMatchKeys)
+          ? (body.defaultUserMatchKeys as Array<
+              'email' | 'document' | 'external_id' | 'wp_user_id'
+            >)
+          : undefined,
+        defaultConflictStrategy: body.defaultConflictStrategy as
+          | 'ignore'
+          | 'update'
+          | 'merge'
+          | 'error'
+          | undefined,
       });
       return c.json(created, 201);
     },
@@ -3987,6 +3998,17 @@ export function buildApp() {
           body.wcConsumerSecret !== undefined
             ? String(body.wcConsumerSecret)
             : undefined,
+        defaultUserMatchKeys: Array.isArray(body.defaultUserMatchKeys)
+          ? (body.defaultUserMatchKeys as Array<
+              'email' | 'document' | 'external_id' | 'wp_user_id'
+            >)
+          : undefined,
+        defaultConflictStrategy: body.defaultConflictStrategy as
+          | 'ignore'
+          | 'update'
+          | 'merge'
+          | 'error'
+          | undefined,
       });
       if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
       return c.json(updated);
@@ -4050,9 +4072,22 @@ export function buildApp() {
       }
       const conn = await importConnections.getConnection(body.connectionId);
       if (!conn) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+      const VALID_ENTITIES: ImportEntityType[] = [
+        'student',
+        'course',
+        'module',
+        'lesson',
+        'topic',
+        'quiz',
+        'question',
+        'group',
+        'product',
+        'order',
+        'enrollment',
+        'progress',
+      ];
       const entities: ImportEntityType[] = (body.entities ?? []).filter(
-        (e): e is ImportEntityType =>
-          ['student', 'course', 'lesson', 'product', 'order', 'enrollment'].includes(e),
+        (e): e is ImportEntityType => VALID_ENTITIES.includes(e),
       );
       if (entities.length === 0) {
         return jsonError(c, 400, 'INVALID_INPUT', 'Selecione ao menos uma entidade.');
@@ -4068,10 +4103,11 @@ export function buildApp() {
           ? (body.enrollment.userMatchKeys as Array<
               'email' | 'document' | 'external_id' | 'wp_user_id'
             >)
-          : undefined,
+          : conn.defaultUserMatchKeys,
         userMatchStrategy: body.enrollment?.userMatchStrategy,
         unmatchedUserPolicy: body.enrollment?.unmatchedUserPolicy,
-        conflictStrategy: body.enrollment?.conflictStrategy,
+        conflictStrategy:
+          body.enrollment?.conflictStrategy ?? conn.defaultConflictStrategy,
       };
       const dryRun = body.dryRun !== false;
       const job = await importJobs.createJob({

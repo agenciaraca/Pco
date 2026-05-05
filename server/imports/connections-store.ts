@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import { JsonStore } from '../db/json-store';
 import { encryptApiKey, decryptApiKey } from '../db/encryption';
+import type { ConflictStrategy, UserMatchKey } from './types';
 
 export type ConnectionKind = 'wp_ld_wc';
 
@@ -18,6 +19,9 @@ export interface ImportConnection {
   // Para WooCommerce: consumer_key + consumer_secret
   wcConsumerKey?: string; // ENCRYPTED
   wcConsumerSecret?: string; // ENCRYPTED
+  // Defaults reutilizáveis entre runs
+  defaultUserMatchKeys?: UserMatchKey[];
+  defaultConflictStrategy?: ConflictStrategy;
   createdAt: string;
   updatedAt: string;
   lastTestedAt?: string;
@@ -64,6 +68,8 @@ export interface ImportConnectionInput {
   wpAppPassword?: string; // plain
   wcConsumerKey?: string; // plain
   wcConsumerSecret?: string; // plain
+  defaultUserMatchKeys?: UserMatchKey[];
+  defaultConflictStrategy?: ConflictStrategy;
 }
 
 export async function createConnection(
@@ -81,6 +87,8 @@ export async function createConnection(
     wcConsumerSecret: input.wcConsumerSecret
       ? encryptApiKey(input.wcConsumerSecret)
       : undefined,
+    defaultUserMatchKeys: input.defaultUserMatchKeys,
+    defaultConflictStrategy: input.defaultConflictStrategy,
     createdAt: now,
     updatedAt: now,
   };
@@ -111,6 +119,10 @@ export async function updateConnection(
         patch.wcConsumerSecret !== undefined && patch.wcConsumerSecret !== ''
           ? encryptApiKey(patch.wcConsumerSecret)
           : c.wcConsumerSecret,
+      defaultUserMatchKeys:
+        patch.defaultUserMatchKeys ?? c.defaultUserMatchKeys,
+      defaultConflictStrategy:
+        patch.defaultConflictStrategy ?? c.defaultConflictStrategy,
       updatedAt: new Date().toISOString(),
     }),
   );

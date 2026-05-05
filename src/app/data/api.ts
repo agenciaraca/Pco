@@ -929,6 +929,8 @@ export interface ImportConnectionDto {
   hasWpAppPassword: boolean;
   hasWcConsumerKey: boolean;
   hasWcConsumerSecret: boolean;
+  defaultUserMatchKeys?: UserMatchKeyDto[];
+  defaultConflictStrategy?: ConflictStrategyDto;
   createdAt: string;
   updatedAt: string;
   lastTestedAt?: string;
@@ -943,6 +945,8 @@ export interface ImportConnectionInputDto {
   wpAppPassword?: string;
   wcConsumerKey?: string;
   wcConsumerSecret?: string;
+  defaultUserMatchKeys?: UserMatchKeyDto[];
+  defaultConflictStrategy?: ConflictStrategyDto;
 }
 
 export async function fetchImportConnections(): Promise<ImportConnectionDto[]> {

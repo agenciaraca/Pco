@@ -184,12 +184,27 @@ export async function upsertStudent(
         outcome: 'error',
         message: `Aluno já existe (${norm.email}). Estratégia=error.`,
       };
-    // update / merge
     const patch: Parameters<typeof usersStore.updateUser>[1] = {};
-    if (norm.displayName) patch.name = norm.displayName;
-    else if (norm.firstName)
-      patch.name = `${norm.firstName}${norm.lastName ? ' ' + norm.lastName : ''}`;
-    await usersStore.updateUser(existingUserId, patch);
+    const newName =
+      norm.displayName ||
+      (norm.firstName
+        ? `${norm.firstName}${norm.lastName ? ' ' + norm.lastName : ''}`
+        : '');
+    if (newName) {
+      if (cfg.conflictStrategy === 'merge') {
+        // Merge: só preenche se atual estiver vazio
+        const current = await usersStore.findUserById(existingUserId);
+        if (!current?.name || current.name === current.email) {
+          patch.name = newName;
+        }
+      } else {
+        // update: sobrescreve
+        patch.name = newName;
+      }
+    }
+    if (Object.keys(patch).length > 0) {
+      await usersStore.updateUser(existingUserId, patch);
+    }
 
     if (norm.externalUserId) {
       await refsStore.upsert({
@@ -268,14 +283,37 @@ export async function upsertProduct(
   if (existingId) {
     if (cfg.conflictStrategy === 'ignore')
       return { outcome: 'ignored', internalId: existingId };
-    await productsRepo.updateProduct(existingId, {
-      name: norm.name,
-      priceCents: norm.regularPriceCents,
-      currency: norm.currency,
-      description: norm.description,
-      active: norm.status === 'publish',
-      ...(linkedCourseInternalId ? { refId: linkedCourseInternalId } : {}),
-    });
+    if (cfg.conflictStrategy === 'error')
+      return {
+        outcome: 'error',
+        message: `Produto já existe (${norm.externalProductId}). Estratégia=error.`,
+      };
+    if (cfg.conflictStrategy === 'merge') {
+      // Merge: só sobrescreve campos atualmente vazios
+      const current = await productsRepo.findById(existingId);
+      const patch: Parameters<typeof productsRepo.updateProduct>[1] = {};
+      if (!current?.name && norm.name) patch.name = norm.name;
+      if ((current?.priceCents ?? 0) === 0 && norm.regularPriceCents > 0)
+        patch.priceCents = norm.regularPriceCents;
+      if (!current?.currency && norm.currency) patch.currency = norm.currency;
+      if (!current?.description && norm.description)
+        patch.description = norm.description;
+      if (linkedCourseInternalId && !current?.refId)
+        patch.refId = linkedCourseInternalId;
+      if (Object.keys(patch).length > 0) {
+        await productsRepo.updateProduct(existingId, patch);
+      }
+    } else {
+      // update: sobrescreve tudo
+      await productsRepo.updateProduct(existingId, {
+        name: norm.name,
+        priceCents: norm.regularPriceCents,
+        currency: norm.currency,
+        description: norm.description,
+        active: norm.status === 'publish',
+        ...(linkedCourseInternalId ? { refId: linkedCourseInternalId } : {}),
+      });
+    }
     return { outcome: 'updated', internalId: existingId };
   }
 
@@ -364,40 +402,79 @@ export async function upsertOrder(
   if (ref) {
     if (cfg.conflictStrategy === 'ignore')
       return { outcome: 'ignored', internalId: ref.internalId };
-    // Atualiza status apenas
-    await ordersRepo.updateStatus(
-      ref.internalId,
-      mapWcStatus(norm.status),
-      `Import: status WC ${norm.status}`,
-    );
+    if (cfg.conflictStrategy === 'error')
+      return {
+        outcome: 'error',
+        message: `Pedido já existe (${externalKey}). Estratégia=error.`,
+      };
+    // Para merge ou update, atualiza status; merge preserva metadata existente
+    if (cfg.conflictStrategy !== 'merge') {
+      await ordersRepo.updateStatus(
+        ref.internalId,
+        mapWcStatus(norm.status),
+        `Import: status WC ${norm.status}`,
+      );
+    }
+    // Merge metadata
+    const mergedMeta =
+      cfg.conflictStrategy === 'merge'
+        ? mergeOrderMeta(ref.metadata as Record<string, unknown>, norm)
+        : buildOrderMeta(norm);
+    await refsStore.upsert({
+      sourceType: ctx.source,
+      externalEntityType: 'order',
+      externalId: externalKey,
+      internalEntityType: 'order',
+      internalId: ref.internalId,
+      jobId: ctx.jobId,
+      metadata: mergedMeta,
+    });
     return { outcome: 'updated', internalId: ref.internalId };
   }
 
-  // Cria order interna mínima — sem gateway (registro histórico). Para isso usamos
-  // ordersRepo.createOrder que exige um gatewayId; criamos um stub ou pulamos quando
-  // não há gateway configurado. Aqui registramos apenas no refs como bridge.
-  // Decisão: NÃO criar OrderDto interno (a tabela é exclusiva do checkout AVA).
-  // Em vez disso, registramos o pedido externo apenas em refs com metadata cheia.
   await refsStore.upsert({
     sourceType: ctx.source,
     externalEntityType: 'order',
     externalId: externalKey,
     internalEntityType: 'order',
-    internalId: externalKey, // alias
+    internalId: externalKey,
     jobId: ctx.jobId,
-    metadata: {
-      customerEmail: norm.customerEmail,
-      status: norm.status,
-      orderDate: norm.orderDate,
-      paidDate: norm.paidDate,
-      completedDate: norm.completedDate,
-      totalCents: norm.totalCents,
-      currency: norm.currency,
-      productIds: norm.productIds,
-      productSkus: norm.productSkus,
-    },
+    metadata: buildOrderMeta(norm),
   });
   return { outcome: 'created', internalId: externalKey };
+}
+
+function buildOrderMeta(norm: NormalizedOrder): Record<string, unknown> {
+  return {
+    customerEmail: norm.customerEmail,
+    status: norm.status,
+    orderDate: norm.orderDate,
+    paidDate: norm.paidDate,
+    completedDate: norm.completedDate,
+    totalCents: norm.totalCents,
+    currency: norm.currency,
+    productIds: norm.productIds,
+    productSkus: norm.productSkus,
+  };
+}
+
+function mergeOrderMeta(
+  current: Record<string, unknown> | undefined,
+  norm: NormalizedOrder,
+): Record<string, unknown> {
+  const cur = current ?? {};
+  const fresh = buildOrderMeta(norm);
+  const out: Record<string, unknown> = { ...cur };
+  for (const [k, v] of Object.entries(fresh)) {
+    const existing = out[k];
+    const isEmpty =
+      existing === undefined ||
+      existing === null ||
+      existing === '' ||
+      (Array.isArray(existing) && existing.length === 0);
+    if (isEmpty && v !== undefined && v !== null) out[k] = v;
+  }
+  return out;
 }
 
 function mapWcStatus(s: NormalizedOrder['status']): 'paid' | 'pending' | 'canceled' | 'failed' | 'refunded' {
@@ -485,11 +562,27 @@ export async function applyEnrollment(
   if (existing) {
     if (cfg.conflictStrategy === 'ignore')
       return { outcome: 'ignored', internalId: existing.internalId };
+    if (cfg.conflictStrategy === 'error')
+      return {
+        outcome: 'error',
+        message: `Matrícula já existe para ${userId}:${internalCourseId}.`,
+      };
   }
 
   if (norm.status === 'active') {
     await studentsRepo.enrollInCourse(userId, internalCourseId);
   }
+
+  // Para merge, mantém startDate mais antiga e expirationDate mais recente
+  const meta = (existing?.metadata ?? {}) as Record<string, unknown>;
+  const finalStart =
+    cfg.conflictStrategy === 'merge' && typeof meta.startDate === 'string'
+      ? earliestDate(meta.startDate, dates.startDate)
+      : dates.startDate;
+  const finalExpiration =
+    cfg.conflictStrategy === 'merge' && typeof meta.expirationDate === 'string'
+      ? latestDate(meta.expirationDate as string | null, dates.expirationDate)
+      : dates.expirationDate;
 
   await refsStore.upsert({
     sourceType: ctx.source,
@@ -500,8 +593,8 @@ export async function applyEnrollment(
     jobId: ctx.jobId,
     metadata: {
       status: norm.status,
-      startDate: dates.startDate,
-      expirationDate: dates.expirationDate,
+      startDate: finalStart,
+      expirationDate: finalExpiration,
       orderExternalId: norm.orderExternalId,
       productExternalId: norm.productExternalId,
     },
@@ -521,3 +614,23 @@ export async function applyEnrollment(
 // ---------- Status helpers (re-exportados para conveniência) ----------
 
 export { mapWcStatus };
+
+function earliestDate(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return new Date(a).getTime() <= new Date(b).getTime() ? a : b;
+}
+
+function latestDate(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return new Date(a).getTime() >= new Date(b).getTime() ? a : b;
+}
+
+// Exposto para testes — não usar em código de produção
+export const __test_internals__ = {
+  earliestDate,
+  latestDate,
+  mergeOrderMeta,
+  buildOrderMeta,
+};
