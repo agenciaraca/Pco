@@ -137,6 +137,7 @@ import { buildSalesSummary } from './payments/sales-analytics';
 import { renderInvoiceHtml } from './payments/invoice';
 import { renderCertificateHtml } from './repositories/certificate-render';
 import * as backupWorker from './db/backup-worker';
+import * as deletionRequests from './auth/deletion-requests-store';
 import * as adminDigest from './notifications/admin-digest';
 import * as welcome from './notifications/welcome';
 import * as wishlistStore from './activity/wishlist-store';
@@ -1117,6 +1118,78 @@ export function buildApp() {
   });
 
   // ---------- Export de dados (LGPD) ----------
+
+  /** Status atual da solicitação ativa (se houver). */
+  app.get('/me/account/deletion', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const r = await deletionRequests.findActiveForUser(u.sub);
+    return c.json(r);
+  });
+
+  /** Aluno solicita exclusão. Admin processa manualmente. */
+  app.post(
+    '/me/account/deletion',
+    requireAuth(),
+    rateLimit({ windowMs: 60 * 60_000, max: 3 }),
+    async (c) => {
+      const u = c.get('user')!;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const reason = typeof body.reason === 'string' ? body.reason.slice(0, 500) : undefined;
+      try {
+        const r = await deletionRequests.create({
+          userId: u.sub,
+          userEmail: u.email,
+          reason,
+        });
+        return c.json(r, 201);
+      } catch (err) {
+        return jsonError(
+          c,
+          409,
+          'CONFLICT',
+          err instanceof Error ? err.message : 'Erro',
+        );
+      }
+    },
+  );
+
+  /** Aluno cancela própria solicitação pendente. */
+  app.delete('/me/account/deletion/:id', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const id = c.req.param('id') as string;
+    const ok = await deletionRequests.cancel(id, u.sub);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Solicitação não encontrada ou já resolvida.');
+    return c.json({ ok: true });
+  });
+
+  /** Admin lista todas. */
+  app.get('/admin/deletion-requests', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await deletionRequests.listAll()),
+  );
+
+  /** Admin atualiza status (approved/rejected/completed). */
+  app.put(
+    '/admin/deletion-requests/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const u = c.get('user')!;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const status = String(body.status ?? '');
+      const note = typeof body.note === 'string' ? body.note : undefined;
+      if (!['approved', 'rejected', 'completed'].includes(status)) {
+        return jsonError(c, 400, 'INVALID_STATUS', 'status inválido.');
+      }
+      const r = await deletionRequests.setStatus(
+        id,
+        status as 'approved' | 'rejected' | 'completed',
+        u.email,
+        note,
+      );
+      if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Solicitação não encontrada.');
+      return c.json(r);
+    },
+  );
 
   app.get('/me/export', requireAuth(), async (c) => {
     const u = c.get('user')!;

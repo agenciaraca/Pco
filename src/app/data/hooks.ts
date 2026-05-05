@@ -1811,6 +1811,31 @@ export function useBulkEnrollInCourse() {
   });
 }
 
+const myDeletionKey = ['me', 'account', 'deletion'] as const;
+
+export function useMyDeletionRequest() {
+  return useQuery({
+    queryKey: myDeletionKey,
+    queryFn: () => api.fetchMyDeletionRequest(),
+  });
+}
+
+export function useRequestAccountDeletion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reason?: string) => api.requestAccountDeletion(reason),
+    onSuccess: () => qc.invalidateQueries({ queryKey: myDeletionKey }),
+  });
+}
+
+export function useCancelDeletionRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.cancelDeletionRequest(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: myDeletionKey }),
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {

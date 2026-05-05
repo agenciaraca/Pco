@@ -273,11 +273,7 @@ export async function fetchVersion(): Promise<VersionDto> {
   return http.get<VersionDto>('/version');
 }
 
-// ---------- LGPD export + delete ----------
-
-export async function requestAccountDeletion(): Promise<{ ok: true }> {
-  return http.post<{ ok: true }>('/me/request-deletion', {});
-}
+// ---------- LGPD export ----------
 
 export async function exportMyData(): Promise<void> {
   const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
@@ -3108,6 +3104,56 @@ export async function bulkEnrollInCourse(
     `/admin/courses/${encodeURIComponent(courseId)}/enroll-bulk`,
     { studentIds },
   );
+}
+
+// ---------- LGPD: account deletion ----------
+
+export type DeletionStatusDto = 'pending' | 'approved' | 'rejected' | 'completed';
+
+export interface DeletionRequestDto {
+  id: string;
+  userId: string;
+  userEmail: string;
+  reason?: string;
+  status: DeletionStatusDto;
+  requestedAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  resolutionNote?: string;
+}
+
+export async function fetchMyDeletionRequest(): Promise<DeletionRequestDto | null> {
+  return http.get<DeletionRequestDto | null>('/me/account/deletion');
+}
+
+export async function requestAccountDeletion(
+  reason?: string,
+): Promise<DeletionRequestDto> {
+  return http.post<DeletionRequestDto>('/me/account/deletion', { reason });
+}
+
+export async function cancelDeletionRequest(id: string): Promise<void> {
+  await http.delete<{ ok: true }>(
+    `/me/account/deletion/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function downloadMyDataExport(): Promise<void> {
+  const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+  const token = session?.token;
+  const res = await fetch('/api/me/export', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `meus-dados-ava-pco-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ---------- Achievements ----------

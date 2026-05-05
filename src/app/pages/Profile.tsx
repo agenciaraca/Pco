@@ -20,6 +20,9 @@ import {
   useCertificates,
   useMyNotificationPrefs,
   useSnoozeNotifications,
+  useMyDeletionRequest,
+  useRequestAccountDeletion,
+  useCancelDeletionRequest,
   useUpdateMyNotificationPrefs,
 } from '../data/hooks';
 import * as api from '../data/api';
@@ -35,6 +38,9 @@ export default function Profile() {
   const notifPrefsQ = useMyNotificationPrefs();
   const updateNotifPrefs = useUpdateMyNotificationPrefs();
   const snoozeMut = useSnoozeNotifications();
+  const myDeletionQ = useMyDeletionRequest();
+  const reqDeletionMut = useRequestAccountDeletion();
+  const cancelDeletionMut = useCancelDeletionRequest();
 
   const [name, setName] = useState(user?.name ?? '');
   const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(user?.avatarUrl);
@@ -102,21 +108,29 @@ export default function Profile() {
   }
 
   async function handleRequestDeletion() {
-    if (
-      !confirm(
-        'Solicitar exclusão da conta?\n\nUm administrador receberá a solicitação e processará a remoção de todos os seus dados conforme LGPD. Você continua com acesso até a aprovação.',
-      )
-    ) {
-      return;
-    }
-    setRequestingDeletion(true);
+    const reason = prompt(
+      'Solicitar exclusão da conta? Direito ao esquecimento (LGPD Art. 18).\n\nO motivo é opcional e ajuda a equipe.',
+    );
+    if (reason === null) return;
     try {
-      await api.requestAccountDeletion();
-      toast.success('Solicitação enviada', 'Os administradores foram notificados.');
+      await reqDeletionMut.mutateAsync(reason || undefined);
+      toast.success(
+        'Solicitação enviada',
+        'Os administradores serão notificados e processarão sua solicitação.',
+      );
     } catch (err) {
       toast.error('Falha', err instanceof Error ? err.message : 'Erro');
-    } finally {
-      setRequestingDeletion(false);
+    }
+  }
+
+  async function handleCancelDeletion() {
+    if (!myDeletionQ.data) return;
+    if (!confirm('Cancelar a solicitação de exclusão?')) return;
+    try {
+      await cancelDeletionMut.mutateAsync(myDeletionQ.data.id);
+      toast.success('Solicitação cancelada');
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
     }
   }
 
@@ -467,15 +481,45 @@ export default function Profile() {
           Direito ao esquecimento (LGPD Art. 18). Sua solicitação será enviada aos
           administradores, que processarão a remoção de todos os seus dados pessoais.
         </p>
-        <button
-          type="button"
-          onClick={handleRequestDeletion}
-          disabled={requestingDeletion}
-          className="mt-3 pco-btn-ghost text-xs text-status-danger hover:bg-status-danger/10"
-        >
-          <Trash2 size={12} strokeWidth={2} />
-          {requestingDeletion ? 'Enviando solicitação...' : 'Solicitar exclusão da conta'}
-        </button>
+        {myDeletionQ.data ? (
+          <div className="mt-3 p-3 rounded bg-pco-orange/5 border border-pco-orange/30">
+            <div className="text-xs font-semibold text-pco-orange">
+              Solicitação {myDeletionQ.data.status === 'pending' ? 'pendente' : myDeletionQ.data.status}
+            </div>
+            <div className="text-[11px] text-ink-muted mt-1">
+              Enviada em{' '}
+              {new Date(myDeletionQ.data.requestedAt).toLocaleString('pt-BR')}
+              {myDeletionQ.data.reason && (
+                <>
+                  <br />
+                  <span className="italic">"{myDeletionQ.data.reason}"</span>
+                </>
+              )}
+            </div>
+            {myDeletionQ.data.status === 'pending' && (
+              <button
+                type="button"
+                onClick={handleCancelDeletion}
+                disabled={cancelDeletionMut.isPending}
+                className="mt-2 pco-btn-ghost text-xs"
+              >
+                Cancelar solicitação
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleRequestDeletion}
+            disabled={reqDeletionMut.isPending}
+            className="mt-3 pco-btn-ghost text-xs text-status-danger hover:bg-status-danger/10"
+          >
+            <Trash2 size={12} strokeWidth={2} />
+            {reqDeletionMut.isPending
+              ? 'Enviando solicitação...'
+              : 'Solicitar exclusão da conta'}
+          </button>
+        )}
       </div>
     </div>
   );
