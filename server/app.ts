@@ -4541,6 +4541,42 @@ export function buildApp() {
     },
   );
 
+  /** Lista conversas do tutor IA (admin auditoria). */
+  app.get('/admin/tutor/history', requireAuth('admin', 'superadmin'), async (c) => {
+    const search = c.req.query('search')?.toLowerCase().trim();
+    const userId = c.req.query('userId');
+    const limit = Math.min(Number(c.req.query('limit') ?? '200'), 1000);
+    const all = await tutorHistory.listAll();
+    const users = await usersStore.listUsers();
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const filtered = all
+      .filter((t) => {
+        if (userId && t.userId !== userId) return false;
+        if (search) {
+          const hay = `${t.prompt} ${t.response}`.toLowerCase();
+          if (!hay.includes(search)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => (a.ts > b.ts ? -1 : 1))
+      .slice(0, limit)
+      .map((t) => {
+        const user = userMap.get(t.userId);
+        return {
+          id: t.id,
+          userId: t.userId,
+          userName: user?.name ?? '?',
+          userEmail: user?.email ?? '?',
+          prompt: t.prompt,
+          response: t.response,
+          provider: t.provider,
+          model: t.model,
+          ts: t.ts,
+        };
+      });
+    return c.json(filtered);
+  });
+
   /** Centro de alertas — agrega itens de várias fontes que precisam atenção. */
   app.get('/admin/alerts/center', requireAuth('admin', 'superadmin'), async (c) => {
     const [

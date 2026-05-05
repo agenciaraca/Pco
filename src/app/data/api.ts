@@ -3263,6 +3263,33 @@ export async function fetchAlertsCenter(): Promise<AlertsCenterDto> {
   return http.get<AlertsCenterDto>('/admin/alerts/center');
 }
 
+export interface AdminTutorTurnDto {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  prompt: string;
+  response: string;
+  provider: string | null;
+  model: string | null;
+  ts: string;
+}
+
+export async function fetchAdminTutorHistory(
+  opts: {
+    search?: string;
+    userId?: string;
+    limit?: number;
+  } = {},
+): Promise<AdminTutorTurnDto[]> {
+  const qs = new URLSearchParams();
+  if (opts.search) qs.set('search', opts.search);
+  if (opts.userId) qs.set('userId', opts.userId);
+  if (opts.limit) qs.set('limit', String(opts.limit));
+  const path = `/admin/tutor/history${qs.size > 0 ? `?${qs.toString()}` : ''}`;
+  return http.get<AdminTutorTurnDto[]>(path);
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =

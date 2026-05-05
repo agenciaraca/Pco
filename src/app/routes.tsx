@@ -90,6 +90,7 @@ const AdminSupport = lazy(() => import('./pages/admin/AdminSupport'));
 const AdminCourseStudents = lazy(() => import('./pages/admin/AdminCourseStudents'));
 const AdminDeletionRequests = lazy(() => import('./pages/admin/AdminDeletionRequests'));
 const AdminAlertsCenter = lazy(() => import('./pages/admin/AdminAlertsCenter'));
+const AdminTutorChat = lazy(() => import('./pages/admin/AdminTutorChat'));
 const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
 const ImportsHome = lazy(() => import('./pages/admin/imports/ImportsHome'));
 const ImportWizardCsv = lazy(() => import('./pages/admin/imports/ImportWizardCsv'));
@@ -250,6 +251,7 @@ export const router = createBrowserRouter([
       { path: 'cursos/:courseId/alunos', element: <S><AdminCourseStudents /></S> },
       { path: 'lgpd-exclusoes', element: <S><AdminDeletionRequests /></S> },
       { path: 'alertas', element: <S><AdminAlertsCenter /></S> },
+      { path: 'tutor-chat', element: <S><AdminTutorChat /></S> },
       { path: 'sessoes-ao-vivo', element: <S><AdminLiveSessions /></S> },
       { path: 'setup', element: <S><AdminSetup /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },

@@ -1887,6 +1887,16 @@ export function useAlertsCenter() {
   });
 }
 
+export function useAdminTutorHistory(
+  opts: { search?: string; userId?: string; limit?: number } = {},
+) {
+  return useQuery({
+    queryKey: ['admin', 'tutor', 'history', opts],
+    queryFn: () => api.fetchAdminTutorHistory(opts),
+    staleTime: 30_000,
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {
