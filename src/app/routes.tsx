@@ -27,6 +27,7 @@ const Landing = lazy(() => import('./pages/Landing'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Jornada = lazy(() => import('./pages/Jornada'));
 const Courses = lazy(() => import('./pages/Courses'));
+const Bundles = lazy(() => import('./pages/Bundles'));
 const Library = lazy(() => import('./pages/Library'));
 const News = lazy(() => import('./pages/News'));
 const Podcasts = lazy(() => import('./pages/Podcasts'));
@@ -139,6 +140,7 @@ export const router = createBrowserRouter([
       { path: '/dashboard', element: <S><Dashboard /></S> },
       { path: '/jornada', element: <S><Jornada /></S> },
       { path: '/cursos', element: <S><Courses /></S> },
+      { path: '/pacotes', element: <S><Bundles /></S> },
       { path: '/biblioteca', element: <S><Library /></S> },
       { path: '/news', element: <S><News /></S> },
       { path: '/podcasts', element: <S><Podcasts /></S> },

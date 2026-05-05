@@ -4,6 +4,7 @@ import {
   Home,
   Compass,
   GraduationCap,
+  Package,
   BookOpen,
   Newspaper,
   Mic2,
@@ -26,6 +27,7 @@ const studentGroups = [
       { to: '/dashboard', label: 'Início', icon: Home },
       { to: '/jornada', label: 'Minha Jornada', icon: Compass },
       { to: '/cursos', label: 'Meus Cursos', icon: GraduationCap },
+      { to: '/pacotes', label: 'Pacotes', icon: Package },
     ],
   },
   {
