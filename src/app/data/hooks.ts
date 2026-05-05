@@ -1576,6 +1576,15 @@ export function useCourseAnalytics(courseId: string | undefined) {
   });
 }
 
+// Setup checklist
+export function useSetupStatus() {
+  return useQuery({
+    queryKey: ['admin', 'setup-status'] as const,
+    queryFn: api.fetchSetupStatus,
+    refetchInterval: 60_000,
+  });
+}
+
 // Saved searches
 export function useSavedSearches(scope?: api.SavedSearchScopeDto) {
   return useQuery({

@@ -3179,6 +3179,103 @@ export function buildApp() {
     return c.json(next);
   });
 
+  // ---------- Setup checklist ----------
+
+  app.get('/admin/setup/status', requireAuth('admin', 'superadmin'), async (c) => {
+    const u = c.get('user')!;
+
+    const [gateways, emailCfgs, products, courses, allUsers] = await Promise.all([
+      gatewaysRepo.listAll(),
+      emailConfigs.listConfigs(),
+      productsRepo.listAll(),
+      coursesRepo.listCourses(),
+      usersStore.listUsers(),
+    ]);
+
+    const myUser = await usersStore.findRawById(u.sub);
+    const passwordChanged = (myUser?.tokenVersion ?? 0) > 0;
+
+    const items = [
+      {
+        id: 'institution',
+        label: 'Configurações da instituição',
+        ok: true, // app-settings sempre existe (default)
+        message: 'Verifique título, contato, fuso',
+        link: '/admin/configuracoes',
+      },
+      {
+        id: 'email',
+        label: 'E-mail transacional configurado',
+        ok: emailCfgs.some((e) => e.enabled && e.provider !== 'mock'),
+        message:
+          emailCfgs.length === 0
+            ? 'Nenhuma configuração — alunos não recebem e-mails essenciais'
+            : emailCfgs.some((e) => e.enabled && e.provider !== 'mock')
+              ? `Provider ativo: ${emailCfgs.find((e) => e.enabled)?.provider}`
+              : 'Apenas mock ativo — recomendado configurar Resend/SendGrid/Postmark',
+        link: '/admin/email',
+      },
+      {
+        id: 'gateways',
+        label: 'Gateway de pagamento ativo',
+        ok: gateways.some((g) => g.active),
+        message:
+          gateways.filter((g) => g.active).length > 0
+            ? `${gateways.filter((g) => g.active).length} gateway(s) ativo(s)`
+            : 'Sem gateway ativo — checkout não funciona',
+        link: '/admin/gateways',
+      },
+      {
+        id: 'products',
+        label: 'Pelo menos um produto cadastrado',
+        ok: products.some((p) => p.active),
+        message: `${products.filter((p) => p.active).length} produto(s) ativo(s) de ${products.length}`,
+        link: '/admin/produtos',
+      },
+      {
+        id: 'courses',
+        label: 'Catálogo de cursos',
+        ok: courses.length > 0,
+        message: `${courses.length} curso(s) cadastrado(s)`,
+        link: '/admin/cursos',
+      },
+      {
+        id: 'admin_password',
+        label: 'Senha do admin trocada após setup inicial',
+        ok: passwordChanged,
+        message: passwordChanged
+          ? 'OK'
+          : 'Recomendado: trocar senha do admin inicial',
+        link: '/perfil',
+      },
+      {
+        id: 'has_real_users',
+        label: 'Mais de um usuário cadastrado',
+        ok: allUsers.length > 1,
+        message: `${allUsers.length} usuário(s) total`,
+        link: '/admin/usuarios',
+      },
+      {
+        id: 'totp',
+        label: '2FA habilitado pelo admin atual',
+        ok: myUser?.totpEnabled === true,
+        message:
+          myUser?.totpEnabled === true
+            ? '2FA ativo'
+            : 'Sem 2FA — recomendado para admins',
+        link: '/perfil',
+      },
+    ];
+
+    const ok = items.filter((i) => i.ok).length;
+    return c.json({
+      total: items.length,
+      ok,
+      progressPct: Math.round((ok / items.length) * 100),
+      items,
+    });
+  });
+
   // ---------- Saved searches/filters ----------
 
   app.get('/admin/saved-searches', requireAuth('admin', 'superadmin'), async (c) => {

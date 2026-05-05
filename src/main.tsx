@@ -11,6 +11,15 @@ import './styles/theme.css';
 
 initMonitoring();
 
+// PWA: registra service worker em produção (skip em dev pra não interferir no HMR).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // ignora — SW é progressivo
+    });
+  });
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

@@ -30,6 +30,7 @@ import {
   Mail,
   Webhook,
   Activity,
+  ListChecks,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
@@ -42,6 +43,7 @@ const adminGroups = [
     title: 'Painel',
     items: [
       { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/admin/setup', label: 'Setup', icon: ListChecks },
       { to: '/admin/evasao', label: 'Previsão de Evasão', icon: AlertTriangle },
       { to: '/admin/retencao', label: 'Retenção', icon: TrendingUp },
       { to: '/admin/metricas', label: 'Métricas & SEO', icon: BarChart3 },

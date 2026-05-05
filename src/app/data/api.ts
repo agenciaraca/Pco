@@ -2462,6 +2462,27 @@ export async function fetchStudentAchievements(
   return http.get(`/admin/students/${encodeURIComponent(studentId)}/achievements`);
 }
 
+// ---------- Setup checklist ----------
+
+export interface SetupItemDto {
+  id: string;
+  label: string;
+  ok: boolean;
+  message: string;
+  link: string;
+}
+
+export interface SetupStatusDto {
+  total: number;
+  ok: number;
+  progressPct: number;
+  items: SetupItemDto[];
+}
+
+export async function fetchSetupStatus(): Promise<SetupStatusDto> {
+  return http.get('/admin/setup/status');
+}
+
 // ---------- Saved searches ----------
 
 export type SavedSearchScopeDto =

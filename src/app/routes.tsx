@@ -95,6 +95,7 @@ const AdminRateLimits = lazy(() => import('./pages/admin/AdminRateLimits'));
 const AdminCoursePreview = lazy(() => import('./pages/admin/AdminCoursePreview'));
 const AdminCourseAnalytics = lazy(() => import('./pages/admin/AdminCourseAnalytics'));
 const AdminLiveSessions = lazy(() => import('./pages/admin/AdminLiveSessions'));
+const AdminSetup = lazy(() => import('./pages/admin/AdminSetup'));
 const ImportWizardApi = lazy(() => import('./pages/admin/imports/ImportWizardApi'));
 
 function S({ children }: { children: ReactNode }) {
@@ -219,6 +220,7 @@ export const router = createBrowserRouter([
       { path: 'cursos/:courseId/preview', element: <S><AdminCoursePreview /></S> },
       { path: 'cursos/:courseId/analytics', element: <S><AdminCourseAnalytics /></S> },
       { path: 'sessoes-ao-vivo', element: <S><AdminLiveSessions /></S> },
+      { path: 'setup', element: <S><AdminSetup /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },
       { path: 'imports/wizard', element: <S><ImportWizardCsv /></S> },
       { path: 'imports/wizard-api', element: <S><ImportWizardApi /></S> },
