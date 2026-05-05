@@ -154,3 +154,6 @@ import('./reengagement/worker').then((m) => m.startWorker(24 * 60 * 60_000));
 
 // Seed de conexões de import pré-configuradas (idempotente)
 import('./imports/seeds/portalpco').then((m) => m.seedPortalpcoConnection());
+
+// Worker do scheduler de imports — varre a cada 60s
+import('./imports/schedules-worker').then((m) => m.startWorker(60_000));

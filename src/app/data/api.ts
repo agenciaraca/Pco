@@ -865,6 +865,13 @@ export async function rollbackImportJob(id: string): Promise<RollbackResultDto> 
   );
 }
 
+export async function cancelImportJob(id: string): Promise<{ ok: true; jobId: string }> {
+  return http.post<{ ok: true; jobId: string }>(
+    `/admin/imports/jobs/${encodeURIComponent(id)}/cancel`,
+    {},
+  );
+}
+
 /**
  * Faz upload multipart de CSVs por entidade.
  * Cada chave em `files` deve ser um File com cabeçalhos canônicos (vide template).

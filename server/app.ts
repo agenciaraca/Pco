@@ -110,6 +110,7 @@ import {
 } from './imports/schemas/csv-templates';
 import { parseCsvBuffer } from './imports/connectors/csv';
 import { runDryRun, runReal } from './imports/service';
+import { triggerApiImport } from './imports/runner';
 import {
   exportJobAsCsv,
   exportJobAsJson,
@@ -117,6 +118,7 @@ import {
 } from './imports/reports';
 import { rollbackJob, previewRollback } from './imports/rollback';
 import * as importConnections from './imports/connections-store';
+import * as importSchedules from './imports/schedules-store';
 import { pingWp } from './imports/connectors/wp';
 import { pingWc } from './imports/connectors/wc';
 import { pingLd } from './imports/connectors/ld';
@@ -2573,6 +2575,27 @@ export function buildApp() {
     },
   );
 
+  app.post(
+    '/admin/imports/jobs/:id/cancel',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const job = await importJobs.findJob(id);
+      if (!job) return jsonError(c, 404, 'NOT_FOUND', 'Job não encontrado.');
+      if (job.status !== 'running' && job.status !== 'pending') {
+        return jsonError(
+          c,
+          400,
+          'INVALID_STATUS',
+          `Job em status ${job.status} não pode ser cancelado.`,
+        );
+      }
+      importJobs.requestCancel(id);
+      await importJobs.addNote(id, 'warn', 'Cancelamento solicitado via API');
+      return c.json({ ok: true, jobId: id });
+    },
+  );
+
   app.get(
     '/admin/imports/jobs/:id/rollback/preview',
     requireAuth('admin', 'superadmin'),
@@ -4110,46 +4133,113 @@ export function buildApp() {
           body.enrollment?.conflictStrategy ?? conn.defaultConflictStrategy,
       };
       const dryRun = body.dryRun !== false;
-      const job = await importJobs.createJob({
-        source: 'wordpress' as ImportSource,
-        mode: 'api',
+      const result = await triggerApiImport({
+        connectionId: conn.id,
+        entities,
         dryRun,
-        entities: [],
-        enrollment: enrollmentRules,
+        enrollmentRules,
         startedBy: u.email,
         startedById: u.sub,
       });
+      return c.json(result, 202);
+    },
+  );
 
-      void (async () => {
-        try {
-          await importJobs.addNote(job.id, 'info', `Coletando via API (${entities.join(', ')})`);
-          const collected = await collectFromApi(conn, { entities });
-          await importJobs.addNote(
-            job.id,
-            'info',
-            `Coletados ${collected.totalRows} registros no total`,
-          );
-          if (dryRun) {
-            await runDryRun({ rowsByEntity: collected.rowsByEntity, jobId: job.id });
-          } else {
-            await runReal({
-              rowsByEntity: collected.rowsByEntity,
-              jobId: job.id,
-              source: 'wordpress',
-              enrollmentRules,
-            });
-          }
-        } catch (err) {
-          await importJobs.addNote(
-            job.id,
-            'error',
-            `Falha API: ${err instanceof Error ? err.message : String(err)}`,
-          );
-          await importJobs.setStatus(job.id, 'failed', true);
-        }
-      })();
+  // ---------- Schedules — agendamentos recorrentes ----------
 
-      return c.json({ jobId: job.id, dryRun, entities }, 202);
+  app.get(
+    '/admin/imports/schedules',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(await importSchedules.listSchedules()),
+  );
+
+  app.post(
+    '/admin/imports/schedules',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const name = String(body.name ?? '').trim();
+      const connectionId = String(body.connectionId ?? '').trim();
+      if (!name || !connectionId) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'name e connectionId obrigatórios.');
+      }
+      const conn = await importConnections.getConnection(connectionId);
+      if (!conn) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+      const frequency = (body.frequency === 'weekly' ? 'weekly' : 'daily') as
+        | 'daily'
+        | 'weekly';
+      const created = await importSchedules.createSchedule({
+        name,
+        connectionId,
+        enabled: body.enabled !== false,
+        frequency,
+        hourUtc: Number(body.hourUtc ?? 3),
+        minute: Number(body.minute ?? 0),
+        weekday: body.weekday !== undefined ? (Number(body.weekday) as 0 | 1 | 2 | 3 | 4 | 5 | 6) : undefined,
+        entities: Array.isArray(body.entities) ? (body.entities as ImportEntityType[]) : [],
+        dryRun: body.dryRun !== false,
+        enrollment: body.enrollment as Record<string, unknown> | undefined as never,
+      });
+      return c.json(created, 201);
+    },
+  );
+
+  app.put(
+    '/admin/imports/schedules/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const updated = await importSchedules.updateSchedule(id, body as never);
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Schedule não encontrado.');
+      return c.json(updated);
+    },
+  );
+
+  app.delete(
+    '/admin/imports/schedules/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const ok = await importSchedules.deleteSchedule(id);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Schedule não encontrado.');
+      return c.json({ ok: true });
+    },
+  );
+
+  app.post(
+    '/admin/imports/schedules/:id/run-now',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const sched = await importSchedules.findSchedule(id);
+      if (!sched) return jsonError(c, 404, 'NOT_FOUND', 'Schedule não encontrado.');
+      const conn = await importConnections.getConnection(sched.connectionId);
+      if (!conn) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+      const u = c.get('user')!;
+      const enrollmentRules: ImportEnrollmentConfig = {
+        startRule: (sched.enrollment?.startRule ?? 'paid_date') as EnrollmentStartRule,
+        expirationRule: (sched.enrollment?.expirationRule ??
+          'start_plus_duration') as EnrollmentExpirationRule,
+        defaultAccessDurationDays: sched.enrollment?.defaultAccessDurationDays,
+        wcStatusMap: {},
+        userMatchKeys:
+          sched.enrollment?.userMatchKeys ?? conn.defaultUserMatchKeys,
+        unmatchedUserPolicy: sched.enrollment?.unmatchedUserPolicy,
+        conflictStrategy:
+          sched.enrollment?.conflictStrategy ?? conn.defaultConflictStrategy,
+      };
+      const r = await triggerApiImport({
+        connectionId: sched.connectionId,
+        entities: sched.entities,
+        dryRun: sched.dryRun,
+        enrollmentRules,
+        startedBy: u.email,
+        startedById: u.sub,
+      });
+      await importSchedules.recordRun(id, r.jobId);
+      return c.json(r, 202);
     },
   );
 

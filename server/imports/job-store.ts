@@ -162,6 +162,21 @@ export async function setDuration(id: string, ms: number): Promise<void> {
   );
 }
 
+// Set em-memória para cancel rápido — runReal/runDryRun checa entre rows
+const cancelRequested = new Set<string>();
+
+export function requestCancel(id: string): void {
+  cancelRequested.add(id);
+}
+
+export function isCancelRequested(id: string): boolean {
+  return cancelRequested.has(id);
+}
+
+export function clearCancel(id: string): void {
+  cancelRequested.delete(id);
+}
+
 /** Drop jobs com mais de N dias (helper opcional). */
 export async function purgeOlderThan(days: number): Promise<number> {
   const cutoff = Date.now() - days * 24 * 60 * 60_000;

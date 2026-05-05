@@ -945,6 +945,17 @@ export function useRollbackImportJob() {
   });
 }
 
+export function useCancelImportJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.cancelImportJob(id),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: importJobsKey });
+      qc.invalidateQueries({ queryKey: ['admin', 'imports', 'jobs', id] });
+    },
+  });
+}
+
 export function useImportJob(id: string | undefined) {
   return useQuery({
     queryKey: ['admin', 'imports', 'jobs', id],

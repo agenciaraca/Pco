@@ -8,8 +8,13 @@ import {
   AlertTriangle,
   Download,
   RotateCcw,
+  XCircle,
 } from 'lucide-react';
-import { useImportJob, useRollbackImportJob } from '../../../data/hooks';
+import {
+  useImportJob,
+  useRollbackImportJob,
+  useCancelImportJob,
+} from '../../../data/hooks';
 import { downloadImportJob } from '../../../data/api';
 import { useToast } from '../../../components/Toast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
@@ -19,6 +24,7 @@ export default function ImportJobDetail() {
   const { data, isLoading } = useImportJob(id);
   const toast = useToast();
   const rollback = useRollbackImportJob();
+  const cancel = useCancelImportJob();
   useDocumentMeta({ title: data?.id ? `${data.id} — Imports` : 'Import job' });
 
   async function handleExport(format: 'csv' | 'json') {
@@ -65,6 +71,30 @@ export default function ImportJobDetail() {
       : 0;
 
   const isRunning = data.status === 'running' || data.status === 'pending';
+
+  // ETA: extrapola pela velocidade atual (rows/segundo)
+  let etaText = '';
+  if (isRunning && totalProcessed > 0 && data.stats.durationMs > 0) {
+    const rate = totalProcessed / (data.stats.durationMs / 1000); // rows/s
+    const remaining = Math.max(0, data.stats.totalRead - totalProcessed);
+    if (rate > 0) {
+      const etaSec = Math.round(remaining / rate);
+      if (etaSec < 60) etaText = `~${etaSec}s restantes`;
+      else if (etaSec < 3600) etaText = `~${Math.round(etaSec / 60)}min restantes`;
+      else etaText = `~${(etaSec / 3600).toFixed(1)}h restantes`;
+    }
+  }
+
+  async function handleCancel() {
+    if (!data) return;
+    if (!confirm('Cancelar este import? Os registros já processados permanecem.'))
+      return;
+    cancel.mutate(data.id, {
+      onSuccess: () => toast.success('Cancelamento solicitado'),
+      onError: (err) =>
+        toast.error('Falha', err instanceof Error ? err.message : 'Erro'),
+    });
+  }
   const canRollback =
     !data.dryRun &&
     data.status !== 'rolled_back' &&
@@ -109,6 +139,18 @@ export default function ImportJobDetail() {
           >
             <Download size={11} strokeWidth={2} /> JSON
           </button>
+          {isRunning && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancel.isPending}
+              className="pco-btn-ghost text-xs text-pco-orange"
+              title="Cancela após terminar a row atual"
+            >
+              <XCircle size={11} strokeWidth={2} />
+              {cancel.isPending ? 'Cancelando...' : 'Cancelar'}
+            </button>
+          )}
           {canRollback && (
             <button
               type="button"
@@ -142,6 +184,9 @@ export default function ImportJobDetail() {
         </div>
         <div className="mt-1 text-[11px] text-ink-subtle">
           {data.stats.totalRead} lidos · {progress}% processado · {data.stats.durationMs}ms
+          {etaText && (
+            <span className="ml-2 text-pco-blue font-semibold">{etaText}</span>
+          )}
         </div>
       </div>
 

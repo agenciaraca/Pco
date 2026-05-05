@@ -57,12 +57,17 @@ export async function runDryRun(input: DryRunInput): Promise<void> {
   for (const [entity, rows] of Object.entries(rowsByEntity) as Array<
     [ImportEntityType, Array<Record<string, unknown>>]
   >) {
+    if (jobs.isCancelRequested(jobId)) break;
     if (!rows || rows.length === 0) continue;
     await jobs.addNote(jobId, 'info', `Processando ${rows.length} ${entity}(s)`);
 
     let valid = 0;
     let invalid = 0;
     for (let i = 0; i < rows.length; i++) {
+      if (jobs.isCancelRequested(jobId)) {
+        await jobs.addNote(jobId, 'warn', `Cancelamento solicitado em ${entity} row ${i}`);
+        break;
+      }
       await jobs.bumpEntityStat(jobId, entity, 'read', 1);
       const row = rows[i]!;
       try {
@@ -101,11 +106,22 @@ export async function runDryRun(input: DryRunInput): Promise<void> {
 
   const ms = Date.now() - start;
   await jobs.setDuration(jobId, ms);
+  const cancelled = jobs.isCancelRequested(jobId);
   const finalJob = await jobs.findJob(jobId);
-  const status: ImportJob['status'] =
-    (finalJob?.stats.errors ?? 0) > 0 ? 'completed_with_errors' : 'completed';
+  const status: ImportJob['status'] = cancelled
+    ? 'canceled'
+    : (finalJob?.stats.errors ?? 0) > 0
+      ? 'completed_with_errors'
+      : 'completed';
   await jobs.setStatus(jobId, status, true);
-  await jobs.addNote(jobId, 'info', `Dry-run finalizado em ${ms}ms`);
+  jobs.clearCancel(jobId);
+  await jobs.addNote(
+    jobId,
+    cancelled ? 'warn' : 'info',
+    cancelled
+      ? `Dry-run cancelado pelo usuário em ${ms}ms`
+      : `Dry-run finalizado em ${ms}ms`,
+  );
 }
 
 interface RealRunInput {
@@ -138,6 +154,7 @@ export async function runReal(input: RealRunInput): Promise<void> {
     'lesson',
   ];
   for (const entity of ORDER) {
+    if (jobs.isCancelRequested(jobId)) break;
     const rows = rowsByEntity[entity];
     if (!rows || rows.length === 0) continue;
     // Prioridade: per-entity > enrollment.conflictStrategy global > default 'update'
@@ -155,6 +172,10 @@ export async function runReal(input: RealRunInput): Promise<void> {
     await jobs.addNote(jobId, 'info', `Aplicando ${rows.length} ${entity}(s)`);
 
     for (let i = 0; i < rows.length; i++) {
+      if (jobs.isCancelRequested(jobId)) {
+        await jobs.addNote(jobId, 'warn', `Cancelamento solicitado em ${entity} row ${i}`);
+        break;
+      }
       await jobs.bumpEntityStat(jobId, entity, 'read', 1);
       const row = rows[i]!;
       try {
@@ -230,11 +251,22 @@ export async function runReal(input: RealRunInput): Promise<void> {
 
   const ms = Date.now() - start;
   await jobs.setDuration(jobId, ms);
+  const cancelled = jobs.isCancelRequested(jobId);
   const finalJob = await jobs.findJob(jobId);
-  const status: ImportJob['status'] =
-    (finalJob?.stats.errors ?? 0) > 0 ? 'completed_with_errors' : 'completed';
+  const status: ImportJob['status'] = cancelled
+    ? 'canceled'
+    : (finalJob?.stats.errors ?? 0) > 0
+      ? 'completed_with_errors'
+      : 'completed';
   await jobs.setStatus(jobId, status, true);
-  await jobs.addNote(jobId, 'info', `Execução real finalizada em ${ms}ms`);
+  jobs.clearCancel(jobId);
+  await jobs.addNote(
+    jobId,
+    cancelled ? 'warn' : 'info',
+    cancelled
+      ? `Execução cancelada pelo usuário em ${ms}ms`
+      : `Execução real finalizada em ${ms}ms`,
+  );
 }
 
 function validateEntity(
