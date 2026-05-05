@@ -10,6 +10,8 @@ export type ApiTokenScope =
   | 'students:read'
   | 'orders:read'
   | 'courses:read'
+  | 'certificates:read'
+  | 'products:read'
   | 'all:read';
 
 export const ALL_SCOPES: ApiTokenScope[] = [
@@ -17,6 +19,8 @@ export const ALL_SCOPES: ApiTokenScope[] = [
   'students:read',
   'orders:read',
   'courses:read',
+  'certificates:read',
+  'products:read',
   'all:read',
 ];
 

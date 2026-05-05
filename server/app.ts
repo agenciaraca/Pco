@@ -3617,6 +3617,85 @@ export function buildApp() {
     );
   });
 
+  /** v1: detalhe completo do curso com módulos+aulas (sem conteúdo de player). */
+  app.get('/v1/courses/:id', requireApiToken('courses:read'), async (c) => {
+    const id = c.req.param('id') as string;
+    const course = await coursesRepo.findCourse(id);
+    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+    return c.json({
+      id: course.id,
+      title: course.title,
+      slug: course.slug ?? null,
+      shortTitle: course.shortTitle,
+      description: course.description,
+      totalHours: course.totalHours,
+      tags: course.tags ?? [],
+      modules: course.modules.map((m) => ({
+        id: m.id,
+        title: m.title,
+        description: m.description,
+        order: m.order,
+        lessons: m.lessons.map((l) => ({
+          id: l.id,
+          title: l.title,
+          durationMinutes: l.durationMinutes,
+          isMandatory: l.isMandatory,
+          order: l.order,
+        })),
+      })),
+    });
+  });
+
+  /** v1: lista certificados emitidos. */
+  app.get('/v1/certificates', requireApiToken('certificates:read'), async (c) => {
+    const all = await certsRepo.listAllCertificates();
+    return c.json(
+      all
+        .filter((cert) => cert.status === 'issued')
+        .map((cert) => ({
+          id: cert.id,
+          studentId: cert.studentId,
+          courseId: cert.courseId,
+          validationCode: cert.validationCode,
+          issuedAt: cert.issuedAt,
+        })),
+    );
+  });
+
+  /** v1: detalhe de certificado (com link público de validação). */
+  app.get('/v1/certificates/:id', requireApiToken('certificates:read'), async (c) => {
+    const id = c.req.param('id') as string;
+    const all = await certsRepo.listAllCertificates();
+    const cert = all.find((x) => x.id === id);
+    if (!cert) return jsonError(c, 404, 'NOT_FOUND', 'Certificado não encontrado.');
+    const baseUrl = process.env.PUBLIC_ORIGIN ?? '';
+    return c.json({
+      id: cert.id,
+      studentId: cert.studentId,
+      courseId: cert.courseId,
+      status: cert.status,
+      validationCode: cert.validationCode,
+      validationUrl: `${baseUrl}/verificar/${cert.validationCode}`,
+      issuedAt: cert.issuedAt,
+    });
+  });
+
+  /** v1: lista produtos. */
+  app.get('/v1/products', requireApiToken('products:read'), async (c) => {
+    const products = await productsRepo.listAll();
+    return c.json(
+      products.map((p) => ({
+        id: p.id,
+        kind: p.kind,
+        name: p.name,
+        priceCents: p.priceCents,
+        currency: p.currency,
+        active: p.active,
+        refId: p.refId,
+      })),
+    );
+  });
+
   // ---------- Rate-limit telemetry ----------
 
   app.get('/admin/rate-limits', requireAuth('admin', 'superadmin'), (c) => {
