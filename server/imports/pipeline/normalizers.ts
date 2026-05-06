@@ -31,6 +31,7 @@ function int(v: unknown): number | undefined {
   return n !== undefined ? Math.trunc(n) : undefined;
 }
 function bool(v: unknown): boolean | undefined {
+  if (v === null || v === undefined || v === '') return undefined;
   return applyTransforms(v, ['parse_boolean']) as boolean;
 }
 function date(v: unknown): string | undefined {
