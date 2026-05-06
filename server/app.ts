@@ -389,6 +389,32 @@ export function buildApp() {
     c.json({ ok: true, ts: Date.now(), db: hasDb() ? 'connected' : 'fallback' }),
   );
 
+  /**
+   * /ready — readiness probe. Verifica se DATA_DIR é gravável.
+   * Retorna 503 se algo essencial está quebrado.
+   */
+  app.get('/ready', async (c) => {
+    const checks: Record<string, boolean> = {};
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
+      const probePath = path.join(dataDir, '.ready-probe');
+      await fs.writeFile(probePath, String(Date.now()), 'utf8');
+      await fs.readFile(probePath, 'utf8');
+      await fs.unlink(probePath).catch(() => undefined);
+      checks.dataDirWritable = true;
+    } catch {
+      checks.dataDirWritable = false;
+    }
+    checks.processUptimeOk = process.uptime() >= 0;
+    const ok = Object.values(checks).every(Boolean);
+    if (!ok) {
+      return c.json({ ok: false, checks }, 503);
+    }
+    return c.json({ ok: true, checks, ts: Date.now() });
+  });
+
   // /health/full — coleta uptime, mem, tamanho data/, erros 24h. Auth admin
   app.get('/health/full', requireAuth('admin', 'superadmin'), async (c) => {
     const stats = await gatherHealth(hasDb() ? 'connected' : 'fallback');
