@@ -30,6 +30,7 @@ const Courses = lazy(() => import('./pages/Courses'));
 const Bundles = lazy(() => import('./pages/Bundles'));
 const Catalog = lazy(() => import('./pages/Catalog'));
 const CoursePreview = lazy(() => import('./pages/CoursePreview'));
+const LessonPreviewPublic = lazy(() => import('./pages/LessonPreviewPublic'));
 const MyNotes = lazy(() => import('./pages/MyNotes'));
 const Library = lazy(() => import('./pages/Library'));
 const News = lazy(() => import('./pages/News'));
@@ -144,6 +145,7 @@ export const router = createBrowserRouter([
   { path: '/ava-pco', element: <S><Landing /></S>, errorElement: <RootError /> },
   { path: '/catalogo', element: <S><Catalog /></S>, errorElement: <RootError /> },
   { path: '/curso-preview/:id', element: <S><CoursePreview /></S>, errorElement: <RootError /> },
+  { path: '/aula-preview/:id', element: <S><LessonPreviewPublic /></S>, errorElement: <RootError /> },
 
   {
     element: (

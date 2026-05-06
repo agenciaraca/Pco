@@ -186,6 +186,30 @@ export async function fetchCoursePrereqCheck(
   return http.get(`/me/courses/${encodeURIComponent(courseId)}/prereq`);
 }
 
+export interface LessonPreviewDto {
+  lesson: {
+    id: string;
+    title: string;
+    videoUrl: string | null;
+    description: string;
+    durationMinutes: number;
+  };
+  module: { id: string; title: string };
+  course: {
+    id: string;
+    title: string;
+    slug: string;
+    shortTitle: string;
+    coverColor: string;
+  };
+}
+
+export async function fetchLessonPreview(
+  lessonId: string,
+): Promise<LessonPreviewDto> {
+  return http.get(`/lessons/${encodeURIComponent(lessonId)}/preview`);
+}
+
 // ---------- Uploads ----------
 
 export interface UploadResultDto {

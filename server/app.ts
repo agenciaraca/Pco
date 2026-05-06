@@ -1531,6 +1531,62 @@ export function buildApp() {
   // ---------- Courses ----------
 
   app.get('/courses', async (c) => c.json(await coursesRepo.listCourses()));
+  /**
+   * Endpoint público: retorna o conteúdo de uma lesson SE ela estiver marcada
+   * como isPreview=true. Caso contrário 403. Usado pra player aberto a
+   * visitantes não matriculados (teaser de marketing).
+   */
+  app.get('/lessons/:id/preview', async (c) => {
+    const lessonId = c.req.param('id') as string;
+    const all = await coursesRepo.listCourses();
+    let foundLesson: typeof all[number]['modules'][number]['lessons'][number] | null = null;
+    let parentCourse: (typeof all)[number] | null = null;
+    let parentModule: (typeof all)[number]['modules'][number] | null = null;
+    for (const co of all) {
+      for (const m of co.modules ?? []) {
+        const l = m.lessons.find((x) => x.id === lessonId);
+        if (l) {
+          foundLesson = l;
+          parentCourse = co;
+          parentModule = m;
+          break;
+        }
+      }
+      if (foundLesson) break;
+    }
+    if (!foundLesson || !parentCourse || !parentModule) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+    }
+    if (!foundLesson.isPreview) {
+      return jsonError(
+        c,
+        403,
+        'NOT_PREVIEW',
+        'Esta aula não está disponível como preview livre.',
+      );
+    }
+    return c.json({
+      lesson: {
+        id: foundLesson.id,
+        title: foundLesson.title,
+        videoUrl: foundLesson.videoUrl ?? null,
+        description: foundLesson.description ?? '',
+        durationMinutes: foundLesson.durationMinutes,
+      },
+      module: {
+        id: parentModule.id,
+        title: parentModule.title,
+      },
+      course: {
+        id: parentCourse.id,
+        title: parentCourse.title,
+        slug: parentCourse.slug,
+        shortTitle: parentCourse.shortTitle,
+        coverColor: parentCourse.coverColor,
+      },
+    });
+  });
+
   app.get('/courses/:id', async (c) => {
     const course = await coursesRepo.findCourse(c.req.param('id'));
     if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');

@@ -215,35 +215,51 @@ export default function CoursePreview() {
                           </p>
                         )}
                         <ul className="mt-3 space-y-1.5">
-                          {m.lessons.map((l) => (
-                            <li
-                              key={l.id}
-                              className={`flex items-center gap-2 text-xs ${l.isPreview ? 'text-pco-blue' : 'text-ink-muted'}`}
-                            >
-                              {l.isPreview ? (
-                                <PlayCircle
-                                  size={11}
-                                  className="text-pco-blue shrink-0"
-                                  strokeWidth={2}
-                                />
-                              ) : (
-                                <Lock size={10} className="text-ink-subtle shrink-0" />
-                              )}
-                              <span className="flex-1 truncate">
-                                {l.title}
-                                {l.isPreview && (
-                                  <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded bg-pco-blue/10 text-pco-blue text-[9px] font-bold uppercase tracking-wider">
-                                    Preview livre
+                          {m.lessons.map((l) => {
+                            const inner = (
+                              <>
+                                {l.isPreview ? (
+                                  <PlayCircle
+                                    size={11}
+                                    className="text-pco-blue shrink-0"
+                                    strokeWidth={2}
+                                  />
+                                ) : (
+                                  <Lock size={10} className="text-ink-subtle shrink-0" />
+                                )}
+                                <span className="flex-1 truncate">
+                                  {l.title}
+                                  {l.isPreview && (
+                                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded bg-pco-blue/10 text-pco-blue text-[9px] font-bold uppercase tracking-wider">
+                                      Preview livre
+                                    </span>
+                                  )}
+                                </span>
+                                {l.durationMinutes && (
+                                  <span className="text-[10px] text-ink-subtle">
+                                    {l.durationMinutes}min
                                   </span>
                                 )}
-                              </span>
-                              {l.durationMinutes && (
-                                <span className="text-[10px] text-ink-subtle">
-                                  {l.durationMinutes}min
-                                </span>
-                              )}
-                            </li>
-                          ))}
+                              </>
+                            );
+                            return l.isPreview ? (
+                              <li key={l.id}>
+                                <Link
+                                  to={`/aula-preview/${l.id}`}
+                                  className="flex items-center gap-2 text-xs text-pco-blue hover:underline"
+                                >
+                                  {inner}
+                                </Link>
+                              </li>
+                            ) : (
+                              <li
+                                key={l.id}
+                                className="flex items-center gap-2 text-xs text-ink-muted"
+                              >
+                                {inner}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     </div>

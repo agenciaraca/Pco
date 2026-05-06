@@ -565,6 +565,14 @@ export function useCoursePrereqCheck(courseId: string | undefined) {
   });
 }
 
+export function useLessonPreview(lessonId: string | undefined) {
+  return useQuery({
+    queryKey: ['lesson-preview', lessonId ?? ''] as const,
+    queryFn: () => api.fetchLessonPreview(lessonId!),
+    enabled: !!lessonId,
+  });
+}
+
 export function useMarkLessonCompleted() {
   const qc = useQueryClient();
   return useMutation({
