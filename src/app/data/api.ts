@@ -2889,6 +2889,8 @@ export interface RoleDto {
   name: string;
   description: string;
   permissions: string[];
+  /** Tier de auth herdado (student/admin/superadmin). */
+  tier: 'student' | 'admin' | 'superadmin';
   system: boolean;
   createdAt: string;
   updatedAt: string;
@@ -2920,6 +2922,7 @@ export interface CreateRoleInput {
   name: string;
   description?: string;
   permissions?: string[];
+  tier?: 'student' | 'admin' | 'superadmin';
 }
 
 export async function createRole(input: CreateRoleInput): Promise<RoleDto> {
@@ -2930,6 +2933,7 @@ export interface UpdateRoleInput {
   name?: string;
   description?: string;
   permissions?: string[];
+  tier?: 'student' | 'admin' | 'superadmin';
 }
 
 export async function updateRole(id: string, patch: UpdateRoleInput): Promise<RoleDto> {

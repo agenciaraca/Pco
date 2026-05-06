@@ -27,6 +27,7 @@ interface EditState {
   name: string;
   description: string;
   permissions: Set<string>;
+  tier: 'student' | 'admin' | 'superadmin';
 }
 
 const EMPTY_EDIT: EditState = {
@@ -35,6 +36,7 @@ const EMPTY_EDIT: EditState = {
   name: '',
   description: '',
   permissions: new Set(),
+  tier: 'student',
 };
 
 export default function AdminRoles() {
@@ -124,6 +126,7 @@ export default function AdminRoles() {
       name: role.name,
       description: role.description,
       permissions: new Set(role.permissions),
+      tier: role.tier ?? 'student',
     });
   }
 
@@ -152,6 +155,7 @@ export default function AdminRoles() {
       name: editing.name.trim(),
       description: editing.description.trim(),
       permissions: Array.from(editing.permissions),
+      tier: editing.tier,
     };
     try {
       if (editing.id) {
@@ -425,6 +429,41 @@ export default function AdminRoles() {
                   placeholder="O que esse papel representa?"
                   className="pco-input text-sm mt-1"
                 />
+              </label>
+              <label className="block">
+                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  Tier de auth (nível de acesso)
+                </span>
+                <select
+                  value={editing.tier}
+                  onChange={(e) =>
+                    setEditing((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            tier: e.target.value as 'student' | 'admin' | 'superadmin',
+                          }
+                        : prev,
+                    )
+                  }
+                  disabled={
+                    editing.slug === 'student' ||
+                    editing.slug === 'admin' ||
+                    editing.slug === 'superadmin'
+                  }
+                  className="pco-input text-sm mt-1 disabled:opacity-60"
+                >
+                  <option value="student">Aluno (acesso de aluno)</option>
+                  <option value="admin">Admin (acesso administrativo)</option>
+                  <option value="superadmin">
+                    Superadmin (acesso total)
+                  </option>
+                </select>
+                <p className="mt-1 text-[11px] text-ink-subtle">
+                  Determina o que o middleware aceita em rotas protegidas.
+                  Para "atendentes" e "operadores" geralmente é Admin.
+                  Roles base (student/admin/superadmin) têm tier fixo.
+                </p>
               </label>
               <div>
                 <div className="flex items-center justify-between mb-3">

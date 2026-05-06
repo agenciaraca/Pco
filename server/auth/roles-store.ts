@@ -421,6 +421,8 @@ export const PERMISSION_META: Record<string, PermissionMeta> = {
   },
 };
 
+export type RoleTier = 'student' | 'admin' | 'superadmin';
+
 export interface Role {
   id: string;
   /** Slug imutável (case-insensitive). System roles têm slug fixo. */
@@ -428,6 +430,12 @@ export interface Role {
   name: string;
   description: string;
   permissions: string[];
+  /**
+   * Tier de auth herdado por usuários com este papel. Determina o que o
+   * middleware aceita em requireAuth(). Default 'student' pra papéis novos.
+   * student/admin/superadmin têm tier igual ao seu slug (imutável).
+   */
+  tier: RoleTier;
   /** Sistema: imutável e não-deletável. */
   system: boolean;
   createdAt: string;
@@ -442,6 +450,7 @@ const SYSTEM_ROLES: Role[] = [
     description:
       'Usuário final da plataforma. Acessa cursos, biblioteca, certificados, tutor.',
     permissions: [],
+    tier: 'student',
     system: true,
     createdAt: '1970-01-01T00:00:00.000Z',
     updatedAt: '1970-01-01T00:00:00.000Z',
@@ -555,6 +564,7 @@ const SYSTEM_ROLES: Role[] = [
       // LGPD (review only)
       'lgpd.deletion.review',
     ],
+    tier: 'admin',
     system: true,
     createdAt: '1970-01-01T00:00:00.000Z',
     updatedAt: '1970-01-01T00:00:00.000Z',
@@ -565,6 +575,7 @@ const SYSTEM_ROLES: Role[] = [
     name: 'Superadmin',
     description: 'Acesso total. Único que pode mudar roles de outros usuários.',
     permissions: [...SYSTEM_PERMISSIONS],
+    tier: 'superadmin',
     system: true,
     createdAt: '1970-01-01T00:00:00.000Z',
     updatedAt: '1970-01-01T00:00:00.000Z',
@@ -601,16 +612,20 @@ async function ensureSystemRoles(): Promise<void> {
         arr.push({ ...seed, permissions: [...seed.permissions] });
         continue;
       }
+      const current = arr[idx];
+      // Backfill: roles antigas (sem tier) recebem tier do seed
+      if (!current.tier) {
+        arr[idx] = { ...current, tier: seed.tier };
+      }
       // Apenas o superadmin é re-sincronizado com TODAS as permissões
       // (segurança contra perda acidental de permissão ao expandir o catálogo)
       if (seed.slug === 'superadmin') {
-        const current = arr[idx];
         const permsChanged =
           current.permissions.length !== seed.permissions.length ||
           current.permissions.some((p, i) => p !== seed.permissions[i]);
         if (permsChanged) {
           arr[idx] = {
-            ...current,
+            ...arr[idx],
             permissions: [...seed.permissions],
             updatedAt: new Date().toISOString(),
           };
@@ -645,6 +660,8 @@ export interface CreateRoleInput {
   name: string;
   description?: string;
   permissions?: string[];
+  /** Tier de auth — default 'student'. */
+  tier?: RoleTier;
 }
 
 export class RoleError extends Error {
@@ -693,6 +710,10 @@ export async function createRole(input: CreateRoleInput): Promise<Role> {
     throw new RoleError('SLUG_TAKEN', `Slug "${slug}" já existe.`);
   }
   const permissions = validatePermissions(input.permissions ?? []);
+  const tier: RoleTier =
+    input.tier === 'admin' || input.tier === 'superadmin' || input.tier === 'student'
+      ? input.tier
+      : 'student';
   const now = new Date().toISOString();
   const role: Role = {
     id: newId(),
@@ -700,6 +721,7 @@ export async function createRole(input: CreateRoleInput): Promise<Role> {
     name,
     description: input.description?.trim() ?? '',
     permissions,
+    tier,
     system: false,
     createdAt: now,
     updatedAt: now,
@@ -712,6 +734,7 @@ export interface UpdateRoleInput {
   name?: string;
   description?: string;
   permissions?: string[];
+  tier?: RoleTier;
 }
 
 /**
@@ -745,6 +768,22 @@ export async function updateRole(id: string, patch: UpdateRoleInput): Promise<Ro
   }
   if (patch.permissions !== undefined) {
     updates.permissions = validatePermissions(patch.permissions);
+  }
+  if (patch.tier !== undefined) {
+    // tier de roles base (student/admin/superadmin) é imutável
+    if (
+      role.slug === 'student' ||
+      role.slug === 'admin' ||
+      role.slug === 'superadmin'
+    ) {
+      // ignora tier nesta atualização (slugs base têm tier fixo)
+    } else if (
+      patch.tier === 'student' ||
+      patch.tier === 'admin' ||
+      patch.tier === 'superadmin'
+    ) {
+      updates.tier = patch.tier;
+    }
   }
   updates.updatedAt = new Date().toISOString();
   await store.update((r) => r.id === id, (r) => Object.assign(r, updates));

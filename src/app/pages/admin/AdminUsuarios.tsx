@@ -318,21 +318,30 @@ export default function AdminUsuarios() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`pco-badge ${roleStyles[u.role]}`}>
-                          {roleIcon[u.role]}
-                          {roleLabel[u.role]}
-                        </span>
-                        {(u as { customRoleSlug?: string | null }).customRoleSlug && (
-                          <span
-                            className="ml-1 pco-badge bg-pco-cyan/10 text-pco-cyan"
-                            title="Papel personalizado"
-                          >
-                            {(rolesQ.data?.roles ?? []).find(
-                              (r) => r.slug === (u as { customRoleSlug?: string }).customRoleSlug,
-                            )?.name ??
-                              (u as { customRoleSlug?: string }).customRoleSlug}
-                          </span>
-                        )}
+                        {(() => {
+                          const customSlug = (u as { customRoleSlug?: string | null })
+                            .customRoleSlug;
+                          if (customSlug) {
+                            // Mostra APENAS o papel customizado — é o único papel do user
+                            const customRole = (rolesQ.data?.roles ?? []).find(
+                              (r) => r.slug === customSlug,
+                            );
+                            return (
+                              <span
+                                className="pco-badge bg-pco-cyan/10 text-pco-cyan"
+                                title={`Tier de auth: ${u.role}`}
+                              >
+                                {customRole?.name ?? customSlug}
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className={`pco-badge ${roleStyles[u.role]}`}>
+                              {roleIcon[u.role]}
+                              {roleLabel[u.role]}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -493,7 +502,13 @@ function Stat({
 interface UserEditorProps {
   user: SystemUser | null;
   isSuperadmin: boolean;
-  allRoles: { id: string; slug: string; name: string; system: boolean }[];
+  allRoles: {
+    id: string;
+    slug: string;
+    name: string;
+    system: boolean;
+    tier?: 'student' | 'admin' | 'superadmin';
+  }[];
   submitting: boolean;
   onClose: () => void;
   onSubmit: (data: CreateSystemUserInput | UpdateSystemUserInput) => Promise<void>;
@@ -533,7 +548,9 @@ function UserEditor({ user, isSuperadmin, allRoles, submitting, onClose, onSubmi
   const [selectedRoleSlug, setSelectedRoleSlug] = useState(initialSelected);
 
   // Mapeia slug escolhido → {role base, customRoleSlug}.
-  // Auth ainda usa as 3 roles base, então não-base vira role='student' + customRoleSlug.
+  // Auth usa as 3 roles base; o tier do papel determina qual role base
+  // aplicar quando o slug não é uma das 3 base. Assim "atendente" com
+  // tier='admin' vira role='admin' + customRoleSlug='atendente'.
   function resolveRoleAssignment(slug: string): {
     role: 'student' | 'admin' | 'superadmin';
     customRoleSlug: string | null;
@@ -541,7 +558,9 @@ function UserEditor({ user, isSuperadmin, allRoles, submitting, onClose, onSubmi
     if (slug === 'student' || slug === 'admin' || slug === 'superadmin') {
       return { role: slug, customRoleSlug: null };
     }
-    return { role: 'student', customRoleSlug: slug };
+    const found = allRoles.find((r) => r.slug === slug);
+    const tier = found?.tier ?? 'student';
+    return { role: tier, customRoleSlug: slug };
   }
 
   const passwordValue = watch('password' as 'password');

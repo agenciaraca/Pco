@@ -42,6 +42,32 @@ describe('roles-store', () => {
       const sa = all.find((r) => r.slug === 'superadmin')!;
       expect(sa.permissions).toEqual([...roles.SYSTEM_PERMISSIONS]);
     });
+
+    it('roles base têm tier igual ao próprio slug', async () => {
+      const all = await roles.listRoles();
+      expect(all.find((r) => r.slug === 'student')!.tier).toBe('student');
+      expect(all.find((r) => r.slug === 'admin')!.tier).toBe('admin');
+      expect(all.find((r) => r.slug === 'superadmin')!.tier).toBe('superadmin');
+    });
+  });
+
+  describe('updateRole tier', () => {
+    it('admin pode mudar tier de role custom', async () => {
+      const r = await roles.createRole({ slug: 'op', name: 'Operador' });
+      const updated = await roles.updateRole(r.id, { tier: 'admin' });
+      expect(updated.tier).toBe('admin');
+    });
+
+    it('tier de student/admin é imutável (silencioso)', async () => {
+      const all = await roles.listRoles();
+      const adminRole = all.find((r) => r.slug === 'admin')!;
+      const updated = await roles.updateRole(adminRole.id, {
+        tier: 'student',
+        name: 'Admin',
+      });
+      // tier permanece admin
+      expect(updated.tier).toBe('admin');
+    });
   });
 
   describe('createRole', () => {
@@ -54,6 +80,27 @@ describe('roles-store', () => {
       expect(r.slug).toBe('tutor-senior');
       expect(r.system).toBe(false);
       expect(r.id).toMatch(/^role-/);
+      // tier default é 'student'
+      expect(r.tier).toBe('student');
+    });
+
+    it('aceita tier customizado (admin/superadmin)', async () => {
+      const r = await roles.createRole({
+        slug: 'atendente',
+        name: 'Atendente',
+        tier: 'admin',
+      });
+      expect(r.tier).toBe('admin');
+    });
+
+    it('coage tier inválido pra student (default)', async () => {
+      const r = await roles.createRole({
+        slug: 'invalid-tier',
+        name: 'Invalid',
+        // @ts-expect-error testando runtime guard
+        tier: 'guest',
+      });
+      expect(r.tier).toBe('student');
     });
 
     it('rejeita slug inválido (curto)', async () => {
