@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ArrowRight,
   Clock,
@@ -7,6 +7,7 @@ import {
   BookOpen,
   GraduationCap,
   PlayCircle,
+  Search,
 } from 'lucide-react';
 import { useCourses, useProducts } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
@@ -22,15 +23,28 @@ export default function Catalog() {
   useDocumentMeta({ title: 'Catálogo de cursos — AVA PCO' });
   const { data: courses, isLoading } = useCourses();
   const { data: products = [] } = useProducts();
+  const [search, setSearch] = useState('');
 
   const visibleCourses = useMemo(() => {
-    return (courses ?? []).filter((c) => {
+    const baseList = (courses ?? []).filter((c) => {
       const product = products.find(
         (p) => p.kind === 'course' && p.refId === c.id && p.active,
       );
       return !!product; // só mostra cursos com produto à venda
     });
-  }, [courses, products]);
+    if (!search.trim()) return baseList;
+    const q = search.trim().toLowerCase();
+    return baseList.filter((c) => {
+      const fields = [
+        c.title,
+        c.shortTitle,
+        c.description,
+        ...(c.tags ?? []),
+        c.instructorName ?? '',
+      ];
+      return fields.some((f) => f.toLowerCase().includes(q));
+    });
+  }, [courses, products, search]);
 
   return (
     <div className="min-h-screen bg-surface-off">
@@ -61,12 +75,36 @@ export default function Catalog() {
           </p>
         </div>
 
+        <div className="max-w-xl mx-auto pco-card p-3 flex items-center gap-2">
+          <Search size={16} className="text-ink-muted shrink-0" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por título, descrição, tag, instrutor…"
+            className="pco-input text-sm flex-1 border-0 focus:ring-0"
+            aria-label="Buscar curso"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="pco-btn-ghost text-xs"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
+
         {isLoading ? (
           <CardListSkeleton count={3} />
         ) : visibleCourses.length === 0 ? (
           <EmptyState
-            title="Nenhum curso disponível"
-            description="Em breve novos cursos serão lançados."
+            title={search ? 'Nada encontrado' : 'Nenhum curso disponível'}
+            description={
+              search
+                ? `Nenhum curso casa com "${search}". Tente outros termos.`
+                : 'Em breve novos cursos serão lançados.'
+            }
             icon={<BookOpen size={28} className="text-pco-blue" />}
           />
         ) : (
