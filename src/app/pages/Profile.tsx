@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   User,
   Save,
@@ -12,6 +12,7 @@ import {
   PlayCircle,
   Download,
   Trash2,
+  Target,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
@@ -56,6 +57,35 @@ export default function Profile() {
   const [pwdSuccess, setPwdSuccess] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [requestingDeletion, setRequestingDeletion] = useState(false);
+
+  const currentGoal = progressQ.data?.weeklyGoalMinutes ?? 180;
+  const weekMinutes = progressQ.data?.weekMinutes ?? 0;
+  const [goalDraft, setGoalDraft] = useState<number>(currentGoal);
+  const [savingGoal, setSavingGoal] = useState(false);
+  useEffect(() => {
+    if (progressQ.data?.weeklyGoalMinutes) {
+      setGoalDraft(progressQ.data.weeklyGoalMinutes);
+    }
+  }, [progressQ.data?.weeklyGoalMinutes]);
+
+  async function onSaveGoal(e: React.FormEvent) {
+    e.preventDefault();
+    if (goalDraft === currentGoal) return;
+    if (!Number.isInteger(goalDraft) || goalDraft < 15 || goalDraft > 2400) {
+      toast.error('Meta deve estar entre 15 e 2400 minutos por semana.');
+      return;
+    }
+    setSavingGoal(true);
+    try {
+      await api.setMyWeeklyGoal(goalDraft);
+      toast.success(`Meta semanal atualizada para ${goalDraft} minutos.`);
+      progressQ.refetch();
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    } finally {
+      setSavingGoal(false);
+    }
+  }
 
   if (!user) {
     return (
@@ -444,6 +474,58 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      <form onSubmit={onSaveGoal} className="pco-card p-6 space-y-4">
+        <header className="flex items-center gap-2">
+          <Target size={18} className="text-pco-blue" strokeWidth={1.75} />
+          <h3 className="text-base font-semibold text-pco-deep">Meta semanal de estudo</h3>
+        </header>
+        <p className="text-xs text-ink-muted">
+          Quantos minutos você quer estudar por semana? A barra de progresso no
+          dashboard usa essa meta como referência. Recomendamos 180 min (3h)
+          como ponto de partida.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Minutos por semana ({Math.round(goalDraft / 60 * 10) / 10}h)
+            </span>
+            <input
+              type="range"
+              min={15}
+              max={1500}
+              step={15}
+              value={goalDraft}
+              onChange={(e) => setGoalDraft(Number(e.target.value))}
+              className="w-full mt-2 accent-pco-blue"
+            />
+            <div className="flex items-center justify-between text-[10px] text-ink-subtle mt-1">
+              <span>15min</span>
+              <strong className="text-base text-pco-deep">{goalDraft} min</strong>
+              <span>25h</span>
+            </div>
+          </label>
+          <button
+            type="submit"
+            disabled={savingGoal || goalDraft === currentGoal}
+            className="pco-btn-primary text-xs shrink-0 disabled:opacity-50"
+          >
+            <Save size={12} strokeWidth={2} />
+            {savingGoal ? 'Salvando…' : 'Salvar meta'}
+          </button>
+        </div>
+        {progressQ.data && (
+          <div className="text-xs text-ink-muted bg-surface-off rounded-lg p-3">
+            Esta semana você estudou aproximadamente <strong>{weekMinutes} min</strong>
+            {currentGoal > 0 && (
+              <>
+                {' '}
+                de <strong>{currentGoal} min</strong> ({Math.min(100, Math.round((weekMinutes / currentGoal) * 100))}% da meta).
+              </>
+            )}
+          </div>
+        )}
+      </form>
 
       <AchievementsPanel />
 

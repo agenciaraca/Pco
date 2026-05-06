@@ -678,6 +678,38 @@ export function buildApp() {
     return c.json({ ok: true, email: tokenEntry.email });
   });
 
+  // Self-service: aluno define sua meta semanal de estudo (em minutos)
+  app.put('/me/weekly-goal', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    if (u.role !== 'student') {
+      return jsonError(c, 403, 'FORBIDDEN', 'Apenas alunos têm meta semanal.');
+    }
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const raw = body.weeklyGoalMinutes;
+    const minutes = typeof raw === 'number' ? raw : Number(raw);
+    if (!Number.isInteger(minutes) || minutes < 15 || minutes > 2400) {
+      return jsonError(
+        c,
+        400,
+        'INVALID_INPUT',
+        'weeklyGoalMinutes deve ser inteiro entre 15 e 2400.',
+      );
+    }
+    const updated = await studentsRepo.updateAdminStudent(u.sub, {
+      weeklyGoalMinutes: minutes,
+    });
+    if (!updated) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado.');
+    }
+    await recordAudit(c, {
+      action: 'student.weekly_goal.update',
+      targetType: 'student',
+      targetId: u.sub,
+      meta: { weeklyGoalMinutes: minutes },
+    });
+    return c.json({ ok: true, weeklyGoalMinutes: minutes });
+  });
+
   // Atualiza perfil do user logado (nome, avatar)
   app.put('/auth/me', requireAuth(), async (c) => {
     const u = c.get('user')!;
@@ -762,11 +794,44 @@ export function buildApp() {
       day.setUTCDate(day.getUTCDate() - 1);
     }
 
+    // Meta semanal + minutos assistidos esta semana (segunda → domingo).
+    // Como WatchTimeEntry agrega totalSeconds cumulativo, aproximamos pela
+    // soma das aulas completadas nesta semana × duração. Se não tiver
+    // duração, fallback de 15 min por aula concluída.
+    const student = await studentsRepo.findAdminStudent(u.sub);
+    const weeklyGoalMinutes = student?.weeklyGoalMinutes ?? 180;
+    const now = new Date();
+    const dow = now.getUTCDay(); // 0 = sun
+    const daysFromMon = dow === 0 ? 6 : dow - 1;
+    const weekStart = new Date(now);
+    weekStart.setUTCDate(now.getUTCDate() - daysFromMon);
+    weekStart.setUTCHours(0, 0, 0, 0);
+    const weekStartIso = weekStart.toISOString();
+    const completedThisWeek = list.filter(
+      (p) => p.completedAt >= weekStartIso,
+    );
+    const allCourses = await coursesRepo.listCourses();
+    const lessonDurations = new Map<string, number>();
+    for (const co of allCourses) {
+      for (const m of co.modules ?? []) {
+        for (const l of m.lessons ?? []) {
+          lessonDurations.set(l.id, l.durationMinutes ?? 15);
+        }
+      }
+    }
+    const weekMinutes = completedThisWeek.reduce(
+      (s, p) => s + (lessonDurations.get(p.lessonId) ?? 15),
+      0,
+    );
+
     return c.json({
       completedLessonIds: list.map((p) => p.lessonId),
       byCourse,
       streakDays: streak,
       lastCompletedAt: list[0]?.completedAt ?? null,
+      weeklyGoalMinutes,
+      weekMinutes,
+      weekStartIso,
     });
   });
 

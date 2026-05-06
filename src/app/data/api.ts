@@ -153,6 +153,12 @@ export async function changeMyPassword(currentPassword: string, newPassword: str
   return http.post<{ ok: true }>('/auth/me/password', { currentPassword, newPassword });
 }
 
+export async function setMyWeeklyGoal(
+  weeklyGoalMinutes: number,
+): Promise<{ ok: true; weeklyGoalMinutes: number }> {
+  return http.put('/me/weekly-goal', { weeklyGoalMinutes });
+}
+
 // ---------- Uploads ----------
 
 export interface UploadResultDto {
@@ -204,6 +210,12 @@ export interface MyProgressDto {
   byCourse: Record<string, { lessonsCompleted: number; lastAt: string | null }>;
   streakDays: number;
   lastCompletedAt: string | null;
+  /** Meta semanal de minutos definida pelo aluno. Default: 180 (3h). */
+  weeklyGoalMinutes?: number;
+  /** Minutos estudados desde a segunda-feira UTC desta semana. */
+  weekMinutes?: number;
+  /** ISO timestamp da segunda-feira 00:00 UTC desta semana. */
+  weekStartIso?: string;
 }
 
 export async function fetchMyProgress(): Promise<MyProgressDto> {

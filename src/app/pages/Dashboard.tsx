@@ -74,10 +74,15 @@ export default function Dashboard() {
   const enrolledIds = (student as { enrolledCourseIds?: string[] }).enrolledCourseIds ?? [];
   const enrolled = coursesQ.data.filter((c) => enrolledIds.includes(c.id));
   const totalMinutes = (student as { totalStudyMinutes?: number }).totalStudyMinutes ?? 0;
-  const weeklyGoal = (student as { weeklyGoalMinutes?: number }).weeklyGoalMinutes ?? 240;
+  // Meta semanal vem do progressQ (atualizada em tempo real); fallback no student record
+  const weeklyGoal =
+    progressQ.data?.weeklyGoalMinutes ??
+    (student as { weeklyGoalMinutes?: number }).weeklyGoalMinutes ??
+    180;
+  const weekMinutes = progressQ.data?.weekMinutes ?? 0;
   const weeklyProgress = Math.min(
     100,
-    Math.round(((totalMinutes % 240) / weeklyGoal) * 100),
+    weeklyGoal > 0 ? Math.round((weekMinutes / weeklyGoal) * 100) : 0,
   );
   const completedLessons = progressQ.data?.completedLessonIds.length ?? 0;
   const totalEnrolledLessons = enrolled.reduce(

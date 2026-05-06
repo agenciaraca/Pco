@@ -389,6 +389,7 @@ export interface AdminStudentRow {
   riskScore: number;
   lastAccessAt: string;
   createdAt: string;
+  weeklyGoalMinutes?: number;
 }
 
 export const adminStudents: AdminStudentRow[] = [
