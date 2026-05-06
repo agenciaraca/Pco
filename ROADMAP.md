@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-06 — sprints 469-474)
+## Estado atual (atualizado em 2026-05-06 — sprints 469-479)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **474+** |
-| Commits no main | **245+** |
-| Arquivos de teste | **91** |
-| Testes passando | **871** ✅ |
+| Sprints entregues | **479+** |
+| Commits no main | **250+** |
+| Arquivos de teste | **92** |
+| Testes passando | **886** ✅ |
 | Coverage statements | **~70%** |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,10 +143,15 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 469-474 (auth + API + roles)
+### Bloco sprints 469-479 (auth + API + roles + engagement)
 | Sprint | Commit | Tema |
 |---|---|---|
-| 474 | (pendente) | user counts em /admin/papeis + ROADMAP |
+| 479 | `85ca496` | study heatmap 365 dias (6 testes) |
+| 478 | `2f5ae8b` | meta semanal self-service (Profile + Dashboard) |
+| 477 | `147f754` | matriz comparativa de roles (visual table) |
+| 476 | `c213275` | system roles sync com seed em deploy (2 testes) |
+| 475 | `8a02fda` | permissões granulares + labels PT-BR (7 testes) |
+| 474 | `9fd8ddb` | user counts em /admin/papeis + ROADMAP |
 | 473 | `bc8caab` | Roles & Permissions CRUD (18 testes) |
 | 472 | `91a7576` | OpenAPI 3.0 público em /v1/openapi.json (11 testes) |
 | 471 | `62d7315` | middleware blockDuringImpersonation (7 testes) |
