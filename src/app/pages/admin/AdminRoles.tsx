@@ -7,6 +7,8 @@ import {
   Lock,
   X,
   Save,
+  Grid3x3,
+  List as ListIcon,
 } from 'lucide-react';
 import {
   useRoles,
@@ -45,6 +47,7 @@ export default function AdminRoles() {
   const toast = useToast();
 
   const [editing, setEditing] = useState<EditState | null>(null);
+  const [view, setView] = useState<'list' | 'matrix'>('list');
 
   const allPerms = useMemo(() => {
     const sys = permsQ.data?.system ?? [];
@@ -198,10 +201,46 @@ export default function AdminRoles() {
             papéis personalizados para documentar convenções da equipe.
           </p>
         </div>
-        <button type="button" onClick={openCreate} className="pco-btn-primary text-xs">
-          <Plus size={12} strokeWidth={2} />
-          Novo papel
-        </button>
+        <div className="flex gap-2 items-center">
+          <div
+            role="tablist"
+            aria-label="Modo de visualização"
+            className="inline-flex rounded-lg border border-pco-border bg-white overflow-hidden"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'list'}
+              onClick={() => setView('list')}
+              className={`text-xs px-3 py-1.5 inline-flex items-center gap-1 ${
+                view === 'list'
+                  ? 'bg-pco-blue text-white'
+                  : 'text-ink-muted hover:bg-surface-mute'
+              }`}
+            >
+              <ListIcon size={12} strokeWidth={2} />
+              Lista
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'matrix'}
+              onClick={() => setView('matrix')}
+              className={`text-xs px-3 py-1.5 inline-flex items-center gap-1 ${
+                view === 'matrix'
+                  ? 'bg-pco-blue text-white'
+                  : 'text-ink-muted hover:bg-surface-mute'
+              }`}
+            >
+              <Grid3x3 size={12} strokeWidth={2} />
+              Matriz
+            </button>
+          </div>
+          <button type="button" onClick={openCreate} className="pco-btn-primary text-xs">
+            <Plus size={12} strokeWidth={2} />
+            Novo papel
+          </button>
+        </div>
       </header>
 
       {rolesQ.isLoading ? (
@@ -210,6 +249,12 @@ export default function AdminRoles() {
         <div className="pco-card p-6 text-center text-sm text-ink-muted">
           Nenhum papel cadastrado.
         </div>
+      ) : view === 'matrix' ? (
+        <PermissionMatrix
+          roles={roles}
+          groupedPerms={groupedPerms}
+          allPerms={allPerms}
+        />
       ) : (
         <ul className="space-y-3">
           {roles.map((role) => (
@@ -456,6 +501,113 @@ export default function AdminRoles() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Permission matrix — comparativo lado a lado de roles × grupos de permissão
+// ─────────────────────────────────────────────────────────────────────────
+
+interface MatrixGroup {
+  name: string;
+  items: { code: string; label: string; description?: string }[];
+}
+
+function PermissionMatrix({
+  roles,
+  groupedPerms,
+  allPerms,
+}: {
+  roles: RoleDto[];
+  groupedPerms: MatrixGroup[];
+  allPerms: string[];
+}) {
+  return (
+    <div className="pco-card overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="sticky top-0 bg-surface-off z-10">
+          <tr>
+            <th
+              scope="col"
+              className="text-left p-3 font-semibold text-ink-muted border-b border-pco-border min-w-[180px]"
+            >
+              Grupo de permissões
+            </th>
+            {roles.map((r) => (
+              <th
+                key={r.id}
+                scope="col"
+                className="text-center p-3 font-semibold text-pco-deep border-b border-pco-border min-w-[120px]"
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <span>{r.name}</span>
+                  {r.system && (
+                    <span className="text-[9px] uppercase tracking-wider text-pco-blue inline-flex items-center gap-1">
+                      <Lock size={9} strokeWidth={2} />
+                      sistema
+                    </span>
+                  )}
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {groupedPerms.map((group) => (
+            <tr key={group.name} className="border-b border-pco-border last:border-0">
+              <th
+                scope="row"
+                className="text-left p-3 font-medium text-ink-strong align-top"
+              >
+                <div>{group.name}</div>
+                <div className="text-[10px] text-ink-subtle font-normal mt-0.5">
+                  {group.items.length} permissão{group.items.length === 1 ? '' : 'ões'}
+                </div>
+              </th>
+              {roles.map((r) => {
+                const granted = group.items.filter((it) =>
+                  r.permissions.includes(it.code),
+                ).length;
+                const total = group.items.length;
+                const pct = total ? granted / total : 0;
+                const color =
+                  granted === 0
+                    ? 'bg-surface-mute text-ink-subtle'
+                    : pct === 1
+                      ? 'bg-status-success/15 text-status-success'
+                      : pct >= 0.5
+                        ? 'bg-pco-blue/10 text-pco-blue'
+                        : 'bg-pco-orange/10 text-pco-orange';
+                return (
+                  <td key={r.id} className="text-center p-2 align-middle">
+                    <span
+                      title={`${granted} de ${total} concedidas`}
+                      className={`inline-flex items-center justify-center font-semibold rounded px-2 py-0.5 min-w-[44px] ${color}`}
+                    >
+                      {granted}
+                      <span className="opacity-50 mx-0.5">/</span>
+                      {total}
+                    </span>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+          <tr className="border-t-2 border-pco-deep bg-surface-off">
+            <th scope="row" className="text-left p-3 font-bold text-pco-deep">
+              Total
+            </th>
+            {roles.map((r) => (
+              <td key={r.id} className="text-center p-3">
+                <span className="font-bold text-pco-deep">{r.permissions.length}</span>
+                <span className="opacity-50 mx-0.5">/</span>
+                <span className="text-ink-subtle">{allPerms.length}</span>
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }
