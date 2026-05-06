@@ -27,6 +27,7 @@ import {
 import { Skeleton } from '../components/LoadingSkeleton';
 import { ErrorState } from '../components/EmptyState';
 import LeaderboardWidget from '../components/LeaderboardWidget';
+import SuggestedCourses from '../components/SuggestedCourses';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -186,6 +187,8 @@ export default function Dashboard() {
         )}
         <LeaderboardWidget />
       </div>
+
+      <SuggestedCourses />
 
 {nextLesson && (
         <Link
