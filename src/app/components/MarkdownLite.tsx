@@ -36,7 +36,7 @@ function applyInline(line: string): string {
   return s;
 }
 
-function render(input: string): string {
+export function renderMarkdownLite(input: string): string {
   const escaped = escapeHtml(input);
   const lines = escaped.split('\n');
   const out: string[] = [];
@@ -103,7 +103,8 @@ function render(input: string): string {
       out.push(`<li>${applyInline(li[1]!)}</li>`);
       continue;
     }
-    const quote = /^>\s+(.+)$/.exec(raw);
+    // > é escapado para &gt; antes deste parser
+    const quote = /^&gt;\s+(.+)$/.exec(raw);
     if (quote) {
       closeList();
       out.push(
@@ -126,7 +127,7 @@ export default function MarkdownLite({
   source: string;
   className?: string;
 }) {
-  const html = useMemo(() => render(source), [source]);
+  const html = useMemo(() => renderMarkdownLite(source), [source]);
   return (
     <div
       className={`text-sm text-ink-muted leading-relaxed ${className ?? ''}`}
