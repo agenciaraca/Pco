@@ -2349,6 +2349,23 @@ export function buildApp() {
           }
           await studentsRepo.enrollInCourse(studentId, courseId);
           enrolled++;
+          // Notifica o aluno da nova matrícula (best-effort)
+          try {
+            await notificationsRepo.createOne({
+              userId: studentId,
+              title: `🎓 Você foi matriculado em ${course.title}`,
+              body: `Acesse o curso e comece a estudar.${
+                required.length > 0 && force
+                  ? ' (Matrícula manual concedida pelo admin.)'
+                  : ''
+              }`,
+              category: 'announcement',
+              link: `/curso/${course.id}`,
+              authorEmail: 'sistema',
+            });
+          } catch {
+            // ignora — notificação é best-effort
+          }
         } catch (err) {
           errors.push({
             studentId,
