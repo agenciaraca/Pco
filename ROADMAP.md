@@ -6,17 +6,17 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-06)
+## Estado atual (atualizado em 2026-05-06 — sprints 469-474)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **466+** |
-| Commits no main | **240+** |
-| Arquivos de teste | **85** |
-| Testes passando | **818** ✅ |
+| Sprints entregues | **474+** |
+| Commits no main | **245+** |
+| Arquivos de teste | **91** |
+| Testes passando | **871** ✅ |
 | Coverage statements | **~70%** |
-| Módulos backend | 29 |
-| Páginas admin | 62+ |
+| Módulos backend | 30 |
+| Páginas admin | 63+ |
 | Páginas aluno | 15+ |
 | Providers de pagamento | 6 (Mock, Stripe, Asaas, Pagar.me, MercadoPago, PayPal) |
 | Providers de e-mail | 5 (Mock, Resend, SendGrid, Postmark, SMTP) |
@@ -25,6 +25,9 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 | Achievements automáticos | 6 |
 | Provedores de IA | OpenAI / Anthropic / Mock |
 | Permissões de API tokens | 7 escopos |
+| API pública v1 | 9 rotas + OpenAPI 3.0 spec |
+| Roles inventariados | 3 sistema + custom |
+| Permissões catalogadas | 30 system codes |
 
 Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack Query + React Router 6. JWT HS256 + tokenVersion + bcrypt. AES-GCM 256 (server/db/encryption.ts). 2FA TOTP RFC 6238. PWA (manifest + service worker).
 
@@ -66,6 +69,17 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - Two-step destructive delete (X-Confirm-Name)
 - Rate limit middleware (in-memory ring) com dashboard
 - LGPD: deletion-requests com fluxo de aprovação
+- **Impersonation (sprint 469-470)**: admin "entra" como aluno
+  - JWT claim `act` com TTL 30 min, audit em start/exit
+  - Banner persistente "Visualizando como X" (sticky, role=alert)
+  - Botão "Entrar como aluno" em /admin/usuarios/:id
+- **Bloqueio durante impersonation (sprint 471)**: middleware
+  blockDuringImpersonation('action') retorna 403 IMPERSONATION_BLOCKED
+  pra 10 ações sensíveis (delete user, change password, refund, etc)
+- **Roles & Permissions inventory (sprint 473)**: CRUD em /admin/papeis
+  com 3 system roles imutáveis + custom roles editáveis. 30 permissions
+  catalogadas. Hoje é documentação; quando RBAC dinâmico for implementado,
+  passa a ser enforced.
 
 ### Course features
 - Course bundles (kind=bundle + metadata.courseIds[]) — grant múltiplo no checkout
@@ -129,7 +143,17 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco testes 432-466 (este turno)
+### Bloco sprints 469-474 (auth + API + roles)
+| Sprint | Commit | Tema |
+|---|---|---|
+| 474 | (pendente) | user counts em /admin/papeis + ROADMAP |
+| 473 | `bc8caab` | Roles & Permissions CRUD (18 testes) |
+| 472 | `91a7576` | OpenAPI 3.0 público em /v1/openapi.json (11 testes) |
+| 471 | `62d7315` | middleware blockDuringImpersonation (7 testes) |
+| 470 | `1dccd50` | impersonation UI: banner + botão admin |
+| 469 | `7040c80` | impersonation backend (17 testes) |
+
+### Bloco testes 432-466 (turno anterior)
 | Sprint | Commit | Tema |
 |---|---|---|
 | 466 | `d6c76a3` | imports/mapping (11 testes) |

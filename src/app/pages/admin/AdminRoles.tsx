@@ -171,12 +171,20 @@ export default function AdminRoles() {
                         sistema
                       </span>
                     )}
+                    {typeof role.userCount === 'number' && role.userCount > 0 && (
+                      <span className="pco-badge bg-status-success/10 text-status-success">
+                        {role.userCount} usuário{role.userCount === 1 ? '' : 's'}
+                      </span>
+                    )}
                   </div>
                   {role.description && (
                     <p className="text-xs text-ink-muted mt-1">{role.description}</p>
                   )}
                   <div className="text-[11px] text-ink-subtle mt-2">
                     {role.permissions.length} permissão(ões)
+                    {typeof role.userCount === 'number' && (
+                      <> · {role.userCount} usuário{role.userCount === 1 ? '' : 's'} atribuído{role.userCount === 1 ? '' : 's'}</>
+                    )}
                   </div>
                   {role.permissions.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">

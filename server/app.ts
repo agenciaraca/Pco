@@ -3745,8 +3745,19 @@ export function buildApp() {
   // ---------- Roles & Permissions (admin CRUD) ----------
 
   app.get('/admin/roles', requireAuth('admin', 'superadmin'), async (c) => {
-    const roles = await rolesStore.listRoles();
-    return c.json({ roles });
+    const [roles, allUsers] = await Promise.all([
+      rolesStore.listRoles(),
+      usersStore.listUsers(),
+    ]);
+    const counts: Record<string, number> = {};
+    for (const u of allUsers) {
+      counts[u.role] = (counts[u.role] ?? 0) + 1;
+    }
+    const enriched = roles.map((r) => ({
+      ...r,
+      userCount: counts[r.slug] ?? 0,
+    }));
+    return c.json({ roles: enriched });
   });
 
   app.get('/admin/permissions', requireAuth('admin', 'superadmin'), async (c) => {

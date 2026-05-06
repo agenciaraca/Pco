@@ -2824,6 +2824,8 @@ export interface RoleDto {
   system: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Quantos usuários do sistema têm esse slug como role. */
+  userCount?: number;
 }
 
 export async function fetchRoles(): Promise<{ roles: RoleDto[] }> {
