@@ -29,6 +29,7 @@ import {
   useDeleteSystemUser,
   useChangeSystemUserPassword,
   useBulkUserAction,
+  useRoles,
 } from '../../data/hooks';
 import { useAuth } from '../../auth/AuthContext';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
@@ -74,6 +75,7 @@ export default function AdminUsuarios() {
   const isSuperadmin = actingUser?.role === 'superadmin';
 
   const usersQ = useSystemUsers();
+  const rolesQ = useRoles();
   const createMut = useCreateSystemUser();
   const updateMut = useUpdateSystemUser();
   const deleteMut = useDeleteSystemUser();
@@ -320,6 +322,17 @@ export default function AdminUsuarios() {
                           {roleIcon[u.role]}
                           {roleLabel[u.role]}
                         </span>
+                        {(u as { customRoleSlug?: string | null }).customRoleSlug && (
+                          <span
+                            className="ml-1 pco-badge bg-pco-cyan/10 text-pco-cyan"
+                            title="Papel personalizado"
+                          >
+                            {(rolesQ.data?.roles ?? []).find(
+                              (r) => r.slug === (u as { customRoleSlug?: string }).customRoleSlug,
+                            )?.name ??
+                              (u as { customRoleSlug?: string }).customRoleSlug}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -388,6 +401,7 @@ export default function AdminUsuarios() {
         <UserEditor
           user={editing === 'new' ? null : editing}
           isSuperadmin={isSuperadmin}
+          allRoles={rolesQ.data?.roles ?? []}
           submitting={createMut.isPending || updateMut.isPending}
           onClose={() => setEditing(null)}
           onSubmit={async (data) => {
@@ -479,12 +493,13 @@ function Stat({
 interface UserEditorProps {
   user: SystemUser | null;
   isSuperadmin: boolean;
+  allRoles: { id: string; slug: string; name: string; system: boolean }[];
   submitting: boolean;
   onClose: () => void;
   onSubmit: (data: CreateSystemUserInput | UpdateSystemUserInput) => Promise<void>;
 }
 
-function UserEditor({ user, isSuperadmin, submitting, onClose, onSubmit }: UserEditorProps) {
+function UserEditor({ user, isSuperadmin, allRoles, submitting, onClose, onSubmit }: UserEditorProps) {
   const isNew = user === null;
   const [showPwd, setShowPwd] = useState(false);
   const schema = isNew ? createSystemUserSchema : updateSystemUserSchema;
@@ -502,10 +517,14 @@ function UserEditor({ user, isSuperadmin, submitting, onClose, onSubmit }: UserE
       email: user?.email ?? '',
       name: user?.name ?? '',
       role: user?.role ?? 'student',
+      customRoleSlug:
+        (user as { customRoleSlug?: string | null } | null)?.customRoleSlug ?? '',
       password: isNew ? genStrongPassword() : '',
       active: user?.active ?? true,
     },
   });
+
+  const customRoles = allRoles.filter((r) => !r.system);
 
   const passwordValue = watch('password' as 'password');
 
@@ -524,7 +543,7 @@ function UserEditor({ user, isSuperadmin, submitting, onClose, onSubmit }: UserE
           <input type="email" {...register('email')} className="pco-input" />
         </Field>
 
-        <Field label="Papel" error={errors.role?.message}>
+        <Field label="Papel do sistema" error={errors.role?.message}>
           <select {...register('role')} className="pco-input" disabled={!isSuperadmin}>
             <option value="student">Aluno</option>
             <option value="admin">Admin</option>
@@ -532,9 +551,35 @@ function UserEditor({ user, isSuperadmin, submitting, onClose, onSubmit }: UserE
           </select>
           {!isSuperadmin && (
             <p className="mt-1 text-[11px] text-ink-subtle">
-              Apenas superadmin pode mudar papel.
+              Apenas superadmin pode mudar papel do sistema.
             </p>
           )}
+        </Field>
+
+        <Field
+          label="Papel personalizado (opcional)"
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          error={(errors as any).customRoleSlug?.message}
+        >
+          <select
+            {...register('customRoleSlug')}
+            className="pco-input"
+            defaultValue={
+              (user as { customRoleSlug?: string | null } | null)?.customRoleSlug ?? ''
+            }
+          >
+            <option value="">— Nenhum —</option>
+            {customRoles.map((r) => (
+              <option key={r.id} value={r.slug}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-[11px] text-ink-subtle">
+            {customRoles.length === 0
+              ? 'Nenhum papel personalizado cadastrado. Crie em /admin/papeis.'
+              : 'Hoje serve como documentação. A autorização efetiva continua usando o papel do sistema acima.'}
+          </p>
         </Field>
 
         {isNew && (

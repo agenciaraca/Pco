@@ -13,6 +13,12 @@ export interface SystemUser {
   email: string;
   name: string;
   role: Role;
+  /**
+   * Slug de role customizada (de /admin/papeis). Coexiste com `role` que
+   * continua sendo o role do sistema enforced pelo middleware. Quando RBAC
+   * dinâmico for ativado, este campo passa a ser a fonte da verdade.
+   */
+  customRoleSlug?: string | null;
   passwordHash: string;
   tokenVersion: number;
   avatarUrl?: string | null;
@@ -34,6 +40,7 @@ export interface SystemUserPublic {
   email: string;
   name: string;
   role: Role;
+  customRoleSlug?: string | null;
   tokenVersion: number;
   avatarUrl?: string | null;
   createdAt: string;
@@ -207,6 +214,7 @@ interface CreateInput {
   email: string;
   name: string;
   role: Role;
+  customRoleSlug?: string | null;
   password: string;
   active?: boolean;
   document?: string | null;
@@ -223,6 +231,7 @@ export async function createUser(input: CreateInput): Promise<SystemUserPublic> 
     email: input.email,
     name: input.name,
     role: input.role,
+    customRoleSlug: input.customRoleSlug ?? null,
     passwordHash: hash,
     tokenVersion: 0,
     createdAt: now,
@@ -239,6 +248,7 @@ interface UpdateInput {
   email?: string;
   name?: string;
   role?: Role;
+  customRoleSlug?: string | null;
   active?: boolean;
   avatarUrl?: string | null;
 }
@@ -262,6 +272,9 @@ export async function updateUser(
     ...(patch.email !== undefined ? { email: patch.email } : {}),
     ...(patch.name !== undefined ? { name: patch.name } : {}),
     ...(patch.role !== undefined ? { role: patch.role } : {}),
+    ...(patch.customRoleSlug !== undefined
+      ? { customRoleSlug: patch.customRoleSlug }
+      : {}),
     ...(patch.active !== undefined ? { active: patch.active } : {}),
     ...(patch.avatarUrl !== undefined ? { avatarUrl: patch.avatarUrl } : {}),
     ...(willDeactivate ? { tokenVersion: (users[i].tokenVersion ?? 0) + 1 } : {}),

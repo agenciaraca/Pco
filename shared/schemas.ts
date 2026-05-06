@@ -432,6 +432,11 @@ export const createSystemUserSchema = z.object({
   email: z.string().email('E-mail inválido').max(160),
   name: z.string().min(2, 'Nome muito curto').max(120),
   role: roleSchema,
+  /**
+   * Slug de role customizada (opcional). Hoje é metadado/documentação.
+   * Quando RBAC dinâmico for ativado, vira a fonte da verdade pra autorização.
+   */
+  customRoleSlug: z.string().min(1).max(40).nullable().optional(),
   password: z
     .string()
     .min(8, 'Senha precisa ter ao menos 8 caracteres')
@@ -444,6 +449,7 @@ export const updateSystemUserSchema = z.object({
   email: z.string().email().max(160).optional(),
   name: z.string().min(2).max(120).optional(),
   role: roleSchema.optional(),
+  customRoleSlug: z.string().min(1).max(40).nullable().optional(),
   active: z.boolean().optional(),
 });
 export type UpdateSystemUserInput = z.infer<typeof updateSystemUserSchema>;
