@@ -1,6 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useMemo } from 'react';
-import { ArrowRight, Clock, Layers, BookOpen, GraduationCap } from 'lucide-react';
+import {
+  ArrowRight,
+  Clock,
+  Layers,
+  BookOpen,
+  GraduationCap,
+  PlayCircle,
+} from 'lucide-react';
 import { useCourses, useProducts } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
@@ -89,6 +96,12 @@ export default function Catalog() {
                     className={`relative h-40 bg-gradient-to-br ${course.coverColor} p-5`}
                   >
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.2),transparent_60%)]" />
+                    {course.modules.some((m) => m.lessons.some((l) => l.isPreview)) && (
+                      <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white text-pco-deep text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                        <PlayCircle size={10} strokeWidth={2.5} className="text-pco-blue" />
+                        Preview livre
+                      </span>
+                    )}
                     <div className="relative flex flex-col justify-between h-full text-white">
                       <span className="inline-flex items-center self-start px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold uppercase tracking-wider">
                         {course.shortTitle}
