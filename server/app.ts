@@ -4577,6 +4577,32 @@ export function buildApp() {
     },
   );
 
+  /** Metadata da app — versão, build, env, commit. */
+  app.get('/admin/about', requireAuth('admin', 'superadmin'), async (c) => {
+    let version = 'unknown';
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const pkgPath = path.resolve(process.cwd(), 'package.json');
+      const pkg = JSON.parse(await fs.readFile(pkgPath, 'utf8'));
+      version = pkg.version ?? 'unknown';
+    } catch {
+      /* ignore */
+    }
+    return c.json({
+      version,
+      commit: process.env.GIT_COMMIT ?? null,
+      buildDate: process.env.BUILD_DATE ?? null,
+      env: process.env.NODE_ENV ?? 'development',
+      nodeVersion: process.version,
+      uptimeSeconds: Math.floor(process.uptime()),
+      memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
+      pid: process.pid,
+      hostname: process.env.HOSTNAME ?? null,
+      dataDirOverride: !!process.env.DATA_DIR,
+    });
+  });
+
   /** Estatísticas de achievements para admin: count por badge, top users. */
   app.get(
     '/admin/achievements/stats',

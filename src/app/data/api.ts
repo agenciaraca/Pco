@@ -3314,6 +3314,23 @@ export async function fetchAchievementsStats(): Promise<AchievementsStatsDto> {
   return http.get<AchievementsStatsDto>('/admin/achievements/stats');
 }
 
+export interface AdminAboutDto {
+  version: string;
+  commit: string | null;
+  buildDate: string | null;
+  env: string;
+  nodeVersion: string;
+  uptimeSeconds: number;
+  memoryMB: number;
+  pid: number;
+  hostname: string | null;
+  dataDirOverride: boolean;
+}
+
+export async function fetchAdminAbout(): Promise<AdminAboutDto> {
+  return http.get<AdminAboutDto>('/admin/about');
+}
+
 export async function downloadLeaderboardCsv(
   days = 30,
   limit = 100,

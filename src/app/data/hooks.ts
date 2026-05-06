@@ -1905,6 +1905,14 @@ export function useAchievementsStats() {
   });
 }
 
+export function useAdminAbout() {
+  return useQuery({
+    queryKey: ['admin', 'about'],
+    queryFn: () => api.fetchAdminAbout(),
+    staleTime: 60_000,
+  });
+}
+
 
 const myAchievementsKey = ['me', 'achievements'] as const;
 

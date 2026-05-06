@@ -92,6 +92,7 @@ const AdminDeletionRequests = lazy(() => import('./pages/admin/AdminDeletionRequ
 const AdminAlertsCenter = lazy(() => import('./pages/admin/AdminAlertsCenter'));
 const AdminTutorChat = lazy(() => import('./pages/admin/AdminTutorChat'));
 const AdminAchievements = lazy(() => import('./pages/admin/AdminAchievements'));
+const AdminAbout = lazy(() => import('./pages/admin/AdminAbout'));
 const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
 const ImportsHome = lazy(() => import('./pages/admin/imports/ImportsHome'));
 const ImportWizardCsv = lazy(() => import('./pages/admin/imports/ImportWizardCsv'));
@@ -254,6 +255,7 @@ export const router = createBrowserRouter([
       { path: 'alertas', element: <S><AdminAlertsCenter /></S> },
       { path: 'tutor-chat', element: <S><AdminTutorChat /></S> },
       { path: 'conquistas', element: <S><AdminAchievements /></S> },
+      { path: 'sobre', element: <S><AdminAbout /></S> },
       { path: 'sessoes-ao-vivo', element: <S><AdminLiveSessions /></S> },
       { path: 'setup', element: <S><AdminSetup /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },
