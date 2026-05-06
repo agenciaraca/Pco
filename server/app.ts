@@ -163,6 +163,7 @@ import * as reengagementWorker from './reengagement/worker';
 import * as webhookDeliveries from './webhooks/delivery-store';
 import * as webhooksDispatcher from './webhooks/dispatcher';
 import { ALL_WEBHOOK_EVENTS, type WebhookEventType } from './webhooks/types';
+import { WEBHOOK_PRESETS } from './webhooks/presets';
 import * as emailLogs from './notifications/log-store';
 import * as emailBroadcasts from './notifications/broadcasts';
 import * as notificationPrefs from './notifications/prefs-store';
@@ -6694,6 +6695,12 @@ export function buildApp() {
     '/admin/webhooks/events',
     requireAuth('admin', 'superadmin'),
     (c) => c.json({ events: ALL_WEBHOOK_EVENTS }),
+  );
+
+  app.get(
+    '/admin/webhooks/presets',
+    requireAuth('admin', 'superadmin'),
+    (c) => c.json({ presets: WEBHOOK_PRESETS }),
   );
 
   app.get(
