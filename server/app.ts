@@ -187,6 +187,7 @@ import { hasDb } from './db/client';
 import { computeModuleLock, findModuleLockForLesson } from './repositories/drip';
 import * as studyPaths from './repositories/study-paths';
 import { computePathProgress } from './repositories/study-paths';
+import * as questionBank from './repositories/question-bank';
 import {
   checkPrerequisites,
   computeCompletedCourseIds,
@@ -4109,6 +4110,115 @@ export function buildApp() {
       },
     });
   });
+
+  // ---------- Banco de questões (question bank) ----------
+
+  app.get(
+    '/admin/courses/:id/questions',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      return c.json({
+        questions: await questionBank.listByCourse(c.req.param('id') as string),
+      });
+    },
+  );
+
+  app.post(
+    '/admin/courses/:id/questions',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const courseId = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      try {
+        const q = await questionBank.createQuestion({
+          courseId,
+          moduleId: typeof body.moduleId === 'string' ? body.moduleId : undefined,
+          type: body.type as 'multiple_choice' | 'true_false',
+          prompt: String(body.prompt ?? ''),
+          options: Array.isArray(body.options)
+            ? (body.options as Array<{ text?: string; correct?: boolean }>).map((o) => ({
+                text: String(o?.text ?? ''),
+                correct: !!o?.correct,
+              }))
+            : [],
+          explanation: typeof body.explanation === 'string' ? body.explanation : undefined,
+          tags: Array.isArray(body.tags) ? (body.tags as unknown[]).map((t) => String(t)) : undefined,
+          difficulty: typeof body.difficulty === 'number' ? body.difficulty : undefined,
+          active: typeof body.active === 'boolean' ? body.active : undefined,
+        });
+        await recordAudit(c, {
+          action: 'question.create',
+          targetType: 'question',
+          targetId: q.id,
+          meta: { courseId },
+        });
+        return c.json(q, 201);
+      } catch (err) {
+        if (err instanceof questionBank.QuestionError) {
+          return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
+  app.put(
+    '/admin/questions/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      try {
+        const updated = await questionBank.updateQuestion(id, {
+          type: body.type as 'multiple_choice' | 'true_false' | undefined,
+          prompt: typeof body.prompt === 'string' ? body.prompt : undefined,
+          options: Array.isArray(body.options)
+            ? (body.options as Array<{ text?: string; correct?: boolean }>).map((o) => ({
+                text: String(o?.text ?? ''),
+                correct: !!o?.correct,
+              }))
+            : undefined,
+          explanation: typeof body.explanation === 'string' ? body.explanation : undefined,
+          tags: Array.isArray(body.tags) ? (body.tags as unknown[]).map((t) => String(t)) : undefined,
+          difficulty: typeof body.difficulty === 'number' ? body.difficulty : undefined,
+          active: typeof body.active === 'boolean' ? body.active : undefined,
+          moduleId:
+            body.moduleId === null
+              ? null
+              : typeof body.moduleId === 'string'
+                ? body.moduleId
+                : undefined,
+        });
+        await recordAudit(c, {
+          action: 'question.update',
+          targetType: 'question',
+          targetId: id,
+        });
+        return c.json(updated);
+      } catch (err) {
+        if (err instanceof questionBank.QuestionError) {
+          return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
+  app.delete(
+    '/admin/questions/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const ok = await questionBank.deleteQuestion(id);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Questão não encontrada.');
+      await recordAudit(c, {
+        action: 'question.delete',
+        targetType: 'question',
+        targetId: id,
+      });
+      return c.json({ ok: true });
+    },
+  );
 
   // ---------- Trilhas de estudo (study paths) ----------
 
