@@ -1,137 +1,166 @@
 # AVA PCO — Roadmap completo
 
+LMS para Psicanálise Clínica Online. Stack: Hono + React 18 + TanStack Query + JsonStore (default) / Drizzle Postgres (opcional).
+
 Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado existe no histórico de `main`.
 
 ---
 
-## Sprints entregues
+## Estado atual (atualizado em 2026-05-05)
 
-### 1. Pagamentos (commit `e8e52de` e anteriores)
-- Mock provider local (sandbox)
-- Stripe Checkout Sessions + webhook HMAC-SHA256
-- Asaas (PIX/Boleto/Cartão) com `access_token`
-- Pagar.me Orders v5
-- Mercado Pago Preferences
-- PayPal Orders v2 (OAuth + capture)
-- CRUD de gateways com credenciais AES-GCM
-- Produtos, pedidos, cupons percent/amount
-- UI: `/admin/gateways`, `/admin/produtos`, `/admin/pedidos`, `/admin/coupons`
+| Métrica | Valor |
+|---|---|
+| Sprints entregues | **430+** |
+| Commits no main | **210+** |
+| Arquivos de teste | **62** |
+| Testes passando | **590** ✅ |
+| Módulos backend | 29 |
+| Páginas admin | 62+ |
+| Páginas aluno | 15+ |
+| Providers de pagamento | 6 (Mock, Stripe, Asaas, Pagar.me, MercadoPago, PayPal) |
+| Providers de e-mail | 5 (Mock, Resend, SendGrid, Postmark, SMTP) |
+| Connectors de import | 3 (WP, LD, WC) + CSV |
+| Tipos de webhook outbound | Generic + Slack + Discord |
+| Achievements automáticos | 6 |
+| Provedores de IA | OpenAI / Anthropic / Mock |
+| Permissões de API tokens | 7 escopos |
 
-### 2. Importação WP/LD/WC — Sprints A-E (`16c883a`, `add50c6`, `6ed48da`)
+Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack Query + React Router 6. JWT HS256 + tokenVersion + bcrypt. AES-GCM 256 (server/db/encryption.ts). 2FA TOTP RFC 6238. PWA (manifest + service worker).
+
+---
+
+## Sprints entregues por área
+
+### Pagamentos
+- 6 providers: Mock, Stripe (Checkout Sessions + webhook HMAC), Asaas (PIX/Boleto/Cartão), Pagar.me Orders v5, MercadoPago Preferences, PayPal Orders v2 (OAuth + capture)
+- CRUD de gateways com credenciais AES-GCM 256
+- Produtos (course/bundle), pedidos, cupons (percent/amount, min order, max uses, expiração)
+- Refund parcial em todos os 6 providers + revoga acesso
+- Sales analytics (revenue série temporal, top produtos, status distribution, comparison previousRange)
+- UI: `/admin/gateways`, `/admin/produtos`, `/admin/pedidos`, `/admin/coupons`, `/admin/sales`
+
+### Importação WP/LD/WC
 - **Sprint A**: foundation (types, stores, csv-templates 8 entidades)
 - **Sprint B**: parser CSV + dry-run + wizard UI
 - **Sprint C**: connectors REST (WordPress, LearnDash, WooCommerce) com credenciais encrypted
 - **Sprint D**: enrollment engine (5 startRules × 7 expirationRules) + execução real via adapters
 - **Sprint E**: histórico, relatórios CSV/JSON, rollback best-effort, conexões CRUD UI
+- **Diagnose tool**: testa /wp-json + /users/me + /users?context=edit pra debugar 401 forbidden_context
 
-### 3. E-mail transacional (`698b2e9`)
+### E-mail transacional
 - 5 providers (Resend, SendGrid, Postmark, mock, SMTP stub)
-- Sender com sendSafe (best-effort) + log
-- 4 templates (password_reset, order_paid, course_enrolled, welcome) com layout branded
-- Hooks: reset de senha, order paid, refund
+- Sender com sendSafe (best-effort) + log estruturado
+- 4 templates (password_reset, order_paid, course_enrolled, welcome) com layout branded + escape XSS
+- Hooks: reset de senha, order paid, refund, welcome
 - Admin: configs CRUD, ping, send-test, preview, logs
 
-### 4. Segurança — 2FA + webhooks (`74374fb`, `0b95d99`)
-- TOTP RFC 6238 puro (sem deps), backup codes
+### Segurança
+- 2FA TOTP RFC 6238 puro (sem deps), backup codes (sha256 hash)
 - Login 2-step (ticket + code)
 - Setup/enable/disable/regen via UI
 - Webhooks de saída com HMAC-SHA256 estilo Stripe
 - Retry exponencial (1m/5m/30m/2h, 5 tentativas)
 - Worker em background
+- API tokens públicos read-only (7 escopos: stats/students/orders/courses/certificates/products + all)
+- Two-step destructive delete (X-Confirm-Name)
+- Rate limit middleware (in-memory ring) com dashboard
+- LGPD: deletion-requests com fluxo de aprovação
 
-### 5. Refund + Health dashboard (`74374fb`)
-- `refundPayment()` em todos os 6 providers
-- Endpoint admin com refund parcial e revoga acesso
-- Health dashboard agregando 9 sinais
-
-### 6. Course bundles + Reengagement (`3c57b59`)
-- Novo kind `bundle` com `metadata.courseIds[]`
-- Grant múltiplo no checkout, revoke no refund
-- Worker diário de reengajamento configurável + cooldown
-- Notification preferences (opt-out)
-
-### 7. Operações admin (`34e293d`)
-- Bulk actions de alunos (ativar/desativar/excluir/desmatricular/sendEmail/forceLogout)
-- Search global cross-entity com `Ctrl+K` palette
-- Email broadcasts segmentados (6 audiências)
-- Sessions inspector + force logout
-
-### 8. Integrações + Activity (`e795a0b`)
-- API tokens públicos read-only (5 escopos)
-- Endpoints `/api/v1/me|stats|students|orders|courses`
-- Activity feed cross-entity (audit + email + webhook + reengagement + orders)
-
-### 9. Manutenção (`4e41f87`)
-- CSV exports (users/orders/courses) com BOM UTF-8
+### Course features
+- Course bundles (kind=bundle + metadata.courseIds[]) — grant múltiplo no checkout
 - Course duplicate (clone completo)
-- Settings backup/restore (JSON v1 com whitelist)
-
-### 10. Conteúdo & UX (`f79d22a`)
-- Admin notes per-aluno
 - Course tags + filtro nas listagens
 - Course reviews/ratings (1-5 estrelas + comentário, só matriculados)
-
-### 11. Engajamento (`03b1050`)
-- Notification preferences (opt-out broadcasts/reengajamento)
-- 6 achievements/badges automáticos com streak
-
-### 12. Operacional + Comunidade (`05297fe`)
-- Cron/jobs viewer com tick manual
-- Lesson discussion thread (1 nível de resposta + moderação)
-
-### 13. Safety + Ops (`a69607c`)
-- Two-step destructive delete (X-Confirm-Name)
-- System logs viewer (ring buffer 5000 linhas)
-- Course preview mode
-
-### 14. Integrações + Engajamento (`94608f9`)
-- Slack/Discord webhooks (formatadores dedicados)
-- Streak counter no dashboard
-
-### 15. Deliverability + Analytics (`e0da891`)
-- Unsubscribe link em broadcasts (JWT scope)
-- Lesson watch time tracking (heartbeat 30s/30s)
-
-### 16. Ops + Analytics (`6512f99`)
-- Rate-limit dashboard com top IPs/paths/blocks
+- Course preview mode (admin vê como aluno)
 - Course analytics consolidado
-
-### 17. Analytics + Content (`fc25785`)
 - Per-student analytics agregado
-- Tags em biblioteca/podcasts
 
-### 18. Content + Ops (`96e3a81`)
-- Live sessions (Zoom/Meet integração)
+### Engajamento + Achievements
+- Reengagement automático configurável (cooldownDays, inactivityDays, onlyEnrolled)
+- 6 achievements/badges (first_lesson, first_course, three_courses, streak_7, streak_30, tutor_helper)
+- Notification preferences (opt-out broadcasts/reengajamento)
+- Wishlist por aluno
+- Streak counter no dashboard
+- Lesson watch time tracking (heartbeat 30s)
+
+### Operacional
+- Health dashboard agregando 9 sinais
+- Activity feed cross-entity (audit + email + webhook + reengagement + orders)
+- Audit log append-only (5000 entries)
+- Errors store (client + server, 2000 entries)
+- Cron/jobs viewer com tick manual
+- System logs viewer (ring buffer 5000 linhas)
+- Rate-limit dashboard com top IPs/paths/blocks
+- Setup checklist (8 itens com progresso)
+- Settings backup/restore (JSON v1 com whitelist)
+
+### Comunidade
+- Lesson discussion thread (1 nível de resposta + moderação)
+- Admin notes per-aluno
+- Tutor virtual (chat com IA via OpenAI/Anthropic) com histórico
+
+### Comunicações
+- Email broadcasts segmentados (6 audiências)
+- Slack/Discord webhooks (formatadores dedicados)
+- Unsubscribe link em broadcasts (JWT scope)
+- Welcome email automatic on signup
+
+### Operações admin
+- Bulk actions de alunos (ativar/desativar/excluir/desmatricular/sendEmail/forceLogout)
+- Search global cross-entity com `Ctrl+K` palette
+- Sessions inspector + force logout
 - Saved searches/filters per-admin
 
-### 19. Ops + PWA (`9428c36`)
-- Setup checklist (8 itens com progresso)
-- PWA básico (manifest + sw + offline.html)
+### Conteúdo
+- Live sessions (Zoom/Meet integração)
+- Tags em biblioteca/podcasts
+- Library + Podcasts CRUD
+- News (postagens admin)
+- Certificate render + validation público
+- CSV exports (users/orders/courses) com BOM UTF-8
 
-### 20. Tests (`3252b47`)
-- 7 suites de teste (TOTP, CSV, transforms, enrollment, signer, formatters, confirm, log-buffer)
-- 131 testes passando, 15 arquivos
-- Bug encontrado e corrigido pelos próprios testes (backup codes truncados)
+### PWA + UX
+- PWA básico (manifest + sw + offline.html)
+- Login customization (cores, posição, theme, logo)
+- Markdown lite renderer
 
 ---
 
-## Resumo numérico
+## Sprints recentes (últimos 30 commits)
 
-| Métrica | Valor |
-|---|---|
-| Sprints entregues | ~50 |
-| Commits no main | ~30+ |
-| Arquivos de teste | 15 |
-| Testes passando | 131 |
-| Módulos backend | 30+ |
-| Páginas admin | 35+ |
-| Páginas aluno | 15+ |
-| Providers de pagamento | 6 |
-| Providers de e-mail | 5 |
-| Connectors de import | 3 (WP, LD, WC) + CSV |
+| Commit | Sprint | Tema |
+|---|---|---|
+| `3aac472` | 430+ | typecheck fixes (categorias suporte + cast unknown) |
+| `9ffa946` | 429 | support-tickets repo (7 testes) |
+| `d599023` | 427 | tutor-history (8 testes) |
+| `209f8b8` | 426 | login-config + cert-validations (8 testes) |
+| `cec8c3b` | 424 | webhooks-endpoints-store (10 testes) |
+| `8c9bd45` | 423 | webhooks-delivery-store (9 testes) |
+| `56d9af4` | 422 | reengagement-config (8 testes) |
+| `fcb8178` | 421 | discussions-crud (9 testes) |
+| `1a0e7e2` | 420 | reviews-store (9 testes) |
+| `4150813` | 419 | activity-feed (10 testes) |
+| `b67ca56` | 418 | audit-log (10 testes) |
+| `0886998` | 417 | errors-store (9 testes) |
+| `3cdbb3b` | 416 | health (6 testes) |
+| `2d2619b` | 414 | notification-sender (8 testes) |
+| `a8860b5` | 413 | notification-templates (18 testes) |
+| `4a5167b` | 411 | achievements-store (9 testes) |
+| `ff0c181` | 408 | users-store-crud (15 testes) |
+| `1cfc9d9` | 407 | export-csv (12 testes) |
+| `223456c` | 406 | jwt (8 testes) |
+| `48cb7c5` | 405 | password-reset (7 testes) |
+| `dfcd7ed` | 404 | api-tokens (11 testes) |
+| `e428abc` | 401 | import-validators (24 testes) |
+| `f2ab6e2` | 402 | import-normalizers (25 testes + bug fix em bool()) |
+| `874f651` | 399 | import-job-store (8 testes) |
+| `11ce71a` | 398 | refs-store (8 testes) |
+
+---
 
 ## Endpoints principais por área
 
+### Admin
 - `/admin/setup` — checklist
 - `/admin/saude` — health
 - `/admin/atividade` — activity feed
@@ -139,29 +168,50 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 - `/admin/logs` — server logs
 - `/admin/rate-limits` — rate-limit telemetry
 - `/admin/sessoes` — sessions inspector
+- `/admin/sessoes-ao-vivo` — live sessions
 - `/admin/imports` — importer hub
 - `/admin/gateways` — payment gateways
 - `/admin/email` — e-mail config + logs
 - `/admin/broadcasts` — campanhas
 - `/admin/webhooks` — outbound
 - `/admin/api-tokens` — API público
-- `/admin/sessoes-ao-vivo` — live sessions
 - `/admin/cursos/:id/analytics` — analytics
 - `/admin/cursos/:id/preview` — preview como aluno
 - `/admin/backup` — config backup/restore
-- `/api/v1/*` — API pública
+- `/admin/about` — info do sistema
+- `/admin/alunos/:id` — perfil aluno + analytics
+- `/admin/alertas` — central de alertas
+- `/admin/tutor` — chat com IA admin
+- `/admin/exclusoes` — deletion requests LGPD
+
+### API pública
+- `/api/v1/me` — info do token
+- `/api/v1/stats` — métricas agregadas
+- `/api/v1/students` — list students
+- `/api/v1/orders` — list orders
+- `/api/v1/courses` — list courses
+- `/api/v1/certificates/validate/:code` — validate público
 
 ---
 
 ## Backlog (não iniciado)
 
-### Documentação
-- ✅ docs técnica de cada módulo (este turno)
-- Documentação de deployment passo-a-passo (`docs/deploy.md`) — pendente
-- Guias de usuário admin (não-técnico) — pendente
+### Cobertura de testes restante (alta prioridade)
+- **api-token-middleware** — auth flow + scope check (medium effort)
+- **invoice generator** — render PDF/HTML de comprovante
+- **sales-analytics edge cases** — already 12 testes, faltam empty range & comparison null
+- **websocket / SSE** se houver — verificar
+- **leaderboard scoring** — pesos por badge/lesson/curso
 
-### Features extras
-- **Admin onboarding wizard interativo** (oposto do checklist passivo) — não-iniciado
+### Documentação
+- ✅ docs técnica de cada módulo (já tem 12 docs)
+- **Documentação de deployment passo-a-passo** (`docs/deploy.md`) — não-iniciado
+- **Guias de usuário admin** (não-técnico) — não-iniciado
+- **API pública openapi.json** — não-iniciado
+- **Cookbook de webhooks** — não-iniciado
+
+### Features extras (não-iniciadas)
+- **Admin onboarding wizard interativo** (oposto do checklist passivo)
 - **Live session embed direto na aula** (Zoom SDK) em vez de só link externo
 - **Course collaborators / co-instrutores** — papel "instrutor" com acesso parcial
 - **Quiz auto-correção via Tutor IA** — ramificação do tutor
@@ -172,30 +222,34 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 - **Editor visual de e-mail templates** — hoje é HTML cru
 - **Bilhetes IA semanal** (digest pra admin sobre saúde da plataforma)
 
-### Robustez
+### Robustez (não-iniciados)
 - **Tests de UI/integration** com Testing Library + MSW (hoje só unit em puros)
-- **E2E** com Playwright — não-iniciado
-- **CI** — pode rodar `npm test && npm run typecheck && npm run build` em GitHub Actions
+- **E2E** com Playwright
+- **CI** GitHub Actions (`npm test && npm run typecheck && npm run build`)
 - **Coverage report** com badge no README
-- **Migrações Drizzle** dos novos campos `tags` em libraryItems/podcasts (hoje só JSON guarda)
+- **Migrações Drizzle** dos novos campos `tags` em libraryItems/podcasts
 - **Rate limit por API token** dedicado
+- **Backup remoto S3** (hoje só local em `data/backups/`)
 
-### Integrações que poderiam virar
+### Integrações (não-iniciadas)
 - **Webhook templates** (presets prontos para Zapier/n8n/Make)
 - **Mais providers de e-mail** (Mailgun, Brevo, SES)
 - **OAuth login social** (Google/Microsoft) — só email/senha hoje
 - **SSO SAML** para escolas grandes
 - **WhatsApp via Twilio** para notificações (já tem mock no Reengagement)
+- **Calendly/Cal.com** para agendamento de mentoria
 
-### LMS específicos
+### LMS específicos (não-iniciados)
 - **Streak counter detalhado** com heatmap (já tem o counter, falta visualização)
 - **Goal setting** (meta semanal de minutos estudados)
 - **Drip content** (libera aulas progressivamente) — já modelado no schema, falta UI
 - **Pré-requisitos entre cursos**
 - **Trilhas de estudo** (sequência guiada de cursos)
 - **Certificate templates customizáveis** (hoje é fixo)
+- **Quiz com banco de questões** (hoje é estático na lesson)
+- **Notas de aluno por aula** (já tem lesson-notes, não exposto na UI)
 
-### Painel admin
+### Painel admin (não-iniciados)
 - **Top dashboard com KPIs unificados** (revenue + alunos + completion + avaliação)
 - **Reports agendados** (e-mail semanal pra admin com snapshot)
 - **Multi-tenant / white-label** — outro projeto inteiro
@@ -204,8 +258,10 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ## Bloqueios conhecidos
 
-- **Deploy à produção via `scripts/update_vps.py`** requer envs `HOST`, `PORT`, `USER_NAME`, `KEY_PATH` SSH. Cada admin precisa configurar localmente.
+- **Deploy à produção via `scripts/update_vps_pwd.py`** requer envs `HOST`, `PORT`, `USER_NAME`, `KEY_PATH` SSH. Cada admin precisa configurar localmente.
 - **`AI_KEY_ENCRYPTION_SECRET` em prod**: se não definido, modo `dev:` (sem criptografia real). Definir no `.env` do servidor antes de subir credenciais reais.
+- **Import via API portalpco.online**: 401 `rest_forbidden_context` — diagnose tool já criado, aguarda usuário rodar para identificar plugin de segurança bloqueando.
+- **Drizzle migrations** existem mas não foram aplicadas em prod — modo JSON é o vigente.
 
 ---
 
@@ -220,4 +276,17 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-Última atualização: rodada de documentação completa.
+## Próximas tarefas sugeridas (ordenadas por valor/risco)
+
+| Prioridade | Tarefa | Por quê | Effort |
+|---|---|---|---|
+| 🔴 ALTA | docs/deploy.md passo-a-passo | bloqueio operacional | 1 dia |
+| 🔴 ALTA | CI GitHub Actions (typecheck + test + build) | regressões silenciosas | 0.5 dia |
+| 🔴 ALTA | Tests para api-token-middleware | superfície de auth crítica não testada | 0.5 dia |
+| 🟡 MÉDIA | Coverage report (vitest --coverage) | medir o que falta | 0.3 dia |
+| 🟡 MÉDIA | E2E Playwright (golden path: login → enroll → complete) | smoke test real | 2 dias |
+| 🟡 MÉDIA | Backup remoto S3 (em vez de só local) | DR | 1 dia |
+| 🟡 MÉDIA | OAuth Google login | reduzir fricção signup | 1 dia |
+| 🟢 BAIXA | Editor visual de e-mail templates | UX admin | 3 dias |
+| 🟢 BAIXA | Quiz com banco de questões | feature ampla | 5+ dias |
+| 🟢 BAIXA | Multi-tenant | praticamente outro projeto | indefinido |
