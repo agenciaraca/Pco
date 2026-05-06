@@ -88,6 +88,23 @@ export default function CoursePreview() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        {!user && (course.prerequisiteCourseIds?.length ?? 0) > 0 && (
+          <section
+            role="note"
+            className="pco-card border-pco-blue/30 bg-pco-blue/5 p-4 flex items-start gap-3"
+          >
+            <Lock size={18} className="text-pco-blue mt-0.5" strokeWidth={2} />
+            <div className="text-sm">
+              <strong className="text-pco-deep">Curso com pré-requisito.</strong>{' '}
+              <span className="text-ink-muted">
+                Este curso exige a conclusão de {course.prerequisiteCourseIds!.length}{' '}
+                outro{course.prerequisiteCourseIds!.length === 1 ? '' : 's'} antes da
+                matrícula. Faça login pra ver o status detalhado.
+              </span>
+            </div>
+          </section>
+        )}
+
         {user && prereqQ.data && !prereqQ.data.ok && (
           <section
             role="alert"

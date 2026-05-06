@@ -1,5 +1,15 @@
 import { Link } from 'react-router-dom';
-import { Plus, Edit3, Layers, Clock, Copy, Download, Eye, Users } from 'lucide-react';
+import {
+  Plus,
+  Edit3,
+  Layers,
+  Clock,
+  Copy,
+  Download,
+  Eye,
+  Users,
+  Lock,
+} from 'lucide-react';
 import { useCourses, useDuplicateCourse, useAdminCoursesSummary } from '../../data/hooks';
 import { useMemo } from 'react';
 import { downloadCoursesCsv } from '../../data/api';
@@ -81,7 +91,18 @@ export default function AdminCourses() {
                       <div className="flex items-center gap-3">
                         <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${c.coverColor}`} />
                         <div>
-                          <div className="font-semibold text-pco-deep">{c.title}</div>
+                          <div className="font-semibold text-pco-deep flex items-center gap-1.5 flex-wrap">
+                            {c.title}
+                            {(c.prerequisiteCourseIds?.length ?? 0) > 0 && (
+                              <span
+                                className="inline-flex items-center gap-1 pco-badge bg-pco-orange/10 text-pco-orange text-[10px]"
+                                title={`Requer ${c.prerequisiteCourseIds!.length} curso(s) antes`}
+                              >
+                                <Lock size={9} strokeWidth={2} />
+                                {c.prerequisiteCourseIds!.length} pré-req
+                              </span>
+                            )}
+                          </div>
                           <div className="text-[11px] text-ink-subtle">/{c.slug}</div>
                         </div>
                       </div>
