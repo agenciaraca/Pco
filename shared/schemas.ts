@@ -309,6 +309,21 @@ export const updateCourseSchema = z.object({
   /** URL pública de uma foto do instrutor. */
   instructorPhotoUrl: z.string().url().max(500).optional().or(z.literal('')),
   /**
+   * Co-instrutores / equipe pedagógica adicional (até 10).
+   * O instrutor principal continua em instructorName/Bio/Photo.
+   */
+  collaborators: z
+    .array(
+      z.object({
+        name: z.string().min(2).max(120),
+        role: z.string().max(120).optional(),
+        bio: z.string().max(1000).optional(),
+        photoUrl: z.string().url().max(500).optional().or(z.literal('')),
+      }),
+    )
+    .max(10)
+    .optional(),
+  /**
    * Customização do certificado de conclusão. Cada campo é opcional —
    * vazios caem nos defaults globais.
    */

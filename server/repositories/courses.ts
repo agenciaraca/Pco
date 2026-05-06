@@ -194,6 +194,9 @@ export async function updateCourse(
         ...(patch.certificateTemplate !== undefined
           ? { certificateTemplate: patch.certificateTemplate }
           : {}),
+        ...(patch.collaborators !== undefined
+          ? { collaborators: patch.collaborators }
+          : {}),
       }),
     );
   }

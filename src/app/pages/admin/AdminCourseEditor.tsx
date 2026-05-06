@@ -173,6 +173,28 @@ function GeralPane({ course }: { course: Course }) {
     course.learningOutcomes ?? [],
   );
   const [outcomeInput, setOutcomeInput] = useState('');
+  const [collaborators, setCollaborators] = useState<
+    Array<{ name: string; role?: string; bio?: string; photoUrl?: string }>
+  >(course.collaborators ?? []);
+
+  function addCollaborator() {
+    if (collaborators.length >= 10) return;
+    setCollaborators([...collaborators, { name: '' }]);
+  }
+
+  function updateCollaborator(
+    idx: number,
+    field: 'name' | 'role' | 'bio' | 'photoUrl',
+    value: string,
+  ) {
+    setCollaborators(
+      collaborators.map((c, i) => (i === idx ? { ...c, [field]: value } : c)),
+    );
+  }
+
+  function removeCollaborator(idx: number) {
+    setCollaborators(collaborators.filter((_, i) => i !== idx));
+  }
   const allCoursesQ = useCourses();
   const otherCourses = (allCoursesQ.data ?? []).filter((c) => c.id !== course.id);
 
@@ -207,6 +229,16 @@ function GeralPane({ course }: { course: Course }) {
       const certificateTemplate =
         Object.keys(tplCleaned).length > 0 ? tplCleaned : undefined;
 
+      // Limpa colaboradores: remove vazios + descarta campos vazios
+      const cleanCollabs = collaborators
+        .filter((c) => c.name.trim().length >= 2)
+        .map((c) => ({
+          name: c.name.trim(),
+          ...(c.role?.trim() ? { role: c.role.trim() } : {}),
+          ...(c.bio?.trim() ? { bio: c.bio.trim() } : {}),
+          ...(c.photoUrl?.trim() ? { photoUrl: c.photoUrl.trim() } : {}),
+        }));
+
       const updated = await update.mutateAsync({
         id: course.id,
         patch: {
@@ -215,6 +247,7 @@ function GeralPane({ course }: { course: Course }) {
           prerequisiteCourseIds: prereqIds,
           learningOutcomes: outcomes,
           certificateTemplate,
+          collaborators: cleanCollabs.length > 0 ? cleanCollabs : undefined,
         },
       });
       toast.success('Curso atualizado', updated.title);
@@ -508,6 +541,75 @@ function GeralPane({ course }: { course: Course }) {
               maxLength={2000}
             />
           </Field>
+        </fieldset>
+
+        <fieldset className="border border-pco-border rounded-lg p-4 space-y-3">
+          <legend className="px-2 text-xs font-semibold text-pco-deep">
+            Co-instrutores ({collaborators.length}/10)
+          </legend>
+          {collaborators.length === 0 ? (
+            <p className="text-xs text-ink-subtle">
+              Nenhum co-instrutor adicionado.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {collaborators.map((c, idx) => (
+                <li key={idx} className="bg-surface-off rounded-lg p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-[11px] font-bold text-pco-deep">
+                      Co-instrutor {idx + 1}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeCollaborator(idx)}
+                      className="text-status-danger text-xs hover:underline"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input
+                      value={c.name}
+                      onChange={(e) => updateCollaborator(idx, 'name', e.target.value)}
+                      className="pco-input text-sm"
+                      placeholder="Nome*"
+                      maxLength={120}
+                    />
+                    <input
+                      value={c.role ?? ''}
+                      onChange={(e) => updateCollaborator(idx, 'role', e.target.value)}
+                      className="pco-input text-sm"
+                      placeholder="Papel (ex: Professor convidado)"
+                      maxLength={120}
+                    />
+                  </div>
+                  <input
+                    value={c.photoUrl ?? ''}
+                    onChange={(e) => updateCollaborator(idx, 'photoUrl', e.target.value)}
+                    className="pco-input text-sm font-mono text-xs"
+                    placeholder="Foto URL (opcional)"
+                    maxLength={500}
+                  />
+                  <textarea
+                    value={c.bio ?? ''}
+                    onChange={(e) => updateCollaborator(idx, 'bio', e.target.value)}
+                    rows={2}
+                    className="pco-input text-sm resize-none"
+                    placeholder="Bio curta (opcional)"
+                    maxLength={1000}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            onClick={addCollaborator}
+            disabled={collaborators.length >= 10}
+            className="pco-btn-ghost text-xs"
+          >
+            + Adicionar co-instrutor
+          </button>
         </fieldset>
 
         <div className="grid grid-cols-2 gap-4">

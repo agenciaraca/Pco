@@ -225,6 +225,52 @@ export default function CoursePreview() {
           </section>
         )}
 
+        {(course.collaborators?.length ?? 0) > 0 && (
+          <section className="pco-card p-6">
+            <h2 className="text-lg font-bold text-pco-deep mb-4">
+              Equipe pedagógica
+            </h2>
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {course.collaborators!.map((c, idx) => (
+                <li key={idx} className="flex items-start gap-3">
+                  {c.photoUrl ? (
+                    <img
+                      src={c.photoUrl}
+                      alt={c.name}
+                      className="h-12 w-12 rounded-full object-cover bg-surface-mute shrink-0"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-pco-blue/15 to-pco-cyan/15 grid place-items-center text-pco-deep font-bold text-xs shrink-0">
+                      {c.name
+                        .split(' ')
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join('')
+                        .toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-pco-deep">
+                      {c.name}
+                    </div>
+                    {c.role && (
+                      <div className="text-[11px] text-pco-blue uppercase tracking-wide font-medium">
+                        {c.role}
+                      </div>
+                    )}
+                    {c.bio && (
+                      <p className="text-xs text-ink-muted mt-1 line-clamp-3">
+                        {c.bio}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {(course.learningOutcomes?.length ?? 0) > 0 && (
           <section className="pco-card p-6">
             <h2 className="text-lg font-bold text-pco-deep mb-4">

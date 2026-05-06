@@ -2180,6 +2180,12 @@ export interface UpdateCoursePatch {
   instructorName?: string;
   instructorBio?: string;
   instructorPhotoUrl?: string;
+  collaborators?: Array<{
+    name: string;
+    role?: string;
+    bio?: string;
+    photoUrl?: string;
+  }>;
   certificateTemplate?: {
     title?: string;
     preamble?: string;

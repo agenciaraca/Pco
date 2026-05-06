@@ -95,6 +95,13 @@ export interface Course {
   instructorName?: string;
   instructorBio?: string;
   instructorPhotoUrl?: string;
+  /** Co-instrutores / equipe pedagógica adicional. */
+  collaborators?: Array<{
+    name: string;
+    role?: string;
+    bio?: string;
+    photoUrl?: string;
+  }>;
   /** Customização opcional do certificado de conclusão. */
   certificateTemplate?: {
     title?: string;
