@@ -1060,6 +1060,19 @@ export async function downloadWishlistCsv(): Promise<void> {
   );
 }
 
+export interface StorageStatsDto {
+  dataDir: string;
+  totalBytes: number;
+  totalMB: number;
+  jsonFilesCount: number;
+  backupFoldersCount: number;
+  uploadFilesCount: number;
+}
+
+export async function fetchStorageStats(): Promise<StorageStatsDto> {
+  return http.get<StorageStatsDto>('/admin/storage/stats');
+}
+
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
   return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
 }

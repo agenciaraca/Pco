@@ -1771,6 +1771,14 @@ export function useBackupStatus() {
   });
 }
 
+export function useStorageStats() {
+  return useQuery({
+    queryKey: ['admin', 'storage', 'stats'],
+    queryFn: () => api.fetchStorageStats(),
+    staleTime: 60_000,
+  });
+}
+
 export function useRunBackupSnapshotNow() {
   const qc = useQueryClient();
   return useMutation({

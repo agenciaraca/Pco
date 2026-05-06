@@ -4790,6 +4790,68 @@ export function buildApp() {
     c.json(backupWorker.getStatus()),
   );
 
+  /** Métricas do DATA_DIR. */
+  app.get('/admin/storage/stats', requireAuth('admin', 'superadmin'), async (c) => {
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
+      let totalBytes = 0;
+      let jsonFiles = 0;
+      let backupFolders = 0;
+      let uploadFiles = 0;
+
+      async function walk(dir: string, depth = 0): Promise<void> {
+        if (depth > 3) return;
+        let entries: import('node:fs').Dirent[];
+        try {
+          entries = await fs.readdir(dir, { withFileTypes: true });
+        } catch {
+          return;
+        }
+        for (const e of entries) {
+          const full = path.join(dir, e.name);
+          if (e.isDirectory()) {
+            if (e.name === 'backups' && depth === 0) {
+              const sub = await fs.readdir(full).catch(() => []);
+              backupFolders += sub.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).length;
+            }
+            if (e.name === 'uploads' && depth === 0) {
+              const sub = await fs.readdir(full).catch(() => []);
+              uploadFiles += sub.length;
+            }
+            await walk(full, depth + 1);
+          } else if (e.isFile()) {
+            try {
+              const s = await fs.stat(full);
+              totalBytes += s.size;
+              if (e.name.endsWith('.json') && depth === 0) jsonFiles++;
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      }
+      await walk(dataDir);
+
+      return c.json({
+        dataDir,
+        totalBytes,
+        totalMB: Math.round((totalBytes / 1024 / 1024) * 100) / 100,
+        jsonFilesCount: jsonFiles,
+        backupFoldersCount: backupFolders,
+        uploadFilesCount: uploadFiles,
+      });
+    } catch (err) {
+      return jsonError(
+        c,
+        500,
+        'INTERNAL',
+        err instanceof Error ? err.message : 'erro',
+      );
+    }
+  });
+
   // Admin digest config + run
   app.get('/admin/digest/config', requireAuth('admin', 'superadmin'), async (c) =>
     c.json(await adminDigest.getConfig()),

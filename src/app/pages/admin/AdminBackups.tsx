@@ -14,6 +14,7 @@ import {
   useBackupSnapshots,
   useBackupStatus,
   useRunBackupSnapshotNow,
+  useStorageStats,
 } from '../../data/hooks';
 import { downloadBackup } from '../../data/api';
 import { useToast } from '../../components/Toast';
@@ -247,12 +248,49 @@ function Stat({
 function SnapshotsSection() {
   const snapshots = useBackupSnapshots();
   const status = useBackupStatus();
+  const storage = useStorageStats();
   const runMut = useRunBackupSnapshotNow();
   const toast = useToast();
 
   return (
     <section className="space-y-3">
-      <div className="flex items-end justify-between gap-3 flex-wrap pt-4 border-t border-pco-border">
+      {storage.data && (
+        <div className="grid gap-3 sm:grid-cols-4 pt-4 border-t border-pco-border">
+          <div className="pco-card p-3">
+            <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+              DATA_DIR total
+            </div>
+            <div className="text-xl font-bold text-pco-deep mt-0.5">
+              {storage.data.totalMB} MB
+            </div>
+          </div>
+          <div className="pco-card p-3">
+            <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Stores JSON
+            </div>
+            <div className="text-xl font-bold text-pco-deep mt-0.5">
+              {storage.data.jsonFilesCount}
+            </div>
+          </div>
+          <div className="pco-card p-3">
+            <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Snapshots
+            </div>
+            <div className="text-xl font-bold text-pco-deep mt-0.5">
+              {storage.data.backupFoldersCount}
+            </div>
+          </div>
+          <div className="pco-card p-3">
+            <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Uploads
+            </div>
+            <div className="text-xl font-bold text-pco-deep mt-0.5">
+              {storage.data.uploadFilesCount}
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-base font-bold text-pco-deep">
             Snapshots automáticos (JSON stores)
