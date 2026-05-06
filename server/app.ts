@@ -389,6 +389,25 @@ export function buildApp() {
     c.json({ ok: true, ts: Date.now(), db: hasDb() ? 'connected' : 'fallback' }),
   );
 
+  /** Versão pública — sem auth. Útil pra badges/clients. */
+  app.get('/version', async (c) => {
+    let version = 'unknown';
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const pkgPath = path.resolve(process.cwd(), 'package.json');
+      const pkg = JSON.parse(await fs.readFile(pkgPath, 'utf8'));
+      version = pkg.version ?? 'unknown';
+    } catch {
+      /* ignore */
+    }
+    return c.json({
+      version,
+      name: 'ava-pco',
+      commit: process.env.GIT_COMMIT ?? null,
+    });
+  });
+
   /**
    * /ready — readiness probe. Verifica se DATA_DIR é gravável.
    * Retorna 503 se algo essencial está quebrado.
