@@ -6,14 +6,15 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-05)
+## Estado atual (atualizado em 2026-05-06)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **430+** |
-| Commits no main | **210+** |
-| Arquivos de teste | **62** |
-| Testes passando | **590** ✅ |
+| Sprints entregues | **466+** |
+| Commits no main | **240+** |
+| Arquivos de teste | **85** |
+| Testes passando | **818** ✅ |
+| Coverage statements | **~70%** |
 | Módulos backend | 29 |
 | Páginas admin | 62+ |
 | Páginas aluno | 15+ |
@@ -126,6 +127,37 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ---
 
+## Sprints recentes (Maio 2026 — 466 entregues)
+
+### Bloco testes 432-466 (este turno)
+| Sprint | Commit | Tema |
+|---|---|---|
+| 466 | `d6c76a3` | imports/mapping (11 testes) |
+| 464 | `66116cf` | imports/connectors/http (11 testes) |
+| 463 | `b08059e` | imports/adapters internals (12 testes) |
+| 462 | `6c495ef` | imports/reports (11 testes) |
+| 461 | `9537903` | imports/rollback (5 testes) |
+| 459 | `4937080` | email-log-store (5 testes) |
+| 457 | `c42da44` | json-store (14 testes) |
+| 455 | `8d390c1` | rate-limit middleware (9 testes) |
+| 454 | `380ec4b` | auth-middleware (11 testes) |
+| 452 | `52827c2` | saved-searches + admin-notes (12 testes) |
+| 450 | `159e5b6` | podcast-engagement (5 testes) |
+| 449 | `58b6b65` | notifications-repo (13 testes) |
+| 447 | `18dd663` | broadcasts-resolve-audience (8 testes) |
+| 445 | `0649884` | uploads-store (6 testes) |
+| 444 | `0ca213d` | settings + retention (7 testes) |
+| 442 | `d99ede7` | lesson-notes (6 testes) |
+| 441 | `4bdb416` | content-repos news/library/podcasts (11 testes) |
+| 440 | `a135f91` | certificates-repo (8 testes) |
+| 439 | `0bd2cf8` | courses-repo (14 testes) |
+| 438 | `3292aa8` | watch-time-aggregates (13 testes) |
+| 436 | `7a621cc` | progress-repo (13 testes) |
+| 435 | `740eeab` | students-repo (13 testes) |
+| 434 | `b659b3b` | CI coverage report + @vitest/coverage-v8 |
+| 433 | `7eb43fd` | docs/deploy.md (321 linhas) |
+| 432 | `c45cc35` | api-token-middleware (10 testes) |
+
 ## Sprints recentes (últimos 30 commits)
 
 | Commit | Sprint | Tema |
@@ -196,16 +228,16 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Backlog (não iniciado)
 
-### Cobertura de testes restante (alta prioridade)
-- **api-token-middleware** — auth flow + scope check (medium effort)
-- **invoice generator** — render PDF/HTML de comprovante
-- **sales-analytics edge cases** — already 12 testes, faltam empty range & comparison null
-- **websocket / SSE** se houver — verificar
-- **leaderboard scoring** — pesos por badge/lesson/curso
+### Cobertura de testes restante
+- ~~**api-token-middleware**~~ ✅ (sprint 432, 10 testes)
+- **invoice generator** — render PDF/HTML de comprovante (não-iniciado)
+- **dispatcher webhooks** — fetch HTTP real, retry com backoff (não-iniciado)
+- **runReal full E2E** — integration com runner (apenas unit no adapters)
+- **schedules-worker tick logic** — cron-like trigger (não-iniciado)
 
 ### Documentação
-- ✅ docs técnica de cada módulo (já tem 12 docs)
-- **Documentação de deployment passo-a-passo** (`docs/deploy.md`) — não-iniciado
+- ✅ docs técnica de cada módulo (já tem 13 docs)
+- ✅ **Documentação de deployment passo-a-passo** (`docs/deploy.md` — sprint 433)
 - **Guias de usuário admin** (não-técnico) — não-iniciado
 - **API pública openapi.json** — não-iniciado
 - **Cookbook de webhooks** — não-iniciado
@@ -222,14 +254,14 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - **Editor visual de e-mail templates** — hoje é HTML cru
 - **Bilhetes IA semanal** (digest pra admin sobre saúde da plataforma)
 
-### Robustez (não-iniciados)
-- **Tests de UI/integration** com Testing Library + MSW (hoje só unit em puros)
-- **E2E** com Playwright
-- **CI** GitHub Actions (`npm test && npm run typecheck && npm run build`)
-- **Coverage report** com badge no README
-- **Migrações Drizzle** dos novos campos `tags` em libraryItems/podcasts
-- **Rate limit por API token** dedicado
-- **Backup remoto S3** (hoje só local em `data/backups/`)
+### Robustez
+- **Tests de UI/integration** com Testing Library + MSW (hoje só unit em puros) — não-iniciado
+- **E2E** com Playwright — não-iniciado
+- ✅ **CI** GitHub Actions (`npm test && npm run typecheck && npm run build` + coverage)
+- **Coverage badge no README** (já gera artifact, falta badge) — não-iniciado
+- **Migrações Drizzle** dos novos campos `tags` em libraryItems/podcasts — não-iniciado
+- ✅ **Rate limit por API token** dedicado (sprint 432, X-RateLimit headers)
+- **Backup remoto S3** (hoje só local em `data/backups/`) — não-iniciado
 
 ### Integrações (não-iniciadas)
 - **Webhook templates** (presets prontos para Zapier/n8n/Make)
@@ -280,13 +312,28 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 | Prioridade | Tarefa | Por quê | Effort |
 |---|---|---|---|
-| 🔴 ALTA | docs/deploy.md passo-a-passo | bloqueio operacional | 1 dia |
-| 🔴 ALTA | CI GitHub Actions (typecheck + test + build) | regressões silenciosas | 0.5 dia |
-| 🔴 ALTA | Tests para api-token-middleware | superfície de auth crítica não testada | 0.5 dia |
-| 🟡 MÉDIA | Coverage report (vitest --coverage) | medir o que falta | 0.3 dia |
+| 🔴 ALTA | Configurar `JWT_SECRET` fixo em produção | sessões caem ao reiniciar | 5 min |
+| 🔴 ALTA | Configurar `AI_KEY_ENCRYPTION_SECRET` em produção | criptografia real | 5 min |
+| 🔴 ALTA | Resolver erro 401 import portalpco.online (rodar diagnose tool) | bloqueio de usuário | 30 min |
 | 🟡 MÉDIA | E2E Playwright (golden path: login → enroll → complete) | smoke test real | 2 dias |
 | 🟡 MÉDIA | Backup remoto S3 (em vez de só local) | DR | 1 dia |
 | 🟡 MÉDIA | OAuth Google login | reduzir fricção signup | 1 dia |
+| 🟡 MÉDIA | Coverage badge no README | visibilidade | 0.3 dia |
+| 🟡 MÉDIA | API pública openapi.json | docs de integração | 1 dia |
 | 🟢 BAIXA | Editor visual de e-mail templates | UX admin | 3 dias |
 | 🟢 BAIXA | Quiz com banco de questões | feature ampla | 5+ dias |
+| 🟢 BAIXA | Migrações Drizzle aplicadas em prod | unlock Postgres | 1 dia |
 | 🟢 BAIXA | Multi-tenant | praticamente outro projeto | indefinido |
+
+## Conquistas deste turno (sprints 398-466)
+
+- **+227 testes novos** (590 → 818)
+- **+30 commits** (210+ → 240+)
+- **+23 arquivos de teste** (62 → 85)
+- **Bug fixes detectados pelos testes**:
+  - `normalizers.ts:bool()` retornava `false` em vez de `undefined`, quebrando default `isMandatory=true`
+  - `categories suporte` desalinhadas com schema (acesso/duvida_aula)
+- **CI coverage report** + dev dep `@vitest/coverage-v8`
+- **docs/deploy.md** completo (321 linhas com primeiro deploy, update_vps_pwd.py, troubleshooting, rollback)
+- **api-token-middleware** + **auth-middleware** + **rate-limit middleware** com Hono.request integration
+- **Cobertura significativa**: notifications (templates, sender, broadcasts, prefs, log), repositories (students, courses, lessons, certificates, podcasts), webhooks (delivery, endpoints, signer, formatters), imports (validators, normalizers, mapping, http, adapters, rollback, reports, refs-store, job-store), auth (jwt, password-reset, totp, users-store CRUD, document, middleware), uploads, rate-limit, json-store, audit-log, errors-store, activity-feed
