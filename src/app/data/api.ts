@@ -3314,6 +3314,16 @@ export async function fetchAchievementsStats(): Promise<AchievementsStatsDto> {
   return http.get<AchievementsStatsDto>('/admin/achievements/stats');
 }
 
+export async function downloadLeaderboardCsv(
+  days = 30,
+  limit = 100,
+): Promise<void> {
+  return downloadCsv(
+    `/admin/leaderboard/export.csv?days=${days}&limit=${limit}`,
+    `leaderboard-${days}d-${new Date().toISOString().slice(0, 10)}.csv`,
+  );
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =

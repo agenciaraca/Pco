@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Trophy, Award, Flame, BookOpen, Loader2 } from 'lucide-react';
+import { Trophy, Award, Flame, BookOpen, Loader2, Download } from 'lucide-react';
 import { useLeaderboard } from '../../data/hooks';
+import { downloadLeaderboardCsv } from '../../data/api';
+import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -17,6 +19,16 @@ export default function AdminLeaderboard() {
   const [days, setDays] = useState(30);
   const [limit, setLimit] = useState(20);
   const { data, isLoading } = useLeaderboard(days, limit);
+  const toast = useToast();
+
+  async function handleExport() {
+    try {
+      await downloadLeaderboardCsv(days, limit);
+      toast.success('CSV baixado');
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -58,6 +70,15 @@ export default function AdminLeaderboard() {
             <option value={50}>Top 50</option>
             <option value={100}>Top 100</option>
           </select>
+          <button
+            type="button"
+            onClick={handleExport}
+            className="pco-btn-ghost text-xs"
+            title="Baixar leaderboard como CSV"
+          >
+            <Download size={11} strokeWidth={2} />
+            CSV
+          </button>
         </div>
       </header>
 

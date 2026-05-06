@@ -4805,6 +4805,40 @@ export function buildApp() {
     return c.json(r);
   });
 
+  /** Export CSV de leaderboard. */
+  app.get(
+    '/admin/leaderboard/export.csv',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const days = Number(c.req.query('days') ?? '30');
+      const limit = Number(c.req.query('limit') ?? '100');
+      const r = await buildLeaderboard(
+        Number.isFinite(days) ? days : 30,
+        Number.isFinite(limit) ? limit : 100,
+      );
+      const rows = ['rank,user_name,user_email,lessons,active_days,achievements,score'];
+      for (const e of r.entries) {
+        const cells = [
+          String(e.rank),
+          e.userName.replace(/[",\n]/g, ' '),
+          e.userEmail,
+          String(e.lessonsCompleted),
+          String(e.activeDays),
+          String(e.achievements),
+          String(e.score),
+        ];
+        rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
+      }
+      return new Response(rows.join('\n'), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="leaderboard-${days}d-${new Date().toISOString().slice(0, 10)}.csv"`,
+        },
+      });
+    },
+  );
+
   // Leaderboard global (admin) e self (aluno)
   app.get('/admin/leaderboard', requireAuth('admin', 'superadmin'), async (c) => {
     const days = Number(c.req.query('days') ?? '30');
