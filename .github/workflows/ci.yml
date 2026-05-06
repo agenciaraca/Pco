@@ -31,6 +31,19 @@ jobs:
       - name: Test
         run: npm run test
 
+      - name: Test coverage
+        run: npx vitest run --coverage
+        continue-on-error: true
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
   build:
     name: Build
     runs-on: ubuntu-latest
