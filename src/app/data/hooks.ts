@@ -1660,6 +1660,14 @@ export function useDeleteApiToken() {
   });
 }
 
+export function useAdminKpis() {
+  return useQuery({
+    queryKey: ['admin', 'kpis'] as const,
+    queryFn: api.fetchAdminKpis,
+    refetchInterval: 5 * 60_000, // 5min
+  });
+}
+
 // ---------- Study paths ----------
 
 const studyPathsKey = ['admin', 'study-paths'] as const;

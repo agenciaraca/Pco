@@ -2892,6 +2892,40 @@ export async function deleteApiToken(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/api-tokens/${encodeURIComponent(id)}`);
 }
 
+// ---------- Admin KPIs ----------
+
+export interface AdminKpisDto {
+  generatedAt: string;
+  revenue: {
+    currency: string;
+    netCents: number;
+    grossCents: number;
+    refundedCents: number;
+    last30DaysCents: number;
+    prev30DaysCents: number;
+    deltaPct: number;
+  };
+  students: {
+    total: number;
+    active: number;
+    new30Days: number;
+    newPrev30Days: number;
+    deltaPct: number;
+  };
+  completion: {
+    certificatesIssued: number;
+    issuedLast30Days: number;
+  };
+  satisfaction: {
+    averageRating: number;
+    reviewCount: number;
+  };
+}
+
+export async function fetchAdminKpis(): Promise<AdminKpisDto> {
+  return http.get('/admin/kpis');
+}
+
 // ---------- Study paths (trilhas) ----------
 
 export interface StudyPathDto {

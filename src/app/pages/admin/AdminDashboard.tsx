@@ -17,6 +17,7 @@ import {
   useAuditLog,
   useCompletionsStats,
   useAdminAlerts,
+  useAdminKpis,
 } from '../../data/hooks';
 import { Cpu, HardDrive, AlertOctagon, Clock, History, ScrollText } from 'lucide-react';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -30,6 +31,93 @@ function formatUptime(sec: number): string {
   if (h < 24) return `${h}h ${min % 60}m`;
   const d = Math.floor(h / 24);
   return `${d}d ${h % 24}h`;
+}
+
+function KpisHeader() {
+  const { data, isLoading } = useAdminKpis();
+  if (isLoading) {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="pco-card p-4 animate-pulse">
+            <div className="h-3 w-24 bg-surface-mute rounded mb-2" />
+            <div className="h-7 w-32 bg-surface-mute rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (!data) return null;
+  const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: data.revenue.currency });
+
+  function delta(pct: number, label = '30d'): React.ReactNode {
+    if (pct === 0) return <span className="text-ink-subtle">±0% {label}</span>;
+    const positive = pct > 0;
+    return (
+      <span className={positive ? 'text-status-success' : 'text-status-danger'}>
+        {positive ? '↑' : '↓'} {Math.abs(pct)}% {label}
+      </span>
+    );
+  }
+
+  const cards = [
+    {
+      label: 'Receita líquida',
+      value: fmt.format(data.revenue.netCents / 100),
+      sub: `${fmt.format(data.revenue.last30DaysCents / 100)} nos últimos 30d`,
+      delta: delta(data.revenue.deltaPct),
+      color: 'text-pco-blue',
+      Icon: TrendingUp,
+    },
+    {
+      label: 'Alunos ativos',
+      value: String(data.students.active),
+      sub: `${data.students.new30Days} novo(s) em 30d`,
+      delta: delta(data.students.deltaPct),
+      color: 'text-pco-cyan',
+      Icon: Users,
+    },
+    {
+      label: 'Certificados emitidos',
+      value: String(data.completion.certificatesIssued),
+      sub: `${data.completion.issuedLast30Days} nos últimos 30d`,
+      delta: null,
+      color: 'text-pco-orange',
+      Icon: Award,
+    },
+    {
+      label: 'Avaliação média',
+      value:
+        data.satisfaction.reviewCount > 0
+          ? `${data.satisfaction.averageRating.toFixed(1)} ★`
+          : '—',
+      sub: `${data.satisfaction.reviewCount} avaliação(ões)`,
+      delta: null,
+      color: 'text-status-success',
+      Icon: GraduationCap,
+    },
+  ];
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {cards.map((c) => {
+        const Icon = c.Icon;
+        return (
+          <div key={c.label} className="pco-card p-4">
+            <div className="flex items-center gap-2">
+              <Icon size={14} strokeWidth={2} className={c.color} />
+              <span className="text-[11px] uppercase tracking-wider text-ink-muted">
+                {c.label}
+              </span>
+            </div>
+            <div className="text-2xl font-bold text-pco-deep mt-1.5">{c.value}</div>
+            <div className="text-[11px] text-ink-subtle mt-1">{c.sub}</div>
+            {c.delta && <div className="text-[11px] font-semibold mt-1">{c.delta}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function CompletionsCard() {
@@ -193,6 +281,8 @@ export default function AdminDashboard() {
           Visão geral de retenção, conteúdo, certificados e uso do AVA.
         </p>
       </header>
+
+      <KpisHeader />
 
       {alertsQ.data && alertsQ.data.total > 0 && (
         <Link

@@ -4025,6 +4025,91 @@ export function buildApp() {
     },
   );
 
+  /**
+   * KPIs unificados pra dashboard admin: revenue + students + completion + rating
+   * com deltas dos últimos 30/60 dias para tendência.
+   */
+  app.get('/admin/kpis', requireAuth('admin', 'superadmin'), async (c) => {
+    const orders = await ordersRepo.listAll();
+    const allStudents = await usersStore.listUsers();
+    const students = allStudents.filter((u) => u.role === 'student');
+    const certs = await certsRepo.listAllCertificates();
+    const reviews = await courseReviews.listAll();
+
+    const now = Date.now();
+    const ms30 = 30 * 24 * 60 * 60_000;
+    const ms60 = 60 * 24 * 60 * 60_000;
+
+    const paid = orders.filter((o) => o.status === 'paid');
+    const refunded = orders.filter((o) => o.status === 'refunded');
+    const grossRevenue = paid.reduce((s, o) => s + o.amountCents, 0);
+    const refundedAmount = refunded.reduce((s, o) => s + o.amountCents, 0);
+
+    const revenue30 = paid
+      .filter((o) => o.paidAt && now - new Date(o.paidAt).getTime() < ms30)
+      .reduce((s, o) => s + o.amountCents, 0);
+    const revenuePrev30 = paid
+      .filter((o) => {
+        if (!o.paidAt) return false;
+        const t = new Date(o.paidAt).getTime();
+        return now - t >= ms30 && now - t < ms60;
+      })
+      .reduce((s, o) => s + o.amountCents, 0);
+
+    const newStudents30 = students.filter(
+      (s) => s.createdAt && now - new Date(s.createdAt).getTime() < ms30,
+    ).length;
+    const newStudentsPrev30 = students.filter((s) => {
+      if (!s.createdAt) return false;
+      const t = new Date(s.createdAt).getTime();
+      return now - t >= ms30 && now - t < ms60;
+    }).length;
+
+    const issuedCerts = certs.filter((c) => c.status === 'issued');
+    const issued30 = issuedCerts.filter(
+      (c) => c.issuedAt && now - new Date(c.issuedAt).getTime() < ms30,
+    ).length;
+
+    const ratingsAvg =
+      reviews.length === 0
+        ? 0
+        : reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+
+    function pctDelta(curr: number, prev: number): number {
+      if (prev === 0) return curr > 0 ? 100 : 0;
+      return Math.round(((curr - prev) / prev) * 100);
+    }
+
+    const currency = orders[0]?.currency ?? 'BRL';
+    return c.json({
+      generatedAt: new Date().toISOString(),
+      revenue: {
+        currency,
+        netCents: grossRevenue - refundedAmount,
+        grossCents: grossRevenue,
+        refundedCents: refundedAmount,
+        last30DaysCents: revenue30,
+        prev30DaysCents: revenuePrev30,
+        deltaPct: pctDelta(revenue30, revenuePrev30),
+      },
+      students: {
+        total: students.length,
+        active: students.filter((s) => s.active).length,
+        new30Days: newStudents30,
+        newPrev30Days: newStudentsPrev30,
+        deltaPct: pctDelta(newStudents30, newStudentsPrev30),
+      },
+      completion: {
+        certificatesIssued: issuedCerts.length,
+        issuedLast30Days: issued30,
+      },
+      satisfaction: {
+        averageRating: Math.round(ratingsAvg * 10) / 10,
+        reviewCount: reviews.length,
+      },
+    });
+  });
+
   // ---------- Trilhas de estudo (study paths) ----------
 
   app.get('/study-paths', async (c) => {
