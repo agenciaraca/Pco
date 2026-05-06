@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-06 — sprints 469-479)
+## Estado atual (atualizado em 2026-05-06 — sprints 469-493)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **479+** |
-| Commits no main | **250+** |
-| Arquivos de teste | **92** |
-| Testes passando | **886** ✅ |
+| Sprints entregues | **493+** |
+| Commits no main | **265+** |
+| Arquivos de teste | **95** |
+| Testes passando | **917** ✅ |
 | Coverage statements | **~70%** |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,19 +143,33 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 469-479 (auth + API + roles + engagement)
+### Bloco sprints 469-493 (auth + API + roles + LMS deepening)
 | Sprint | Commit | Tema |
 |---|---|---|
+| 493 | `527004b` | profile completeness indicator (6 testes) |
+| 492 | `949cbd7` | filter por custom role em /admin/usuarios |
+| 491 | `cda84a6` | papel único por usuário + tier de auth (5 testes) |
+| 490 | `724a6e0` | indicador de anotação em LMSModule |
+| 489 | `85b91d7` | course instructor (nome/bio/foto) |
+| 488 | `b498403` | course learning outcomes (bullets) |
+| 487 | `32aa2ff` | lesson preview público — player + CTA |
+| 486 | `8c3137b` | flag isPreview em lessons |
+| 485 | `28add99` | catálogo unificado de roles (5 testes) |
+| 484 | `5fac235` | bulk-enroll respeita prereqs com override |
+| 483 | `399b507` | badge de pré-requisito em listagens |
+| 482 | `820595b` | course prerequisites (8 testes) |
+| 481 | `425de85` | custom roles no dropdown de usuário |
+| 480 | `a954370` | drip content phase 1 — releaseAt (10 testes) |
 | 479 | `85ca496` | study heatmap 365 dias (6 testes) |
-| 478 | `2f5ae8b` | meta semanal self-service (Profile + Dashboard) |
-| 477 | `147f754` | matriz comparativa de roles (visual table) |
-| 476 | `c213275` | system roles sync com seed em deploy (2 testes) |
-| 475 | `8a02fda` | permissões granulares + labels PT-BR (7 testes) |
-| 474 | `9fd8ddb` | user counts em /admin/papeis + ROADMAP |
+| 478 | `2f5ae8b` | meta semanal self-service |
+| 477 | `147f754` | matriz comparativa de roles |
+| 476 | `c213275` | system roles sync com seed (2 testes) |
+| 475 | `8a02fda` | permissões granulares + PT-BR labels (7 testes) |
+| 474 | `9fd8ddb` | user counts em /admin/papeis |
 | 473 | `bc8caab` | Roles & Permissions CRUD (18 testes) |
-| 472 | `91a7576` | OpenAPI 3.0 público em /v1/openapi.json (11 testes) |
-| 471 | `62d7315` | middleware blockDuringImpersonation (7 testes) |
-| 470 | `1dccd50` | impersonation UI: banner + botão admin |
+| 472 | `91a7576` | OpenAPI 3.0 público (11 testes) |
+| 471 | `62d7315` | blockDuringImpersonation middleware (7 testes) |
+| 470 | `1dccd50` | impersonation UI |
 | 469 | `7040c80` | impersonation backend (17 testes) |
 
 ### Bloco testes 432-466 (turno anterior)
