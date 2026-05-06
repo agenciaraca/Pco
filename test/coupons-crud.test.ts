@@ -94,3 +94,80 @@ describe('coupons-repo CRUD', () => {
     expect(all.length).toBeGreaterThan(0);
   });
 });
+
+describe('coupons-repo bulk', () => {
+  it('createCouponsBulk com prefix+sequential', async () => {
+    const r = await repo.createCouponsBulk({
+      count: 5,
+      prefix: 'BLACK',
+      sequential: true,
+      discount: { kind: 'percent', value: 20 },
+    });
+    expect(r.created.length).toBe(5);
+    expect(r.skipped.length).toBe(0);
+    expect(r.created[0]!.code).toMatch(/^BLACK\d{2}$/);
+    expect(r.created[0]!.discount).toEqual({ kind: 'percent', value: 20 });
+  });
+
+  it('createCouponsBulk com random length', async () => {
+    const r = await repo.createCouponsBulk({
+      count: 3,
+      randomLength: 10,
+      discount: { kind: 'amount', value: 1000 },
+    });
+    expect(r.created.length).toBe(3);
+    for (const c of r.created) {
+      expect(c.code).toHaveLength(10);
+      expect(c.code).toMatch(/^[A-HJ-NP-Z2-9]{10}$/);
+    }
+  });
+
+  it('createCouponsBulk com prefix+random', async () => {
+    const r = await repo.createCouponsBulk({
+      count: 2,
+      prefix: 'X',
+      sequential: false,
+      randomLength: 6,
+      discount: { kind: 'percent', value: 5 },
+    });
+    expect(r.created[0]!.code).toMatch(/^X[A-HJ-NP-Z2-9]{6}$/);
+  });
+
+  it('createCouponsBulk rejeita count < 1 ou > 1000', async () => {
+    await expect(
+      repo.createCouponsBulk({ count: 0, discount: { kind: 'percent', value: 10 } }),
+    ).rejects.toThrow();
+    await expect(
+      repo.createCouponsBulk({
+        count: 1001,
+        discount: { kind: 'percent', value: 10 },
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('createCouponsBulk rejeita randomLength fora 4-20', async () => {
+    await expect(
+      repo.createCouponsBulk({
+        count: 1,
+        randomLength: 3,
+        discount: { kind: 'percent', value: 10 },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      repo.createCouponsBulk({
+        count: 1,
+        randomLength: 21,
+        discount: { kind: 'percent', value: 10 },
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('exportCouponsAsCsv retorna header + rows', async () => {
+    const csv = await repo.exportCouponsAsCsv();
+    const lines = csv.split('\n');
+    expect(lines[0]).toBe(
+      'code,description,discount_kind,discount_value,valid_from,valid_until,max_uses,used_count,active',
+    );
+    expect(lines.length).toBeGreaterThan(1);
+  });
+});
