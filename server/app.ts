@@ -32,6 +32,7 @@ import {
   startImpersonation,
   exitImpersonation,
 } from './auth/impersonation';
+import { blockDuringImpersonation } from './auth/block-during-impersonation';
 import { createResetToken, consumeResetToken } from './auth/password-reset';
 import { auditMiddleware } from './audit/middleware';
 import { listAudit, auditByDay, recordAudit } from './audit/log';
@@ -548,7 +549,7 @@ export function buildApp() {
   });
 
   // Enable TOTP — usuário envia primeiro código pra confirmar setup.
-  app.post('/auth/me/totp/enable', requireAuth(), async (c) => {
+  app.post('/auth/me/totp/enable', requireAuth(), blockDuringImpersonation('user.totp.enable'), async (c) => {
     const u = c.get('user')!;
     const body = (await c.req.json().catch(() => ({}))) as { code?: string };
     if (!body.code) return jsonError(c, 400, 'INVALID_INPUT', 'code é obrigatório.');
@@ -567,7 +568,7 @@ export function buildApp() {
   });
 
   // Disable TOTP — exige código atual para evitar lockout indireto.
-  app.post('/auth/me/totp/disable', requireAuth(), async (c) => {
+  app.post('/auth/me/totp/disable', requireAuth(), blockDuringImpersonation('user.totp.disable'), async (c) => {
     const u = c.get('user')!;
     const body = (await c.req.json().catch(() => ({}))) as { code?: string };
     const raw = await usersStore.findRawById(u.sub);
@@ -691,7 +692,7 @@ export function buildApp() {
   });
 
   // Self-service: troca de senha (exige senha atual)
-  app.post('/auth/me/password', requireAuth(), async (c) => {
+  app.post('/auth/me/password', requireAuth(), blockDuringImpersonation('user.password.change'), async (c) => {
     const u = c.get('user')!;
     const body = await c.req.json().catch(() => ({}));
     const v = validate(selfChangePasswordSchema, body);
@@ -1221,6 +1222,7 @@ export function buildApp() {
   app.put(
     '/admin/deletion-requests/:id',
     requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('lgpd.deletion.confirm'),
     async (c) => {
       const id = c.req.param('id') as string;
       const u = c.get('user')!;
@@ -2461,6 +2463,27 @@ export function buildApp() {
     if (v.data.role && acting?.role !== 'superadmin') {
       return jsonError(c, 403, 'FORBIDDEN', 'Apenas superadmin pode alterar role.');
     }
+    // Bloqueia mudanças sensíveis (role/email) durante impersonation
+    if (acting?.act) {
+      if (v.data.role) {
+        return jsonError(
+          c,
+          403,
+          'IMPERSONATION_BLOCKED',
+          'Não é possível alterar role enquanto visualiza como outro usuário.',
+          { action: 'user.role.change' },
+        );
+      }
+      if (v.data.email) {
+        return jsonError(
+          c,
+          403,
+          'IMPERSONATION_BLOCKED',
+          'Não é possível alterar e-mail enquanto visualiza como outro usuário.',
+          { action: 'user.email.change' },
+        );
+      }
+    }
     try {
       const id = c.req.param('id') as string;
       const updated = await usersStore.updateUser(id, v.data);
@@ -2471,7 +2494,7 @@ export function buildApp() {
     }
   });
 
-  app.put('/admin/users/:id/password', requireAuth('admin', 'superadmin'), async (c) => {
+  app.put('/admin/users/:id/password', requireAuth('admin', 'superadmin'), blockDuringImpersonation('user.password.change'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(changePasswordSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
@@ -2516,7 +2539,7 @@ export function buildApp() {
     },
   );
 
-  app.delete('/admin/users/:id', requireAuth('admin', 'superadmin'), async (c) => {
+  app.delete('/admin/users/:id', requireAuth('admin', 'superadmin'), blockDuringImpersonation('user.delete'), async (c) => {
     try {
       const id = c.req.param('id') as string;
       const target = await usersStore.findUserById(id);
@@ -3014,12 +3037,17 @@ export function buildApp() {
     return c.json(updated);
   });
 
-  app.delete('/admin/payments/gateways/:id', requireAuth('admin', 'superadmin'), async (c) => {
-    const id = c.req.param('id') as string;
-    const ok = await gatewaysRepo.deleteGateway(id);
-    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado');
-    return c.json({ ok: true });
-  });
+  app.delete(
+    '/admin/payments/gateways/:id',
+    requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('gateway.delete'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const ok = await gatewaysRepo.deleteGateway(id);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado');
+      return c.json({ ok: true });
+    },
+  );
 
   // ---------- Products (admin CRUD + público lista ativos) ----------
 
@@ -3091,6 +3119,7 @@ export function buildApp() {
   app.post(
     '/admin/orders/:id/refund',
     requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('order.refund'),
     rateLimit({ windowMs: 60_000, max: 10 }),
     async (c) => {
       const id = c.req.param('id') as string;
@@ -3723,6 +3752,7 @@ export function buildApp() {
   app.post(
     '/admin/api-tokens',
     requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('apiToken.create'),
     rateLimit({ windowMs: 60_000, max: 10 }),
     async (c) => {
       const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
