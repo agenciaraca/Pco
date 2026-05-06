@@ -99,3 +99,8 @@ export async function resetForRetry(id: string): Promise<void> {
     }),
   );
 }
+
+// Test-only helper
+export async function _resetForTests(): Promise<void> {
+  await store.setAll([]);
+}

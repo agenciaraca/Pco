@@ -143,3 +143,8 @@ export function decryptEndpoint(e: WebhookEndpoint): DecryptedEndpoint {
       : undefined,
   };
 }
+
+// Test-only helper
+export async function _resetForTests(): Promise<void> {
+  await store.setAll([]);
+}
