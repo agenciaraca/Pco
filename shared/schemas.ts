@@ -297,6 +297,11 @@ export const updateCourseSchema = z.object({
    * neste. Vazio ou undefined = sem pré-requisitos.
    */
   prerequisiteCourseIds: z.array(z.string().min(1).max(40)).max(10).optional(),
+  /**
+   * Bullet points de "O que você vai aprender" — exibido na página
+   * pública do curso como incentivo de matrícula.
+   */
+  learningOutcomes: z.array(z.string().min(2).max(200)).max(20).optional(),
 });
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
 

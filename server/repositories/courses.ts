@@ -179,6 +179,9 @@ export async function updateCourse(
         ...(patch.prerequisiteCourseIds !== undefined
           ? { prerequisiteCourseIds: patch.prerequisiteCourseIds }
           : {}),
+        ...(patch.learningOutcomes !== undefined
+          ? { learningOutcomes: patch.learningOutcomes }
+          : {}),
       }),
     );
   }

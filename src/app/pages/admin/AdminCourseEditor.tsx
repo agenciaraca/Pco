@@ -155,8 +155,19 @@ function GeralPane({ course }: { course: Course }) {
   const [prereqIds, setPrereqIds] = useState<string[]>(
     course.prerequisiteCourseIds ?? [],
   );
+  const [outcomes, setOutcomes] = useState<string[]>(
+    course.learningOutcomes ?? [],
+  );
+  const [outcomeInput, setOutcomeInput] = useState('');
   const allCoursesQ = useCourses();
   const otherCourses = (allCoursesQ.data ?? []).filter((c) => c.id !== course.id);
+
+  function addOutcome() {
+    const v = outcomeInput.trim();
+    if (!v || outcomes.includes(v) || outcomes.length >= 20) return;
+    setOutcomes([...outcomes, v]);
+    setOutcomeInput('');
+  }
 
   function addTag() {
     const v = tagInput.trim();
@@ -175,7 +186,12 @@ function GeralPane({ course }: { course: Course }) {
     try {
       const updated = await update.mutateAsync({
         id: course.id,
-        patch: { ...data, tags, prerequisiteCourseIds: prereqIds },
+        patch: {
+          ...data,
+          tags,
+          prerequisiteCourseIds: prereqIds,
+          learningOutcomes: outcomes,
+        },
       });
       toast.success('Curso atualizado', updated.title);
       reset({
@@ -286,6 +302,61 @@ function GeralPane({ course }: { course: Course }) {
               </p>
             </>
           )}
+        </Field>
+
+        <Field label="O que você vai aprender (bullets)">
+          <ul className="space-y-1 mb-2">
+            {outcomes.map((o, idx) => (
+              <li
+                key={idx}
+                className="flex items-start gap-2 text-sm bg-surface-off rounded-lg p-2"
+              >
+                <span className="text-pco-blue text-base leading-tight">•</span>
+                <span className="flex-1 text-ink-strong">{o}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOutcomes(outcomes.filter((_, i) => i !== idx))
+                  }
+                  className="text-status-danger hover:text-status-danger/70 text-xs"
+                  title="Remover"
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+            {outcomes.length === 0 && (
+              <li className="text-xs text-ink-subtle">Nenhum bullet adicionado.</li>
+            )}
+          </ul>
+          <div className="flex gap-2">
+            <input
+              value={outcomeInput}
+              onChange={(e) => setOutcomeInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addOutcome();
+                }
+              }}
+              className="pco-input flex-1"
+              placeholder="Ex: Compreender os fundamentos do inconsciente"
+              maxLength={200}
+            />
+            <button
+              type="button"
+              onClick={addOutcome}
+              className="pco-btn-ghost text-xs"
+              disabled={!outcomeInput.trim() || outcomes.length >= 20}
+            >
+              Adicionar
+            </button>
+          </div>
+          <p className="text-[11px] text-ink-subtle mt-2">
+            Aparece como destaque na página pública do curso. Recomendamos
+            entre 4 e 8 bullets focados em resultados ("Vou conseguir
+            X", "Vou entender Y").
+          </p>
         </Field>
 
         <div className="grid grid-cols-2 gap-4">

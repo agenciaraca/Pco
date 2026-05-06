@@ -188,6 +188,25 @@ export default function CoursePreview() {
           </div>
         </section>
 
+        {(course.learningOutcomes?.length ?? 0) > 0 && (
+          <section className="pco-card p-6">
+            <h2 className="text-lg font-bold text-pco-deep mb-4">
+              O que você vai aprender
+            </h2>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {course.learningOutcomes!.map((o, idx) => (
+                <li
+                  key={idx}
+                  className="flex items-start gap-2 text-sm text-ink-strong"
+                >
+                  <span className="text-pco-blue text-lg leading-tight">✓</span>
+                  <span className="flex-1">{o}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <div className="grid gap-6 md:grid-cols-3">
           <section className="md:col-span-2 space-y-4">
             <h2 className="text-lg font-bold text-pco-deep">

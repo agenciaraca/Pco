@@ -2176,6 +2176,7 @@ export interface UpdateCoursePatch {
   active?: boolean;
   tags?: string[];
   prerequisiteCourseIds?: string[];
+  learningOutcomes?: string[];
 }
 
 export async function updateCourse(id: string, patch: UpdateCoursePatch): Promise<Course> {

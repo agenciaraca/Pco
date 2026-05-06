@@ -84,6 +84,8 @@ export interface Course {
   tags?: string[];
   /** IDs de cursos que devem ser concluídos antes deste. */
   prerequisiteCourseIds?: ID[];
+  /** Bullet points de "O que você vai aprender" (CoursePreview). */
+  learningOutcomes?: string[];
 }
 
 export interface Certificate {
