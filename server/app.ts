@@ -4551,6 +4551,48 @@ export function buildApp() {
     },
   );
 
+  /** Estatísticas de achievements para admin: count por badge, top users. */
+  app.get(
+    '/admin/achievements/stats',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const all = await achievementsStore.listAll();
+      const users = await usersStore.listUsers();
+      const userMap = new Map(users.map((u) => [u.id, u]));
+      const byBadge = new Map<string, number>();
+      const byUser = new Map<string, number>();
+      for (const a of all) {
+        byBadge.set(a.badgeId, (byBadge.get(a.badgeId) ?? 0) + 1);
+        byUser.set(a.userId, (byUser.get(a.userId) ?? 0) + 1);
+      }
+      const badges = Object.entries(achievementsStore.BADGES).map(([id, def]) => ({
+        id,
+        name: def.name,
+        description: def.description,
+        icon: def.icon,
+        awarded: byBadge.get(id) ?? 0,
+      }));
+      const topUsers = Array.from(byUser.entries())
+        .map(([userId, count]) => {
+          const u = userMap.get(userId);
+          return {
+            userId,
+            count,
+            name: u?.name ?? '?',
+            email: u?.email ?? '?',
+          };
+        })
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20);
+      return c.json({
+        totalAwarded: all.length,
+        uniqueRecipients: byUser.size,
+        badges: badges.sort((a, b) => b.awarded - a.awarded),
+        topUsers,
+      });
+    },
+  );
+
   /** Lista conversas do tutor IA (admin auditoria). */
   app.get('/admin/tutor/history', requireAuth('admin', 'superadmin'), async (c) => {
     const search = c.req.query('search')?.toLowerCase().trim();

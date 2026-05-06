@@ -3292,6 +3292,28 @@ export async function fetchAdminTutorHistory(
   return http.get<AdminTutorTurnDto[]>(path);
 }
 
+export interface AchievementsStatsDto {
+  totalAwarded: number;
+  uniqueRecipients: number;
+  badges: Array<{
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    awarded: number;
+  }>;
+  topUsers: Array<{
+    userId: string;
+    count: number;
+    name: string;
+    email: string;
+  }>;
+}
+
+export async function fetchAchievementsStats(): Promise<AchievementsStatsDto> {
+  return http.get<AchievementsStatsDto>('/admin/achievements/stats');
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =

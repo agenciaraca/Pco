@@ -1897,6 +1897,14 @@ export function useAdminTutorHistory(
   });
 }
 
+export function useAchievementsStats() {
+  return useQuery({
+    queryKey: ['admin', 'achievements', 'stats'],
+    queryFn: () => api.fetchAchievementsStats(),
+    staleTime: 60_000,
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {
