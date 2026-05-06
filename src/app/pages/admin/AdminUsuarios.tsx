@@ -524,7 +524,25 @@ function UserEditor({ user, isSuperadmin, allRoles, submitting, onClose, onSubmi
     },
   });
 
-  const customRoles = allRoles.filter((r) => !r.system);
+  // Slug efetivo escolhido pelo admin (qualquer role do catálogo).
+  // Inicializa com customRoleSlug se houver, senão com a role base.
+  const initialSelected =
+    (user as { customRoleSlug?: string | null } | null)?.customRoleSlug ||
+    user?.role ||
+    'student';
+  const [selectedRoleSlug, setSelectedRoleSlug] = useState(initialSelected);
+
+  // Mapeia slug escolhido → {role base, customRoleSlug}.
+  // Auth ainda usa as 3 roles base, então não-base vira role='student' + customRoleSlug.
+  function resolveRoleAssignment(slug: string): {
+    role: 'student' | 'admin' | 'superadmin';
+    customRoleSlug: string | null;
+  } {
+    if (slug === 'student' || slug === 'admin' || slug === 'superadmin') {
+      return { role: slug, customRoleSlug: null };
+    }
+    return { role: 'student', customRoleSlug: slug };
+  }
 
   const passwordValue = watch('password' as 'password');
 
@@ -543,43 +561,45 @@ function UserEditor({ user, isSuperadmin, allRoles, submitting, onClose, onSubmi
           <input type="email" {...register('email')} className="pco-input" />
         </Field>
 
-        <Field label="Papel do sistema" error={errors.role?.message}>
-          <select {...register('role')} className="pco-input" disabled={!isSuperadmin}>
-            <option value="student">Aluno</option>
-            <option value="admin">Admin</option>
-            <option value="superadmin">Superadmin</option>
-          </select>
-          {!isSuperadmin && (
-            <p className="mt-1 text-[11px] text-ink-subtle">
-              Apenas superadmin pode mudar papel do sistema.
-            </p>
-          )}
-        </Field>
-
-        <Field
-          label="Papel personalizado (opcional)"
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          error={(errors as any).customRoleSlug?.message}
-        >
+        <Field label="Papel" error={errors.role?.message}>
           <select
-            {...register('customRoleSlug')}
+            value={selectedRoleSlug}
+            onChange={(e) => {
+              const slug = e.target.value;
+              setSelectedRoleSlug(slug);
+              const { role, customRoleSlug } = resolveRoleAssignment(slug);
+              setValue('role' as 'role', role, { shouldDirty: true });
+              setValue('customRoleSlug' as 'customRoleSlug', customRoleSlug, {
+                shouldDirty: true,
+              });
+            }}
             className="pco-input"
-            defaultValue={
-              (user as { customRoleSlug?: string | null } | null)?.customRoleSlug ?? ''
-            }
+            disabled={!isSuperadmin && selectedRoleSlug === 'superadmin'}
           >
-            <option value="">— Nenhum —</option>
-            {customRoles.map((r) => (
-              <option key={r.id} value={r.slug}>
+            {allRoles.map((r) => (
+              <option
+                key={r.id}
+                value={r.slug}
+                disabled={!isSuperadmin && r.slug === 'superadmin'}
+              >
                 {r.name}
               </option>
             ))}
           </select>
-          <p className="mt-1 text-[11px] text-ink-subtle">
-            {customRoles.length === 0
-              ? 'Nenhum papel personalizado cadastrado. Crie em /admin/papeis.'
-              : 'Hoje serve como documentação. A autorização efetiva continua usando o papel do sistema acima.'}
-          </p>
+          {!isSuperadmin && (
+            <p className="mt-1 text-[11px] text-ink-subtle">
+              Apenas superadmin pode atribuir o papel "Superadmin".
+            </p>
+          )}
+          {selectedRoleSlug !== 'student' &&
+            selectedRoleSlug !== 'admin' &&
+            selectedRoleSlug !== 'superadmin' && (
+              <p className="mt-1 text-[11px] text-ink-subtle">
+                Papéis criados em /admin/papeis hoje funcionam como documentação:
+                a autorização efetiva continua usando "Aluno" como base. RBAC
+                dinâmico ativa o enforcement em sprint futuro.
+              </p>
+            )}
         </Field>
 
         {isNew && (

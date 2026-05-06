@@ -586,38 +586,35 @@ function normalizeSlug(s: string): string {
 }
 
 /**
- * Garante que system roles existam e estejam sincronizadas com o seed canônico.
- * - Adiciona system roles ausentes
- * - Reconcilia permissions/name/description quando o seed evolui em deploys
- *   (system roles são imutáveis no UI, mas o código fonte é a verdade)
- * - NÃO toca em custom roles (system=false), nem deleta nada
+ * Garante que as roles base existam (student/admin/superadmin), criando-as
+ * a partir do seed se ausentes. NÃO sobrescreve papéis já existentes — o
+ * admin pode editar nome/descrição/permissões de student e admin via UI
+ * e essas mudanças devem persistir entre deploys. Apenas o superadmin
+ * permanece com permissões re-aplicadas a cada deploy (segurança: deve
+ * sempre ter TODAS as permissões mais recentes do catálogo).
  */
 async function ensureSystemRoles(): Promise<void> {
   await store.modify((arr) => {
     for (const seed of SYSTEM_ROLES) {
       const idx = arr.findIndex((r) => r.slug === seed.slug);
       if (idx === -1) {
-        arr.push({ ...seed });
+        arr.push({ ...seed, permissions: [...seed.permissions] });
         continue;
       }
-      const current = arr[idx];
-      const permsChanged =
-        current.permissions.length !== seed.permissions.length ||
-        current.permissions.some((p, i) => p !== seed.permissions[i]);
-      if (
-        permsChanged ||
-        current.name !== seed.name ||
-        current.description !== seed.description ||
-        current.system !== true
-      ) {
-        arr[idx] = {
-          ...current,
-          name: seed.name,
-          description: seed.description,
-          permissions: [...seed.permissions],
-          system: true,
-          updatedAt: new Date().toISOString(),
-        };
+      // Apenas o superadmin é re-sincronizado com TODAS as permissões
+      // (segurança contra perda acidental de permissão ao expandir o catálogo)
+      if (seed.slug === 'superadmin') {
+        const current = arr[idx];
+        const permsChanged =
+          current.permissions.length !== seed.permissions.length ||
+          current.permissions.some((p, i) => p !== seed.permissions[i]);
+        if (permsChanged) {
+          arr[idx] = {
+            ...current,
+            permissions: [...seed.permissions],
+            updatedAt: new Date().toISOString(),
+          };
+        }
       }
     }
   });
@@ -717,13 +714,22 @@ export interface UpdateRoleInput {
   permissions?: string[];
 }
 
+/**
+ * Roles cuja edição/exclusão é bloqueada por motivo de auth — são as
+ * únicas que o middleware reconhece literalmente. Apenas superadmin
+ * fica imutável; student/admin podem ter nome/descrição/permissões
+ * editados mas o slug permanece (auth depende dele).
+ */
+const PROTECTED_FROM_DELETE = new Set(['student', 'admin', 'superadmin']);
+const PROTECTED_FROM_EDIT = new Set(['superadmin']);
+
 export async function updateRole(id: string, patch: UpdateRoleInput): Promise<Role> {
   const role = await findById(id);
   if (!role) throw new RoleError('NOT_FOUND', 'Role não encontrada.');
-  if (role.system) {
+  if (PROTECTED_FROM_EDIT.has(role.slug)) {
     throw new RoleError(
       'SYSTEM_ROLE',
-      'Roles do sistema não podem ser editadas.',
+      `O papel "${role.name}" é imutável e não pode ser editado.`,
     );
   }
   const updates: Partial<Role> = {};
@@ -748,10 +754,10 @@ export async function updateRole(id: string, patch: UpdateRoleInput): Promise<Ro
 export async function deleteRole(id: string): Promise<void> {
   const role = await findById(id);
   if (!role) throw new RoleError('NOT_FOUND', 'Role não encontrada.');
-  if (role.system) {
+  if (PROTECTED_FROM_DELETE.has(role.slug)) {
     throw new RoleError(
       'SYSTEM_ROLE',
-      'Roles do sistema não podem ser deletadas.',
+      `O papel "${role.name}" é uma role base do sistema e não pode ser deletada (auth depende dela).`,
     );
   }
   await store.modify((arr) => {
@@ -783,7 +789,11 @@ export async function listPermissions(): Promise<{
   };
 }
 
-// Test-only helper para resetar o store entre testes
+// Test-only helper para resetar o store entre testes.
+// Faz deep-copy do seed pra evitar que mutações via Object.assign no update()
+// poluam SYSTEM_ROLES (referência compartilhada).
 export async function _resetForTests(): Promise<void> {
-  await store.setAll(SYSTEM_ROLES);
+  await store.setAll(
+    SYSTEM_ROLES.map((r) => ({ ...r, permissions: [...r.permissions] })),
+  );
 }

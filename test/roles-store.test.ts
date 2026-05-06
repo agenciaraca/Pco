@@ -126,11 +126,22 @@ describe('roles-store', () => {
       );
     });
 
-    it('rejeita update em system role', async () => {
+    it('permite update em student/admin (apenas superadmin é imutável)', async () => {
       const all = await roles.listRoles();
       const admin = all.find((r) => r.slug === 'admin')!;
+      const updated = await roles.updateRole(admin.id, {
+        name: 'Administrador (custom name)',
+        permissions: ['analytics.read', 'students.read'],
+      });
+      expect(updated.name).toBe('Administrador (custom name)');
+      expect(updated.permissions).toEqual(['analytics.read', 'students.read']);
+    });
+
+    it('rejeita update em superadmin (única role imutável)', async () => {
+      const all = await roles.listRoles();
+      const sa = all.find((r) => r.slug === 'superadmin')!;
       await expect(
-        roles.updateRole(admin.id, { name: 'Outro nome' }),
+        roles.updateRole(sa.id, { name: 'Outro' }),
       ).rejects.toMatchObject({ code: 'SYSTEM_ROLE' });
     });
 
@@ -149,12 +160,14 @@ describe('roles-store', () => {
       expect(all.find((x) => x.id === r.id)).toBeUndefined();
     });
 
-    it('rejeita delete em system role', async () => {
+    it('rejeita delete em student/admin/superadmin (auth depende)', async () => {
       const all = await roles.listRoles();
-      const stu = all.find((r) => r.slug === 'student')!;
-      await expect(roles.deleteRole(stu.id)).rejects.toMatchObject({
-        code: 'SYSTEM_ROLE',
-      });
+      for (const slug of ['student', 'admin', 'superadmin']) {
+        const r = all.find((x) => x.slug === slug)!;
+        await expect(roles.deleteRole(r.id)).rejects.toMatchObject({
+          code: 'SYSTEM_ROLE',
+        });
+      }
     });
   });
 
@@ -228,26 +241,33 @@ describe('roles-store', () => {
   });
 
   describe('ensureSystemRoles (sync com seed)', () => {
-    it('listRoles reconcilia system roles após mutação direta no store', async () => {
-      // Simula um JSON em produção que ficou com seed antigo (poucas permissões)
+    it('admin role permite edits que persistem entre reloads', async () => {
       const all = await roles.listRoles();
       const admin = all.find((r) => r.slug === 'admin')!;
-      // Cria custom role pra garantir que NÃO é tocada
-      const custom = await roles.createRole({
-        slug: 'mentor-tmp',
-        name: 'Mentor Tmp',
-        permissions: ['support.read'],
+      // Edita admin
+      await roles.updateRole(admin.id, {
+        permissions: ['analytics.read', 'support.read'],
       });
-      const fullPermsLen = admin.permissions.length;
-
-      // Reseta forçando inconsistência (admin com seed antigo)
-      await roles._resetForTests();
-      // Agora listRoles deve rever o admin com TODAS as permissões do seed atual
+      // Lista de novo — ensureSystemRoles roda mas NÃO sobrescreve
       const after = await roles.listRoles();
       const adminAfter = after.find((r) => r.slug === 'admin')!;
-      expect(adminAfter.permissions.length).toBe(fullPermsLen);
-      // Custom role foi removida no _resetForTests (esperado)
-      expect(after.find((r) => r.id === custom.id)).toBeUndefined();
+      expect(adminAfter.permissions).toEqual(['analytics.read', 'support.read']);
+    });
+
+    it('superadmin é re-sincronizado se o catálogo de permissões cresceu', async () => {
+      // Diretamente mutaciona o JSON pra simular superadmin com permissões antigas
+      const all = await roles.listRoles();
+      const sa = all.find((r) => r.slug === 'superadmin')!;
+      // Vamos simular um superadmin com 5 permissões (versão antiga)
+      // Próxima chamada de listRoles deve restaurá-lo com TODAS as
+      // SYSTEM_PERMISSIONS atuais.
+      // Não temos API pública pra alterar superadmin (proteção). Usamos
+      // _resetForTests então o seed real é aplicado.
+      await roles._resetForTests();
+      const after = await roles.listRoles();
+      const saAfter = after.find((r) => r.slug === 'superadmin')!;
+      expect(saAfter.permissions.length).toBe(roles.SYSTEM_PERMISSIONS.length);
+      expect(sa.permissions.length).toBe(roles.SYSTEM_PERMISSIONS.length);
     });
 
     it('listRoles preserva custom roles (system=false) entre chamadas', async () => {

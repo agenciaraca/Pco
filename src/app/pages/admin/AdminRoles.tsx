@@ -196,9 +196,10 @@ export default function AdminRoles() {
             Papéis e permissões
           </h1>
           <p className="text-sm text-ink-muted mt-1">
-            Inventário de papéis do sistema e permissões nominais. Os 3 papéis
-            do sistema (aluno, admin, superadmin) são imutáveis. Você pode criar
-            papéis personalizados para documentar convenções da equipe.
+            Catálogo único de papéis. Você pode criar, editar e excluir papéis
+            livremente — apenas o <strong>superadmin</strong> é imutável (sempre
+            tem todas as permissões), e <strong>student</strong>/<strong>admin</strong>
+            não podem ser deletados (auth do sistema depende deles).
           </p>
         </div>
         <div className="flex gap-2 items-center">
@@ -268,10 +269,13 @@ export default function AdminRoles() {
                     <code className="text-[11px] bg-surface-mute px-1.5 py-0.5 rounded text-ink-muted">
                       {role.slug}
                     </code>
-                    {role.system && (
-                      <span className="pco-badge bg-pco-blue/10 text-pco-blue inline-flex items-center gap-1">
+                    {role.slug === 'superadmin' && (
+                      <span
+                        className="pco-badge bg-pco-blue/10 text-pco-blue inline-flex items-center gap-1"
+                        title="Imutável — auth do sistema depende"
+                      >
                         <Lock size={10} strokeWidth={2} />
-                        sistema
+                        imutável
                       </span>
                     )}
                     {typeof role.userCount === 'number' && role.userCount > 0 && (
@@ -312,8 +316,12 @@ export default function AdminRoles() {
                   <button
                     type="button"
                     onClick={() => openEdit(role)}
-                    disabled={role.system}
-                    title={role.system ? 'Papéis do sistema são imutáveis' : 'Editar'}
+                    disabled={role.slug === 'superadmin'}
+                    title={
+                      role.slug === 'superadmin'
+                        ? 'Superadmin é imutável (sempre tem todas as permissões)'
+                        : 'Editar'
+                    }
                     className="pco-btn-ghost text-xs disabled:opacity-40"
                   >
                     <Pencil size={11} strokeWidth={2} />
@@ -322,8 +330,18 @@ export default function AdminRoles() {
                   <button
                     type="button"
                     onClick={() => handleDelete(role)}
-                    disabled={role.system}
-                    title={role.system ? 'Papéis do sistema são imutáveis' : 'Excluir'}
+                    disabled={
+                      role.slug === 'superadmin' ||
+                      role.slug === 'admin' ||
+                      role.slug === 'student'
+                    }
+                    title={
+                      role.slug === 'superadmin' ||
+                      role.slug === 'admin' ||
+                      role.slug === 'student'
+                        ? 'Roles base do sistema (student/admin/superadmin) não podem ser deletadas'
+                        : 'Excluir'
+                    }
                     className="pco-btn-ghost text-xs text-status-danger disabled:opacity-40"
                   >
                     <Trash2 size={11} strokeWidth={2} />
@@ -542,10 +560,10 @@ function PermissionMatrix({
               >
                 <div className="flex flex-col items-center gap-1">
                   <span>{r.name}</span>
-                  {r.system && (
+                  {r.slug === 'superadmin' && (
                     <span className="text-[9px] uppercase tracking-wider text-pco-blue inline-flex items-center gap-1">
                       <Lock size={9} strokeWidth={2} />
-                      sistema
+                      imutável
                     </span>
                   )}
                 </div>
