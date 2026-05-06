@@ -119,4 +119,41 @@ describe('renderInvoiceHtml', () => {
     expect(html).toContain('@media print');
     expect(html).toContain('.actions { display: none; }');
   });
+
+  it('aceita currency USD', () => {
+    const html = renderInvoiceHtml({
+      order: { ...baseOrder, currency: 'USD' },
+      user: { name: 'João', email: 'a@b.com' },
+    });
+    expect(html).toMatch(/US\$|USD|\$/);
+  });
+
+  it('mostra orgName e orgAddress customizados', () => {
+    const html = renderInvoiceHtml({
+      order: baseOrder,
+      user: { name: 'João', email: 'a@b.com' },
+      orgName: 'Minha Escola',
+      orgAddress: 'Rua X, 123',
+    });
+    expect(html).toContain('Minha Escola');
+    expect(html).toContain('Rua X, 123');
+  });
+
+  it('omite paidDate quando não há paidAt', () => {
+    const html = renderInvoiceHtml({
+      order: { ...baseOrder, paidAt: null, status: 'pending' },
+      user: { name: 'João', email: 'a@b.com' },
+    });
+    expect(html).toContain('PENDING');
+    expect(html).not.toContain('Confirmado em:');
+  });
+
+  it('mostra status REFUNDED em vermelho/cyan', () => {
+    const html = renderInvoiceHtml({
+      order: { ...baseOrder, status: 'refunded' },
+      user: { name: 'João', email: 'a@b.com' },
+    });
+    expect(html).toContain('REFUNDED');
+    expect(html).toContain('badge refunded');
+  });
 });
