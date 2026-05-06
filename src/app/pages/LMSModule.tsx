@@ -1,12 +1,26 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Circle, Clock, PlayCircle, ScrollText } from 'lucide-react';
-import { useCourses, useMyProgress } from '../data/hooks';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Circle,
+  Clock,
+  PlayCircle,
+  ScrollText,
+  StickyNote,
+} from 'lucide-react';
+import { useMemo } from 'react';
+import { useCourses, useMyNotes, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 
 export default function LMSModule() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>();
   const { data: courses = [], isLoading } = useCourses();
   const progress = useMyProgress();
+  const notesQ = useMyNotes();
+  const lessonsWithNotes = useMemo(
+    () => new Set((notesQ.data ?? []).map((n) => n.lessonId)),
+    [notesQ.data],
+  );
   if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
   const module = course?.modules.find((m) => m.id === moduleId);
@@ -82,7 +96,18 @@ export default function LMSModule() {
                   <Circle size={20} className="text-ink-subtle shrink-0" strokeWidth={2} />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-pco-deep">{lesson.title}</div>
+                  <div className="text-sm font-semibold text-pco-deep flex items-center gap-1.5 flex-wrap">
+                    {lesson.title}
+                    {lessonsWithNotes.has(lesson.id) && (
+                      <span
+                        className="inline-flex items-center gap-1 pco-badge bg-pco-cyan/10 text-pco-cyan text-[10px]"
+                        title="Você tem uma anotação nesta aula"
+                      >
+                        <StickyNote size={9} strokeWidth={2} />
+                        Anotação
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-0.5 flex items-center gap-3 text-[11px] text-ink-subtle">
                     <span className="inline-flex items-center gap-1">
                       <Clock size={11} strokeWidth={2} />
