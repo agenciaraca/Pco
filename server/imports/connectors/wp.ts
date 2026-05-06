@@ -17,6 +17,103 @@ interface WpUser {
   meta?: Record<string, unknown>;
 }
 
+/**
+ * Diagnóstico detalhado: testa /wp-json, /wp/v2/users/me (vê role atual)
+ * e /wp/v2/users?context=edit (testa permissão real). Retorna info útil
+ * pra debugar 401 forbidden_context.
+ */
+export async function diagnoseWp(c: ImportConnection): Promise<{
+  rootOk: boolean;
+  rootStatus: number;
+  rootMessage: string;
+  meOk: boolean;
+  meStatus: number;
+  meRoles: string[];
+  meUser: string | null;
+  usersListOk: boolean;
+  usersListStatus: number;
+  usersListMessage: string;
+  usersFirstEmail: string | null;
+}> {
+  const creds = decryptCreds(c);
+  const baseUrl = c.siteUrl.replace(/\/+$/, '');
+  const authHeader =
+    creds.wpUsername && creds.wpAppPassword
+      ? `Basic ${Buffer.from(`${creds.wpUsername}:${creds.wpAppPassword}`).toString('base64')}`
+      : '';
+
+  async function call(
+    path: string,
+  ): Promise<{ status: number; body: unknown; bodyText: string }> {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12_000);
+    try {
+      const res = await fetch(`${baseUrl}${path}`, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'AVA-PCO-Importer/1.0',
+          ...(authHeader ? { Authorization: authHeader } : {}),
+        },
+        signal: ctrl.signal,
+        redirect: 'follow',
+      });
+      clearTimeout(t);
+      const text = await res.text();
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        /* ignore */
+      }
+      return { status: res.status, body: parsed, bodyText: text.slice(0, 500) };
+    } catch (err) {
+      clearTimeout(t);
+      const e = err as { message?: string };
+      return { status: 0, body: null, bodyText: e?.message ?? 'fetch failed' };
+    }
+  }
+
+  const root = await call('/wp-json');
+  const me = await call('/wp-json/wp/v2/users/me?context=edit');
+  const users = await call('/wp-json/wp/v2/users?context=edit&per_page=1');
+
+  const meBody = me.body as { roles?: string[]; name?: string; code?: string } | null;
+  const usersBody = users.body as Array<{ email?: string }> | { code?: string; message?: string } | null;
+  const usersFirstEmail = Array.isArray(usersBody) && usersBody[0]
+    ? usersBody[0].email ?? null
+    : null;
+
+  let usersListMessage = '';
+  if (users.status === 200 && Array.isArray(usersBody)) {
+    usersListMessage = `OK — ${usersBody.length} user(s) retornado(s) na página 1`;
+  } else if (users.status === 401) {
+    const code = (usersBody as { code?: string } | null)?.code ?? '';
+    const msg = (usersBody as { message?: string } | null)?.message ?? '';
+    usersListMessage = `401 ${code}: ${msg}`;
+  } else if (users.status === 0) {
+    usersListMessage = `Falha de rede: ${users.bodyText}`;
+  } else {
+    usersListMessage = `HTTP ${users.status} — ${users.bodyText.slice(0, 200)}`;
+  }
+
+  return {
+    rootOk: root.status === 200,
+    rootStatus: root.status,
+    rootMessage:
+      root.status === 200
+        ? `OK — REST API ativa em ${baseUrl}/wp-json`
+        : `HTTP ${root.status} — ${root.bodyText.slice(0, 200)}`,
+    meOk: me.status === 200,
+    meStatus: me.status,
+    meRoles: meBody?.roles ?? [],
+    meUser: meBody?.name ?? null,
+    usersListOk: users.status === 200 && Array.isArray(usersBody),
+    usersListStatus: users.status,
+    usersListMessage,
+    usersFirstEmail,
+  };
+}
+
 export async function pingWp(c: ImportConnection): Promise<{ ok: boolean; message: string }> {
   const creds = decryptCreds(c);
   // Tenta /wp-json (raiz da REST API). Se 401 sem creds, ainda significa que existe.

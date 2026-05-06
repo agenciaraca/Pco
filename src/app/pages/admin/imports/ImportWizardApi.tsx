@@ -28,12 +28,14 @@ import { useToast } from '../../../components/Toast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
 import type {
   ConflictStrategyDto,
+  ConnectionDiagnoseResult,
   EnrollmentExpirationRuleDto,
   EnrollmentStartRuleDto,
   ImportConnectionDto,
   ImportEntityTypeDto,
   UserMatchKeyDto,
 } from '../../../data/api';
+import { diagnoseImportConnection } from '../../../data/api';
 
 const ENTITY_GROUPS: Array<{
   source: 'wp' | 'ld' | 'wc';
@@ -97,6 +99,9 @@ export default function ImportWizardApi() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [diagnoseResult, setDiagnoseResult] = useState<
+    (ConnectionDiagnoseResult & { connId: string }) | null
+  >(null);
   const editing = useMemo(
     () => (conns.data ?? []).find((c) => c.id === editingId) ?? null,
     [conns.data, editingId],
@@ -348,6 +353,24 @@ export default function ImportWizardApi() {
                   >
                     <Wifi size={11} strokeWidth={2} />
                     {test.isPending ? 'Testando...' : 'Testar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const r = await diagnoseImportConnection(c.id);
+                        setDiagnoseResult({ connId: c.id, ...r });
+                      } catch (err) {
+                        toast.error(
+                          'Falha',
+                          err instanceof Error ? err.message : 'Erro',
+                        );
+                      }
+                    }}
+                    className="pco-btn-ghost text-xs"
+                    title="Diagnóstico detalhado: verifica role do user e permissões REST"
+                  >
+                    🔬
                   </button>
                   <button
                     type="button"
@@ -749,6 +772,154 @@ export default function ImportWizardApi() {
           {dryRun ? 'Iniciar dry-run' : 'Executar importação real'}
         </button>
       </div>
+
+      {diagnoseResult && (
+        <DiagnoseModal
+          result={diagnoseResult}
+          onClose={() => setDiagnoseResult(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function DiagnoseModal({
+  result,
+  onClose,
+}: {
+  result: ConnectionDiagnoseResult & { connId: string };
+  onClose: () => void;
+}) {
+  const usersAccessOk = result.usersListOk;
+  const isAdmin = result.meRoles.includes('administrator');
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="pco-card w-full max-w-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-lg font-bold text-pco-deep">
+            🔬 Diagnóstico WordPress
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="pco-btn-ghost text-xs"
+          >
+            Fechar
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <DiagRow
+            label="REST API ativa"
+            ok={result.rootOk}
+            value={`HTTP ${result.rootStatus}`}
+            detail={result.rootMessage}
+          />
+          <DiagRow
+            label="Autenticação (/users/me)"
+            ok={result.meOk}
+            value={
+              result.meUser
+                ? `${result.meUser} · roles: ${result.meRoles.join(', ') || '(vazio)'}`
+                : `HTTP ${result.meStatus}`
+            }
+            detail={
+              result.meOk
+                ? isAdmin
+                  ? '✓ Usuário tem role administrator — pode listar usuários'
+                  : `⚠ Usuário NÃO é administrator (roles: ${result.meRoles.join(', ') || 'nenhum'}). Para importar todos os alunos com email, mude o role para administrator.`
+                : 'Falhou em autenticar. Verifique usuário e Application Password.'
+            }
+          />
+          <DiagRow
+            label="Listar usuários (/users?context=edit)"
+            ok={usersAccessOk}
+            value={`HTTP ${result.usersListStatus}`}
+            detail={result.usersListMessage}
+          />
+          {result.usersFirstEmail && (
+            <DiagRow
+              label="Email do primeiro user retornado"
+              ok={true}
+              value={result.usersFirstEmail}
+              detail="✓ Email visível — import vai funcionar"
+            />
+          )}
+        </div>
+
+        {!usersAccessOk && (
+          <div className="pco-card border-pco-orange/30 bg-pco-orange/5 p-3 text-xs space-y-1">
+            <strong className="text-pco-deep">Como resolver:</strong>
+            <ol className="list-decimal pl-5 space-y-0.5 text-ink-muted">
+              <li>
+                Login no WP-Admin de portalpco.online com user que JÁ é
+                administrator
+              </li>
+              <li>
+                Ir em <code>Usuários</code>, encontrar{' '}
+                <strong>{result.meUser ?? 'o user da conexão'}</strong>
+              </li>
+              <li>
+                Mudar Função (Role) para <strong>Administrator</strong>
+              </li>
+              <li>Salvar</li>
+              <li>
+                <strong>
+                  Talvez precise gerar nova Application Password depois de mudar
+                  role
+                </strong>{' '}
+                (alguns plugins de segurança invalidam ao trocar role)
+              </li>
+              <li>Atualizar a senha aqui no AVA PCO e diagnosticar de novo</li>
+            </ol>
+            <div className="pt-2 text-[10px] text-ink-subtle">
+              Plugins comuns que bloqueiam REST API mesmo com admin role:
+              Wordfence Security, iThemes Security, WP Cerber. Verifique se
+              algum está limitando "REST API authentication" ou exigindo
+              whitelist de IP.
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DiagRow({
+  label,
+  ok,
+  value,
+  detail,
+}: {
+  label: string;
+  ok: boolean;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div
+      className={`pco-card p-3 ${
+        ok
+          ? 'border-status-success/30 bg-status-success/5'
+          : 'border-status-danger/30 bg-status-danger/5'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <span className={ok ? 'text-status-success' : 'text-status-danger'}>
+          {ok ? '✓' : '✗'}
+        </span>
+        <span className="text-sm font-bold text-pco-deep">{label}</span>
+        <span className="ml-auto text-[11px] font-mono text-ink-muted">
+          {value}
+        </span>
+      </div>
+      <div className="text-[11px] text-ink-muted mt-1">{detail}</div>
     </div>
   );
 }

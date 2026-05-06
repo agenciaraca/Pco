@@ -1419,6 +1419,29 @@ export async function testImportConnection(id: string): Promise<ConnectionTestRe
   );
 }
 
+export interface ConnectionDiagnoseResult {
+  rootOk: boolean;
+  rootStatus: number;
+  rootMessage: string;
+  meOk: boolean;
+  meStatus: number;
+  meRoles: string[];
+  meUser: string | null;
+  usersListOk: boolean;
+  usersListStatus: number;
+  usersListMessage: string;
+  usersFirstEmail: string | null;
+}
+
+export async function diagnoseImportConnection(
+  id: string,
+): Promise<ConnectionDiagnoseResult> {
+  return http.post<ConnectionDiagnoseResult>(
+    `/admin/imports/connections/${encodeURIComponent(id)}/diagnose`,
+    {},
+  );
+}
+
 export type UserMatchKeyDto = 'email' | 'document' | 'external_id' | 'wp_user_id';
 export type ConflictStrategyDto =
   | 'ignore'
