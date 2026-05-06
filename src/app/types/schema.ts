@@ -40,6 +40,8 @@ export interface Lesson {
   isMandatory: boolean;
   order: number;
   status?: LessonStatus;
+  /** Aula liberada como preview livre pra visitantes não matriculados. */
+  isPreview?: boolean;
 }
 
 export interface Assessment {

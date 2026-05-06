@@ -218,10 +218,25 @@ export default function CoursePreview() {
                           {m.lessons.map((l) => (
                             <li
                               key={l.id}
-                              className="flex items-center gap-2 text-xs text-ink-muted"
+                              className={`flex items-center gap-2 text-xs ${l.isPreview ? 'text-pco-blue' : 'text-ink-muted'}`}
                             >
-                              <Lock size={10} className="text-ink-subtle shrink-0" />
-                              <span className="flex-1 truncate">{l.title}</span>
+                              {l.isPreview ? (
+                                <PlayCircle
+                                  size={11}
+                                  className="text-pco-blue shrink-0"
+                                  strokeWidth={2}
+                                />
+                              ) : (
+                                <Lock size={10} className="text-ink-subtle shrink-0" />
+                              )}
+                              <span className="flex-1 truncate">
+                                {l.title}
+                                {l.isPreview && (
+                                  <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded bg-pco-blue/10 text-pco-blue text-[9px] font-bold uppercase tracking-wider">
+                                    Preview livre
+                                  </span>
+                                )}
+                              </span>
                               {l.durationMinutes && (
                                 <span className="text-[10px] text-ink-subtle">
                                   {l.durationMinutes}min

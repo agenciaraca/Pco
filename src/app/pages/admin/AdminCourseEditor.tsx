@@ -757,6 +757,7 @@ function LessonEditor({
       description: lesson?.description ?? '',
       isMandatory: lesson?.isMandatory ?? true,
       order: lesson?.order ?? nextOrder,
+      isPreview: lesson?.isPreview ?? false,
     },
   });
 
@@ -804,14 +805,29 @@ function LessonEditor({
             />
           </Field>
         </div>
-        <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-off cursor-pointer">
-          <input
-            type="checkbox"
-            {...register('isMandatory')}
-            className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
-          />
-          <span className="text-sm text-pco-deep font-medium">Aula obrigatória</span>
-        </label>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-off cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('isMandatory')}
+              className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
+            />
+            <span className="text-sm text-pco-deep font-medium">Aula obrigatória</span>
+          </label>
+          <label className="flex items-start gap-2 p-2 rounded-lg hover:bg-surface-off cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('isPreview')}
+              className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue mt-0.5"
+            />
+            <span className="text-sm">
+              <span className="text-pco-deep font-medium block">Preview livre</span>
+              <span className="text-[11px] text-ink-muted">
+                Aula visível pra visitantes não matriculados (teaser de marketing).
+              </span>
+            </span>
+          </label>
+        </div>
         <ModalFooter onClose={onClose} submitting={submitting} isNew={isNew} entityLabel="aula" />
       </form>
     </ModalShell>

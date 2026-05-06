@@ -390,6 +390,11 @@ export const createLessonSchema = z.object({
   description: z.string().max(4000).optional(),
   isMandatory: z.boolean().default(true),
   order: z.number().int().min(1).max(500),
+  /**
+   * Se true, esta aula é exibida como preview livre para visitantes não
+   * matriculados. Útil como teaser de marketing.
+   */
+  isPreview: z.boolean().default(false).optional(),
 });
 export type CreateLessonInput = z.infer<typeof createLessonSchema>;
 
