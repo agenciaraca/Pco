@@ -31,6 +31,9 @@ import * as api from '../data/api';
 import TwoFactorAuthCard from '../components/TwoFactorAuthCard';
 import AchievementsPanel from '../components/AchievementsPanel';
 import StudyHeatmap from '../components/StudyHeatmap';
+import ProfileCompleteness, {
+  type ProfileItem,
+} from '../components/ProfileCompleteness';
 
 export default function Profile() {
   const { user, patchUser } = useAuth();
@@ -60,6 +63,33 @@ export default function Profile() {
   const [pwdSuccess, setPwdSuccess] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [requestingDeletion, setRequestingDeletion] = useState(false);
+
+  const profileItems: ProfileItem[] = [
+    {
+      key: 'name',
+      label: 'Nome completo preenchido',
+      done: !!user?.name && user.name.trim().length >= 4,
+      hint: 'Informe nome e sobrenome',
+    },
+    {
+      key: 'avatar',
+      label: 'Foto de perfil',
+      done: !!user?.avatarUrl,
+      hint: 'Faça upload de uma foto pra deixar seu perfil mais pessoal',
+    },
+    {
+      key: 'totp',
+      label: 'Autenticação em duas etapas (2FA)',
+      done: user?.totpEnabled === true,
+      hint: 'Ativa um código por app autenticador na hora de logar — protege sua conta',
+    },
+    {
+      key: 'weekly_goal',
+      label: 'Meta semanal de estudo definida',
+      done: !!progressQ.data?.weeklyGoalMinutes,
+      hint: 'Configure quantos minutos por semana você quer estudar',
+    },
+  ];
 
   const currentGoal = progressQ.data?.weeklyGoalMinutes ?? 180;
   const weekMinutes = progressQ.data?.weekMinutes ?? 0;
@@ -217,6 +247,8 @@ export default function Profile() {
         <h1 className="pco-section-title">Meu Perfil</h1>
         <p className="pco-section-subtitle mt-1">Seus dados pessoais e segurança da conta.</p>
       </header>
+
+      <ProfileCompleteness items={profileItems} />
 
       <div className="pco-card p-6">
         <div className="flex flex-wrap items-center gap-5">
