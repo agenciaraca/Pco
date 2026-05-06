@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { StickyNote, Search, ArrowRight, BookOpen, Download } from 'lucide-react';
+import { StickyNote, Search, ArrowRight, BookOpen, Download, ArrowDownUp } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { useMyNotes } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
@@ -12,8 +12,28 @@ export default function MyNotes() {
   useDocumentMeta({ title: 'Minhas anotações — AVA PCO' });
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'recent' | 'course' | 'oldest'>('recent');
   const { data, isLoading } = useMyNotes(search || undefined);
   const toast = useToast();
+
+  const sortedNotes = useMemo(() => {
+    const list = [...(data ?? [])];
+    if (sortBy === 'recent') {
+      list.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+    } else if (sortBy === 'oldest') {
+      list.sort((a, b) => (a.updatedAt > b.updatedAt ? 1 : -1));
+    } else {
+      // por curso → módulo → aula (mais recente dentro)
+      list.sort((a, b) => {
+        const c = a.courseTitle.localeCompare(b.courseTitle, 'pt-BR');
+        if (c !== 0) return c;
+        const m = a.moduleTitle.localeCompare(b.moduleTitle, 'pt-BR');
+        if (m !== 0) return m;
+        return a.updatedAt < b.updatedAt ? 1 : -1;
+      });
+    }
+    return list;
+  }, [data, sortBy]);
 
   async function handleExport() {
     const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
@@ -77,14 +97,14 @@ export default function MyNotes() {
         </button>
       </header>
 
-      <div className="pco-card p-3 flex items-center gap-2">
+      <div className="pco-card p-3 flex items-center gap-2 flex-wrap">
         <Search size={14} className="text-ink-muted" />
         <input
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           placeholder="Buscar nas suas anotações..."
-          className="pco-input text-sm flex-1"
+          className="pco-input text-sm flex-1 min-w-[200px]"
         />
         <button
           type="button"
@@ -105,6 +125,19 @@ export default function MyNotes() {
             Limpar
           </button>
         )}
+        <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+          <ArrowDownUp size={12} strokeWidth={2} />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'recent' | 'course' | 'oldest')}
+            className="pco-input text-xs w-auto"
+            aria-label="Ordenar anotações"
+          >
+            <option value="recent">Mais recentes</option>
+            <option value="oldest">Mais antigas</option>
+            <option value="course">Por curso</option>
+          </select>
+        </div>
       </div>
 
       {isLoading ? (
@@ -121,7 +154,7 @@ export default function MyNotes() {
         />
       ) : (
         <ul className="space-y-3">
-          {(data ?? []).map((n) => (
+          {sortedNotes.map((n) => (
             <li key={`${n.courseId}-${n.lessonId}`} className="pco-card pco-card-hover p-4">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="flex-1 min-w-[260px]">
