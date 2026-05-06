@@ -1905,6 +1905,14 @@ export function useAchievementsStats() {
   });
 }
 
+export function useCertValidations() {
+  return useQuery({
+    queryKey: ['admin', 'cert-validations'],
+    queryFn: () => api.fetchCertValidations(),
+    staleTime: 30_000,
+  });
+}
+
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {

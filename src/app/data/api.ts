@@ -3314,6 +3314,17 @@ export async function fetchAchievementsStats(): Promise<AchievementsStatsDto> {
   return http.get<AchievementsStatsDto>('/admin/achievements/stats');
 }
 
+export interface CertValidationStatDto {
+  code: string;
+  count: number;
+  lastAt: string;
+  firstAt: string;
+}
+
+export async function fetchCertValidations(): Promise<CertValidationStatDto[]> {
+  return http.get<CertValidationStatDto[]>('/admin/certificates/validations');
+}
+
 // ---------- Achievements ----------
 
 export type BadgeIdDto =
