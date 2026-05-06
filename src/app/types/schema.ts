@@ -95,6 +95,18 @@ export interface Course {
   instructorName?: string;
   instructorBio?: string;
   instructorPhotoUrl?: string;
+  /** Customização opcional do certificado de conclusão. */
+  certificateTemplate?: {
+    title?: string;
+    preamble?: string;
+    bodyText?: string;
+    accentColor?: string;
+    ribbonColor?: string;
+    orgName?: string;
+    signatureName?: string;
+    signatureRole?: string;
+    logoUrl?: string;
+  };
 }
 
 export interface Certificate {

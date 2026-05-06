@@ -191,6 +191,9 @@ export async function updateCourse(
         ...(patch.instructorPhotoUrl !== undefined
           ? { instructorPhotoUrl: patch.instructorPhotoUrl || undefined }
           : {}),
+        ...(patch.certificateTemplate !== undefined
+          ? { certificateTemplate: patch.certificateTemplate }
+          : {}),
       }),
     );
   }

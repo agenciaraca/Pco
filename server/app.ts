@@ -1714,6 +1714,9 @@ export function buildApp() {
           ? (course as { totalHours?: number }).totalHours
           : undefined,
       validationBaseUrl: process.env.PUBLIC_ORIGIN,
+      template: (course as { certificateTemplate?: unknown } | null)?.certificateTemplate as
+        | Parameters<typeof renderCertificateHtml>[0]['template']
+        | undefined,
     });
     return new Response(html, {
       status: 200,

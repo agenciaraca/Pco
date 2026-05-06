@@ -2180,6 +2180,17 @@ export interface UpdateCoursePatch {
   instructorName?: string;
   instructorBio?: string;
   instructorPhotoUrl?: string;
+  certificateTemplate?: {
+    title?: string;
+    preamble?: string;
+    bodyText?: string;
+    accentColor?: string;
+    ribbonColor?: string;
+    orgName?: string;
+    signatureName?: string;
+    signatureRole?: string;
+    logoUrl?: string;
+  };
 }
 
 export async function updateCourse(id: string, patch: UpdateCoursePatch): Promise<Course> {

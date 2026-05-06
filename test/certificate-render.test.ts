@@ -94,4 +94,75 @@ describe('renderCertificateHtml', () => {
     expect(html).toContain('@media print');
     expect(html).toContain('.actions { display: none; }');
   });
+
+  describe('templates customizáveis', () => {
+    it('usa título customizado', () => {
+      const html = renderCertificateHtml({
+        certificate: baseCert,
+        studentName: 'Maria',
+        courseName: 'X',
+        template: { title: 'Diploma de Especialização' },
+      });
+      expect(html).toContain('Diploma de Especialização');
+      expect(html).not.toContain('>Certificado de Conclusão<');
+    });
+
+    it('aplica accentColor em vez do default', () => {
+      const html = renderCertificateHtml({
+        certificate: baseCert,
+        studentName: 'Maria',
+        courseName: 'X',
+        template: { accentColor: '#ff0000' },
+      });
+      expect(html).toContain('#ff0000');
+    });
+
+    it('substitui {{course}} e {{hours}} no bodyText', () => {
+      const html = renderCertificateHtml({
+        certificate: baseCert,
+        studentName: 'Maria',
+        courseName: 'Curso Teste',
+        courseHours: 40,
+        template: {
+          bodyText: 'completou o curso {{course}} ({{hours}}).',
+        },
+      });
+      expect(html).toContain('Curso Teste');
+      expect(html).toContain('40h');
+    });
+
+    it('renderiza logo quando logoUrl preenchido', () => {
+      const html = renderCertificateHtml({
+        certificate: baseCert,
+        studentName: 'Maria',
+        courseName: 'X',
+        template: { logoUrl: 'https://example.com/logo.png' },
+      });
+      expect(html).toContain('https://example.com/logo.png');
+      expect(html).toContain('class="logo"');
+    });
+
+    it('preamble customizado substitui o default', () => {
+      const html = renderCertificateHtml({
+        certificate: baseCert,
+        studentName: 'Maria',
+        courseName: 'X',
+        template: { preamble: 'É um privilégio declarar que' },
+      });
+      expect(html).toContain('É um privilégio declarar que');
+      expect(html).not.toContain('>Certificamos que<');
+    });
+
+    it('signature customizada via template tem prioridade sobre ctx', () => {
+      const html = renderCertificateHtml({
+        certificate: baseCert,
+        studentName: 'Maria',
+        courseName: 'X',
+        signatureName: 'Padrão',
+        template: { signatureName: 'João Custom' },
+      });
+      expect(html).toContain('João Custom');
+      expect(html).not.toContain('Padrão');
+    });
+  });
 });

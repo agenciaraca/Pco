@@ -308,6 +308,30 @@ export const updateCourseSchema = z.object({
   instructorBio: z.string().max(2000).optional().or(z.literal('')),
   /** URL pública de uma foto do instrutor. */
   instructorPhotoUrl: z.string().url().max(500).optional().or(z.literal('')),
+  /**
+   * Customização do certificado de conclusão. Cada campo é opcional —
+   * vazios caem nos defaults globais.
+   */
+  certificateTemplate: z
+    .object({
+      title: z.string().max(120).optional(),
+      preamble: z.string().max(200).optional(),
+      bodyText: z.string().max(500).optional(),
+      accentColor: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida (use #RRGGBB)')
+        .optional(),
+      ribbonColor: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida (use #RRGGBB)')
+        .optional(),
+      orgName: z.string().max(120).optional(),
+      signatureName: z.string().max(120).optional(),
+      signatureRole: z.string().max(120).optional(),
+      logoUrl: z.string().url().max(500).optional().or(z.literal('')),
+    })
+    .partial()
+    .optional(),
 });
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
 

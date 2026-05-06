@@ -150,6 +150,17 @@ function GeralPane({ course }: { course: Course }) {
       instructorName: course.instructorName ?? '',
       instructorBio: course.instructorBio ?? '',
       instructorPhotoUrl: course.instructorPhotoUrl ?? '',
+      certificateTemplate: {
+        title: course.certificateTemplate?.title ?? '',
+        preamble: course.certificateTemplate?.preamble ?? '',
+        bodyText: course.certificateTemplate?.bodyText ?? '',
+        accentColor: course.certificateTemplate?.accentColor ?? '',
+        ribbonColor: course.certificateTemplate?.ribbonColor ?? '',
+        orgName: course.certificateTemplate?.orgName ?? '',
+        signatureName: course.certificateTemplate?.signatureName ?? '',
+        signatureRole: course.certificateTemplate?.signatureRole ?? '',
+        logoUrl: course.certificateTemplate?.logoUrl ?? '',
+      },
     },
   });
 
@@ -187,6 +198,15 @@ function GeralPane({ course }: { course: Course }) {
 
   const onSubmit = async (data: UpdateCourseInput) => {
     try {
+      // Limpa campos vazios do certificateTemplate antes de enviar
+      const tplRaw = data.certificateTemplate ?? {};
+      const tplCleaned: Record<string, string | undefined> = {};
+      for (const [k, v] of Object.entries(tplRaw)) {
+        if (typeof v === 'string' && v.trim() !== '') tplCleaned[k] = v.trim();
+      }
+      const certificateTemplate =
+        Object.keys(tplCleaned).length > 0 ? tplCleaned : undefined;
+
       const updated = await update.mutateAsync({
         id: course.id,
         patch: {
@@ -194,6 +214,7 @@ function GeralPane({ course }: { course: Course }) {
           tags,
           prerequisiteCourseIds: prereqIds,
           learningOutcomes: outcomes,
+          certificateTemplate,
         },
       });
       toast.success('Curso atualizado', updated.title);
@@ -361,6 +382,97 @@ function GeralPane({ course }: { course: Course }) {
             X", "Vou entender Y").
           </p>
         </Field>
+
+        <fieldset className="border border-pco-border rounded-lg p-4 space-y-3">
+          <legend className="px-2 text-xs font-semibold text-pco-deep">
+            Certificado — customização (opcional)
+          </legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Título do certificado">
+              <input
+                {...register('certificateTemplate.title')}
+                className="pco-input"
+                placeholder="Certificado de Conclusão"
+                maxLength={120}
+              />
+            </Field>
+            <Field label="Preâmbulo">
+              <input
+                {...register('certificateTemplate.preamble')}
+                className="pco-input"
+                placeholder="Certificamos que"
+                maxLength={200}
+              />
+            </Field>
+          </div>
+          <Field label="Corpo (suporta {{course}} e {{hours}})">
+            <textarea
+              {...register('certificateTemplate.bodyText')}
+              rows={2}
+              className="pco-input resize-none text-sm"
+              placeholder="concluiu com aproveitamento o curso {{course}} ({{hours}})"
+              maxLength={500}
+            />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Cor primária (#RRGGBB)">
+              <input
+                {...register('certificateTemplate.accentColor')}
+                className="pco-input font-mono text-xs"
+                placeholder="#0097B2"
+              />
+            </Field>
+            <Field label="Cor da fita decorativa (#RRGGBB)">
+              <input
+                {...register('certificateTemplate.ribbonColor')}
+                className="pco-input font-mono text-xs"
+                placeholder="#FE9002"
+              />
+            </Field>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Logo URL (opcional)">
+              <input
+                {...register('certificateTemplate.logoUrl')}
+                className="pco-input font-mono text-xs"
+                placeholder="https://..."
+                maxLength={500}
+              />
+            </Field>
+            <Field label="Nome da organização">
+              <input
+                {...register('certificateTemplate.orgName')}
+                className="pco-input"
+                placeholder="Psicanálise Clínica Online"
+                maxLength={120}
+              />
+            </Field>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Assinatura — nome">
+              <input
+                {...register('certificateTemplate.signatureName')}
+                className="pco-input"
+                placeholder="Direção Acadêmica"
+                maxLength={120}
+              />
+            </Field>
+            <Field label="Assinatura — cargo">
+              <input
+                {...register('certificateTemplate.signatureRole')}
+                className="pco-input"
+                placeholder="PCO"
+                maxLength={120}
+              />
+            </Field>
+          </div>
+          <p className="text-[11px] text-ink-subtle">
+            Campos vazios usam os defaults globais. Cores devem estar em
+            formato #RRGGBB. Use <code>{`{{course}}`}</code> e{' '}
+            <code>{`{{hours}}`}</code> no corpo pra inserir título do curso e
+            carga horária dinamicamente.
+          </p>
+        </fieldset>
 
         <fieldset className="border border-pco-border rounded-lg p-4 space-y-3">
           <legend className="px-2 text-xs font-semibold text-pco-deep">

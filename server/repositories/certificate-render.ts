@@ -3,6 +3,18 @@
 
 import type { Certificate } from '../../src/app/types/schema';
 
+export interface CertificateTemplate {
+  title?: string;
+  preamble?: string;
+  bodyText?: string;
+  accentColor?: string;
+  ribbonColor?: string;
+  orgName?: string;
+  signatureName?: string;
+  signatureRole?: string;
+  logoUrl?: string;
+}
+
 export interface CertificateRenderContext {
   certificate: Certificate;
   studentName: string;
@@ -12,6 +24,8 @@ export interface CertificateRenderContext {
   signatureName?: string;
   signatureRole?: string;
   validationBaseUrl?: string;
+  /** Customização per-curso (sobrescreve defaults). */
+  template?: CertificateTemplate;
 }
 
 function escapeHtml(s: string): string {
@@ -32,14 +46,32 @@ function formatDate(iso: string | undefined): string {
 }
 
 export function renderCertificateHtml(ctx: CertificateRenderContext): string {
-  const orgName = ctx.orgName ?? 'Psicanálise Clínica Online';
-  const signatureName = ctx.signatureName ?? 'Direção Acadêmica';
-  const signatureRole = ctx.signatureRole ?? 'PCO';
+  const tpl = ctx.template ?? {};
+  const title = tpl.title ?? 'Certificado de Conclusão';
+  const preamble = tpl.preamble ?? 'Certificamos que';
+  const orgName = tpl.orgName ?? ctx.orgName ?? 'Psicanálise Clínica Online';
+  const signatureName =
+    tpl.signatureName ?? ctx.signatureName ?? 'Direção Acadêmica';
+  const signatureRole = tpl.signatureRole ?? ctx.signatureRole ?? 'PCO';
+  const accentColor = tpl.accentColor ?? '#0097B2';
+  const accentColorLight = tpl.accentColor ?? '#0CC0DF';
+  const ribbonColor = tpl.ribbonColor ?? '#FE9002';
+  const logoUrl = tpl.logoUrl ?? '';
   const issued = formatDate(ctx.certificate.issuedAt);
   const validationUrl = ctx.validationBaseUrl
     ? `${ctx.validationBaseUrl}/verificar/${ctx.certificate.validationCode}`
     : `/verificar/${ctx.certificate.validationCode}`;
   const hoursText = ctx.courseHours ? `${ctx.courseHours}h de carga horária` : '';
+  // bodyText pode usar tokens {{course}} e {{hours}}
+  const defaultBody = `concluiu com aproveitamento o curso<br><strong>${escapeHtml(ctx.courseName)}</strong>${
+    hoursText ? `<br><span style="color:#64748b;font-size:13px">${escapeHtml(hoursText)}</span>` : ''
+  }`;
+  const customBody = tpl.bodyText
+    ? escapeHtml(tpl.bodyText)
+        .replace(/\{\{course\}\}/g, `<strong>${escapeHtml(ctx.courseName)}</strong>`)
+        .replace(/\{\{hours\}\}/g, ctx.courseHours ? `${ctx.courseHours}h` : '')
+        .replace(/\n/g, '<br>')
+    : null;
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -73,7 +105,7 @@ export function renderCertificateHtml(ctx: CertificateRenderContext): string {
     left: 20px;
     right: 20px;
     bottom: 20px;
-    border: 3px solid #0097B2;
+    border: 3px solid ${accentColor};
     border-radius: 4px;
     pointer-events: none;
   }
@@ -81,18 +113,27 @@ export function renderCertificateHtml(ctx: CertificateRenderContext): string {
     content: '';
     position: absolute;
     top: -8px; left: -8px; right: -8px; bottom: -8px;
-    border: 1px solid #0CC0DF;
+    border: 1px solid ${accentColorLight};
     border-radius: 8px;
   }
   .org {
     text-align: center;
-    color: #0097B2;
+    color: ${accentColor};
     font-size: 14px;
     letter-spacing: .15em;
     text-transform: uppercase;
     font-weight: 700;
     margin-top: 30px;
     position: relative;
+  }
+  .logo {
+    text-align: center;
+    margin-top: 20px;
+    position: relative;
+  }
+  .logo img {
+    max-height: 80px;
+    max-width: 200px;
   }
   .title {
     text-align: center;
@@ -108,7 +149,7 @@ export function renderCertificateHtml(ctx: CertificateRenderContext): string {
     display: block;
     width: 80px;
     height: 3px;
-    background: #FE9002;
+    background: ${ribbonColor};
     margin: 16px auto 0;
   }
   .preamble {
@@ -124,7 +165,7 @@ export function renderCertificateHtml(ctx: CertificateRenderContext): string {
     text-align: center;
     font-size: 36px;
     font-weight: 700;
-    color: #0097B2;
+    color: ${accentColor};
     margin: 12px 0;
     font-family: "Brush Script MT", cursive, Georgia, serif;
     font-style: italic;
@@ -175,7 +216,7 @@ export function renderCertificateHtml(ctx: CertificateRenderContext): string {
     z-index: 10;
   }
   .actions button {
-    background: #0097B2;
+    background: ${accentColor};
     color: #fff;
     border: none;
     padding: 8px 18px;
@@ -197,14 +238,13 @@ export function renderCertificateHtml(ctx: CertificateRenderContext): string {
 </div>
 <div class="cert">
   <div class="border-decor"></div>
+  ${logoUrl ? `<div class="logo"><img src="${escapeHtml(logoUrl)}" alt="logo"></div>` : ''}
   <div class="org">${escapeHtml(orgName)}</div>
-  <div class="title">Certificado de Conclusão</div>
-  <p class="preamble">Certificamos que</p>
+  <div class="title">${escapeHtml(title)}</div>
+  <p class="preamble">${escapeHtml(preamble)}</p>
   <h1 class="student-name">${escapeHtml(ctx.studentName)}</h1>
   <p class="course">
-    concluiu com aproveitamento o curso<br>
-    <strong>${escapeHtml(ctx.courseName)}</strong>
-    ${hoursText ? `<br><span style="color:#64748b;font-size:13px">${escapeHtml(hoursText)}</span>` : ''}
+    ${customBody ?? defaultBody}
   </p>
   <div class="footer">
     <div class="signature">
