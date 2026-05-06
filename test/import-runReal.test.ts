@@ -30,7 +30,7 @@ afterAll(async () => {
 });
 
 describe('runReal — student upsert', () => {
-  it('cria novo aluno quando email não existe', async () => {
+  it('cria novo aluno quando email não existe', { timeout: 15_000 }, async () => {
     const job = await jobs.createJob({
       source: 'wordpress',
       mode: 'api',

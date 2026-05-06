@@ -7,6 +7,7 @@ let tmpDir: string;
 let broadcasts: typeof import('../server/notifications/broadcasts');
 let users: typeof import('../server/auth/users-store');
 
+// Timeout maior — bcrypt hash em users.createUser é lento sob coverage instrumentation
 beforeAll(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ava-pco-bd-'));
   process.env.DATA_DIR = tmpDir;
@@ -33,7 +34,7 @@ beforeAll(async () => {
     role: 'student',
     password: 'p',
   });
-});
+}, 30_000);
 
 afterAll(async () => {
   if (tmpDir) await fs.rm(tmpDir, { recursive: true, force: true });
