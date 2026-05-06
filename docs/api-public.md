@@ -235,7 +235,12 @@ Use Web/REST connector apontando para `/api/v1/stats/summary` com auth Bearer. R
 
 ## Rate limits
 
-API pública herda o rate limit global do Hono (sem limite específico ainda — fica open). Sem rate limit dedicado por token implementado por enquanto. Se virar problema, adicionar em sprint futura.
+Por token: **60 reqs / 60s** (default). Configurável via `API_TOKEN_RATE_LIMIT` env. Limites são in-memory por processo — quando atingido retorna **429 RATE_LIMITED** com header `Retry-After: <segundos>`.
+
+Headers de resposta:
+- `X-RateLimit-Limit`: limite total da janela
+- `X-RateLimit-Remaining`: requisições restantes no momento
+- `Retry-After` (apenas em 429): segundos até reset
 
 ## Erros
 
