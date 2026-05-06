@@ -627,6 +627,9 @@ function ModuleEditor({ module, nextOrder, submitting, onClose, onSubmit }: Modu
       title: module?.title ?? '',
       description: module?.description ?? '',
       order: module?.order ?? nextOrder,
+      releaseAt: module?.releaseAt
+        ? new Date(module.releaseAt).toISOString().slice(0, 16)
+        : '',
     },
   });
 
@@ -654,6 +657,20 @@ function ModuleEditor({ module, nextOrder, submitting, onClose, onSubmit }: Modu
             {...register('order', { valueAsNumber: true })}
             className="pco-input w-32"
           />
+        </Field>
+        <Field
+          label="Liberação programada (opcional)"
+          error={errors.releaseAt?.message}
+        >
+          <input
+            type="datetime-local"
+            {...register('releaseAt')}
+            className="pco-input"
+          />
+          <p className="text-[11px] text-ink-subtle mt-1">
+            Se preenchido, este módulo só fica acessível aos alunos a partir
+            desta data/hora. Útil pra liberar conteúdo em fases (drip content).
+          </p>
         </Field>
         <ModalFooter onClose={onClose} submitting={submitting} isNew={isNew} entityLabel="módulo" />
       </form>

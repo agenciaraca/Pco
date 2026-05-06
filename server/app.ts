@@ -184,6 +184,7 @@ import type {
 } from './imports/types';
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
+import { computeModuleLock, findModuleLockForLesson } from './repositories/drip';
 
 /**
  * Libera acesso do usuário ao produto pago.
@@ -876,6 +877,20 @@ export function buildApp() {
     if (!courseId || !moduleId) {
       return jsonError(c, 400, 'INVALID_INPUT', 'courseId e moduleId são obrigatórios');
     }
+    // Drip: bloqueia se o módulo da aula ainda não foi liberado
+    const courseForLock = await coursesRepo.findCourse(courseId);
+    if (courseForLock) {
+      const found = findModuleLockForLesson(courseForLock, lessonId);
+      if (found?.lock.locked) {
+        return jsonError(
+          c,
+          423,
+          'LOCKED',
+          `Aula bloqueada — liberação em ${found.lock.lockedUntil}`,
+          { lockedUntil: found.lock.lockedUntil },
+        );
+      }
+    }
     const entry = await progressRepo.markCompleted({
       userId: u.sub,
       lessonId,
@@ -1515,7 +1530,17 @@ export function buildApp() {
   app.get('/courses/:id', async (c) => {
     const course = await coursesRepo.findCourse(c.req.param('id'));
     if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
-    return c.json(course);
+    // Drip: anota cada módulo com lockedUntil (se releaseAt no futuro)
+    const enriched = {
+      ...course,
+      modules: course.modules.map((m) => {
+        const lock = computeModuleLock(m);
+        return lock.locked
+          ? { ...m, lockedUntil: lock.lockedUntil, locked: true }
+          : { ...m, locked: false };
+      }),
+    };
+    return c.json(enriched);
   });
 
   // ---------- News ----------

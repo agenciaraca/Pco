@@ -362,7 +362,14 @@ export const createModuleSchema = z.object({
   title: z.string().min(2, 'Título muito curto').max(160),
   description: z.string().max(2000).optional(),
   order: z.number().int().min(1).max(500),
-  releaseAt: z.string().min(8).max(35).optional(),
+  // datetime-local input emite ''; tratamos como "sem release programado".
+  // Caso preenchido, exige formato ISO ou datetime-local (>= 10 chars: YYYY-MM-DD).
+  releaseAt: z
+    .string()
+    .min(10)
+    .max(35)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
 });
 export type CreateModuleInput = z.infer<typeof createModuleSchema>;
 

@@ -60,6 +60,10 @@ export interface Module {
   description?: string;
   order: number;
   releaseAt?: string;
+  /** Drip: true se releaseAt está no futuro. */
+  locked?: boolean;
+  /** ISO 8601 — quando o módulo será liberado (apenas se locked). */
+  lockedUntil?: string;
   lessons: Lesson[];
   assessment?: Assessment;
   status?: LessonStatus;

@@ -1,5 +1,5 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { ArrowRight, Clock, Layers, PlayCircle } from 'lucide-react';
+import { ArrowRight, Clock, Layers, Lock, PlayCircle } from 'lucide-react';
 import { useCourses, useMyProgress, useCurrentStudent } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import CourseReviews from '../components/CourseReviews';
@@ -83,22 +83,30 @@ export default function LMSCourse() {
             const modulePct =
               moduleTotal > 0 ? Math.round((moduleDone / moduleTotal) * 100) : 0;
             const isComplete = modulePct === 100;
-            return (
-              <Link
-                key={module.id}
-                to={`/curso/${course.id}/modulo/${module.id}`}
-                className="pco-card pco-card-hover flex items-center gap-4"
-              >
+            const isLocked = module.locked === true;
+            const lockedDateLabel = module.lockedUntil
+              ? new Date(module.lockedUntil).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: 'short',
+                })
+              : '';
+            const containerCls = isLocked
+              ? 'pco-card flex items-center gap-4 opacity-60 cursor-not-allowed'
+              : 'pco-card pco-card-hover flex items-center gap-4';
+            const inner = (
+              <>
                 <div
                   className={`h-12 w-12 rounded-xl grid place-items-center font-bold shrink-0 ${
-                    isComplete
-                      ? 'bg-status-success/15 text-status-success'
-                      : modulePct > 0
-                        ? 'bg-pco-blue/15 text-pco-blue'
-                        : 'bg-gradient-to-br from-pco-blue/10 to-pco-cyan/10 text-pco-deep'
+                    isLocked
+                      ? 'bg-surface-mute text-ink-muted'
+                      : isComplete
+                        ? 'bg-status-success/15 text-status-success'
+                        : modulePct > 0
+                          ? 'bg-pco-blue/15 text-pco-blue'
+                          : 'bg-gradient-to-br from-pco-blue/10 to-pco-cyan/10 text-pco-deep'
                   }`}
                 >
-                  {isComplete ? '✓' : i + 1}
+                  {isLocked ? <Lock size={18} strokeWidth={2} /> : isComplete ? '✓' : i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -106,7 +114,7 @@ export default function LMSCourse() {
                       {module.title}
                     </h3>
                     <span className="text-[11px] font-bold text-pco-deep">
-                      {modulePct}%
+                      {isLocked ? `Libera ${lockedDateLabel}` : `${modulePct}%`}
                     </span>
                   </div>
                   <p className="text-xs text-ink-muted line-clamp-1">
@@ -115,22 +123,52 @@ export default function LMSCourse() {
                   <div className="mt-2 h-1 rounded-full bg-surface-gray overflow-hidden">
                     <div
                       className={`h-full rounded-full ${
-                        isComplete
-                          ? 'bg-status-success'
-                          : 'bg-gradient-to-r from-pco-blue to-pco-cyan'
+                        isLocked
+                          ? 'bg-surface-mute'
+                          : isComplete
+                            ? 'bg-status-success'
+                            : 'bg-gradient-to-r from-pco-blue to-pco-cyan'
                       }`}
-                      style={{ width: `${modulePct}%` }}
+                      style={{ width: `${isLocked ? 0 : modulePct}%` }}
                     />
                   </div>
                   <div className="mt-1 text-[11px] text-ink-subtle">
-                    {moduleDone}/{moduleTotal} aulas concluídas
+                    {isLocked
+                      ? `Disponível em ${new Date(module.lockedUntil ?? '').toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                      : `${moduleDone}/${moduleTotal} aulas concluídas`}
                   </div>
                 </div>
-                <PlayCircle
-                  size={20}
-                  className="text-pco-blue shrink-0"
-                  strokeWidth={1.75}
-                />
+                {isLocked ? (
+                  <Lock
+                    size={20}
+                    className="text-ink-muted shrink-0"
+                    strokeWidth={1.75}
+                  />
+                ) : (
+                  <PlayCircle
+                    size={20}
+                    className="text-pco-blue shrink-0"
+                    strokeWidth={1.75}
+                  />
+                )}
+              </>
+            );
+            return isLocked ? (
+              <div
+                key={module.id}
+                className={containerCls}
+                aria-disabled="true"
+                title={`Disponível em ${module.lockedUntil}`}
+              >
+                {inner}
+              </div>
+            ) : (
+              <Link
+                key={module.id}
+                to={`/curso/${course.id}/modulo/${module.id}`}
+                className={containerCls}
+              >
+                {inner}
               </Link>
             );
           })}
