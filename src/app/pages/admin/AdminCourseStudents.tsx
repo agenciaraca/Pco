@@ -283,16 +283,42 @@ function BulkEnrollModal({
     });
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(force = false) {
     if (selected.size === 0) return;
     try {
       const r = await bulkMut.mutateAsync({
         courseId,
         studentIds: Array.from(selected),
+        force,
       });
+      const ineligibleCount = r.ineligible?.length ?? 0;
+      if (ineligibleCount > 0 && !force) {
+        const ok = confirm(
+          `${r.enrolled} matrícula(s) criada(s). ${ineligibleCount} aluno(s) NÃO foram matriculados porque não cumprem os pré-requisitos do curso. Deseja matricular mesmo assim (override)?`,
+        );
+        if (ok) {
+          // Re-tenta apenas os ineligíveis com force=true
+          const ineligibleIds = (r.ineligible ?? []).map((i) => i.studentId);
+          if (ineligibleIds.length > 0) {
+            const rForce = await bulkMut.mutateAsync({
+              courseId,
+              studentIds: ineligibleIds,
+              force: true,
+            });
+            toast.success(
+              'Matrículas concluídas com override',
+              `${r.enrolled + rForce.enrolled} novo(s), ${r.alreadyEnrolled} já estavam, ${r.errors.length + rForce.errors.length} erro(s)`,
+            );
+          }
+          onClose();
+          return;
+        }
+      }
       toast.success(
         'Matrículas criadas',
-        `${r.enrolled} novo(s), ${r.alreadyEnrolled} já estavam, ${r.errors.length} erro(s)`,
+        `${r.enrolled} novo(s), ${r.alreadyEnrolled} já estavam, ${r.errors.length} erro(s)${
+          ineligibleCount > 0 ? `, ${ineligibleCount} sem pré-req` : ''
+        }`,
       );
       onClose();
     } catch (err) {
@@ -376,7 +402,7 @@ function BulkEnrollModal({
           </button>
           <button
             type="button"
-            onClick={handleSubmit}
+            onClick={() => handleSubmit(false)}
             disabled={bulkMut.isPending || selected.size === 0}
             className="pco-btn-primary"
           >

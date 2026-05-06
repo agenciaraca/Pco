@@ -1878,8 +1878,15 @@ export function useCourseStudents(courseId: string | undefined) {
 export function useBulkEnrollInCourse() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ courseId, studentIds }: { courseId: string; studentIds: string[] }) =>
-      api.bulkEnrollInCourse(courseId, studentIds),
+    mutationFn: ({
+      courseId,
+      studentIds,
+      force,
+    }: {
+      courseId: string;
+      studentIds: string[];
+      force?: boolean;
+    }) => api.bulkEnrollInCourse(courseId, studentIds, force ?? false),
     onSuccess: (_d, { courseId }) => {
       qc.invalidateQueries({ queryKey: ['admin', 'courses', courseId, 'students'] });
       qc.invalidateQueries({ queryKey: ['admin', 'students'] });

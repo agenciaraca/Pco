@@ -2244,9 +2244,15 @@ export function buildApp() {
       if (ids.length > 500) {
         return jsonError(c, 400, 'TOO_MANY', 'Máximo 500 por chamada.');
       }
+      const force = c.req.query('force') === 'true' || body.force === true;
+      const required = course.prerequisiteCourseIds ?? [];
+      const allCourses = required.length > 0 ? await coursesRepo.listCourses() : [];
+
       let enrolled = 0;
       let already = 0;
       const errors: Array<{ studentId: string; message: string }> = [];
+      const ineligible: Array<{ studentId: string; missing: string[] }> = [];
+
       for (const studentId of ids) {
         try {
           const s = await studentsRepo.findAdminStudent(studentId);
@@ -2258,6 +2264,20 @@ export function buildApp() {
             already++;
             continue;
           }
+          // Verifica prereqs (a menos que force=true)
+          if (required.length > 0 && !force) {
+            const myProgress = await progressRepo.listForUser(studentId);
+            const completedLessonIds = myProgress.map((p) => p.lessonId);
+            const completedCourseIds = computeCompletedCourseIds(
+              allCourses,
+              completedLessonIds,
+            );
+            const check = checkPrerequisites(required, completedCourseIds);
+            if (!check.ok) {
+              ineligible.push({ studentId, missing: check.missing });
+              continue;
+            }
+          }
           await studentsRepo.enrollInCourse(studentId, courseId);
           enrolled++;
         } catch (err) {
@@ -2267,7 +2287,13 @@ export function buildApp() {
           });
         }
       }
-      return c.json({ enrolled, alreadyEnrolled: already, errors });
+      return c.json({
+        enrolled,
+        alreadyEnrolled: already,
+        errors,
+        ineligible,
+        forced: force,
+      });
     },
   );
 
