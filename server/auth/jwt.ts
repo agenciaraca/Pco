@@ -28,6 +28,19 @@ export interface JwtPayload {
   tv: number; // tokenVersion — invalida quando user.tokenVersion bumpa
   iat: number;
   exp: number;
+  /**
+   * Claim de impersonation. Quando presente, o token foi gerado por um admin
+   * "entrando como" outro usuário (student). `act.sub` é o admin real que
+   * iniciou a sessão; `sub` é o usuário visualizado.
+   *
+   * Tokens com `act` têm TTL curto (30 min) e são gerados via
+   * /api/admin/impersonate/:userId.
+   */
+  act?: {
+    sub: string;
+    email: string;
+    role: Role;
+  };
 }
 
 export async function signToken(

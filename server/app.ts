@@ -27,9 +27,14 @@ import {
 } from './auth/totp';
 import { encryptApiKey, decryptApiKey } from './db/encryption';
 import { attachUser, requireAuth } from './auth/middleware';
+import {
+  canImpersonate,
+  startImpersonation,
+  exitImpersonation,
+} from './auth/impersonation';
 import { createResetToken, consumeResetToken } from './auth/password-reset';
 import { auditMiddleware } from './audit/middleware';
-import { listAudit, auditByDay } from './audit/log';
+import { listAudit, auditByDay, recordAudit } from './audit/log';
 import { recordError, listErrors, recordClientError, errorsByDay } from './errors/store';
 import { saveUpload, UploadError } from './uploads/store';
 import { gatherHealth } from './monitoring/health';
@@ -2531,6 +2536,92 @@ export function buildApp() {
     } catch (err) {
       return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
     }
+  });
+
+  // ---------- Impersonation ----------
+  // Admin/superadmin "entra" como aluno (suporte). Token tem TTL curto (30 min)
+  // e claim `act` com o admin original. Tudo rastreado em audit log.
+
+  app.post(
+    '/admin/impersonate/:id',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const me = c.get('user')!;
+      const targetId = c.req.param('id') as string;
+      const target = await usersStore.findUserById(targetId);
+      if (!target) return jsonError(c, 404, 'NOT_FOUND', 'Usuário alvo não encontrado.');
+      if (!target.active)
+        return jsonError(c, 409, 'INACTIVE_TARGET', 'Usuário alvo está desativado.');
+
+      const check = canImpersonate(
+        { role: me.role },
+        { role: target.role },
+        Boolean(me.act),
+      );
+      if (!check.ok) return jsonError(c, 403, 'IMPERSONATION_DENIED', check.reason);
+
+      const actor = await usersStore.findUserById(me.sub);
+      if (!actor) return jsonError(c, 401, 'UNAUTHORIZED', 'Sessão inválida.');
+
+      const result = await startImpersonation(actor, targetId);
+      if (!result)
+        return jsonError(c, 500, 'IMPERSONATION_FAILED', 'Falha ao gerar token.');
+
+      await recordAudit(c, {
+        action: 'impersonation.start',
+        targetType: 'user',
+        targetId: target.id,
+        meta: { targetEmail: target.email, targetName: target.name },
+      });
+
+      return c.json({
+        ok: true,
+        token: result.token,
+        target: result.target,
+        actor: result.actor,
+        expiresInSeconds: result.expiresInSeconds,
+      });
+    },
+  );
+
+  app.post('/admin/impersonate/exit', async (c) => {
+    const me = c.get('user');
+    if (!me) return jsonError(c, 401, 'UNAUTHORIZED', 'Token ausente ou inválido.');
+    if (!me.act)
+      return jsonError(
+        c,
+        409,
+        'NOT_IMPERSONATING',
+        'Você não está em sessão de impersonation.',
+      );
+    const newToken = await exitImpersonation(me);
+    if (!newToken)
+      return jsonError(c, 500, 'EXIT_FAILED', 'Falha ao restaurar sessão original.');
+
+    await recordAudit(c, {
+      action: 'impersonation.exit',
+      targetType: 'user',
+      targetId: me.sub,
+      meta: { impersonatedEmail: me.email, restoredActorEmail: me.act.email },
+    });
+
+    return c.json({ ok: true, token: newToken });
+  });
+
+  /**
+   * Endpoint pra UI saber se sessão atual é impersonation. Front-end usa pra
+   * exibir banner permanente "Você está visualizando como X".
+   */
+  app.get('/me/impersonation', async (c) => {
+    const me = c.get('user');
+    if (!me) return jsonError(c, 401, 'UNAUTHORIZED', 'Token ausente.');
+    if (!me.act) return c.json({ impersonating: false });
+    return c.json({
+      impersonating: true,
+      actor: me.act,
+      target: { id: me.sub, email: me.email, role: me.role },
+    });
   });
 
   /**
