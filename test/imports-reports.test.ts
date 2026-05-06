@@ -23,7 +23,15 @@ async function makeJob() {
     source: 'wordpress',
     mode: 'api',
     dryRun: false,
-    entities: ['student'],
+    entities: [
+      {
+        entity: 'student',
+        enabled: true,
+        mappings: [],
+        conflictStrategy: 'update',
+        matchKeys: ['email'],
+      },
+    ],
     enrollment: {
       startRule: 'paid_date',
       expirationRule: 'start_plus_duration',
