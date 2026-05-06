@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ScrollToTop from '../components/ScrollToTop';
+import EnvBanner from '../components/EnvBanner';
 import Topbar from '../components/Topbar';
 import MobileNav from '../components/MobileNav';
 import Footer from '../components/Footer';
@@ -133,8 +134,10 @@ export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-surface-off">
+    <div className="flex flex-col min-h-screen bg-surface-off">
       <ScrollToTop />
+      <EnvBanner />
+      <div className="flex flex-1 min-w-0">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-2 focus:rounded-lg focus:bg-pco-blue focus:text-white text-xs"
@@ -154,6 +157,7 @@ export default function AdminLayout() {
         <Footer />
       </div>
       <AdminSearchPalette />
+      </div>
     </div>
   );
 }
