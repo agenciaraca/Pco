@@ -134,6 +134,7 @@ import * as webhookEndpoints from './webhooks/endpoints-store';
 import { buildSnapshot as buildHealthSnapshot } from './health/dashboard';
 import * as reengagementCfg from './reengagement/config-store';
 import * as apiTokens from './auth/api-tokens';
+import * as rolesStore from './auth/roles-store';
 import { requireApiToken } from './auth/api-token-middleware';
 import * as activityFeed from './activity/feed';
 import { buildCsv, csvResponse } from './export/csv';
@@ -3738,6 +3739,114 @@ export function buildApp() {
       const dryRun = c.req.query('dryRun') === 'true';
       const result = await reengagementWorker.tickWorker({ dryRun });
       return c.json({ dryRun, ...result });
+    },
+  );
+
+  // ---------- Roles & Permissions (admin CRUD) ----------
+
+  app.get('/admin/roles', requireAuth('admin', 'superadmin'), async (c) => {
+    const roles = await rolesStore.listRoles();
+    return c.json({ roles });
+  });
+
+  app.get('/admin/permissions', requireAuth('admin', 'superadmin'), async (c) => {
+    return c.json(await rolesStore.listPermissions());
+  });
+
+  app.post(
+    '/admin/roles',
+    requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('user.role.change'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      try {
+        const role = await rolesStore.createRole({
+          slug: String(body.slug ?? ''),
+          name: String(body.name ?? ''),
+          description: typeof body.description === 'string' ? body.description : undefined,
+          permissions: Array.isArray(body.permissions)
+            ? (body.permissions as unknown[]).map((p) => String(p))
+            : undefined,
+        });
+        await recordAudit(c, {
+          action: 'role.create',
+          targetType: 'role',
+          targetId: role.id,
+          meta: { slug: role.slug, name: role.name },
+        });
+        return c.json(role, 201);
+      } catch (err) {
+        if (err instanceof rolesStore.RoleError) {
+          return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
+  app.put(
+    '/admin/roles/:id',
+    requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('user.role.change'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      try {
+        const role = await rolesStore.updateRole(id, {
+          name: typeof body.name === 'string' ? body.name : undefined,
+          description: typeof body.description === 'string' ? body.description : undefined,
+          permissions: Array.isArray(body.permissions)
+            ? (body.permissions as unknown[]).map((p) => String(p))
+            : undefined,
+        });
+        await recordAudit(c, {
+          action: 'role.update',
+          targetType: 'role',
+          targetId: id,
+          meta: { slug: role.slug },
+        });
+        return c.json(role);
+      } catch (err) {
+        if (err instanceof rolesStore.RoleError) {
+          const status =
+            err.code === 'NOT_FOUND'
+              ? 404
+              : err.code === 'SYSTEM_ROLE'
+                ? 403
+                : 400;
+          return jsonError(c, status, err.code, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
+  app.delete(
+    '/admin/roles/:id',
+    requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('user.role.change'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      try {
+        await rolesStore.deleteRole(id);
+        await recordAudit(c, {
+          action: 'role.delete',
+          targetType: 'role',
+          targetId: id,
+        });
+        return c.json({ ok: true });
+      } catch (err) {
+        if (err instanceof rolesStore.RoleError) {
+          const status =
+            err.code === 'NOT_FOUND'
+              ? 404
+              : err.code === 'SYSTEM_ROLE'
+                ? 403
+                : 400;
+          return jsonError(c, status, err.code, err.message);
+        }
+        throw err;
+      }
     },
   );
 

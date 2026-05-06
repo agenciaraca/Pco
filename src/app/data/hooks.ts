@@ -1637,6 +1637,59 @@ export function useDeleteApiToken() {
   });
 }
 
+// ---------- Roles & Permissions ----------
+
+const rolesKey = ['admin', 'roles'] as const;
+const permissionsKey = ['admin', 'permissions'] as const;
+
+export function useRoles() {
+  return useQuery({
+    queryKey: rolesKey,
+    queryFn: api.fetchRoles,
+  });
+}
+
+export function usePermissionsCatalog() {
+  return useQuery({
+    queryKey: permissionsKey,
+    queryFn: api.fetchPermissionsCatalog,
+  });
+}
+
+export function useCreateRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createRole,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: rolesKey });
+      qc.invalidateQueries({ queryKey: permissionsKey });
+    },
+  });
+}
+
+export function useUpdateRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: api.UpdateRoleInput }) =>
+      api.updateRole(id, patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: rolesKey });
+      qc.invalidateQueries({ queryKey: permissionsKey });
+    },
+  });
+}
+
+export function useDeleteRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteRole,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: rolesKey });
+      qc.invalidateQueries({ queryKey: permissionsKey });
+    },
+  });
+}
+
 export function useActivityFeed(
   filter: Parameters<typeof api.fetchActivityFeed>[0] = {},
 ) {

@@ -123,6 +123,7 @@ const adminGroups = [
     title: 'Sistema',
     items: [
       { to: '/admin/usuarios', label: 'Usuários do Sistema', icon: ShieldCheck },
+      { to: '/admin/papeis', label: 'Papéis e Permissões', icon: ShieldCheck },
       { to: '/admin/sessoes', label: 'Sessões', icon: KeyRound },
       { to: '/admin/api-tokens', label: 'API tokens', icon: KeyRound },
       { to: '/admin/auditoria', label: 'Auditoria', icon: ScrollText },

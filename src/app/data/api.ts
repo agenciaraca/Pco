@@ -2813,6 +2813,55 @@ export async function deleteApiToken(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/api-tokens/${encodeURIComponent(id)}`);
 }
 
+// ---------- Roles & Permissions ----------
+
+export interface RoleDto {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  permissions: string[];
+  system: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchRoles(): Promise<{ roles: RoleDto[] }> {
+  return http.get('/admin/roles');
+}
+
+export async function fetchPermissionsCatalog(): Promise<{
+  system: string[];
+  custom: string[];
+}> {
+  return http.get('/admin/permissions');
+}
+
+export interface CreateRoleInput {
+  slug: string;
+  name: string;
+  description?: string;
+  permissions?: string[];
+}
+
+export async function createRole(input: CreateRoleInput): Promise<RoleDto> {
+  return http.post('/admin/roles', input);
+}
+
+export interface UpdateRoleInput {
+  name?: string;
+  description?: string;
+  permissions?: string[];
+}
+
+export async function updateRole(id: string, patch: UpdateRoleInput): Promise<RoleDto> {
+  return http.put(`/admin/roles/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteRole(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/roles/${encodeURIComponent(id)}`);
+}
+
 // ---------- Activity feed ----------
 
 export type ActivityKindDto =
