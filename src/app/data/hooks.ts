@@ -550,6 +550,13 @@ export function useMyProgress() {
   return useQuery({ queryKey: myProgressKey, queryFn: api.fetchMyProgress });
 }
 
+export function useMyStudyHeatmap() {
+  return useQuery({
+    queryKey: ['me', 'study-heatmap'] as const,
+    queryFn: api.fetchMyStudyHeatmap,
+  });
+}
+
 export function useMarkLessonCompleted() {
   const qc = useQueryClient();
   return useMutation({

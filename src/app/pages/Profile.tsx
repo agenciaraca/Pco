@@ -18,6 +18,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
 import {
   useMyProgress,
+  useMyStudyHeatmap,
   useCertificates,
   useMyNotificationPrefs,
   useSnoozeNotifications,
@@ -29,12 +30,14 @@ import {
 import * as api from '../data/api';
 import TwoFactorAuthCard from '../components/TwoFactorAuthCard';
 import AchievementsPanel from '../components/AchievementsPanel';
+import StudyHeatmap from '../components/StudyHeatmap';
 
 export default function Profile() {
   const { user, patchUser } = useAuth();
   const toast = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
   const progressQ = useMyProgress();
+  const heatmapQ = useMyStudyHeatmap();
   const certsQ = useCertificates();
   const notifPrefsQ = useMyNotificationPrefs();
   const updateNotifPrefs = useUpdateMyNotificationPrefs();
@@ -526,6 +529,24 @@ export default function Profile() {
           </div>
         )}
       </form>
+
+      <section className="pco-card p-6 space-y-3">
+        <header className="flex items-center gap-2">
+          <Flame size={18} className="text-pco-orange" strokeWidth={1.75} />
+          <h3 className="text-base font-semibold text-pco-deep">Sua trajetória de estudo</h3>
+        </header>
+        <p className="text-xs text-ink-muted">
+          Cada quadradinho é um dia. Quanto mais aulas você concluiu nesse dia,
+          mais escuro fica.
+        </p>
+        {heatmapQ.isLoading ? (
+          <div className="text-xs text-ink-muted">Carregando heatmap…</div>
+        ) : heatmapQ.data ? (
+          <StudyHeatmap days={heatmapQ.data.days} summary={heatmapQ.data.summary} />
+        ) : (
+          <div className="text-xs text-ink-subtle">Sem dados ainda.</div>
+        )}
+      </section>
 
       <AchievementsPanel />
 

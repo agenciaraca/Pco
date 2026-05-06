@@ -159,6 +159,20 @@ export async function setMyWeeklyGoal(
   return http.put('/me/weekly-goal', { weeklyGoalMinutes });
 }
 
+export interface StudyHeatmapDto {
+  days: { date: string; count: number }[];
+  summary: {
+    totalLessons: number;
+    activeDays: number;
+    lastYearLessons: number;
+    max: number;
+  };
+}
+
+export async function fetchMyStudyHeatmap(): Promise<StudyHeatmapDto> {
+  return http.get<StudyHeatmapDto>('/me/study-heatmap');
+}
+
 // ---------- Uploads ----------
 
 export interface UploadResultDto {

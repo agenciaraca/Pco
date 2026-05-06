@@ -678,6 +678,38 @@ export function buildApp() {
     return c.json({ ok: true, email: tokenEntry.email });
   });
 
+  // Heatmap de estudo: 365 dias × contagem de aulas concluídas
+  app.get('/me/study-heatmap', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const list = await progressRepo.listForUser(u.sub);
+    const counts = new Map<string, number>();
+    for (const p of list) {
+      const day = p.completedAt.slice(0, 10);
+      counts.set(day, (counts.get(day) ?? 0) + 1);
+    }
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const days: { date: string; count: number }[] = [];
+    for (let i = 364; i >= 0; i--) {
+      const d = new Date(today);
+      d.setUTCDate(today.getUTCDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      days.push({ date: key, count: counts.get(key) ?? 0 });
+    }
+    const totalLessons = list.length;
+    const activeDays = counts.size;
+    const lastYearLessons = days.reduce((s, d) => s + d.count, 0);
+    return c.json({
+      days,
+      summary: {
+        totalLessons,
+        activeDays,
+        lastYearLessons,
+        max: Math.max(0, ...Array.from(counts.values())),
+      },
+    });
+  });
+
   // Self-service: aluno define sua meta semanal de estudo (em minutos)
   app.put('/me/weekly-goal', requireAuth(), async (c) => {
     const u = c.get('user')!;
