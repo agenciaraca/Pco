@@ -21,17 +21,15 @@ const RL_WINDOW_MS = 60_000;
 const RL_MAX = Number(process.env.API_TOKEN_RATE_LIMIT ?? '60');
 const rlBuckets = new Map<string, number[]>();
 
-function checkRateLimit(tokenId: string): {
-  allowed: boolean;
-  remaining: number;
-  resetMs: number;
-} {
+function checkRateLimitInner(
+  tokenId: string,
+  max: number,
+): { allowed: boolean; remaining: number; resetMs: number } {
   const now = Date.now();
   const cutoff = now - RL_WINDOW_MS;
   const bucket = rlBuckets.get(tokenId) ?? [];
-  // Limpa entradas antigas
   const recent = bucket.filter((ts) => ts >= cutoff);
-  if (recent.length >= RL_MAX) {
+  if (recent.length >= max) {
     return {
       allowed: false,
       remaining: 0,
@@ -42,10 +40,21 @@ function checkRateLimit(tokenId: string): {
   rlBuckets.set(tokenId, recent);
   return {
     allowed: true,
-    remaining: RL_MAX - recent.length,
+    remaining: max - recent.length,
     resetMs: RL_WINDOW_MS,
   };
 }
+
+function checkRateLimit(tokenId: string) {
+  return checkRateLimitInner(tokenId, RL_MAX);
+}
+
+// Exportado pra testes — permite chamar com max custom e resetar buckets.
+export const __testInternals__ = {
+  check: checkRateLimitInner,
+  reset: () => rlBuckets.clear(),
+  windowMs: RL_WINDOW_MS,
+};
 
 export function requireApiToken(scope?: ApiTokenScope): MiddlewareHandler {
   return async (c, next) => {
