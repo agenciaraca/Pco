@@ -292,6 +292,11 @@ export const updateCourseSchema = z.object({
   coverColor: z.string().max(120).optional(),
   active: z.boolean().optional(),
   tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+  /**
+   * IDs de cursos que o aluno deve completar antes de poder se matricular
+   * neste. Vazio ou undefined = sem pré-requisitos.
+   */
+  prerequisiteCourseIds: z.array(z.string().min(1).max(40)).max(10).optional(),
 });
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
 

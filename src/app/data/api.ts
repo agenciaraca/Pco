@@ -173,6 +173,19 @@ export async function fetchMyStudyHeatmap(): Promise<StudyHeatmapDto> {
   return http.get<StudyHeatmapDto>('/me/study-heatmap');
 }
 
+export interface CoursePrereqCheckDto {
+  ok: boolean;
+  missing: string[];
+  status: { courseId: string; completed: boolean; title: string | null; slug: string | null }[];
+  required: string[];
+}
+
+export async function fetchCoursePrereqCheck(
+  courseId: string,
+): Promise<CoursePrereqCheckDto> {
+  return http.get(`/me/courses/${encodeURIComponent(courseId)}/prereq`);
+}
+
 // ---------- Uploads ----------
 
 export interface UploadResultDto {
@@ -2138,6 +2151,7 @@ export interface UpdateCoursePatch {
   coverColor?: string;
   active?: boolean;
   tags?: string[];
+  prerequisiteCourseIds?: string[];
 }
 
 export async function updateCourse(id: string, patch: UpdateCoursePatch): Promise<Course> {

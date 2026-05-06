@@ -176,6 +176,9 @@ export async function updateCourse(
           : {}),
         ...(patch.coverColor !== undefined ? { coverColor: patch.coverColor } : {}),
         ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
+        ...(patch.prerequisiteCourseIds !== undefined
+          ? { prerequisiteCourseIds: patch.prerequisiteCourseIds }
+          : {}),
       }),
     );
   }

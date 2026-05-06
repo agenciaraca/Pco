@@ -9,7 +9,13 @@ import {
   BookOpen,
   Star,
 } from 'lucide-react';
-import { useCourse, useProducts, useCourseRating } from '../data/hooks';
+import {
+  useCourse,
+  useCoursePrereqCheck,
+  useProducts,
+  useCourseRating,
+} from '../data/hooks';
+import { useAuth } from '../auth/AuthContext';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
@@ -17,9 +23,11 @@ import Logo from '../components/Logo';
 
 export default function CoursePreview() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { data: course, isLoading } = useCourse(id);
   const { data: products = [] } = useProducts();
   const rating = useCourseRating(id);
+  const prereqQ = useCoursePrereqCheck(user ? id : undefined);
   useDocumentMeta({
     title: course ? `${course.title} — AVA PCO` : 'Curso — AVA PCO',
     description: course?.description,
@@ -80,6 +88,52 @@ export default function CoursePreview() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        {user && prereqQ.data && !prereqQ.data.ok && (
+          <section
+            role="alert"
+            className="pco-card border-pco-orange/40 bg-pco-orange/5 p-5 space-y-3"
+          >
+            <header className="flex items-center gap-2">
+              <Lock size={18} className="text-pco-orange" strokeWidth={2} />
+              <h2 className="text-base font-semibold text-pco-deep">
+                Pré-requisitos pendentes
+              </h2>
+            </header>
+            <p className="text-sm text-ink-strong">
+              Para acessar este curso você precisa concluir antes:
+            </p>
+            <ul className="space-y-1.5">
+              {prereqQ.data.status.map((s) => (
+                <li
+                  key={s.courseId}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  {s.completed ? (
+                    <span className="text-status-success">✓</span>
+                  ) : (
+                    <span className="text-pco-orange">○</span>
+                  )}
+                  <span className={s.completed ? 'text-ink-muted line-through' : 'text-ink-strong'}>
+                    {s.title ?? s.courseId}
+                  </span>
+                  {!s.completed && s.slug && (
+                    <Link
+                      to={`/curso-preview/${s.courseId}`}
+                      className="text-[11px] text-pco-blue hover:underline ml-auto"
+                    >
+                      ver curso →
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="text-[11px] text-ink-subtle">
+              Você ainda pode visualizar o conteúdo do curso aqui, mas a
+              matrícula efetiva exige completar os pré-requisitos.
+            </p>
+          </section>
+        )}
+
         <section
           className={`relative rounded-2xl overflow-hidden p-8 md:p-12 bg-gradient-to-br ${course.coverColor}`}
         >

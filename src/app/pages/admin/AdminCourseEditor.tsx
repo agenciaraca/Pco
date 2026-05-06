@@ -28,6 +28,7 @@ import {
 import Tabs from '../../components/Tabs';
 import {
   useCourse,
+  useCourses,
   useUpdateCourse,
   useCreateModule,
   useUpdateModule,
@@ -151,6 +152,11 @@ function GeralPane({ course }: { course: Course }) {
 
   const [tags, setTags] = useState<string[]>(course.tags ?? []);
   const [tagInput, setTagInput] = useState('');
+  const [prereqIds, setPrereqIds] = useState<string[]>(
+    course.prerequisiteCourseIds ?? [],
+  );
+  const allCoursesQ = useCourses();
+  const otherCourses = (allCoursesQ.data ?? []).filter((c) => c.id !== course.id);
 
   function addTag() {
     const v = tagInput.trim();
@@ -159,11 +165,17 @@ function GeralPane({ course }: { course: Course }) {
     setTagInput('');
   }
 
+  function togglePrereq(id: string) {
+    setPrereqIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
   const onSubmit = async (data: UpdateCourseInput) => {
     try {
       const updated = await update.mutateAsync({
         id: course.id,
-        patch: { ...data, tags },
+        patch: { ...data, tags, prerequisiteCourseIds: prereqIds },
       });
       toast.success('Curso atualizado', updated.title);
       reset({
@@ -239,6 +251,41 @@ function GeralPane({ course }: { course: Course }) {
               Adicionar
             </button>
           </div>
+        </Field>
+
+        <Field label="Pré-requisitos (cursos que devem estar concluídos)">
+          {otherCourses.length === 0 ? (
+            <p className="text-xs text-ink-subtle">
+              Nenhum outro curso disponível.
+            </p>
+          ) : (
+            <>
+              <div className="grid gap-1 sm:grid-cols-2 max-h-48 overflow-y-auto pr-1 border border-pco-border rounded-lg p-2">
+                {otherCourses.map((c) => (
+                  <label
+                    key={c.id}
+                    className="flex items-start gap-2 text-xs p-1.5 rounded hover:bg-surface-mute cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={prereqIds.includes(c.id)}
+                      onChange={() => togglePrereq(c.id)}
+                      className="accent-pco-blue mt-0.5"
+                    />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-ink-strong">{c.title}</span>
+                      <code className="text-[10px] text-ink-subtle">{c.slug}</code>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-[11px] text-ink-subtle mt-2">
+                {prereqIds.length === 0
+                  ? 'Sem pré-requisitos: aluno pode se matricular livremente.'
+                  : `${prereqIds.length} curso(s) selecionado(s). Aluno verá um aviso ao tentar acessar este curso sem completar todos.`}
+              </p>
+            </>
+          )}
         </Field>
 
         <div className="grid grid-cols-2 gap-4">

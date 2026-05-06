@@ -185,6 +185,10 @@ import type {
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 import { computeModuleLock, findModuleLockForLesson } from './repositories/drip';
+import {
+  checkPrerequisites,
+  computeCompletedCourseIds,
+} from './repositories/prerequisites';
 
 /**
  * Libera acesso do usuário ao produto pago.
@@ -1541,6 +1545,46 @@ export function buildApp() {
       }),
     };
     return c.json(enriched);
+  });
+
+  /**
+   * Verifica se o aluno logado completou os pré-requisitos do curso.
+   * Retorna { ok, missing, status } pra UI mostrar warning antes de matricular.
+   */
+  app.get('/me/courses/:id/prereq', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const courseId = c.req.param('id') as string;
+    const course = await coursesRepo.findCourse(courseId);
+    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+    const required = course.prerequisiteCourseIds ?? [];
+    if (required.length === 0) {
+      return c.json({ ok: true, missing: [], status: [], required: [] });
+    }
+    const allCourses = await coursesRepo.listCourses();
+    const myProgress = await progressRepo.listForUser(u.sub);
+    const completedLessonIds = myProgress.map((p) => p.lessonId);
+    const completedCourseIds = computeCompletedCourseIds(
+      allCourses,
+      completedLessonIds,
+    );
+    const result = checkPrerequisites(required, completedCourseIds);
+    // Anexa info dos cursos pra UI mostrar título/slug
+    const detailById = new Map(allCourses.map((co) => [co.id, co]));
+    const status = result.status.map((s) => {
+      const co = detailById.get(s.courseId);
+      return {
+        courseId: s.courseId,
+        completed: s.completed,
+        title: co?.title ?? null,
+        slug: co?.slug ?? null,
+      };
+    });
+    return c.json({
+      ok: result.ok,
+      missing: result.missing,
+      status,
+      required,
+    });
   });
 
   // ---------- News ----------

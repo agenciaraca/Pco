@@ -557,6 +557,14 @@ export function useMyStudyHeatmap() {
   });
 }
 
+export function useCoursePrereqCheck(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ['me', 'course-prereq', courseId ?? ''] as const,
+    queryFn: () => api.fetchCoursePrereqCheck(courseId!),
+    enabled: !!courseId,
+  });
+}
+
 export function useMarkLessonCompleted() {
   const qc = useQueryClient();
   return useMutation({

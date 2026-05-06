@@ -80,6 +80,8 @@ export interface Course {
   totalHours: number;
   certificateAvailable: boolean;
   tags?: string[];
+  /** IDs de cursos que devem ser concluídos antes deste. */
+  prerequisiteCourseIds?: ID[];
 }
 
 export interface Certificate {
