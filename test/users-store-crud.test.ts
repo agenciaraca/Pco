@@ -31,7 +31,7 @@ describe('auth/users-store CRUD', () => {
   it('toPublic remove passwordHash, totpSecretEncrypted, totpBackupCodes', async () => {
     const list = await store.listUsers();
     for (const u of list) {
-      const plain = u as Record<string, unknown>;
+      const plain = u as unknown as Record<string, unknown>;
       expect(plain.passwordHash).toBeUndefined();
       expect(plain.totpSecretEncrypted).toBeUndefined();
       expect(plain.totpBackupCodes).toBeUndefined();

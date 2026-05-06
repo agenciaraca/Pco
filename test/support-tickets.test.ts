@@ -23,7 +23,7 @@ describe('repositories/support', () => {
     const t = await support.createTicket({
       studentId: 'st-1',
       subject: 'Não consigo logar',
-      category: 'tecnico',
+      category: 'acesso',
       message: 'Erro 500 na home',
     });
     expect(t.id).toMatch(/^t-/);
@@ -37,20 +37,20 @@ describe('repositories/support', () => {
     await support.createTicket({
       studentId: 'st-A',
       subject: 'A1',
-      category: 'duvida',
+      category: 'duvida_aula',
       message: '',
     });
     await new Promise((r) => setTimeout(r, 5));
     await support.createTicket({
       studentId: 'st-A',
       subject: 'A2',
-      category: 'duvida',
+      category: 'duvida_aula',
       message: '',
     });
     await support.createTicket({
       studentId: 'st-B',
       subject: 'B1',
-      category: 'duvida',
+      category: 'duvida_aula',
       message: '',
     });
     const a = await support.listTicketsForStudent('st-A');
@@ -64,7 +64,7 @@ describe('repositories/support', () => {
     const t = await support.createTicket({
       studentId: 'st-up',
       subject: 'Up',
-      category: 'tecnico',
+      category: 'acesso',
       message: '',
     });
     const u = await support.updateTicketStatus(t.id, 'resolved');
@@ -80,7 +80,7 @@ describe('repositories/support', () => {
     const t = await support.createTicket({
       studentId: 'st-f',
       subject: 'F',
-      category: 'duvida',
+      category: 'duvida_aula',
       message: '',
     });
     expect((await support.findTicket(t.id))!.id).toBe(t.id);
@@ -97,7 +97,7 @@ describe('repositories/support', () => {
   it('createTicket sem studentId usa default', async () => {
     const t = await support.createTicket({
       subject: 'sem student',
-      category: 'duvida',
+      category: 'duvida_aula',
       message: '',
     });
     // não importa qual é o default, só precisa estar setado

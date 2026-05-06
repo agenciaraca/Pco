@@ -31,8 +31,8 @@ describe('webhooks/endpoints-store', () => {
     expect(e.channelType).toBe('generic');
     expect(e.hasSecret).toBe(true);
     expect(e.hasHeaders).toBe(true);
-    expect((e as Record<string, unknown>).secretEncrypted).toBeUndefined();
-    expect((e as Record<string, unknown>).headersEncrypted).toBeUndefined();
+    expect((e as unknown as Record<string, unknown>).secretEncrypted).toBeUndefined();
+    expect((e as unknown as Record<string, unknown>).headersEncrypted).toBeUndefined();
   });
 
   it('decryptEndpoint round-trip secret + headers JSON', async () => {
@@ -158,8 +158,8 @@ describe('webhooks/endpoints-store', () => {
   it('listEndpoints retorna views públicas', async () => {
     const list = await store.listEndpoints();
     for (const e of list) {
-      expect((e as Record<string, unknown>).secretEncrypted).toBeUndefined();
-      expect((e as Record<string, unknown>).headersEncrypted).toBeUndefined();
+      expect((e as unknown as Record<string, unknown>).secretEncrypted).toBeUndefined();
+      expect((e as unknown as Record<string, unknown>).headersEncrypted).toBeUndefined();
     }
   });
 });
