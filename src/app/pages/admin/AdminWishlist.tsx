@@ -1,5 +1,7 @@
-import { Heart, TrendingUp } from 'lucide-react';
+import { Heart, TrendingUp, Download } from 'lucide-react';
 import { useWishlistAggregate, useCourses } from '../../data/hooks';
+import { downloadWishlistCsv } from '../../data/api';
+import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -8,6 +10,16 @@ export default function AdminWishlist() {
   useDocumentMeta({ title: 'Wishlist — Admin AVA PCO' });
   const wish = useWishlistAggregate();
   const courses = useCourses();
+  const toast = useToast();
+
+  async function handleExport() {
+    try {
+      await downloadWishlistCsv();
+      toast.success('CSV baixado');
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   const courseMap = new Map(
     (courses.data ?? []).map((c) => [c.id, c]),
@@ -15,15 +27,27 @@ export default function AdminWishlist() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <header>
-        <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
-          <Heart size={20} className="text-pco-orange" strokeWidth={1.75} />
-          Wishlist de cursos
-        </h1>
-        <p className="text-sm text-ink-muted mt-1">
-          Cursos mais desejados pelos alunos. Use como sinal de demanda para
-          priorização de produção.
-        </p>
+      <header className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
+            <Heart size={20} className="text-pco-orange" strokeWidth={1.75} />
+            Wishlist de cursos
+          </h1>
+          <p className="text-sm text-ink-muted mt-1">
+            Cursos mais desejados pelos alunos. Use como sinal de demanda para
+            priorização de produção.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={(wish.data ?? []).length === 0}
+          className="pco-btn-ghost text-xs"
+          title="Exportar CSV"
+        >
+          <Download size={11} strokeWidth={2} />
+          CSV
+        </button>
       </header>
 
       {wish.isLoading ? (

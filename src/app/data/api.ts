@@ -1053,6 +1053,13 @@ export async function fetchWishlistAggregate(): Promise<CourseWishCountDto[]> {
   return http.get<CourseWishCountDto[]>('/admin/wishlist/aggregate');
 }
 
+export async function downloadWishlistCsv(): Promise<void> {
+  return downloadCsv(
+    '/admin/wishlist/export.csv',
+    `wishlist-${new Date().toISOString().slice(0, 10)}.csv`,
+  );
+}
+
 export async function cancelMyOrder(id: string): Promise<OrderDto> {
   return http.post<OrderDto>(`/me/orders/${encodeURIComponent(id)}/cancel`, {});
 }

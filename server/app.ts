@@ -4913,6 +4913,34 @@ export function buildApp() {
     async (c) => c.json(await wishlistStore.aggregateByCourse()),
   );
 
+  app.get(
+    '/admin/wishlist/export.csv',
+    requireAuth('admin', 'superadmin'),
+    async () => {
+      const agg = await wishlistStore.aggregateByCourse();
+      const courses = await coursesRepo.listCourses();
+      const titleMap = new Map(courses.map((co) => [co.id, co.title]));
+      const rows = ['rank,course_id,course_title,total,added_last_week'];
+      agg.forEach((row, i) => {
+        const cells = [
+          String(i + 1),
+          row.courseId,
+          (titleMap.get(row.courseId) ?? '').replace(/[",\n]/g, ' '),
+          String(row.count),
+          String(row.addedLastWeek),
+        ];
+        rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
+      });
+      return new Response(rows.join('\n'), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="wishlist-${new Date().toISOString().slice(0, 10)}.csv"`,
+        },
+      });
+    },
+  );
+
   // Top 5 com nomes mascarados (privacidade): "Maria S." em vez de "Maria Silva"
   app.get('/leaderboard/top', requireAuth(), async (c) => {
     const days = Number(c.req.query('days') ?? '30');
