@@ -97,7 +97,17 @@ export default function AdminUsuarios() {
         (u) => u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q),
       );
     }
-    if (roleFilter !== 'todos') list = list.filter((u) => u.role === roleFilter);
+    if (roleFilter !== 'todos') {
+      // O filtro pode ser um system role (student/admin/superadmin) ou
+      // um custom role slug. customRoleSlug tem precedência: usuários
+      // com customRoleSlug === <filter> casam, e usuários sem
+      // customRoleSlug casam pela role base.
+      list = list.filter((u) => {
+        const customSlug = (u as { customRoleSlug?: string | null }).customRoleSlug;
+        if (customSlug) return customSlug === roleFilter;
+        return u.role === roleFilter;
+      });
+    }
     return list;
   }, [usersQ.data, search, roleFilter]);
 
@@ -201,9 +211,11 @@ export default function AdminUsuarios() {
           className="pco-input w-auto"
         >
           <option value="todos">Todos os papéis</option>
-          <option value="superadmin">Superadmin</option>
-          <option value="admin">Admin</option>
-          <option value="student">Aluno</option>
+          {(rolesQ.data?.roles ?? []).map((r) => (
+            <option key={r.id} value={r.slug}>
+              {r.name}
+            </option>
+          ))}
         </select>
       </div>
 
