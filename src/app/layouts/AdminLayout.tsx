@@ -66,6 +66,7 @@ const adminGroups = [
     title: 'Acadêmico',
     items: [
       { to: '/admin/cursos', label: 'Cursos', icon: GraduationCap },
+      { to: '/admin/trilhas', label: 'Trilhas de Estudo', icon: GraduationCap },
       { to: '/admin/modulos', label: 'Módulos e Aulas', icon: Layers },
       { to: '/admin/alunos', label: 'Alunos', icon: Users },
       { to: '/admin/certificados', label: 'Certificados', icon: Award },

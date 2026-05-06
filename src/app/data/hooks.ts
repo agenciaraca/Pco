@@ -1660,6 +1660,61 @@ export function useDeleteApiToken() {
   });
 }
 
+// ---------- Study paths ----------
+
+const studyPathsKey = ['admin', 'study-paths'] as const;
+const publicPathsKey = ['public', 'study-paths'] as const;
+
+export function useStudyPaths() {
+  return useQuery({ queryKey: studyPathsKey, queryFn: api.fetchStudyPaths });
+}
+
+export function usePublicStudyPaths() {
+  return useQuery({ queryKey: publicPathsKey, queryFn: api.fetchPublicStudyPaths });
+}
+
+export function useCreateStudyPath() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createStudyPath,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: studyPathsKey });
+      qc.invalidateQueries({ queryKey: publicPathsKey });
+    },
+  });
+}
+
+export function useUpdateStudyPath() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<api.CreateStudyPathInput> }) =>
+      api.updateStudyPath(id, patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: studyPathsKey });
+      qc.invalidateQueries({ queryKey: publicPathsKey });
+    },
+  });
+}
+
+export function useDeleteStudyPath() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteStudyPath,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: studyPathsKey });
+      qc.invalidateQueries({ queryKey: publicPathsKey });
+    },
+  });
+}
+
+export function useStudyPathProgress(id: string | undefined) {
+  return useQuery({
+    queryKey: ['me', 'study-path-progress', id ?? ''] as const,
+    queryFn: () => api.fetchStudyPathProgress(id!),
+    enabled: !!id,
+  });
+}
+
 // ---------- Roles & Permissions ----------
 
 const rolesKey = ['admin', 'roles'] as const;

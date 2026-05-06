@@ -2881,6 +2881,71 @@ export async function deleteApiToken(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/api-tokens/${encodeURIComponent(id)}`);
 }
 
+// ---------- Study paths (trilhas) ----------
+
+export interface StudyPathDto {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  coverColor: string;
+  courseIds: string[];
+  active: boolean;
+  publicVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchStudyPaths(): Promise<{ paths: StudyPathDto[] }> {
+  return http.get('/admin/study-paths');
+}
+
+export async function fetchPublicStudyPaths(): Promise<{ paths: StudyPathDto[] }> {
+  return http.get('/study-paths');
+}
+
+export interface CreateStudyPathInput {
+  slug: string;
+  title: string;
+  description?: string;
+  coverColor?: string;
+  courseIds?: string[];
+  active?: boolean;
+  publicVisible?: boolean;
+}
+
+export async function createStudyPath(
+  input: CreateStudyPathInput,
+): Promise<StudyPathDto> {
+  return http.post('/admin/study-paths', input);
+}
+
+export async function updateStudyPath(
+  id: string,
+  patch: Partial<CreateStudyPathInput>,
+): Promise<StudyPathDto> {
+  return http.put(`/admin/study-paths/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteStudyPath(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/study-paths/${encodeURIComponent(id)}`);
+}
+
+export interface StudyPathProgressDto {
+  pathId: string;
+  totalCourses: number;
+  completedCourses: number;
+  nextCourseId: string | null;
+  done: boolean;
+  status: { courseId: string; completed: boolean }[];
+}
+
+export async function fetchStudyPathProgress(
+  id: string,
+): Promise<StudyPathProgressDto> {
+  return http.get(`/me/study-paths/${encodeURIComponent(id)}/progress`);
+}
+
 // ---------- Roles & Permissions ----------
 
 export interface RoleDto {

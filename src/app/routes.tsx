@@ -107,6 +107,7 @@ const AdminBroadcasts = lazy(() => import('./pages/admin/AdminBroadcasts'));
 const AdminSessoes = lazy(() => import('./pages/admin/AdminSessoes'));
 const AdminApiTokens = lazy(() => import('./pages/admin/AdminApiTokens'));
 const AdminRoles = lazy(() => import('./pages/admin/AdminRoles'));
+const AdminStudyPaths = lazy(() => import('./pages/admin/AdminStudyPaths'));
 const AdminActivity = lazy(() => import('./pages/admin/AdminActivity'));
 const AdminBackup = lazy(() => import('./pages/admin/AdminBackup'));
 const AdminJobs = lazy(() => import('./pages/admin/AdminJobs'));
@@ -247,6 +248,7 @@ export const router = createBrowserRouter([
       { path: 'sessoes', element: <S><AdminSessoes /></S> },
       { path: 'api-tokens', element: <S><AdminApiTokens /></S> },
       { path: 'papeis', element: <S><AdminRoles /></S> },
+      { path: 'trilhas', element: <S><AdminStudyPaths /></S> },
       { path: 'atividade', element: <S><AdminActivity /></S> },
       { path: 'backup', element: <S><AdminBackup /></S> },
       { path: 'jobs', element: <S><AdminJobs /></S> },

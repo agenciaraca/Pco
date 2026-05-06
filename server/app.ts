@@ -185,6 +185,8 @@ import type {
 import { AiError } from './ai/types';
 import { hasDb } from './db/client';
 import { computeModuleLock, findModuleLockForLesson } from './repositories/drip';
+import * as studyPaths from './repositories/study-paths';
+import { computePathProgress } from './repositories/study-paths';
 import {
   checkPrerequisites,
   computeCompletedCourseIds,
@@ -4017,6 +4019,128 @@ export function buildApp() {
       const dryRun = c.req.query('dryRun') === 'true';
       const result = await reengagementWorker.tickWorker({ dryRun });
       return c.json({ dryRun, ...result });
+    },
+  );
+
+  // ---------- Trilhas de estudo (study paths) ----------
+
+  app.get('/study-paths', async (c) => {
+    return c.json({ paths: await studyPaths.listPublicPaths() });
+  });
+
+  app.get('/study-paths/:slug', async (c) => {
+    const path = await studyPaths.findBySlug(c.req.param('slug') as string);
+    if (!path || !path.publicVisible) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Trilha não encontrada.');
+    }
+    return c.json({ path });
+  });
+
+  app.get('/me/study-paths/:id/progress', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const path = await studyPaths.findById(c.req.param('id') as string);
+    if (!path) return jsonError(c, 404, 'NOT_FOUND', 'Trilha não encontrada.');
+    const allCourses = await coursesRepo.listCourses();
+    const myProgress = await progressRepo.listForUser(u.sub);
+    const completedCourseIds: string[] = [];
+    for (const co of allCourses) {
+      const total = co.modules.reduce((s, m) => s + m.lessons.length, 0);
+      if (total === 0) continue;
+      const completed = co.modules.reduce(
+        (s, m) =>
+          s + m.lessons.filter((l) => myProgress.some((p) => p.lessonId === l.id))
+            .length,
+        0,
+      );
+      if (completed === total) completedCourseIds.push(co.id);
+    }
+    return c.json(computePathProgress(path, completedCourseIds));
+  });
+
+  app.get('/admin/study-paths', requireAuth('admin', 'superadmin'), async (c) => {
+    return c.json({ paths: await studyPaths.listPaths() });
+  });
+
+  app.post(
+    '/admin/study-paths',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      try {
+        const created = await studyPaths.createPath({
+          slug: String(body.slug ?? ''),
+          title: String(body.title ?? ''),
+          description: typeof body.description === 'string' ? body.description : undefined,
+          coverColor: typeof body.coverColor === 'string' ? body.coverColor : undefined,
+          courseIds: Array.isArray(body.courseIds)
+            ? (body.courseIds as unknown[]).map((x) => String(x))
+            : undefined,
+          active: typeof body.active === 'boolean' ? body.active : undefined,
+          publicVisible:
+            typeof body.publicVisible === 'boolean' ? body.publicVisible : undefined,
+        });
+        await recordAudit(c, {
+          action: 'study_path.create',
+          targetType: 'study_path',
+          targetId: created.id,
+          meta: { slug: created.slug },
+        });
+        return c.json(created, 201);
+      } catch (err) {
+        if (err instanceof studyPaths.PathError) {
+          return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
+  app.put(
+    '/admin/study-paths/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      try {
+        const updated = await studyPaths.updatePath(id, {
+          title: typeof body.title === 'string' ? body.title : undefined,
+          description: typeof body.description === 'string' ? body.description : undefined,
+          coverColor: typeof body.coverColor === 'string' ? body.coverColor : undefined,
+          courseIds: Array.isArray(body.courseIds)
+            ? (body.courseIds as unknown[]).map((x) => String(x))
+            : undefined,
+          active: typeof body.active === 'boolean' ? body.active : undefined,
+          publicVisible:
+            typeof body.publicVisible === 'boolean' ? body.publicVisible : undefined,
+        });
+        await recordAudit(c, {
+          action: 'study_path.update',
+          targetType: 'study_path',
+          targetId: id,
+        });
+        return c.json(updated);
+      } catch (err) {
+        if (err instanceof studyPaths.PathError) {
+          return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
+  app.delete(
+    '/admin/study-paths/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const ok = await studyPaths.deletePath(id);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Trilha não encontrada.');
+      await recordAudit(c, {
+        action: 'study_path.delete',
+        targetType: 'study_path',
+        targetId: id,
+      });
+      return c.json({ ok: true });
     },
   );
 
