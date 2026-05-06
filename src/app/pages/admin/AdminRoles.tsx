@@ -52,6 +52,64 @@ export default function AdminRoles() {
     return [...sys, ...cust];
   }, [permsQ.data]);
 
+  /** Agrupa permissões por categoria pra renderizar na UI. */
+  const groupedPerms = useMemo(() => {
+    const meta = permsQ.data?.meta ?? {};
+    const groups = permsQ.data?.groups ?? [];
+    type Item = { code: string; label: string; description?: string };
+    const buckets = new Map<string, Item[]>();
+    for (const code of allPerms) {
+      const m = meta[code];
+      const groupName = m?.group ?? 'Outros';
+      const item: Item = {
+        code,
+        label: m?.label ?? code,
+        description: m?.description,
+      };
+      const list = buckets.get(groupName) ?? [];
+      list.push(item);
+      buckets.set(groupName, list);
+    }
+    // Preserva ordem dos grupos canônicos + grupos customs ao final
+    const ordered: { name: string; items: Item[] }[] = [];
+    for (const g of groups) {
+      const items = buckets.get(g);
+      if (items?.length) {
+        ordered.push({ name: g, items });
+        buckets.delete(g);
+      }
+    }
+    for (const [name, items] of buckets) {
+      ordered.push({ name, items });
+    }
+    return ordered;
+  }, [allPerms, permsQ.data]);
+
+  /** Helper pra mostrar label humana de uma permission code (usado na lista de roles). */
+  function permLabel(code: string): string {
+    return permsQ.data?.meta[code]?.label ?? code;
+  }
+
+  function selectAllInGroup(items: { code: string }[]) {
+    if (!editing) return;
+    setEditing((prev) => {
+      if (!prev) return prev;
+      const next = new Set(prev.permissions);
+      for (const item of items) next.add(item.code);
+      return { ...prev, permissions: next };
+    });
+  }
+
+  function clearAllInGroup(items: { code: string }[]) {
+    if (!editing) return;
+    setEditing((prev) => {
+      if (!prev) return prev;
+      const next = new Set(prev.permissions);
+      for (const item of items) next.delete(item.code);
+      return { ...prev, permissions: next };
+    });
+  }
+
   function openCreate() {
     setEditing({ ...EMPTY_EDIT, permissions: new Set() });
   }
@@ -189,15 +247,16 @@ export default function AdminRoles() {
                   {role.permissions.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {role.permissions.slice(0, 12).map((p) => (
-                        <code
+                        <span
                           key={p}
-                          className="text-[10px] bg-surface-off px-1.5 py-0.5 rounded text-ink-muted border border-pco-border"
+                          title={p}
+                          className="text-[11px] bg-surface-off px-2 py-0.5 rounded text-ink-muted border border-pco-border"
                         >
-                          {p}
-                        </code>
+                          {permLabel(p)}
+                        </span>
                       ))}
                       {role.permissions.length > 12 && (
-                        <span className="text-[10px] text-ink-subtle px-1.5 py-0.5">
+                        <span className="text-[11px] text-ink-subtle px-2 py-0.5">
                           +{role.permissions.length - 12} mais
                         </span>
                       )}
@@ -305,29 +364,77 @@ export default function AdminRoles() {
                 />
               </label>
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-ink-muted mb-2">
-                  Permissões ({editing.permissions.size} selecionada(s))
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+                    Permissões ({editing.permissions.size} selecionada{editing.permissions.size === 1 ? '' : 's'} de {allPerms.length})
+                  </div>
                 </div>
-                <div className="grid gap-1 sm:grid-cols-2">
-                  {allPerms.map((p) => (
-                    <label
-                      key={p}
-                      className="flex items-center gap-2 text-xs p-1.5 rounded hover:bg-surface-mute cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={editing.permissions.has(p)}
-                        onChange={() => togglePerm(p)}
-                        className="accent-pco-blue"
-                      />
-                      <code className="text-[11px]">{p}</code>
-                    </label>
-                  ))}
+                <div className="space-y-4">
+                  {groupedPerms.map((group) => {
+                    const selectedInGroup = group.items.filter((it) =>
+                      editing.permissions.has(it.code),
+                    ).length;
+                    const allSelected = selectedInGroup === group.items.length;
+                    return (
+                      <fieldset
+                        key={group.name}
+                        className="border border-pco-border rounded-lg p-3"
+                      >
+                        <legend className="px-2 text-xs font-semibold text-pco-deep flex items-center gap-2">
+                          {group.name}
+                          <span className="text-[10px] text-ink-subtle font-normal">
+                            ({selectedInGroup}/{group.items.length})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              allSelected
+                                ? clearAllInGroup(group.items)
+                                : selectAllInGroup(group.items)
+                            }
+                            className="text-[10px] text-pco-blue hover:underline ml-2 font-normal"
+                          >
+                            {allSelected ? 'Limpar todos' : 'Marcar todos'}
+                          </button>
+                        </legend>
+                        <div className="grid gap-1 sm:grid-cols-2 mt-1">
+                          {group.items.map((item) => (
+                            <label
+                              key={item.code}
+                              className="flex items-start gap-2 text-xs p-1.5 rounded hover:bg-surface-mute cursor-pointer"
+                              title={item.code}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={editing.permissions.has(item.code)}
+                                onChange={() => togglePerm(item.code)}
+                                className="accent-pco-blue mt-0.5"
+                              />
+                              <span className="flex-1 min-w-0">
+                                <span className="block leading-snug text-ink-strong">
+                                  {item.label}
+                                </span>
+                                {item.description && (
+                                  <span className="block text-[10px] text-ink-subtle mt-0.5">
+                                    {item.description}
+                                  </span>
+                                )}
+                                <code className="block text-[9px] text-ink-subtle mt-0.5 font-mono opacity-60">
+                                  {item.code}
+                                </code>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    );
+                  })}
                 </div>
-                <p className="text-[11px] text-ink-subtle mt-2">
-                  Hoje as permissões são apenas documentação — a autorização
-                  efetiva continua usando os papéis do sistema. Quando RBAC
-                  dinâmico for ativado, esse mapeamento passa a ser enforçado.
+                <p className="text-[11px] text-ink-subtle mt-3">
+                  Hoje as permissões servem como <strong>documentação versionada</strong> —
+                  a autorização efetiva continua usando os 3 papéis do sistema
+                  (aluno, admin, superadmin). Quando RBAC dinâmico for ativado,
+                  esse mapeamento passa a ser enforçado em todas as rotas.
                 </p>
               </div>
             </div>

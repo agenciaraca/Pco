@@ -2832,9 +2832,17 @@ export async function fetchRoles(): Promise<{ roles: RoleDto[] }> {
   return http.get('/admin/roles');
 }
 
+export interface PermissionMetaDto {
+  label: string;
+  group: string;
+  description?: string;
+}
+
 export async function fetchPermissionsCatalog(): Promise<{
   system: string[];
   custom: string[];
+  meta: Record<string, PermissionMetaDto>;
+  groups: string[];
 }> {
   return http.get('/admin/permissions');
 }

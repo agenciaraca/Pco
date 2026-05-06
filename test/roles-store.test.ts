@@ -170,6 +170,53 @@ describe('roles-store', () => {
       expect(cat.custom).toContain('lab.experimental');
       expect(cat.custom).not.toContain('analytics.read');
     });
+
+    it('inclui meta com label/group para permissions system', async () => {
+      const cat = await roles.listPermissions();
+      expect(cat.meta['courses.read']).toBeDefined();
+      expect(cat.meta['courses.read'].label).toMatch(/visualizar.*curso/i);
+      expect(cat.meta['courses.read'].group).toBe('Cursos');
+    });
+
+    it('inclui groups canônicos', async () => {
+      const cat = await roles.listPermissions();
+      expect(cat.groups).toContain('Cursos');
+      expect(cat.groups).toContain('Sistema');
+      expect(cat.groups).toContain('LGPD');
+      expect(cat.groups).toContain('Outros');
+    });
+
+    it('todas as system permissions têm meta', async () => {
+      const cat = await roles.listPermissions();
+      const missing = (cat.system as string[]).filter((p) => !cat.meta[p]);
+      expect(missing).toEqual([]);
+    });
+  });
+
+  describe('PERMISSION_META completude', () => {
+    it('catalogo é granular (>= 80 permissões)', () => {
+      expect(roles.SYSTEM_PERMISSIONS.length).toBeGreaterThanOrEqual(80);
+    });
+
+    it('cada permission segue formato canônico (lowercase + dots)', () => {
+      for (const p of roles.SYSTEM_PERMISSIONS) {
+        expect(p, `permissão "${p}" tem formato inválido`).toMatch(
+          /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/,
+        );
+      }
+    });
+
+    it('admin role tem mais de 50 permissions (granular)', async () => {
+      const all = await roles.listRoles();
+      const admin = all.find((r) => r.slug === 'admin')!;
+      expect(admin.permissions.length).toBeGreaterThanOrEqual(50);
+    });
+
+    it('superadmin tem TODAS as system permissions', async () => {
+      const all = await roles.listRoles();
+      const sa = all.find((r) => r.slug === 'superadmin')!;
+      expect(sa.permissions.length).toBe(roles.SYSTEM_PERMISSIONS.length);
+    });
   });
 
   describe('findBySlug', () => {
