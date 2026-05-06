@@ -1,6 +1,16 @@
-import { Info, Server, GitBranch, Clock, Cpu, ExternalLink } from 'lucide-react';
+import {
+  Info,
+  Server,
+  GitBranch,
+  Clock,
+  Cpu,
+  ExternalLink,
+  RefreshCcw,
+} from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAdminAbout } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 
 function formatUptime(sec: number): string {
@@ -16,6 +26,19 @@ function formatUptime(sec: number): string {
 export default function AdminAbout() {
   useDocumentMeta({ title: 'Sobre — Admin AVA PCO' });
   const { data, isLoading } = useAdminAbout();
+  const qc = useQueryClient();
+  const toast = useToast();
+
+  function handleInvalidateAll() {
+    if (
+      !confirm(
+        'Forçar refresh de todos os dados em cache?\n\nNão afeta o servidor — apenas o navegador refaz queries.',
+      )
+    )
+      return;
+    qc.invalidateQueries();
+    toast.success('Caches invalidados — recarregando dados');
+  }
 
   if (isLoading || !data) return <CardListSkeleton count={3} />;
 
@@ -84,6 +107,23 @@ export default function AdminAbout() {
           </tbody>
         </table>
       </div>
+
+      <section className="pco-card p-4 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-sm font-semibold text-pco-deep">Cache do cliente</h2>
+          <p className="text-[11px] text-ink-muted mt-0.5">
+            Se notar dados desatualizados, force um refresh completo das queries.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleInvalidateAll}
+          className="pco-btn-ghost text-xs"
+        >
+          <RefreshCcw size={11} strokeWidth={2} />
+          Invalidar caches
+        </button>
+      </section>
 
       <section className="pco-card p-4">
         <h2 className="text-sm font-semibold text-pco-deep mb-2">Links úteis</h2>
