@@ -585,16 +585,42 @@ function normalizeSlug(s: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/** Garante que system roles existam mesmo após edits manuais ao JSON. */
+/**
+ * Garante que system roles existam e estejam sincronizadas com o seed canônico.
+ * - Adiciona system roles ausentes
+ * - Reconcilia permissions/name/description quando o seed evolui em deploys
+ *   (system roles são imutáveis no UI, mas o código fonte é a verdade)
+ * - NÃO toca em custom roles (system=false), nem deleta nada
+ */
 async function ensureSystemRoles(): Promise<void> {
-  const all = await store.getAll();
-  const slugs = new Set(all.map((r) => r.slug));
-  const missing = SYSTEM_ROLES.filter((r) => !slugs.has(r.slug));
-  if (missing.length > 0) {
-    await store.modify((arr) => {
-      for (const r of missing) arr.push(r);
-    });
-  }
+  await store.modify((arr) => {
+    for (const seed of SYSTEM_ROLES) {
+      const idx = arr.findIndex((r) => r.slug === seed.slug);
+      if (idx === -1) {
+        arr.push({ ...seed });
+        continue;
+      }
+      const current = arr[idx];
+      const permsChanged =
+        current.permissions.length !== seed.permissions.length ||
+        current.permissions.some((p, i) => p !== seed.permissions[i]);
+      if (
+        permsChanged ||
+        current.name !== seed.name ||
+        current.description !== seed.description ||
+        current.system !== true
+      ) {
+        arr[idx] = {
+          ...current,
+          name: seed.name,
+          description: seed.description,
+          permissions: [...seed.permissions],
+          system: true,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+    }
+  });
 }
 
 export async function listRoles(): Promise<Role[]> {

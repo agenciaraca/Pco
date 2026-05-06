@@ -226,4 +226,43 @@ describe('roles-store', () => {
       expect(r?.slug).toBe('mentor-1');
     });
   });
+
+  describe('ensureSystemRoles (sync com seed)', () => {
+    it('listRoles reconcilia system roles após mutação direta no store', async () => {
+      // Simula um JSON em produção que ficou com seed antigo (poucas permissões)
+      const all = await roles.listRoles();
+      const admin = all.find((r) => r.slug === 'admin')!;
+      // Cria custom role pra garantir que NÃO é tocada
+      const custom = await roles.createRole({
+        slug: 'mentor-tmp',
+        name: 'Mentor Tmp',
+        permissions: ['support.read'],
+      });
+      const fullPermsLen = admin.permissions.length;
+
+      // Reseta forçando inconsistência (admin com seed antigo)
+      await roles._resetForTests();
+      // Agora listRoles deve rever o admin com TODAS as permissões do seed atual
+      const after = await roles.listRoles();
+      const adminAfter = after.find((r) => r.slug === 'admin')!;
+      expect(adminAfter.permissions.length).toBe(fullPermsLen);
+      // Custom role foi removida no _resetForTests (esperado)
+      expect(after.find((r) => r.id === custom.id)).toBeUndefined();
+    });
+
+    it('listRoles preserva custom roles (system=false) entre chamadas', async () => {
+      const custom = await roles.createRole({
+        slug: 'persistente',
+        name: 'Persistente',
+        permissions: ['analytics.read'],
+      });
+      // Múltiplas chamadas — ensureSystemRoles roda várias vezes
+      await roles.listRoles();
+      await roles.listRoles();
+      const final = await roles.listRoles();
+      const found = final.find((r) => r.id === custom.id);
+      expect(found).toBeDefined();
+      expect(found!.permissions).toEqual(['analytics.read']);
+    });
+  });
 });
