@@ -1,5 +1,10 @@
 # AVA PCO
 
+[![CI](https://github.com/agenciaraca/Pco/actions/workflows/ci.yml/badge.svg)](https://github.com/agenciaraca/Pco/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/tests-924%20passing-brightgreen)
+![Sprints](https://img.shields.io/badge/sprints-498%2B-blue)
+![License](https://img.shields.io/badge/license-Proprietary-lightgrey)
+
 Ambiente Virtual de Aprendizagem da Psicanálise Clínica Online.
 
 Frontend SPA + backend serverless TypeScript end-to-end.
