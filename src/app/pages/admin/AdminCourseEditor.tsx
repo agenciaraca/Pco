@@ -787,6 +787,8 @@ function ModuleEditor({ module, nextOrder, submitting, onClose, onSubmit }: Modu
       releaseAt: module?.releaseAt
         ? new Date(module.releaseAt).toISOString().slice(0, 16)
         : '',
+      releaseAfterEnrollmentDays:
+        module?.releaseAfterEnrollmentDays ?? undefined,
     },
   });
 
@@ -816,7 +818,7 @@ function ModuleEditor({ module, nextOrder, submitting, onClose, onSubmit }: Modu
           />
         </Field>
         <Field
-          label="Liberação programada (opcional)"
+          label="Liberação em data fixa (opcional)"
           error={errors.releaseAt?.message}
         >
           <input
@@ -825,8 +827,33 @@ function ModuleEditor({ module, nextOrder, submitting, onClose, onSubmit }: Modu
             className="pco-input"
           />
           <p className="text-[11px] text-ink-subtle mt-1">
-            Se preenchido, este módulo só fica acessível aos alunos a partir
-            desta data/hora. Útil pra liberar conteúdo em fases (drip content).
+            Se preenchido, módulo só libera a partir desta data/hora pra
+            todos os alunos (drip absoluto).
+          </p>
+        </Field>
+
+        <Field
+          label="Liberar N dias após matrícula (opcional)"
+          error={errors.releaseAfterEnrollmentDays?.message}
+        >
+          <input
+            type="number"
+            min={1}
+            max={365}
+            {...register('releaseAfterEnrollmentDays', {
+              setValueAs: (v) =>
+                v === '' || v === null || v === undefined
+                  ? undefined
+                  : Number(v),
+            })}
+            className="pco-input w-32"
+            placeholder="Ex: 7"
+          />
+          <p className="text-[11px] text-ink-subtle mt-1">
+            Drip relativo: cada aluno só vê este módulo N dias após sua
+            matrícula no curso. Útil pra cohorts pedagógicas. Se ambos
+            (data fixa + dias) forem preenchidos, o módulo só libera
+            quando AMBOS já tiverem passado.
           </p>
         </Field>
         <ModalFooter onClose={onClose} submitting={submitting} isNew={isNew} entityLabel="módulo" />

@@ -386,6 +386,19 @@ export const createModuleSchema = z.object({
     .max(35)
     .optional()
     .or(z.literal('').transform(() => undefined)),
+  /**
+   * Drip relativo: módulo só fica acessível N dias após a matrícula do
+   * aluno no curso. Se ambos releaseAt e releaseAfterEnrollmentDays são
+   * passados, o aluno só vê quando AMBOS forem satisfeitos (lock mais
+   * tardio vence). 1-365 dias.
+   */
+  releaseAfterEnrollmentDays: z
+    .number()
+    .int()
+    .min(1)
+    .max(365)
+    .optional()
+    .nullable(),
 });
 export type CreateModuleInput = z.infer<typeof createModuleSchema>;
 

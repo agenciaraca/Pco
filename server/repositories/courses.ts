@@ -240,6 +240,7 @@ export async function createModule(
         description: input.description,
         order: input.order,
         releaseAt: input.releaseAt,
+        releaseAfterEnrollmentDays: input.releaseAfterEnrollmentDays ?? null,
         lessons: [],
       };
       c.modules.push(newModule);

@@ -168,6 +168,7 @@ export async function enrollInCourse(userId: string, courseId: string): Promise<
         progressByCourse: {},
         lastAccessAt: now,
         createdAt: now,
+        enrollmentDates: {},
       };
       rows.push(fresh);
       row = fresh;
@@ -175,8 +176,27 @@ export async function enrollInCourse(userId: string, courseId: string): Promise<
     if (!row.enrolledCourseIds.includes(courseId)) {
       row.enrolledCourseIds = [...row.enrolledCourseIds, courseId];
       row.progressByCourse = { ...row.progressByCourse, [courseId]: 0 };
+      row.enrollmentDates = {
+        ...(row.enrollmentDates ?? {}),
+        [courseId]: new Date().toISOString(),
+      };
     }
   });
+}
+
+/**
+ * Retorna a data ISO em que o aluno se matriculou no curso.
+ * Fallback (registros antigos sem enrollmentDates): student.createdAt.
+ */
+export async function getEnrollmentDate(
+  userId: string,
+  courseId: string,
+): Promise<string | null> {
+  const all = await adminStore.getAll();
+  const row = all.find((s) => s.id === userId);
+  if (!row) return null;
+  if (!row.enrolledCourseIds.includes(courseId)) return null;
+  return row.enrollmentDates?.[courseId] ?? row.createdAt;
 }
 
 /**

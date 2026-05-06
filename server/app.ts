@@ -882,9 +882,16 @@ export function buildApp() {
       return jsonError(c, 400, 'INVALID_INPUT', 'courseId e moduleId são obrigatórios');
     }
     // Drip: bloqueia se o módulo da aula ainda não foi liberado
+    // (considera tanto data absoluta quanto relativa à matrícula).
     const courseForLock = await coursesRepo.findCourse(courseId);
     if (courseForLock) {
-      const found = findModuleLockForLesson(courseForLock, lessonId);
+      const enrolledAt = await studentsRepo.getEnrollmentDate(u.sub, courseId);
+      const found = findModuleLockForLesson(
+        courseForLock,
+        lessonId,
+        Date.now(),
+        { enrolledAt },
+      );
       if (found?.lock.locked) {
         return jsonError(
           c,
@@ -1590,11 +1597,17 @@ export function buildApp() {
   app.get('/courses/:id', async (c) => {
     const course = await coursesRepo.findCourse(c.req.param('id'));
     if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
-    // Drip: anota cada módulo com lockedUntil (se releaseAt no futuro)
+    // Drip: usa data de matrícula do aluno logado (se houver) pra
+    // computar drip relativo. Visitantes só veem o lock absoluto.
+    const me = c.get('user');
+    const enrolledAt = me
+      ? await studentsRepo.getEnrollmentDate(me.sub, course.id)
+      : null;
+    const ctx = { enrolledAt };
     const enriched = {
       ...course,
       modules: course.modules.map((m) => {
-        const lock = computeModuleLock(m);
+        const lock = computeModuleLock(m, Date.now(), ctx);
         return lock.locked
           ? { ...m, lockedUntil: lock.lockedUntil, locked: true }
           : { ...m, locked: false };

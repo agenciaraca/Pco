@@ -22,17 +22,49 @@ const NEVER: ModuleLockInfo = {
   secondsUntilUnlock: 0,
 };
 
+export interface ModuleLockContext {
+  /** ISO date em que o aluno se matriculou no curso. Se omitido, drip
+   *  relativo é ignorado (visitante público ou aluno não matriculado). */
+  enrolledAt?: string | Date | null;
+}
+
 export function computeModuleLock(
-  module: { releaseAt?: string | Date | null },
+  module: {
+    releaseAt?: string | Date | null;
+    releaseAfterEnrollmentDays?: number | null;
+  },
   nowMs: number = Date.now(),
+  ctx: ModuleLockContext = {},
 ): ModuleLockInfo {
-  if (!module.releaseAt) return NEVER;
-  const releaseMs =
-    typeof module.releaseAt === 'string'
-      ? new Date(module.releaseAt).getTime()
-      : module.releaseAt.getTime();
-  if (!Number.isFinite(releaseMs)) return NEVER;
-  if (releaseMs <= nowMs) return NEVER;
+  // Calcula o instante mais tardio de release (absoluto + relativo).
+  // Se ambos definidos, o módulo só libera quando os DOIS já passaram.
+  let releaseMs: number | null = null;
+
+  if (module.releaseAt) {
+    const ms =
+      typeof module.releaseAt === 'string'
+        ? new Date(module.releaseAt).getTime()
+        : module.releaseAt.getTime();
+    if (Number.isFinite(ms)) releaseMs = ms;
+  }
+
+  if (
+    typeof module.releaseAfterEnrollmentDays === 'number' &&
+    module.releaseAfterEnrollmentDays > 0 &&
+    ctx.enrolledAt
+  ) {
+    const enrolledMs =
+      typeof ctx.enrolledAt === 'string'
+        ? new Date(ctx.enrolledAt).getTime()
+        : ctx.enrolledAt.getTime();
+    if (Number.isFinite(enrolledMs)) {
+      const relMs =
+        enrolledMs + module.releaseAfterEnrollmentDays * 24 * 60 * 60 * 1000;
+      releaseMs = releaseMs !== null ? Math.max(releaseMs, relMs) : relMs;
+    }
+  }
+
+  if (releaseMs === null || releaseMs <= nowMs) return NEVER;
   return {
     locked: true,
     lockedUntil: new Date(releaseMs).toISOString(),
@@ -46,13 +78,21 @@ export function computeModuleLock(
  * ainda não liberados.
  */
 export function findModuleLockForLesson(
-  course: { modules: { id: string; releaseAt?: string | Date | null; lessons: { id: string }[] }[] },
+  course: {
+    modules: {
+      id: string;
+      releaseAt?: string | Date | null;
+      releaseAfterEnrollmentDays?: number | null;
+      lessons: { id: string }[];
+    }[];
+  },
   lessonId: string,
   nowMs: number = Date.now(),
+  ctx: ModuleLockContext = {},
 ): { moduleId: string; lock: ModuleLockInfo } | null {
   for (const m of course.modules) {
     if (m.lessons.some((l) => l.id === lessonId)) {
-      return { moduleId: m.id, lock: computeModuleLock(m, nowMs) };
+      return { moduleId: m.id, lock: computeModuleLock(m, nowMs, ctx) };
     }
   }
   return null;

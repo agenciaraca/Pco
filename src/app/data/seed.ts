@@ -390,6 +390,8 @@ export interface AdminStudentRow {
   lastAccessAt: string;
   createdAt: string;
   weeklyGoalMinutes?: number;
+  /** Quando o aluno se matriculou em cada curso (ISO 8601). */
+  enrollmentDates?: Record<string, string>;
 }
 
 export const adminStudents: AdminStudentRow[] = [

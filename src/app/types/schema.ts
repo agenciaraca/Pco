@@ -62,6 +62,11 @@ export interface Module {
   description?: string;
   order: number;
   releaseAt?: string;
+  /**
+   * Drip relativo: módulo libera N dias após a matrícula do aluno
+   * no curso (se enrolledAt + N dias > now → locked).
+   */
+  releaseAfterEnrollmentDays?: number | null;
   /** Drip: true se releaseAt está no futuro. */
   locked?: boolean;
   /** ISO 8601 — quando o módulo será liberado (apenas se locked). */
