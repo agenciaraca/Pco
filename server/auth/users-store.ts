@@ -209,6 +209,7 @@ interface CreateInput {
   role: Role;
   password: string;
   active?: boolean;
+  document?: string | null;
 }
 
 export async function createUser(input: CreateInput): Promise<SystemUserPublic> {
@@ -227,6 +228,7 @@ export async function createUser(input: CreateInput): Promise<SystemUserPublic> 
     createdAt: now,
     updatedAt: now,
     active: input.active ?? true,
+    document: input.document ?? null,
   };
   users.push(u);
   await queueWrite();
