@@ -22,6 +22,7 @@ import MobileNav from '../components/MobileNav';
 import StudentSearchPalette from '../components/StudentSearchPalette';
 import ScrollToTop from '../components/ScrollToTop';
 import EnvBanner from '../components/EnvBanner';
+import ImpersonationBanner from '../components/ImpersonationBanner';
 import Footer from '../components/Footer';
 
 const studentGroups = [
@@ -64,6 +65,7 @@ export default function StudentLayout() {
     <div className="flex flex-col min-h-screen bg-surface-off">
       <ScrollToTop />
       <EnvBanner />
+      <ImpersonationBanner />
       <div className="flex flex-1 min-w-0">
       <a
         href="#main-content"

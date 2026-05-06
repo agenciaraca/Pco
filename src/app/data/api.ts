@@ -96,6 +96,43 @@ export async function logoutAllDevices(): Promise<{ ok: true; tokenVersion: numb
   return http.post<{ ok: true; tokenVersion: number }>('/auth/logout-all-devices', {});
 }
 
+// ---------- Impersonation ----------
+export interface ImpersonationStartResult {
+  ok: true;
+  token: string;
+  actor: { id: string; email: string; role: 'student' | 'admin' | 'superadmin' };
+  target: {
+    id: string;
+    email: string;
+    name: string;
+    role: 'student' | 'admin' | 'superadmin';
+  };
+  expiresInSeconds: number;
+}
+
+export async function startImpersonation(
+  targetUserId: string,
+): Promise<ImpersonationStartResult> {
+  return http.post<ImpersonationStartResult>(
+    `/admin/impersonate/${encodeURIComponent(targetUserId)}`,
+    {},
+  );
+}
+
+export async function exitImpersonation(): Promise<{ ok: true; token: string }> {
+  return http.post<{ ok: true; token: string }>('/admin/impersonate/exit', {});
+}
+
+export interface ImpersonationStatus {
+  impersonating: boolean;
+  actor?: { id: string; email: string; role: 'student' | 'admin' | 'superadmin' };
+  target?: { id: string; email: string; role: 'student' | 'admin' | 'superadmin' };
+}
+
+export async function getImpersonationStatus(): Promise<ImpersonationStatus> {
+  return http.get<ImpersonationStatus>('/me/impersonation');
+}
+
 export interface UpdateProfileBody {
   name?: string;
   avatarUrl?: string | null;

@@ -17,7 +17,9 @@ import {
   CheckCircle2,
   PlayCircle,
   Calendar,
+  Eye,
 } from 'lucide-react';
+import { useAuth } from '../../auth/AuthContext';
 import Tabs from '../../components/Tabs';
 import AdminNotesPanel from '../../components/AdminNotesPanel';
 import StudentAnalyticsPanel from '../../components/StudentAnalyticsPanel';
@@ -47,11 +49,28 @@ const statusLabel: Record<string, string> = {
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
   const [active, setActive] = useState('geral');
+  const [impersonating, setImpersonating] = useState(false);
+  const [impersonateError, setImpersonateError] = useState<string | null>(null);
+  const auth = useAuth();
   const studentsQ = useAdminStudents({ status: 'todos', sortBy: 'name' });
   const coursesQ = useCourses();
   const risksQ = useRetentionRisks();
   const certsQ = useAllCertificates();
   const timelineQ = useUserTimeline(id);
+
+  async function handleImpersonate() {
+    if (!id || impersonating) return;
+    setImpersonating(true);
+    setImpersonateError(null);
+    try {
+      await auth.startImpersonation(id);
+    } catch (err) {
+      setImpersonating(false);
+      setImpersonateError(
+        err instanceof Error ? err.message : 'Falha ao iniciar visualização.',
+      );
+    }
+  }
 
   if (studentsQ.isLoading || coursesQ.isLoading) {
     return <CardListSkeleton count={4} />;
@@ -138,12 +157,28 @@ export default function AdminUserDetail() {
               </>
             )}
           </button>
+          <button
+            type="button"
+            onClick={handleImpersonate}
+            disabled={impersonating || !auth.user || (auth.user.role !== 'admin' && auth.user.role !== 'superadmin')}
+            className="pco-btn-secondary text-xs disabled:opacity-50"
+            title="Visualizar a plataforma como este aluno (suporte)"
+          >
+            <Eye size={12} strokeWidth={2} />
+            {impersonating ? 'Entrando…' : 'Entrar como aluno'}
+          </button>
           <Link to="/admin/plano-retomada-ia" className="pco-btn-primary text-xs">
             <Sparkles size={12} strokeWidth={2} />
             Plano de Retomada IA
           </Link>
         </div>
       </header>
+
+      {impersonateError && (
+        <div className="pco-card border-status-danger/30 bg-status-danger/5 text-sm text-status-danger">
+          {impersonateError}
+        </div>
+      )}
 
       <Tabs items={tabs} active={active} onChange={setActive} />
 

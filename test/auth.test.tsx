@@ -13,6 +13,7 @@ vi.mock('../src/app/data/api', () => ({
     },
     token: 'mock-jwt',
   })),
+  getImpersonationStatus: vi.fn(async () => ({ impersonating: false })),
 }));
 
 const wrapper = ({ children }: { children: ReactNode }) => (
