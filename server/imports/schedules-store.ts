@@ -182,3 +182,22 @@ function clampInt(n: number, min: number, max: number): number {
   if (Number.isNaN(i)) return min;
   return Math.max(min, Math.min(max, i));
 }
+
+// Test-only helper
+export async function _resetForTests(): Promise<void> {
+  await store.setAll([]);
+}
+
+// Test-only helper: força nextRunAt sem recomputar
+export async function _setNextRunAtForTests(
+  id: string,
+  nextRunAt: string | null,
+): Promise<void> {
+  await store.update(
+    (s) => s.id === id,
+    (s) => ({
+      ...s,
+      nextRunAt: nextRunAt === null ? undefined : nextRunAt,
+    }),
+  );
+}

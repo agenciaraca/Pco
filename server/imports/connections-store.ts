@@ -184,3 +184,8 @@ function normalizeUrl(url: string): string {
   if (!/^https?:\/\//.test(u)) u = `https://${u}`;
   return u.replace(/\/+$/, '');
 }
+
+// Test-only helper
+export async function _resetForTests(): Promise<void> {
+  await store.setAll([]);
+}
