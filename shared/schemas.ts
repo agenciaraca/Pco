@@ -302,6 +302,12 @@ export const updateCourseSchema = z.object({
    * pública do curso como incentivo de matrícula.
    */
   learningOutcomes: z.array(z.string().min(2).max(200)).max(20).optional(),
+  /** Nome público do(a) instrutor(a)/professor(a). */
+  instructorName: z.string().max(120).optional().or(z.literal('')),
+  /** Bio curta do instrutor. */
+  instructorBio: z.string().max(2000).optional().or(z.literal('')),
+  /** URL pública de uma foto do instrutor. */
+  instructorPhotoUrl: z.string().url().max(500).optional().or(z.literal('')),
 });
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
 

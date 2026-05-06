@@ -182,6 +182,15 @@ export async function updateCourse(
         ...(patch.learningOutcomes !== undefined
           ? { learningOutcomes: patch.learningOutcomes }
           : {}),
+        ...(patch.instructorName !== undefined
+          ? { instructorName: patch.instructorName || undefined }
+          : {}),
+        ...(patch.instructorBio !== undefined
+          ? { instructorBio: patch.instructorBio || undefined }
+          : {}),
+        ...(patch.instructorPhotoUrl !== undefined
+          ? { instructorPhotoUrl: patch.instructorPhotoUrl || undefined }
+          : {}),
       }),
     );
   }

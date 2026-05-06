@@ -147,6 +147,9 @@ function GeralPane({ course }: { course: Course }) {
       totalHours: course.totalHours,
       certificateAvailable: course.certificateAvailable,
       coverColor: course.coverColor,
+      instructorName: course.instructorName ?? '',
+      instructorBio: course.instructorBio ?? '',
+      instructorPhotoUrl: course.instructorPhotoUrl ?? '',
     },
   });
 
@@ -358,6 +361,42 @@ function GeralPane({ course }: { course: Course }) {
             X", "Vou entender Y").
           </p>
         </Field>
+
+        <fieldset className="border border-pco-border rounded-lg p-4 space-y-3">
+          <legend className="px-2 text-xs font-semibold text-pco-deep">
+            Instrutor / Professor
+          </legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Nome" error={errors.instructorName?.message}>
+              <input
+                {...register('instructorName')}
+                className="pco-input"
+                placeholder="Ex: Dra. Maria Silva"
+                maxLength={120}
+              />
+            </Field>
+            <Field
+              label="Foto (URL pública)"
+              error={errors.instructorPhotoUrl?.message}
+            >
+              <input
+                {...register('instructorPhotoUrl')}
+                className="pco-input font-mono text-xs"
+                placeholder="https://..."
+                maxLength={500}
+              />
+            </Field>
+          </div>
+          <Field label="Bio" error={errors.instructorBio?.message}>
+            <textarea
+              {...register('instructorBio')}
+              rows={3}
+              className="pco-input resize-none"
+              placeholder="Formação acadêmica, anos de experiência, áreas de atuação…"
+              maxLength={2000}
+            />
+          </Field>
+        </fieldset>
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Carga horária (h)" error={errors.totalHours?.message}>

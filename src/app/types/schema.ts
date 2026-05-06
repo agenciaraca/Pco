@@ -86,6 +86,10 @@ export interface Course {
   prerequisiteCourseIds?: ID[];
   /** Bullet points de "O que você vai aprender" (CoursePreview). */
   learningOutcomes?: string[];
+  /** Instrutor/professor responsável pelo curso. */
+  instructorName?: string;
+  instructorBio?: string;
+  instructorPhotoUrl?: string;
 }
 
 export interface Certificate {

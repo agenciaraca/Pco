@@ -188,6 +188,43 @@ export default function CoursePreview() {
           </div>
         </section>
 
+        {course.instructorName && (
+          <section className="pco-card p-6">
+            <h2 className="text-lg font-bold text-pco-deep mb-4">
+              Sobre o instrutor
+            </h2>
+            <div className="flex items-start gap-4 flex-wrap">
+              {course.instructorPhotoUrl ? (
+                <img
+                  src={course.instructorPhotoUrl}
+                  alt={course.instructorName}
+                  className="h-20 w-20 rounded-full object-cover bg-surface-mute shrink-0"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-pco-blue/20 to-pco-cyan/20 grid place-items-center text-pco-deep font-bold text-xl shrink-0">
+                  {course.instructorName
+                    .split(' ')
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1 min-w-[240px]">
+                <h3 className="text-base font-semibold text-pco-deep">
+                  {course.instructorName}
+                </h3>
+                {course.instructorBio && (
+                  <p className="text-sm text-ink-muted mt-1 whitespace-pre-line">
+                    {course.instructorBio}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {(course.learningOutcomes?.length ?? 0) > 0 && (
           <section className="pco-card p-6">
             <h2 className="text-lg font-bold text-pco-deep mb-4">
