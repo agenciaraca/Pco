@@ -151,6 +151,7 @@ import { buildLeaderboard, getUserRank } from './activity/leaderboard';
 import * as liveSessions from './live-sessions/store';
 import * as savedSearches from './saved-searches/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
+import { buildOpenApiSpec } from './http/openapi';
 import * as logBuffer from './monitoring/log-buffer';
 import * as watchTimeRepo from './repositories/watch-time';
 import * as courseReviews from './reviews/store';
@@ -3794,6 +3795,23 @@ export function buildApp() {
   });
 
   // ---------- API pública v1 (autenticada por API token) ----------
+
+  /**
+   * OpenAPI 3.0 spec da API pública. Endpoint público (sem auth) — apenas
+   * documenta as rotas. Aceita ?origin= para sobrescrever o servidor base.
+   */
+  app.get('/v1/openapi.json', (c) => {
+    const queryOrigin = c.req.query('origin');
+    const headerOrigin = c.req.header('x-forwarded-proto') && c.req.header('host')
+      ? `${c.req.header('x-forwarded-proto')}://${c.req.header('host')}`
+      : undefined;
+    const spec = buildOpenApiSpec({
+      origin: queryOrigin ?? process.env.PUBLIC_ORIGIN ?? headerOrigin,
+      version: AVA_VERSION,
+    });
+    c.header('Cache-Control', 'public, max-age=300');
+    return c.json(spec);
+  });
 
   app.get('/v1/me', requireApiToken(), async (c) => {
     const t = c.get('apiToken')!;
