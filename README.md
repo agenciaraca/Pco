@@ -1,8 +1,8 @@
 # AVA PCO
 
 [![CI](https://github.com/agenciaraca/Pco/actions/workflows/ci.yml/badge.svg)](https://github.com/agenciaraca/Pco/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-1005%20passing-brightgreen)
-![Sprints](https://img.shields.io/badge/sprints-512%2B-blue)
+![Tests](https://img.shields.io/badge/tests-1020%20passing-brightgreen)
+![Sprints](https://img.shields.io/badge/sprints-515%2B-blue)
 ![License](https://img.shields.io/badge/license-Proprietary-lightgrey)
 
 Ambiente Virtual de Aprendizagem da Psicanálise Clínica Online.

@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-07 — sprints 469-512)
+## Estado atual (atualizado em 2026-05-07 — sprints 469-515)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **512+** |
-| Commits no main | **285+** |
-| Arquivos de teste | **101** |
-| Testes passando | **1005** ✅ |
+| Sprints entregues | **515+** |
+| Commits no main | **288+** |
+| Arquivos de teste | **102** |
+| Testes passando | **1020** ✅ |
 | Coverage statements | **~70%** |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,12 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-512 (drip 2 + LMS extensions + tests + docs)
+### Bloco sprints 494-515 (drip 2 + LMS extensions + tests + docs + quiz UI + email editor)
 | Sprint | Tema |
 |---|---|
+| 515 | editor de templates de e-mail customizáveis (15 testes) |
+| 514 | quiz: fluxo do aluno responder + resultado + revisão |
+| 513 | quiz: admin UI CRUD pro banco de questões |
 | 512 | guia do administrador não-técnico (docs) |
 | 511 | kanban view em /admin/evasao |
 | 510 | cookbook webhooks (docs com 7 receitas) |
