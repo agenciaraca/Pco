@@ -23,6 +23,7 @@ import {
   useLessonTranscript,
 } from '../data/hooks';
 import { TRANSCRIPT_LOCALE_LABELS } from '../../../shared/schemas';
+import { useT } from '../i18n';
 import { useToast } from '../components/Toast';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import LessonComments from '../components/LessonComments';
@@ -435,6 +436,7 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
   const [lang, setLang] = useState<string | undefined>(undefined);
   const transcriptQ = useLessonTranscript(open ? lessonId : undefined, lang);
   const toast = useToast();
+  const t = useT();
 
   if (!open) {
     return (
@@ -445,24 +447,24 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
       >
         <span className="flex items-center gap-2 text-sm font-semibold text-pco-deep">
           <Languages size={16} className="text-pco-blue" strokeWidth={1.75} />
-          Transcrição
+          {t('lesson.transcript')}
         </span>
-        <span className="text-xs text-ink-muted">Mostrar</span>
+        <span className="text-xs text-ink-muted">{t('common.show')}</span>
       </button>
     );
   }
 
-  const t = transcriptQ.data;
-  const available = t?.availableLocales ?? [];
+  const data = transcriptQ.data;
+  const available = data?.availableLocales ?? [];
   const noTranscript = !transcriptQ.isLoading && available.length === 0;
 
   async function handleCopy() {
-    if (!t?.text) return;
+    if (!data?.text) return;
     try {
-      await navigator.clipboard.writeText(t.text);
-      toast.success('Transcrição copiada');
+      await navigator.clipboard.writeText(data.text);
+      toast.success(t('lesson.transcriptCopied'));
     } catch {
-      toast.error('Falha ao copiar');
+      toast.error(t('common.error'));
     }
   }
 
@@ -471,15 +473,15 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
       <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
         <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">
           <Languages size={16} className="text-pco-blue" strokeWidth={1.75} />
-          Transcrição
+          {t('lesson.transcript')}
         </h3>
         <div className="flex items-center gap-2">
           {available.length > 1 && (
             <select
-              value={t?.locale ?? ''}
+              value={data?.locale ?? ''}
               onChange={(e) => setLang(e.target.value)}
               className="pco-input text-xs py-1"
-              aria-label="Idioma da transcrição"
+              aria-label={t('lesson.transcriptLanguage')}
             >
               {available.map((l) => (
                 <option key={l} value={l}>
@@ -488,15 +490,15 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
               ))}
             </select>
           )}
-          {t?.text && (
+          {data?.text && (
             <button
               type="button"
               onClick={handleCopy}
               className="pco-btn-ghost text-xs"
-              title="Copiar texto"
+              title={t('common.copy')}
             >
               <Copy size={12} strokeWidth={2} />
-              Copiar
+              {t('common.copy')}
             </button>
           )}
           <button
@@ -504,27 +506,27 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
             onClick={() => setOpen(false)}
             className="pco-btn-ghost text-xs"
           >
-            Ocultar
+            {t('common.hide')}
           </button>
         </div>
       </div>
       {transcriptQ.isLoading ? (
         <div className="flex items-center gap-2 text-xs text-ink-muted">
           <Loader2 size={12} className="animate-spin" />
-          Carregando transcrição...
+          {t('lesson.transcriptLoading')}
         </div>
       ) : noTranscript ? (
         <div className="text-xs text-ink-subtle italic">
-          Esta aula ainda não tem transcrição disponível.
+          {t('lesson.transcriptNone')}
         </div>
-      ) : t?.text ? (
+      ) : data?.text ? (
         <div className="max-h-[400px] overflow-y-auto border border-surface-gray rounded-lg p-3 bg-white">
           <article className="prose prose-sm max-w-none whitespace-pre-wrap text-sm text-pco-deep leading-relaxed">
-            {t.text}
+            {data.text}
           </article>
         </div>
       ) : (
-        <div className="text-xs text-ink-subtle italic">Sem conteúdo no idioma selecionado.</div>
+        <div className="text-xs text-ink-subtle italic">{t('common.empty')}</div>
       )}
     </div>
   );

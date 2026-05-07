@@ -23,6 +23,8 @@ import { useAuth } from '../auth/AuthContext';
 import { useUnreadCount } from '../data/hooks';
 import { useToast } from './Toast';
 import * as api from '../data/api';
+import { useT } from '../i18n';
+import LocaleSwitcher from './LocaleSwitcher';
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -46,6 +48,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
   const navigate = useNavigate();
   const unread = useUnreadCount();
   const toast = useToast();
+  const t = useT();
   const lastUnreadRef = useRef<number | null>(null);
   const [badgePulse, setBadgePulse] = useState(false);
 
@@ -324,7 +327,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-ink-muted hover:bg-surface-off hover:text-pco-deep"
               >
                 <UserCircle2 size={14} strokeWidth={1.75} />
-                Meu perfil
+                {t('profile.title')}
               </Link>
               <Link
                 to={variant === 'admin' ? '/admin/configuracoes' : '/perfil'}
@@ -332,8 +335,14 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-ink-muted hover:bg-surface-off hover:text-pco-deep"
               >
                 <SettingsIcon size={14} strokeWidth={1.75} />
-                Configurações
+                {t('nav.settings')}
               </Link>
+              <div className="px-3 py-2 border-t border-pco-border mt-1 pt-2">
+                <div className="text-[10px] uppercase tracking-wider text-ink-subtle mb-1">
+                  {t('profile.language')}
+                </div>
+                <LocaleSwitcher variant="inline" />
+              </div>
               {variant !== 'admin' && user?.role === 'admin' && (
                 <Link
                   to="/admin/dashboard"
@@ -348,7 +357,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-status-danger hover:bg-status-danger/10"
               >
                 <LogOut size={14} strokeWidth={1.75} />
-                Sair
+                {t('nav.logout')}
               </button>
               <button
                 onClick={handleLogoutAll}

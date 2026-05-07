@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import Logo from './Logo';
+import { useT } from '../i18n';
 
 interface NavItem {
   to: string;
@@ -31,35 +32,6 @@ interface NavGroup {
   title: string;
   items: NavItem[];
 }
-
-const studentGroups: NavGroup[] = [
-  {
-    title: 'Estudo',
-    items: [
-      { to: '/dashboard', label: 'Início', icon: Home },
-      { to: '/jornada', label: 'Minha Jornada', icon: Compass },
-      { to: '/cursos', label: 'Meus Cursos', icon: GraduationCap },
-    ],
-  },
-  {
-    title: 'Conteúdo',
-    items: [
-      { to: '/biblioteca', label: 'Biblioteca PCO', icon: BookOpen },
-      { to: '/news', label: 'PCO News', icon: Newspaper },
-      { to: '/podcasts', label: 'PCO POD', icon: Mic2 },
-      { to: '/tutor', label: 'Tutor Virtual', icon: Bot },
-      { to: '/analise-supervisao', label: 'Análise e Supervisão', icon: Stethoscope },
-    ],
-  },
-  {
-    title: 'Conta',
-    items: [
-      { to: '/certificados', label: 'Certificados', icon: Award },
-      { to: '/suporte', label: 'Suporte', icon: LifeBuoy },
-      { to: '/perfil', label: 'Meu Perfil', icon: UserCircle2 },
-    ],
-  },
-];
 
 interface SidebarProps {
   variant?: 'student' | 'admin';
@@ -99,6 +71,38 @@ function isItemActive(pathname: string, to: string, isHomepage: boolean): boolea
 }
 
 export default function Sidebar({ variant = 'student', groups }: SidebarProps) {
+  const t = useT();
+  const studentGroups = useMemo<NavGroup[]>(
+    () => [
+      {
+        title: t('nav.dashboard'),
+        items: [
+          { to: '/dashboard', label: t('nav.dashboard'), icon: Home },
+          { to: '/jornada', label: 'Minha Jornada', icon: Compass },
+          { to: '/cursos', label: t('nav.courses'), icon: GraduationCap },
+        ],
+      },
+      {
+        title: 'PCO',
+        items: [
+          { to: '/biblioteca', label: t('nav.library'), icon: BookOpen },
+          { to: '/news', label: t('nav.news'), icon: Newspaper },
+          { to: '/podcasts', label: t('nav.podcasts'), icon: Mic2 },
+          { to: '/tutor', label: 'Tutor Virtual', icon: Bot },
+          { to: '/analise-supervisao', label: 'Análise e Supervisão', icon: Stethoscope },
+        ],
+      },
+      {
+        title: t('nav.profile'),
+        items: [
+          { to: '/certificados', label: t('nav.certificates'), icon: Award },
+          { to: '/suporte', label: t('nav.support'), icon: LifeBuoy },
+          { to: '/perfil', label: t('nav.profile'), icon: UserCircle2 },
+        ],
+      },
+    ],
+    [t],
+  );
   const items = groups ?? studentGroups;
   const location = useLocation();
 
