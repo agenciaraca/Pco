@@ -96,6 +96,168 @@ function unwrap(t: LdRendered | string | undefined | null): string {
   return t.rendered ?? '';
 }
 
+// ---------- LD slug discovery ----------
+// Sites LD frequentemente customizam os slugs dos endpoints REST (especialmente
+// em pt/es/fr). Em vez de hardcodar /sfwd-courses, pedimos /wp-json/ldlms/v2 e
+// descobrimos os slugs reais. Cache em memória por connection id (TTL 10min).
+
+export interface LdSlugs {
+  courses: string;
+  lessons: string;
+  topics: string;
+  quizzes: string;
+  questions: string;
+  groups: string;
+  // Subrotas sob courses/{id}/X
+  courseUsers: string;
+  courseSteps: string;
+  coursePrerequisites: string;
+  // Subrotas sob users/{id}/X
+  userCourseProgress: string;
+}
+
+const DEFAULT_LD_SLUGS: LdSlugs = {
+  courses: 'sfwd-courses',
+  lessons: 'sfwd-lessons',
+  topics: 'sfwd-topic',
+  quizzes: 'sfwd-quiz',
+  questions: 'sfwd-question',
+  groups: 'groups',
+  courseUsers: 'users',
+  courseSteps: 'steps',
+  coursePrerequisites: 'prerequisites',
+  userCourseProgress: 'course-progress',
+};
+
+// Aliases por idioma — ordem importa, primeiro match vence quando a busca
+// inversa cair num empate.
+const LD_SLUG_ALIASES: Record<keyof LdSlugs, string[]> = {
+  courses: ['sfwd-courses', 'cursos', 'courses', 'cours', 'kurse'],
+  lessons: ['sfwd-lessons', 'aulas', 'lecciones', 'lecons', 'lektionen', 'lessons'],
+  topics: ['sfwd-topic', 'sfwd-topics', 'topicos', 'tópicos', 'topics', 'temas', 'themen'],
+  quizzes: ['sfwd-quiz', 'teste', 'pruebas', 'quizzes', 'quiz'],
+  questions: ['sfwd-question', 'sfwd-questions', 'perguntas', 'preguntas', 'questions', 'fragen'],
+  groups: ['groups', 'sfwd-groups', 'grupos', 'gruppen'],
+  courseUsers: ['users', 'usuarios', 'usuários', 'utilisateurs', 'benutzer'],
+  courseSteps: ['steps', 'passo', 'pasos', 'etapes', 'étapes', 'schritte'],
+  coursePrerequisites: ['prerequisites', 'prerequisitos', 'prerrequisitos', 'pre-requisitos', 'voraussetzungen'],
+  userCourseProgress: ['course-progress', 'progresso-curso', 'progreso-curso'],
+};
+
+interface LdRouteIndex {
+  namespace?: string;
+  routes?: Record<string, unknown>;
+}
+
+interface SlugCacheEntry {
+  slugs: LdSlugs;
+  fetchedAt: number;
+  rawRoutes: string[];
+}
+
+const SLUG_CACHE_TTL_MS = 10 * 60 * 1000;
+const slugCache = new Map<string, SlugCacheEntry>();
+
+async function fetchLdRouteIndex(c: ImportConnection): Promise<LdRouteIndex | null> {
+  try {
+    const creds = decryptCreds(c);
+    const r = await getJson<LdRouteIndex>({
+      baseUrl: c.siteUrl,
+      path: 'wp-json/ldlms/v2',
+      username: creds.wpUsername,
+      password: creds.wpAppPassword,
+      timeoutMs: 12_000,
+    });
+    return r.data;
+  } catch {
+    return null;
+  }
+}
+
+function extractTopLevelRouteSlugs(routes: string[]): Set<string> {
+  const out = new Set<string>();
+  for (const path of routes) {
+    // só /ldlms/v2/<slug> exato — sem subpaths nem placeholders
+    const m = /^\/ldlms\/v2\/([^/()]+)$/.exec(path);
+    if (m && m[1]) out.add(m[1].toLowerCase());
+  }
+  return out;
+}
+
+function extractSubrouteSlugs(routes: string[], parentSlug: string): Set<string> {
+  const out = new Set<string>();
+  const prefix = `/ldlms/v2/${parentSlug}/`;
+  for (const path of routes) {
+    if (!path.startsWith(prefix)) continue;
+    const segments = path.slice(prefix.length).split('/');
+    // forma esperada: ['(?P<id>...)', '<child>'] — child pode ser palavra simples
+    if (segments.length === 2) {
+      const child = segments[1];
+      if (child && !child.includes('(')) out.add(child.toLowerCase());
+    }
+  }
+  return out;
+}
+
+function pickSlug(available: Set<string>, aliases: string[], fallback: string): string {
+  for (const a of aliases) {
+    if (available.has(a.toLowerCase())) return a;
+  }
+  return fallback;
+}
+
+export async function getLdSlugs(c: ImportConnection): Promise<LdSlugs> {
+  const cached = slugCache.get(c.id);
+  if (cached && Date.now() - cached.fetchedAt < SLUG_CACHE_TTL_MS) {
+    return cached.slugs;
+  }
+  const idx = await fetchLdRouteIndex(c);
+  if (!idx || !idx.routes) {
+    // Sem index acessível — usa defaults (mantém comportamento legado)
+    const slugs = { ...DEFAULT_LD_SLUGS };
+    slugCache.set(c.id, { slugs, fetchedAt: Date.now(), rawRoutes: [] });
+    return slugs;
+  }
+  const allRoutes = Object.keys(idx.routes);
+  const topLevel = extractTopLevelRouteSlugs(allRoutes);
+  const courses = pickSlug(topLevel, LD_SLUG_ALIASES.courses, DEFAULT_LD_SLUGS.courses);
+  const lessons = pickSlug(topLevel, LD_SLUG_ALIASES.lessons, DEFAULT_LD_SLUGS.lessons);
+  const topics = pickSlug(topLevel, LD_SLUG_ALIASES.topics, DEFAULT_LD_SLUGS.topics);
+  const quizzes = pickSlug(topLevel, LD_SLUG_ALIASES.quizzes, DEFAULT_LD_SLUGS.quizzes);
+  const questions = pickSlug(topLevel, LD_SLUG_ALIASES.questions, DEFAULT_LD_SLUGS.questions);
+  const groups = pickSlug(topLevel, LD_SLUG_ALIASES.groups, DEFAULT_LD_SLUGS.groups);
+
+  const coursesSubs = extractSubrouteSlugs(allRoutes, courses);
+  const userSubs = extractSubrouteSlugs(allRoutes, 'users');
+
+  const slugs: LdSlugs = {
+    courses,
+    lessons,
+    topics,
+    quizzes,
+    questions,
+    groups,
+    courseUsers: pickSlug(coursesSubs, LD_SLUG_ALIASES.courseUsers, DEFAULT_LD_SLUGS.courseUsers),
+    courseSteps: pickSlug(coursesSubs, LD_SLUG_ALIASES.courseSteps, DEFAULT_LD_SLUGS.courseSteps),
+    coursePrerequisites: pickSlug(
+      coursesSubs,
+      LD_SLUG_ALIASES.coursePrerequisites,
+      DEFAULT_LD_SLUGS.coursePrerequisites,
+    ),
+    userCourseProgress: pickSlug(
+      userSubs,
+      LD_SLUG_ALIASES.userCourseProgress,
+      DEFAULT_LD_SLUGS.userCourseProgress,
+    ),
+  };
+  slugCache.set(c.id, { slugs, fetchedAt: Date.now(), rawRoutes: allRoutes });
+  return slugs;
+}
+
+export function _resetLdSlugCacheForTests(): void {
+  slugCache.clear();
+}
+
 function basicAuthHeader(c: ImportConnection): Record<string, string> {
   const creds = decryptCreds(c);
   if (!creds.wpUsername || !creds.wpAppPassword) return {};
@@ -135,11 +297,12 @@ export async function fetchLdCourses(
   perPage = 100,
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
+  const slugs = await getLdSlugs(c);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdCourse>(
     {
       baseUrl: c.siteUrl,
-      path: 'wp-json/ldlms/v2/sfwd-courses',
+      path: `wp-json/ldlms/v2/${slugs.courses}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -171,11 +334,12 @@ export async function fetchLdLessons(
   perPage = 100,
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
+  const slugs = await getLdSlugs(c);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdLesson>(
     {
       baseUrl: c.siteUrl,
-      path: 'wp-json/ldlms/v2/sfwd-lessons',
+      path: `wp-json/ldlms/v2/${slugs.lessons}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -205,11 +369,12 @@ export async function fetchLdTopics(
   perPage = 100,
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
+  const slugs = await getLdSlugs(c);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdTopic>(
     {
       baseUrl: c.siteUrl,
-      path: 'wp-json/ldlms/v2/sfwd-topic',
+      path: `wp-json/ldlms/v2/${slugs.topics}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -239,11 +404,12 @@ export async function fetchLdQuizzes(
   perPage = 100,
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
+  const slugs = await getLdSlugs(c);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdQuiz>(
     {
       baseUrl: c.siteUrl,
-      path: 'wp-json/ldlms/v2/sfwd-quiz',
+      path: `wp-json/ldlms/v2/${slugs.quizzes}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -272,11 +438,12 @@ export async function fetchLdQuestions(
   perPage = 100,
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
+  const slugs = await getLdSlugs(c);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdQuestion>(
     {
       baseUrl: c.siteUrl,
-      path: 'wp-json/ldlms/v2/sfwd-question',
+      path: `wp-json/ldlms/v2/${slugs.questions}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -304,9 +471,14 @@ export async function fetchLdGroups(
   perPage = 100,
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
+  const slugs = await getLdSlugs(c);
   const out: Array<Record<string, unknown>> = [];
-  // LearnDash 4.x usa /groups; em versões antigas é /sfwd-groups. Tenta primeiro o moderno.
-  const paths = ['wp-json/ldlms/v2/groups', 'wp-json/ldlms/v2/sfwd-groups'];
+  // Discovery decide o slug; mas mantemos fallback histórico (sfwd-groups) caso o
+  // index esteja inacessível mas o site tenha LD antigo.
+  const paths = [
+    `wp-json/ldlms/v2/${slugs.groups}`,
+    'wp-json/ldlms/v2/sfwd-groups',
+  ].filter((p, i, a) => a.indexOf(p) === i);
   for (const path of paths) {
     try {
       for await (const batch of paginate<LdGroup>(
@@ -355,9 +527,10 @@ export async function fetchLdCourseSteps(
   c: ImportConnection,
   courseId: string,
 ): Promise<LdCourseSteps | null> {
+  const slugs = await getLdSlugs(c);
   const data = await tryFetchJson<Record<string, unknown>>(
     c,
-    `wp-json/ldlms/v2/sfwd-courses/${courseId}/steps`,
+    `wp-json/ldlms/v2/${slugs.courses}/${courseId}/${slugs.courseSteps}`,
   );
   if (!data) return null;
 
@@ -384,9 +557,10 @@ export async function fetchLdCoursePrerequisites(
   c: ImportConnection,
   courseId: string,
 ): Promise<string[]> {
+  const slugs = await getLdSlugs(c);
   const data = await tryFetchJson<unknown>(
     c,
-    `wp-json/ldlms/v2/sfwd-courses/${courseId}/prerequisites`,
+    `wp-json/ldlms/v2/${slugs.courses}/${courseId}/${slugs.coursePrerequisites}`,
   );
   if (!data) return [];
   if (Array.isArray(data)) {
@@ -400,6 +574,7 @@ export async function fetchLdCoursePrerequisites(
 export async function fetchLdEnrollments(
   c: ImportConnection,
 ): Promise<Array<Record<string, unknown>>> {
+  const slugs = await getLdSlugs(c);
   const courses = await fetchLdCourses(c, 100);
   const out: Array<Record<string, unknown>> = [];
   const auth = basicAuthHeader(c);
@@ -408,7 +583,7 @@ export async function fetchLdEnrollments(
     const courseId = String(co.external_course_id);
     try {
       const res = await fetch(
-        `${c.siteUrl}/wp-json/ldlms/v2/sfwd-courses/${courseId}/users?per_page=100`,
+        `${c.siteUrl}/wp-json/ldlms/v2/${slugs.courses}/${courseId}/${slugs.courseUsers}?per_page=100`,
         { headers: { Accept: 'application/json', ...auth } },
       );
       if (!res.ok) continue;
@@ -455,6 +630,7 @@ interface LdUserCourseProgress {
 export async function fetchLdProgress(
   c: ImportConnection,
 ): Promise<Array<Record<string, unknown>>> {
+  const slugs = await getLdSlugs(c);
   const enrollments = await fetchLdEnrollments(c);
   const userIds = Array.from(new Set(enrollments.map((e) => String(e.user_external_id))));
   const out: Array<Record<string, unknown>> = [];
@@ -464,7 +640,7 @@ export async function fetchLdProgress(
   for (const userId of userIds.slice(0, 500)) {
     try {
       const res = await fetch(
-        `${c.siteUrl}/wp-json/ldlms/v2/users/${userId}/course-progress?per_page=100`,
+        `${c.siteUrl}/wp-json/ldlms/v2/users/${userId}/${slugs.userCourseProgress}?per_page=100`,
         { headers: { Accept: 'application/json', ...auth } },
       );
       if (!res.ok) continue;
@@ -508,10 +684,12 @@ export async function fetchLdProgress(
 
 export async function pingLd(c: ImportConnection): Promise<{ ok: boolean; message: string; counts?: Record<string, number> }> {
   const creds = decryptCreds(c);
-  // 1) caminho oficial ldlms/v2 (LD 3.x e 4.x)
-  // 2) fallback para wp/v2/sfwd-courses (algumas instalações habilitam show_in_rest)
+  // Discovery primeiro: descobre o slug real (sfwd-courses, cursos, cursos, etc.)
+  const slugs = await getLdSlugs(c);
+  // 1) caminho oficial ldlms/v2 com slug descoberto
+  // 2) fallback wp/v2 (algumas instalações habilitam show_in_rest no post type)
   const candidates = [
-    'wp-json/ldlms/v2/sfwd-courses',
+    `wp-json/ldlms/v2/${slugs.courses}`,
     'wp-json/wp/v2/sfwd-courses',
   ];
   let lastDetail = '';
@@ -527,9 +705,13 @@ export async function pingLd(c: ImportConnection): Promise<{ ok: boolean; messag
       });
       const count = Array.isArray(r.data) ? r.data.length : 0;
       const ns = path.includes('ldlms') ? 'ldlms/v2' : 'wp/v2';
+      const slugInfo =
+        slugs.courses !== DEFAULT_LD_SLUGS.courses
+          ? ` · slug custom: "${slugs.courses}"`
+          : '';
       return {
         ok: true,
-        message: `LearnDash OK · namespace ${ns} · ${count} curso(s) na 1ª página${
+        message: `LearnDash OK · namespace ${ns}${slugInfo} · ${count} curso(s) na 1ª página${
           r.total ? ` (total ${r.total})` : ''
         }`,
       };
@@ -567,6 +749,8 @@ export async function diagnoseLd(c: ImportConnection): Promise<{
   rootNamespacesIncludesLdlms: boolean;
   rootNamespaces: string[];
   endpoints: Array<{ path: string; ok: boolean; status: number; detail: string }>;
+  discoveredSlugs: LdSlugs;
+  customSlugs: Array<{ entity: keyof LdSlugs; default: string; actual: string }>;
   hint: string;
 }> {
   const creds = decryptCreds(c);
@@ -633,29 +817,55 @@ export async function diagnoseLd(c: ImportConnection): Promise<{
     }
   }
 
+  // Descobre slugs reais lendo /wp-json/ldlms/v2 (com cache)
+  const discoveredSlugs = await getLdSlugs(c);
+
   const endpoints: Array<{ path: string; ok: boolean; status: number; detail: string }> = [];
-  for (const path of [
+  const candidatePaths = [
     '/wp-json/ldlms/v2',
-    '/wp-json/ldlms/v2/sfwd-courses?per_page=1',
-    '/wp-json/wp/v2/sfwd-courses?per_page=1',
-  ]) {
+    `/wp-json/ldlms/v2/${discoveredSlugs.courses}?per_page=1`,
+  ];
+  // Inclui o default sfwd-courses só se for diferente do descoberto, pra deixar
+  // claro qual está respondendo.
+  if (discoveredSlugs.courses !== DEFAULT_LD_SLUGS.courses) {
+    candidatePaths.push(`/wp-json/ldlms/v2/${DEFAULT_LD_SLUGS.courses}?per_page=1`);
+  }
+  candidatePaths.push('/wp-json/wp/v2/sfwd-courses?per_page=1');
+  for (const path of candidatePaths) {
     const r = await ping(path);
     endpoints.push({ path, ...r });
   }
 
+  const customSlugs: Array<{ entity: keyof LdSlugs; default: string; actual: string }> = [];
+  for (const k of Object.keys(DEFAULT_LD_SLUGS) as Array<keyof LdSlugs>) {
+    if (discoveredSlugs[k] !== DEFAULT_LD_SLUGS[k]) {
+      customSlugs.push({
+        entity: k,
+        default: DEFAULT_LD_SLUGS[k],
+        actual: discoveredSlugs[k],
+      });
+    }
+  }
+
   const hasLdlms = rootNamespaces.some((n) => n === 'ldlms/v2' || n.startsWith('ldlms/'));
   let hint = '';
+  const coursesOk = endpoints.find((e) =>
+    e.path.includes(`/${discoveredSlugs.courses}`),
+  )?.ok;
   if (!hasLdlms) {
     hint =
       'Namespace ldlms/v2 ausente em /wp-json. O plugin LearnDash provavelmente NÃO está ativado, OU o REST API foi desabilitado em LearnDash > Configurações > REST API.';
   } else if (endpoints.some((e) => e.status === 401 || e.status === 403)) {
     hint =
       'Namespace ldlms/v2 existe mas o user da Application Password não tem permissão. Use um user com role "administrator" (ou capability "read_courses_admin").';
+  } else if (coursesOk) {
+    hint =
+      customSlugs.length > 0
+        ? `OK — LearnDash REST acessível com ${customSlugs.length} slug(s) custom (idioma localizado). O AVA já adapta automaticamente.`
+        : 'OK — LearnDash REST acessível. Pode importar cursos/aulas/quizzes.';
   } else if (endpoints.every((e) => e.status === 404)) {
     hint =
-      'Namespace ldlms/v2 existe mas as rotas /sfwd-courses retornam 404. Verifique a versão do LearnDash (REST estável a partir do 3.0+).';
-  } else if (endpoints.every((e) => e.ok)) {
-    hint = 'OK — LearnDash REST acessível. Pode importar cursos/aulas/quizzes.';
+      'Namespace ldlms/v2 existe mas o endpoint de cursos retorna 404 mesmo no slug descoberto. Verifique a versão do LearnDash (REST estável a partir do 3.0+).';
   } else {
     hint = 'Resposta mista. Veja os detalhes por endpoint abaixo.';
   }
@@ -664,6 +874,8 @@ export async function diagnoseLd(c: ImportConnection): Promise<{
     rootNamespacesIncludesLdlms: hasLdlms,
     rootNamespaces,
     endpoints,
+    discoveredSlugs,
+    customSlugs,
     hint,
   };
 }

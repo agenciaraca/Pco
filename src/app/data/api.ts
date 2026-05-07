@@ -1565,6 +1565,19 @@ export interface ConnectionDiagnoseLdResult {
   rootNamespacesIncludesLdlms: boolean;
   rootNamespaces: string[];
   endpoints: Array<{ path: string; ok: boolean; status: number; detail: string }>;
+  discoveredSlugs: {
+    courses: string;
+    lessons: string;
+    topics: string;
+    quizzes: string;
+    questions: string;
+    groups: string;
+    courseUsers: string;
+    courseSteps: string;
+    coursePrerequisites: string;
+    userCourseProgress: string;
+  };
+  customSlugs: Array<{ entity: string; default: string; actual: string }>;
   hint: string;
 }
 

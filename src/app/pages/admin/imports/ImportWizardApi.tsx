@@ -865,6 +865,36 @@ function DiagnoseLdModal({
           ))}
         </div>
 
+        {result.customSlugs && result.customSlugs.length > 0 && (
+          <div className="pco-card border-pco-cyan/30 bg-pco-cyan/5 p-3 text-xs space-y-2">
+            <strong className="text-pco-deep">
+              Slugs customizados detectados ({result.customSlugs.length})
+            </strong>
+            <p className="text-ink-muted">
+              Este site customizou os slugs do REST API. O AVA descobriu e está
+              usando os slugs corretos automaticamente.
+            </p>
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-ink-subtle border-b border-pco-border">
+                  <th className="text-left pb-1">Entidade</th>
+                  <th className="text-left pb-1">Padrão</th>
+                  <th className="text-left pb-1">Neste site</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.customSlugs.map((s) => (
+                  <tr key={s.entity} className="border-b border-pco-border/30">
+                    <td className="py-1 font-medium text-pco-deep">{s.entity}</td>
+                    <td className="py-1 font-mono text-ink-muted">{s.default}</td>
+                    <td className="py-1 font-mono text-pco-blue">{s.actual}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {!result.rootNamespacesIncludesLdlms && (
           <div className="pco-card border-pco-orange/30 bg-pco-orange/5 p-3 text-xs space-y-1">
             <strong className="text-pco-deep">Como resolver:</strong>
