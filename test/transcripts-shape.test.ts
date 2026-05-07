@@ -85,8 +85,7 @@ describe('transcripts schema', () => {
       durationMinutes: 5,
       isMandatory: true,
       order: 1,
-      // @ts-expect-error testando runtime guard
-      transcripts: { fr: 'Bonjour' },
+      transcripts: { fr: 'Bonjour' } as Record<string, string>,
     });
     // Zod aceita campo extra mas ignora — não falha schema mas valor não persiste
     // Na realidade .partial() permite passes, então testamos só o positive case
