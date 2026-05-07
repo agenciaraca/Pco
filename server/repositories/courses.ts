@@ -380,6 +380,7 @@ export async function createLesson(
             isMandatory: input.isMandatory,
             order: input.order,
             isPreview: input.isPreview ?? false,
+            transcripts: input.transcripts,
           };
           m.lessons.push(lesson);
           m.lessons.sort((a, b) => a.order - b.order);

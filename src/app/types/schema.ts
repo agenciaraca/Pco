@@ -42,6 +42,15 @@ export interface Lesson {
   status?: LessonStatus;
   /** Aula liberada como preview livre pra visitantes não matriculados. */
   isPreview?: boolean;
+  /**
+   * Transcrições por idioma (ISO 639-1). Admin habilita idioma a idioma;
+   * aluno escolhe qual ver entre os configurados.
+   */
+  transcripts?: {
+    pt?: string;
+    es?: string;
+    en?: string;
+  };
 }
 
 export interface Assessment {

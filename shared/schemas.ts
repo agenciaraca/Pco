@@ -461,6 +461,20 @@ export type UpdateModuleInput = z.infer<typeof updateModuleSchema>;
 
 // ---- Lesson writes ----
 
+/**
+ * Idiomas suportados pra transcrição de video-aulas.
+ * Português é o nativo; espanhol e inglês adicionais.
+ * Extensível adicionando novos códigos ISO 639-1 aqui.
+ */
+export const SUPPORTED_TRANSCRIPT_LOCALES = ['pt', 'es', 'en'] as const;
+export type TranscriptLocale = (typeof SUPPORTED_TRANSCRIPT_LOCALES)[number];
+
+export const TRANSCRIPT_LOCALE_LABELS: Record<TranscriptLocale, string> = {
+  pt: 'Português',
+  es: 'Español',
+  en: 'English',
+};
+
 export const createLessonSchema = z.object({
   title: z.string().min(2, 'Título muito curto').max(200),
   durationMinutes: z.number().int().min(0).max(600).default(0),
@@ -473,6 +487,20 @@ export const createLessonSchema = z.object({
    * matriculados. Útil como teaser de marketing.
    */
   isPreview: z.boolean().default(false).optional(),
+  /**
+   * Transcrições da video-aula por idioma (ISO 639-1). Admin habilita
+   * idioma a idioma; aluno escolhe qual ver entre os configurados.
+   * Idiomas com string vazia são tratados como não-configurados.
+   * Limite por idioma: 100k chars (~50 páginas).
+   */
+  transcripts: z
+    .object({
+      pt: z.string().max(100_000).optional(),
+      es: z.string().max(100_000).optional(),
+      en: z.string().max(100_000).optional(),
+    })
+    .partial()
+    .optional(),
 });
 export type CreateLessonInput = z.infer<typeof createLessonSchema>;
 

@@ -1549,6 +1549,69 @@ export function buildApp() {
    * como isPreview=true. Caso contrário 403. Usado pra player aberto a
    * visitantes não matriculados (teaser de marketing).
    */
+  /**
+   * Retorna transcrição da aula no idioma solicitado. Aluno deve estar
+   * matriculado no curso (ou aula ser preview livre). Idiomas disponíveis
+   * vêm da própria lesson.transcripts (apenas os com conteúdo são habilitados).
+   */
+  app.get('/lessons/:id/transcript', async (c) => {
+    const lessonId = c.req.param('id') as string;
+    const lang = (c.req.query('lang') ?? 'pt') as 'pt' | 'es' | 'en';
+    const all = await coursesRepo.listCourses();
+    let foundLesson: (typeof all)[number]['modules'][number]['lessons'][number] | null = null;
+    let parentCourse: (typeof all)[number] | null = null;
+    for (const co of all) {
+      for (const m of co.modules ?? []) {
+        const l = m.lessons.find((x) => x.id === lessonId);
+        if (l) {
+          foundLesson = l;
+          parentCourse = co;
+          break;
+        }
+      }
+      if (foundLesson) break;
+    }
+    if (!foundLesson || !parentCourse) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+    }
+    const isPreview = foundLesson.isPreview === true;
+    if (!isPreview) {
+      const user = c.get('user');
+      if (!user) return jsonError(c, 401, 'UNAUTHORIZED', 'Login necessário.');
+      const student = await studentsRepo.findAdminStudent(user.sub);
+      const enrolled = (student?.enrolledCourseIds ?? []).includes(parentCourse.id);
+      const isAdmin = user.role === 'admin' || user.role === 'superadmin';
+      if (!enrolled && !isAdmin) {
+        return jsonError(c, 403, 'FORBIDDEN', 'Acesso negado — não matriculado.');
+      }
+    }
+    const transcripts =
+      (foundLesson as { transcripts?: Record<string, string | undefined> })
+        .transcripts ?? {};
+    const availableLocales = Object.entries(transcripts)
+      .filter(([, v]) => typeof v === 'string' && v.trim().length > 0)
+      .map(([k]) => k);
+    if (availableLocales.length === 0) {
+      return c.json({
+        lessonId,
+        availableLocales: [],
+        locale: null,
+        text: null,
+      });
+    }
+    const finalLang = availableLocales.includes(lang)
+      ? lang
+      : availableLocales.includes('pt')
+        ? 'pt'
+        : availableLocales[0]!;
+    return c.json({
+      lessonId,
+      availableLocales,
+      locale: finalLang,
+      text: transcripts[finalLang] ?? null,
+    });
+  });
+
   app.get('/lessons/:id/preview', async (c) => {
     const lessonId = c.req.param('id') as string;
     const all = await coursesRepo.listCourses();
