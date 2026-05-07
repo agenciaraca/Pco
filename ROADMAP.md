@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-526)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-537)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **526+** |
-| Commits no main | **300+** |
-| Arquivos de teste | **106** |
-| Testes passando | **1060** ✅ |
+| Sprints entregues | **537+** |
+| Commits no main | **312+** |
+| Arquivos de teste | **110** |
+| Testes passando | **1106** ✅ |
 | Coverage statements | **~70%** |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,20 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-526 (drip 2 + LMS + quiz + admin UIs + UX hardening)
+### Bloco sprints 494-537 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 537 | filtros adicionais em /admin/cursos/:id/questoes |
+| 536 | tests propagação de novos fields em courses-repo (+9) |
+| 535 | coupon stat cards no /admin/coupons |
+| 534 | tests CoursePublishChecklist (+5) |
+| 533 | publish checklist em AdminCourseEditor |
+| 532 | tests integração drip + prereqs (+9) |
+| 531 | tests roles-store edge cases (+11) |
+| 530 | badges adicionais em /admin/cursos (preview/changelog/collabs) |
+| 529 | tests impersonation rules (+12) |
+| 528 | heatmap no Dashboard student |
+| 527 | tag filter chips no /catalogo |
 | 526 | testes adicionais chunk-error-recovery (+3) |
 | 525 | quick filter chips em /admin/auditoria |
 | 524 | course changelog visível no LMS |
