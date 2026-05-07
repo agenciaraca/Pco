@@ -674,6 +674,15 @@ export function useSaveLessonNote() {
   });
 }
 
+export function useLessonTranscript(lessonId: string | undefined, lang?: string) {
+  return useQuery({
+    queryKey: ['lesson-transcript', lessonId, lang ?? 'auto'],
+    queryFn: () => api.fetchLessonTranscript(lessonId!, lang),
+    enabled: !!lessonId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 const tutorUsageKey = ['tutor', 'usage'] as const;
 export function useTutorUsage() {
   return useQuery({

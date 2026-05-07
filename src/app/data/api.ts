@@ -411,6 +411,25 @@ export async function saveLessonNote(lessonId: string, content: string): Promise
   return http.put<LessonNoteDto>(`/lessons/${encodeURIComponent(lessonId)}/note`, { content });
 }
 
+// ---------- Lesson transcripts ----------
+
+export interface LessonTranscriptDto {
+  lessonId: string;
+  availableLocales: string[];
+  locale: string;
+  text: string;
+}
+
+export async function fetchLessonTranscript(
+  lessonId: string,
+  lang?: string,
+): Promise<LessonTranscriptDto> {
+  const qs = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+  return http.get<LessonTranscriptDto>(
+    `/lessons/${encodeURIComponent(lessonId)}/transcript${qs}`,
+  );
+}
+
 // ---------- Tutor usage ----------
 
 export interface TutorUsageDto {

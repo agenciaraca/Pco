@@ -8,6 +8,9 @@ import {
   HelpCircle,
   BookOpen,
   Clock,
+  Languages,
+  Copy,
+  Loader2,
 } from 'lucide-react';
 import {
   useCourses,
@@ -17,7 +20,9 @@ import {
   useLessonNote,
   useSaveLessonNote,
   useCurrentStudent,
+  useLessonTranscript,
 } from '../data/hooks';
+import { TRANSCRIPT_LOCALE_LABELS } from '../../../shared/schemas';
 import { useToast } from '../components/Toast';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import LessonComments from '../components/LessonComments';
@@ -183,6 +188,8 @@ export default function LMSLesson() {
           </div>
         </div>
       </div>
+
+      <TranscriptPanel lessonId={lesson.id} />
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-5">
@@ -419,6 +426,106 @@ export default function LMSLesson() {
       >
         ?
       </button>
+    </div>
+  );
+}
+
+function TranscriptPanel({ lessonId }: { lessonId: string }) {
+  const [open, setOpen] = useState(false);
+  const [lang, setLang] = useState<string | undefined>(undefined);
+  const transcriptQ = useLessonTranscript(open ? lessonId : undefined, lang);
+  const toast = useToast();
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="pco-card flex items-center justify-between w-full text-left hover:bg-surface-off transition-colors"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-pco-deep">
+          <Languages size={16} className="text-pco-blue" strokeWidth={1.75} />
+          Transcrição
+        </span>
+        <span className="text-xs text-ink-muted">Mostrar</span>
+      </button>
+    );
+  }
+
+  const t = transcriptQ.data;
+  const available = t?.availableLocales ?? [];
+  const noTranscript = !transcriptQ.isLoading && available.length === 0;
+
+  async function handleCopy() {
+    if (!t?.text) return;
+    try {
+      await navigator.clipboard.writeText(t.text);
+      toast.success('Transcrição copiada');
+    } catch {
+      toast.error('Falha ao copiar');
+    }
+  }
+
+  return (
+    <div className="pco-card">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+        <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">
+          <Languages size={16} className="text-pco-blue" strokeWidth={1.75} />
+          Transcrição
+        </h3>
+        <div className="flex items-center gap-2">
+          {available.length > 1 && (
+            <select
+              value={t?.locale ?? ''}
+              onChange={(e) => setLang(e.target.value)}
+              className="pco-input text-xs py-1"
+              aria-label="Idioma da transcrição"
+            >
+              {available.map((l) => (
+                <option key={l} value={l}>
+                  {TRANSCRIPT_LOCALE_LABELS[l as keyof typeof TRANSCRIPT_LOCALE_LABELS] ?? l}
+                </option>
+              ))}
+            </select>
+          )}
+          {t?.text && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="pco-btn-ghost text-xs"
+              title="Copiar texto"
+            >
+              <Copy size={12} strokeWidth={2} />
+              Copiar
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="pco-btn-ghost text-xs"
+          >
+            Ocultar
+          </button>
+        </div>
+      </div>
+      {transcriptQ.isLoading ? (
+        <div className="flex items-center gap-2 text-xs text-ink-muted">
+          <Loader2 size={12} className="animate-spin" />
+          Carregando transcrição...
+        </div>
+      ) : noTranscript ? (
+        <div className="text-xs text-ink-subtle italic">
+          Esta aula ainda não tem transcrição disponível.
+        </div>
+      ) : t?.text ? (
+        <div className="max-h-[400px] overflow-y-auto border border-surface-gray rounded-lg p-3 bg-white">
+          <article className="prose prose-sm max-w-none whitespace-pre-wrap text-sm text-pco-deep leading-relaxed">
+            {t.text}
+          </article>
+        </div>
+      ) : (
+        <div className="text-xs text-ink-subtle italic">Sem conteúdo no idioma selecionado.</div>
+      )}
     </div>
   );
 }
