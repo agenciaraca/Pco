@@ -113,6 +113,14 @@ export default function AdminCourseEditor() {
             <Eye size={12} strokeWidth={2} />
             Preview como aluno
           </Link>
+          <Link
+            to={`/admin/cursos/${course.id}/questoes`}
+            className="pco-btn-ghost text-xs"
+            title="Banco de questões reutilizáveis pra avaliações"
+          >
+            <FileText size={12} strokeWidth={2} />
+            Banco de questões
+          </Link>
         </div>
       </header>
 

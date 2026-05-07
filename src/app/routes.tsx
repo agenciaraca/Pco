@@ -108,6 +108,7 @@ const AdminSessoes = lazy(() => import('./pages/admin/AdminSessoes'));
 const AdminApiTokens = lazy(() => import('./pages/admin/AdminApiTokens'));
 const AdminRoles = lazy(() => import('./pages/admin/AdminRoles'));
 const AdminStudyPaths = lazy(() => import('./pages/admin/AdminStudyPaths'));
+const AdminQuestions = lazy(() => import('./pages/admin/AdminQuestions'));
 const AdminActivity = lazy(() => import('./pages/admin/AdminActivity'));
 const AdminBackup = lazy(() => import('./pages/admin/AdminBackup'));
 const AdminJobs = lazy(() => import('./pages/admin/AdminJobs'));
@@ -255,6 +256,7 @@ export const router = createBrowserRouter([
       { path: 'logs', element: <S><AdminLogs /></S> },
       { path: 'rate-limits', element: <S><AdminRateLimits /></S> },
       { path: 'cursos/:courseId/preview', element: <S><AdminCoursePreview /></S> },
+      { path: 'cursos/:courseId/questoes', element: <S><AdminQuestions /></S> },
       { path: 'cursos/:courseId/analytics', element: <S><AdminCourseAnalytics /></S> },
       { path: 'cursos/:courseId/alunos', element: <S><AdminCourseStudents /></S> },
       { path: 'lgpd-exclusoes', element: <S><AdminDeletionRequests /></S> },

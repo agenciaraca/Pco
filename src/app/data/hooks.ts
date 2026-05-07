@@ -1660,6 +1660,56 @@ export function useDeleteApiToken() {
   });
 }
 
+// ---------- Question bank ----------
+
+export function useCourseQuestions(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'course-questions', courseId ?? ''] as const,
+    queryFn: () => api.fetchCourseQuestions(courseId!),
+    enabled: !!courseId,
+  });
+}
+
+export function useCreateQuestion(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: api.CreateQuestionInput) =>
+      api.createQuestion(courseId, input),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: ['admin', 'course-questions', courseId],
+      }),
+  });
+}
+
+export function useUpdateQuestion(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: Partial<api.CreateQuestionInput> & { moduleId?: string | null };
+    }) => api.updateQuestion(id, patch),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: ['admin', 'course-questions', courseId],
+      }),
+  });
+}
+
+export function useDeleteQuestion(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteQuestion,
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: ['admin', 'course-questions', courseId],
+      }),
+  });
+}
+
 export function useAdminKpis() {
   return useQuery({
     queryKey: ['admin', 'kpis'] as const,

@@ -2898,6 +2898,69 @@ export async function deleteApiToken(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/api-tokens/${encodeURIComponent(id)}`);
 }
 
+// ---------- Question bank ----------
+
+export type QuestionTypeDto = 'multiple_choice' | 'true_false';
+
+export interface QuestionOptionDto {
+  id: string;
+  text: string;
+  correct: boolean;
+}
+
+export interface QuestionDto {
+  id: string;
+  courseId: string;
+  moduleId?: string;
+  type: QuestionTypeDto;
+  prompt: string;
+  options: QuestionOptionDto[];
+  explanation?: string;
+  tags: string[];
+  difficulty: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchCourseQuestions(
+  courseId: string,
+): Promise<{ questions: QuestionDto[] }> {
+  return http.get(`/admin/courses/${encodeURIComponent(courseId)}/questions`);
+}
+
+export interface CreateQuestionInput {
+  moduleId?: string;
+  type: QuestionTypeDto;
+  prompt: string;
+  options: { text: string; correct: boolean }[];
+  explanation?: string;
+  tags?: string[];
+  difficulty?: number;
+  active?: boolean;
+}
+
+export async function createQuestion(
+  courseId: string,
+  input: CreateQuestionInput,
+): Promise<QuestionDto> {
+  return http.post(
+    `/admin/courses/${encodeURIComponent(courseId)}/questions`,
+    input,
+  );
+}
+
+export async function updateQuestion(
+  id: string,
+  patch: Partial<CreateQuestionInput> & { moduleId?: string | null },
+): Promise<QuestionDto> {
+  return http.put(`/admin/questions/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteQuestion(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/questions/${encodeURIComponent(id)}`);
+}
+
 // ---------- Admin KPIs ----------
 
 export interface AdminKpisDto {
