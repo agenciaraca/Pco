@@ -52,6 +52,8 @@ import {
   type CreateLessonInput,
   createAssessmentSchema,
   type CreateAssessmentInput,
+  SUPPORTED_TRANSCRIPT_LOCALES,
+  TRANSCRIPT_LOCALE_LABELS,
 } from '../../../../shared/schemas';
 import type { Course, Module, Lesson, Assessment } from '../../types/schema';
 
@@ -999,6 +1001,22 @@ function ModulosPane({ course }: { course: Course }) {
                                 </span>
                               )}
                               <span>· ordem {lesson.order}</span>
+                              {(() => {
+                                const locales = lesson.transcripts
+                                  ? Object.entries(lesson.transcripts).filter(
+                                      ([, v]) => typeof v === 'string' && v.trim().length > 0,
+                                    )
+                                  : [];
+                                if (locales.length === 0) return null;
+                                return (
+                                  <span
+                                    className="pco-badge bg-pco-cyan/10 text-pco-blue"
+                                    title="Transcrições configuradas"
+                                  >
+                                    {locales.map(([k]) => k.toUpperCase()).join('/')}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </div>
                           <button
@@ -1230,6 +1248,11 @@ function LessonEditor({
       isMandatory: lesson?.isMandatory ?? true,
       order: lesson?.order ?? nextOrder,
       isPreview: lesson?.isPreview ?? false,
+      transcripts: {
+        pt: lesson?.transcripts?.pt ?? '',
+        es: lesson?.transcripts?.es ?? '',
+        en: lesson?.transcripts?.en ?? '',
+      },
     },
   });
 
@@ -1300,6 +1323,27 @@ function LessonEditor({
             </span>
           </label>
         </div>
+        <details className="border border-surface-gray rounded-lg">
+          <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-pco-deep hover:bg-surface-off rounded-lg">
+            Transcrições da videoaula ({SUPPORTED_TRANSCRIPT_LOCALES.length} idiomas)
+          </summary>
+          <div className="p-3 space-y-3 border-t border-surface-gray">
+            <p className="text-[11px] text-ink-muted">
+              Preencha apenas os idiomas desejados. O aluno verá no player somente os idiomas configurados aqui.
+            </p>
+            {SUPPORTED_TRANSCRIPT_LOCALES.map((lang) => (
+              <Field key={lang} label={`Transcrição — ${TRANSCRIPT_LOCALE_LABELS[lang]}`}>
+                <textarea
+                  {...register(`transcripts.${lang}` as const)}
+                  rows={4}
+                  maxLength={100_000}
+                  placeholder={`Cole aqui a transcrição em ${TRANSCRIPT_LOCALE_LABELS[lang]}...`}
+                  className="pco-input resize-y font-mono text-xs"
+                />
+              </Field>
+            ))}
+          </div>
+        </details>
         <ModalFooter onClose={onClose} submitting={submitting} isNew={isNew} entityLabel="aula" />
       </form>
     </ModalShell>
