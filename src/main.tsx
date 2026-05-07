@@ -6,10 +6,14 @@ import { AuthProvider } from './app/auth/AuthContext';
 import { ToastProvider } from './app/components/Toast';
 import ErrorBoundary from './app/components/ErrorBoundary';
 import { initMonitoring } from './app/monitoring/sentry';
+import { installChunkErrorRecovery } from './app/monitoring/chunk-error-recovery';
 import { router } from './app/routes';
 import './styles/theme.css';
 
 initMonitoring();
+
+// Auto-reload quando lazy chunk falha (deploy novo invalidou os hashes).
+installChunkErrorRecovery();
 
 // PWA: registra service worker em produção (skip em dev pra não interferir no HMR).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
