@@ -6,6 +6,9 @@ import {
   AlertCircle,
   Info,
   AlertTriangle,
+  Download,
+  Pause,
+  Play,
 } from 'lucide-react';
 import { useLogs } from '../../data/hooks';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -23,6 +26,7 @@ export default function AdminLogs() {
   useDocumentMeta({ title: 'Logs do servidor — Admin' });
   const [level, setLevel] = useState<LogLevelDto | ''>('');
   const [q, setQ] = useState('');
+  const [paused, setPaused] = useState(false);
 
   const filter = useMemo(
     () => ({
@@ -33,7 +37,41 @@ export default function AdminLogs() {
     [level, q],
   );
 
-  const { data, isLoading, isFetching, refetch } = useLogs(filter);
+  const { data, isLoading, isFetching, refetch } = useLogs(filter, {
+    refetchInterval: paused ? false : 5_000,
+  });
+
+  const counters = useMemo(() => {
+    const lines = data?.lines ?? [];
+    const c: Record<LogLevelDto, number> = {
+      log: 0,
+      info: 0,
+      warn: 0,
+      error: 0,
+      debug: 0,
+    };
+    for (const l of lines) c[l.level] = (c[l.level] ?? 0) + 1;
+    return c;
+  }, [data]);
+
+  function downloadLogs() {
+    const lines = data?.lines ?? [];
+    const txt = lines
+      .map(
+        (l) =>
+          `${l.ts}\t${l.level.padEnd(6)}\t${l.message.replace(/\n/g, ' \\ ')}`,
+      )
+      .join('\n');
+    const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ava-pco-logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.log`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="space-y-6">
@@ -49,16 +87,68 @@ export default function AdminLogs() {
             Para retenção longa, use journalctl ou Sentry no servidor.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="pco-btn-ghost text-xs"
-        >
-          <RefreshCw size={11} strokeWidth={2} className={isFetching ? 'animate-spin' : ''} />
-          Atualizar
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setPaused((p) => !p)}
+            className={`text-xs ${paused ? 'pco-btn-primary' : 'pco-btn-ghost'}`}
+            title={paused ? 'Auto-refresh pausado — clique pra retomar' : 'Pausar auto-refresh'}
+          >
+            {paused ? (
+              <>
+                <Play size={11} strokeWidth={2} />
+                Pausado
+              </>
+            ) : (
+              <>
+                <Pause size={11} strokeWidth={2} />
+                Pausar
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={downloadLogs}
+            disabled={(data?.lines.length ?? 0) === 0}
+            className="pco-btn-ghost text-xs"
+            title="Baixar logs filtrados como .log"
+          >
+            <Download size={11} strokeWidth={2} />
+            Exportar
+          </button>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="pco-btn-ghost text-xs"
+          >
+            <RefreshCw size={11} strokeWidth={2} className={isFetching ? 'animate-spin' : ''} />
+            Atualizar
+          </button>
+        </div>
       </header>
+
+      <div className="grid gap-2 sm:grid-cols-5">
+        {(['error', 'warn', 'info', 'log', 'debug'] as LogLevelDto[]).map(
+          (lvl) => (
+            <button
+              key={lvl}
+              type="button"
+              onClick={() => setLevel(level === lvl ? '' : lvl)}
+              className={`pco-card p-3 text-left hover:bg-surface-mute/50 transition-colors ${
+                level === lvl ? 'ring-2 ring-pco-blue border-pco-blue' : ''
+              }`}
+            >
+              <div className={`text-[10px] uppercase font-bold ${LEVEL_COLORS[lvl]}`}>
+                {lvl}
+              </div>
+              <div className="text-2xl font-bold text-pco-deep mt-1">
+                {counters[lvl]}
+              </div>
+            </button>
+          ),
+        )}
+      </div>
 
       <div className="pco-card p-4 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[220px]">

@@ -2271,11 +2271,14 @@ export function useRunJob() {
   });
 }
 
-export function useLogs(filter: Parameters<typeof api.fetchLogs>[0] = {}) {
+export function useLogs(
+  filter: Parameters<typeof api.fetchLogs>[0] = {},
+  options: { refetchInterval?: number | false } = {},
+) {
   return useQuery({
     queryKey: ['admin', 'logs', filter] as const,
     queryFn: () => api.fetchLogs(filter),
-    refetchInterval: 5_000,
+    refetchInterval: options.refetchInterval ?? 5_000,
   });
 }
 
