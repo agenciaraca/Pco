@@ -175,6 +175,7 @@ import {
   previewTemplate,
   TEMPLATE_NAMES,
 } from './notifications/templates';
+import * as templateOverrides from './notifications/template-overrides';
 import type { EmailProviderId } from './notifications/types';
 import type {
   ImportEntityType,
@@ -6738,10 +6739,11 @@ export function buildApp() {
   app.get(
     '/admin/email/templates/:name/preview',
     requireAuth('admin', 'superadmin'),
-    (c) => {
+    async (c) => {
       const name = c.req.param('name') as string;
       try {
-        const r = previewTemplate(name);
+        const override = await templateOverrides.getOverride(name);
+        const r = previewTemplate(name, override ?? undefined);
         return c.json(r);
       } catch (err) {
         return jsonError(
@@ -6751,6 +6753,85 @@ export function buildApp() {
           err instanceof Error ? err.message : 'Template não encontrado.',
         );
       }
+    },
+  );
+
+  /** Permite preview com override em-flight (sem salvar). */
+  app.post(
+    '/admin/email/templates/:name/preview',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const name = c.req.param('name') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      try {
+        const override = {
+          subject: typeof body.subject === 'string' ? body.subject : undefined,
+          brandColor:
+            typeof body.brandColor === 'string' ? body.brandColor : undefined,
+          logoUrl: typeof body.logoUrl === 'string' ? body.logoUrl : undefined,
+          orgName: typeof body.orgName === 'string' ? body.orgName : undefined,
+          greeting: typeof body.greeting === 'string' ? body.greeting : undefined,
+          footerNote:
+            typeof body.footerNote === 'string' ? body.footerNote : undefined,
+        };
+        const r = previewTemplate(name, override);
+        return c.json(r);
+      } catch (err) {
+        return jsonError(
+          c,
+          404,
+          'NOT_FOUND',
+          err instanceof Error ? err.message : 'Template não encontrado.',
+        );
+      }
+    },
+  );
+
+  app.get(
+    '/admin/email/template-overrides',
+    requireAuth('admin', 'superadmin'),
+    async (c) =>
+      c.json({ overrides: await templateOverrides.listOverrides() }),
+  );
+
+  app.put(
+    '/admin/email/template-overrides/:name',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const name = c.req.param('name') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const saved = await templateOverrides.setOverride(name, {
+        subject: typeof body.subject === 'string' ? body.subject : undefined,
+        brandColor:
+          typeof body.brandColor === 'string' ? body.brandColor : undefined,
+        logoUrl: typeof body.logoUrl === 'string' ? body.logoUrl : undefined,
+        orgName: typeof body.orgName === 'string' ? body.orgName : undefined,
+        greeting: typeof body.greeting === 'string' ? body.greeting : undefined,
+        footerNote:
+          typeof body.footerNote === 'string' ? body.footerNote : undefined,
+      });
+      await recordAudit(c, {
+        action: 'email_template.override',
+        targetType: 'email_template',
+        targetId: name,
+      });
+      return c.json(saved);
+    },
+  );
+
+  app.delete(
+    '/admin/email/template-overrides/:name',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const name = c.req.param('name') as string;
+      const ok = await templateOverrides.deleteOverride(name);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Override não existe.');
+      await recordAudit(c, {
+        action: 'email_template.override.delete',
+        targetType: 'email_template',
+        targetId: name,
+      });
+      return c.json({ ok: true });
     },
   );
 
