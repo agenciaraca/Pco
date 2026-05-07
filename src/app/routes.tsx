@@ -74,6 +74,7 @@ const AdminLoginModels = lazy(() => import('./pages/admin/AdminLoginModels'));
 const AdminLoginCustomize = lazy(() => import('./pages/admin/AdminLoginCustomize'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminUsuarios = lazy(() => import('./pages/admin/AdminUsuarios'));
+const AdminSystemUserDetail = lazy(() => import('./pages/admin/AdminSystemUserDetail'));
 const AdminUsersImport = lazy(() => import('./pages/admin/AdminUsersImport'));
 const AdminAuditoria = lazy(() => import('./pages/admin/AdminAuditoria'));
 const AdminNotificacoes = lazy(() => import('./pages/admin/AdminNotificacoes'));
@@ -229,6 +230,7 @@ export const router = createBrowserRouter([
       { path: 'login-customizacao', element: <S><AdminLoginCustomize /></S> },
       { path: 'configuracoes', element: <S><AdminSettings /></S> },
       { path: 'usuarios', element: <S><AdminUsuarios /></S> },
+      { path: 'usuarios/:id', element: <S><AdminSystemUserDetail /></S> },
       { path: 'usuarios/import', element: <S><AdminUsersImport /></S> },
       { path: 'auditoria', element: <S><AdminAuditoria /></S> },
       { path: 'notificacoes', element: <S><AdminNotificacoes /></S> },

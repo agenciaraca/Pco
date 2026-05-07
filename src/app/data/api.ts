@@ -2415,10 +2415,14 @@ export interface SystemUser {
   email: string;
   name: string;
   role: 'student' | 'admin' | 'superadmin';
+  customRoleSlug?: string | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
+  totpEnabled?: boolean;
+  tokenVersion?: number;
+  avatarUrl?: string | null;
 }
 
 export interface CreateSystemUserPayload {
@@ -3000,6 +3004,12 @@ export async function submitQuiz(
   return http.post(`/me/quiz/${encodeURIComponent(courseId)}/grade`, {
     answers,
   });
+}
+
+// ---------- System user detail ----------
+
+export async function fetchSystemUser(id: string): Promise<SystemUser> {
+  return http.get<SystemUser>(`/admin/users/${encodeURIComponent(id)}`);
 }
 
 // ---------- Webhook presets ----------

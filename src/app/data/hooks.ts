@@ -507,6 +507,14 @@ export function useSystemUsers() {
   return useQuery({ queryKey: systemUsersKey, queryFn: api.fetchSystemUsers });
 }
 
+export function useSystemUser(id: string | undefined) {
+  return useQuery({
+    queryKey: ['system-users', id ?? ''] as const,
+    queryFn: () => api.fetchSystemUser(id!),
+    enabled: !!id,
+  });
+}
+
 export function useCreateSystemUser() {
   const qc = useQueryClient();
   return useMutation({

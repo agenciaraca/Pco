@@ -314,7 +314,10 @@ export default function AdminUsuarios() {
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
+                        <Link
+                          to={`/admin/usuarios/${u.id}`}
+                          className="flex items-center gap-3 hover:bg-surface-mute/50 rounded -mx-1 px-1 py-0.5 transition-colors"
+                        >
                           <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white">
                             {initials}
                           </div>
@@ -327,7 +330,7 @@ export default function AdminUsuarios() {
                             </div>
                             <div className="text-[11px] text-ink-subtle">{u.email}</div>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         {(() => {
