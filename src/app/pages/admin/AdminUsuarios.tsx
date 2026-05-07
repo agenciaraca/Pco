@@ -113,11 +113,16 @@ export default function AdminUsuarios() {
 
   const totals = useMemo(() => {
     const list = usersQ.data ?? [];
+    const total = list.length;
+    const active = list.filter((u) => u.active).length;
+    const totp = list.filter((u) => u.totpEnabled === true).length;
     return {
-      total: list.length,
+      total,
       superadmins: list.filter((u) => u.role === 'superadmin').length,
       admins: list.filter((u) => u.role === 'admin').length,
       students: list.filter((u) => u.role === 'student').length,
+      activePct: total > 0 ? Math.round((active / total) * 100) : 0,
+      totpPct: total > 0 ? Math.round((totp / total) * 100) : 0,
     };
   }, [usersQ.data]);
 
@@ -184,11 +189,21 @@ export default function AdminUsuarios() {
         </div>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <Stat label="Total" value={totals.total} />
         <Stat label="Superadmins" value={totals.superadmins} accent="danger" />
         <Stat label="Admins" value={totals.admins} accent="blue" />
         <Stat label="Alunos" value={totals.students} accent="green" />
+        <Stat
+          label="Ativos"
+          value={`${totals.activePct}%`}
+          accent={totals.activePct >= 80 ? 'green' : 'orange'}
+        />
+        <Stat
+          label="2FA"
+          value={`${totals.totpPct}%`}
+          accent={totals.totpPct >= 50 ? 'green' : 'danger'}
+        />
       </div>
 
       <div className="pco-card p-4 flex flex-wrap items-center gap-3">
@@ -493,8 +508,8 @@ function Stat({
   accent,
 }: {
   label: string;
-  value: number;
-  accent?: 'danger' | 'blue' | 'green';
+  value: number | string;
+  accent?: 'danger' | 'blue' | 'green' | 'orange';
 }) {
   const color =
     accent === 'danger'
@@ -503,7 +518,9 @@ function Stat({
         ? 'text-pco-blue'
         : accent === 'green'
           ? 'text-status-success'
-          : 'text-pco-deep';
+          : accent === 'orange'
+            ? 'text-pco-orange'
+            : 'text-pco-deep';
   return (
     <div className="pco-card">
       <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
