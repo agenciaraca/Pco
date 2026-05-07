@@ -79,6 +79,36 @@ export default function LMSCourse() {
         </div>
       </div>
 
+      {(course.changelog?.length ?? 0) > 0 && (
+        <section className="pco-card p-5 bg-pco-blue/5 border-pco-blue/30">
+          <h2 className="text-base font-semibold text-pco-deep mb-3 flex items-center gap-2">
+            ✨ Novidades neste curso
+          </h2>
+          <ul className="space-y-3">
+            {course.changelog!.slice(0, 5).map((c, idx) => (
+              <li key={idx} className="text-sm">
+                <div className="flex items-baseline gap-2 mb-0.5">
+                  <span className="font-bold text-pco-deep">{c.version}</span>
+                  <span className="text-[11px] text-ink-subtle">
+                    {new Date(c.date).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+                <p className="text-ink-strong whitespace-pre-line">{c.notes}</p>
+              </li>
+            ))}
+          </ul>
+          {course.changelog!.length > 5 && (
+            <div className="text-[11px] text-ink-subtle mt-3">
+              + {course.changelog!.length - 5} entry(ies) anteriores
+            </div>
+          )}
+        </section>
+      )}
+
       <section>
         <h2 className="text-lg font-semibold text-pco-deep mb-4">Conteúdo do curso</h2>
         <div className="space-y-3">

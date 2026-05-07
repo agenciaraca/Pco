@@ -184,6 +184,35 @@ function GeralPane({ course }: { course: Course }) {
   const [collaborators, setCollaborators] = useState<
     Array<{ name: string; role?: string; bio?: string; photoUrl?: string }>
   >(course.collaborators ?? []);
+  const [changelog, setChangelog] = useState<
+    Array<{ version: string; date: string; notes: string }>
+  >(course.changelog ?? []);
+
+  function addChangelogEntry() {
+    if (changelog.length >= 50) return;
+    setChangelog([
+      ...changelog,
+      {
+        version: '',
+        date: new Date().toISOString().slice(0, 10),
+        notes: '',
+      },
+    ]);
+  }
+
+  function updateChangelog(
+    idx: number,
+    field: 'version' | 'date' | 'notes',
+    value: string,
+  ) {
+    setChangelog(
+      changelog.map((c, i) => (i === idx ? { ...c, [field]: value } : c)),
+    );
+  }
+
+  function removeChangelog(idx: number) {
+    setChangelog(changelog.filter((_, i) => i !== idx));
+  }
 
   function addCollaborator() {
     if (collaborators.length >= 10) return;
@@ -256,6 +285,18 @@ function GeralPane({ course }: { course: Course }) {
           learningOutcomes: outcomes,
           certificateTemplate,
           collaborators: cleanCollabs.length > 0 ? cleanCollabs : undefined,
+          changelog: changelog
+            .filter(
+              (c) =>
+                c.version.trim().length > 0 &&
+                c.date.trim().length >= 8 &&
+                c.notes.trim().length > 0,
+            )
+            .map((c) => ({
+              version: c.version.trim(),
+              date: c.date.trim(),
+              notes: c.notes.trim(),
+            })),
         },
       });
       toast.success('Curso atualizado', updated.title);
@@ -617,6 +658,75 @@ function GeralPane({ course }: { course: Course }) {
             className="pco-btn-ghost text-xs"
           >
             + Adicionar co-instrutor
+          </button>
+        </fieldset>
+
+        <fieldset className="border border-pco-border rounded-lg p-4 space-y-3">
+          <legend className="px-2 text-xs font-semibold text-pco-deep">
+            Changelog do curso ({changelog.length}/50)
+          </legend>
+          <p className="text-[11px] text-ink-subtle">
+            Histórico de atualizações visível pra alunos no card "Novidades"
+            do curso. Use pra avisar sobre módulos novos, correções, etc.
+          </p>
+          {changelog.length === 0 ? (
+            <p className="text-xs text-ink-subtle">
+              Nenhuma entry no changelog.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {changelog.map((c, idx) => (
+                <li key={idx} className="bg-surface-off rounded-lg p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-[11px] font-bold text-pco-deep">
+                      Entry {idx + 1}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeChangelog(idx)}
+                      className="text-status-danger text-xs hover:underline"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <input
+                      value={c.version}
+                      onChange={(e) =>
+                        updateChangelog(idx, 'version', e.target.value)
+                      }
+                      className="pco-input text-sm"
+                      placeholder="Versão (ex: v2.0, 2024.10, módulo 3)"
+                      maxLength={40}
+                    />
+                    <input
+                      type="date"
+                      value={c.date.slice(0, 10)}
+                      onChange={(e) =>
+                        updateChangelog(idx, 'date', e.target.value)
+                      }
+                      className="pco-input text-sm"
+                    />
+                  </div>
+                  <textarea
+                    value={c.notes}
+                    onChange={(e) => updateChangelog(idx, 'notes', e.target.value)}
+                    rows={2}
+                    className="pco-input text-sm resize-none"
+                    placeholder="Notas: o que mudou? (markdown lite)"
+                    maxLength={2000}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            onClick={addChangelogEntry}
+            disabled={changelog.length >= 50}
+            className="pco-btn-ghost text-xs"
+          >
+            + Adicionar entry no changelog
           </button>
         </fieldset>
 

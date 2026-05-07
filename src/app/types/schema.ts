@@ -102,6 +102,12 @@ export interface Course {
     bio?: string;
     photoUrl?: string;
   }>;
+  /** Changelog visível pra aluno: novidades por versão. */
+  changelog?: Array<{
+    version: string;
+    date: string;
+    notes: string;
+  }>;
   /** Customização opcional do certificado de conclusão. */
   certificateTemplate?: {
     title?: string;

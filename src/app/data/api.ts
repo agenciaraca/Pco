@@ -2186,6 +2186,11 @@ export interface UpdateCoursePatch {
     bio?: string;
     photoUrl?: string;
   }>;
+  changelog?: Array<{
+    version: string;
+    date: string;
+    notes: string;
+  }>;
   certificateTemplate?: {
     title?: string;
     preamble?: string;

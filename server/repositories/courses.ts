@@ -197,6 +197,9 @@ export async function updateCourse(
         ...(patch.collaborators !== undefined
           ? { collaborators: patch.collaborators }
           : {}),
+        ...(patch.changelog !== undefined
+          ? { changelog: patch.changelog }
+          : {}),
       }),
     );
   }

@@ -309,6 +309,21 @@ export const updateCourseSchema = z.object({
   /** URL pública de uma foto do instrutor. */
   instructorPhotoUrl: z.string().url().max(500).optional().or(z.literal('')),
   /**
+   * Changelog visível ao aluno: histórico de atualizações do curso.
+   * Cada entry tem versão (livre), data, descrição. Visível em
+   * "Novidades neste curso" no LMSCourse.
+   */
+  changelog: z
+    .array(
+      z.object({
+        version: z.string().min(1).max(40),
+        date: z.string().min(8).max(35),
+        notes: z.string().min(1).max(2000),
+      }),
+    )
+    .max(50)
+    .optional(),
+  /**
    * Co-instrutores / equipe pedagógica adicional (até 10).
    * O instrutor principal continua em instructorName/Bio/Photo.
    */
