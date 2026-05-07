@@ -102,6 +102,30 @@ export default function AdminCourses() {
                                 {c.prerequisiteCourseIds!.length} pré-req
                               </span>
                             )}
+                            {c.modules.some((m) => m.lessons.some((l) => l.isPreview)) && (
+                              <span
+                                className="inline-flex items-center gap-1 pco-badge bg-pco-cyan/10 text-pco-cyan text-[10px]"
+                                title="Tem aulas com preview livre"
+                              >
+                                ▶ preview
+                              </span>
+                            )}
+                            {(c.changelog?.length ?? 0) > 0 && (
+                              <span
+                                className="inline-flex items-center gap-1 pco-badge bg-pco-blue/10 text-pco-blue text-[10px]"
+                                title={`${c.changelog!.length} entry(ies) no changelog`}
+                              >
+                                ✨ {c.changelog!.length}
+                              </span>
+                            )}
+                            {(c.collaborators?.length ?? 0) > 0 && (
+                              <span
+                                className="inline-flex items-center gap-1 pco-badge bg-status-success/10 text-status-success text-[10px]"
+                                title={`${c.collaborators!.length} co-instrutor(es)`}
+                              >
+                                +{c.collaborators!.length} instrutores
+                              </span>
+                            )}
                           </div>
                           <div className="text-[11px] text-ink-subtle">/{c.slug}</div>
                         </div>
