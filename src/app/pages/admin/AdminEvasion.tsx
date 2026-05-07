@@ -1,6 +1,13 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
-import { AlertTriangle, ArrowRight, Sparkles, Send } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Sparkles,
+  Send,
+  LayoutGrid,
+  List as ListIcon,
+} from 'lucide-react';
 import { useRetentionRisks, useBroadcastNotification } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
@@ -13,12 +20,41 @@ const levelStyles: Record<string, string> = {
   baixo: 'bg-status-success/10 text-status-success',
 };
 
+const LEVEL_ORDER = ['critico', 'alto', 'medio', 'baixo'] as const;
+const LEVEL_LABEL: Record<string, string> = {
+  critico: 'Crítico',
+  alto: 'Alto',
+  medio: 'Médio',
+  baixo: 'Baixo',
+};
+const LEVEL_BG: Record<string, string> = {
+  critico: 'bg-status-danger/5 border-status-danger/30',
+  alto: 'bg-pco-orange/5 border-pco-orange/30',
+  medio: 'bg-pco-blue/5 border-pco-blue/30',
+  baixo: 'bg-status-success/5 border-status-success/30',
+};
+
 export default function AdminEvasion() {
   const [level, setLevel] = useState('todos');
+  const [view, setView] = useState<'table' | 'kanban'>('table');
   const { data, isLoading, isError, refetch } = useRetentionRisks(level);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const broadcast = useBroadcastNotification();
   const toast = useToast();
+
+  const grouped = useMemo(() => {
+    const map: Record<string, typeof data> = {
+      critico: [],
+      alto: [],
+      medio: [],
+      baixo: [],
+    };
+    for (const r of data ?? []) {
+      const key = r.level in map ? r.level : 'baixo';
+      map[key]!.push(r);
+    }
+    return map;
+  }, [data]);
 
   async function notifySelected() {
     const ids = Array.from(selected);
@@ -53,7 +89,41 @@ export default function AdminEvasion() {
             Score de risco por aluno com motivos e ação recomendada.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div
+            role="tablist"
+            aria-label="Modo de visualização"
+            className="inline-flex rounded-lg border border-pco-border bg-white overflow-hidden"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'table'}
+              onClick={() => setView('table')}
+              className={`text-xs px-3 py-1.5 inline-flex items-center gap-1 ${
+                view === 'table'
+                  ? 'bg-pco-blue text-white'
+                  : 'text-ink-muted hover:bg-surface-mute'
+              }`}
+            >
+              <ListIcon size={12} strokeWidth={2} />
+              Tabela
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'kanban'}
+              onClick={() => setView('kanban')}
+              className={`text-xs px-3 py-1.5 inline-flex items-center gap-1 ${
+                view === 'kanban'
+                  ? 'bg-pco-blue text-white'
+                  : 'text-ink-muted hover:bg-surface-mute'
+              }`}
+            >
+              <LayoutGrid size={12} strokeWidth={2} />
+              Kanban
+            </button>
+          </div>
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value)}
@@ -109,6 +179,81 @@ export default function AdminEvasion() {
           </div>
         </div>
       )}
+      {view === 'kanban' ? (
+        <div className="grid gap-3 lg:grid-cols-4">
+          {LEVEL_ORDER.map((lvl) => {
+            const items = grouped[lvl] ?? [];
+            return (
+              <div
+                key={lvl}
+                className={`rounded-lg border-2 ${LEVEL_BG[lvl]} p-3 min-h-[200px]`}
+              >
+                <header className="flex items-center justify-between mb-3 pb-2 border-b border-pco-border">
+                  <span
+                    className={`pco-badge ${levelStyles[lvl]} font-semibold`}
+                  >
+                    {LEVEL_LABEL[lvl]}
+                  </span>
+                  <span className="text-[11px] text-ink-subtle font-medium">
+                    {items.length}
+                  </span>
+                </header>
+                {items.length === 0 ? (
+                  <p className="text-xs text-ink-subtle text-center py-4">
+                    Nenhum aluno
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {items.map((r) => {
+                      const checked = selected.has(r.studentId);
+                      return (
+                        <li
+                          key={r.studentId}
+                          className={`bg-white rounded-md p-2 border ${checked ? 'border-pco-blue ring-2 ring-pco-blue/30' : 'border-pco-border'}`}
+                        >
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const next = new Set(selected);
+                                if (e.target.checked) next.add(r.studentId);
+                                else next.delete(r.studentId);
+                                setSelected(next);
+                              }}
+                              className="mt-0.5 accent-pco-blue"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold text-pco-deep truncate">
+                                {r.studentName}
+                              </div>
+                              <div className="text-[10px] text-ink-subtle">
+                                Score: <strong>{r.score}</strong>
+                              </div>
+                              {r.reasons && r.reasons.length > 0 && (
+                                <div className="text-[10px] text-ink-muted mt-1 line-clamp-2">
+                                  {r.reasons.slice(0, 2).join(' · ')}
+                                </div>
+                              )}
+                              <Link
+                                to={`/admin/alunos/${r.studentId}`}
+                                className="text-[10px] text-pco-blue hover:underline mt-1 inline-flex items-center gap-0.5"
+                              >
+                                Ver perfil
+                                <ArrowRight size={9} strokeWidth={2} />
+                              </Link>
+                            </div>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
       <div className="pco-card p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -245,6 +390,7 @@ export default function AdminEvasion() {
           </table>
         </div>
       </div>
+      )}
       </>
       )}
 
