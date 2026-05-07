@@ -122,7 +122,7 @@ describe('getLdSlugs — auto-discovery', () => {
     await getLdSlugs(conn);
     await getLdSlugs(conn);
     await getLdSlugs(conn);
-    expect((spy as { mock: { calls: unknown[] } }).mock.calls.length).toBe(1);
+    expect((spy as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(1);
   });
 
   it('connections diferentes têm caches isolados', async () => {
@@ -130,7 +130,7 @@ describe('getLdSlugs — auto-discovery', () => {
     globalThis.fetch = spy;
     await getLdSlugs(conn);
     await getLdSlugs({ ...conn, id: 'outra-conn' });
-    expect((spy as { mock: { calls: unknown[] } }).mock.calls.length).toBe(2);
+    expect((spy as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(2);
   });
 
   it('site com slugs ES (cursos+lecciones) é detectado', async () => {
