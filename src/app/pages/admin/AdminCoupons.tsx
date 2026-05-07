@@ -94,6 +94,44 @@ export default function AdminCoupons() {
         )}
       </header>
 
+      {(coupons.data?.length ?? 0) > 0 && (
+        <div className="grid gap-2 sm:grid-cols-4">
+          <CouponStatCard
+            label="Total"
+            value={coupons.data?.length ?? 0}
+            color="text-pco-deep"
+          />
+          <CouponStatCard
+            label="Ativos"
+            value={(coupons.data ?? []).filter((c) => c.active).length}
+            color="text-status-success"
+          />
+          <CouponStatCard
+            label="Expirados"
+            value={
+              (coupons.data ?? []).filter(
+                (c) =>
+                  c.validUntil &&
+                  new Date(c.validUntil).getTime() < Date.now(),
+              ).length
+            }
+            color="text-pco-orange"
+          />
+          <CouponStatCard
+            label="Esgotando (< 7d)"
+            value={
+              (coupons.data ?? []).filter((c) => {
+                if (!c.validUntil) return false;
+                const exp = new Date(c.validUntil).getTime();
+                const now = Date.now();
+                return exp > now && exp - now < 7 * 24 * 60 * 60_000;
+              }).length
+            }
+            color="text-status-danger"
+          />
+        </div>
+      )}
+
       {bulkOpen && (
         <BulkEditor
           products={products.data ?? []}
@@ -726,5 +764,26 @@ function BulkEditor({
         </button>
       </div>
     </section>
+  );
+}
+
+function CouponStatCard({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <div className="pco-card p-3">
+      <div className="text-[10px] uppercase tracking-wider text-ink-muted">
+        {label}
+      </div>
+      <div className={`text-2xl font-bold mt-1 tabular-nums ${color}`}>
+        {value}
+      </div>
+    </div>
   );
 }
