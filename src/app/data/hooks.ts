@@ -1693,6 +1693,23 @@ export function useDeleteTemplateOverride() {
   });
 }
 
+const weeklyReportKey = ['admin', 'weekly-report-config'] as const;
+
+export function useWeeklyReportConfig() {
+  return useQuery({
+    queryKey: weeklyReportKey,
+    queryFn: api.fetchWeeklyReportConfig,
+  });
+}
+
+export function useSaveWeeklyReportConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.saveWeeklyReportConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: weeklyReportKey }),
+  });
+}
+
 // ---------- Question bank ----------
 
 export function useCourseQuestions(courseId: string | undefined) {

@@ -3048,6 +3048,43 @@ export async function previewTemplateLive(
   );
 }
 
+// ---------- Weekly report config ----------
+
+export interface WeeklyReportConfigDto {
+  enabled: boolean;
+  dayOfWeekUtc: number;
+  hourUtc: number;
+  recipientRoles: ('admin' | 'superadmin')[];
+}
+
+export async function fetchWeeklyReportConfig(): Promise<WeeklyReportConfigDto> {
+  return http.get('/admin/email/weekly-report');
+}
+
+export async function saveWeeklyReportConfig(
+  patch: Partial<WeeklyReportConfigDto>,
+): Promise<WeeklyReportConfigDto> {
+  return http.put('/admin/email/weekly-report', patch);
+}
+
+export interface WeeklyReportPreviewDto {
+  data: {
+    windowFrom: string;
+    windowTo: string;
+    revenue: { currentCents: number; deltaPct: number };
+    newStudents: { current: number; deltaPct: number };
+    certificatesIssued: number;
+    reviews: { new: number; averageRating: number };
+    support: { opened: number; closed: number };
+    topProducts: Array<{ name: string; revenueCents: number; count: number }>;
+  };
+  email: { subject: string; html: string; text: string };
+}
+
+export async function fetchWeeklyReportPreview(): Promise<WeeklyReportPreviewDto> {
+  return http.post('/admin/email/weekly-report/preview', {});
+}
+
 // ---------- Admin KPIs ----------
 
 export interface AdminKpisDto {

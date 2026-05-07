@@ -146,6 +146,7 @@ import { renderCertificateHtml } from './repositories/certificate-render';
 import * as backupWorker from './db/backup-worker';
 import * as deletionRequests from './auth/deletion-requests-store';
 import * as adminDigest from './notifications/admin-digest';
+import * as weeklyReport from './notifications/weekly-report';
 import * as welcome from './notifications/welcome';
 import * as wishlistStore from './activity/wishlist-store';
 import { buildLeaderboard, getUserRank } from './activity/leaderboard';
@@ -6784,6 +6785,48 @@ export function buildApp() {
           err instanceof Error ? err.message : 'Template não encontrado.',
         );
       }
+    },
+  );
+
+  app.get(
+    '/admin/email/weekly-report',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(await weeklyReport.getConfig()),
+  );
+
+  app.put(
+    '/admin/email/weekly-report',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const cfg = await weeklyReport.setConfig({
+        enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+        dayOfWeekUtc:
+          typeof body.dayOfWeekUtc === 'number' ? body.dayOfWeekUtc : undefined,
+        hourUtc: typeof body.hourUtc === 'number' ? body.hourUtc : undefined,
+        recipientRoles: Array.isArray(body.recipientRoles)
+          ? (body.recipientRoles as unknown[]).filter(
+              (r): r is 'admin' | 'superadmin' =>
+                r === 'admin' || r === 'superadmin',
+            )
+          : undefined,
+      });
+      await recordAudit(c, {
+        action: 'weekly_report.config',
+        targetType: 'config',
+        targetId: 'weekly-report',
+      });
+      return c.json(cfg);
+    },
+  );
+
+  app.post(
+    '/admin/email/weekly-report/preview',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const data = await weeklyReport.buildReport();
+      const email = weeklyReport.renderEmailHtml(data);
+      return c.json({ data, email });
     },
   );
 

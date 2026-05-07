@@ -222,12 +222,20 @@ export default function AdminEmail() {
             <Eye size={16} className="text-pco-blue" strokeWidth={1.75} />
             Preview de templates
           </h2>
-          <Link
-            to="/admin/email/templates"
-            className="pco-btn-primary text-xs"
-          >
-            Customizar templates →
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              to="/admin/email/weekly-report"
+              className="pco-btn-ghost text-xs"
+            >
+              Relatório semanal →
+            </Link>
+            <Link
+              to="/admin/email/templates"
+              className="pco-btn-primary text-xs"
+            >
+              Customizar templates →
+            </Link>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 mb-3">
           {(templates.data?.names ?? []).map((n) => (
