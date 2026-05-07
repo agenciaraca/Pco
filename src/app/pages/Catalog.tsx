@@ -24,27 +24,45 @@ export default function Catalog() {
   const { data: courses, isLoading } = useCourses();
   const { data: products = [] } = useProducts();
   const [search, setSearch] = useState('');
+  const [activeTag, setActiveTag] = useState<string>('');
 
   const visibleCourses = useMemo(() => {
-    const baseList = (courses ?? []).filter((c) => {
+    let list = (courses ?? []).filter((c) => {
       const product = products.find(
         (p) => p.kind === 'course' && p.refId === c.id && p.active,
       );
-      return !!product; // só mostra cursos com produto à venda
+      return !!product;
     });
-    if (!search.trim()) return baseList;
-    const q = search.trim().toLowerCase();
-    return baseList.filter((c) => {
-      const fields = [
-        c.title,
-        c.shortTitle,
-        c.description,
-        ...(c.tags ?? []),
-        c.instructorName ?? '',
-      ];
-      return fields.some((f) => f.toLowerCase().includes(q));
-    });
-  }, [courses, products, search]);
+    if (activeTag) {
+      list = list.filter((c) => (c.tags ?? []).includes(activeTag));
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((c) => {
+        const fields = [
+          c.title,
+          c.shortTitle,
+          c.description,
+          ...(c.tags ?? []),
+          c.instructorName ?? '',
+        ];
+        return fields.some((f) => f.toLowerCase().includes(q));
+      });
+    }
+    return list;
+  }, [courses, products, search, activeTag]);
+
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of courses ?? []) {
+      const product = products.find(
+        (p) => p.kind === 'course' && p.refId === c.id && p.active,
+      );
+      if (!product) continue;
+      for (const t of c.tags ?? []) set.add(t);
+    }
+    return Array.from(set).sort();
+  }, [courses, products]);
 
   return (
     <div className="min-h-screen bg-surface-off">
@@ -74,6 +92,39 @@ export default function Catalog() {
             e certificação reconhecida. Crie sua conta e comece hoje.
           </p>
         </div>
+
+        {allTags.length > 0 && (
+          <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-1.5 justify-center">
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              Filtrar:
+            </span>
+            <button
+              type="button"
+              onClick={() => setActiveTag('')}
+              className={`text-[11px] px-2.5 py-1 rounded-full border ${
+                activeTag === ''
+                  ? 'bg-pco-blue text-white border-pco-blue'
+                  : 'bg-white text-ink-muted border-pco-border hover:border-pco-blue/40'
+              }`}
+            >
+              Todos
+            </button>
+            {allTags.slice(0, 12).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setActiveTag(activeTag === t ? '' : t)}
+                className={`text-[11px] px-2.5 py-1 rounded-full border capitalize ${
+                  activeTag === t
+                    ? 'bg-pco-blue text-white border-pco-blue'
+                    : 'bg-white text-ink-muted border-pco-border hover:border-pco-blue/40'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="max-w-xl mx-auto pco-card p-3 flex items-center gap-2">
           <Search size={16} className="text-ink-muted shrink-0" />
