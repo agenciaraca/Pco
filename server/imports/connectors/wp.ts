@@ -185,57 +185,47 @@ export async function fetchWpStudents(
   perPage = 100,
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
-  const out: Array<Record<string, unknown>> = [];
 
-  // Tenta context=edit primeiro (retorna emails); se 401, fallback context=view
-  // (limita campos mas pelo menos lista os users que o role atual pode ver).
-  let context: 'edit' | 'view' = 'edit';
-  try {
+  async function fetchAll(context: 'edit' | 'view'): Promise<Array<Record<string, unknown>>> {
+    const acc: Array<Record<string, unknown>> = [];
     for await (const batch of paginate<WpUser>(
       {
         baseUrl: c.siteUrl,
         path: 'wp-json/wp/v2/users',
-        query: { context: 'edit' },
+        query: { context },
         username: creds.wpUsername,
         password: creds.wpAppPassword,
       },
       perPage,
     )) {
-      pushBatch(batch, out);
+      pushBatch(batch, acc);
     }
-    return out;
+    return acc;
+  }
+
+  try {
+    return await fetchAll('edit');
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('HTTP 401') && msg.includes('rest_forbidden_context')) {
-      // Fallback: context=view não exige admin, mas não retorna email de outros users.
-      // Útil para teste de credenciais; admin recebe aviso para usar role admin.
-      context = 'view';
-    } else {
+    const is401 = msg.includes('HTTP 401');
+    const isForbiddenContext = msg.includes('rest_forbidden_context');
+    if (!is401 || !isForbiddenContext) {
       throw new Error(
         `Falha ao listar usuários WP: ${msg}\n\nDica: o Application Password precisa pertencer a um usuário com role "administrator" no WordPress para listar todos os alunos com email. Caso contrário, o WP retorna 401 com "rest_forbidden_context".`,
       );
     }
   }
 
-  // Tenta context=view com aviso
-  for await (const batch of paginate<WpUser>(
-    {
-      baseUrl: c.siteUrl,
-      path: 'wp-json/wp/v2/users',
-      query: { context },
-      username: creds.wpUsername,
-      password: creds.wpAppPassword,
-    },
-    perPage,
-  )) {
-    pushBatch(batch, out);
-  }
-  if (out.length > 0 && !out[0]!.email) {
+  // Fallback: context=view (não retorna email de terceiros). Comecamos do zero
+  // pra evitar duplicatas de pages que tenham vindo na primeira tentativa.
+  const viewOut = await fetchAll('view');
+  const anyWithEmail = viewOut.some((r) => typeof r.email === 'string' && r.email);
+  if (viewOut.length > 0 && !anyWithEmail) {
     throw new Error(
-      `WP retornou ${out.length} usuários mas SEM email (context=view, role insuficiente). Use Application Password de um usuário com role "administrator" para importar com email completo.`,
+      `WP retornou ${viewOut.length} usuários mas SEM email (context=view, role insuficiente). Use Application Password de um usuário com role "administrator" para importar com email completo.`,
     );
   }
-  return out;
+  return viewOut;
 }
 
 function pushBatch(

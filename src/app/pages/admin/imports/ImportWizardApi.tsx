@@ -29,13 +29,14 @@ import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
 import type {
   ConflictStrategyDto,
   ConnectionDiagnoseResult,
+  ConnectionDiagnoseLdResult,
   EnrollmentExpirationRuleDto,
   EnrollmentStartRuleDto,
   ImportConnectionDto,
   ImportEntityTypeDto,
   UserMatchKeyDto,
 } from '../../../data/api';
-import { diagnoseImportConnection } from '../../../data/api';
+import { diagnoseImportConnection, diagnoseImportConnectionLd } from '../../../data/api';
 
 const ENTITY_GROUPS: Array<{
   source: 'wp' | 'ld' | 'wc';
@@ -99,6 +100,9 @@ export default function ImportWizardApi() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [diagnoseLdResult, setDiagnoseLdResult] = useState<
+    (ConnectionDiagnoseLdResult & { connId: string }) | null
+  >(null);
   const [diagnoseResult, setDiagnoseResult] = useState<
     (ConnectionDiagnoseResult & { connId: string }) | null
   >(null);
@@ -368,9 +372,27 @@ export default function ImportWizardApi() {
                       }
                     }}
                     className="pco-btn-ghost text-xs"
-                    title="Diagnóstico detalhado: verifica role do user e permissões REST"
+                    title="Diagnóstico detalhado WP: verifica role do user e permissões REST"
                   >
                     🔬
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const r = await diagnoseImportConnectionLd(c.id);
+                        setDiagnoseLdResult({ connId: c.id, ...r });
+                      } catch (err) {
+                        toast.error(
+                          'Falha',
+                          err instanceof Error ? err.message : 'Erro',
+                        );
+                      }
+                    }}
+                    className="pco-btn-ghost text-xs"
+                    title="Diagnóstico detalhado LearnDash: verifica plugin, namespace e endpoints"
+                  >
+                    🎓
                   </button>
                   <button
                     type="button"
@@ -779,6 +801,87 @@ export default function ImportWizardApi() {
           onClose={() => setDiagnoseResult(null)}
         />
       )}
+      {diagnoseLdResult && (
+        <DiagnoseLdModal
+          result={diagnoseLdResult}
+          onClose={() => setDiagnoseLdResult(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function DiagnoseLdModal({
+  result,
+  onClose,
+}: {
+  result: ConnectionDiagnoseLdResult & { connId: string };
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="pco-card w-full max-w-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-lg font-bold text-pco-deep">🎓 Diagnóstico LearnDash</h2>
+          <button type="button" onClick={onClose} className="pco-btn-ghost text-xs">
+            Fechar
+          </button>
+        </div>
+
+        <div className="pco-card border-pco-blue/30 bg-pco-blue/5 p-3 text-sm">
+          <strong className="text-pco-deep">Resumo:</strong>{' '}
+          <span className="text-ink-muted">{result.hint}</span>
+        </div>
+
+        <DiagRow
+          label="Namespace ldlms/v2 publicado em /wp-json"
+          ok={result.rootNamespacesIncludesLdlms}
+          value={result.rootNamespacesIncludesLdlms ? 'Sim' : 'Não'}
+          detail={
+            result.rootNamespaces.length > 0
+              ? `Namespaces detectados: ${result.rootNamespaces.slice(0, 12).join(', ')}${
+                  result.rootNamespaces.length > 12 ? ` (+${result.rootNamespaces.length - 12})` : ''
+                }`
+              : 'Nenhum namespace detectado em /wp-json — verifique se o WP REST está ativo.'
+          }
+        />
+
+        <div className="space-y-2">
+          <strong className="text-sm text-pco-deep">Endpoints testados:</strong>
+          {result.endpoints.map((e) => (
+            <DiagRow
+              key={e.path}
+              label={e.path}
+              ok={e.ok}
+              value={e.status === 0 ? 'rede' : `HTTP ${e.status}`}
+              detail={e.detail}
+            />
+          ))}
+        </div>
+
+        {!result.rootNamespacesIncludesLdlms && (
+          <div className="pco-card border-pco-orange/30 bg-pco-orange/5 p-3 text-xs space-y-1">
+            <strong className="text-pco-deep">Como resolver:</strong>
+            <ol className="list-decimal pl-5 space-y-0.5 text-ink-muted">
+              <li>WP-Admin → Plugins: confirme que LearnDash LMS está ativado.</li>
+              <li>
+                WP-Admin → LearnDash LMS → Configurações → REST API: marque "Ativar REST API".
+              </li>
+              <li>
+                Plugins de segurança (Wordfence, iThemes, WP Cerber) podem bloquear REST API
+                não-padrão. Whitelist o user da Application Password.
+              </li>
+              <li>Após salvar, clique em 🎓 novamente para validar.</li>
+            </ol>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

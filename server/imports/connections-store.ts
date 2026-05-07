@@ -182,7 +182,11 @@ function toPublic(c: ImportConnection): ImportConnectionPublicView {
 function normalizeUrl(url: string): string {
   let u = url.trim();
   if (!/^https?:\/\//.test(u)) u = `https://${u}`;
-  return u.replace(/\/+$/, '');
+  u = u.replace(/\/+$/, '');
+  // Conectores adicionam o prefixo wp-json/... — se o admin colou a URL com
+  // /wp-json no final, removemos pra evitar URL duplicada.
+  u = u.replace(/\/wp-json$/i, '');
+  return u;
 }
 
 // Test-only helper

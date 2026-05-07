@@ -15,7 +15,7 @@
 //
 // Os endpoints que podem não existir em LD < 4.5 são tratados com try/catch — pulamos silenciosamente.
 
-import { paginate, getJson } from './http';
+import { paginate, getJson, ConnectorError } from './http';
 import type { ImportConnection } from '../connections-store';
 import { decryptCreds } from '../connections-store';
 
@@ -507,24 +507,163 @@ export async function fetchLdProgress(
 // ---------- Ping da API LearnDash ----------
 
 export async function pingLd(c: ImportConnection): Promise<{ ok: boolean; message: string; counts?: Record<string, number> }> {
-  try {
-    const courses = await tryFetchJson<unknown[]>(c, 'wp-json/ldlms/v2/sfwd-courses', {
-      query: { per_page: 1 },
-    });
-    if (courses === null) {
+  const creds = decryptCreds(c);
+  // 1) caminho oficial ldlms/v2 (LD 3.x e 4.x)
+  // 2) fallback para wp/v2/sfwd-courses (algumas instalações habilitam show_in_rest)
+  const candidates = [
+    'wp-json/ldlms/v2/sfwd-courses',
+    'wp-json/wp/v2/sfwd-courses',
+  ];
+  let lastDetail = '';
+  for (const path of candidates) {
+    try {
+      const r = await getJson<unknown[]>({
+        baseUrl: c.siteUrl,
+        path,
+        query: { per_page: 1 },
+        username: creds.wpUsername,
+        password: creds.wpAppPassword,
+        timeoutMs: 20_000,
+      });
+      const count = Array.isArray(r.data) ? r.data.length : 0;
+      const ns = path.includes('ldlms') ? 'ldlms/v2' : 'wp/v2';
+      return {
+        ok: true,
+        message: `LearnDash OK · namespace ${ns} · ${count} curso(s) na 1ª página${
+          r.total ? ` (total ${r.total})` : ''
+        }`,
+      };
+    } catch (err) {
+      if (err instanceof ConnectorError) {
+        lastDetail = `${path} → HTTP ${err.status}: ${String(err.body ?? '').slice(0, 200)}`;
+        // 404 → endpoint não existe nesse namespace; tenta próximo
+        if (err.status === 404) continue;
+        // 401/403 → auth/permissão; tem mais info útil pra usuário
+        if (err.status === 401 || err.status === 403) {
+          return {
+            ok: false,
+            message: `LearnDash REST exige permissão (HTTP ${err.status}). Use Application Password de um usuário com role administrator/group_leader. Detalhe: ${String(
+              err.body ?? '',
+            ).slice(0, 200)}`,
+          };
+        }
+        return { ok: false, message: lastDetail };
+      }
+      lastDetail = err instanceof Error ? err.message : String(err);
+    }
+  }
+  return {
+    ok: false,
+    message: `LearnDash REST não acessível em nenhum namespace conhecido (ldlms/v2 ou wp/v2/sfwd-courses). Verifique se o plugin LearnDash LMS está ativo e se a REST API está habilitada nas configurações do plugin. Último erro: ${lastDetail}`,
+  };
+}
+
+/**
+ * Diagnóstico detalhado do LearnDash — testa cada endpoint individualmente
+ * e retorna o status, ajudando o admin a saber se é falta de plugin,
+ * falta de permissão ou bug do servidor.
+ */
+export async function diagnoseLd(c: ImportConnection): Promise<{
+  rootNamespacesIncludesLdlms: boolean;
+  rootNamespaces: string[];
+  endpoints: Array<{ path: string; ok: boolean; status: number; detail: string }>;
+  hint: string;
+}> {
+  const creds = decryptCreds(c);
+  const baseUrl = c.siteUrl.replace(/\/+$/, '');
+  const auth =
+    creds.wpUsername && creds.wpAppPassword
+      ? `Basic ${Buffer.from(`${creds.wpUsername}:${creds.wpAppPassword}`).toString('base64')}`
+      : '';
+
+  async function ping(
+    path: string,
+  ): Promise<{ ok: boolean; status: number; detail: string }> {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12_000);
+    try {
+      const res = await fetch(`${baseUrl}${path}`, {
+        headers: {
+          Accept: 'application/json',
+          ...(auth ? { Authorization: auth } : {}),
+        },
+        signal: ctrl.signal,
+        redirect: 'follow',
+      });
+      clearTimeout(t);
+      const txt = await res.text().catch(() => '');
+      return {
+        ok: res.ok,
+        status: res.status,
+        detail:
+          res.status === 200
+            ? `OK (${txt.length} bytes)`
+            : txt.slice(0, 200) || res.statusText,
+      };
+    } catch (err) {
+      clearTimeout(t);
+      const e = err as { message?: string; name?: string };
       return {
         ok: false,
-        message: 'LearnDash REST não acessível (plugin desativado ou sem permissão).',
+        status: 0,
+        detail: e.name === 'AbortError' ? 'Timeout (12s)' : (e.message ?? 'fetch failed'),
       };
     }
-    return {
-      ok: true,
-      message: `LearnDash OK · ${Array.isArray(courses) ? courses.length : 0} curso(s) na primeira página`,
-    };
-  } catch (err) {
-    return {
-      ok: false,
-      message: err instanceof Error ? err.message : String(err),
-    };
   }
+
+  const root = await ping('/wp-json');
+  let rootNamespaces: string[] = [];
+  try {
+    const j = JSON.parse(root.detail.startsWith('OK') ? '{}' : root.detail) as {
+      namespaces?: string[];
+    };
+    rootNamespaces = j.namespaces ?? [];
+  } catch {
+    // root pode ter sido OK mas detail é "OK (...bytes)" — refazer fetch só pra parse
+    if (root.ok) {
+      try {
+        const r = await fetch(`${baseUrl}/wp-json`, {
+          headers: { Accept: 'application/json', ...(auth ? { Authorization: auth } : {}) },
+        });
+        const j = (await r.json().catch(() => ({}))) as { namespaces?: string[] };
+        rootNamespaces = j.namespaces ?? [];
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  const endpoints: Array<{ path: string; ok: boolean; status: number; detail: string }> = [];
+  for (const path of [
+    '/wp-json/ldlms/v2',
+    '/wp-json/ldlms/v2/sfwd-courses?per_page=1',
+    '/wp-json/wp/v2/sfwd-courses?per_page=1',
+  ]) {
+    const r = await ping(path);
+    endpoints.push({ path, ...r });
+  }
+
+  const hasLdlms = rootNamespaces.some((n) => n === 'ldlms/v2' || n.startsWith('ldlms/'));
+  let hint = '';
+  if (!hasLdlms) {
+    hint =
+      'Namespace ldlms/v2 ausente em /wp-json. O plugin LearnDash provavelmente NÃO está ativado, OU o REST API foi desabilitado em LearnDash > Configurações > REST API.';
+  } else if (endpoints.some((e) => e.status === 401 || e.status === 403)) {
+    hint =
+      'Namespace ldlms/v2 existe mas o user da Application Password não tem permissão. Use um user com role "administrator" (ou capability "read_courses_admin").';
+  } else if (endpoints.every((e) => e.status === 404)) {
+    hint =
+      'Namespace ldlms/v2 existe mas as rotas /sfwd-courses retornam 404. Verifique a versão do LearnDash (REST estável a partir do 3.0+).';
+  } else if (endpoints.every((e) => e.ok)) {
+    hint = 'OK — LearnDash REST acessível. Pode importar cursos/aulas/quizzes.';
+  } else {
+    hint = 'Resposta mista. Veja os detalhes por endpoint abaixo.';
+  }
+
+  return {
+    rootNamespacesIncludesLdlms: hasLdlms,
+    rootNamespaces,
+    endpoints,
+    hint,
+  };
 }

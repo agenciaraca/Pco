@@ -1561,6 +1561,22 @@ export async function diagnoseImportConnection(
   );
 }
 
+export interface ConnectionDiagnoseLdResult {
+  rootNamespacesIncludesLdlms: boolean;
+  rootNamespaces: string[];
+  endpoints: Array<{ path: string; ok: boolean; status: number; detail: string }>;
+  hint: string;
+}
+
+export async function diagnoseImportConnectionLd(
+  id: string,
+): Promise<ConnectionDiagnoseLdResult> {
+  return http.post<ConnectionDiagnoseLdResult>(
+    `/admin/imports/connections/${encodeURIComponent(id)}/diagnose-ld`,
+    {},
+  );
+}
+
 export type UserMatchKeyDto = 'email' | 'document' | 'external_id' | 'wp_user_id';
 export type ConflictStrategyDto =
   | 'ignore'
