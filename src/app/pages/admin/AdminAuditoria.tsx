@@ -131,6 +131,49 @@ export default function AdminAuditoria() {
       </header>
 
       <div className="pco-card p-4 space-y-3">
+        <div>
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            Filtros rápidos
+          </span>
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            {[
+              { label: 'Impersonation', value: 'impersonation' },
+              { label: 'Login/Auth', value: 'auth' },
+              { label: 'Refunds', value: 'order.refund' },
+              { label: 'LGPD', value: 'lgpd' },
+              { label: 'Roles', value: 'role.' },
+              { label: 'Webhook events', value: 'webhook' },
+              { label: 'Importações', value: 'import' },
+              { label: 'Email broadcasts', value: 'broadcast' },
+            ].map((c) => {
+              const active = actionFilter === c.value;
+              return (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setActionFilter(active ? '' : c.value)}
+                  className={`text-[11px] px-2 py-1 rounded-full border transition-colors ${
+                    active
+                      ? 'bg-pco-blue text-white border-pco-blue'
+                      : 'bg-white text-ink-muted border-pco-border hover:border-pco-blue/40'
+                  }`}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+            {actionFilter && (
+              <button
+                type="button"
+                onClick={() => setActionFilter('')}
+                className="text-[11px] px-2 py-1 rounded-full bg-status-danger/10 text-status-danger hover:bg-status-danger/20"
+              >
+                Limpar ✕
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="grid gap-3 md:grid-cols-3">
           <label className="block">
             <span className="text-[11px] uppercase tracking-wide text-ink-muted">Ação contém</span>
