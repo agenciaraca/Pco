@@ -2961,6 +2961,47 @@ export async function deleteQuestion(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/questions/${encodeURIComponent(id)}`);
 }
 
+export interface QuizQuestionPublicDto {
+  id: string;
+  type: QuestionTypeDto;
+  prompt: string;
+  tags: string[];
+  difficulty: number;
+  options: { id: string; text: string }[];
+}
+
+export async function fetchQuiz(
+  courseId: string,
+  options: { moduleId?: string; max?: number } = {},
+): Promise<{ questions: QuizQuestionPublicDto[] }> {
+  const qs = new URLSearchParams();
+  if (options.moduleId) qs.set('moduleId', options.moduleId);
+  if (options.max) qs.set('max', String(options.max));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return http.get(`/me/quiz/${encodeURIComponent(courseId)}/start${suffix}`);
+}
+
+export interface QuizGradeResultDto {
+  score: number;
+  total: number;
+  pct: number;
+  results: Array<{
+    questionId: string;
+    correct: boolean;
+    correctOptionIds: string[];
+    explanation: string | null;
+  }>;
+}
+
+export async function submitQuiz(
+  courseId: string,
+  answers: { questionId: string; selectedOptionIds: string[] }[],
+): Promise<QuizGradeResultDto> {
+  return http.post(`/me/quiz/${encodeURIComponent(courseId)}/grade`, {
+    answers,
+  });
+}
+
 // ---------- Admin KPIs ----------
 
 export interface AdminKpisDto {

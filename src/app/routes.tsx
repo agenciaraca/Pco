@@ -45,6 +45,7 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 
 // Learning — lazy
 const LMSCourse = lazy(() => import('./pages/LMSCourse'));
+const Quiz = lazy(() => import('./pages/Quiz'));
 const LMSModule = lazy(() => import('./pages/LMSModule'));
 const LMSLesson = lazy(() => import('./pages/LMSLesson'));
 const LMSAssessment = lazy(() => import('./pages/LMSAssessment'));
@@ -186,6 +187,7 @@ export const router = createBrowserRouter([
     errorElement: <RootError />,
     children: [
       { path: '/curso/:courseId', element: <S><LMSCourse /></S> },
+      { path: '/curso/:courseId/quiz', element: <S><Quiz /></S> },
       { path: '/curso/:courseId/modulo/:moduleId', element: <S><LMSModule /></S> },
       { path: '/curso/:courseId/aula/:lessonId', element: <S><LMSLesson /></S> },
       { path: '/curso/:courseId/avaliacao/:assessmentId', element: <S><LMSAssessment /></S> },

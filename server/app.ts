@@ -4112,6 +4112,71 @@ export function buildApp() {
     });
   });
 
+  // ---------- Quiz attempts (aluno) ----------
+
+  /**
+   * Sorteia N questões ativas do curso (ou módulo) pra montar um quiz.
+   * Default: 10 questões. Aluno marca as opções e POST /quiz/:courseId/grade
+   * pra obter o resultado.
+   */
+  app.get('/me/quiz/:courseId/start', requireAuth(), async (c) => {
+    const courseId = c.req.param('courseId') as string;
+    const moduleId = c.req.query('moduleId') || undefined;
+    const max = Math.max(1, Math.min(50, Number(c.req.query('max') ?? '10')));
+    const sampled = await questionBank.sampleForQuiz(courseId, max, moduleId);
+    if (sampled.length === 0) {
+      return c.json({ questions: [] });
+    }
+    // Esconde flag correct nas options pra não vazar resposta no client
+    const safe = sampled.map((q) => ({
+      id: q.id,
+      type: q.type,
+      prompt: q.prompt,
+      tags: q.tags,
+      difficulty: q.difficulty,
+      options: q.options.map((o) => ({ id: o.id, text: o.text })),
+    }));
+    return c.json({ questions: safe });
+  });
+
+  /**
+   * Aluno submete respostas. Backend grada e retorna resultado por questão
+   * com explicações. Format: { answers: [{questionId, selectedOptionIds}] }
+   */
+  app.post('/me/quiz/:courseId/grade', requireAuth(), async (c) => {
+    const courseId = c.req.param('courseId') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const answers = Array.isArray(body.answers) ? body.answers : [];
+    const results: Array<{
+      questionId: string;
+      correct: boolean;
+      correctOptionIds: string[];
+      explanation: string | null;
+    }> = [];
+    let score = 0;
+    for (const a of answers) {
+      const ans = a as { questionId?: string; selectedOptionIds?: string[] };
+      if (!ans.questionId) continue;
+      const q = await questionBank.findById(ans.questionId);
+      if (!q || q.courseId !== courseId) continue;
+      const grade = questionBank.gradeAnswer(q, ans.selectedOptionIds ?? []);
+      if (grade.correct) score++;
+      results.push({
+        questionId: q.id,
+        correct: grade.correct,
+        correctOptionIds: grade.correctOptionIds,
+        explanation: q.explanation ?? null,
+      });
+    }
+    const total = results.length;
+    return c.json({
+      score,
+      total,
+      pct: total > 0 ? Math.round((score / total) * 100) : 0,
+      results,
+    });
+  });
+
   // ---------- Banco de questões (question bank) ----------
 
   app.get(

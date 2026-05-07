@@ -69,6 +69,13 @@ export default function LMSCourse() {
               <ArrowRight size={14} strokeWidth={2} />
             </Link>
           )}
+          <Link
+            to={`/curso/${course.id}/quiz`}
+            className="pco-btn-ghost text-xs"
+            title="Pratique com 10 questões aleatórias do banco"
+          >
+            Praticar com quiz →
+          </Link>
         </div>
       </div>
 
