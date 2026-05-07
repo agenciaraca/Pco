@@ -1660,6 +1660,39 @@ export function useDeleteApiToken() {
   });
 }
 
+// ---------- Email template overrides ----------
+
+const templateOverridesKey = ['admin', 'email-template-overrides'] as const;
+
+export function useTemplateOverrides() {
+  return useQuery({
+    queryKey: templateOverridesKey,
+    queryFn: api.fetchTemplateOverrides,
+  });
+}
+
+export function useSaveTemplateOverride() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      name,
+      patch,
+    }: {
+      name: string;
+      patch: Omit<api.EmailTemplateOverrideDto, 'name'>;
+    }) => api.saveTemplateOverride(name, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: templateOverridesKey }),
+  });
+}
+
+export function useDeleteTemplateOverride() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteTemplateOverride,
+    onSuccess: () => qc.invalidateQueries({ queryKey: templateOverridesKey }),
+  });
+}
+
 // ---------- Question bank ----------
 
 export function useCourseQuestions(courseId: string | undefined) {

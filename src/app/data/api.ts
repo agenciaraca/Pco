@@ -3002,6 +3002,52 @@ export async function submitQuiz(
   });
 }
 
+// ---------- Email template overrides ----------
+
+export interface EmailTemplateOverrideDto {
+  name: string;
+  subject?: string;
+  greeting?: string;
+  footerNote?: string;
+  brandColor?: string;
+  logoUrl?: string;
+  orgName?: string;
+}
+
+export async function fetchTemplateOverrides(): Promise<{
+  overrides: EmailTemplateOverrideDto[];
+}> {
+  return http.get('/admin/email/template-overrides');
+}
+
+export async function saveTemplateOverride(
+  name: string,
+  patch: Omit<EmailTemplateOverrideDto, 'name'>,
+): Promise<EmailTemplateOverrideDto> {
+  return http.put(
+    `/admin/email/template-overrides/${encodeURIComponent(name)}`,
+    patch,
+  );
+}
+
+export async function deleteTemplateOverride(
+  name: string,
+): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(
+    `/admin/email/template-overrides/${encodeURIComponent(name)}`,
+  );
+}
+
+export async function previewTemplateLive(
+  name: string,
+  override: Omit<EmailTemplateOverrideDto, 'name'>,
+): Promise<{ subject: string; html: string; text: string }> {
+  return http.post(
+    `/admin/email/templates/${encodeURIComponent(name)}/preview`,
+    override,
+  );
+}
+
 // ---------- Admin KPIs ----------
 
 export interface AdminKpisDto {

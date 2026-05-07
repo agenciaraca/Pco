@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Mail,
   Plus,
@@ -216,10 +217,18 @@ export default function AdminEmail() {
       </section>
 
       <section>
-        <h2 className="text-base font-semibold text-pco-deep mb-2 flex items-center gap-2">
-          <Eye size={16} className="text-pco-blue" strokeWidth={1.75} />
-          Preview de templates
-        </h2>
+        <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
+          <h2 className="text-base font-semibold text-pco-deep flex items-center gap-2">
+            <Eye size={16} className="text-pco-blue" strokeWidth={1.75} />
+            Preview de templates
+          </h2>
+          <Link
+            to="/admin/email/templates"
+            className="pco-btn-primary text-xs"
+          >
+            Customizar templates →
+          </Link>
+        </div>
         <div className="flex flex-wrap gap-2 mb-3">
           {(templates.data?.names ?? []).map((n) => (
             <button
