@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-07 — sprints 469-521)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-526)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **521+** |
-| Commits no main | **295+** |
-| Arquivos de teste | **105** |
-| Testes passando | **1048** ✅ |
+| Sprints entregues | **526+** |
+| Commits no main | **300+** |
+| Arquivos de teste | **106** |
+| Testes passando | **1060** ✅ |
 | Coverage statements | **~70%** |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,15 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-521 (drip 2 + LMS extensions + quiz fullstack + admin UIs)
+### Bloco sprints 494-526 (drip 2 + LMS + quiz + admin UIs + UX hardening)
 | Sprint | Tema |
 |---|---|
+| 526 | testes adicionais chunk-error-recovery (+3) |
+| 525 | quick filter chips em /admin/auditoria |
+| 524 | course changelog visível no LMS |
+| 523 | AdminLogs counters + pause + export |
+| 522 | página detalhe de usuário do sistema |
+| 521 (deploy) | auto-reload em chunk-load-error pós-deploy (+9 testes) |
 | 521 | testes edge case render certificado (+11) |
 | 520 | testes adicionais study-paths (+10) |
 | 519 | testes weekly-report config (+7) |

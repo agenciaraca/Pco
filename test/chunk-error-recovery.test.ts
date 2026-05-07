@@ -59,4 +59,28 @@ describe('isChunkLoadError', () => {
     expect(isChunkLoadError({})).toBe(false);
     expect(isChunkLoadError(123)).toBe(false);
   });
+
+  it('case sensitivity — exact substring match', () => {
+    expect(isChunkLoadError(new Error('FAILED TO FETCH'))).toBe(false);
+    expect(
+      isChunkLoadError(
+        new Error('Failed to fetch dynamically imported module: ...'),
+      ),
+    ).toBe(true);
+  });
+
+  it('detecta no meio de mensagem mais longa', () => {
+    expect(
+      isChunkLoadError(
+        new Error(
+          'TypeError: Failed to fetch dynamically imported module: /assets/Foo.js at line 42',
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('boolean reason retorna false', () => {
+    expect(isChunkLoadError(true)).toBe(false);
+    expect(isChunkLoadError(false)).toBe(false);
+  });
 });
