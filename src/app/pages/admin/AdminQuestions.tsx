@@ -65,15 +65,31 @@ export default function AdminQuestions() {
 
   const [editing, setEditing] = useState<EditState | null>(null);
   const [filterModule, setFilterModule] = useState<string>('all');
+  const [filterType, setFilterType] = useState<'all' | 'multiple_choice' | 'true_false'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [search, setSearch] = useState('');
   const [tagInput, setTagInput] = useState('');
 
   const course = courseQ.data;
   const questions = questionsQ.data?.questions ?? [];
   const filtered = useMemo(() => {
-    if (filterModule === 'all') return questions;
-    if (filterModule === 'no-module') return questions.filter((q) => !q.moduleId);
-    return questions.filter((q) => q.moduleId === filterModule);
-  }, [questions, filterModule]);
+    let list = questions;
+    if (filterModule === 'no-module') list = list.filter((q) => !q.moduleId);
+    else if (filterModule !== 'all')
+      list = list.filter((q) => q.moduleId === filterModule);
+    if (filterType !== 'all') list = list.filter((q) => q.type === filterType);
+    if (filterStatus === 'active') list = list.filter((q) => q.active);
+    else if (filterStatus === 'inactive') list = list.filter((q) => !q.active);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (x) =>
+          x.prompt.toLowerCase().includes(q) ||
+          x.tags.some((t) => t.includes(q)),
+      );
+    }
+    return list;
+  }, [questions, filterModule, filterType, filterStatus, search]);
 
   if (!courseId) return <Navigate to="/admin/cursos" replace />;
   if (courseQ.isLoading) return <CardListSkeleton count={3} />;
@@ -255,9 +271,14 @@ export default function AdminQuestions() {
         </button>
       </header>
 
-      {course.modules.length > 0 && (
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-ink-muted">Filtrar:</label>
+      <div className="pco-card p-3 flex flex-wrap items-center gap-2">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por enunciado ou tag…"
+          className="pco-input text-sm flex-1 min-w-[180px]"
+        />
+        {course.modules.length > 0 && (
           <select
             value={filterModule}
             onChange={(e) => setFilterModule(e.target.value)}
@@ -271,8 +292,35 @@ export default function AdminQuestions() {
               </option>
             ))}
           </select>
-        </div>
-      )}
+        )}
+        <select
+          value={filterType}
+          onChange={(e) =>
+            setFilterType(
+              e.target.value as 'all' | 'multiple_choice' | 'true_false',
+            )
+          }
+          className="pco-input text-xs w-auto"
+        >
+          <option value="all">Todos os tipos</option>
+          <option value="multiple_choice">Múltipla escolha</option>
+          <option value="true_false">Verdadeiro/Falso</option>
+        </select>
+        <select
+          value={filterStatus}
+          onChange={(e) =>
+            setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')
+          }
+          className="pco-input text-xs w-auto"
+        >
+          <option value="all">Todos</option>
+          <option value="active">Ativas</option>
+          <option value="inactive">Inativas</option>
+        </select>
+        <span className="text-[11px] text-ink-subtle ml-auto">
+          {filtered.length} de {questions.length}
+        </span>
+      </div>
 
       {questionsQ.isLoading ? (
         <CardListSkeleton count={3} />
