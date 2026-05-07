@@ -23,11 +23,13 @@ import {
   useCertificates,
   useMyStreak,
   useLastLesson,
+  useMyStudyHeatmap,
 } from '../data/hooks';
 import { Skeleton } from '../components/LoadingSkeleton';
 import { ErrorState } from '../components/EmptyState';
 import LeaderboardWidget from '../components/LeaderboardWidget';
 import SuggestedCourses from '../components/SuggestedCourses';
+import StudyHeatmap from '../components/StudyHeatmap';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -37,6 +39,7 @@ export default function Dashboard() {
   const podcastsQ = usePodcasts();
   const progressQ = useMyProgress();
   const streakQ = useMyStreak();
+  const heatmapQ = useMyStudyHeatmap();
   const certsQ = useCertificates();
   const lastLessonQ = useLastLesson();
   useDocumentMeta({ title: 'Início — AVA PCO' });
@@ -194,6 +197,26 @@ export default function Dashboard() {
       </div>
 
       <SuggestedCourses />
+
+      {heatmapQ.data && heatmapQ.data.summary.lastYearLessons > 0 && (
+        <section className="pco-card p-5 space-y-3">
+          <header className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="text-base font-semibold text-pco-deep">
+              Sua trajetória
+            </h3>
+            <Link
+              to="/perfil"
+              className="text-xs text-pco-blue hover:underline"
+            >
+              Ver detalhes →
+            </Link>
+          </header>
+          <StudyHeatmap
+            days={heatmapQ.data.days}
+            summary={heatmapQ.data.summary}
+          />
+        </section>
+      )}
 
 {nextLesson && (
         <Link
