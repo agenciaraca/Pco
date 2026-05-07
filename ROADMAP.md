@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-06 — sprints 469-493)
+## Estado atual (atualizado em 2026-05-07 — sprints 469-512)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **493+** |
-| Commits no main | **265+** |
-| Arquivos de teste | **95** |
-| Testes passando | **917** ✅ |
+| Sprints entregues | **512+** |
+| Commits no main | **285+** |
+| Arquivos de teste | **101** |
+| Testes passando | **1005** ✅ |
 | Coverage statements | **~70%** |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -142,6 +142,24 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 ---
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
+
+### Bloco sprints 494-512 (drip 2 + LMS extensions + tests + docs)
+| Sprint | Tema |
+|---|---|
+| 512 | guia do administrador não-técnico (docs) |
+| 511 | kanban view em /admin/evasao |
+| 510 | cookbook webhooks (docs com 7 receitas) |
+| 509 | presets webhook (Slack/Discord/Zapier/n8n/Make/Pipedream) |
+| 508 | relatório semanal admin (11 testes) |
+| 507 | schedules-worker tickWorker tests (7) |
+| 506 | webhook dispatcher tests (8) |
+| 505 | invoice tests review (já cobertos) |
+| 504 | course collaborators (até 10 co-instrutores) |
+| 503 | quiz banco de questões fase 1 (25 testes) |
+| 502 | KPIs unificados em /admin/dashboard |
+| 501 | certificate templates customizáveis (6 testes) |
+| 500 | trilhas de estudo CRUD (15 testes) |
+| 499 | badges no README (CI/tests/sprints) |
 
 ### Bloco sprints 469-493 (auth + API + roles + LMS deepening)
 | Sprint | Commit | Tema |
