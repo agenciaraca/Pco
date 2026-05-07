@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-07 — sprints 469-515)
+## Estado atual (atualizado em 2026-05-07 — sprints 469-521)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **515+** |
-| Commits no main | **288+** |
-| Arquivos de teste | **102** |
-| Testes passando | **1020** ✅ |
+| Sprints entregues | **521+** |
+| Commits no main | **295+** |
+| Arquivos de teste | **105** |
+| Testes passando | **1048** ✅ |
 | Coverage statements | **~70%** |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,15 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-515 (drip 2 + LMS extensions + tests + docs + quiz UI + email editor)
+### Bloco sprints 494-521 (drip 2 + LMS extensions + quiz fullstack + admin UIs)
 | Sprint | Tema |
 |---|---|
+| 521 | testes edge case render certificado (+11) |
+| 520 | testes adicionais study-paths (+10) |
+| 519 | testes weekly-report config (+7) |
+| 518 | seletor de preset no formulário webhook |
+| 517 | admin UI config weekly-report + 3 routes |
+| 516 | admin UI editor de templates de e-mail com preview live |
 | 515 | editor de templates de e-mail customizáveis (15 testes) |
 | 514 | quiz: fluxo do aluno responder + resultado + revisão |
 | 513 | quiz: admin UI CRUD pro banco de questões |
