@@ -40,6 +40,7 @@ import {
   useDeleteAssessment,
 } from '../../data/hooks';
 import { PageLoadingSkeleton } from '../../components/LoadingSkeleton';
+import CoursePublishChecklist from '../../components/CoursePublishChecklist';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import {
@@ -802,6 +803,8 @@ function GeralPane({ course }: { course: Course }) {
           <Row label="Avaliações" value={course.modules.filter((m) => m.assessment).length} />
           <Row label="Certificado" value={course.certificateAvailable ? 'Sim' : 'Não'} />
         </div>
+
+        <CoursePublishChecklist course={course} />
       </div>
     </form>
   );
