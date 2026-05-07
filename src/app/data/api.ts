@@ -3002,6 +3002,27 @@ export async function submitQuiz(
   });
 }
 
+// ---------- Webhook presets ----------
+
+export interface WebhookPresetDto {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+  urlPlaceholder: string;
+  channelType: 'generic' | 'slack' | 'discord';
+  headers?: Record<string, string>;
+  suggestedEvents: string[];
+  docsUrl?: string;
+  notes?: string;
+}
+
+export async function fetchWebhookPresets(): Promise<{
+  presets: WebhookPresetDto[];
+}> {
+  return http.get('/admin/webhooks/presets');
+}
+
 // ---------- Email template overrides ----------
 
 export interface EmailTemplateOverrideDto {

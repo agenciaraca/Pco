@@ -1710,6 +1710,14 @@ export function useSaveWeeklyReportConfig() {
   });
 }
 
+export function useWebhookPresets() {
+  return useQuery({
+    queryKey: ['admin', 'webhook-presets'] as const,
+    queryFn: api.fetchWebhookPresets,
+    staleTime: 30 * 60_000, // 30min — presets são estáticos
+  });
+}
+
 // ---------- Question bank ----------
 
 export function useCourseQuestions(courseId: string | undefined) {

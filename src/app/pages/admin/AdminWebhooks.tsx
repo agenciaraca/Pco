@@ -18,6 +18,7 @@ import {
   useTestWebhookEndpoint,
   useWebhookDeliveries,
   useRetryWebhookDelivery,
+  useWebhookPresets,
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -484,12 +485,80 @@ function EndpointEditor({
     );
   }
 
+  const presetsQ = useWebhookPresets();
+  const [presetId, setPresetId] = useState<string>('');
+
+  function applyPreset(id: string) {
+    setPresetId(id);
+    const p = (presetsQ.data?.presets ?? []).find((x) => x.id === id);
+    if (!p) return;
+    setName(p.name);
+    setChannelType(p.channelType);
+    // Eventos sugeridos: filtra os que existem na lista do sistema
+    const valid = p.suggestedEvents.filter((e) =>
+      availableEvents.includes(e as WebhookEventTypeDto),
+    ) as WebhookEventTypeDto[];
+    setEvents(valid);
+    // Não preencher URL — o admin precisa colar o link real
+  }
+
   return (
     <section className="pco-card p-4 space-y-3">
       <h2 className="text-sm font-semibold text-pco-deep flex items-center gap-2">
         <Plus size={14} strokeWidth={2} className="text-pco-blue" />
         {editing ? `Editar: ${editing.name}` : 'Novo endpoint'}
       </h2>
+
+      {!editing && (presetsQ.data?.presets.length ?? 0) > 0 && (
+        <div className="bg-pco-blue/5 border border-pco-blue/30 rounded-lg p-3 space-y-2">
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide text-pco-blue font-semibold">
+              Preset (opcional)
+            </span>
+            <select
+              value={presetId}
+              onChange={(e) => applyPreset(e.target.value)}
+              className="pco-input mt-1 text-sm w-full"
+            >
+              <option value="">— Configurar manualmente —</option>
+              {presetsQ.data?.presets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.icon ?? ''} {p.name} — {p.description.slice(0, 60)}
+                </option>
+              ))}
+            </select>
+          </label>
+          {presetId &&
+            (() => {
+              const p = presetsQ.data?.presets.find((x) => x.id === presetId);
+              if (!p) return null;
+              return (
+                <div className="text-xs text-ink-muted space-y-1">
+                  <div>
+                    <strong>Cole no campo URL:</strong>{' '}
+                    <code className="bg-white px-1 py-0.5 rounded text-[10px]">
+                      {p.urlPlaceholder}
+                    </code>
+                  </div>
+                  {p.notes && <div>💡 {p.notes}</div>}
+                  {p.docsUrl && (
+                    <div>
+                      📖{' '}
+                      <a
+                        href={p.docsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-pco-blue hover:underline"
+                      >
+                        Documentação oficial
+                      </a>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <Input label="Nome" value={name} onChange={setName} placeholder="Ex: Zapier produção" />
         <label className="block">
