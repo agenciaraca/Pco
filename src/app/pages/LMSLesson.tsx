@@ -443,9 +443,21 @@ function readPreferredLang(): string | undefined {
   }
 }
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlightText(text: string, query: string): Array<{ text: string; match: boolean }> {
+  if (!query.trim()) return [{ text, match: false }];
+  const re = new RegExp(`(${escapeRegex(query.trim())})`, 'gi');
+  const parts = text.split(re);
+  return parts.map((p, i) => ({ text: p, match: i % 2 === 1 }));
+}
+
 function TranscriptPanel({ lessonId }: { lessonId: string }) {
   const [open, setOpen] = useState(false);
   const [lang, setLang] = useState<string | undefined>(() => readPreferredLang());
+  const [search, setSearch] = useState('');
   const transcriptQ = useLessonTranscript(open ? lessonId : undefined, lang);
   const toast = useToast();
   const t = useT();
@@ -589,11 +601,43 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
           {t('lesson.transcriptNone')}
         </div>
       ) : data?.text ? (
-        <div className="max-h-[400px] overflow-y-auto border border-surface-gray rounded-lg p-3 bg-white">
-          <article className="prose prose-sm max-w-none whitespace-pre-wrap text-sm text-pco-deep leading-relaxed">
-            {data.text}
-          </article>
-        </div>
+        <>
+          <div className="mb-2 flex items-center gap-2">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('common.search')}
+              className="pco-input text-xs py-1 flex-1"
+              aria-label={t('common.search')}
+            />
+            {search && (
+              <span className="text-[11px] text-ink-muted whitespace-nowrap">
+                {(() => {
+                  const re = new RegExp(escapeRegex(search.trim()), 'gi');
+                  const m = data.text.match(re);
+                  return `${m?.length ?? 0} ${m && m.length === 1 ? 'match' : 'matches'}`;
+                })()}
+              </span>
+            )}
+          </div>
+          <div className="max-h-[400px] overflow-y-auto border border-surface-gray rounded-lg p-3 bg-white">
+            <article className="prose prose-sm max-w-none whitespace-pre-wrap text-sm text-pco-deep leading-relaxed">
+              {highlightText(data.text, search).map((part, i) =>
+                part.match ? (
+                  <mark
+                    key={i}
+                    className="bg-pco-orange/30 text-pco-deep rounded px-0.5"
+                  >
+                    {part.text}
+                  </mark>
+                ) : (
+                  <span key={i}>{part.text}</span>
+                ),
+              )}
+            </article>
+          </div>
+        </>
       ) : (
         <div className="text-xs text-ink-subtle italic">{t('common.empty')}</div>
       )}
