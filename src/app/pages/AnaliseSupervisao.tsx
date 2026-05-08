@@ -15,6 +15,7 @@ import {
 import EmptyState from '../components/EmptyState';
 import { useSessionServices, useProfessionals } from '../data/hooks';
 import type { SessionService, Professional } from '../types/schema';
+import { useT } from '../i18n';
 
 type Step = 'service' | 'professional' | 'datetime' | 'confirm' | 'done';
 
@@ -63,6 +64,7 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function AnaliseSupervisao() {
+  const t = useT();
   const [step, setStep] = useState<Step>('service');
   const [booking, setBooking] = useState<Booking>({});
   const [bookerOpen, setBookerOpen] = useState(false);
@@ -87,7 +89,7 @@ export default function AnaliseSupervisao() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Análise e Supervisão</h1>
+        <h1 className="pco-section-title">{t('admin.nav.supervision')}</h1>
         <p className="pco-section-subtitle mt-1">
           Serviços opcionais de apoio à sua trajetória formativa.
         </p>
