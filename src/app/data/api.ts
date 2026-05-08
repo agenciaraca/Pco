@@ -493,6 +493,28 @@ export async function translateTranscriptWithAi(
   );
 }
 
+export interface GenerateFromVideoInput {
+  lessonId: string;
+  lang: 'pt' | 'es' | 'en';
+}
+
+export interface GenerateFromVideoResult {
+  text: string;
+  durationSeconds: number | null;
+  language: string;
+  sizeMB: number;
+  costUsd: number;
+}
+
+export async function generateTranscriptFromVideo(
+  input: GenerateFromVideoInput,
+): Promise<GenerateFromVideoResult> {
+  return http.post<GenerateFromVideoResult>(
+    '/admin/transcripts/generate-from-video',
+    input,
+  );
+}
+
 // ---------- Tutor usage ----------
 
 export interface TutorUsageDto {

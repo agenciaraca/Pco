@@ -1237,6 +1237,7 @@ function LessonEditor({
   type FormInput = z.input<typeof createLessonSchema>;
   const toast = useToast();
   const [translatingTo, setTranslatingTo] = useState<string | null>(null);
+  const [generatingTo, setGeneratingTo] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -1354,6 +1355,57 @@ function LessonEditor({
                 />
                 {!isNew && lesson && (
                   <div className="mt-1 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={generatingTo !== null || translatingTo !== null}
+                      onClick={async () => {
+                        if (!lesson.videoUrl) {
+                          toast.info(
+                            'Sem vídeo',
+                            'Cadastre uma URL de vídeo antes pra gerar transcrição automaticamente.',
+                          );
+                          return;
+                        }
+                        if (
+                          !confirm(
+                            `Gerar transcrição em ${TRANSCRIPT_LOCALE_LABELS[lang]} via Whisper a partir do vídeo?\n\nLimite: 25MB. Vai sobrescrever conteúdo atual em ${TRANSCRIPT_LOCALE_LABELS[lang]}.`,
+                          )
+                        ) {
+                          return;
+                        }
+                        setGeneratingTo(lang);
+                        try {
+                          const r = await api.generateTranscriptFromVideo({
+                            lessonId: lesson.id,
+                            lang,
+                          });
+                          setValue(
+                            `transcripts.${lang}` as const,
+                            r.text,
+                            { shouldDirty: true },
+                          );
+                          toast.success(
+                            `Gerado: ${r.text.length} chars, ${r.sizeMB}MB, ~$${r.costUsd}`,
+                          );
+                        } catch (err) {
+                          toast.error(
+                            'Falha Whisper',
+                            err instanceof Error ? err.message : 'Erro',
+                          );
+                        } finally {
+                          setGeneratingTo(null);
+                        }
+                      }}
+                      className="text-[10px] pco-btn-ghost py-1 px-2"
+                      title="Baixa o vídeo, envia ao OpenAI Whisper, salva transcrição (limite 25MB)"
+                    >
+                      {generatingTo === lang ? (
+                        <Loader2 size={10} className="animate-spin" />
+                      ) : (
+                        '🎙️'
+                      )}
+                      Gerar do vídeo
+                    </button>
                     {SUPPORTED_TRANSCRIPT_LOCALES.filter((src) => src !== lang).map(
                       (src) => (
                         <button

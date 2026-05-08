@@ -85,6 +85,11 @@ import * as rateLimitTelemetry from './rate-limit';
 import { jsonError, validate } from './http';
 import { getProvider, listProviders, calculateCost } from './ai/providers';
 import * as aiConfigRepo from './repositories/ai-configs';
+import {
+  transcribeWithWhisper,
+  downloadVideoForTranscription,
+  inferFilenameFromUrl,
+} from './ai/whisper';
 import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
 import * as newsRepo from './repositories/news';
@@ -3733,6 +3738,130 @@ export function buildApp() {
     const updated = await ordersRepo.updateStatus(id, 'canceled', 'Cancelado pelo aluno');
     return c.json(updated);
   });
+
+  /**
+   * Geração automática de transcrição via OpenAI Whisper a partir do videoUrl
+   * da aula. Whisper aceita até 25MB nos formatos mp4/m4a/mp3/wav/webm.
+   *
+   * Body: { lessonId, lang } — usa o videoUrl já cadastrado.
+   * Resposta: { text, durationSeconds, language, sizeMB }.
+   * Salva direto em lesson.transcripts[lang].
+   *
+   * Requer config OpenAI ativa em algum módulo (tutor/summaries) — Whisper
+   * usa a mesma API key do chat.
+   */
+  app.post(
+    '/admin/transcripts/generate-from-video',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 3 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        lessonId?: string;
+        lang?: string;
+      };
+      const lessonId = String(body.lessonId ?? '').trim();
+      const lang = String(body.lang ?? 'pt').trim().toLowerCase();
+      const valid = ['pt', 'es', 'en'];
+      if (!lessonId) return jsonError(c, 400, 'BAD_REQUEST', 'lessonId obrigatório.');
+      if (!valid.includes(lang)) {
+        return jsonError(c, 400, 'BAD_LANG', `lang deve ser ${valid.join('|')}.`);
+      }
+
+      const courses = await coursesRepo.listCourses();
+      let foundLesson:
+        | (typeof courses)[number]['modules'][number]['lessons'][number]
+        | null = null;
+      for (const co of courses) {
+        for (const m of co.modules ?? []) {
+          const l = m.lessons.find((x) => x.id === lessonId);
+          if (l) { foundLesson = l; break; }
+        }
+        if (foundLesson) break;
+      }
+      if (!foundLesson) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+      const videoUrl = (foundLesson as { videoUrl?: string }).videoUrl ?? '';
+      if (!videoUrl) {
+        return jsonError(
+          c,
+          400,
+          'NO_VIDEO',
+          'Aula não tem videoUrl cadastrada. Adicione antes de gerar transcrição.',
+        );
+      }
+
+      // Procura config OpenAI ativa em algum módulo
+      const allConfigs = await aiConfigRepo.listConfigs();
+      const fullConfigs = await Promise.all(
+        allConfigs.map((p) => aiConfigRepo.getConfig(p.id)),
+      );
+      const openAiConfig = fullConfigs.find(
+        (cfg) => cfg && cfg.provider === 'openai' && cfg.active !== false,
+      );
+      if (!openAiConfig) {
+        return jsonError(
+          c,
+          400,
+          'NO_OPENAI',
+          'Whisper precisa de uma config OpenAI ativa. Configure /admin/ias com provider=openai em qualquer módulo.',
+        );
+      }
+
+      try {
+        const downloaded = await downloadVideoForTranscription(videoUrl);
+        const filename = inferFilenameFromUrl(videoUrl);
+        const result = await transcribeWithWhisper({
+          apiKey: openAiConfig.apiKey,
+          audio: downloaded.buffer,
+          mimeType: downloaded.mimeType,
+          filename,
+          language: lang,
+        });
+        if (!result.text || result.text.trim().length === 0) {
+          return jsonError(c, 502, 'EMPTY_TRANSCRIPT', 'Whisper retornou vazio.');
+        }
+
+        const existing =
+          (foundLesson as { transcripts?: Record<string, string | undefined> })
+            .transcripts ?? {};
+        const newTranscripts = { ...existing, [lang]: result.text };
+        await coursesRepo.updateLesson(lessonId, {
+          transcripts: newTranscripts,
+        } as Parameters<typeof coursesRepo.updateLesson>[1]);
+
+        // Estima custo: Whisper-1 cobra ~$0.006/min
+        const minutes = result.durationSeconds
+          ? result.durationSeconds / 60
+          : downloaded.sizeMB * 0.5; // estimativa grosseira
+        const costUsd = Number((minutes * 0.006).toFixed(4));
+
+        const u = c.get('user');
+        await aiConfigRepo.recordUsage({
+          configId: openAiConfig.id,
+          studentId: u?.sub ?? 'admin',
+          inputTokens: 0,
+          outputTokens: 0,
+          costUsd,
+          successful: true,
+        });
+
+        return c.json({
+          text: result.text,
+          durationSeconds: result.durationSeconds ?? null,
+          language: result.language ?? lang,
+          sizeMB: downloaded.sizeMB,
+          costUsd,
+        });
+      } catch (err) {
+        const e = err as { code?: string; message?: string };
+        return jsonError(
+          c,
+          502,
+          e.code ?? 'WHISPER_FAILED',
+          e.message ?? 'Falha ao gerar transcrição.',
+        );
+      }
+    },
+  );
 
   /**
    * Tradução assistida por IA: pega texto de uma transcrição em fromLang e
