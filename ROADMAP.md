@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-543)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-544)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **543+** |
-| Commits no main | **318+** |
-| Arquivos de teste | **118** unit + **1** E2E (5 specs) |
-| Testes passando | **1264** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **544+** |
+| Commits no main | **319+** |
+| Arquivos de teste | **119** unit + **1** E2E (5 specs) |
+| Testes passando | **1277** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-543 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-544 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 544 | Sentry server-side wrapper env-gated (zero deps) + 13 testes |
 | 543 | provider AWS SES via SigV4 manual (sem AWS SDK) + 17 testes |
 | 542 | webhook channels Telegram + Teams + Mattermost + 3 presets + 18 testes |
 | 541 | provider Brevo (SendinBlue) + 13 testes + registry test (5 testes) |

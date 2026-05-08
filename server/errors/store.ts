@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import type { Context } from 'hono';
 import { JsonStore } from '../db/json-store';
+import { captureException } from '../observability/sentry';
 
 export interface ErrorEntry {
   id: string;
@@ -88,6 +89,17 @@ export async function recordError(c: Context, err: unknown, status = 500): Promi
     await store.unshift(entry);
     const all = await store.getAll();
     if (all.length > MAX_ENTRIES) await store.setAll(all.slice(0, MAX_ENTRIES));
+    // Forward para Sentry server-side se SENTRY_DSN definido.
+    // Fire-and-forget: erro do Sentry nunca quebra o handler.
+    void captureException(err, {
+      level: status >= 500 ? 'error' : 'warning',
+      user: u ? { id: u.sub, email: u.email } : undefined,
+      request: {
+        method: c.req.method,
+        url: c.req.url,
+      },
+      tags: { status: String(status) },
+    });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('[errors] failed to record:', e);
