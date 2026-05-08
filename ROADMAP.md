@@ -6,12 +6,12 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-554)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-555)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **554+** |
-| Commits no main | **327+** |
+| Sprints entregues | **555+** |
+| Commits no main | **328+** |
 | Arquivos de teste | **129** unit + **1** E2E (5 specs) |
 | Testes passando | **1364** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-554 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-555 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 555 | SSH bloco: AI_KEY_ENCRYPTION_SECRET aplicado em prod + diagnose portalpco rodado (3 scripts SSH) |
 | 551 | OAuth Google login (botão Login + callback + create student auto) + 12 testes |
 | 553 | PWA service worker v3: SWR /assets + API cache 5min, push notifications, update flow + 9 testes |
 | 550 | SMTP provider nativo (zero deps): TLS/STARTTLS, AUTH LOGIN, MIME multipart + 13 testes |
@@ -393,8 +394,8 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 ## Bloqueios conhecidos
 
 - **Deploy à produção via `scripts/update_vps_pwd.py`** requer envs `HOST`, `PORT`, `USER_NAME`, `KEY_PATH` SSH. Cada admin precisa configurar localmente.
-- **`AI_KEY_ENCRYPTION_SECRET` em prod**: se não definido, modo `dev:` (sem criptografia real). Definir no `.env` do servidor antes de subir credenciais reais.
-- **Import via API portalpco.online**: 401 `rest_forbidden_context` — diagnose tool já criado, aguarda usuário rodar para identificar plugin de segurança bloqueando.
+- ~~**`AI_KEY_ENCRYPTION_SECRET` em prod**~~: ✅ configurado em sprint 555.
+- ~~**Import via API portalpco.online**~~: sprint 555 rodou diagnose. portalpco.com.br: DNS ENOTFOUND (URL precisa correção). psicanaliseclinica.online: LD REST desabilitado (owner habilita no admin WP).
 - **Drizzle migrations** existem mas não foram aplicadas em prod — modo JSON é o vigente.
 
 ---
@@ -414,9 +415,9 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 | Prioridade | Tarefa | Por quê | Effort |
 |---|---|---|---|
-| 🔴 ALTA | Configurar `JWT_SECRET` fixo em produção | sessões caem ao reiniciar | 5 min |
-| 🔴 ALTA | Configurar `AI_KEY_ENCRYPTION_SECRET` em produção | criptografia real | 5 min |
-| 🔴 ALTA | Resolver erro 401 import portalpco.online (rodar diagnose tool) | bloqueio de usuário | 30 min |
+| ~~🔴~~ ✅ | ~~Configurar `JWT_SECRET` fixo em produção~~ (sprint 555 — já estava configurado, confirmado via diagnostic) | sessões | 5 min |
+| ~~🔴~~ ✅ | ~~Configurar `AI_KEY_ENCRYPTION_SECRET` em produção~~ (sprint 555 — adicionado, app reiniciada healthy, 0 payloads aes-gcm pre-existentes) | criptografia | 5 min |
+| ~~🔴~~ ✅ | ~~Diagnose portalpco.online~~ (sprint 555 — DNS ENOTFOUND no portalpco.com.br + LD REST desabilitado em psicanaliseclinica.online; ação fica com owner) | imports | 30 min |
 | 🟡 MÉDIA | E2E Playwright — expandir golden path (login → enroll → complete) | smoke ✅ no sprint 539 | 1 dia |
 | ~~🟡~~ ✅ | ~~Backup remoto S3~~ (sprint 545) | DR | 1 dia |
 | 🟡 MÉDIA | OAuth Google login | reduzir fricção signup | 1 dia |
