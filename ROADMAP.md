@@ -6,15 +6,15 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-537)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-538)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **537+** |
+| Sprints entregues | **538+** |
 | Commits no main | **312+** |
-| Arquivos de teste | **110** |
-| Testes passando | **1106** ✅ |
-| Coverage statements | **~70%** |
+| Arquivos de teste | **111** |
+| Testes passando | **1203** ✅ |
+| Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
 | Páginas aluno | 15+ |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-537 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-538 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 538 | coverage badge dinâmico no README (18 testes) + fix typecheck AdminTranscripts |
 | 537 | filtros adicionais em /admin/cursos/:id/questoes |
 | 536 | tests propagação de novos fields em courses-repo (+9) |
 | 535 | coupon stat cards no /admin/coupons |
@@ -345,7 +346,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - **Tests de UI/integration** com Testing Library + MSW (hoje só unit em puros) — não-iniciado
 - **E2E** com Playwright — não-iniciado
 - ✅ **CI** GitHub Actions (`npm test && npm run typecheck && npm run build` + coverage)
-- **Coverage badge no README** (já gera artifact, falta badge) — não-iniciado
+- ✅ **Coverage badge no README** (sprint 538 — script scripts/update-coverage-badge.mjs lê coverage-summary.json)
 - **Migrações Drizzle** dos novos campos `tags` em libraryItems/podcasts — não-iniciado
 - ✅ **Rate limit por API token** dedicado (sprint 432, X-RateLimit headers)
 - **Backup remoto S3** (hoje só local em `data/backups/`) — não-iniciado
@@ -405,7 +406,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 | 🟡 MÉDIA | E2E Playwright (golden path: login → enroll → complete) | smoke test real | 2 dias |
 | 🟡 MÉDIA | Backup remoto S3 (em vez de só local) | DR | 1 dia |
 | 🟡 MÉDIA | OAuth Google login | reduzir fricção signup | 1 dia |
-| 🟡 MÉDIA | Coverage badge no README | visibilidade | 0.3 dia |
+| ~~🟡~~ ✅ | ~~Coverage badge no README~~ (sprint 538) | visibilidade | 0.3 dia |
 | 🟡 MÉDIA | API pública openapi.json | docs de integração | 1 dia |
 | 🟢 BAIXA | Editor visual de e-mail templates | UX admin | 3 dias |
 | 🟢 BAIXA | Quiz com banco de questões | feature ampla | 5+ dias |

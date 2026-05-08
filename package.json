@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "coverage:badge": "vitest run --coverage --reporter=basic && node scripts/update-coverage-badge.mjs",
     "typecheck": "tsc -b --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx server/db/migrate.ts",
