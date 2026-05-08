@@ -222,6 +222,10 @@ const pt: Dict = {
   'journey.title': 'Minha Jornada',
   'journey.subtitle': 'Sua trilha de aprendizado pela formação da PCO.',
 
+  // footer
+  'footer.terms': 'Termos',
+  'footer.privacy': 'Privacidade',
+
   // admin nav
   'admin.section.panel': 'Painel',
   'admin.section.academic': 'Acadêmico',
@@ -497,6 +501,10 @@ const es: Dict = {
   'journey.title': 'Mi Recorrido',
   'journey.subtitle': 'Tu trayecto de aprendizaje en la formación PCO.',
 
+  // footer
+  'footer.terms': 'Términos',
+  'footer.privacy': 'Privacidad',
+
   // admin nav
   'admin.section.panel': 'Panel',
   'admin.section.academic': 'Académico',
@@ -771,6 +779,10 @@ const en: Dict = {
   // jornada
   'journey.title': 'My Journey',
   'journey.subtitle': 'Your learning path through the PCO program.',
+
+  // footer
+  'footer.terms': 'Terms',
+  'footer.privacy': 'Privacy',
 
   // admin nav
   'admin.section.panel': 'Panel',

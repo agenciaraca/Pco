@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Mail, MessageCircle } from 'lucide-react';
 import { useSettings, useVersion } from '../data/hooks';
+import { useT } from '../i18n';
 
 export default function Footer() {
+  const t = useT();
   const { data } = useSettings();
   const { data: ver } = useVersion();
   const year = new Date().getFullYear();
@@ -45,10 +47,10 @@ export default function Footer() {
             </span>
           )}
           <Link to={termsUrl} className="hover:text-pco-blue">
-            Termos
+            {t('footer.terms')}
           </Link>
           <Link to={privacyUrl} className="hover:text-pco-blue">
-            Privacidade
+            {t('footer.privacy')}
           </Link>
           {ver?.version && (
             <span
