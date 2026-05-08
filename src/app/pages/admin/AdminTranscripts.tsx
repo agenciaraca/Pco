@@ -1,6 +1,6 @@
 import { Languages, BookOpen, AlertCircle, Upload, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTranscriptCoverage } from '../../data/hooks';
+import { useTranscriptCoverage, useCourses } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -14,6 +14,7 @@ export default function AdminTranscripts() {
   const t = useT();
   useDocumentMeta({ title: 'Transcrições — Admin AVA PCO' });
   const { data, isLoading, isError, refetch } = useTranscriptCoverage();
+  const coursesQ = useCourses();
   const [uploadResult, setUploadResult] = useState<api.TranscriptBulkResult | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +110,15 @@ export default function AdminTranscripts() {
               Processando...
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => downloadTemplate(coursesQ.data ?? [])}
+            disabled={!coursesQ.data}
+            className="pco-btn-ghost text-xs ml-auto"
+            title="Baixa CSV com lesson_id de todas as aulas para preencher"
+          >
+            Baixar template (com IDs)
+          </button>
         </div>
         {uploadResult && (
           <div className="mt-2 space-y-2">
@@ -286,6 +296,53 @@ function LangCell({ n, total }: { n: number; total: number }) {
       )}
     </div>
   );
+}
+
+/**
+ * Gera CSV template com 1 linha por aula × 3 idiomas (pt/es/en) — text vazio.
+ * Admin baixa, abre no Excel/Sheets, preenche text, sobe de volta.
+ */
+function downloadTemplate(
+  courses: Array<{
+    id: string;
+    title: string;
+    shortTitle?: string;
+    modules: Array<{
+      id: string;
+      title: string;
+      lessons: Array<{ id: string; title: string }>;
+    }>;
+  }>,
+): void {
+  const escapeCsv = (s: string) => `"${(s ?? '').replace(/"/g, '""')}"`;
+  const rows: string[] = ['lesson_id,lang,text,_course,_module,_lesson_title'];
+  for (const co of courses) {
+    for (const m of co.modules ?? []) {
+      for (const l of m.lessons) {
+        for (const lang of ['pt', 'es', 'en']) {
+          rows.push(
+            [
+              escapeCsv(l.id),
+              lang,
+              '""',
+              escapeCsv(co.shortTitle ?? co.title),
+              escapeCsv(m.title),
+              escapeCsv(l.title),
+            ].join(','),
+          );
+        }
+      }
+    }
+  }
+  const blob = new Blob([rows.join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `template-transcricoes-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 /**
