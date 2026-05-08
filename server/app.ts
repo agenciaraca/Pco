@@ -5331,6 +5331,63 @@ export function buildApp() {
     return c.json(spec);
   });
 
+  /**
+   * Mesma spec em YAML (alguns clientes/IDE preferem). Conversão simples
+   * sem dependência externa.
+   */
+  app.get('/v1/openapi.yaml', async (c) => {
+    const queryOrigin = c.req.query('origin');
+    const headerOrigin = c.req.header('x-forwarded-proto') && c.req.header('host')
+      ? `${c.req.header('x-forwarded-proto')}://${c.req.header('host')}`
+      : undefined;
+    const spec = buildOpenApiSpec({
+      origin: queryOrigin ?? process.env.PUBLIC_ORIGIN ?? headerOrigin,
+      version: AVA_VERSION,
+    });
+    const { jsonToYaml } = await import('./http/yaml');
+    c.header('Content-Type', 'application/yaml; charset=utf-8');
+    c.header('Cache-Control', 'public, max-age=300');
+    return c.body(jsonToYaml(spec));
+  });
+
+  /**
+   * Swagger UI servido via CDN (apenas HTML). Aponta para /v1/openapi.json.
+   * Útil pra devs externos explorarem a API sem precisar de cliente próprio.
+   */
+  app.get('/v1/docs', (c) => {
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AVA PCO — API pública v1</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.20.0/swagger-ui.css" />
+  <style>
+    body { margin: 0; background: #fafafa; }
+    .topbar { display: none; }
+    #swagger-ui { max-width: 1200px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5.20.0/swagger-ui-bundle.js"></script>
+  <script>
+    window.ui = SwaggerUIBundle({
+      url: '/api/v1/openapi.json',
+      dom_id: '#swagger-ui',
+      presets: [SwaggerUIBundle.presets.apis],
+      layout: 'BaseLayout',
+      docExpansion: 'list',
+      defaultModelsExpandDepth: 0,
+      tryItOutEnabled: true,
+    });
+  </script>
+</body>
+</html>`;
+    c.header('Cache-Control', 'public, max-age=3600');
+    return c.html(html);
+  });
+
   app.get('/v1/me', requireApiToken(), async (c) => {
     const t = c.get('apiToken')!;
     return c.json({
