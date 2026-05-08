@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-546)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-547)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **546+** |
-| Commits no main | **321+** |
-| Arquivos de teste | **122** unit + **1** E2E (5 specs) |
-| Testes passando | **1301** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **547+** |
+| Commits no main | **322+** |
+| Arquivos de teste | **124** unit + **1** E2E (5 specs) |
+| Testes passando | **1316** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-546 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-547 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 547 | messaging SMS via Twilio (estrutura nova: types/providers/registry) + 15 testes |
 | 546 | API pública: openapi.yaml + Swagger UI em /v1/docs + 10 testes |
 | 545 | backup remoto S3 via SigV4 reuse + 14 testes (env-gated S3_*) |
 | 544 | Sentry server-side wrapper env-gated (zero deps) + 13 testes |
@@ -364,7 +365,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - ✅ **Mais providers de e-mail** (Mailgun + Brevo + SES sprints 540-541-543; falta SMTP real)
 - **OAuth login social** (Google/Microsoft) — só email/senha hoje
 - **SSO SAML** para escolas grandes
-- **WhatsApp via Twilio** para notificações (já tem mock no Reengagement)
+- ✅ **SMS via Twilio** (sprint 547 — estrutura messaging completa, mock+twilio); WhatsApp Cloud API ainda pendente
 - **Calendly/Cal.com** para agendamento de mentoria
 
 ### LMS específicos (não-iniciados)
