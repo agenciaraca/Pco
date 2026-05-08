@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-558)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-559)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **558+** |
-| Commits no main | **331+** |
-| Arquivos de teste | **143** unit + **1** E2E (5 specs) |
-| Testes passando | **1407** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **559+** |
+| Commits no main | **332+** |
+| Arquivos de teste | **144** unit + **1** E2E (5 specs) |
+| Testes passando | **1416** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-558 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-559 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 559 | messaging sendSafe + log-store (filters provider/status/to/since) + 9 testes |
 | 558 | OAuth Microsoft Entra ID — botão Login + callback + extractEmail (mail/upn) + 15 testes |
 | 557 | Webhook channel Pushover (push notifications mobile) + preset + 11 testes |
 | 556 | Drizzle migrations: scripts/migrate_prod_db.py pronto, idempotente, aguarda Neon DATABASE_URL |
