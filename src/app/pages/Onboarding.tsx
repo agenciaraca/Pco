@@ -2,31 +2,16 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, Compass, Sparkles, BookOpen, Heart } from 'lucide-react';
 import Logo from '../components/Logo';
-
-const slides = [
-  {
-    icon: Sparkles,
-    title: 'Bem-vindo ao AVA PCO',
-    text: 'Seu novo ambiente de aprendizagem da Psicanálise Clínica Online.',
-  },
-  {
-    icon: Compass,
-    title: 'Sua Jornada PCO',
-    text: 'Trilha visual para acompanhar progresso, módulos, aulas e avaliações.',
-  },
-  {
-    icon: BookOpen,
-    title: 'Recursos do AVA',
-    text: 'Biblioteca, PCO News, PCO POD, Tutor Virtual e Suporte sempre por perto.',
-  },
-  {
-    icon: Heart,
-    title: 'Estude com apoio',
-    text: 'Plano de retomada, meta semanal e acompanhamento para você não desistir.',
-  },
-];
+import { useT } from '../i18n';
 
 export default function Onboarding() {
+  const t = useT();
+  const slides = [
+    { icon: Sparkles, title: t('onboarding.welcome'), text: t('onboarding.welcomeText') },
+    { icon: Compass, title: t('onboarding.journey'), text: t('onboarding.journeyText') },
+    { icon: BookOpen, title: t('onboarding.resources'), text: t('onboarding.resourcesText') },
+    { icon: Heart, title: t('onboarding.support'), text: t('onboarding.supportText') },
+  ];
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
   const slide = slides[step];
@@ -61,14 +46,14 @@ export default function Onboarding() {
               className="pco-btn-ghost"
             >
               <ArrowLeft size={14} strokeWidth={2} />
-              Anterior
+              {t('common.previous')}
             </button>
             {isLast ? (
               <button
                 onClick={() => navigate('/termos')}
                 className="pco-btn-primary"
               >
-                Continuar para Termos
+                {t('onboarding.continueToTerms')}
                 <ArrowRight size={14} strokeWidth={2} />
               </button>
             ) : (
@@ -76,7 +61,7 @@ export default function Onboarding() {
                 onClick={() => setStep((s) => Math.min(slides.length - 1, s + 1))}
                 className="pco-btn-primary"
               >
-                Próximo
+                {t('common.next')}
                 <ArrowRight size={14} strokeWidth={2} />
               </button>
             )}
@@ -85,7 +70,7 @@ export default function Onboarding() {
 
         <div className="mt-6 text-center">
           <Link to="/login" className="text-xs text-ink-muted hover:text-pco-blue">
-            Pular onboarding
+            {t('onboarding.skip')}
           </Link>
         </div>
       </div>

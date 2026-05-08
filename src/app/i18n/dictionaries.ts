@@ -214,6 +214,15 @@ const pt: Dict = {
 
   // onboarding / 404
   'onboarding.welcome': 'Bem-vindo ao AVA PCO',
+  'onboarding.welcomeText': 'Seu novo ambiente de aprendizagem da Psicanálise Clínica Online.',
+  'onboarding.journey': 'Sua Jornada PCO',
+  'onboarding.journeyText': 'Trilha visual para acompanhar progresso, módulos, aulas e avaliações.',
+  'onboarding.resources': 'Recursos do AVA',
+  'onboarding.resourcesText': 'Biblioteca, PCO News, PCO POD, Tutor Virtual e Suporte sempre por perto.',
+  'onboarding.support': 'Estude com apoio',
+  'onboarding.supportText': 'Plano de retomada, meta semanal e acompanhamento para você não desistir.',
+  'onboarding.continueToTerms': 'Continuar para Termos',
+  'onboarding.skip': 'Pular onboarding',
   'notfound.title': 'Página não encontrada',
   'notfound.subtitle': 'A página que você procura não existe ou foi movida.',
   'notfound.home': 'Voltar ao início',
@@ -509,6 +518,15 @@ const es: Dict = {
 
   // onboarding / 404
   'onboarding.welcome': 'Bienvenido a AVA PCO',
+  'onboarding.welcomeText': 'Tu nuevo ambiente de aprendizaje de Psicoanálisis Clínico Online.',
+  'onboarding.journey': 'Tu Recorrido PCO',
+  'onboarding.journeyText': 'Ruta visual para acompañar progreso, módulos, clases y evaluaciones.',
+  'onboarding.resources': 'Recursos de AVA',
+  'onboarding.resourcesText': 'Biblioteca, PCO News, PCO POD, Tutor Virtual y Soporte siempre cerca.',
+  'onboarding.support': 'Estudia con apoyo',
+  'onboarding.supportText': 'Plan de recuperación, meta semanal y seguimiento para que no abandones.',
+  'onboarding.continueToTerms': 'Continuar a Términos',
+  'onboarding.skip': 'Omitir onboarding',
   'notfound.title': 'Página no encontrada',
   'notfound.subtitle': 'La página que buscas no existe o fue movida.',
   'notfound.home': 'Volver al inicio',
@@ -804,6 +822,15 @@ const en: Dict = {
 
   // onboarding / 404
   'onboarding.welcome': 'Welcome to AVA PCO',
+  'onboarding.welcomeText': 'Your new learning environment for Online Clinical Psychoanalysis.',
+  'onboarding.journey': 'Your PCO Journey',
+  'onboarding.journeyText': 'Visual track to follow progress, modules, lessons and assessments.',
+  'onboarding.resources': 'AVA Resources',
+  'onboarding.resourcesText': 'Library, PCO News, PCO POD, Virtual Tutor and Support always close.',
+  'onboarding.support': 'Study with support',
+  'onboarding.supportText': 'Recovery plan, weekly goal and follow-up so you don\'t drop out.',
+  'onboarding.continueToTerms': 'Continue to Terms',
+  'onboarding.skip': 'Skip onboarding',
   'notfound.title': 'Page not found',
   'notfound.subtitle': 'The page you are looking for does not exist or has moved.',
   'notfound.home': 'Back to home',
