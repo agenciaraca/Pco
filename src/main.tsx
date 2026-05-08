@@ -19,9 +19,30 @@ installChunkErrorRecovery();
 // PWA: registra service worker em produção (skip em dev pra não interferir no HMR).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // ignora — SW é progressivo
-    });
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        // Quando um SW novo é detectado e fica em waiting, força ativação imediata.
+        reg.addEventListener('updatefound', () => {
+          const newSw = reg.installing;
+          if (!newSw) return;
+          newSw.addEventListener('statechange', () => {
+            if (newSw.state === 'installed' && navigator.serviceWorker.controller) {
+              // Atualização disponível: o novo SW está pronto. Reload limpo
+              // garante que o usuário pegue HTML+JS novos (os hashes mudaram).
+              try {
+                newSw.postMessage({ type: 'SKIP_WAITING' });
+              } catch {
+                /* ignore */
+              }
+              window.location.reload();
+            }
+          });
+        });
+      })
+      .catch(() => {
+        // ignora — SW é progressivo
+      });
   });
 }
 

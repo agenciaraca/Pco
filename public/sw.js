@@ -4,7 +4,7 @@
 // - navegações HTML → network-first com fallback para offline.html.
 // - /api/* → SEMPRE network. Não cacheia.
 
-const VERSION = 'avapco-v1';
+const VERSION = 'avapco-v2-i18n';
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -17,6 +17,12 @@ self.addEventListener('install', (event) => {
       .then((cache) => cache.addAll(CORE))
       .then(() => self.skipWaiting()),
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {
@@ -50,31 +56,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navegação (HTML) → network-first com fallback offline
+  // Navegação (HTML) → network-only sempre + fallback offline.
+  // Antes era network-first com cache write; o write podia servir HTML
+  // velho apontando pra hashes JS antigos quando a rede falhava
+  // brevemente — quebrava deploys novos. Agora não cacheia HTML.
   if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(() => {});
-          }
-          return res;
-        })
-        .catch(() =>
-          caches.match(req).then(
-            (cached) =>
-              cached ||
-              caches.match('/offline.html').then(
-                (o) =>
-                  o ??
-                  new Response('Sem conexão.', {
-                    status: 503,
-                    headers: { 'Content-Type': 'text/plain' },
-                  }),
-              ),
-          ),
+      fetch(req).catch(() =>
+        caches.match('/offline.html').then(
+          (o) =>
+            o ??
+            new Response('Sem conexão.', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain' },
+            }),
         ),
+      ),
     );
     return;
   }
