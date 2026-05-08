@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-550)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-553)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **550+** |
-| Commits no main | **325+** |
-| Arquivos de teste | **127** unit + **1** E2E (5 specs) |
-| Testes passando | **1344** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **553+** |
+| Commits no main | **326+** |
+| Arquivos de teste | **128** unit + **1** E2E (5 specs) |
+| Testes passando | **1353** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-550 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-553 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 553 | PWA service worker v3: SWR /assets + API cache 5min, push notifications, update flow + 9 testes |
 | 550 | SMTP provider nativo (zero deps): TLS/STARTTLS, AUTH LOGIN, MIME multipart + 13 testes |
 | 549 | CSV export /admin/webhooks/deliveries/export.csv + 4 testes |
 | 548 | WhatsApp Cloud API (Meta) provider — text + template messages + 11 testes |
