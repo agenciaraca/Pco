@@ -6,20 +6,20 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-549)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-550)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **549+** |
-| Commits no main | **324+** |
-| Arquivos de teste | **126** unit + **1** E2E (5 specs) |
-| Testes passando | **1331** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **550+** |
+| Commits no main | **325+** |
+| Arquivos de teste | **127** unit + **1** E2E (5 specs) |
+| Testes passando | **1344** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
 | Páginas aluno | 15+ |
 | Providers de pagamento | 6 (Mock, Stripe, Asaas, Pagar.me, MercadoPago, PayPal) |
-| Providers de e-mail | 8 (Mock, Resend, SendGrid, Postmark, Mailgun, Brevo, AWS SES, SMTP-stub) |
+| Providers de e-mail | 8 (Mock, Resend, SendGrid, Postmark, Mailgun, Brevo, AWS SES, SMTP nativo) |
 | Connectors de import | 3 (WP, LD, WC) + CSV |
 | Tipos de webhook outbound | 6 (Generic, Slack, Discord, Telegram, Teams, Mattermost) |
 | Achievements automáticos | 6 |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-549 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-550 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 550 | SMTP provider nativo (zero deps): TLS/STARTTLS, AUTH LOGIN, MIME multipart + 13 testes |
 | 549 | CSV export /admin/webhooks/deliveries/export.csv + 4 testes |
 | 548 | WhatsApp Cloud API (Meta) provider — text + template messages + 11 testes |
 | 547 | messaging SMS via Twilio (estrutura nova: types/providers/registry) + 15 testes |
@@ -364,7 +365,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ### Integrações (não-iniciadas)
 - **Webhook templates** (presets prontos para Zapier/n8n/Make)
-- ✅ **Mais providers de e-mail** (Mailgun + Brevo + SES sprints 540-541-543; falta SMTP real)
+- ✅ **Mais providers de e-mail** (Mailgun + Brevo + SES + SMTP nativo — sprints 540-541-543-550)
 - **OAuth login social** (Google/Microsoft) — só email/senha hoje
 - **SSO SAML** para escolas grandes
 - ✅ **SMS via Twilio + WhatsApp Cloud API (Meta)** (sprints 547-548 — 3 providers: mock, twilio, whatsapp-meta)

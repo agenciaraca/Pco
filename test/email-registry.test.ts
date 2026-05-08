@@ -1,12 +1,11 @@
-// Tests do registry de providers de e-mail — garante que os 6 providers
-// estão registrados e que SMTP retorna NOT_IMPLEMENTED de propósito.
+// Tests do registry de providers de e-mail — garante que os 8 providers
+// estao registrados e respondem a getEmailProvider.
 
 import { describe, it, expect } from 'vitest';
 import {
   ALL_EMAIL_PROVIDERS,
   getEmailProvider,
 } from '../server/notifications/providers/registry';
-import { EmailProviderError } from '../server/notifications/providers/types';
 
 describe('email providers registry', () => {
   it('lista todos os providers conhecidos', () => {
@@ -30,6 +29,7 @@ describe('email providers registry', () => {
     'mailgun',
     'brevo',
     'ses',
+    'smtp',
   ] as const)(
     '%s tem implementação send + ping',
     (id) => {
@@ -38,15 +38,6 @@ describe('email providers registry', () => {
       expect(typeof p.ping).toBe('function');
     },
   );
-
-  it('smtp lança NOT_IMPLEMENTED', () => {
-    expect(() => getEmailProvider('smtp')).toThrow(EmailProviderError);
-    try {
-      getEmailProvider('smtp');
-    } catch (e) {
-      expect((e as EmailProviderError).code).toBe('NOT_IMPLEMENTED');
-    }
-  });
 
   it('id desconhecido lança UNKNOWN_PROVIDER', () => {
     expect(() =>

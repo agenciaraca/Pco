@@ -10,6 +10,7 @@ import { postmarkProvider } from './postmark';
 import { mailgunProvider } from './mailgun';
 import { brevoProvider } from './brevo';
 import { sesProvider } from './ses';
+import { smtpProvider } from './smtp';
 
 export const ALL_EMAIL_PROVIDERS: EmailProviderId[] = [
   'mock',
@@ -39,10 +40,7 @@ export function getEmailProvider(id: EmailProviderId): EmailProviderImpl {
     case 'ses':
       return sesProvider;
     case 'smtp':
-      throw new EmailProviderError(
-        'NOT_IMPLEMENTED',
-        'SMTP ainda não suportado. Use Resend, SendGrid, Postmark, Mailgun, Brevo ou SES.',
-      );
+      return smtpProvider;
     default:
       throw new EmailProviderError('UNKNOWN_PROVIDER', `Provider desconhecido: ${id}`);
   }
