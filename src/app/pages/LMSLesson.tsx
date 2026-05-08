@@ -11,6 +11,7 @@ import {
   Languages,
   Copy,
   Loader2,
+  Download,
 } from 'lucide-react';
 import {
   useCourses,
@@ -468,6 +469,34 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
     }
   }
 
+  async function handleDownload(format: 'txt' | 'md') {
+    if (!data?.locale) return;
+    try {
+      const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
+      const token = session?.token;
+      const res = await fetch(
+        `/api/lessons/${encodeURIComponent(lessonId)}/transcript.${format}?lang=${encodeURIComponent(data.locale)}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Pega nome do arquivo do header se possível
+      const cd = res.headers.get('content-disposition') ?? '';
+      const m = /filename="([^"]+)"/.exec(cd);
+      a.download = m?.[1] ?? `transcricao-${data.locale}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`${format.toUpperCase()} baixado`);
+    } catch (err) {
+      toast.error(t('common.error'), err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
   return (
     <div className="pco-card">
       <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
@@ -491,15 +520,35 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
             </select>
           )}
           {data?.text && (
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="pco-btn-ghost text-xs"
-              title={t('common.copy')}
-            >
-              <Copy size={12} strokeWidth={2} />
-              {t('common.copy')}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="pco-btn-ghost text-xs"
+                title={t('common.copy')}
+              >
+                <Copy size={12} strokeWidth={2} />
+                {t('common.copy')}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownload('txt')}
+                className="pco-btn-ghost text-xs"
+                title="Baixar TXT"
+              >
+                <Download size={12} strokeWidth={2} />
+                TXT
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownload('md')}
+                className="pco-btn-ghost text-xs"
+                title="Baixar Markdown"
+              >
+                <Download size={12} strokeWidth={2} />
+                MD
+              </button>
+            </>
           )}
           <button
             type="button"

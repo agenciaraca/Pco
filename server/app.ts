@@ -1612,6 +1612,94 @@ export function buildApp() {
     });
   });
 
+  /**
+   * Export de transcricao da aula como TXT ou MD.
+   * Mesma auth do JSON: matriculado / preview / admin.
+   * Query param `format=md|txt` (default txt). `lang=pt|es|en`.
+   */
+  app.get('/lessons/:id/transcript.:format', async (c) => {
+    const lessonId = c.req.param('id') as string;
+    const format = (c.req.param('format') ?? 'txt').toLowerCase();
+    if (format !== 'md' && format !== 'txt') {
+      return jsonError(c, 400, 'BAD_FORMAT', 'Formato deve ser md ou txt.');
+    }
+    const lang = (c.req.query('lang') ?? 'pt') as 'pt' | 'es' | 'en';
+    const all = await coursesRepo.listCourses();
+    let foundLesson: (typeof all)[number]['modules'][number]['lessons'][number] | null = null;
+    let parentCourse: (typeof all)[number] | null = null;
+    let parentModule: (typeof all)[number]['modules'][number] | null = null;
+    for (const co of all) {
+      for (const m of co.modules ?? []) {
+        const l = m.lessons.find((x) => x.id === lessonId);
+        if (l) {
+          foundLesson = l;
+          parentCourse = co;
+          parentModule = m;
+          break;
+        }
+      }
+      if (foundLesson) break;
+    }
+    if (!foundLesson || !parentCourse) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+    }
+    if (!foundLesson.isPreview) {
+      const user = c.get('user');
+      if (!user) return jsonError(c, 401, 'UNAUTHORIZED', 'Login necessário.');
+      const student = await studentsRepo.findAdminStudent(user.sub);
+      const enrolled = (student?.enrolledCourseIds ?? []).includes(parentCourse.id);
+      const isAdmin = user.role === 'admin' || user.role === 'superadmin';
+      if (!enrolled && !isAdmin) {
+        return jsonError(c, 403, 'FORBIDDEN', 'Acesso negado — não matriculado.');
+      }
+    }
+    const transcripts =
+      (foundLesson as { transcripts?: Record<string, string | undefined> })
+        .transcripts ?? {};
+    const availableLocales = Object.entries(transcripts)
+      .filter(([, v]) => typeof v === 'string' && v.trim().length > 0)
+      .map(([k]) => k);
+    if (availableLocales.length === 0) {
+      return jsonError(c, 404, 'NO_TRANSCRIPT', 'Esta aula não tem transcrição disponível.');
+    }
+    const finalLang = availableLocales.includes(lang)
+      ? lang
+      : availableLocales.includes('pt')
+        ? 'pt'
+        : availableLocales[0]!;
+    const text = transcripts[finalLang] ?? '';
+    const safeFileSlug = (s: string) =>
+      s
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase()
+        .slice(0, 60);
+    const baseSlug = safeFileSlug(foundLesson.title || 'aula');
+    const filename = `${baseSlug}-${finalLang}.${format}`;
+    let body: string;
+    let contentType: string;
+    if (format === 'md') {
+      const courseTitle = parentCourse.title || 'Curso';
+      const moduleTitle = parentModule?.title || '';
+      body = `# ${foundLesson.title}\n\n_${courseTitle}${
+        moduleTitle ? ` · ${moduleTitle}` : ''
+      } · idioma: ${finalLang}_\n\n---\n\n${text}\n`;
+      contentType = 'text/markdown; charset=utf-8';
+    } else {
+      body = text + '\n';
+      contentType = 'text/plain; charset=utf-8';
+    }
+    return new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
+    });
+  });
+
   app.get('/lessons/:id/preview', async (c) => {
     const lessonId = c.req.param('id') as string;
     const all = await coursesRepo.listCourses();
