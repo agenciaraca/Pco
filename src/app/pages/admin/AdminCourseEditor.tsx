@@ -43,6 +43,7 @@ import { PageLoadingSkeleton } from '../../components/LoadingSkeleton';
 import CoursePublishChecklist from '../../components/CoursePublishChecklist';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
+import * as api from '../../data/api';
 import {
   updateCourseSchema,
   type UpdateCourseInput,
@@ -1234,9 +1235,13 @@ function LessonEditor({
 }: LessonEditorProps) {
   const isNew = lesson === null;
   type FormInput = z.input<typeof createLessonSchema>;
+  const toast = useToast();
+  const [translatingTo, setTranslatingTo] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm<FormInput, unknown, CreateLessonInput>({
     resolver: zodResolver(createLessonSchema),
@@ -1330,6 +1335,13 @@ function LessonEditor({
           <div className="p-3 space-y-3 border-t border-surface-gray">
             <p className="text-[11px] text-ink-muted">
               Preencha apenas os idiomas desejados. O aluno verá no player somente os idiomas configurados aqui.
+              {!isNew && lesson && (
+                <>
+                  {' '}Se já tem texto em um idioma, use{' '}
+                  <strong>"Traduzir com IA"</strong> nos outros pra preencher
+                  rapidamente (revise depois).
+                </>
+              )}
             </p>
             {SUPPORTED_TRANSCRIPT_LOCALES.map((lang) => (
               <Field key={lang} label={`Transcrição — ${TRANSCRIPT_LOCALE_LABELS[lang]}`}>
@@ -1340,6 +1352,65 @@ function LessonEditor({
                   placeholder={`Cole aqui a transcrição em ${TRANSCRIPT_LOCALE_LABELS[lang]}...`}
                   className="pco-input resize-y font-mono text-xs"
                 />
+                {!isNew && lesson && (
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {SUPPORTED_TRANSCRIPT_LOCALES.filter((src) => src !== lang).map(
+                      (src) => (
+                        <button
+                          key={src}
+                          type="button"
+                          disabled={translatingTo !== null}
+                          onClick={async () => {
+                            const sourceText = (
+                              getValues(`transcripts.${src}` as const) ?? ''
+                            ).trim();
+                            if (!sourceText) {
+                              toast.info(
+                                'Sem fonte',
+                                `Preencha a transcrição em ${TRANSCRIPT_LOCALE_LABELS[src]} primeiro pra traduzir pra ${TRANSCRIPT_LOCALE_LABELS[lang]}.`,
+                              );
+                              return;
+                            }
+                            setTranslatingTo(`${src}->${lang}`);
+                            try {
+                              // Salva o texto fonte ANTES de chamar IA (caso admin
+                              // tenha editado mas não salvou ainda)
+                              const r = await api.translateTranscriptWithAi({
+                                lessonId: lesson.id,
+                                fromLang: src,
+                                toLang: lang,
+                              });
+                              setValue(
+                                `transcripts.${lang}` as const,
+                                r.text,
+                                { shouldDirty: true },
+                              );
+                              toast.success(
+                                `Traduzido (${r.outputTokens} tokens, ~$${r.costUsd.toFixed(4)})`,
+                              );
+                            } catch (err) {
+                              toast.error(
+                                'Falha',
+                                err instanceof Error ? err.message : 'Erro',
+                              );
+                            } finally {
+                              setTranslatingTo(null);
+                            }
+                          }}
+                          className="text-[10px] pco-btn-ghost py-1 px-2"
+                          title={`Traduzir de ${TRANSCRIPT_LOCALE_LABELS[src]} para ${TRANSCRIPT_LOCALE_LABELS[lang]} via IA configurada`}
+                        >
+                          {translatingTo === `${src}->${lang}` ? (
+                            <Loader2 size={10} className="animate-spin" />
+                          ) : (
+                            '🤖'
+                          )}
+                          Traduzir de {src.toUpperCase()}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                )}
               </Field>
             ))}
           </div>

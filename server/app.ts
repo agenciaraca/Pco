@@ -3735,6 +3735,143 @@ export function buildApp() {
   });
 
   /**
+   * Tradução assistida por IA: pega texto de uma transcrição em fromLang e
+   * gera versão em toLang usando o provider configurado pra módulo "tutor"
+   * (ou "summaries" como fallback). Salva direto em lesson.transcripts[toLang].
+   *
+   * Body: { lessonId, fromLang, toLang }.
+   * Resposta: { text, inputTokens, outputTokens, costUsd, provider, model }.
+   */
+  app.post(
+    '/admin/transcripts/translate-with-ai',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        lessonId?: string;
+        fromLang?: string;
+        toLang?: string;
+      };
+      const lessonId = String(body.lessonId ?? '').trim();
+      const fromLang = String(body.fromLang ?? '').trim().toLowerCase();
+      const toLang = String(body.toLang ?? '').trim().toLowerCase();
+      const valid = ['pt', 'es', 'en'];
+      if (!lessonId) return jsonError(c, 400, 'BAD_REQUEST', 'lessonId obrigatório.');
+      if (!valid.includes(fromLang) || !valid.includes(toLang)) {
+        return jsonError(c, 400, 'BAD_LANG', `Idiomas devem ser ${valid.join('|')}.`);
+      }
+      if (fromLang === toLang) {
+        return jsonError(c, 400, 'SAME_LANG', 'fromLang e toLang devem ser diferentes.');
+      }
+
+      const courses = await coursesRepo.listCourses();
+      let foundLesson:
+        | (typeof courses)[number]['modules'][number]['lessons'][number]
+        | null = null;
+      for (const co of courses) {
+        for (const m of co.modules ?? []) {
+          const l = m.lessons.find((x) => x.id === lessonId);
+          if (l) {
+            foundLesson = l;
+            break;
+          }
+        }
+        if (foundLesson) break;
+      }
+      if (!foundLesson) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+
+      const transcripts =
+        (foundLesson as { transcripts?: Record<string, string | undefined> })
+          .transcripts ?? {};
+      const sourceText = transcripts[fromLang];
+      if (!sourceText || sourceText.trim().length === 0) {
+        return jsonError(
+          c,
+          400,
+          'NO_SOURCE',
+          `Aula não tem transcrição em ${fromLang} pra traduzir.`,
+        );
+      }
+
+      // Tenta tutor primeiro (mais comum), cai pra summaries depois
+      let config = await aiConfigRepo.getActiveByModule('tutor');
+      if (!config) config = await aiConfigRepo.getActiveByModule('summaries');
+      if (!config) {
+        return jsonError(
+          c,
+          400,
+          'NO_AI_CONFIG',
+          'Nenhum AI configurado pra tutor/summaries. Configure em /admin/ias.',
+        );
+      }
+      const provider = getProvider(config.provider);
+      if (!provider) {
+        return jsonError(c, 500, 'PROVIDER_MISSING', 'Provider configurado não existe.');
+      }
+
+      const langName = (l: string) =>
+        ({ pt: 'Português brasileiro', es: 'Español', en: 'English' })[l] ?? l;
+      const systemPrompt = `Você é um tradutor profissional especializado em conteúdo de psicanálise e psicologia. Traduza textos de aulas mantendo: terminologia técnica precisa (Lacan, Freud, Winnicott, Klein etc.), estilo acadêmico apropriado, fluência natural no idioma de destino. Preserve quebras de linha e formatação. NÃO adicione comentários, notas de tradução ou explicações — retorne APENAS o texto traduzido.`;
+      const userPrompt = `Traduza o seguinte texto de aula de ${langName(fromLang)} para ${langName(toLang)}:\n\n---\n${sourceText}\n---\n\nRetorne APENAS o texto traduzido, sem comentários ou cabeçalhos.`;
+
+      try {
+        const result = await provider.chat({
+          apiKey: config.apiKey,
+          model: config.model,
+          messages: [{ role: 'user' as const, content: userPrompt }],
+          systemPrompt,
+          temperature: 0.3,
+          maxTokens: Math.min(config.maxTokens, 8000),
+          timeoutMs: 60_000,
+        });
+        const translatedText = result.text.trim();
+        if (!translatedText) {
+          return jsonError(c, 500, 'EMPTY_TRANSLATION', 'IA retornou texto vazio.');
+        }
+        // Salva direto na aula
+        const newTranscripts = { ...transcripts, [toLang]: translatedText };
+        await coursesRepo.updateLesson(lessonId, {
+          transcripts: newTranscripts,
+        } as Parameters<typeof coursesRepo.updateLesson>[1]);
+
+        const costUsd = calculateCost(
+          config.provider,
+          config.model,
+          result.inputTokens,
+          result.outputTokens,
+        );
+        // Registra no log de uso (admin user, não student)
+        const u = c.get('user');
+        await aiConfigRepo.recordUsage({
+          configId: config.id,
+          studentId: u?.sub ?? 'admin',
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          costUsd,
+          successful: true,
+        });
+
+        return c.json({
+          text: translatedText,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          costUsd,
+          provider: config.provider,
+          model: config.model,
+        });
+      } catch (err) {
+        const e = err as { code?: string; message?: string };
+        return jsonError(
+          c,
+          502,
+          e.code ?? 'AI_FAILED',
+          e.message ?? 'Falha ao chamar IA.',
+        );
+      }
+    },
+  );
+
+  /**
    * Bulk update de transcrições. Body: { items: [{lessonId, lang, text}] }.
    * Cada item atualiza UMA chave de idioma de uma aula. Retorna por item se
    * sucesso ou erro. Não falha tudo se algum item falhar — admin vê relatório.

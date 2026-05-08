@@ -469,6 +469,30 @@ export async function bulkUpdateTranscripts(
   return http.post<TranscriptBulkResult>('/admin/transcripts/bulk', input);
 }
 
+export interface TranslateWithAiInput {
+  lessonId: string;
+  fromLang: 'pt' | 'es' | 'en';
+  toLang: 'pt' | 'es' | 'en';
+}
+
+export interface TranslateWithAiResult {
+  text: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  provider: string;
+  model: string;
+}
+
+export async function translateTranscriptWithAi(
+  input: TranslateWithAiInput,
+): Promise<TranslateWithAiResult> {
+  return http.post<TranslateWithAiResult>(
+    '/admin/transcripts/translate-with-ai',
+    input,
+  );
+}
+
 // ---------- Tutor usage ----------
 
 export interface TutorUsageDto {
