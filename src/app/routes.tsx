@@ -9,6 +9,7 @@ import { PageLoadingSkeleton } from './components/LoadingSkeleton';
 
 // Eager (small/critical)
 import Login from './pages/Login';
+const OAuthFinish = lazy(() => import('./pages/OAuthFinish'));
 import NotFound from './pages/NotFound';
 
 // Public — lazy
@@ -141,6 +142,11 @@ export const router = createBrowserRouter([
     errorElement: <RootError />,
   },
   { path: '/login', element: <Login />, errorElement: <RootError /> },
+  {
+    path: '/auth/oauth/finish',
+    element: <S><OAuthFinish /></S>,
+    errorElement: <RootError />,
+  },
   { path: '/esqueci-senha', element: <S><ForgotPassword /></S>, errorElement: <RootError /> },
   { path: '/redefinir-senha', element: <S><ResetPassword /></S>, errorElement: <RootError /> },
   { path: '/verificar/:code', element: <S><VerifyCertificate /></S>, errorElement: <RootError /> },

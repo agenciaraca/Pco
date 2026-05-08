@@ -17,6 +17,8 @@ const AVA_VERSION = (() => {
 })();
 const AVA_STARTED_AT = new Date().toISOString();
 import * as usersStore from './auth/users-store';
+import * as oauthGoogle from './auth/oauth-google';
+import crypto from 'node:crypto';
 import { signToken, verifyToken } from './auth/jwt';
 import {
   generateSecret,
@@ -547,6 +549,89 @@ export function buildApp() {
       return c.json({ user, token });
     },
   );
+
+  // ---------- OAuth Google (env-gated) ----------
+  // Inicio: redirect para Google. Salva state em cookie HttpOnly.
+  app.get('/auth/oauth/google', async (c) => {
+    const cfg = oauthGoogle.googleConfigFromEnv();
+    if (!cfg) {
+      return jsonError(c, 503, 'NOT_CONFIGURED', 'OAuth Google nao configurado.');
+    }
+    const state = oauthGoogle.generateState();
+    const url = oauthGoogle.buildGoogleAuthUrl({ config: cfg, state });
+    // 10 min
+    c.header(
+      'Set-Cookie',
+      `oauth_state=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`,
+    );
+    return c.redirect(url, 302);
+  });
+
+  // Callback: valida state, exchange code, busca user, cria/atualiza, JWT.
+  app.get('/auth/oauth/google/callback', async (c) => {
+    const cfg = oauthGoogle.googleConfigFromEnv();
+    if (!cfg) {
+      return jsonError(c, 503, 'NOT_CONFIGURED', 'OAuth Google nao configurado.');
+    }
+    const code = c.req.query('code');
+    const state = c.req.query('state');
+    const err = c.req.query('error');
+    if (err) {
+      return c.redirect(`/login?error=oauth_${encodeURIComponent(err)}`, 302);
+    }
+    if (!code || !state) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'code e state obrigatorios.');
+    }
+    const cookies = c.req.header('cookie') ?? '';
+    const m = /(?:^|;\s*)oauth_state=([^;]+)/.exec(cookies);
+    const expected = m?.[1];
+    if (!expected || expected !== state) {
+      return jsonError(c, 400, 'STATE_MISMATCH', 'CSRF state invalido.');
+    }
+
+    let userInfo;
+    try {
+      const tk = await oauthGoogle.exchangeCodeForToken(code, cfg);
+      if (!tk.access_token) throw new Error('access_token ausente');
+      userInfo = await oauthGoogle.fetchGoogleUserInfo(tk.access_token);
+    } catch (e) {
+      return c.redirect(
+        `/login?error=oauth_${encodeURIComponent(e instanceof Error ? e.message.slice(0, 80) : 'unknown')}`,
+        302,
+      );
+    }
+    if (!userInfo.email) {
+      return c.redirect('/login?error=oauth_no_email', 302);
+    }
+
+    // Cria ou recupera local user (role student por default).
+    let raw = await usersStore.findUserByEmail(userInfo.email);
+    if (!raw) {
+      const password = crypto.randomBytes(24).toString('hex');
+      const created = await usersStore.createUser({
+        email: userInfo.email,
+        name: userInfo.name ?? userInfo.email.split('@')[0],
+        role: 'student',
+        password,
+        active: true,
+      });
+      raw = await usersStore.findUserByEmail(created.email);
+    }
+    if (!raw || !raw.active) {
+      return c.redirect('/login?error=oauth_user_inactive', 302);
+    }
+
+    const token = await signToken({
+      sub: raw.id,
+      email: raw.email,
+      role: raw.role,
+      tv: raw.tokenVersion ?? 0,
+    });
+    // Limpa state cookie e devolve token via fragmento (#) — nunca query string,
+    // pra nao logar no histórico do servidor de redirect.
+    c.header('Set-Cookie', 'oauth_state=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+    return c.redirect(`/auth/oauth/finish#token=${encodeURIComponent(token)}`, 302);
+  });
 
   // Setup TOTP — gera secret novo e devolve URI otpauth://. Só persiste após /enable.
   app.post('/auth/me/totp/setup', requireAuth(), async (c) => {
