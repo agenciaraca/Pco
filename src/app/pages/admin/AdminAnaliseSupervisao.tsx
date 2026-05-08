@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import Tabs from '../../components/Tabs';
 import { useSessionServices, useProfessionals } from '../../data/hooks';
+import { useT } from '../../i18n';
 
 const tabs = [
   { id: 'servicos', label: 'Serviços', icon: <Stethoscope size={14} strokeWidth={1.75} /> },
@@ -27,12 +28,13 @@ const tabs = [
 ];
 
 export default function AdminAnaliseSupervisao() {
+  const t = useT();
   const [active, setActive] = useState('servicos');
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Análise e Supervisão — Admin</h1>
+        <h1 className="pco-section-title">{t('admin.nav.supervision')}</h1>
         <p className="pco-section-subtitle mt-1">
           Gestão completa do módulo opcional de análise, supervisão e orientação formativa.
         </p>

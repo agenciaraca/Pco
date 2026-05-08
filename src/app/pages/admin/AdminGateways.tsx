@@ -25,9 +25,11 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { PaymentGatewayDto, PaymentProviderId } from '../../data/api';
+import { useT } from '../../i18n';
 
 export default function AdminGateways() {
-  useDocumentMeta({ title: 'Gateways de Pagamento — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.gateways')} — Admin AVA PCO` });
   const providersQ = usePaymentProviders();
   const gatewaysQ = usePaymentGateways();
   const createMut = useCreatePaymentGateway();
@@ -65,7 +67,7 @@ export default function AdminGateways() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-pco-deep">Gateways de Pagamento</h1>
+          <h1 className="text-2xl font-bold text-pco-deep">{t('admin.nav.gateways')}</h1>
           <p className="text-sm text-ink-muted">
             Configure provedores de pagamento. Apenas o gateway ativo é usado para checkouts
             novos. Credenciais são encriptadas em disco.
