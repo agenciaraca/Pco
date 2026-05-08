@@ -138,3 +138,98 @@ function formatValueShort(v: unknown): string {
     return String(v).slice(0, 200);
   }
 }
+
+/**
+ * Telegram bot API. URL deve ser
+ * https://api.telegram.org/bot<TOKEN>/sendMessage e o admin põe
+ * `chat_id` ou `chatId` em headersExtra (vai como query string aceita
+ * pela API). Formato HTML simples (mais robusto que MarkdownV2 que
+ * exige escape pesado).
+ */
+export function formatTelegram(
+  input: FormatterInput,
+  chatId?: string,
+): unknown {
+  const lines: string[] = [];
+  lines.push(
+    `<b>${escapeHtml(eventEmoji(input.event) + ' ' + eventTitle(input.event))}</b>`,
+  );
+  lines.push(`<i>delivery: <code>${escapeHtml(input.deliveryId)}</code></i>`);
+  for (const [k, v] of Object.entries(input.data)) {
+    lines.push(`• <b>${escapeHtml(k)}:</b> ${escapeHtml(formatValueShort(v))}`);
+    if (lines.length >= 25) break;
+  }
+  return {
+    chat_id: chatId,
+    text: lines.join('\n').slice(0, 4096),
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+  };
+}
+
+/**
+ * Microsoft Teams via Incoming Webhook — formato MessageCard (legacy
+ * mas funciona em todos os tenants; Adaptive Cards exigem Power Automate).
+ */
+export function formatTeams(input: FormatterInput): unknown {
+  const facts: Array<{ name: string; value: string }> = [];
+  for (const [k, v] of Object.entries(input.data)) {
+    facts.push({ name: k.slice(0, 80), value: formatValueShort(v).slice(0, 500) });
+    if (facts.length >= 15) break;
+  }
+  let themeColor = '0070F3';
+  if (input.event === 'order.paid') themeColor = '10B981';
+  else if (input.event === 'order.refunded') themeColor = 'F59E0B';
+  else if (input.event === 'order.canceled') themeColor = '6B7280';
+
+  return {
+    '@type': 'MessageCard',
+    '@context': 'https://schema.org/extensions',
+    summary: `AVA PCO — ${eventTitle(input.event)}`,
+    themeColor,
+    title: `${eventEmoji(input.event)} ${eventTitle(input.event)}`,
+    sections: [
+      {
+        activityTitle: `Evento: \`${input.event}\``,
+        activitySubtitle: new Date(input.ts).toLocaleString('pt-BR'),
+        facts,
+        markdown: true,
+      },
+    ],
+  };
+}
+
+/**
+ * Mattermost — incoming webhooks aceitam o mesmo schema do Slack
+ * (compat). Diferenças: prefere `text` markdown direto ao invés de
+ * blocks. Implementação enxuta com `text` + `attachments`.
+ */
+export function formatMattermost(input: FormatterInput): unknown {
+  const lines: string[] = [];
+  lines.push(`### ${eventEmoji(input.event)} ${eventTitle(input.event)}`);
+  lines.push(`_delivery: \`${input.deliveryId}\` · ${new Date(input.ts).toLocaleString('pt-BR')}_`);
+  const fields: Array<{ short: boolean; title: string; value: string }> = [];
+  for (const [k, v] of Object.entries(input.data)) {
+    fields.push({
+      short: true,
+      title: k.slice(0, 80),
+      value: formatValueShort(v).slice(0, 500),
+    });
+    if (fields.length >= 15) break;
+  }
+  let color = '#0070F3';
+  if (input.event === 'order.paid') color = '#10B981';
+  else if (input.event === 'order.refunded') color = '#F59E0B';
+  else if (input.event === 'order.canceled') color = '#6B7280';
+  return {
+    text: lines.join('\n'),
+    attachments: fields.length > 0 ? [{ color, fields }] : undefined,
+  };
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}

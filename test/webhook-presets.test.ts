@@ -19,7 +19,14 @@ describe('webhook presets', () => {
       expect(p.name).toBeTruthy();
       expect(p.description).toBeTruthy();
       expect(p.urlPlaceholder).toBeTruthy();
-      expect(['generic', 'slack', 'discord']).toContain(p.channelType);
+      expect([
+        'generic',
+        'slack',
+        'discord',
+        'telegram',
+        'teams',
+        'mattermost',
+      ]).toContain(p.channelType);
     }
   });
 

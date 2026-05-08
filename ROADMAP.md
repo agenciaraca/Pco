@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-541)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-542)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **541+** |
-| Commits no main | **316+** |
-| Arquivos de teste | **114** unit + **1** E2E (5 specs) |
-| Testes passando | **1229** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **542+** |
+| Commits no main | **317+** |
+| Arquivos de teste | **116** unit + **1** E2E (5 specs) |
+| Testes passando | **1247** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -21,7 +21,7 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 | Providers de pagamento | 6 (Mock, Stripe, Asaas, Pagar.me, MercadoPago, PayPal) |
 | Providers de e-mail | 7 (Mock, Resend, SendGrid, Postmark, Mailgun, Brevo, SMTP-stub) |
 | Connectors de import | 3 (WP, LD, WC) + CSV |
-| Tipos de webhook outbound | Generic + Slack + Discord |
+| Tipos de webhook outbound | 6 (Generic, Slack, Discord, Telegram, Teams, Mattermost) |
 | Achievements automáticos | 6 |
 | Provedores de IA | OpenAI / Anthropic / Mock |
 | Permissões de API tokens | 7 escopos |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-541 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-542 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 542 | webhook channels Telegram + Teams + Mattermost + 3 presets + 18 testes |
 | 541 | provider Brevo (SendinBlue) + 13 testes + registry test (5 testes) |
 | 540 | provider Mailgun (US/EU regions) + 12 testes |
 | 539 | E2E Playwright smoke (5 specs: health, home, login form, SPA fallback, 401) + CI job |

@@ -18,7 +18,13 @@ export interface WebhookPreset {
   /** URL placeholder com instrução. */
   urlPlaceholder: string;
   /** ChannelType correspondente (define o body format). */
-  channelType: 'generic' | 'slack' | 'discord';
+  channelType:
+    | 'generic'
+    | 'slack'
+    | 'discord'
+    | 'telegram'
+    | 'teams'
+    | 'mattermost';
   /** Headers adicionais que o serviço espera. */
   headers?: Record<string, string>;
   /** Eventos sugeridos pra esse preset (admin pode mudar). */
@@ -53,6 +59,46 @@ export const WEBHOOK_PRESETS: WebhookPreset[] = [
     docsUrl:
       'https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks',
     notes: 'No servidor: Configurações do canal → Integrações → Webhooks.',
+  },
+  {
+    id: 'telegram',
+    name: 'Telegram',
+    description: 'Envia mensagem para chat Telegram via Bot API.',
+    icon: '✈️',
+    urlPlaceholder: 'https://api.telegram.org/bot<BOT_TOKEN>/sendMessage',
+    channelType: 'telegram',
+    headers: { 'X-Telegram-Chat-Id': '<CHAT_ID>' },
+    suggestedEvents: ['order.paid', 'user.created'],
+    docsUrl: 'https://core.telegram.org/bots/api#sendmessage',
+    notes:
+      'Crie um bot via @BotFather (/newbot) e copie o TOKEN. Pegue o CHAT_ID com /getUpdates apos enviar uma mensagem ao bot ou usando @userinfobot. Coloque o CHAT_ID no header X-Telegram-Chat-Id.',
+  },
+  {
+    id: 'teams',
+    name: 'Microsoft Teams',
+    description: 'Posta MessageCard em canal Teams via Incoming Webhook.',
+    icon: '🟦',
+    urlPlaceholder:
+      'https://outlook.office.com/webhook/<GUID>@<TENANT>/IncomingWebhook/<KEY>',
+    channelType: 'teams',
+    suggestedEvents: ['order.paid', 'user.created', 'enrollment.created'],
+    docsUrl:
+      'https://learn.microsoft.com/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook',
+    notes:
+      'No canal: ... -> Conectores -> Incoming Webhook -> Configurar -> copie o URL gerado.',
+  },
+  {
+    id: 'mattermost',
+    name: 'Mattermost',
+    description: 'Posta em canal Mattermost via Incoming Webhook.',
+    icon: '🟤',
+    urlPlaceholder: 'https://seu-mattermost.com/hooks/<WEBHOOK_ID>',
+    channelType: 'mattermost',
+    suggestedEvents: ['order.paid', 'user.created'],
+    docsUrl:
+      'https://developers.mattermost.com/integrate/webhooks/incoming/',
+    notes:
+      'No Mattermost: System Console -> Integrations -> Incoming Webhooks -> Add -> copie o URL.',
   },
   {
     id: 'zapier',

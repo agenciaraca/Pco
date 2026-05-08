@@ -19,7 +19,13 @@ export const ALL_WEBHOOK_EVENTS: WebhookEventType[] = [
   'lesson.completed',
 ];
 
-export type WebhookChannelType = 'generic' | 'slack' | 'discord';
+export type WebhookChannelType =
+  | 'generic'
+  | 'slack'
+  | 'discord'
+  | 'telegram'
+  | 'teams'
+  | 'mattermost';
 
 export interface WebhookEndpoint {
   id: string;

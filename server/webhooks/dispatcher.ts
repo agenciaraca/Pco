@@ -4,8 +4,20 @@ import * as endpoints from './endpoints-store';
 import * as deliveries from './delivery-store';
 import { signPayload } from './signer';
 import { RETRY_DELAYS_MS, MAX_ATTEMPTS } from './types';
-import type { WebhookEventType, WebhookDelivery, WebhookEndpoint } from './types';
-import { formatGeneric, formatSlack, formatDiscord } from './formatters';
+import type {
+  WebhookEventType,
+  WebhookDelivery,
+  WebhookEndpoint,
+  WebhookChannelType,
+} from './types';
+import {
+  formatGeneric,
+  formatSlack,
+  formatDiscord,
+  formatTelegram,
+  formatTeams,
+  formatMattermost,
+} from './formatters';
 
 const TIMEOUT_MS = 15_000;
 
@@ -83,7 +95,21 @@ export async function tickWorker(): Promise<{ processed: number }> {
   return { processed };
 }
 
-function renderBody(e: WebhookEndpoint, d: WebhookDelivery, ts: string): unknown {
+/**
+ * Channels que postam em servico externo de chat (Slack/Discord/Teams/
+ * Telegram/Mattermost) nao deveriam ter HMAC porque o cliente nao
+ * controla o servidor. Apenas channels 'generic' assinam.
+ */
+function isHmacChannel(t: WebhookChannelType | undefined): boolean {
+  return !t || t === 'generic';
+}
+
+function renderBody(
+  e: WebhookEndpoint,
+  d: WebhookDelivery,
+  ts: string,
+  extraHeaders?: Record<string, string>,
+): unknown {
   const input = {
     event: d.event,
     data: d.payload,
@@ -92,6 +118,15 @@ function renderBody(e: WebhookEndpoint, d: WebhookDelivery, ts: string): unknown
   };
   if (e.channelType === 'slack') return formatSlack(input);
   if (e.channelType === 'discord') return formatDiscord(input);
+  if (e.channelType === 'telegram') {
+    // chat_id vem dos headers extras (X-Telegram-Chat-Id) já que a URL
+    // do bot não comporta query strings sem quebrar o encoding.
+    const chatId =
+      extraHeaders?.['X-Telegram-Chat-Id'] ?? extraHeaders?.['x-telegram-chat-id'];
+    return formatTelegram(input, chatId);
+  }
+  if (e.channelType === 'teams') return formatTeams(input);
+  if (e.channelType === 'mattermost') return formatMattermost(input);
   return formatGeneric(input);
 }
 
@@ -107,13 +142,11 @@ async function deliverOne(d: WebhookDelivery): Promise<void> {
   }
   const { secret, headers: extraHeaders } = endpoints.decryptEndpoint(e);
   const ts = new Date().toISOString();
-  const body = renderBody(e, d, ts);
+  const body = renderBody(e, d, ts, extraHeaders);
   const raw = JSON.stringify(body);
-  // Slack/Discord não verificam HMAC — só geramos pra generic
-  const sig =
-    e.channelType !== 'slack' && e.channelType !== 'discord' && secret
-      ? signPayload(secret, raw)
-      : undefined;
+  // Channels que rendem payload p/ um serviço de chat externo não
+  // verificam HMAC (não controlam o servidor). Só assinamos generic.
+  const sig = isHmacChannel(e.channelType) && secret ? signPayload(secret, raw) : undefined;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
@@ -197,12 +230,9 @@ export async function testEndpoint(endpointId: string): Promise<{
     event: 'test.ping' as WebhookEventType,
     payload: { hello: 'world', source: 'AVA PCO' },
   } as unknown as WebhookDelivery;
-  const body = renderBody(e, testDelivery, ts);
+  const body = renderBody(e, testDelivery, ts, extraHeaders);
   const raw = JSON.stringify(body);
-  const sig =
-    e.channelType !== 'slack' && e.channelType !== 'discord' && secret
-      ? signPayload(secret, raw)
-      : undefined;
+  const sig = isHmacChannel(e.channelType) && secret ? signPayload(secret, raw) : undefined;
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
