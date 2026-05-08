@@ -18,6 +18,7 @@ const AVA_VERSION = (() => {
 const AVA_STARTED_AT = new Date().toISOString();
 import * as usersStore from './auth/users-store';
 import * as oauthGoogle from './auth/oauth-google';
+import * as samlAuth from './auth/saml';
 import crypto from 'node:crypto';
 import { signToken, verifyToken } from './auth/jwt';
 import {
@@ -631,6 +632,83 @@ export function buildApp() {
     // pra nao logar no histórico do servidor de redirect.
     c.header('Set-Cookie', 'oauth_state=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
     return c.redirect(`/auth/oauth/finish#token=${encodeURIComponent(token)}`, 302);
+  });
+
+  // ---------- SAML SSO (env-gated, BETA — sem signature validation) ----------
+  // Pra prod hardened com IDP nao confiavel: adicione xml-crypto + verifique
+  // assinatura X.509 do IDP em parseSamlResponse. Atualmente confia no
+  // transporte HTTPS + IDP cadastrado via env vars.
+  app.get('/auth/saml/login', async (c) => {
+    const cfg = samlAuth.samlConfigFromEnv();
+    if (!cfg) {
+      return jsonError(c, 503, 'NOT_CONFIGURED', 'SAML nao configurado.');
+    }
+    const xml = samlAuth.buildAuthnRequest(cfg);
+    const relay = c.req.query('relay') ?? '/dashboard';
+    return c.redirect(samlAuth.buildRedirectUrl(cfg, xml, relay), 302);
+  });
+
+  app.post('/auth/saml/acs', async (c) => {
+    const cfg = samlAuth.samlConfigFromEnv();
+    if (!cfg) {
+      return jsonError(c, 503, 'NOT_CONFIGURED', 'SAML nao configurado.');
+    }
+    const body = (await c.req.parseBody().catch(() => ({}))) as Record<
+      string,
+      string | File | undefined
+    >;
+    const samlResponse = body['SAMLResponse'];
+    if (typeof samlResponse !== 'string') {
+      return jsonError(c, 400, 'INVALID_INPUT', 'SAMLResponse ausente.');
+    }
+    const rs = body['RelayState'];
+    const relayState = typeof rs === 'string' ? rs : '/dashboard';
+
+    let assertion;
+    try {
+      assertion = samlAuth.parseSamlResponse(samlResponse);
+    } catch (e) {
+      return c.redirect(
+        `/login?error=saml_${encodeURIComponent(e instanceof Error ? e.message.slice(0, 80) : 'parse')}`,
+        302,
+      );
+    }
+    const conditions = samlAuth.validateConditions(assertion);
+    if (!conditions.ok) {
+      return c.redirect(
+        `/login?error=saml_${encodeURIComponent(conditions.reason ?? 'invalid')}`,
+        302,
+      );
+    }
+    if (!assertion.email) {
+      return c.redirect('/login?error=saml_no_email', 302);
+    }
+
+    let raw = await usersStore.findUserByEmail(assertion.email);
+    if (!raw) {
+      const password = crypto.randomBytes(24).toString('hex');
+      const created = await usersStore.createUser({
+        email: assertion.email,
+        name: assertion.attributes.displayName ?? assertion.attributes.name ?? assertion.email.split('@')[0],
+        role: 'student',
+        password,
+        active: true,
+      });
+      raw = await usersStore.findUserByEmail(created.email);
+    }
+    if (!raw || !raw.active) {
+      return c.redirect('/login?error=saml_user_inactive', 302);
+    }
+    const token = await signToken({
+      sub: raw.id,
+      email: raw.email,
+      role: raw.role,
+      tv: raw.tokenVersion ?? 0,
+    });
+    return c.redirect(
+      `/auth/oauth/finish#token=${encodeURIComponent(token)}&relay=${encodeURIComponent(relayState)}`,
+      302,
+    );
   });
 
   // Setup TOTP — gera secret novo e devolve URI otpauth://. Só persiste após /enable.

@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-555)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-556)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **555+** |
-| Commits no main | **328+** |
-| Arquivos de teste | **129** unit + **1** E2E (5 specs) |
-| Testes passando | **1364** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **556+** |
+| Commits no main | **329+** |
+| Arquivos de teste | **141** unit + **1** E2E (5 specs) |
+| Testes passando | **1381** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,11 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-555 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-556 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 556 | Drizzle migrations: scripts/migrate_prod_db.py pronto, idempotente, aguarda Neon DATABASE_URL |
+| 552 | SAML SSO BETA (sem signature validation): buildAuthnRequest, parseSamlResponse, ACS endpoint + 17 testes |
 | 555 | SSH bloco: AI_KEY_ENCRYPTION_SECRET aplicado em prod + diagnose portalpco rodado (3 scripts SSH) |
 | 551 | OAuth Google login (botão Login + callback + create student auto) + 12 testes |
 | 553 | PWA service worker v3: SWR /assets + API cache 5min, push notifications, update flow + 9 testes |
@@ -370,7 +372,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - **Webhook templates** (presets prontos para Zapier/n8n/Make)
 - ✅ **Mais providers de e-mail** (Mailgun + Brevo + SES + SMTP nativo — sprints 540-541-543-550)
 - **OAuth login social** (Google/Microsoft) — só email/senha hoje
-- **SSO SAML** para escolas grandes
+- 🟡 **SSO SAML** (sprint 552 — BETA, sem signature validation; estrutura pronta + tests, completar com xml-crypto pra prod hardened)
 - ✅ **SMS via Twilio + WhatsApp Cloud API (Meta)** (sprints 547-548 — 3 providers: mock, twilio, whatsapp-meta)
 - **Calendly/Cal.com** para agendamento de mentoria
 
@@ -396,7 +398,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - **Deploy à produção via `scripts/update_vps_pwd.py`** requer envs `HOST`, `PORT`, `USER_NAME`, `KEY_PATH` SSH. Cada admin precisa configurar localmente.
 - ~~**`AI_KEY_ENCRYPTION_SECRET` em prod**~~: ✅ configurado em sprint 555.
 - ~~**Import via API portalpco.online**~~: sprint 555 rodou diagnose. portalpco.com.br: DNS ENOTFOUND (URL precisa correção). psicanaliseclinica.online: LD REST desabilitado (owner habilita no admin WP).
-- **Drizzle migrations** existem mas não foram aplicadas em prod — modo JSON é o vigente.
+- **Drizzle migrations**: script de aplicação pronto (`scripts/migrate_prod_db.py`); aguarda DATABASE_URL provisionada no Neon. Modo JSON segue como vigente.
 
 ---
 
