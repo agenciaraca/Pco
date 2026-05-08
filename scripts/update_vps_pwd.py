@@ -59,9 +59,12 @@ if 'Failed' in out or 'not loaded' in out or 'not be found' in out:
     run("pkill -f 'node.*server/dev' 2>/dev/null || true", check=False)
     run("pkill -f 'ava-pco' 2>/dev/null || true", check=False)
     time.sleep(2)
-    # Detach total — setsid + nohup + redirect stdin pra evitar travar o channel
+    # Detach total — setsid + nohup + redirect stdin pra evitar travar o channel.
+    # IMPORTANTE: carrega .env via set -a + dotsource pra que JWT_SECRET,
+    # AI_KEY_ENCRYPTION_SECRET, INITIAL_*_PASSWORD etc cheguem ao processo.
     start = (
         'bash -lc \'export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && cd ~/ava-pco && '
+        'set -a && . ./.env && set +a && '
         'setsid nohup env PORT=3035 SERVE_STATIC=./dist HOST=0.0.0.0 '
         'npx tsx server/dev.ts '
         '>> ~/ava-pco/app.log 2>&1 < /dev/null &\' && echo dispatched'

@@ -51,9 +51,11 @@ run("ls -la ~/ava-pco/start.sh 2>/dev/null || echo 'no start.sh'", check=False)
 run("grep -E '\"(start|dev|prod|serve)\":' ~/ava-pco/package.json | head -10", check=False)
 
 print("[*] Starting via nohup setsid (tsx direto)...")
-# Usa setsid + nohup + redirect stdin para detach total
+# Usa setsid + nohup + redirect stdin para detach total.
+# IMPORTANTE: carrega .env (JWT_SECRET, AI_KEY_ENCRYPTION_SECRET, INITIAL_*_PASSWORD).
 start = (
     'bash -lc \'export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && cd ~/ava-pco && '
+    'set -a && . ./.env && set +a && '
     'setsid nohup env PORT=3035 SERVE_STATIC=./dist HOST=0.0.0.0 '
     'npx tsx server/dev.ts '
     '>> ~/ava-pco/app.log 2>&1 < /dev/null &\' && echo dispatched'
