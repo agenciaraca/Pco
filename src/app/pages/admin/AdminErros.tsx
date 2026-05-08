@@ -4,6 +4,7 @@ import { useErrorLog, useErrorsStats } from '../../data/hooks';
 import Sparkline from '../../components/Sparkline';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
+import { useT } from '../../i18n';
 
 function formatTs(iso: string): string {
   try {
@@ -14,6 +15,7 @@ function formatTs(iso: string): string {
 }
 
 export default function AdminErros() {
+  const t = useT();
   const { data, isLoading, isError, refetch, isFetching } = useErrorLog(500);
   const stats = useErrorsStats(7);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export default function AdminErros() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-pco-deep">Erros do servidor</h1>
+          <h1 className="text-2xl font-bold text-pco-deep">{t('admin.nav.errors')}</h1>
           <p className="text-sm text-ink-muted">
             Erros não tratados capturados pelo backend e pelo client. Mantém os últimos 2.000.
           </p>
