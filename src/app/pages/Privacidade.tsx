@@ -3,11 +3,13 @@ import { ArrowLeft } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useSettings } from '../data/hooks';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { useT } from '../i18n';
 
 export default function Privacidade() {
+  const t = useT();
   const { data } = useSettings();
   useDocumentMeta({
-    title: 'Política de Privacidade — AVA PCO',
+    title: `${t('privacy.title')} — AVA PCO`,
     description: 'Política de privacidade da plataforma AVA PCO conforme LGPD.',
   });
   const siteName = data?.siteName ?? 'AVA PCO';
@@ -29,7 +31,7 @@ export default function Privacidade() {
 
         <article className="pco-card p-8 text-sm text-ink-muted leading-relaxed space-y-6">
           <header>
-            <h1 className="text-2xl font-bold text-pco-deep">Política de Privacidade</h1>
+            <h1 className="text-2xl font-bold text-pco-deep">{t('privacy.title')}</h1>
             <p className="mt-1 text-xs text-ink-subtle">
               Aplicável a {siteName}. Última atualização: {new Date().toLocaleDateString('pt-BR')}.
             </p>

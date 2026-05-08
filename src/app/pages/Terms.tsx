@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import Logo from '../components/Logo';
+import { useT } from '../i18n';
 
 const checkboxes = [
   'Li e aceito os Termos de Uso do AVA PCO.',
@@ -12,6 +13,7 @@ const checkboxes = [
 ];
 
 export default function Terms() {
+  const t = useT();
   const navigate = useNavigate();
   const [checked, setChecked] = useState<boolean[]>(new Array(checkboxes.length).fill(false));
   const allChecked = checked.every(Boolean);
@@ -22,7 +24,7 @@ export default function Terms() {
         <Logo className="mb-8" />
 
         <div className="pco-card p-8">
-          <h1 className="text-2xl font-bold text-pco-deep">Termos de Uso e Política de Privacidade</h1>
+          <h1 className="text-2xl font-bold text-pco-deep">{t('terms.title')}</h1>
           <p className="mt-2 text-sm text-ink-muted">
             Antes de seguir, leia e confirme os itens abaixo. Eles garantem clareza no uso do AVA PCO.
           </p>

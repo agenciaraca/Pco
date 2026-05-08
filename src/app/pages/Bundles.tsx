@@ -7,9 +7,11 @@ import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { useToast } from '../components/Toast';
 import CheckoutDialog from '../components/CheckoutDialog';
 import type { ProductDto } from '../data/api';
+import { useT } from '../i18n';
 
 export default function Bundles() {
-  useDocumentMeta({ title: 'Pacotes de cursos — AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('bundles.title')} — AVA PCO` });
   const { data: products = [], isLoading } = useProducts();
   const { data: courses = [] } = useCourses();
   const { data: student } = useCurrentStudent();
@@ -59,7 +61,7 @@ export default function Bundles() {
       <header>
         <h1 className="pco-section-title flex items-center gap-2">
           <Package size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Pacotes de cursos
+          {t('bundles.title')}
         </h1>
         <p className="pco-section-subtitle mt-1">
           Compre vários cursos juntos com desconto. Acesso liberado imediatamente

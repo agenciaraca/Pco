@@ -6,6 +6,7 @@ import EmptyState, { ErrorState } from '../components/EmptyState';
 import { useToast } from '../components/Toast';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import type { OrderDto, OrderStatus } from '../data/api';
+import { useT } from '../i18n';
 
 const statusStyle: Record<OrderStatus, { className: string; label: string; Icon: typeof Clock }> =
   {
@@ -42,7 +43,8 @@ const statusStyle: Record<OrderStatus, { className: string; label: string; Icon:
   };
 
 export default function Pedidos() {
-  useDocumentMeta({ title: 'Meus Pedidos — AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('orders.title')} — AVA PCO` });
   const { data, isLoading, isError, refetch } = useMyOrders();
   const cancelMut = useCancelMyOrder();
   const toast = useToast();
@@ -85,7 +87,7 @@ export default function Pedidos() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Meus Pedidos</h1>
+        <h1 className="pco-section-title">{t('orders.title')}</h1>
         <p className="pco-section-subtitle mt-1">
           Histórico de compras de cursos, pacotes de sessão e Tutor.
         </p>

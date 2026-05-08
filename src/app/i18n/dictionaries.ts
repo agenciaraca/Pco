@@ -226,6 +226,22 @@ const pt: Dict = {
   'footer.terms': 'Termos',
   'footer.privacy': 'Privacidade',
 
+  // orders
+  'orders.title': 'Meus Pedidos',
+  'orders.empty': 'Você ainda não tem pedidos.',
+  'orders.cancel': 'Cancelar pedido',
+  'orders.viewInvoice': 'Ver fatura',
+  'orders.payNow': 'Pagar agora',
+
+  // events / bundles / catalog
+  'events.title': 'Eventos',
+  'bundles.title': 'Pacotes',
+  'catalog.title': 'Catálogo de Cursos',
+
+  // public pages
+  'terms.title': 'Termos de Uso e Política de Privacidade',
+  'privacy.title': 'Política de Privacidade',
+
   // admin nav
   'admin.section.panel': 'Painel',
   'admin.section.academic': 'Acadêmico',
@@ -505,6 +521,22 @@ const es: Dict = {
   'footer.terms': 'Términos',
   'footer.privacy': 'Privacidad',
 
+  // orders
+  'orders.title': 'Mis Pedidos',
+  'orders.empty': 'Aún no tienes pedidos.',
+  'orders.cancel': 'Cancelar pedido',
+  'orders.viewInvoice': 'Ver factura',
+  'orders.payNow': 'Pagar ahora',
+
+  // events / bundles / catalog
+  'events.title': 'Eventos',
+  'bundles.title': 'Paquetes',
+  'catalog.title': 'Catálogo de Cursos',
+
+  // public pages
+  'terms.title': 'Términos de Uso y Política de Privacidad',
+  'privacy.title': 'Política de Privacidad',
+
   // admin nav
   'admin.section.panel': 'Panel',
   'admin.section.academic': 'Académico',
@@ -783,6 +815,22 @@ const en: Dict = {
   // footer
   'footer.terms': 'Terms',
   'footer.privacy': 'Privacy',
+
+  // orders
+  'orders.title': 'My Orders',
+  'orders.empty': 'You have no orders yet.',
+  'orders.cancel': 'Cancel order',
+  'orders.viewInvoice': 'View invoice',
+  'orders.payNow': 'Pay now',
+
+  // events / bundles / catalog
+  'events.title': 'Events',
+  'bundles.title': 'Bundles',
+  'catalog.title': 'Course Catalog',
+
+  // public pages
+  'terms.title': 'Terms of Use and Privacy Policy',
+  'privacy.title': 'Privacy Policy',
 
   // admin nav
   'admin.section.panel': 'Panel',

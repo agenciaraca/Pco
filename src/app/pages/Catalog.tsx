@@ -14,13 +14,15 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import Logo from '../components/Logo';
+import { useT } from '../i18n';
 
 /**
  * Catálogo público — visualização sem autenticação. Mostra cursos disponíveis
  * com CTA para login/cadastro.
  */
 export default function Catalog() {
-  useDocumentMeta({ title: 'Catálogo de cursos — AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('catalog.title')} — AVA PCO` });
   const { data: courses, isLoading } = useCourses();
   const { data: products = [] } = useProducts();
   const [search, setSearch] = useState('');

@@ -3,9 +3,11 @@ import { useMyLiveSessions, useCourses } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { useT } from '../i18n';
 
 export default function Eventos() {
-  useDocumentMeta({ title: 'Encontros ao vivo — AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('events.title')} — AVA PCO` });
   const { data: sessions = [], isLoading } = useMyLiveSessions();
   const { data: courses = [] } = useCourses();
 
@@ -19,7 +21,7 @@ export default function Eventos() {
       <header>
         <h1 className="pco-section-title flex items-center gap-2">
           <Video size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Encontros ao vivo
+          {t('events.title')}
         </h1>
         <p className="pco-section-subtitle mt-1">
           Aulas, mentorias e encontros ao vivo agendados pela escola.
