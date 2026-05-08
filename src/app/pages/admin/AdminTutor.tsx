@@ -16,6 +16,7 @@ import {
 import Sparkline from '../../components/Sparkline';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useToast } from '../../components/Toast';
+import { useT } from '../../i18n';
 
 const tabs = [
   { id: 'limites', label: 'Limites', icon: <Users size={14} strokeWidth={1.75} /> },
@@ -24,6 +25,7 @@ const tabs = [
 ];
 
 export default function AdminTutor() {
+  const t = useT();
   const [active, setActive] = useState('limites');
   const configsQ = useAiConfigurations();
   const updateMut = useUpdateAiConfiguration();
@@ -56,7 +58,7 @@ export default function AdminTutor() {
     return (
       <div className="space-y-6">
         <header>
-          <h1 className="pco-section-title">Tutor Virtual — Configurações</h1>
+          <h1 className="pco-section-title">{t('admin.nav.tutor')} — {t('nav.settings')}</h1>
           <p className="pco-section-subtitle mt-1">Carregando...</p>
         </header>
         <CardListSkeleton count={2} />
@@ -97,7 +99,7 @@ export default function AdminTutor() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Tutor Virtual — Configurações</h1>
+          <h1 className="pco-section-title">{t('admin.nav.tutor')} — {t('nav.settings')}</h1>
           <p className="pco-section-subtitle mt-1">
             Limites por aluno, escopo, mensagens fora do contexto.
           </p>

@@ -12,6 +12,7 @@ import { useRetentionRisks, useBroadcastNotification } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
+import { useT } from '../../i18n';
 
 const levelStyles: Record<string, string> = {
   critico: 'bg-status-danger/15 text-status-danger',
@@ -35,6 +36,7 @@ const LEVEL_BG: Record<string, string> = {
 };
 
 export default function AdminEvasion() {
+  const t = useT();
   const [level, setLevel] = useState('todos');
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const { data, isLoading, isError, refetch } = useRetentionRisks(level);
@@ -84,7 +86,7 @@ export default function AdminEvasion() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Previsão de Evasão</h1>
+          <h1 className="pco-section-title">{t('admin.nav.evasion')}</h1>
           <p className="pco-section-subtitle mt-1">
             Score de risco por aluno com motivos e ação recomendada.
           </p>

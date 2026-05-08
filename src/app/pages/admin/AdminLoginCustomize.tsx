@@ -11,6 +11,7 @@ import {
 import { useLoginConfig, useUpdateLoginConfig, useResetLoginConfig } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { uploadFile } from '../../data/api';
+import { useT } from '../../i18n';
 
 const presets = [
   { name: 'Split Screen Premium', from: '#063B49', via: '#0097B2', to: '#0CC0DF' },
@@ -20,6 +21,7 @@ const presets = [
 ];
 
 export default function AdminLoginCustomize() {
+  const t = useT();
   const cfgQ = useLoginConfig();
   const updateMut = useUpdateLoginConfig();
   const resetMut = useResetLoginConfig();
@@ -106,7 +108,7 @@ export default function AdminLoginCustomize() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Customizar Login</h1>
+          <h1 className="pco-section-title">{t('admin.nav.loginCustomize')}</h1>
           <p className="pco-section-subtitle mt-1">
             Personalize a tela de entrada dos alunos. Pré-visualização ao vivo.
           </p>

@@ -10,6 +10,7 @@ import {
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { StudyPathDto } from '../../data/api';
+import { useT } from '../../i18n';
 
 interface EditState {
   id: string | null;
@@ -42,6 +43,7 @@ const COVER_PRESETS = [
 ];
 
 export default function AdminStudyPaths() {
+  const t = useT();
   useDocumentMeta({ title: 'Trilhas de estudo — Admin' });
   const pathsQ = useStudyPaths();
   const coursesQ = useCourses();
@@ -148,7 +150,7 @@ export default function AdminStudyPaths() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
             <Route size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Trilhas de estudo
+            {t('admin.nav.studyPaths')}
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Crie sequências guiadas de cursos. Aluno vê o "próximo passo"

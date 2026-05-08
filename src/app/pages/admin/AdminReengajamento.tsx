@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import Tabs from '../../components/Tabs';
+import { useT } from '../../i18n';
 
 const tabs = [
   { id: 'campanhas', label: 'Campanhas', icon: <Send size={14} strokeWidth={1.75} /> },
@@ -96,13 +97,14 @@ const templates = [
 ];
 
 export default function AdminReengajamento() {
+  const t = useT();
   const [active, setActive] = useState('campanhas');
 
   return (
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Reengajamento</h1>
+          <h1 className="pco-section-title">{t('admin.nav.reengagement')}</h1>
           <p className="pco-section-subtitle mt-1">
             Campanhas automáticas e templates para alunos inativos.
           </p>

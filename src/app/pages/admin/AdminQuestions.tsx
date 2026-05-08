@@ -23,6 +23,7 @@ import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import type { QuestionDto, QuestionTypeDto } from '../../data/api';
+import { useT } from '../../i18n';
 
 interface EditState {
   id: string | null;
@@ -54,6 +55,7 @@ function emptyEdit(): EditState {
 }
 
 export default function AdminQuestions() {
+  const t = useT();
   const { courseId } = useParams<{ courseId: string }>();
   useDocumentMeta({ title: 'Banco de questões — Admin' });
   const courseQ = useCourse(courseId);
@@ -258,7 +260,7 @@ export default function AdminQuestions() {
           </Link>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2 mt-1">
             <HelpCircle size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Banco de questões — {course.shortTitle}
+            {t('admin.nav.questions')} — {course.shortTitle}
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             {questions.length} questão(ões) no banco. Múltipla escolha (2-6

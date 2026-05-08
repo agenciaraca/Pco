@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react';
+import { useT } from '../../i18n';
 
 const models = [
   {
@@ -29,10 +30,11 @@ const models = [
 ];
 
 export default function AdminLoginModels() {
+  const t = useT();
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Login Customizável</h1>
+        <h1 className="pco-section-title">{t('admin.nav.loginModels')}</h1>
         <p className="pco-section-subtitle mt-1">
           Escolha um dos 4 modelos disponíveis para a tela de login dos alunos.
         </p>

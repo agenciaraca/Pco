@@ -11,10 +11,12 @@ import {
 import { useCourseAnalytics } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 
 export default function AdminCourseAnalytics() {
+  const t = useT();
   const { courseId } = useParams<{ courseId: string }>();
-  useDocumentMeta({ title: 'Analytics do curso — Admin' });
+  useDocumentMeta({ title: 'Analytics — Admin' });
   const { data, isLoading } = useCourseAnalytics(courseId);
 
   if (isLoading) return <CardListSkeleton count={3} />;
@@ -36,7 +38,7 @@ export default function AdminCourseAnalytics() {
         </Link>
         <h1 className="text-2xl font-bold text-pco-deep mt-1 flex items-center gap-2">
           <BarChart3 size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Analytics: {data.course.title}
+          {t('admin.nav.dashboard')}: {data.course.title}
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           {data.course.totalModules} módulos · {data.course.totalLessons} aulas

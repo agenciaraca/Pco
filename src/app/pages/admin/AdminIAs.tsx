@@ -23,6 +23,7 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
 import type { AiConfigPublic, AiProviderInfo } from '../../data/api';
+import { useT } from '../../i18n';
 
 const moduleLabels: Record<string, string> = {
   tutor: 'Tutor Virtual',
@@ -43,6 +44,7 @@ const moduleDescriptions: Record<string, string> = {
 };
 
 export default function AdminIAs() {
+  const t = useT();
   const configsQ = useAiConfigurations();
   const providersQ = useAiProviders();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export default function AdminIAs() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Gestão de IAs</h1>
+          <h1 className="pco-section-title">{t('admin.nav.aiManagement')}</h1>
           <p className="pco-section-subtitle mt-1">
             Configure provedor, modelo, chave de API e limites para cada módulo de IA do AVA.
           </p>

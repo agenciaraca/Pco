@@ -21,6 +21,7 @@ import {
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { LiveSessionDto, LiveSessionStatusDto } from '../../data/api';
+import { useT } from '../../i18n';
 
 const STATUS_STYLES: Record<LiveSessionStatusDto, string> = {
   scheduled: 'bg-pco-blue/10 text-pco-blue',
@@ -30,6 +31,7 @@ const STATUS_STYLES: Record<LiveSessionStatusDto, string> = {
 };
 
 export default function AdminLiveSessions() {
+  const t = useT();
   useDocumentMeta({ title: 'Sessões ao vivo — Admin' });
   const list = useAdminLiveSessions();
   const create = useCreateLiveSession();
@@ -52,7 +54,7 @@ export default function AdminLiveSessions() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
             <Video size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Sessões ao vivo
+            {t('admin.nav.liveSessions')}
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Agende encontros via Zoom, Google Meet ou qualquer URL. O AVA mostra os

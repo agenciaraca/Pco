@@ -30,6 +30,7 @@ import {
 import { useState } from 'react';
 import { useSeoTimeseries, useKeywords } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import { useT } from '../../i18n';
 
 const trafficSources = [
   { name: 'Orgânico', value: 52, color: '#0097B2' },
@@ -57,6 +58,7 @@ const techSeo = [
 ];
 
 export default function AdminMetricas() {
+  const t = useT();
   const [range, setRange] = useState('30d');
   const seriesQ = useSeoTimeseries(range);
   const keywordsQ = useKeywords();
@@ -77,7 +79,7 @@ export default function AdminMetricas() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Métricas & SEO</h1>
+          <h1 className="pco-section-title">{t('admin.nav.metrics')}</h1>
           <p className="pco-section-subtitle mt-1">
             Dashboard de desempenho do site e análise SEO.
           </p>

@@ -17,6 +17,7 @@ import {
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { ApiTokenScopeDto } from '../../data/api';
+import { useT } from '../../i18n';
 
 const SCOPE_LABELS: Record<ApiTokenScopeDto, string> = {
   'stats:read': 'Estatísticas (resumo)',
@@ -27,7 +28,8 @@ const SCOPE_LABELS: Record<ApiTokenScopeDto, string> = {
 };
 
 export default function AdminApiTokens() {
-  useDocumentMeta({ title: 'API tokens — Admin' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.apiTokens')} — Admin` });
   const list = useApiTokens();
   const create = useCreateApiToken();
   const revoke = useRevokeApiToken();
@@ -76,7 +78,7 @@ export default function AdminApiTokens() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
           <KeyRound size={20} className="text-pco-blue" strokeWidth={1.75} />
-          API tokens
+          {t('admin.nav.apiTokens')}
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           Tokens read-only para integrações externas (BI, Zapier, n8n, dashboards).

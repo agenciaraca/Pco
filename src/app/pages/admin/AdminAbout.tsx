@@ -12,6 +12,7 @@ import { useAdminAbout } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 
 function formatUptime(sec: number): string {
   if (sec < 60) return `${sec}s`;
@@ -24,7 +25,8 @@ function formatUptime(sec: number): string {
 }
 
 export default function AdminAbout() {
-  useDocumentMeta({ title: 'Sobre — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.about')} — Admin AVA PCO` });
   const { data, isLoading } = useAdminAbout();
   const qc = useQueryClient();
   const toast = useToast();
@@ -83,7 +85,7 @@ export default function AdminAbout() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
           <Info size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Sobre o sistema
+          {t('admin.nav.about')}
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           Informações de build e estado do servidor.

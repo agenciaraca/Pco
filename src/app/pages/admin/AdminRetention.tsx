@@ -13,6 +13,7 @@ import {
 import { TrendingUp, ArrowUpRight, Users, GraduationCap } from 'lucide-react';
 import { useCourses } from '../../data/hooks';
 import { useMemo } from 'react';
+import { useT } from '../../i18n';
 
 const cohortData = [
   { week: 'S1', psi: 100, tfs: 100, hipno: 100 },
@@ -43,13 +44,14 @@ const reengagementImpact = [
 ];
 
 export default function AdminRetention() {
+  const t = useT();
   const { data: courses } = useCourses();
   const completionByCourse = useMemo(() => buildCompletionByCourse(courses), [courses]);
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Retenção</h1>
+        <h1 className="pco-section-title">{t('admin.nav.retention')}</h1>
         <p className="pco-section-subtitle mt-1">
           Indicadores e gráficos de retenção pedagógica.
         </p>
