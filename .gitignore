@@ -29,6 +29,11 @@ yarn-error.log*
 
 *.tsbuildinfo
 
+# Playwright
+e2e/.test-results
+playwright-report
+playwright/.cache
+
 # Runtime data — contém hashes de senha, audit log, notificações, etc.
 data/users.json
 data/audit-log.json
@@ -56,3 +61,4 @@ data/payment-gateways.json
 data/products.json
 data/orders.json
 data/coupons.json
+data/admin-digest-config.json

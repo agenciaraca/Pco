@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-538)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-539)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **538+** |
-| Commits no main | **312+** |
-| Arquivos de teste | **111** |
-| Testes passando | **1203** ✅ |
+| Sprints entregues | **539+** |
+| Commits no main | **314+** |
+| Arquivos de teste | **111** unit + **1** E2E (5 specs) |
+| Testes passando | **1203** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-538 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-539 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 539 | E2E Playwright smoke (5 specs: health, home, login form, SPA fallback, 401) + CI job |
 | 538 | coverage badge dinâmico no README (18 testes) + fix typecheck AdminTranscripts |
 | 537 | filtros adicionais em /admin/cursos/:id/questoes |
 | 536 | tests propagação de novos fields em courses-repo (+9) |
@@ -344,7 +345,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ### Robustez
 - **Tests de UI/integration** com Testing Library + MSW (hoje só unit em puros) — não-iniciado
-- **E2E** com Playwright — não-iniciado
+- 🟡 **E2E** com Playwright — sprint 539 entregue smoke (5 tests cobrindo health, home, login form, SPA fallback, 401 sem token); falta golden path login → enroll → complete
 - ✅ **CI** GitHub Actions (`npm test && npm run typecheck && npm run build` + coverage)
 - ✅ **Coverage badge no README** (sprint 538 — script scripts/update-coverage-badge.mjs lê coverage-summary.json)
 - **Migrações Drizzle** dos novos campos `tags` em libraryItems/podcasts — não-iniciado
@@ -403,7 +404,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 | 🔴 ALTA | Configurar `JWT_SECRET` fixo em produção | sessões caem ao reiniciar | 5 min |
 | 🔴 ALTA | Configurar `AI_KEY_ENCRYPTION_SECRET` em produção | criptografia real | 5 min |
 | 🔴 ALTA | Resolver erro 401 import portalpco.online (rodar diagnose tool) | bloqueio de usuário | 30 min |
-| 🟡 MÉDIA | E2E Playwright (golden path: login → enroll → complete) | smoke test real | 2 dias |
+| 🟡 MÉDIA | E2E Playwright — expandir golden path (login → enroll → complete) | smoke ✅ no sprint 539 | 1 dia |
 | 🟡 MÉDIA | Backup remoto S3 (em vez de só local) | DR | 1 dia |
 | 🟡 MÉDIA | OAuth Google login | reduzir fricção signup | 1 dia |
 | ~~🟡~~ ✅ | ~~Coverage badge no README~~ (sprint 538) | visibilidade | 0.3 dia |
