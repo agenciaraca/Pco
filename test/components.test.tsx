@@ -26,7 +26,8 @@ describe('EmptyState', () => {
 describe('ErrorState', () => {
   it('mostra título padrão e CTA opcional', () => {
     render(<ErrorState action={<button>Tentar novamente</button>} />);
-    expect(screen.getByText('Algo deu errado')).toBeInTheDocument();
+    // ErrorState agora usa i18n; default fora do provider = PT (error.unknown)
+    expect(screen.getByText(/erro inesperado/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tentar novamente/i })).toBeInTheDocument();
   });
 });

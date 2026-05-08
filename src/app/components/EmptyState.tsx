@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { Inbox } from 'lucide-react';
+import { useT } from '../i18n';
 
 interface EmptyStateProps {
   icon?: ReactNode;
@@ -44,14 +45,17 @@ export default function EmptyState({
 }
 
 export function ErrorState({
-  title = 'Algo deu errado',
-  description = 'Não foi possível carregar este conteúdo. Tente novamente em alguns instantes.',
+  title,
+  description,
   action,
 }: {
   title?: string;
   description?: string;
   action?: ReactNode;
 }) {
+  const t = useT();
+  const titleText = title ?? t('error.unknown');
+  const descText = description ?? t('error.network');
   return (
     <div className="text-center py-12 px-6">
       <div className="mx-auto h-14 w-14 rounded-2xl bg-status-danger/10 grid place-items-center mb-4">
@@ -71,8 +75,8 @@ export function ErrorState({
           <line x1="12" x2="12.01" y1="17" y2="17" />
         </svg>
       </div>
-      <h3 className="text-base font-semibold text-pco-deep">{title}</h3>
-      <p className="mt-1 text-sm text-ink-muted max-w-md mx-auto">{description}</p>
+      <h3 className="text-base font-semibold text-pco-deep">{titleText}</h3>
+      <p className="mt-1 text-sm text-ink-muted max-w-md mx-auto">{descText}</p>
       {action && <div className="mt-6">{action}</div>}
     </div>
   );

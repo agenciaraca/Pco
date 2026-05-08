@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { AlertTriangle, X, Loader2 } from 'lucide-react';
+import { useT } from '../i18n';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -17,13 +18,16 @@ export default function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = 'Confirmar',
-  cancelLabel = 'Cancelar',
+  confirmLabel,
+  cancelLabel,
   variant = 'default',
   onConfirm,
   onCancel,
   loading = false,
 }: ConfirmDialogProps) {
+  const t = useT();
+  const confirmText = confirmLabel ?? t('common.confirm');
+  const cancelText = cancelLabel ?? t('common.cancel');
   if (!open) return null;
 
   return (
@@ -64,14 +68,14 @@ export default function ConfirmDialog({
             onClick={onCancel}
             disabled={loading}
             className="h-8 w-8 grid place-items-center rounded-lg text-ink-muted hover:bg-surface-gray"
-            aria-label="Fechar"
+            aria-label={t('common.close')}
           >
             <X size={16} strokeWidth={1.75} />
           </button>
         </div>
         <div className="px-6 py-4 border-t border-surface-gray flex items-center justify-end gap-2 rounded-b-2xl bg-surface-off">
           <button onClick={onCancel} disabled={loading} className="pco-btn-ghost text-xs">
-            {cancelLabel}
+            {cancelText}
           </button>
           <button
             onClick={onConfirm}
@@ -83,7 +87,7 @@ export default function ConfirmDialog({
             }`}
           >
             {loading && <Loader2 size={12} strokeWidth={2} className="animate-spin" />}
-            {confirmLabel}
+            {confirmText}
           </button>
         </div>
       </div>
