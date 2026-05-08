@@ -13,9 +13,12 @@ import {
   Download,
   Trash2,
   Target,
+  Globe,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
+import { useT } from '../i18n';
+import LocaleSwitcher from '../components/LocaleSwitcher';
 import {
   useMyProgress,
   useMyStudyHeatmap,
@@ -38,6 +41,7 @@ import ProfileCompleteness, {
 export default function Profile() {
   const { user, patchUser } = useAuth();
   const toast = useToast();
+  const t = useT();
   const fileInput = useRef<HTMLInputElement>(null);
   const progressQ = useMyProgress();
   const heatmapQ = useMyStudyHeatmap();
@@ -353,9 +357,20 @@ export default function Profile() {
             disabled={savingProfile || uploading}
           >
             <Save size={14} strokeWidth={2} />
-            {savingProfile ? 'Salvando...' : 'Salvar alterações'}
+            {savingProfile ? `${t('common.save')}...` : t('common.save')}
           </button>
         </form>
+
+        <div className="pco-card p-6 space-y-3">
+          <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">
+            <Globe size={16} className="text-pco-blue" strokeWidth={1.75} />
+            {t('profile.language')}
+          </h3>
+          <p className="text-xs text-ink-muted">
+            {t('profile.languageHint')}
+          </p>
+          <LocaleSwitcher variant="inline" className="pt-1" />
+        </div>
 
         <form onSubmit={onChangePwd} className="pco-card p-6 space-y-4">
           <h3 className="text-base font-semibold text-pco-deep flex items-center gap-2">

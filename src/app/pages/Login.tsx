@@ -5,14 +5,17 @@ import Logo from '../components/Logo';
 import { useAuth } from '../auth/AuthContext';
 import { useLoginConfig } from '../data/hooks';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { useT } from '../i18n';
+import LocaleSwitcher from '../components/LocaleSwitcher';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, completeTotpLogin } = useAuth();
   const { data: cfg } = useLoginConfig();
+  const t = useT();
   useDocumentMeta({
-    title: 'Entrar — AVA PCO',
+    title: `${t('auth.signIn')} — AVA PCO`,
     description: cfg?.subtitle ?? 'Acesse o ambiente virtual de aprendizagem da PCO.',
   });
   const [email, setEmail] = useState('');
@@ -143,13 +146,16 @@ export default function Login() {
           <div className="lg:hidden mb-8">
             <Logo />
           </div>
-          <h2 className="text-2xl font-bold text-pco-deep">
-            {totpTicket ? 'Verificação em duas etapas' : 'Entrar no AVA'}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-pco-deep">
+              {totpTicket ? 'Verificação em duas etapas' : t('auth.signIn')}
+            </h2>
+            <LocaleSwitcher variant="inline" />
+          </div>
           <p className="mt-1 text-sm text-ink-muted">
             {totpTicket
               ? 'Digite o código de 6 dígitos do seu app autenticador (ou um código de backup).'
-              : 'Bem-vindo de volta. Continue de onde parou.'}
+              : `${t('auth.welcomeBack')}.`}
           </p>
 
           {totpTicket ? (
@@ -216,7 +222,7 @@ export default function Login() {
 
             <div>
               <label htmlFor="email" className="block text-xs font-medium text-ink-muted mb-1.5">
-                E-mail
+                {t('auth.email')}
               </label>
               <input
                 id="email"
@@ -239,7 +245,7 @@ export default function Login() {
                 htmlFor="password"
                 className="block text-xs font-medium text-ink-muted mb-1.5"
               >
-                Senha
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <input
@@ -270,15 +276,15 @@ export default function Login() {
                   type="checkbox"
                   className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
                 />
-                Lembrar de mim
+                {t('auth.rememberMe')}
               </label>
               <Link to="/esqueci-senha" className="text-pco-blue hover:underline font-medium">
-                Esqueci minha senha
+                {t('auth.forgotPassword')}
               </Link>
             </div>
 
             <button type="submit" disabled={submitting} className="pco-btn-primary w-full">
-              {submitting ? 'Entrando...' : 'Entrar no AVA PCO'}
+              {submitting ? `${t('auth.signIn')}...` : t('auth.signIn')}
               {!submitting && <ArrowRight size={16} strokeWidth={2} />}
             </button>
           </form>
