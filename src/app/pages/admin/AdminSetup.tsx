@@ -8,9 +8,11 @@ import {
 } from 'lucide-react';
 import { useSetupStatus } from '../../data/hooks';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 
 export default function AdminSetup() {
-  useDocumentMeta({ title: 'Setup do AVA — Admin' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.setup')} — Admin` });
   const { data, isLoading } = useSetupStatus();
 
   return (
@@ -18,7 +20,7 @@ export default function AdminSetup() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
           <ListChecks size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Setup do AVA PCO
+          {t('admin.nav.setup')}
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           Checklist do que precisa estar configurado para a plataforma rodar 100%.

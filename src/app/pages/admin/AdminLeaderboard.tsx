@@ -7,6 +7,7 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { LeaderboardEntryDto } from '../../data/api';
+import { useT } from '../../i18n';
 
 const RANGES = [
   { value: 7, label: '7 dias' },
@@ -15,6 +16,7 @@ const RANGES = [
 ];
 
 export default function AdminLeaderboard() {
+  const t = useT();
   useDocumentMeta({ title: 'Leaderboard — Admin AVA PCO' });
   const [days, setDays] = useState(30);
   const [limit, setLimit] = useState(20);
@@ -36,7 +38,7 @@ export default function AdminLeaderboard() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
             <Trophy size={20} className="text-status-gold" strokeWidth={1.75} />
-            Leaderboard de engajamento
+            {t('admin.nav.leaderboard')}
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Ranking de alunos por aulas concluídas, dias ativos e conquistas no

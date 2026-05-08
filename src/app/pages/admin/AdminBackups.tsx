@@ -22,6 +22,7 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useState } from 'react';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useT } from '../../i18n';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -31,6 +32,7 @@ function formatSize(bytes: number): string {
 }
 
 export default function AdminBackups() {
+  const t = useT();
   const backups = useBackups();
   const delMut = useDeleteBackup();
   const runMut = useRunBackupNow();
@@ -67,7 +69,7 @@ export default function AdminBackups() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-pco-deep">Backups</h1>
+          <h1 className="text-2xl font-bold text-pco-deep">{t('admin.nav.backups')}</h1>
           <p className="text-sm text-ink-muted">
             Backups automáticos diários (cron 03:00 UTC) das tabelas JSON. Retenção de 14 dias.
           </p>

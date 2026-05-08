@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useActivityFeed } from '../../data/hooks';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 import type { ActivityKindDto } from '../../data/api';
 
 const KIND_META: Record<
@@ -69,7 +70,8 @@ const KIND_META: Record<
 const ALL_KINDS = Object.keys(KIND_META) as ActivityKindDto[];
 
 export default function AdminActivity() {
-  useDocumentMeta({ title: 'Atividade — Admin' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.activity')} — Admin` });
   const [selectedKinds, setSelectedKinds] = useState<ActivityKindDto[]>([]);
   const [q, setQ] = useState('');
 
@@ -95,7 +97,7 @@ export default function AdminActivity() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
           <Activity size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Feed de atividade
+          {t('admin.nav.activity')}
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           Timeline cross-entity: audit log, e-mails, webhooks, reengajamento, pedidos.

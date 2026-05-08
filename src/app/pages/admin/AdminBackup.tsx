@@ -15,9 +15,11 @@ import {
 } from '../../data/api';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 
 export default function AdminBackup() {
-  useDocumentMeta({ title: 'Backup de configurações — Admin' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.backups')} — Admin` });
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [restorePayload, setRestorePayload] = useState<SettingsBackupDto | null>(null);
@@ -83,7 +85,7 @@ export default function AdminBackup() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
           <Database size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Backup de configurações
+          {t('admin.nav.backups')}
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           Exporta/importa configurações do AVA (gateways, e-mail, webhooks, produtos,

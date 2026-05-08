@@ -27,6 +27,7 @@ import { useSalesSummary } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 
 const RANGES = [
   { value: 7, label: '7 dias' },
@@ -60,7 +61,8 @@ function formatBRL(cents: number): string {
 }
 
 export default function AdminVendas() {
-  useDocumentMeta({ title: 'Vendas — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.salesAnalytics')} — Admin AVA PCO` });
   const [days, setDays] = useState(30);
   const { data, isLoading, refetch, isFetching } = useSalesSummary(days);
 
@@ -93,7 +95,7 @@ export default function AdminVendas() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
             <TrendingUp size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Vendas e receita
+            {t('admin.nav.salesAnalytics')}
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Análise de pedidos pagos no período. Comparado com período anterior

@@ -26,6 +26,7 @@ import {
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { EmailConfigDto, EmailProviderIdDto } from '../../data/api';
+import { useT } from '../../i18n';
 
 const PROVIDER_DESCRIPTION: Record<EmailProviderIdDto, string> = {
   mock: 'Apenas log (dev/teste)',
@@ -43,7 +44,8 @@ const TEMPLATE_LABELS: Record<string, string> = {
 };
 
 export default function AdminEmail() {
-  useDocumentMeta({ title: 'E-mail transacional — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.email')} — Admin AVA PCO` });
   const providers = useEmailProviders();
   const configs = useEmailConfigs();
   const create = useCreateEmailConfig();
@@ -69,7 +71,7 @@ export default function AdminEmail() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
           <Mail size={20} className="text-pco-blue" strokeWidth={1.75} />
-          E-mail transacional
+          {t('admin.nav.email')}
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           Configure provedor de e-mail. O AVA usa para confirmações de pagamento, reset de

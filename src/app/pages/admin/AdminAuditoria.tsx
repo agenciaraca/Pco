@@ -18,6 +18,7 @@ import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import type { AuditEntryDto, AuditFilter } from '../../data/api';
+import { useT } from '../../i18n';
 
 const roleIcon: Record<string, React.ReactNode> = {
   superadmin: <ShieldCheck size={12} strokeWidth={2} />,
@@ -48,7 +49,8 @@ function actionLabel(a: string): string {
 }
 
 export default function AdminAuditoria() {
-  useDocumentMeta({ title: 'Auditoria — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.audit')} — Admin AVA PCO` });
   const [actionFilter, setActionFilter] = useState('');
   const [targetType, setTargetType] = useState('');
   const [search, setSearch] = useState('');
@@ -96,7 +98,7 @@ export default function AdminAuditoria() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-pco-deep">Auditoria</h1>
+          <h1 className="text-2xl font-bold text-pco-deep">{t('admin.nav.audit')}</h1>
           <p className="text-sm text-ink-muted">
             Registro de ações administrativas (criação, edição, remoção). Mantém os últimos 5.000
             eventos.

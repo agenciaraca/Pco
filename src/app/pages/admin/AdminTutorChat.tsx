@@ -4,9 +4,11 @@ import { useAdminTutorHistory } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 
 export default function AdminTutorChat() {
-  useDocumentMeta({ title: 'Tutor IA — auditoria de conversas' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('tutor.title')} — auditoria` });
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(100);
@@ -17,7 +19,7 @@ export default function AdminTutorChat() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
           <Bot size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Tutor IA — auditoria
+          {t('tutor.title')} — auditoria
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           Veja conversas alunos × tutor virtual para validar respostas e

@@ -14,9 +14,11 @@ import {
 import { useAlertsCenter } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 
 export default function AdminAlertsCenter() {
-  useDocumentMeta({ title: 'Centro de alertas — Admin' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.alerts')} — Admin` });
   const { data, isLoading, refetch, isFetching } = useAlertsCenter();
 
   if (isLoading || !data) return <CardListSkeleton count={5} />;
@@ -105,7 +107,7 @@ export default function AdminAlertsCenter() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
             <Bell size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Centro de alertas
+            {t('admin.nav.alerts')}
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Tudo que precisa atenção em um só lugar — atualizado a cada minuto.

@@ -22,6 +22,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { ProductDto, ProductKind } from '../../data/api';
+import { useT } from '../../i18n';
 
 const kindLabel: Record<ProductKind, string> = {
   course: 'Curso',
@@ -31,7 +32,8 @@ const kindLabel: Record<ProductKind, string> = {
 };
 
 export default function AdminProducts() {
-  useDocumentMeta({ title: 'Produtos — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.products')} — Admin AVA PCO` });
   const productsQ = useAdminProducts();
   const coursesQ = useCourses();
   const createMut = useCreateProduct();
@@ -67,7 +69,7 @@ export default function AdminProducts() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-pco-deep">Produtos</h1>
+          <h1 className="text-2xl font-bold text-pco-deep">{t('admin.nav.products')}</h1>
           <p className="text-sm text-ink-muted">
             Cursos, pacotes de sessões e pacotes Tutor — define o catálogo de venda. Cada
             produto pode estar vinculado a um curso.

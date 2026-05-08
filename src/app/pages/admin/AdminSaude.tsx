@@ -8,6 +8,7 @@ import {
 import { useHealthSnapshot } from '../../data/hooks';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { HealthCheckItemDto, HealthStatusDto } from '../../data/api';
+import { useT } from '../../i18n';
 
 const styles: Record<
   HealthStatusDto,
@@ -40,7 +41,8 @@ const styles: Record<
 };
 
 export default function AdminSaude() {
-  useDocumentMeta({ title: 'Saúde do sistema — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.health')} — Admin AVA PCO` });
   const { data, isLoading, refetch, isFetching } = useHealthSnapshot();
 
   return (
@@ -49,7 +51,7 @@ export default function AdminSaude() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
             <Activity size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Saúde do sistema
+            {t('admin.nav.health')}
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Visão geral em tempo real de todos os módulos críticos do AVA. Atualiza a cada

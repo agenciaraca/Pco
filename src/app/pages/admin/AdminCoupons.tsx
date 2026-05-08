@@ -26,9 +26,11 @@ import EmptyState from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { BulkCouponInputDto, CouponDto, CouponInputDto } from '../../data/api';
+import { useT } from '../../i18n';
 
 export default function AdminCoupons() {
-  useDocumentMeta({ title: 'Cupons — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.coupons')} — Admin AVA PCO` });
   const coupons = useCoupons();
   const products = useAdminProducts();
   const create = useCreateCoupon();
@@ -56,7 +58,7 @@ export default function AdminCoupons() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
             <Tag size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Cupons de desconto
+            {t('admin.nav.coupons')}
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Gere códigos com desconto percentual ou em valor fixo. Pode limitar

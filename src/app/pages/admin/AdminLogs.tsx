@@ -23,7 +23,7 @@ const LEVEL_COLORS: Record<LogLevelDto, string> = {
 };
 
 export default function AdminLogs() {
-  useDocumentMeta({ title: 'Logs do servidor — Admin' });
+  useDocumentMeta({ title: 'Logs — Admin' });
   const [level, setLevel] = useState<LogLevelDto | ''>('');
   const [q, setQ] = useState('');
   const [paused, setPaused] = useState(false);
@@ -79,7 +79,7 @@ export default function AdminLogs() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
             <ScrollText size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Logs do servidor
+            Logs
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Últimas 5000 linhas de console capturadas em memória. Auto-refresh 5s.

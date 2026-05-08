@@ -9,6 +9,7 @@ import {
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { BroadcastAudienceDto } from '../../data/api';
+import { useT } from '../../i18n';
 
 const AUDIENCE_LABELS: Record<BroadcastAudienceDto, string> = {
   all: 'Todos os usuários ativos',
@@ -20,7 +21,8 @@ const AUDIENCE_LABELS: Record<BroadcastAudienceDto, string> = {
 };
 
 export default function AdminBroadcasts() {
-  useDocumentMeta({ title: 'Campanhas de e-mail — Admin' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.broadcasts')} — Admin` });
   const broadcasts = useBroadcasts();
   const preview = usePreviewBroadcast();
   const start = useStartBroadcast();
@@ -80,7 +82,7 @@ export default function AdminBroadcasts() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
           <Megaphone size={20} className="text-pco-blue" strokeWidth={1.75} />
-          Campanhas de e-mail
+          {t('admin.nav.broadcasts')}
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           Envia e-mail em massa para audiência segmentada usando o módulo de e-mail

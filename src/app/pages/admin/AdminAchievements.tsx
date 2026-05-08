@@ -3,9 +3,11 @@ import { useAchievementsStats } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 
 export default function AdminAchievements() {
-  useDocumentMeta({ title: 'Conquistas — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.achievements')} — Admin AVA PCO` });
   const { data, isLoading } = useAchievementsStats();
 
   if (isLoading || !data) return <CardListSkeleton count={5} />;
@@ -17,7 +19,7 @@ export default function AdminAchievements() {
       <header>
         <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
           <Award size={20} className="text-status-gold" strokeWidth={1.75} />
-          Conquistas
+          {t('admin.nav.achievements')}
         </h1>
         <p className="text-sm text-ink-muted mt-1">
           Distribuição de badges concedidos. Sistema concede automaticamente
