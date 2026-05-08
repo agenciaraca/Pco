@@ -432,12 +432,32 @@ export default function LMSLesson() {
   );
 }
 
+const TRANSCRIPT_LANG_KEY = 'ava-pco-transcript-lang';
+
+function readPreferredLang(): string | undefined {
+  try {
+    const v = localStorage.getItem(TRANSCRIPT_LANG_KEY);
+    return v ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function TranscriptPanel({ lessonId }: { lessonId: string }) {
   const [open, setOpen] = useState(false);
-  const [lang, setLang] = useState<string | undefined>(undefined);
+  const [lang, setLang] = useState<string | undefined>(() => readPreferredLang());
   const transcriptQ = useLessonTranscript(open ? lessonId : undefined, lang);
   const toast = useToast();
   const t = useT();
+
+  function setLangPersisted(l: string) {
+    setLang(l);
+    try {
+      localStorage.setItem(TRANSCRIPT_LANG_KEY, l);
+    } catch {
+      /* ignora */
+    }
+  }
 
   if (!open) {
     return (
@@ -508,7 +528,7 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
           {available.length > 1 && (
             <select
               value={data?.locale ?? ''}
-              onChange={(e) => setLang(e.target.value)}
+              onChange={(e) => setLangPersisted(e.target.value)}
               className="pco-input text-xs py-1"
               aria-label={t('lesson.transcriptLanguage')}
             >

@@ -7,6 +7,7 @@ import {
   PlayCircle,
   ScrollText,
   StickyNote,
+  Languages,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import { useCourses, useMyNotes, useMyProgress } from '../data/hooks';
@@ -118,6 +119,23 @@ export default function LMSModule() {
                         Obrigatória
                       </span>
                     )}
+                    {(() => {
+                      const locales = lesson.transcripts
+                        ? Object.entries(lesson.transcripts).filter(
+                            ([, v]) => typeof v === 'string' && v.trim().length > 0,
+                          )
+                        : [];
+                      if (locales.length === 0) return null;
+                      return (
+                        <span
+                          className="pco-badge bg-pco-cyan/10 text-pco-blue inline-flex items-center gap-1"
+                          title="Transcrição disponível"
+                        >
+                          <Languages size={9} strokeWidth={2} />
+                          {locales.map(([k]) => k.toUpperCase()).join('/')}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
                 <ArrowRight size={14} className="text-ink-subtle" strokeWidth={2} />
