@@ -196,55 +196,15 @@ export default function AdminTranscripts() {
               </thead>
               <tbody>
                 {courses.map((c) => (
-                  <tr
+                  <CourseRow
                     key={c.courseId}
-                    className="border-t border-surface-gray hover:bg-surface-off"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-pco-deep">
-                        {c.shortTitle}
-                      </div>
-                      <div className="text-[11px] text-ink-subtle truncate max-w-xs">
-                        {c.title}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right text-ink-muted">
-                      {c.totalLessons}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <LangCell n={c.perLang.pt} total={c.totalLessons} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <LangCell n={c.perLang.es} total={c.totalLessons} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <LangCell n={c.perLang.en} total={c.totalLessons} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <CoverageBar pct={c.coveragePct} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex items-center gap-1 flex-wrap justify-end">
-                        <BulkTranslateButton
-                          courseId={c.courseId}
-                          courseTitle={c.shortTitle}
-                          perLang={c.perLang}
-                          onComplete={() => {
-                            qc.invalidateQueries({ queryKey: ['admin-transcript-coverage'] });
-                            qc.invalidateQueries({ queryKey: ['courses'] });
-                          }}
-                        />
-                        <Link
-                          to={`/admin/cursos/${c.courseId}`}
-                          className="pco-btn-ghost text-xs"
-                          title="Editar curso"
-                        >
-                          <BookOpen size={11} strokeWidth={2} />
-                          Editar
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
+                    coverage={c}
+                    coursesData={coursesQ.data ?? []}
+                    onAction={() => {
+                      qc.invalidateQueries({ queryKey: ['admin-transcript-coverage'] });
+                      qc.invalidateQueries({ queryKey: ['courses'] });
+                    }}
+                  />
                 ))}
               </tbody>
             </table>
@@ -263,6 +223,118 @@ export default function AdminTranscripts() {
         </div>
       )}
     </div>
+  );
+}
+
+function CourseRow({
+  coverage: c,
+  coursesData,
+  onAction,
+}: {
+  coverage: api.TranscriptCoverageDto['courses'][number];
+  coursesData: ReturnType<typeof useCourses>['data'] extends infer D
+    ? D extends undefined
+      ? never[]
+      : D
+    : never[];
+  onAction: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const fullCourse = (coursesData ?? []).find((x) => x.id === c.courseId);
+  const lessons = (fullCourse?.modules ?? []).flatMap((m) =>
+    m.lessons.map((l) => ({ ...l, moduleTitle: m.title })),
+  );
+  return (
+    <>
+      <tr className="border-t border-surface-gray hover:bg-surface-off">
+        <td className="px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex items-start gap-2 text-left w-full"
+            aria-expanded={expanded}
+          >
+            <span
+              className={`mt-0.5 text-pco-blue transition-transform ${
+                expanded ? 'rotate-90' : ''
+              }`}
+            >
+              ▸
+            </span>
+            <span>
+              <div className="font-semibold text-pco-deep">{c.shortTitle}</div>
+              <div className="text-[11px] text-ink-subtle truncate max-w-xs">
+                {c.title}
+              </div>
+            </span>
+          </button>
+        </td>
+        <td className="px-4 py-3 text-right text-ink-muted">{c.totalLessons}</td>
+        <td className="px-4 py-3 text-right">
+          <LangCell n={c.perLang.pt} total={c.totalLessons} />
+        </td>
+        <td className="px-4 py-3 text-right">
+          <LangCell n={c.perLang.es} total={c.totalLessons} />
+        </td>
+        <td className="px-4 py-3 text-right">
+          <LangCell n={c.perLang.en} total={c.totalLessons} />
+        </td>
+        <td className="px-4 py-3 text-right">
+          <CoverageBar pct={c.coveragePct} />
+        </td>
+        <td className="px-4 py-3 text-right">
+          <div className="inline-flex items-center gap-1 flex-wrap justify-end">
+            <BulkTranslateButton
+              courseId={c.courseId}
+              courseTitle={c.shortTitle}
+              perLang={c.perLang}
+              onComplete={onAction}
+            />
+            <Link
+              to={`/admin/cursos/${c.courseId}`}
+              className="pco-btn-ghost text-xs"
+              title="Editar curso"
+            >
+              <BookOpen size={11} strokeWidth={2} />
+              Editar
+            </Link>
+          </div>
+        </td>
+      </tr>
+      {expanded && (
+        <tr className="border-t border-surface-gray bg-surface-off/40">
+          <td colSpan={7} className="px-4 py-3">
+            {lessons.length === 0 ? (
+              <div className="text-xs text-ink-subtle">
+                Nenhuma aula encontrada neste curso.
+              </div>
+            ) : (
+              <ul className="text-xs space-y-1 max-h-64 overflow-y-auto">
+                {lessons.map((l) => (
+                  <li
+                    key={l.id}
+                    className="flex items-center gap-2 py-1 border-b border-surface-gray/60 last:border-b-0"
+                  >
+                    <span className="font-mono text-[10px] text-ink-subtle shrink-0">
+                      {l.id}
+                    </span>
+                    <span className="text-ink-muted shrink-0">{l.moduleTitle} ›</span>
+                    <span className="text-pco-deep truncate flex-1">{l.title}</span>
+                    <Link
+                      to={`/admin/cursos/${c.courseId}`}
+                      className="pco-btn-ghost text-[10px] shrink-0"
+                      title="Editar aula no curso"
+                    >
+                      Editar
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
