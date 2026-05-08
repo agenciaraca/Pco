@@ -7815,6 +7815,57 @@ export function buildApp() {
     },
   );
 
+  /**
+   * CSV export do log de entregas (BOM UTF-8 + colunas amigáveis).
+   * Aceita ?endpointId= e ?limit= (default 1000, max 5000).
+   */
+  app.get(
+    '/admin/webhooks/deliveries/export.csv',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const limit = Math.max(
+        1,
+        Math.min(Number(c.req.query('limit') ?? '1000'), 5000),
+      );
+      const endpointId = c.req.query('endpointId');
+      const list = endpointId
+        ? await webhookDeliveries.listByEndpoint(endpointId, limit)
+        : await webhookDeliveries.listAll(limit);
+
+      const csv = buildCsv(list, [
+        { key: 'id', label: 'id' },
+        { key: 'endpointId', label: 'endpoint_id' },
+        { key: 'event', label: 'event' },
+        { key: 'status', label: 'status' },
+        { key: 'attempts', label: 'attempts' },
+        { key: 'createdAt', label: 'created_at' },
+        { key: 'updatedAt', label: 'updated_at' },
+        {
+          key: 'completedAt',
+          label: 'completed_at',
+          map: (d) => d.completedAt ?? '',
+        },
+        {
+          key: 'lastResponseStatus',
+          label: 'last_status',
+          map: (d) => d.lastResponseStatus ?? '',
+        },
+        {
+          key: 'lastError',
+          label: 'last_error',
+          map: (d) => (d.lastError ?? '').slice(0, 500),
+        },
+        {
+          key: 'payload',
+          label: 'payload_keys',
+          map: (d) => Object.keys(d.payload).join('|'),
+        },
+      ]);
+      const date = new Date().toISOString().slice(0, 10);
+      return csvResponse(csv, `webhook-deliveries-${date}.csv`);
+    },
+  );
+
   // ---------- Coupons (admin CRUD + validação pública) ----------
 
   app.get('/admin/coupons', requireAuth('admin', 'superadmin'), async (c) =>

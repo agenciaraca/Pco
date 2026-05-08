@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-548)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-549)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **548+** |
-| Commits no main | **323+** |
-| Arquivos de teste | **125** unit + **1** E2E (5 specs) |
-| Testes passando | **1327** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **549+** |
+| Commits no main | **324+** |
+| Arquivos de teste | **126** unit + **1** E2E (5 specs) |
+| Testes passando | **1331** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-548 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-549 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 549 | CSV export /admin/webhooks/deliveries/export.csv + 4 testes |
 | 548 | WhatsApp Cloud API (Meta) provider — text + template messages + 11 testes |
 | 547 | messaging SMS via Twilio (estrutura nova: types/providers/registry) + 15 testes |
 | 546 | API pública: openapi.yaml + Swagger UI em /v1/docs + 10 testes |
