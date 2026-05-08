@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-559)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-560)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **559+** |
-| Commits no main | **332+** |
-| Arquivos de teste | **144** unit + **1** E2E (5 specs) |
-| Testes passando | **1416** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **560+** |
+| Commits no main | **334+** |
+| Arquivos de teste | **145** unit + **1** E2E (5 specs) |
+| Testes passando | **1419** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-559 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-560 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 560 | endpoints admin /messaging/logs + /messaging/logs/export.csv + 3 testes |
 | 559 | messaging sendSafe + log-store (filters provider/status/to/since) + 9 testes |
 | 558 | OAuth Microsoft Entra ID — botão Login + callback + extractEmail (mail/upn) + 15 testes |
 | 557 | Webhook channel Pushover (push notifications mobile) + preset + 11 testes |

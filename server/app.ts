@@ -7723,6 +7723,79 @@ export function buildApp() {
     return c.json(await emailLogs.listLogs(Number.isFinite(limit) ? limit : 200));
   });
 
+  // ---------- Messaging logs (SMS / WhatsApp) ----------
+  // Reusa o pattern de /admin/email/logs mas com filtros mais ricos.
+  app.get(
+    '/admin/messaging/logs',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const messagingLog = await import('./messaging/log-store');
+      const limit = Number(c.req.query('limit') ?? '200');
+      const provider = c.req.query('provider') as
+        | import('./messaging/types').MessagingProviderId
+        | undefined;
+      const status = c.req.query('status') as
+        | import('./messaging/log-store').MessagingLogStatus
+        | undefined;
+      const to = c.req.query('to');
+      const since = c.req.query('since');
+      return c.json(
+        await messagingLog.listLog({
+          limit: Number.isFinite(limit) ? limit : 200,
+          provider,
+          status,
+          to: to || undefined,
+          since: since || undefined,
+        }),
+      );
+    },
+  );
+
+  // CSV export do messaging log — BOM UTF-8.
+  app.get(
+    '/admin/messaging/logs/export.csv',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const messagingLog = await import('./messaging/log-store');
+      const limit = Math.max(
+        1,
+        Math.min(Number(c.req.query('limit') ?? '1000'), 5000),
+      );
+      const provider = c.req.query('provider') as
+        | import('./messaging/types').MessagingProviderId
+        | undefined;
+      const status = c.req.query('status') as
+        | import('./messaging/log-store').MessagingLogStatus
+        | undefined;
+      const list = await messagingLog.listLog({ limit, provider, status });
+      const csv = buildCsv(list, [
+        { key: 'id', label: 'id' },
+        { key: 'ts', label: 'timestamp' },
+        { key: 'provider', label: 'provider' },
+        { key: 'to', label: 'to' },
+        { key: 'status', label: 'status' },
+        {
+          key: 'externalId',
+          label: 'external_id',
+          map: (e) => e.externalId ?? '',
+        },
+        { key: 'tag', label: 'tag', map: (e) => e.tag ?? '' },
+        {
+          key: 'body',
+          label: 'body_preview',
+          map: (e) => e.body.slice(0, 80),
+        },
+        {
+          key: 'error',
+          label: 'error',
+          map: (e) => (e.error ?? '').slice(0, 200),
+        },
+      ]);
+      const date = new Date().toISOString().slice(0, 10);
+      return csvResponse(csv, `messaging-log-${date}.csv`);
+    },
+  );
+
   app.get('/admin/email/templates', requireAuth('admin', 'superadmin'), (c) =>
     c.json({ names: TEMPLATE_NAMES }),
   );
