@@ -7,6 +7,7 @@ export type EmailProviderId =
   | 'postmark'
   | 'mailgun'
   | 'brevo'
+  | 'ses'
   | 'smtp';
 
 export interface EmailRecipient {
@@ -52,6 +53,10 @@ export interface EmailConfig {
   // Mailgun-specific (domínio dedicado para envio, ex.: mg.example.com)
   mailgunDomain?: string;
   mailgunRegion?: 'us' | 'eu';
+  // AWS SES specific. apiKeyEncrypted = AWS_ACCESS_KEY_ID,
+  // sesSecretAccessKeyEncrypted = AWS_SECRET_ACCESS_KEY.
+  sesRegion?: string;
+  sesSecretAccessKeyEncrypted?: string;
   // Métricas
   lastTestedAt?: string;
   lastTestStatus?: 'ok' | 'error';

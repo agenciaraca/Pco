@@ -17,11 +17,20 @@ describe('email providers registry', () => {
       'postmark',
       'mailgun',
       'brevo',
+      'ses',
       'smtp',
     ]);
   });
 
-  it.each(['mock', 'resend', 'sendgrid', 'postmark', 'mailgun', 'brevo'] as const)(
+  it.each([
+    'mock',
+    'resend',
+    'sendgrid',
+    'postmark',
+    'mailgun',
+    'brevo',
+    'ses',
+  ] as const)(
     '%s tem implementação send + ping',
     (id) => {
       const p = getEmailProvider(id);
