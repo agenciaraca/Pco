@@ -452,6 +452,23 @@ export async function fetchTranscriptCoverage(): Promise<TranscriptCoverageDto> 
   return http.get<TranscriptCoverageDto>('/admin/transcripts/coverage');
 }
 
+export interface TranscriptBulkInput {
+  items: Array<{ lessonId: string; lang: string; text: string }>;
+}
+
+export interface TranscriptBulkResult {
+  total: number;
+  ok: number;
+  failed: number;
+  results: Array<{ lessonId: string; lang: string; ok: boolean; error?: string }>;
+}
+
+export async function bulkUpdateTranscripts(
+  input: TranscriptBulkInput,
+): Promise<TranscriptBulkResult> {
+  return http.post<TranscriptBulkResult>('/admin/transcripts/bulk', input);
+}
+
 // ---------- Tutor usage ----------
 
 export interface TutorUsageDto {

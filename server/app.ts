@@ -3735,6 +3735,98 @@ export function buildApp() {
   });
 
   /**
+   * Bulk update de transcrições. Body: { items: [{lessonId, lang, text}] }.
+   * Cada item atualiza UMA chave de idioma de uma aula. Retorna por item se
+   * sucesso ou erro. Não falha tudo se algum item falhar — admin vê relatório.
+   */
+  app.post(
+    '/admin/transcripts/bulk',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        items?: Array<{ lessonId?: string; lang?: string; text?: string }>;
+      };
+      if (!Array.isArray(body.items) || body.items.length === 0) {
+        return jsonError(c, 400, 'BAD_REQUEST', 'items[] obrigatório.');
+      }
+      if (body.items.length > 500) {
+        return jsonError(c, 400, 'TOO_LARGE', 'Máximo 500 items por request.');
+      }
+      const validLangs = ['pt', 'es', 'en'] as const;
+      const allCourses = await coursesRepo.listCourses();
+      const lessonIndex = new Map<
+        string,
+        { lesson: (typeof allCourses)[number]['modules'][number]['lessons'][number] }
+      >();
+      for (const co of allCourses) {
+        for (const m of co.modules ?? []) {
+          for (const l of m.lessons) {
+            lessonIndex.set(l.id, { lesson: l });
+          }
+        }
+      }
+      const results: Array<{
+        lessonId: string;
+        lang: string;
+        ok: boolean;
+        error?: string;
+      }> = [];
+      for (const item of body.items) {
+        const lessonId = String(item.lessonId ?? '').trim();
+        const lang = String(item.lang ?? '').trim().toLowerCase();
+        const text = String(item.text ?? '');
+        if (!lessonId) {
+          results.push({ lessonId, lang, ok: false, error: 'lessonId vazio' });
+          continue;
+        }
+        if (!validLangs.includes(lang as (typeof validLangs)[number])) {
+          results.push({
+            lessonId,
+            lang,
+            ok: false,
+            error: `lang inválido (use: ${validLangs.join('|')})`,
+          });
+          continue;
+        }
+        if (text.length > 100_000) {
+          results.push({ lessonId, lang, ok: false, error: 'text > 100k chars' });
+          continue;
+        }
+        const found = lessonIndex.get(lessonId);
+        if (!found) {
+          results.push({ lessonId, lang, ok: false, error: 'aula não encontrada' });
+          continue;
+        }
+        const existing =
+          (found.lesson as { transcripts?: Record<string, string | undefined> })
+            .transcripts ?? {};
+        const newTranscripts = { ...existing, [lang]: text };
+        try {
+          await coursesRepo.updateLesson(lessonId, {
+            transcripts: newTranscripts,
+          } as Parameters<typeof coursesRepo.updateLesson>[1]);
+          results.push({ lessonId, lang, ok: true });
+        } catch (err) {
+          results.push({
+            lessonId,
+            lang,
+            ok: false,
+            error: err instanceof Error ? err.message : 'erro',
+          });
+        }
+      }
+      const okCount = results.filter((r) => r.ok).length;
+      return c.json({
+        total: results.length,
+        ok: okCount,
+        failed: results.length - okCount,
+        results,
+      });
+    },
+  );
+
+  /**
    * Coverage stats de transcrições por curso. Útil pro admin saber
    * quantas aulas tem transcrição em cada idioma, % cobertura, etc.
    */
