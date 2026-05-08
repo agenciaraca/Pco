@@ -268,6 +268,8 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
 
         <div className="flex-1 md:hidden" />
 
+        <LocaleSwitcher variant="inline" className="hidden md:flex" />
+
         <Link
           to="/notificacoes"
           className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-gray transition-colors"
@@ -337,7 +339,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
                 <SettingsIcon size={14} strokeWidth={1.75} />
                 {t('nav.settings')}
               </Link>
-              <div className="px-3 py-2 border-t border-pco-border mt-1 pt-2">
+              <div className="md:hidden px-3 py-2 border-t border-pco-border mt-1 pt-2">
                 <div className="text-[10px] uppercase tracking-wider text-ink-subtle mb-1">
                   {t('profile.language')}
                 </div>

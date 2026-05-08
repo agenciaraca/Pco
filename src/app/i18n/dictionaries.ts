@@ -71,6 +71,19 @@ const pt: Dict = {
   'auth.invalidCredentials': 'E-mail ou senha incorretos.',
   'auth.welcomeBack': 'Bem-vindo de volta',
 
+  // dashboard
+  'dashboard.welcome': 'Bem-vindo de volta,',
+  'dashboard.subtitle': 'Você está construindo uma rotina sólida. Continue no seu ritmo.',
+  'dashboard.viewJourney': 'Ver Minha Jornada',
+  'dashboard.continueFromHere': 'Continuar de onde parou',
+  'dashboard.continueStudying': 'Continuar estudando',
+  'dashboard.continueLesson': 'Continuar aula',
+  'dashboard.weekStudy': 'Estudo da semana',
+  'dashboard.streak': 'Sequência',
+  'dashboard.recentNews': 'Notícias recentes',
+  'dashboard.recentPodcasts': 'Podcasts em destaque',
+  'dashboard.lastCertificate': 'Último certificado',
+
   // lesson / player
   'lesson.markComplete': 'Marcar como concluída',
   'lesson.markIncomplete': 'Desmarcar conclusão',
@@ -177,6 +190,19 @@ const es: Dict = {
   'auth.invalidCredentials': 'Correo o contraseña incorrectos.',
   'auth.welcomeBack': 'Bienvenido de vuelta',
 
+  // dashboard
+  'dashboard.welcome': 'Bienvenido de vuelta,',
+  'dashboard.subtitle': 'Estás construyendo una rutina sólida. Continúa a tu ritmo.',
+  'dashboard.viewJourney': 'Ver Mi Recorrido',
+  'dashboard.continueFromHere': 'Continuar desde donde lo dejaste',
+  'dashboard.continueStudying': 'Continuar estudiando',
+  'dashboard.continueLesson': 'Continuar clase',
+  'dashboard.weekStudy': 'Estudio de la semana',
+  'dashboard.streak': 'Racha',
+  'dashboard.recentNews': 'Noticias recientes',
+  'dashboard.recentPodcasts': 'Podcasts destacados',
+  'dashboard.lastCertificate': 'Último certificado',
+
   // lesson
   'lesson.markComplete': 'Marcar como completada',
   'lesson.markIncomplete': 'Desmarcar finalización',
@@ -282,6 +308,19 @@ const en: Dict = {
   'auth.signOut': 'Sign out',
   'auth.invalidCredentials': 'Incorrect email or password.',
   'auth.welcomeBack': 'Welcome back',
+
+  // dashboard
+  'dashboard.welcome': 'Welcome back,',
+  'dashboard.subtitle': "You're building a solid routine. Keep at your own pace.",
+  'dashboard.viewJourney': 'View My Journey',
+  'dashboard.continueFromHere': 'Continue where you left off',
+  'dashboard.continueStudying': 'Continue studying',
+  'dashboard.continueLesson': 'Continue lesson',
+  'dashboard.weekStudy': 'This week study',
+  'dashboard.streak': 'Streak',
+  'dashboard.recentNews': 'Recent news',
+  'dashboard.recentPodcasts': 'Featured podcasts',
+  'dashboard.lastCertificate': 'Latest certificate',
 
   // lesson
   'lesson.markComplete': 'Mark complete',

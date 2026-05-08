@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { useT } from '../i18n';
 import {
   ArrowRight,
   Flame,
@@ -33,6 +34,7 @@ import StudyHeatmap from '../components/StudyHeatmap';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const t = useT();
   const studentQ = useCurrentStudent();
   const coursesQ = useCourses();
   const newsQ = useNews();
@@ -42,7 +44,7 @@ export default function Dashboard() {
   const heatmapQ = useMyStudyHeatmap();
   const certsQ = useCertificates();
   const lastLessonQ = useLastLesson();
-  useDocumentMeta({ title: 'Início — AVA PCO' });
+  useDocumentMeta({ title: `${t('nav.dashboard')} — AVA PCO` });
 
   // Admin/superadmin não tem dashboard de aluno — redireciona pro admin.
   // Após todos os hooks pra não violar rules-of-hooks.
@@ -131,16 +133,16 @@ export default function Dashboard() {
     <div className="space-y-8">
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-sm text-ink-muted">Bem-vindo de volta,</p>
+          <p className="text-sm text-ink-muted">{t('dashboard.welcome')}</p>
           <h1 className="text-3xl font-bold tracking-tight text-pco-deep">
             {student.name.split(' ')[0]}
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
-            Você está construindo uma rotina sólida. Continue no seu ritmo.
+            {t('dashboard.subtitle')}
           </p>
         </div>
         <Link to="/jornada" className="pco-btn-primary">
-          Ver Minha Jornada
+          {t('dashboard.viewJourney')}
           <ArrowRight size={16} strokeWidth={2} />
         </Link>
       </header>
@@ -155,7 +157,7 @@ export default function Dashboard() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
-              Continuar de onde parou
+              {t('dashboard.continueFromHere')}
             </div>
             <div className="text-base font-bold text-pco-deep truncate">
               {lastLessonQ.data.lessonTitle}
@@ -281,7 +283,7 @@ export default function Dashboard() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="pco-section-title">Continuar estudando</h2>
+            <h2 className="pco-section-title">{t('dashboard.continueStudying')}</h2>
             <p className="pco-section-subtitle">Retome de onde parou em cada curso.</p>
           </div>
           <Link
@@ -356,7 +358,7 @@ export default function Dashboard() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to="/curso/c-psi" className="pco-btn-primary">
-              Continuar aula
+              {t('dashboard.continueLesson')}
               <ArrowRight size={14} strokeWidth={2} />
             </Link>
             <Link to="/jornada" className="pco-btn-secondary">
