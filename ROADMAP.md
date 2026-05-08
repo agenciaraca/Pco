@@ -6,20 +6,20 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-539)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-541)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **539+** |
-| Commits no main | **314+** |
-| Arquivos de teste | **111** unit + **1** E2E (5 specs) |
-| Testes passando | **1203** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **541+** |
+| Commits no main | **316+** |
+| Arquivos de teste | **114** unit + **1** E2E (5 specs) |
+| Testes passando | **1229** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
 | Páginas aluno | 15+ |
 | Providers de pagamento | 6 (Mock, Stripe, Asaas, Pagar.me, MercadoPago, PayPal) |
-| Providers de e-mail | 5 (Mock, Resend, SendGrid, Postmark, SMTP) |
+| Providers de e-mail | 7 (Mock, Resend, SendGrid, Postmark, Mailgun, Brevo, SMTP-stub) |
 | Connectors de import | 3 (WP, LD, WC) + CSV |
 | Tipos de webhook outbound | Generic + Slack + Discord |
 | Achievements automáticos | 6 |
@@ -143,9 +143,11 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-539 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-541 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 541 | provider Brevo (SendinBlue) + 13 testes + registry test (5 testes) |
+| 540 | provider Mailgun (US/EU regions) + 12 testes |
 | 539 | E2E Playwright smoke (5 specs: health, home, login form, SPA fallback, 401) + CI job |
 | 538 | coverage badge dinâmico no README (18 testes) + fix typecheck AdminTranscripts |
 | 537 | filtros adicionais em /admin/cursos/:id/questoes |
@@ -354,7 +356,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ### Integrações (não-iniciadas)
 - **Webhook templates** (presets prontos para Zapier/n8n/Make)
-- **Mais providers de e-mail** (Mailgun, Brevo, SES)
+- ✅ **Mais providers de e-mail** (Mailgun + Brevo entregues sprints 540-541; falta SES e SMTP real)
 - **OAuth login social** (Google/Microsoft) — só email/senha hoje
 - **SSO SAML** para escolas grandes
 - **WhatsApp via Twilio** para notificações (já tem mock no Reengagement)

@@ -1,6 +1,13 @@
 // Tipos do módulo de e-mail transacional.
 
-export type EmailProviderId = 'mock' | 'resend' | 'sendgrid' | 'postmark' | 'smtp';
+export type EmailProviderId =
+  | 'mock'
+  | 'resend'
+  | 'sendgrid'
+  | 'postmark'
+  | 'mailgun'
+  | 'brevo'
+  | 'smtp';
 
 export interface EmailRecipient {
   email: string;
@@ -36,12 +43,15 @@ export interface EmailConfig {
   fromName?: string;
   replyToEmail?: string;
   // Credenciais — sempre criptografadas
-  apiKeyEncrypted?: string; // Resend, SendGrid, Postmark
+  apiKeyEncrypted?: string; // Resend, SendGrid, Postmark, Brevo
   smtpHost?: string;
   smtpPort?: number;
   smtpUser?: string;
   smtpPasswordEncrypted?: string;
   smtpSecure?: boolean;
+  // Mailgun-specific (domínio dedicado para envio, ex.: mg.example.com)
+  mailgunDomain?: string;
+  mailgunRegion?: 'us' | 'eu';
   // Métricas
   lastTestedAt?: string;
   lastTestStatus?: 'ok' | 'error';
