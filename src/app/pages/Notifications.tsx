@@ -9,6 +9,7 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
 import { useToast } from '../components/Toast';
 import type { NotificationDto } from '../data/api';
+import { useT } from '../i18n';
 
 const categoryStyle: Record<NotificationDto['category'], { color: string; Icon: typeof Bell }> = {
   info: { color: 'text-pco-blue bg-pco-blue/10', Icon: Info },
@@ -32,6 +33,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function Notifications() {
+  const t = useT();
   const { data, isLoading, isError, refetch } = useNotifications();
   const markAll = useMarkAllNotificationsRead();
   const markOne = useMarkNotificationRead();
@@ -54,7 +56,7 @@ export default function Notifications() {
     <div className="space-y-6">
       <header className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Notificações</h1>
+          <h1 className="pco-section-title">{t('notifications.title')}</h1>
           <p className="pco-section-subtitle mt-1">
             Avisos importantes do seu progresso e do AVA.
           </p>

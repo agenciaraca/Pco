@@ -7,9 +7,11 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import MarkdownLite from '../components/MarkdownLite';
+import { useT } from '../i18n';
 
 export default function MyNotes() {
-  useDocumentMeta({ title: 'Minhas anotações — AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('notes.title')} — AVA PCO` });
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'course' | 'oldest'>('recent');
@@ -78,7 +80,7 @@ export default function MyNotes() {
         <div>
           <h1 className="pco-section-title flex items-center gap-2">
             <StickyNote size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Minhas anotações
+            {t('notes.title')}
           </h1>
           <p className="pco-section-subtitle mt-1">
             Tudo que você anotou nas aulas em um só lugar. Use a busca para

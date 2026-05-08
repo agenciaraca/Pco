@@ -15,11 +15,13 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { useToast } from '../components/Toast';
+import { useT } from '../i18n';
 import CheckoutDialog from '../components/CheckoutDialog';
 import type { ProductDto } from '../data/api';
 
 export default function Courses() {
-  useDocumentMeta({ title: 'Meus Cursos — AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('courses.title')} — AVA PCO` });
   const { data: courses, isLoading, isError } = useCourses();
   const { data: progress } = useMyProgress();
   const { data: products = [] } = useProducts();
@@ -84,7 +86,7 @@ export default function Courses() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Meus Cursos</h1>
+        <h1 className="pco-section-title">{t('courses.title')}</h1>
         <p className="pco-section-subtitle mt-1">
           Continue estudando ou explore outros cursos da PCO.
         </p>

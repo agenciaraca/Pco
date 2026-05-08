@@ -8,8 +8,10 @@ import {
 } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import { useToast } from '../components/Toast';
+import { useT } from '../i18n';
 
 export default function Podcasts() {
+  const t = useT();
   const { data: podcasts = [], isLoading } = usePodcasts();
   const engagementQ = useMyPodcastEngagement();
   const setEng = useSetPodcastEngagement();
@@ -53,7 +55,7 @@ export default function Podcasts() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">PCO POD</h1>
+        <h1 className="pco-section-title">{t('podcasts.title')}</h1>
         <p className="pco-section-subtitle mt-1">
           Conteúdo em áudio para sua jornada — episódios por curso, módulo e tema.
         </p>

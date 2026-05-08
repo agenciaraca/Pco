@@ -3,8 +3,10 @@ import { useMemo, useState } from 'react';
 import { useNews } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
+import { useT } from '../i18n';
 
 export default function News() {
+  const t = useT();
   const { data: newsArticles = [], isLoading } = useNews();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>('all');
@@ -37,7 +39,7 @@ export default function News() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">PCO News</h1>
+        <h1 className="pco-section-title">{t('news.title')}</h1>
         <p className="pco-section-subtitle mt-1">
           Estudos comentados, notícias da escola e curadoria de leituras.
         </p>

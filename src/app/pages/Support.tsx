@@ -9,6 +9,7 @@ import {
   createSupportTicketSchema,
   type CreateSupportTicketInput,
 } from '../../../shared/schemas';
+import { useT } from '../i18n';
 
 const categories: { id: CreateSupportTicketInput['category']; label: string }[] = [
   { id: 'duvida_aula', label: 'Dúvida sobre aula' },
@@ -20,6 +21,7 @@ const categories: { id: CreateSupportTicketInput['category']; label: string }[] 
 ];
 
 export default function Support() {
+  const t = useT();
   const ticketsQ = useSupportTickets();
   const createTicket = useCreateSupportTicket();
   const toast = useToast();
@@ -50,7 +52,7 @@ export default function Support() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Suporte</h1>
+        <h1 className="pco-section-title">{t('support.title')}</h1>
         <p className="pco-section-subtitle mt-1">
           Estamos aqui para ajudar. Veja a FAQ, abra um chamado ou retome um existente.
         </p>

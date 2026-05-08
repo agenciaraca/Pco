@@ -3,12 +3,14 @@ import { useMemo, useState } from 'react';
 import { useLibrary, useCourses } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
+import { useT } from '../i18n';
 
 type CourseFilter = 'all' | string;
 type MandatoryFilter = 'all' | 'mandatory' | 'optional';
 type TypeFilter = 'all' | 'pdf' | 'apostila' | 'leitura' | 'artigo';
 
 export default function Library() {
+  const t = useT();
   const { data: libraryItems = [], isLoading } = useLibrary();
   const { data: courses = [] } = useCourses();
   const [courseFilter, setCourseFilter] = useState<CourseFilter>('all');
@@ -42,7 +44,7 @@ export default function Library() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Biblioteca PCO</h1>
+        <h1 className="pco-section-title">{t('library.title')}</h1>
         <p className="pco-section-subtitle mt-1">
           Materiais, apostilas e leituras curadas pelos seus cursos.
         </p>

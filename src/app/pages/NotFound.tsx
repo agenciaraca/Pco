@@ -2,9 +2,11 @@ import { Link } from 'react-router-dom';
 import { Home, Compass, LogIn, ShieldCheck } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../auth/AuthContext';
+import { useT } from '../i18n';
 
 export default function NotFound() {
   const { user } = useAuth();
+  const t = useT();
   const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
   return (
     <div className="min-h-screen grid place-items-center bg-surface-off px-6">
@@ -19,15 +21,15 @@ export default function NotFound() {
             </span>
           </div>
         </div>
-        <h1 className="text-2xl font-bold text-pco-deep">Página não encontrada</h1>
+        <h1 className="text-2xl font-bold text-pco-deep">{t('notfound.title')}</h1>
         <p className="mt-2 text-sm text-ink-muted">
-          A rota que você acessou não existe no AVA PCO. Talvez ela tenha sido movida ou renomeada.
+          {t('notfound.subtitle')}
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           {!user && (
             <Link to="/login" className="pco-btn-primary">
               <LogIn size={16} strokeWidth={2} />
-              Entrar
+              {t('auth.signIn')}
             </Link>
           )}
           {user && isAdmin && (
@@ -40,11 +42,11 @@ export default function NotFound() {
             <>
               <Link to="/dashboard" className="pco-btn-primary">
                 <Home size={16} strokeWidth={2} />
-                Ir ao início
+                {t('notfound.home')}
               </Link>
               <Link to="/jornada" className="pco-btn-secondary">
                 <Compass size={16} strokeWidth={2} />
-                Minha Jornada
+                {t('journey.title')}
               </Link>
             </>
           )}

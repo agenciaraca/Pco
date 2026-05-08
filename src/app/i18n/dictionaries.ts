@@ -138,6 +138,89 @@ const pt: Dict = {
   'error.unauthorized': 'Sessão expirada',
   'error.network': 'Falha de conexão. Tente novamente.',
   'error.unknown': 'Ocorreu um erro inesperado.',
+
+  // courses page
+  'courses.title': 'Meus Cursos',
+  'courses.subtitle': 'Cursos em que você está matriculado',
+  'courses.empty': 'Você ainda não está matriculado em nenhum curso.',
+  'courses.viewAll': 'Ver todos os cursos',
+  'courses.continue': 'Continuar curso',
+  'courses.start': 'Iniciar',
+  'courses.completed': 'Concluído',
+  'courses.inProgress': 'Em andamento',
+
+  // library
+  'library.title': 'Biblioteca PCO',
+  'library.subtitle': 'Livros, artigos, vídeos e outros materiais.',
+  'library.empty': 'Nenhum material disponível ainda.',
+  'library.filter': 'Filtrar',
+  'library.allTypes': 'Todos os tipos',
+
+  // certificates
+  'certificates.title': 'Meus Certificados',
+  'certificates.subtitle': 'Certificados emitidos pela conclusão dos cursos.',
+  'certificates.empty': 'Você ainda não tem certificados emitidos.',
+  'certificates.view': 'Ver certificado',
+  'certificates.download': 'Baixar PDF',
+  'certificates.verify': 'Verificar autenticidade',
+
+  // news
+  'news.title': 'PCO News',
+  'news.subtitle': 'Notícias e atualizações da Psicanálise Clínica Online.',
+  'news.empty': 'Nenhuma notícia publicada ainda.',
+  'news.readMore': 'Ler mais',
+
+  // podcasts
+  'podcasts.title': 'PCO POD',
+  'podcasts.subtitle': 'Episódios em áudio sobre psicanálise.',
+  'podcasts.empty': 'Nenhum episódio disponível ainda.',
+  'podcasts.play': 'Reproduzir',
+  'podcasts.episode': 'Episódio',
+
+  // support
+  'support.title': 'Suporte',
+  'support.subtitle': 'Tire dúvidas, peça ajuda ou abra um chamado.',
+  'support.newTicket': 'Abrir chamado',
+  'support.subject': 'Assunto',
+  'support.message': 'Mensagem',
+  'support.send': 'Enviar',
+  'support.empty': 'Nenhum chamado aberto.',
+
+  // tutor
+  'tutor.title': 'Tutor Virtual',
+  'tutor.subtitle': 'Tire dúvidas com o tutor de IA da PCO.',
+  'tutor.placeholder': 'Digite sua pergunta...',
+
+  // notifications
+  'notifications.title': 'Notificações',
+  'notifications.empty': 'Nenhuma notificação no momento.',
+  'notifications.markAllRead': 'Marcar todas como lidas',
+
+  // notes
+  'notes.title': 'Minhas Anotações',
+  'notes.empty': 'Você ainda não tem anotações em aulas.',
+
+  // forgot/reset password
+  'forgot.title': 'Recuperar senha',
+  'forgot.subtitle': 'Informe seu e-mail para receber instruções.',
+  'forgot.send': 'Enviar instruções',
+  'forgot.backToLogin': 'Voltar ao login',
+  'forgot.sent': 'Se este e-mail estiver cadastrado, você receberá as instruções em alguns minutos.',
+  'reset.title': 'Definir nova senha',
+  'reset.newPassword': 'Nova senha',
+  'reset.confirmPassword': 'Confirmar senha',
+  'reset.submit': 'Salvar nova senha',
+  'reset.success': 'Senha alterada com sucesso. Faça login.',
+
+  // onboarding / 404
+  'onboarding.welcome': 'Bem-vindo ao AVA PCO',
+  'notfound.title': 'Página não encontrada',
+  'notfound.subtitle': 'A página que você procura não existe ou foi movida.',
+  'notfound.home': 'Voltar ao início',
+
+  // jornada
+  'journey.title': 'Minha Jornada',
+  'journey.subtitle': 'Sua trilha de aprendizado pela formação da PCO.',
 };
 
 const es: Dict = {
@@ -257,6 +340,89 @@ const es: Dict = {
   'error.unauthorized': 'Sesión expirada',
   'error.network': 'Falla de conexión. Inténtalo de nuevo.',
   'error.unknown': 'Ha ocurrido un error inesperado.',
+
+  // courses
+  'courses.title': 'Mis Cursos',
+  'courses.subtitle': 'Cursos en los que estás inscrito',
+  'courses.empty': 'Aún no estás inscrito en ningún curso.',
+  'courses.viewAll': 'Ver todos los cursos',
+  'courses.continue': 'Continuar curso',
+  'courses.start': 'Iniciar',
+  'courses.completed': 'Completado',
+  'courses.inProgress': 'En progreso',
+
+  // library
+  'library.title': 'Biblioteca PCO',
+  'library.subtitle': 'Libros, artículos, videos y otros materiales.',
+  'library.empty': 'Aún no hay materiales disponibles.',
+  'library.filter': 'Filtrar',
+  'library.allTypes': 'Todos los tipos',
+
+  // certificates
+  'certificates.title': 'Mis Certificados',
+  'certificates.subtitle': 'Certificados emitidos al completar los cursos.',
+  'certificates.empty': 'Aún no tienes certificados emitidos.',
+  'certificates.view': 'Ver certificado',
+  'certificates.download': 'Descargar PDF',
+  'certificates.verify': 'Verificar autenticidad',
+
+  // news
+  'news.title': 'PCO News',
+  'news.subtitle': 'Noticias y actualizaciones del Psicoanálisis Clínico Online.',
+  'news.empty': 'Aún no se han publicado noticias.',
+  'news.readMore': 'Leer más',
+
+  // podcasts
+  'podcasts.title': 'PCO POD',
+  'podcasts.subtitle': 'Episodios de audio sobre psicoanálisis.',
+  'podcasts.empty': 'Aún no hay episodios disponibles.',
+  'podcasts.play': 'Reproducir',
+  'podcasts.episode': 'Episodio',
+
+  // support
+  'support.title': 'Soporte',
+  'support.subtitle': 'Resuelve dudas, pide ayuda o abre un ticket.',
+  'support.newTicket': 'Abrir ticket',
+  'support.subject': 'Asunto',
+  'support.message': 'Mensaje',
+  'support.send': 'Enviar',
+  'support.empty': 'Sin tickets abiertos.',
+
+  // tutor
+  'tutor.title': 'Tutor Virtual',
+  'tutor.subtitle': 'Resuelve dudas con el tutor de IA de PCO.',
+  'tutor.placeholder': 'Escribe tu pregunta...',
+
+  // notifications
+  'notifications.title': 'Notificaciones',
+  'notifications.empty': 'Sin notificaciones por ahora.',
+  'notifications.markAllRead': 'Marcar todas como leídas',
+
+  // notes
+  'notes.title': 'Mis Notas',
+  'notes.empty': 'Aún no tienes notas en clases.',
+
+  // forgot/reset password
+  'forgot.title': 'Recuperar contraseña',
+  'forgot.subtitle': 'Ingresa tu correo para recibir instrucciones.',
+  'forgot.send': 'Enviar instrucciones',
+  'forgot.backToLogin': 'Volver al inicio de sesión',
+  'forgot.sent': 'Si este correo está registrado, recibirás las instrucciones en pocos minutos.',
+  'reset.title': 'Establecer nueva contraseña',
+  'reset.newPassword': 'Nueva contraseña',
+  'reset.confirmPassword': 'Confirmar contraseña',
+  'reset.submit': 'Guardar nueva contraseña',
+  'reset.success': 'Contraseña actualizada. Inicia sesión.',
+
+  // onboarding / 404
+  'onboarding.welcome': 'Bienvenido a AVA PCO',
+  'notfound.title': 'Página no encontrada',
+  'notfound.subtitle': 'La página que buscas no existe o fue movida.',
+  'notfound.home': 'Volver al inicio',
+
+  // jornada
+  'journey.title': 'Mi Recorrido',
+  'journey.subtitle': 'Tu trayecto de aprendizaje en la formación PCO.',
 };
 
 const en: Dict = {
@@ -376,6 +542,89 @@ const en: Dict = {
   'error.unauthorized': 'Session expired',
   'error.network': 'Connection failed. Please retry.',
   'error.unknown': 'An unexpected error occurred.',
+
+  // courses
+  'courses.title': 'My Courses',
+  'courses.subtitle': 'Courses you are enrolled in',
+  'courses.empty': "You aren't enrolled in any course yet.",
+  'courses.viewAll': 'View all courses',
+  'courses.continue': 'Continue course',
+  'courses.start': 'Start',
+  'courses.completed': 'Completed',
+  'courses.inProgress': 'In progress',
+
+  // library
+  'library.title': 'PCO Library',
+  'library.subtitle': 'Books, articles, videos and other materials.',
+  'library.empty': 'No materials available yet.',
+  'library.filter': 'Filter',
+  'library.allTypes': 'All types',
+
+  // certificates
+  'certificates.title': 'My Certificates',
+  'certificates.subtitle': 'Certificates issued upon course completion.',
+  'certificates.empty': 'You have no certificates yet.',
+  'certificates.view': 'View certificate',
+  'certificates.download': 'Download PDF',
+  'certificates.verify': 'Verify authenticity',
+
+  // news
+  'news.title': 'PCO News',
+  'news.subtitle': 'News and updates from Psicanálise Clínica Online.',
+  'news.empty': 'No news posted yet.',
+  'news.readMore': 'Read more',
+
+  // podcasts
+  'podcasts.title': 'PCO POD',
+  'podcasts.subtitle': 'Audio episodes about psychoanalysis.',
+  'podcasts.empty': 'No episodes available yet.',
+  'podcasts.play': 'Play',
+  'podcasts.episode': 'Episode',
+
+  // support
+  'support.title': 'Support',
+  'support.subtitle': 'Get answers, ask for help or open a ticket.',
+  'support.newTicket': 'Open ticket',
+  'support.subject': 'Subject',
+  'support.message': 'Message',
+  'support.send': 'Send',
+  'support.empty': 'No open tickets.',
+
+  // tutor
+  'tutor.title': 'Virtual Tutor',
+  'tutor.subtitle': 'Ask questions to the PCO AI tutor.',
+  'tutor.placeholder': 'Type your question...',
+
+  // notifications
+  'notifications.title': 'Notifications',
+  'notifications.empty': 'No notifications right now.',
+  'notifications.markAllRead': 'Mark all as read',
+
+  // notes
+  'notes.title': 'My Notes',
+  'notes.empty': 'No lesson notes yet.',
+
+  // forgot/reset password
+  'forgot.title': 'Recover password',
+  'forgot.subtitle': 'Enter your email to receive instructions.',
+  'forgot.send': 'Send instructions',
+  'forgot.backToLogin': 'Back to sign in',
+  'forgot.sent': 'If this email is registered, you will receive instructions in a few minutes.',
+  'reset.title': 'Set new password',
+  'reset.newPassword': 'New password',
+  'reset.confirmPassword': 'Confirm password',
+  'reset.submit': 'Save new password',
+  'reset.success': 'Password updated. Please sign in.',
+
+  // onboarding / 404
+  'onboarding.welcome': 'Welcome to AVA PCO',
+  'notfound.title': 'Page not found',
+  'notfound.subtitle': 'The page you are looking for does not exist or has moved.',
+  'notfound.home': 'Back to home',
+
+  // jornada
+  'journey.title': 'My Journey',
+  'journey.subtitle': 'Your learning path through the PCO program.',
 };
 
 export const DICTIONARIES: Record<SupportedLocale, Dict> = { pt, es, en };

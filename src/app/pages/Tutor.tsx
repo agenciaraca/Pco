@@ -9,6 +9,7 @@ import {
 import { useToast } from '../components/Toast';
 import { ApiError } from '../data/client';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { useT } from '../i18n';
 
 const ATTRIB_NOTICE =
   'O Tutor Virtual responde apenas dúvidas pedagógicas relacionadas aos cursos da PCO. Ele não substitui professores, supervisão clínica, atendimento psicológico, médico ou jurídico.';
@@ -19,6 +20,7 @@ interface Msg {
 }
 
 export default function Tutor() {
+  const t = useT();
   const ask = useAskTutor();
   const history = useTutorHistory();
   const clearHistory = useClearTutorHistory();
@@ -123,7 +125,7 @@ export default function Tutor() {
     <div className="space-y-6">
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="pco-section-title">Tutor Virtual</h1>
+          <h1 className="pco-section-title">{t('tutor.title')}</h1>
           <p className="pco-section-subtitle mt-1">Apoio pedagógico baseado em IA.</p>
         </div>
         <div className="pco-card p-3 px-4 flex items-center gap-3">

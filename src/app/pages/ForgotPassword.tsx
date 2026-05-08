@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { ArrowLeft, Send, Check } from 'lucide-react';
 import Logo from '../components/Logo';
 import { requestPasswordReset } from '../data/api';
+import { useT } from '../i18n';
 
 export default function ForgotPassword() {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -41,7 +43,7 @@ export default function ForgotPassword() {
               <div className="mx-auto h-12 w-12 rounded-2xl bg-status-success/15 grid place-items-center mb-3">
                 <Check className="text-status-success" size={22} strokeWidth={2} />
               </div>
-              <h1 className="text-xl font-bold text-pco-deep">Solicitação registrada</h1>
+              <h1 className="text-xl font-bold text-pco-deep">{t('forgot.sent').split('.')[0]}</h1>
               <p className="mt-2 text-sm text-ink-muted">
                 Se <strong className="text-pco-deep">{email}</strong> existir em nossa base, um link
                 de redefinição foi gerado e expira em 30 minutos.
@@ -62,14 +64,14 @@ export default function ForgotPassword() {
               )}
               <Link to="/login" className="mt-6 inline-flex pco-btn-secondary text-xs">
                 <ArrowLeft size={12} strokeWidth={2} />
-                Voltar ao login
+                {t('forgot.backToLogin')}
               </Link>
             </div>
           ) : (
             <>
-              <h1 className="text-xl font-bold text-pco-deep">Recuperar acesso</h1>
+              <h1 className="text-xl font-bold text-pco-deep">{t('forgot.title')}</h1>
               <p className="mt-1 text-sm text-ink-muted">
-                Informe seu e-mail e geraremos um link de redefinição de senha.
+                {t('forgot.subtitle')}
               </p>
               <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
                 <div>

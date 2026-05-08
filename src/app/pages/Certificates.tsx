@@ -3,8 +3,10 @@ import { Award, Download, Eye, Copy, ExternalLink } from 'lucide-react';
 import { useCertificates, useCourses } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import { useToast } from '../components/Toast';
+import { useT } from '../i18n';
 
 export default function Certificates() {
+  const t = useT();
   const { data: certificates = [], isLoading } = useCertificates();
   const { data: courses = [] } = useCourses();
   const toast = useToast();
@@ -45,7 +47,7 @@ export default function Certificates() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Certificados</h1>
+        <h1 className="pco-section-title">{t('certificates.title')}</h1>
         <p className="pco-section-subtitle mt-1">
           Acompanhe os requisitos e baixe seus certificados ao concluir cada curso.
         </p>

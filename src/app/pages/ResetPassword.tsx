@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { ArrowLeft, Save, Check, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { resetPassword } from '../data/api';
+import { useT } from '../i18n';
 
 export default function ResetPassword() {
+  const t = useT();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const tokenFromUrl = params.get('token') ?? '';
@@ -57,7 +59,7 @@ export default function ResetPassword() {
               <div className="mx-auto h-12 w-12 rounded-2xl bg-status-success/15 grid place-items-center mb-3">
                 <Check className="text-status-success" size={22} strokeWidth={2} />
               </div>
-              <h1 className="text-xl font-bold text-pco-deep">Senha atualizada</h1>
+              <h1 className="text-xl font-bold text-pco-deep">{t('reset.success').split('.')[0]}</h1>
               <p className="mt-2 text-sm text-ink-muted">
                 Senha redefinida para <strong className="text-pco-deep">{done.email}</strong>.
                 Redirecionando para o login...
@@ -65,7 +67,7 @@ export default function ResetPassword() {
             </div>
           ) : (
             <>
-              <h1 className="text-xl font-bold text-pco-deep">Redefinir senha</h1>
+              <h1 className="text-xl font-bold text-pco-deep">{t('reset.title')}</h1>
               <p className="mt-1 text-sm text-ink-muted">
                 Cole o token recebido e escolha uma nova senha.
               </p>

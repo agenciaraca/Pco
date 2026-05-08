@@ -14,12 +14,14 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import type { LessonStatus } from '../types/schema';
+import { useT } from '../i18n';
 
 export default function Jornada() {
+  const t = useT();
   const { data: courses = [], isLoading } = useCourses();
   const { data: progress } = useMyProgress();
   const course = courses[0];
-  useDocumentMeta({ title: 'Minha Jornada — AVA PCO' });
+  useDocumentMeta({ title: `${t('journey.title')} — AVA PCO` });
   const doneIds = new Set(progress?.completedLessonIds ?? []);
 
   // Calcula progresso real
@@ -42,7 +44,7 @@ export default function Jornada() {
           <Sparkles size={14} strokeWidth={2} />
           Sua trilha de formação
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-pco-deep">Minha Jornada PCO</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-pco-deep">{t('journey.title')}</h1>
         <p className="mt-1 text-sm text-ink-muted max-w-2xl">
           Acompanhe seu caminho ao longo dos módulos. Conclua aulas e avaliações para liberar
           os próximos passos.
