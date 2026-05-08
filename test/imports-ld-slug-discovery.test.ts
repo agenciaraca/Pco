@@ -168,6 +168,39 @@ describe('getLdSlugs — auto-discovery', () => {
     expect(slugs.courses).toBe('sfwd-courses');
   });
 
+  it('fallback /wp-json (root) quando /wp-json/ldlms/v2 falha mas root tem rotas LD', async () => {
+    let call = 0;
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      call += 1;
+      if (call === 1 && url.endsWith('/wp-json/ldlms/v2')) {
+        return {
+          ok: false,
+          status: 404,
+          headers: new Headers(),
+          text: async () => '{}',
+        } as unknown as Response;
+      }
+      // Segunda chamada: /wp-json root com routes filtradas
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          routes: {
+            '/wp/v2/posts': {},
+            '/ldlms/v2/cursos': {},
+            '/ldlms/v2/aulas': {},
+            '/wc/v3/products': {},
+          },
+        }),
+        text: async () => '',
+      } as unknown as Response;
+    });
+    const slugs = await getLdSlugs(conn);
+    expect(slugs.courses).toBe('cursos');
+    expect(slugs.lessons).toBe('aulas');
+  });
+
   it('ignora paths com placeholders no nivel top', async () => {
     globalThis.fetch = mockFetchReturning({
       namespace: 'ldlms/v2',

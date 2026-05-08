@@ -865,6 +865,21 @@ function DiagnoseLdModal({
           ))}
         </div>
 
+        {result.rawRoutesPreview && result.rawRoutesPreview.length > 0 && (
+          <details className="pco-card border-pco-border p-3 text-[11px]">
+            <summary className="cursor-pointer text-ink-muted">
+              Rotas LD detectadas ({result.rawRoutesPreview.length})
+            </summary>
+            <ul className="mt-2 space-y-0.5 font-mono text-pco-deep">
+              {result.rawRoutesPreview.map((r) => (
+                <li key={r} className="break-all">
+                  {r}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
         {result.customSlugs && result.customSlugs.length > 0 && (
           <div className="pco-card border-pco-cyan/30 bg-pco-cyan/5 p-3 text-xs space-y-2">
             <strong className="text-pco-deep">

@@ -159,8 +159,9 @@ const SLUG_CACHE_TTL_MS = 10 * 60 * 1000;
 const slugCache = new Map<string, SlugCacheEntry>();
 
 async function fetchLdRouteIndex(c: ImportConnection): Promise<LdRouteIndex | null> {
+  const creds = decryptCreds(c);
+  // 1) tenta /wp-json/ldlms/v2 (compacto, só rotas LD)
   try {
-    const creds = decryptCreds(c);
     const r = await getJson<LdRouteIndex>({
       baseUrl: c.siteUrl,
       path: 'wp-json/ldlms/v2',
@@ -168,10 +169,36 @@ async function fetchLdRouteIndex(c: ImportConnection): Promise<LdRouteIndex | nu
       password: creds.wpAppPassword,
       timeoutMs: 12_000,
     });
-    return r.data;
+    if (r.data && r.data.routes && Object.keys(r.data.routes).length > 0) {
+      return r.data;
+    }
   } catch {
-    return null;
+    /* tenta fallback */
   }
+  // 2) Fallback: /wp-json (root) lista TODAS as rotas de TODOS namespaces.
+  // Filtramos pra só ldlms/v2. Funciona mesmo quando o ldlms/v2 isolado falha.
+  try {
+    const r = await getJson<{ routes?: Record<string, unknown> }>({
+      baseUrl: c.siteUrl,
+      path: 'wp-json',
+      username: creds.wpUsername,
+      password: creds.wpAppPassword,
+      timeoutMs: 15_000,
+    });
+    const allRoutes = r.data?.routes ?? {};
+    const ldRoutes: Record<string, unknown> = {};
+    for (const [path, info] of Object.entries(allRoutes)) {
+      if (path === '/ldlms/v2' || path.startsWith('/ldlms/v2/')) {
+        ldRoutes[path] = info;
+      }
+    }
+    if (Object.keys(ldRoutes).length > 0) {
+      return { namespace: 'ldlms/v2', routes: ldRoutes };
+    }
+  } catch {
+    /* fim — retorna null */
+  }
+  return null;
 }
 
 function extractTopLevelRouteSlugs(routes: string[]): Set<string> {
@@ -258,6 +285,80 @@ export function _resetLdSlugCacheForTests(): void {
   slugCache.clear();
 }
 
+/**
+ * Itera nos aliases conhecidos pra um kind até achar um que retorne 200 (não 404).
+ * Usado quando o slug descoberto retorna rest_no_route (discovery falhou ou
+ * slug mudou). Atualiza o cache com o slug que funcionou.
+ */
+async function findWorkingSlug(
+  c: ImportConnection,
+  kind: keyof LdSlugs,
+  perPage = 1,
+): Promise<string | null> {
+  const creds = decryptCreds(c);
+  for (const candidate of LD_SLUG_ALIASES[kind]) {
+    try {
+      const r = await getJson<unknown[]>({
+        baseUrl: c.siteUrl,
+        path: `wp-json/ldlms/v2/${candidate}`,
+        query: { per_page: perPage },
+        username: creds.wpUsername,
+        password: creds.wpAppPassword,
+        timeoutMs: 12_000,
+      });
+      if (Array.isArray(r.data)) {
+        // Atualiza cache
+        const cached = slugCache.get(c.id);
+        if (cached) {
+          cached.slugs[kind] = candidate;
+          cached.fetchedAt = Date.now();
+        }
+        return candidate;
+      }
+    } catch (err) {
+      // continua tentando próximo alias se for 404
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('HTTP 404')) {
+        // Erros não-404 (401, 403, 500, rede): não vale a pena continuar.
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Busca top-level com retry automático em aliases se o slug atual der 404.
+ * Wrapper genérico usado pelas funções fetchLd*. Returns rows accumulated.
+ */
+async function paginateWithSlugFallback(
+  c: ImportConnection,
+  kind: keyof LdSlugs,
+  initialSlug: string,
+  perPage: number,
+): Promise<string> {
+  // Tenta uma chamada de teste rápida pra detectar 404
+  const creds = decryptCreds(c);
+  try {
+    await getJson<unknown[]>({
+      baseUrl: c.siteUrl,
+      path: `wp-json/ldlms/v2/${initialSlug}`,
+      query: { per_page: 1 },
+      username: creds.wpUsername,
+      password: creds.wpAppPassword,
+      timeoutMs: 12_000,
+    });
+    return initialSlug;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('HTTP 404') || msg.includes('rest_no_route')) {
+      const found = await findWorkingSlug(c, kind, perPage);
+      if (found) return found;
+    }
+    throw err;
+  }
+}
+
 function basicAuthHeader(c: ImportConnection): Record<string, string> {
   const creds = decryptCreds(c);
   if (!creds.wpUsername || !creds.wpAppPassword) return {};
@@ -298,11 +399,12 @@ export async function fetchLdCourses(
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
   const slugs = await getLdSlugs(c);
+  const courseSlug = await paginateWithSlugFallback(c, 'courses', slugs.courses, perPage);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdCourse>(
     {
       baseUrl: c.siteUrl,
-      path: `wp-json/ldlms/v2/${slugs.courses}`,
+      path: `wp-json/ldlms/v2/${courseSlug}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -335,11 +437,12 @@ export async function fetchLdLessons(
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
   const slugs = await getLdSlugs(c);
+  const lessonSlug = await paginateWithSlugFallback(c, 'lessons', slugs.lessons, perPage);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdLesson>(
     {
       baseUrl: c.siteUrl,
-      path: `wp-json/ldlms/v2/${slugs.lessons}`,
+      path: `wp-json/ldlms/v2/${lessonSlug}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -370,11 +473,12 @@ export async function fetchLdTopics(
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
   const slugs = await getLdSlugs(c);
+  const topicSlug = await paginateWithSlugFallback(c, 'topics', slugs.topics, perPage);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdTopic>(
     {
       baseUrl: c.siteUrl,
-      path: `wp-json/ldlms/v2/${slugs.topics}`,
+      path: `wp-json/ldlms/v2/${topicSlug}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -405,11 +509,12 @@ export async function fetchLdQuizzes(
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
   const slugs = await getLdSlugs(c);
+  const quizSlug = await paginateWithSlugFallback(c, 'quizzes', slugs.quizzes, perPage);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdQuiz>(
     {
       baseUrl: c.siteUrl,
-      path: `wp-json/ldlms/v2/${slugs.quizzes}`,
+      path: `wp-json/ldlms/v2/${quizSlug}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -439,11 +544,12 @@ export async function fetchLdQuestions(
 ): Promise<Array<Record<string, unknown>>> {
   const creds = decryptCreds(c);
   const slugs = await getLdSlugs(c);
+  const questionSlug = await paginateWithSlugFallback(c, 'questions', slugs.questions, perPage);
   const out: Array<Record<string, unknown>> = [];
   for await (const batch of paginate<LdQuestion>(
     {
       baseUrl: c.siteUrl,
-      path: `wp-json/ldlms/v2/${slugs.questions}`,
+      path: `wp-json/ldlms/v2/${questionSlug}`,
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -751,6 +857,7 @@ export async function diagnoseLd(c: ImportConnection): Promise<{
   endpoints: Array<{ path: string; ok: boolean; status: number; detail: string }>;
   discoveredSlugs: LdSlugs;
   customSlugs: Array<{ entity: keyof LdSlugs; default: string; actual: string }>;
+  rawRoutesPreview: string[];
   hint: string;
 }> {
   const creds = decryptCreds(c);
@@ -817,7 +924,8 @@ export async function diagnoseLd(c: ImportConnection): Promise<{
     }
   }
 
-  // Descobre slugs reais lendo /wp-json/ldlms/v2 (com cache)
+  // Limpa cache pra rodar discovery fresh — admin clicou pra debugar
+  slugCache.delete(c.id);
   const discoveredSlugs = await getLdSlugs(c);
 
   const endpoints: Array<{ path: string; ok: boolean; status: number; detail: string }> = [];
@@ -870,12 +978,19 @@ export async function diagnoseLd(c: ImportConnection): Promise<{
     hint = 'Resposta mista. Veja os detalhes por endpoint abaixo.';
   }
 
+  // Pega routes brutas (do cache pós-discovery) pra debug
+  const cached = slugCache.get(c.id);
+  const rawRoutesPreview = cached
+    ? cached.rawRoutes.filter((r) => r.startsWith('/ldlms/v2')).slice(0, 30)
+    : [];
+
   return {
     rootNamespacesIncludesLdlms: hasLdlms,
     rootNamespaces,
     endpoints,
     discoveredSlugs,
     customSlugs,
+    rawRoutesPreview,
     hint,
   };
 }

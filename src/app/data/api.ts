@@ -1578,6 +1578,7 @@ export interface ConnectionDiagnoseLdResult {
     userCourseProgress: string;
   };
   customSlugs: Array<{ entity: string; default: string; actual: string }>;
+  rawRoutesPreview: string[];
   hint: string;
 }
 
