@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-544)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-545)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **544+** |
-| Commits no main | **319+** |
-| Arquivos de teste | **119** unit + **1** E2E (5 specs) |
-| Testes passando | **1277** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **545+** |
+| Commits no main | **320+** |
+| Arquivos de teste | **121** unit + **1** E2E (5 specs) |
+| Testes passando | **1291** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -143,9 +143,10 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-544 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-545 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 545 | backup remoto S3 via SigV4 reuse + 14 testes (env-gated S3_*) |
 | 544 | Sentry server-side wrapper env-gated (zero deps) + 13 testes |
 | 543 | provider AWS SES via SigV4 manual (sem AWS SDK) + 17 testes |
 | 542 | webhook channels Telegram + Teams + Mattermost + 3 presets + 18 testes |
@@ -355,7 +356,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - ✅ **Coverage badge no README** (sprint 538 — script scripts/update-coverage-badge.mjs lê coverage-summary.json)
 - **Migrações Drizzle** dos novos campos `tags` em libraryItems/podcasts — não-iniciado
 - ✅ **Rate limit por API token** dedicado (sprint 432, X-RateLimit headers)
-- **Backup remoto S3** (hoje só local em `data/backups/`) — não-iniciado
+- ✅ **Backup remoto S3** (sprint 545 — env-gated S3_BUCKET/REGION/KEYS, reuse SigV4)
 
 ### Integrações (não-iniciadas)
 - **Webhook templates** (presets prontos para Zapier/n8n/Make)
@@ -410,7 +411,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 | 🔴 ALTA | Configurar `AI_KEY_ENCRYPTION_SECRET` em produção | criptografia real | 5 min |
 | 🔴 ALTA | Resolver erro 401 import portalpco.online (rodar diagnose tool) | bloqueio de usuário | 30 min |
 | 🟡 MÉDIA | E2E Playwright — expandir golden path (login → enroll → complete) | smoke ✅ no sprint 539 | 1 dia |
-| 🟡 MÉDIA | Backup remoto S3 (em vez de só local) | DR | 1 dia |
+| ~~🟡~~ ✅ | ~~Backup remoto S3~~ (sprint 545) | DR | 1 dia |
 | 🟡 MÉDIA | OAuth Google login | reduzir fricção signup | 1 dia |
 | ~~🟡~~ ✅ | ~~Coverage badge no README~~ (sprint 538) | visibilidade | 0.3 dia |
 | 🟡 MÉDIA | API pública openapi.json | docs de integração | 1 dia |

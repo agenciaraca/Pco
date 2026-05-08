@@ -1,7 +1,7 @@
 // Tests do SigV4 manual — vetores derivados da especificação AWS.
 
 import { describe, it, expect } from 'vitest';
-import { signSigV4 } from '../server/notifications/providers/ses-sigv4';
+import { signSigV4 } from '../server/aws/sigv4';
 
 describe('SigV4', () => {
   it('produz Authorization header com formato correto', () => {

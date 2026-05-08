@@ -3,7 +3,7 @@
 
 import type { EmailProviderImpl } from './types';
 import { EmailProviderError } from './types';
-import { signSigV4 } from './ses-sigv4';
+import { signSigV4 } from '../../aws/sigv4';
 
 const DEFAULT_REGION = 'us-east-1';
 

@@ -1,9 +1,13 @@
 // Backup automático dos JSON stores. Roda 1x ao dia, copia data/*.json para
 // data/backups/YYYY-MM-DD/. Mantém últimos N dias (default 14) e podia.
 // Para restore, admin escolhe a data e vê arquivos disponíveis.
+//
+// Se S3_BUCKET/S3_REGION/S3_ACCESS_KEY_ID/S3_SECRET_ACCESS_KEY estiverem
+// definidos, faz upload paralelo para S3 (ava-pco-backups/{date}/*.json).
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { uploadSnapshotToS3 } from './backup-s3';
 
 function getDataDir(): string {
   return process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
@@ -21,6 +25,13 @@ export interface BackupRunResult {
   filesBackedUp: number;
   bytesTotal: number;
   errors: string[];
+  s3?: {
+    enabled: boolean;
+    uploaded: number;
+    failed: number;
+    bytesTotal: number;
+    errors: string[];
+  };
 }
 
 /** Faz uma snapshot das *.json no DATA_DIR. */
@@ -83,7 +94,24 @@ export async function runBackup(now: Date = new Date()): Promise<BackupRunResult
     /* ignore */
   }
 
-  return { date, filesBackedUp, bytesTotal, errors };
+  // Upload remoto (S3) — env-gated. Falhas não invalidam o backup local.
+  let s3Result: BackupRunResult['s3'];
+  if (filesBackedUp > 0) {
+    try {
+      const r = await uploadSnapshotToS3(backupDir, date);
+      s3Result = r;
+      if (r.enabled) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[backup-s3] ${r.uploaded}/${r.uploaded + r.failed} arquivos · ${(r.bytesTotal / 1024).toFixed(1)}kB`,
+        );
+      }
+    } catch (err) {
+      errors.push(`s3: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  return { date, filesBackedUp, bytesTotal, errors, s3: s3Result };
 }
 
 export interface BackupSnapshot {
