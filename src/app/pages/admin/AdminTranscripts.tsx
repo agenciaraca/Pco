@@ -224,14 +224,25 @@ export default function AdminTranscripts() {
                       <CoverageBar pct={c.coveragePct} />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        to={`/admin/cursos/${c.courseId}`}
-                        className="pco-btn-ghost text-xs"
-                        title="Editar curso"
-                      >
-                        <BookOpen size={11} strokeWidth={2} />
-                        Editar
-                      </Link>
+                      <div className="inline-flex items-center gap-1 flex-wrap justify-end">
+                        <BulkTranslateButton
+                          courseId={c.courseId}
+                          courseTitle={c.shortTitle}
+                          perLang={c.perLang}
+                          onComplete={() => {
+                            qc.invalidateQueries({ queryKey: ['admin-transcript-coverage'] });
+                            qc.invalidateQueries({ queryKey: ['courses'] });
+                          }}
+                        />
+                        <Link
+                          to={`/admin/cursos/${c.courseId}`}
+                          className="pco-btn-ghost text-xs"
+                          title="Editar curso"
+                        >
+                          <BookOpen size={11} strokeWidth={2} />
+                          Editar
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -413,6 +424,124 @@ function parseCsvRows(raw: string): string[][] {
     if (cur.some((c) => c !== '')) rows.push(cur);
   }
   return rows;
+}
+
+function BulkTranslateButton({
+  courseId,
+  courseTitle,
+  perLang,
+  onComplete,
+}: {
+  courseId: string;
+  courseTitle: string;
+  perLang: { pt: number; es: number; en: number };
+  onComplete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [running, setRunning] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<api.BulkTranslateResult | null>(null);
+  const toast = useToast();
+
+  // Detecta source lang com mais conteúdo (mais aulas preenchidas)
+  const candidates: Array<{ lang: 'pt' | 'es' | 'en'; n: number }> = (
+    ['pt', 'es', 'en'] as const
+  ).map((l) => ({ lang: l, n: perLang[l] }));
+  const bestSource = candidates.sort((a, b) => b.n - a.n)[0];
+
+  if (bestSource.n === 0) return null;
+
+  async function runTranslate(toLang: 'pt' | 'es' | 'en') {
+    if (toLang === bestSource.lang) return;
+    if (
+      !confirm(
+        `Traduzir todas as aulas de "${courseTitle}" de ${bestSource.lang.toUpperCase()} para ${toLang.toUpperCase()}?\n\nApenas aulas SEM transcrição em ${toLang.toUpperCase()} serão preenchidas (não sobrescreve).\n\nA operação pode demorar alguns minutos.`,
+      )
+    ) {
+      return;
+    }
+    setRunning(toLang);
+    setLastResult(null);
+    try {
+      const r = await api.bulkTranslateCourse({
+        courseId,
+        fromLang: bestSource.lang,
+        toLang,
+      });
+      setLastResult(r);
+      onComplete();
+      if (r.failed === 0) {
+        toast.success(
+          `${r.translated} traduzidas, ${r.skipped} puladas (~$${r.totalCostUsd})`,
+        );
+      } else {
+        toast.info(
+          `${r.translated} ok, ${r.failed} falharam, ${r.skipped} puladas`,
+        );
+      }
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    } finally {
+      setRunning(null);
+    }
+  }
+
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={running !== null}
+        className="pco-btn-ghost text-xs"
+        title={`Traduzir em massa de ${bestSource.lang.toUpperCase()} (${bestSource.n} aulas)`}
+      >
+        {running ? (
+          <Loader2 size={11} className="animate-spin" />
+        ) : (
+          '🤖'
+        )}
+        Traduzir
+      </button>
+      {open && !running && (
+        <div className="absolute right-0 top-full mt-1 z-10 pco-card p-2 shadow-lift min-w-[180px]">
+          <div className="text-[10px] text-ink-muted mb-1 px-1">
+            Fonte: {bestSource.lang.toUpperCase()} ({bestSource.n} aulas)
+          </div>
+          {(['pt', 'es', 'en'] as const)
+            .filter((l) => l !== bestSource.lang)
+            .map((toLang) => (
+              <button
+                key={toLang}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  void runTranslate(toLang);
+                }}
+                className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-surface-off"
+              >
+                → {toLang.toUpperCase()}
+              </button>
+            ))}
+        </div>
+      )}
+      {lastResult && lastResult.failed > 0 && (
+        <details className="absolute right-0 top-full mt-1 z-10 pco-card p-2 shadow-lift max-w-xs">
+          <summary className="cursor-pointer text-[10px] text-status-danger">
+            {lastResult.failed} erro(s)
+          </summary>
+          <ul className="mt-1 space-y-0.5 text-[10px] max-h-32 overflow-y-auto">
+            {lastResult.results
+              .filter((r) => !r.ok && !r.skipped)
+              .map((r, i) => (
+                <li key={i} className="text-ink-muted">
+                  <span className="text-pco-deep">{r.title}</span>:{' '}
+                  <span className="text-status-danger">{r.error}</span>
+                </li>
+              ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
 }
 
 function CoverageBar({ pct }: { pct: number }) {

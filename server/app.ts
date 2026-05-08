@@ -3740,6 +3740,157 @@ export function buildApp() {
   });
 
   /**
+   * Bulk translate: pra todas as aulas de um curso que tem texto em fromLang
+   * MAS NÃO em toLang, traduz e salva. Pula aulas onde toLang já existe
+   * (não sobrescreve). Retorna relatório por aula.
+   *
+   * Body: { courseId, fromLang, toLang }.
+   */
+  app.post(
+    '/admin/transcripts/bulk-translate',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 2 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as {
+        courseId?: string;
+        fromLang?: string;
+        toLang?: string;
+      };
+      const courseId = String(body.courseId ?? '').trim();
+      const fromLang = String(body.fromLang ?? '').trim().toLowerCase();
+      const toLang = String(body.toLang ?? '').trim().toLowerCase();
+      const valid = ['pt', 'es', 'en'];
+      if (!courseId) return jsonError(c, 400, 'BAD_REQUEST', 'courseId obrigatório.');
+      if (!valid.includes(fromLang) || !valid.includes(toLang)) {
+        return jsonError(c, 400, 'BAD_LANG', `Idiomas devem ser ${valid.join('|')}.`);
+      }
+      if (fromLang === toLang) {
+        return jsonError(c, 400, 'SAME_LANG', 'fromLang e toLang devem ser diferentes.');
+      }
+
+      const allCourses = await coursesRepo.listCourses();
+      const course = allCourses.find((co) => co.id === courseId);
+      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+
+      let config = await aiConfigRepo.getActiveByModule('tutor');
+      if (!config) config = await aiConfigRepo.getActiveByModule('summaries');
+      if (!config) {
+        return jsonError(c, 400, 'NO_AI_CONFIG', 'Nenhum AI configurado. /admin/ias.');
+      }
+      const provider = getProvider(config.provider);
+      if (!provider) {
+        return jsonError(c, 500, 'PROVIDER_MISSING', 'Provider configurado não existe.');
+      }
+
+      const langName = (l: string) =>
+        ({ pt: 'Português brasileiro', es: 'Español', en: 'English' })[l] ?? l;
+      const systemPrompt = `Você é um tradutor profissional especializado em conteúdo de psicanálise e psicologia. Traduza textos de aulas mantendo: terminologia técnica precisa (Lacan, Freud, Winnicott, Klein etc.), estilo acadêmico apropriado, fluência natural no idioma de destino. Preserve quebras de linha e formatação. NÃO adicione comentários, notas de tradução ou explicações — retorne APENAS o texto traduzido.`;
+
+      const allLessons = (course.modules ?? []).flatMap((m) => m.lessons);
+      type Result = {
+        lessonId: string;
+        title: string;
+        ok: boolean;
+        skipped?: 'no_source' | 'already_has_target';
+        error?: string;
+      };
+      const results: Result[] = [];
+      let totalCost = 0;
+
+      for (const lesson of allLessons) {
+        const transcripts =
+          (lesson as { transcripts?: Record<string, string | undefined> })
+            .transcripts ?? {};
+        const source = transcripts[fromLang];
+        if (!source || source.trim().length === 0) {
+          results.push({
+            lessonId: lesson.id,
+            title: lesson.title,
+            ok: false,
+            skipped: 'no_source',
+          });
+          continue;
+        }
+        const target = transcripts[toLang];
+        if (target && target.trim().length > 0) {
+          results.push({
+            lessonId: lesson.id,
+            title: lesson.title,
+            ok: false,
+            skipped: 'already_has_target',
+          });
+          continue;
+        }
+        try {
+          const userPrompt = `Traduza o seguinte texto de aula de ${langName(fromLang)} para ${langName(toLang)}:\n\n---\n${source}\n---\n\nRetorne APENAS o texto traduzido.`;
+          const r = await provider.chat({
+            apiKey: config.apiKey,
+            model: config.model,
+            messages: [{ role: 'user' as const, content: userPrompt }],
+            systemPrompt,
+            temperature: 0.3,
+            maxTokens: Math.min(config.maxTokens, 8000),
+            timeoutMs: 60_000,
+          });
+          const text = r.text.trim();
+          if (!text) {
+            results.push({
+              lessonId: lesson.id,
+              title: lesson.title,
+              ok: false,
+              error: 'IA retornou vazio',
+            });
+            continue;
+          }
+          const newTranscripts = { ...transcripts, [toLang]: text };
+          await coursesRepo.updateLesson(lesson.id, {
+            transcripts: newTranscripts,
+          } as Parameters<typeof coursesRepo.updateLesson>[1]);
+          const costUsd = calculateCost(
+            config.provider,
+            config.model,
+            r.inputTokens,
+            r.outputTokens,
+          );
+          totalCost += costUsd;
+          results.push({ lessonId: lesson.id, title: lesson.title, ok: true });
+        } catch (err) {
+          results.push({
+            lessonId: lesson.id,
+            title: lesson.title,
+            ok: false,
+            error: err instanceof Error ? err.message : 'Erro IA',
+          });
+        }
+      }
+
+      const u = c.get('user');
+      if (totalCost > 0) {
+        await aiConfigRepo.recordUsage({
+          configId: config.id,
+          studentId: u?.sub ?? 'admin',
+          inputTokens: 0,
+          outputTokens: 0,
+          costUsd: totalCost,
+          successful: true,
+        });
+      }
+
+      const translated = results.filter((r) => r.ok).length;
+      const skipped = results.filter((r) => r.skipped).length;
+      const failed = results.filter((r) => !r.ok && !r.skipped).length;
+      return c.json({
+        total: results.length,
+        translated,
+        skipped,
+        failed,
+        totalCostUsd: Number(totalCost.toFixed(4)),
+        results,
+      });
+    },
+  );
+
+  /**
    * Geração automática de transcrição via OpenAI Whisper a partir do videoUrl
    * da aula. Whisper aceita até 25MB nos formatos mp4/m4a/mp3/wav/webm.
    *

@@ -515,6 +515,36 @@ export async function generateTranscriptFromVideo(
   );
 }
 
+export interface BulkTranslateInput {
+  courseId: string;
+  fromLang: 'pt' | 'es' | 'en';
+  toLang: 'pt' | 'es' | 'en';
+}
+
+export interface BulkTranslateResult {
+  total: number;
+  translated: number;
+  skipped: number;
+  failed: number;
+  totalCostUsd: number;
+  results: Array<{
+    lessonId: string;
+    title: string;
+    ok: boolean;
+    skipped?: 'no_source' | 'already_has_target';
+    error?: string;
+  }>;
+}
+
+export async function bulkTranslateCourse(
+  input: BulkTranslateInput,
+): Promise<BulkTranslateResult> {
+  return http.post<BulkTranslateResult>(
+    '/admin/transcripts/bulk-translate',
+    input,
+  );
+}
+
 // ---------- Tutor usage ----------
 
 export interface TutorUsageDto {
