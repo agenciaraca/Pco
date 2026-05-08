@@ -20,16 +20,12 @@ describe('messaging providers registry', () => {
     expect(ALL_MESSAGING_PROVIDERS).toEqual(['mock', 'twilio', 'whatsapp-meta']);
   });
 
-  it('mock e twilio retornam impl com send + ping', () => {
-    for (const id of ['mock', 'twilio'] as const) {
+  it('todos os 3 providers retornam impl com send + ping', () => {
+    for (const id of ['mock', 'twilio', 'whatsapp-meta'] as const) {
       const p = getMessagingProvider(id);
       expect(typeof p.send).toBe('function');
       expect(typeof p.ping).toBe('function');
     }
-  });
-
-  it('whatsapp-meta lança NOT_IMPLEMENTED', () => {
-    expect(() => getMessagingProvider('whatsapp-meta')).toThrow(MessagingProviderError);
   });
 
   it('id desconhecido lança UNKNOWN_PROVIDER', () => {

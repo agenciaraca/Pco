@@ -5,6 +5,7 @@ import type { MessagingProviderImpl } from './types';
 import { MessagingProviderError } from './types';
 import { mockMessagingProvider } from './mock';
 import { twilioMessagingProvider } from './twilio';
+import { whatsappMetaProvider } from './whatsapp-meta';
 
 export const ALL_MESSAGING_PROVIDERS: MessagingProviderId[] = [
   'mock',
@@ -19,10 +20,7 @@ export function getMessagingProvider(id: MessagingProviderId): MessagingProvider
     case 'twilio':
       return twilioMessagingProvider;
     case 'whatsapp-meta':
-      throw new MessagingProviderError(
-        'NOT_IMPLEMENTED',
-        'WhatsApp Meta Cloud API ainda nao suportado. Use Twilio (com whatsapp:+...) ou mock.',
-      );
+      return whatsappMetaProvider;
     default:
       throw new MessagingProviderError(
         'UNKNOWN_PROVIDER',
