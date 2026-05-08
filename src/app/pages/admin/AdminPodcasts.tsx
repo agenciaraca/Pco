@@ -27,6 +27,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import { createPodcastSchema, type CreatePodcastInput } from '../../../../shared/schemas';
 import type { PodcastEpisode } from '../../types/schema';
+import { useT } from '../../i18n';
 
 const coverPresets = [
   { label: 'Azul → Ciano', value: 'from-pco-blue to-pco-cyan' },
@@ -36,6 +37,7 @@ const coverPresets = [
 ];
 
 export default function AdminPodcasts() {
+  const t = useT();
   const toast = useToast();
   const podsQ = usePodcasts();
   const { data: courses } = useCourses();
@@ -81,7 +83,7 @@ export default function AdminPodcasts() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">PCO POD — Admin</h1>
+          <h1 className="pco-section-title">{t('admin.nav.podcasts')}</h1>
           <p className="pco-section-subtitle mt-1">
             Gestão dos episódios do podcast pedagógico.
           </p>

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useCourses } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import { useT } from '../../i18n';
 
 const statusStyles: Record<string, string> = {
   completed: 'bg-status-success/10 text-status-success',
@@ -26,6 +27,7 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function AdminModules() {
+  const t = useT();
   const [courseFilter, setCourseFilter] = useState<string>('todos');
   const [search, setSearch] = useState('');
   const { data: courses, isLoading } = useCourses();
@@ -60,7 +62,7 @@ export default function AdminModules() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Módulos e Aulas</h1>
+          <h1 className="pco-section-title">{t('admin.nav.modules')}</h1>
           <p className="pco-section-subtitle mt-1">
             Visão cruzada dos módulos em todos os cursos.
           </p>

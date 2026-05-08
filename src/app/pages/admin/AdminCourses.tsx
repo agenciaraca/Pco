@@ -16,8 +16,10 @@ import { downloadCoursesCsv } from '../../data/api';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
+import { useT } from '../../i18n';
 
 export default function AdminCourses() {
+  const t = useT();
   const { data, isLoading, isError, refetch } = useCourses();
   const duplicateMut = useDuplicateCourse();
   const summaryQ = useAdminCoursesSummary();
@@ -31,7 +33,7 @@ export default function AdminCourses() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Gestão de Cursos</h1>
+          <h1 className="pco-section-title">{t('admin.nav.courses')}</h1>
           <p className="pco-section-subtitle mt-1">Liste, crie e edite cursos do AVA.</p>
         </div>
         <div className="flex items-center gap-2">

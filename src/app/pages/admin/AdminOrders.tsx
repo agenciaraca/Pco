@@ -20,6 +20,7 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 import type { OrderDto, OrderStatus } from '../../data/api';
 
 const statusStyle: Record<OrderStatus, { className: string; label: string; Icon: typeof Clock }> =
@@ -57,7 +58,8 @@ const statusStyle: Record<OrderStatus, { className: string; label: string; Icon:
   };
 
 export default function AdminOrders() {
-  useDocumentMeta({ title: 'Pedidos — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.orders')} — Admin AVA PCO` });
   const { data, isLoading, isError, refetch, isFetching } = useAllOrders();
   const updateStatusMut = useAdminUpdateOrderStatus();
   const refundMut = useAdminRefundOrder();
@@ -117,7 +119,7 @@ export default function AdminOrders() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-pco-deep">Pedidos</h1>
+          <h1 className="text-2xl font-bold text-pco-deep">{t('admin.nav.orders')}</h1>
           <p className="text-sm text-ink-muted">
             Compras feitas pelos alunos. Webhook do gateway atualiza status automaticamente.
           </p>

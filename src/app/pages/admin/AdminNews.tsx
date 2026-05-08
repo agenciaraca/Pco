@@ -27,6 +27,7 @@ import { useToast } from '../../components/Toast';
 import { createNewsSchema, type CreateNewsInput } from '../../../../shared/schemas';
 import { z } from 'zod';
 import type { NewsArticle } from '../../types/schema';
+import { useT } from '../../i18n';
 
 const coverPresets = [
   { label: 'Azul PCO → Ciano', value: 'from-pco-blue to-pco-cyan' },
@@ -36,6 +37,7 @@ const coverPresets = [
 ];
 
 export default function AdminNews() {
+  const t = useT();
   const toast = useToast();
   const newsQ = useNews();
   const { data: courses } = useCourses();
@@ -82,7 +84,7 @@ export default function AdminNews() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">PCO News — Admin</h1>
+          <h1 className="pco-section-title">{t('admin.nav.news')}</h1>
           <p className="pco-section-subtitle mt-1">
             Criação, curadoria e agendamento de artigos.
           </p>

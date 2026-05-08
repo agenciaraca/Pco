@@ -37,6 +37,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import type { AdminStudentRow } from '../../data/seed';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 
 const statusStyles: Record<AdminStudentRow['status'], string> = {
   ativo: 'bg-status-success/10 text-status-success',
@@ -53,7 +54,8 @@ const statusLabel: Record<AdminStudentRow['status'], string> = {
 };
 
 export default function AdminUsers() {
-  useDocumentMeta({ title: 'Alunos — Admin AVA PCO' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.students')} — Admin AVA PCO` });
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] =
@@ -118,7 +120,7 @@ export default function AdminUsers() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Alunos</h1>
+          <h1 className="pco-section-title">{t('admin.nav.students')}</h1>
           <p className="pco-section-subtitle mt-1">
             Listagem, filtros, importação e gestão acadêmica.
           </p>

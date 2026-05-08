@@ -25,6 +25,7 @@ import EmptyState, { ErrorState } from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import { createLibrarySchema, type CreateLibraryInput } from '../../../../shared/schemas';
+import { useT } from '../../i18n';
 import { z } from 'zod';
 import type { LibraryItem } from '../../types/schema';
 
@@ -36,6 +37,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function AdminLibrary() {
+  const t = useT();
   const toast = useToast();
   const libQ = useLibrary();
   const { data: courses } = useCourses();
@@ -80,7 +82,7 @@ export default function AdminLibrary() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Biblioteca PCO — Admin</h1>
+          <h1 className="pco-section-title">{t('admin.nav.library')}</h1>
           <p className="pco-section-subtitle mt-1">
             Cadastro e curadoria de materiais, apostilas e leituras.
           </p>

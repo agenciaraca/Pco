@@ -19,6 +19,7 @@ import {
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { useT } from '../../i18n';
 import type { RoleDto } from '../../data/api';
 
 interface EditState {
@@ -40,7 +41,8 @@ const EMPTY_EDIT: EditState = {
 };
 
 export default function AdminRoles() {
-  useDocumentMeta({ title: 'Papéis e permissões — Admin' });
+  const t = useT();
+  useDocumentMeta({ title: `${t('admin.nav.roles')} — Admin` });
   const rolesQ = useRoles();
   const permsQ = usePermissionsCatalog();
   const createMut = useCreateRole();
@@ -197,7 +199,7 @@ export default function AdminRoles() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep flex items-center gap-2">
             <ShieldCheck size={20} className="text-pco-blue" strokeWidth={1.75} />
-            Papéis e permissões
+            {t('admin.nav.roles')}
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Catálogo único de papéis. Você pode criar, editar e excluir papéis

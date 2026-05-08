@@ -12,8 +12,10 @@ import {
 import { useCourses, useUpdateLesson } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useToast } from '../../components/Toast';
+import { useT } from '../../i18n';
 
 export default function AdminLessons() {
+  const t = useT();
   const [courseFilter, setCourseFilter] = useState<string>('todos');
   const [moduleFilter, setModuleFilter] = useState<string>('todos');
   const [mandatoryOnly, setMandatoryOnly] = useState(false);
@@ -59,7 +61,7 @@ export default function AdminLessons() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Aulas</h1>
+          <h1 className="pco-section-title">{t('course.lessons')}</h1>
           <p className="pco-section-subtitle mt-1">
             Cadastro e gestão de aulas em todos os cursos.
           </p>

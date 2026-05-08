@@ -22,6 +22,7 @@ import {
 import { Cpu, HardDrive, AlertOctagon, Clock, History, ScrollText } from 'lucide-react';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import Sparkline from '../../components/Sparkline';
+import { useT } from '../../i18n';
 
 function formatUptime(sec: number): string {
   if (sec < 60) return `${sec}s`;
@@ -220,6 +221,7 @@ function formatTs(iso: string): string {
 }
 
 export default function AdminDashboard() {
+  const t = useT();
   const { data: retentionRisks = [] } = useRetentionRisks();
   const studentsQ = useAdminStudents({ status: 'todos', sortBy: 'name' });
   const coursesQ = useCourses();
@@ -276,7 +278,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="pco-section-title">Dashboard Pedagógico</h1>
+        <h1 className="pco-section-title">{t('admin.nav.dashboard')}</h1>
         <p className="pco-section-subtitle mt-1">
           Visão geral de retenção, conteúdo, certificados e uso do AVA.
         </p>

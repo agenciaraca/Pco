@@ -24,6 +24,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import type { Certificate } from '../../types/schema';
+import { useT } from '../../i18n';
 
 const tabs = [
   { id: 'emitidos', label: 'Emitidos', icon: <CheckCircle2 size={14} strokeWidth={1.75} /> },
@@ -32,6 +33,7 @@ const tabs = [
 ];
 
 export default function AdminCertificates() {
+  const t = useT();
   const [active, setActive] = useState('emitidos');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Certificate['status']>('all');
@@ -106,7 +108,7 @@ export default function AdminCertificates() {
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="pco-section-title">Certificados</h1>
+          <h1 className="pco-section-title">{t('admin.nav.certificates')}</h1>
           <p className="pco-section-subtitle mt-1">
             Lista, emissão manual e validação por código.
           </p>
