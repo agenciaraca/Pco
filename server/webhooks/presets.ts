@@ -24,7 +24,8 @@ export interface WebhookPreset {
     | 'discord'
     | 'telegram'
     | 'teams'
-    | 'mattermost';
+    | 'mattermost'
+    | 'pushover';
   /** Headers adicionais que o serviço espera. */
   headers?: Record<string, string>;
   /** Eventos sugeridos pra esse preset (admin pode mudar). */
@@ -99,6 +100,22 @@ export const WEBHOOK_PRESETS: WebhookPreset[] = [
       'https://developers.mattermost.com/integrate/webhooks/incoming/',
     notes:
       'No Mattermost: System Console -> Integrations -> Incoming Webhooks -> Add -> copie o URL.',
+  },
+  {
+    id: 'pushover',
+    name: 'Pushover',
+    description: 'Push notifications no celular via Pushover.net.',
+    icon: '📲',
+    urlPlaceholder: 'https://api.pushover.net/1/messages.json',
+    channelType: 'pushover',
+    headers: {
+      'X-Pushover-Token': '<APP_TOKEN>',
+      'X-Pushover-User': '<USER_KEY_ou_GROUP_KEY>',
+    },
+    suggestedEvents: ['order.paid', 'order.refunded'],
+    docsUrl: 'https://pushover.net/api',
+    notes:
+      'Crie app em pushover.net/apps/build (anote APP_TOKEN). Pegue USER_KEY na home depois de logar. Os headers vao no campo "Headers" do endpoint.',
   },
   {
     id: 'zapier',

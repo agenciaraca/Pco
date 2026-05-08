@@ -233,3 +233,37 @@ function escapeHtml(s: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
+
+/**
+ * Pushover — push notification service.
+ * URL: https://api.pushover.net/1/messages.json
+ * Body x-www-form-urlencoded: token (app), user (recipient), message, title, priority, url.
+ *
+ * `token` (app key) e `user` (user key / group key) vem dos extraHeaders
+ * do endpoint (X-Pushover-Token, X-Pushover-User), pra nao misturar com o
+ * URL fixo. Priority -1 (silent) p/ enrollment, 1 (high) p/ order.refunded.
+ */
+export function formatPushover(
+  input: FormatterInput,
+  appToken?: string,
+  userKey?: string,
+): unknown {
+  let priority = 0;
+  if (input.event === 'order.refunded') priority = 1;
+  else if (input.event === 'enrollment.created' || input.event === 'lesson.completed') {
+    priority = -1;
+  }
+  const lines: string[] = [];
+  for (const [k, v] of Object.entries(input.data)) {
+    lines.push(`${k}: ${formatValueShort(v)}`);
+    if (lines.length >= 8) break;
+  }
+  return {
+    token: appToken,
+    user: userKey,
+    title: `${eventEmoji(input.event)} ${eventTitle(input.event)}`,
+    message: lines.join('\n').slice(0, 1024) || ' ',
+    priority,
+    timestamp: Math.floor(new Date(input.ts).getTime() / 1000),
+  };
+}

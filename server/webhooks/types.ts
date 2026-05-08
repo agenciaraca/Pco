@@ -25,7 +25,8 @@ export type WebhookChannelType =
   | 'discord'
   | 'telegram'
   | 'teams'
-  | 'mattermost';
+  | 'mattermost'
+  | 'pushover';
 
 export interface WebhookEndpoint {
   id: string;

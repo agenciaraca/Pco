@@ -26,6 +26,7 @@ describe('webhook presets', () => {
         'telegram',
         'teams',
         'mattermost',
+        'pushover',
       ]).toContain(p.channelType);
     }
   });

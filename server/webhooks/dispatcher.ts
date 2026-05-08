@@ -17,6 +17,7 @@ import {
   formatTelegram,
   formatTeams,
   formatMattermost,
+  formatPushover,
 } from './formatters';
 
 const TIMEOUT_MS = 15_000;
@@ -127,6 +128,11 @@ function renderBody(
   }
   if (e.channelType === 'teams') return formatTeams(input);
   if (e.channelType === 'mattermost') return formatMattermost(input);
+  if (e.channelType === 'pushover') {
+    const token = extraHeaders?.['X-Pushover-Token'] ?? extraHeaders?.['x-pushover-token'];
+    const user = extraHeaders?.['X-Pushover-User'] ?? extraHeaders?.['x-pushover-user'];
+    return formatPushover(input, token, user);
+  }
   return formatGeneric(input);
 }
 

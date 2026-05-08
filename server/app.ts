@@ -18,6 +18,7 @@ const AVA_VERSION = (() => {
 const AVA_STARTED_AT = new Date().toISOString();
 import * as usersStore from './auth/users-store';
 import * as oauthGoogle from './auth/oauth-google';
+import * as oauthMicrosoft from './auth/oauth-microsoft';
 import * as samlAuth from './auth/saml';
 import crypto from 'node:crypto';
 import { signToken, verifyToken } from './auth/jwt';
@@ -630,6 +631,82 @@ export function buildApp() {
     });
     // Limpa state cookie e devolve token via fragmento (#) — nunca query string,
     // pra nao logar no histórico do servidor de redirect.
+    c.header('Set-Cookie', 'oauth_state=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+    return c.redirect(`/auth/oauth/finish#token=${encodeURIComponent(token)}`, 302);
+  });
+
+  // ---------- OAuth Microsoft Entra ID (env-gated) ----------
+  app.get('/auth/oauth/microsoft', async (c) => {
+    const cfg = oauthMicrosoft.microsoftConfigFromEnv();
+    if (!cfg) {
+      return jsonError(c, 503, 'NOT_CONFIGURED', 'OAuth Microsoft nao configurado.');
+    }
+    const state = oauthMicrosoft.generateState();
+    const url = oauthMicrosoft.buildMicrosoftAuthUrl({ config: cfg, state });
+    c.header(
+      'Set-Cookie',
+      `oauth_state=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`,
+    );
+    return c.redirect(url, 302);
+  });
+
+  app.get('/auth/oauth/microsoft/callback', async (c) => {
+    const cfg = oauthMicrosoft.microsoftConfigFromEnv();
+    if (!cfg) {
+      return jsonError(c, 503, 'NOT_CONFIGURED', 'OAuth Microsoft nao configurado.');
+    }
+    const code = c.req.query('code');
+    const state = c.req.query('state');
+    const err = c.req.query('error');
+    if (err) {
+      return c.redirect(`/login?error=oauth_${encodeURIComponent(err)}`, 302);
+    }
+    if (!code || !state) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'code e state obrigatorios.');
+    }
+    const cookies = c.req.header('cookie') ?? '';
+    const m = /(?:^|;\s*)oauth_state=([^;]+)/.exec(cookies);
+    if (!m?.[1] || m[1] !== state) {
+      return jsonError(c, 400, 'STATE_MISMATCH', 'CSRF state invalido.');
+    }
+
+    let userInfo;
+    try {
+      const tk = await oauthMicrosoft.exchangeCodeForToken(code, cfg);
+      if (!tk.access_token) throw new Error('access_token ausente');
+      userInfo = await oauthMicrosoft.fetchMicrosoftUserInfo(tk.access_token);
+    } catch (e) {
+      return c.redirect(
+        `/login?error=oauth_${encodeURIComponent(e instanceof Error ? e.message.slice(0, 80) : 'unknown')}`,
+        302,
+      );
+    }
+    const email = oauthMicrosoft.extractEmail(userInfo);
+    if (!email) {
+      return c.redirect('/login?error=oauth_no_email', 302);
+    }
+
+    let raw = await usersStore.findUserByEmail(email);
+    if (!raw) {
+      const password = crypto.randomBytes(24).toString('hex');
+      const created = await usersStore.createUser({
+        email,
+        name: userInfo.displayName ?? email.split('@')[0],
+        role: 'student',
+        password,
+        active: true,
+      });
+      raw = await usersStore.findUserByEmail(created.email);
+    }
+    if (!raw || !raw.active) {
+      return c.redirect('/login?error=oauth_user_inactive', 302);
+    }
+    const token = await signToken({
+      sub: raw.id,
+      email: raw.email,
+      role: raw.role,
+      tv: raw.tokenVersion ?? 0,
+    });
     c.header('Set-Cookie', 'oauth_state=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
     return c.redirect(`/auth/oauth/finish#token=${encodeURIComponent(token)}`, 302);
   });

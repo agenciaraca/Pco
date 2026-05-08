@@ -321,6 +321,18 @@ export default function Login() {
                 </svg>
                 Entrar com Google
               </a>
+              <a
+                href="/api/auth/oauth/microsoft"
+                className="mt-2 inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border border-surface-gray hover:bg-surface-gray text-sm font-medium text-pco-deep transition-colors"
+              >
+                <svg viewBox="0 0 23 23" className="h-4 w-4" aria-hidden="true">
+                  <path fill="#F25022" d="M1 1h10v10H1z" />
+                  <path fill="#7FBA00" d="M12 1h10v10H12z" />
+                  <path fill="#00A4EF" d="M1 12h10v10H1z" />
+                  <path fill="#FFB900" d="M12 12h10v10H12z" />
+                </svg>
+                Entrar com Microsoft
+              </a>
             </>
           )}
 

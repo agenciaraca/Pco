@@ -6,14 +6,14 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-08 — sprints 469-556)
+## Estado atual (atualizado em 2026-05-08 — sprints 469-558)
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **556+** |
-| Commits no main | **329+** |
-| Arquivos de teste | **141** unit + **1** E2E (5 specs) |
-| Testes passando | **1381** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **558+** |
+| Commits no main | **331+** |
+| Arquivos de teste | **143** unit + **1** E2E (5 specs) |
+| Testes passando | **1407** unit ✅ + **5** E2E smoke ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -21,7 +21,7 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 | Providers de pagamento | 6 (Mock, Stripe, Asaas, Pagar.me, MercadoPago, PayPal) |
 | Providers de e-mail | 8 (Mock, Resend, SendGrid, Postmark, Mailgun, Brevo, AWS SES, SMTP nativo) |
 | Connectors de import | 3 (WP, LD, WC) + CSV |
-| Tipos de webhook outbound | 6 (Generic, Slack, Discord, Telegram, Teams, Mattermost) |
+| Tipos de webhook outbound | 7 (Generic, Slack, Discord, Telegram, Teams, Mattermost, Pushover) |
 | Achievements automáticos | 6 |
 | Provedores de IA | OpenAI / Anthropic / Mock |
 | Permissões de API tokens | 7 escopos |
@@ -143,9 +143,11 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ## Sprints recentes (Maio 2026 — 466 entregues)
 
-### Bloco sprints 494-556 (LMS deepening + tests + UX polish + production hardening)
+### Bloco sprints 494-558 (LMS deepening + tests + UX polish + production hardening)
 | Sprint | Tema |
 |---|---|
+| 558 | OAuth Microsoft Entra ID — botão Login + callback + extractEmail (mail/upn) + 15 testes |
+| 557 | Webhook channel Pushover (push notifications mobile) + preset + 11 testes |
 | 556 | Drizzle migrations: scripts/migrate_prod_db.py pronto, idempotente, aguarda Neon DATABASE_URL |
 | 552 | SAML SSO BETA (sem signature validation): buildAuthnRequest, parseSamlResponse, ACS endpoint + 17 testes |
 | 555 | SSH bloco: AI_KEY_ENCRYPTION_SECRET aplicado em prod + diagnose portalpco rodado (3 scripts SSH) |
