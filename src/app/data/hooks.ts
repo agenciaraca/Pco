@@ -683,6 +683,14 @@ export function useLessonTranscript(lessonId: string | undefined, lang?: string)
   });
 }
 
+export function useTranscriptCoverage() {
+  return useQuery({
+    queryKey: ['admin-transcript-coverage'],
+    queryFn: () => api.fetchTranscriptCoverage(),
+    staleTime: 60 * 1000,
+  });
+}
+
 const tutorUsageKey = ['tutor', 'usage'] as const;
 export function useTutorUsage() {
   return useQuery({

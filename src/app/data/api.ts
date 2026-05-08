@@ -430,6 +430,28 @@ export async function fetchLessonTranscript(
   );
 }
 
+export interface TranscriptCoverageDto {
+  courses: Array<{
+    courseId: string;
+    title: string;
+    shortTitle: string;
+    totalLessons: number;
+    withAnyTranscript: number;
+    perLang: { pt: number; es: number; en: number };
+    coveragePct: number;
+  }>;
+  totals: {
+    totalLessons: number;
+    withAnyTranscript: number;
+    perLang: { pt: number; es: number; en: number };
+    coveragePct: number;
+  };
+}
+
+export async function fetchTranscriptCoverage(): Promise<TranscriptCoverageDto> {
+  return http.get<TranscriptCoverageDto>('/admin/transcripts/coverage');
+}
+
 // ---------- Tutor usage ----------
 
 export interface TutorUsageDto {

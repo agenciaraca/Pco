@@ -3734,6 +3734,76 @@ export function buildApp() {
     return c.json(updated);
   });
 
+  /**
+   * Coverage stats de transcrições por curso. Útil pro admin saber
+   * quantas aulas tem transcrição em cada idioma, % cobertura, etc.
+   */
+  app.get(
+    '/admin/transcripts/coverage',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const courses = await coursesRepo.listCourses();
+      type Lang = 'pt' | 'es' | 'en';
+      const langs: Lang[] = ['pt', 'es', 'en'];
+      const courseStats = courses.map((co) => {
+        const lessons = (co.modules ?? []).flatMap((m) => m.lessons);
+        const totalLessons = lessons.length;
+        const perLang: Record<Lang, number> = { pt: 0, es: 0, en: 0 };
+        let withAnyTranscript = 0;
+        for (const l of lessons) {
+          const tr = (l as { transcripts?: Record<string, string | undefined> })
+            .transcripts ?? {};
+          let hasAny = false;
+          for (const lang of langs) {
+            if (typeof tr[lang] === 'string' && tr[lang]!.trim().length > 0) {
+              perLang[lang]++;
+              hasAny = true;
+            }
+          }
+          if (hasAny) withAnyTranscript++;
+        }
+        return {
+          courseId: co.id,
+          title: co.title,
+          shortTitle: co.shortTitle ?? co.title,
+          totalLessons,
+          withAnyTranscript,
+          perLang,
+          coveragePct: totalLessons > 0
+            ? Math.round((withAnyTranscript / totalLessons) * 100)
+            : 0,
+        };
+      });
+      const totalsAcrossCourses = courseStats.reduce(
+        (acc, s) => {
+          acc.totalLessons += s.totalLessons;
+          acc.withAnyTranscript += s.withAnyTranscript;
+          for (const l of langs) acc.perLang[l] += s.perLang[l];
+          return acc;
+        },
+        {
+          totalLessons: 0,
+          withAnyTranscript: 0,
+          perLang: { pt: 0, es: 0, en: 0 } as Record<Lang, number>,
+        },
+      );
+      return c.json({
+        courses: courseStats,
+        totals: {
+          ...totalsAcrossCourses,
+          coveragePct:
+            totalsAcrossCourses.totalLessons > 0
+              ? Math.round(
+                  (totalsAcrossCourses.withAnyTranscript /
+                    totalsAcrossCourses.totalLessons) *
+                    100,
+                )
+              : 0,
+        },
+      });
+    },
+  );
+
   // ---------- Imports — templates + jobs (Sprint A) ----------
 
   app.get('/admin/imports/templates', requireAuth('admin', 'superadmin'), (c) =>

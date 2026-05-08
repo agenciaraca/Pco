@@ -56,6 +56,7 @@ const AdminCourses = lazy(() => import('./pages/admin/AdminCourses'));
 const AdminCourseEditor = lazy(() => import('./pages/admin/AdminCourseEditor'));
 const AdminModules = lazy(() => import('./pages/admin/AdminModules'));
 const AdminLessons = lazy(() => import('./pages/admin/AdminLessons'));
+const AdminTranscripts = lazy(() => import('./pages/admin/AdminTranscripts'));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminUserDetail = lazy(() => import('./pages/admin/AdminUserDetail'));
 const AdminEvasion = lazy(() => import('./pages/admin/AdminEvasion'));
@@ -212,6 +213,7 @@ export const router = createBrowserRouter([
       { path: 'cursos/:id', element: <S><AdminCourseEditor /></S> },
       { path: 'modulos', element: <S><AdminModules /></S> },
       { path: 'aulas', element: <S><AdminLessons /></S> },
+      { path: 'transcricoes', element: <S><AdminTranscripts /></S> },
       { path: 'alunos', element: <S><AdminUsers /></S> },
       { path: 'alunos/:id', element: <S><AdminUserDetail /></S> },
       { path: 'evasao', element: <S><AdminEvasion /></S> },

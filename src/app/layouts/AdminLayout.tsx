@@ -73,6 +73,7 @@ export default function AdminLayout() {
           { to: '/admin/cursos', label: t('admin.nav.courses'), icon: GraduationCap },
           { to: '/admin/trilhas', label: t('admin.nav.studyPaths'), icon: GraduationCap },
           { to: '/admin/modulos', label: t('admin.nav.modules'), icon: Layers },
+          { to: '/admin/transcricoes', label: 'Transcrições', icon: ScrollText },
           { to: '/admin/alunos', label: t('admin.nav.students'), icon: Users },
           { to: '/admin/certificados', label: t('admin.nav.certificates'), icon: Award },
           { to: '/admin/conquistas', label: t('admin.nav.achievements'), icon: Trophy },
