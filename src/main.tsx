@@ -6,6 +6,7 @@ import { AuthProvider } from './app/auth/AuthContext';
 import { I18nProvider } from './app/i18n';
 import { ToastProvider } from './app/components/Toast';
 import ErrorBoundary from './app/components/ErrorBoundary';
+import PwaInstallBanner from './app/components/PwaInstallBanner';
 import { initMonitoring } from './app/monitoring/sentry';
 import { installChunkErrorRecovery } from './app/monitoring/chunk-error-recovery';
 import { router } from './app/routes';
@@ -72,6 +73,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <AuthProvider>
             <ToastProvider>
               <RouterProvider router={router} />
+              <PwaInstallBanner />
             </ToastProvider>
           </AuthProvider>
         </I18nProvider>
