@@ -1189,6 +1189,21 @@ export function buildApp() {
               link: '/certificados',
               authorEmail: 'sistema',
             });
+            void webhooksDispatcher.emit('certificate.issued', {
+              certificateId: newCert.id,
+              studentId: u.sub,
+              studentEmail: u.email,
+              courseId,
+              courseTitle: course.title,
+              validationCode: newCert.validationCode,
+              issuedAt: newCert.issuedAt,
+            });
+            void webhooksDispatcher.emit('course.completed', {
+              studentId: u.sub,
+              studentEmail: u.email,
+              courseId,
+              courseTitle: course.title,
+            });
           }
         }
       }
@@ -2166,6 +2181,14 @@ export function buildApp() {
         return jsonError(c, 400, 'INVALID_INPUT', 'studentId e courseId são obrigatórios.');
       }
       const cert = await certsRepo.issueCertificate({ studentId, courseId });
+      void webhooksDispatcher.emit('certificate.issued', {
+        certificateId: cert.id,
+        studentId,
+        courseId,
+        validationCode: cert.validationCode,
+        issuedAt: cert.issuedAt,
+        manual: true,
+      });
       return c.json(cert, 201);
     },
   );
@@ -2638,8 +2661,17 @@ export function buildApp() {
           continue;
         }
         try {
-          await certsRepo.issueCertificate({ studentId: s.id, courseId });
+          const cert = await certsRepo.issueCertificate({ studentId: s.id, courseId });
           issued++;
+          void webhooksDispatcher.emit('certificate.issued', {
+            certificateId: cert.id,
+            studentId: s.id,
+            courseId,
+            courseTitle: course.title,
+            validationCode: cert.validationCode,
+            issuedAt: cert.issuedAt,
+            bulk: true,
+          });
         } catch (err) {
           console.error('[bulk issue cert]', err);
         }
@@ -2865,6 +2897,30 @@ export function buildApp() {
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
     return c.json(updated);
   });
+
+  /**
+   * Emite explicitamente course.published quando admin clica em "publicar"
+   * o curso no editor. Hoje a publicacao eh implicita (curso aparece no
+   * catalog se nao tem releaseAt no futuro), mas este endpoint permite
+   * acionar webhooks manualmente para integradores que precisam saber.
+   */
+  app.post(
+    '/admin/courses/:id/publish',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const courseId = c.req.param('id') as string;
+      const course = await coursesRepo.findCourse(courseId);
+      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso nao encontrado');
+      void webhooksDispatcher.emit('course.published', {
+        courseId: course.id,
+        slug: course.slug,
+        title: course.title,
+        shortTitle: course.shortTitle,
+        publishedAt: new Date().toISOString(),
+      });
+      return c.json({ ok: true, courseId });
+    },
+  );
 
   // ---------- Admin: News writes ----------
 
@@ -8555,6 +8611,15 @@ export function buildApp() {
           orderId: updated.id,
           userId: updated.userId,
           amountCents: updated.amountCents,
+        });
+      } else if (event.status === 'failed' && updated) {
+        void webhooksDispatcher.emit('payment.failed', {
+          orderId: updated.id,
+          userId: updated.userId,
+          amountCents: updated.amountCents,
+          provider: gw.provider,
+          externalId: updated.externalId,
+          reason: event.metadata?.reason ?? null,
         });
       }
 

@@ -7,7 +7,10 @@ export type WebhookEventType =
   | 'enrollment.created'
   | 'user.created'
   | 'course.completed'
-  | 'lesson.completed';
+  | 'lesson.completed'
+  | 'certificate.issued'
+  | 'payment.failed'
+  | 'course.published';
 
 export const ALL_WEBHOOK_EVENTS: WebhookEventType[] = [
   'order.paid',
@@ -17,6 +20,9 @@ export const ALL_WEBHOOK_EVENTS: WebhookEventType[] = [
   'user.created',
   'course.completed',
   'lesson.completed',
+  'certificate.issued',
+  'payment.failed',
+  'course.published',
 ];
 
 export type WebhookChannelType =

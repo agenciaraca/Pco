@@ -33,6 +33,12 @@ function eventTitle(event: WebhookEventType): string {
       return 'Curso concluído';
     case 'lesson.completed':
       return 'Aula concluída';
+    case 'certificate.issued':
+      return 'Certificado emitido';
+    case 'payment.failed':
+      return 'Pagamento falhou';
+    case 'course.published':
+      return 'Curso publicado';
     default:
       return event;
   }
@@ -54,6 +60,12 @@ function eventEmoji(event: WebhookEventType): string {
       return '🏆';
     case 'lesson.completed':
       return '🎯';
+    case 'certificate.issued':
+      return '📜';
+    case 'payment.failed':
+      return '⚠️';
+    case 'course.published':
+      return '🚀';
     default:
       return '🔔';
   }
