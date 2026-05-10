@@ -56,6 +56,14 @@ export async function triggerApiImport(
         'info',
         `Coletados ${collected.totalRows} registros no total`,
       );
+      // Loga entidades puladas (sem WC ou sem LD no site)
+      for (const sk of collected.skipped) {
+        await importJobs.addNote(
+          job.id,
+          'info',
+          `Entidade '${sk.entity}' pulada: ${sk.reason}`,
+        );
+      }
       if (input.dryRun) {
         await runDryRun({
           rowsByEntity: collected.rowsByEntity,
