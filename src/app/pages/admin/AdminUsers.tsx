@@ -64,6 +64,8 @@ export default function AdminUsers() {
   const [sortBy, setSortBy] = useState<NonNullable<StudentsFilter['sortBy']>>('name');
   const [showCreate, setShowCreate] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<AdminStudentRow | null>(null);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: courses } = useCourses();
@@ -206,79 +208,198 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {selectedIds.size > 0 && (
-        <div className="pco-card p-3 flex items-center justify-between flex-wrap gap-3 bg-pco-blue/5 border-pco-blue/30">
-          <div className="text-sm text-pco-deep">
-            <strong>{selectedIds.size}</strong> aluno{selectedIds.size === 1 ? '' : 's'} selecionado{selectedIds.size === 1 ? '' : 's'}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                const rows = filtered.filter((s) => selectedIds.has(s.id));
-                if (rows.length === 0) return;
-                const headers = ['id', 'name', 'email', 'status', 'riskScore', 'lastAccessAt'];
-                const csv = [
-                  headers.join(','),
-                  ...rows.map((r) =>
-                    headers
-                      .map(
-                        (h) =>
-                          `"${String((r as unknown as Record<string, unknown>)[h] ?? '').replace(/"/g, '""')}"`,
-                      )
-                      .join(','),
-                  ),
-                ].join('\r\n');
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `alunos-${new Date().toISOString().slice(0, 10)}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-                toast.success(`${rows.length} aluno(s) exportados`);
-              }}
-              className="pco-btn-secondary text-xs"
-            >
-              Exportar CSV
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                const rows = filtered.filter((s) => selectedIds.has(s.id));
-                if (
-                  !confirm(`Bloquear ${rows.length} aluno(s) selecionado(s)?`)
-                )
-                  return;
-                let ok = 0;
-                for (const r of rows) {
-                  if (r.status === 'bloqueado') continue;
-                  try {
-                    await blockMut.mutateAsync(r.id);
-                    ok++;
-                  } catch {
-                    // continua
-                  }
-                }
-                toast.success(`${ok} aluno(s) bloqueado(s)`);
-                setSelectedIds(new Set());
-              }}
-              className="pco-btn-secondary text-xs"
-            >
-              Bloquear
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedIds(new Set())}
-              className="pco-btn-ghost text-xs"
-            >
-              Limpar seleção
-            </button>
-          </div>
+      {/* Barra de ações em massa — sempre visível no topo, contagem 0 quando vazio */}
+      <div
+        className={`pco-card p-3 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-10 ${
+          selectedIds.size > 0
+            ? 'bg-pco-blue/5 border-pco-blue/30'
+            : 'bg-surface-soft/60 border-surface-gray'
+        }`}
+      >
+        <div className="flex items-center gap-2 text-sm">
+          {selectedIds.size > 0 ? (
+            <>
+              <span className="font-semibold text-pco-deep">
+                {selectedIds.size}
+              </span>
+              <span className="text-ink-muted">
+                aluno{selectedIds.size === 1 ? '' : 's'} selecionado
+                {selectedIds.size === 1 ? '' : 's'}
+              </span>
+            </>
+          ) : (
+            <span className="text-ink-muted">
+              Selecione alunos abaixo para ações em massa
+            </span>
+          )}
         </div>
-      )}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={selectedIds.size === 0 || bulkBusy}
+            onClick={() => {
+              const rows = filtered.filter((s) => selectedIds.has(s.id));
+              if (rows.length === 0) return;
+              const headers = [
+                'id',
+                'name',
+                'email',
+                'status',
+                'riskScore',
+                'lastAccessAt',
+              ];
+              const csv = [
+                headers.join(','),
+                ...rows.map((r) =>
+                  headers
+                    .map(
+                      (h) =>
+                        `"${String((r as unknown as Record<string, unknown>)[h] ?? '').replace(/"/g, '""')}"`,
+                    )
+                    .join(','),
+                ),
+              ].join('\r\n');
+              const blob = new Blob([csv], {
+                type: 'text/csv;charset=utf-8',
+              });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `alunos-${new Date().toISOString().slice(0, 10)}.csv`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+              toast.success(`${rows.length} aluno(s) exportados`);
+            }}
+            className="pco-btn-secondary text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Exportar CSV
+          </button>
+          <button
+            type="button"
+            disabled={selectedIds.size === 0 || bulkBusy}
+            onClick={async () => {
+              const rows = filtered.filter((s) => selectedIds.has(s.id));
+              if (!confirm(`Bloquear ${rows.length} aluno(s) selecionado(s)?`))
+                return;
+              setBulkBusy(true);
+              let ok = 0;
+              for (const r of rows) {
+                if (r.status === 'bloqueado') continue;
+                try {
+                  await blockMut.mutateAsync(r.id);
+                  ok++;
+                } catch {
+                  // continua
+                }
+              }
+              setBulkBusy(false);
+              toast.success(`${ok} aluno(s) bloqueado(s)`);
+              setSelectedIds(new Set());
+            }}
+            className="pco-btn-secondary text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Bloquear
+          </button>
+          <button
+            type="button"
+            disabled={selectedIds.size === 0 || bulkBusy}
+            onClick={async () => {
+              const rows = filtered.filter((s) => selectedIds.has(s.id));
+              if (
+                !confirm(`Desbloquear ${rows.length} aluno(s) selecionado(s)?`)
+              )
+                return;
+              setBulkBusy(true);
+              let ok = 0;
+              for (const r of rows) {
+                if (r.status !== 'bloqueado') continue;
+                try {
+                  await unblockMut.mutateAsync(r.id);
+                  ok++;
+                } catch {
+                  // continua
+                }
+              }
+              setBulkBusy(false);
+              toast.success(`${ok} aluno(s) desbloqueado(s)`);
+              setSelectedIds(new Set());
+            }}
+            className="pco-btn-secondary text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Desbloquear
+          </button>
+          <button
+            type="button"
+            disabled={selectedIds.size === 0 || bulkBusy}
+            onClick={() => setConfirmBulkDelete(true)}
+            className="pco-btn-danger text-xs disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
+          >
+            <Trash2 size={12} strokeWidth={2} />
+            Excluir
+          </button>
+          <button
+            type="button"
+            disabled={selectedIds.size === 0 || bulkBusy}
+            onClick={() => setSelectedIds(new Set())}
+            className="pco-btn-ghost text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Limpar seleção
+          </button>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        variant="danger"
+        title={`Excluir ${selectedIds.size} aluno${selectedIds.size === 1 ? '' : 's'}?`}
+        description={
+          <div className="space-y-2 text-sm">
+            <p>
+              Esta ação <strong>não pode ser desfeita</strong>. Os{' '}
+              {selectedIds.size} alunos selecionados serão removidos
+              permanentemente, incluindo:
+            </p>
+            <ul className="list-disc list-inside text-xs text-ink-muted ml-2">
+              <li>Conta de acesso (não poderão mais fazer login)</li>
+              <li>Histórico de progresso</li>
+              <li>Anotações pessoais</li>
+              <li>Matrículas em cursos</li>
+            </ul>
+            <p className="text-xs text-ink-muted">
+              Pedidos e certificados emitidos são preservados (referência
+              histórica), mas órfãos.
+            </p>
+          </div>
+        }
+        confirmLabel={`Excluir ${selectedIds.size}`}
+        loading={bulkBusy}
+        onConfirm={async () => {
+          const rows = filtered.filter((s) => selectedIds.has(s.id));
+          setBulkBusy(true);
+          let ok = 0;
+          let fail = 0;
+          for (const r of rows) {
+            try {
+              await deleteMut.mutateAsync(r.id);
+              ok++;
+            } catch {
+              fail++;
+            }
+          }
+          setBulkBusy(false);
+          setConfirmBulkDelete(false);
+          setSelectedIds(new Set());
+          if (fail > 0) {
+            toast.info(`${ok} aluno(s) excluído(s), ${fail} falharam`);
+          } else {
+            toast.success(`${ok} aluno(s) excluído(s)`);
+          }
+        }}
+        onCancel={() => setConfirmBulkDelete(false)}
+      />
+
 
       {isLoading && <TableSkeleton rows={5} />}
 
