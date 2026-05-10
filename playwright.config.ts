@@ -8,6 +8,8 @@ const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
+  // Roda antes do webServer subir — reseta state determinístico.
+  globalSetup: './e2e/global-setup.ts',
   // Output: e2e/.test-results (gitignored).
   outputDir: './e2e/.test-results',
   // Global timeout: 60s por teste, 5min total.
@@ -47,7 +49,9 @@ export default defineConfig({
   webServer: {
     command: 'npm run e2e:server',
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
+    // Reusa local pra dev iterativo, mas o globalSetup limpa users.json
+    // antes do server subir. Em CI sempre fresh.
+    reuseExistingServer: false,
     timeout: 120_000,
     env: {
       PORT: String(PORT),
