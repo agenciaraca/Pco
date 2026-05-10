@@ -143,6 +143,9 @@ export default function ImportWizardApi() {
   >('skip');
   const [conflictStrategy, setConflictStrategy] =
     useState<ConflictStrategyDto>('update');
+  // Quando true, rows com erros de validacao (ex: email vazio em order)
+  // ainda sao processados — adapter decide se aceita.
+  const [skipValidationErrors, setSkipValidationErrors] = useState(false);
 
   // Pré-carrega defaults da conexão selecionada (apenas quando muda de conexão)
   const [lastAppliedDefaultsFor, setLastAppliedDefaultsFor] = useState<string | null>(
@@ -219,6 +222,7 @@ export default function ImportWizardApi() {
           userMatchKeys: matchKeys,
           unmatchedUserPolicy,
           conflictStrategy,
+          skipValidationErrors,
         },
       });
       toast.success(`${r.dryRun ? 'Dry-run' : 'Execução real'} iniciada`);
@@ -663,6 +667,25 @@ export default function ImportWizardApi() {
             onSelect={setConflictStrategy}
           />
         </div>
+
+        <label className="mt-4 flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={skipValidationErrors}
+            onChange={(e) => setSkipValidationErrors(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
+          />
+          <span className="text-sm">
+            <span className="font-medium text-pco-deep">
+              Tolerar erros de validação
+            </span>
+            <span className="block text-xs text-ink-muted mt-0.5">
+              Importa mesmo registros com problemas (ex.: pedidos sem e-mail
+              do cliente, status desconhecido). Os erros viram avisos no log
+              em vez de bloquear o registro. Útil pra dados legados.
+            </span>
+          </span>
+        </label>
       </Section>
 
       {/* 5) REGRAS DE MATRÍCULA */}

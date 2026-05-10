@@ -1730,6 +1730,8 @@ export interface RunApiInputDto {
       | 'external_id_only';
     unmatchedUserPolicy?: 'skip' | 'create_stub' | 'error';
     conflictStrategy?: ConflictStrategyDto;
+    /** Importa rows com erros de validacao mesmo assim (logs como warning). */
+    skipValidationErrors?: boolean;
   };
 }
 

@@ -181,19 +181,26 @@ export async function runReal(input: RealRunInput): Promise<void> {
       try {
         // Valida primeiro
         const errs = validateEntity(entity, row);
+        const skipErrors = input.enrollmentRules?.skipValidationErrors === true;
         if (errs.length > 0) {
-          await jobs.bumpEntityStat(jobId, entity, 'invalid', 1);
+          // Loga warnings independente de skipErrors (pra auditoria)
           for (const e of errs.slice(0, 3)) {
             await jobs.addError(jobId, {
               entity,
               rowIndex: i + 2,
-              message: e.message,
+              message: skipErrors ? `[WARNING ignorado] ${e.message}` : e.message,
               field: e.field,
             });
           }
-          continue;
+          if (!skipErrors) {
+            await jobs.bumpEntityStat(jobId, entity, 'invalid', 1);
+            continue;
+          }
+          // skipErrors=true: marca invalid pra contagem mas continua tentando criar
+          await jobs.bumpEntityStat(jobId, entity, 'invalid', 1);
+        } else {
+          await jobs.bumpEntityStat(jobId, entity, 'valid', 1);
         }
-        await jobs.bumpEntityStat(jobId, entity, 'valid', 1);
 
         // Aplica via adapter
         const ctx = {

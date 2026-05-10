@@ -251,6 +251,15 @@ export interface ImportEnrollmentConfig {
   unmatchedUserPolicy?: UnmatchedUserPolicy;
   // Estratégia de conflito global (sobrescreve a do ImportEntityConfig se setada)
   conflictStrategy?: ConflictStrategy;
+  /**
+   * Quando true, rows com erros de validacao (ex: email vazio, status invalido)
+   * ainda sao processados pelos adapters. Stats marca como
+   * 'imported_with_warnings'. Util pra importar dados legados imperfeitos
+   * sem perder registros.
+   *
+   * Default false (strict): rows invalidos sao pulados.
+   */
+  skipValidationErrors?: boolean;
 }
 
 export interface ImportApiConfig {

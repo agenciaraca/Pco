@@ -7544,6 +7544,7 @@ export function buildApp() {
         unmatchedUserPolicy: body.enrollment?.unmatchedUserPolicy,
         conflictStrategy:
           body.enrollment?.conflictStrategy ?? conn.defaultConflictStrategy,
+        skipValidationErrors: body.enrollment?.skipValidationErrors === true,
       };
       const dryRun = body.dryRun !== false;
       const result = await triggerApiImport({
