@@ -290,6 +290,24 @@ function validateEntity(
       return validateEnrollment(normalizeEnrollment(row) as NormalizedEnrollment);
     case 'progress':
       return validateProgress(normalizeProgress(row) as NormalizedProgress);
+    // Entidades auxiliares LD que entram no import mas nao tem schema proprio
+    // no AVA (sao usadas pra construir relacionamentos). Considera valido se
+    // tiver pelo menos um id discernivel.
+    case 'topic':
+    case 'quiz':
+    case 'question':
+    case 'group':
+      if (
+        row.id ||
+        row.external_topic_id ||
+        row.external_quiz_id ||
+        row.external_question_id ||
+        row.external_group_id ||
+        row.title
+      ) {
+        return [];
+      }
+      return [{ message: `${entity} sem id discernivel.` }];
     default:
       return [{ message: `Entidade desconhecida: ${entity}` }];
   }

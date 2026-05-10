@@ -15,8 +15,38 @@ import { applyTransforms } from './transforms';
 
 function s(v: unknown): string | undefined {
   if (v === null || v === undefined) return undefined;
+  // WP REST retorna title/excerpt/content como { rendered: '...' }
+  if (typeof v === 'object' && v !== null) {
+    const r = (v as { rendered?: unknown }).rendered;
+    if (typeof r === 'string') {
+      const t = r.trim();
+      return t === '' ? undefined : t;
+    }
+    return undefined;
+  }
   const t = String(v).trim();
   return t === '' ? undefined : t;
+}
+
+/** Tenta multiplos aliases de keys ate achar um valor preenchido. */
+function pick(row: Record<string, unknown>, keys: string[]): unknown {
+  for (const k of keys) {
+    const v = row[k];
+    if (v !== undefined && v !== null && v !== '') return v;
+  }
+  return undefined;
+}
+
+/** Mapeia status de WP/LD/WC pra status interno do AVA (PT). */
+function mapStudentStatus(raw: string | undefined): NormalizedStudent['status'] {
+  if (!raw) return 'ativo';
+  const lc = raw.toLowerCase();
+  if (['active', 'ativo', 'enabled', 'true', '1'].includes(lc)) return 'ativo';
+  if (['inactive', 'inativo', 'disabled', 'false', '0'].includes(lc)) return 'inativo';
+  if (['blocked', 'bloqueado', 'banned'].includes(lc)) return 'bloqueado';
+  if (['at_risk', 'em_risco', 'risk'].includes(lc)) return 'em_risco';
+  // Fallback: trata desconhecido como ativo (evita 1771 invalidos por status)
+  return 'ativo';
 }
 function num(v: unknown): number | undefined {
   if (typeof v === 'number') return v;
@@ -43,32 +73,40 @@ function money(v: unknown): number {
 
 export function normalizeStudent(row: Record<string, unknown>): NormalizedStudent {
   return {
-    externalUserId: s(row.external_user_id) ?? null,
-    wpUserId: s(row.wp_user_id) ?? null,
-    email: (s(row.user_email) ?? '').toLowerCase(),
-    firstName: s(row.first_name),
-    lastName: s(row.last_name),
-    displayName: s(row.display_name) ?? s(row.user_login),
-    phone: applyTransforms(s(row.phone), ['normalize_phone']) as string | undefined,
-    document: applyTransforms(s(row.document), ['normalize_document']) as
+    externalUserId: s(pick(row, ['external_user_id', 'wp_user_id', 'id'])) ?? null,
+    wpUserId: s(pick(row, ['wp_user_id', 'id'])) ?? null,
+    // WP REST: 'email' (context=edit). CSV legacy: 'user_email'
+    email: (s(pick(row, ['user_email', 'email'])) ?? '').toLowerCase(),
+    firstName: s(pick(row, ['first_name', 'firstName'])),
+    lastName: s(pick(row, ['last_name', 'lastName'])),
+    displayName: s(
+      pick(row, ['display_name', 'name', 'displayName', 'user_login', 'username']),
+    ),
+    phone: applyTransforms(s(pick(row, ['phone', 'telefone'])), ['normalize_phone']) as
       | string
       | undefined,
-    status: (s(row.status) ?? 'ativo') as NormalizedStudent['status'],
+    document: applyTransforms(s(pick(row, ['document', 'cpf', 'documento'])), [
+      'normalize_document',
+    ]) as string | undefined,
+    status: mapStudentStatus(s(pick(row, ['status', 'wp_status']))),
   };
 }
 
 export function normalizeCourse(row: Record<string, unknown>): NormalizedCourse {
   return {
-    externalCourseId: s(row.external_course_id) ?? null,
-    learndashCourseId: s(row.learndash_course_id) ?? null,
-    slug: s(row.course_slug),
-    title: s(row.course_title) ?? '',
-    description: applyTransforms(s(row.course_description), ['sanitize_html']) as
-      | string
-      | undefined,
-    status: (s(row.course_status) ?? 'publish') as NormalizedCourse['status'],
+    externalCourseId: s(pick(row, ['external_course_id', 'learndash_course_id', 'id'])) ?? null,
+    learndashCourseId: s(pick(row, ['learndash_course_id', 'id'])) ?? null,
+    slug: s(pick(row, ['course_slug', 'slug'])),
+    title: s(pick(row, ['course_title', 'title', 'name'])) ?? '',
+    description: applyTransforms(
+      s(pick(row, ['course_description', 'description', 'content_html', 'content', 'excerpt'])),
+      ['sanitize_html'],
+    ) as string | undefined,
+    status: (s(pick(row, ['course_status', 'wp_status', 'status'])) ?? 'publish') as
+      NormalizedCourse['status'],
     accessDurationDays:
-      int(row.course_access_expires_after_days) ?? int(row.course_duration_days) ?? null,
+      int(pick(row, ['course_access_expires_after_days', 'course_duration_days', 'access_duration_days'])) ??
+      null,
   };
 }
 
@@ -87,39 +125,43 @@ export function normalizeModule(row: Record<string, unknown>): NormalizedModule 
 
 export function normalizeLesson(row: Record<string, unknown>): NormalizedLesson {
   return {
-    externalLessonId: s(row.external_lesson_id) ?? null,
-    learndashLessonId: s(row.learndash_lesson_id) ?? null,
-    courseExternalId: s(row.course_external_id) ?? null,
-    moduleExternalId: s(row.module_external_id) ?? null,
-    title: s(row.lesson_title) ?? '',
-    description: applyTransforms(s(row.lesson_content), ['sanitize_html']) as
-      | string
-      | undefined,
-    videoUrl: applyTransforms(s(row.lesson_video_url), ['extract_video_url']) as
-      | string
-      | undefined,
-    durationMinutes: int(row.lesson_duration_minutes),
-    order: int(row.lesson_order) ?? 0,
-    isMandatory: bool(row.is_mandatory) ?? true,
-    releaseType: (s(row.release_type) ?? 'open') as NormalizedLesson['releaseType'],
-    dripDays: int(row.drip_days),
-    status: (s(row.status) ?? 'publish') as NormalizedLesson['status'],
+    externalLessonId: s(pick(row, ['external_lesson_id', 'learndash_lesson_id', 'id'])) ?? null,
+    learndashLessonId: s(pick(row, ['learndash_lesson_id', 'id'])) ?? null,
+    courseExternalId: s(pick(row, ['course_external_id', 'course'])) ?? null,
+    moduleExternalId: s(pick(row, ['module_external_id', 'parent', 'section'])) ?? null,
+    title: s(pick(row, ['lesson_title', 'title', 'name'])) ?? '',
+    description: applyTransforms(
+      s(pick(row, ['lesson_content', 'content_html', 'content', 'description', 'excerpt'])),
+      ['sanitize_html'],
+    ) as string | undefined,
+    videoUrl: applyTransforms(s(pick(row, ['lesson_video_url', 'video_url'])), [
+      'extract_video_url',
+    ]) as string | undefined,
+    durationMinutes: int(pick(row, ['lesson_duration_minutes', 'duration_minutes'])),
+    order: int(pick(row, ['lesson_order', 'order', 'menu_order'])) ?? 0,
+    isMandatory: bool(pick(row, ['is_mandatory', 'mandatory'])) ?? true,
+    releaseType: (s(pick(row, ['release_type', 'release'])) ?? 'open') as
+      NormalizedLesson['releaseType'],
+    dripDays: int(pick(row, ['drip_days', 'visible_after_days'])),
+    status: (s(pick(row, ['status', 'wp_status'])) ?? 'publish') as NormalizedLesson['status'],
   };
 }
 
 export function normalizeProduct(row: Record<string, unknown>): NormalizedProduct {
   return {
-    externalProductId: s(row.external_product_id) ?? null,
-    wcProductId: s(row.wc_product_id) ?? null,
-    sku: s(row.sku),
-    name: s(row.product_name) ?? '',
-    type: (s(row.product_type) ?? 'simple') as NormalizedProduct['type'],
-    regularPriceCents: money(row.regular_price),
-    salePriceCents: row.sale_price ? money(row.sale_price) : null,
-    currency: (s(row.currency) ?? 'BRL').toUpperCase(),
-    status: (s(row.status) ?? 'publish') as NormalizedProduct['status'],
-    linkedCourseExternalId: s(row.linked_course_external_id) ?? null,
-    linkedLearndashCourseId: s(row.linked_learndash_course_id) ?? null,
+    externalProductId: s(pick(row, ['external_product_id', 'wc_product_id', 'id'])) ?? null,
+    wcProductId: s(pick(row, ['wc_product_id', 'id'])) ?? null,
+    sku: s(pick(row, ['sku'])),
+    name: s(pick(row, ['product_name', 'name', 'title'])) ?? '',
+    type: (s(pick(row, ['product_type', 'type'])) ?? 'simple') as NormalizedProduct['type'],
+    regularPriceCents: money(pick(row, ['regular_price', 'price'])),
+    salePriceCents: pick(row, ['sale_price']) ? money(pick(row, ['sale_price'])) : null,
+    currency: (s(pick(row, ['currency'])) ?? 'BRL').toUpperCase(),
+    status: (s(pick(row, ['status', 'wp_status'])) ?? 'publish') as NormalizedProduct['status'],
+    linkedCourseExternalId:
+      s(pick(row, ['linked_course_external_id', 'related_course_id'])) ?? null,
+    linkedLearndashCourseId:
+      s(pick(row, ['linked_learndash_course_id', 'learndash_course_id'])) ?? null,
   };
 }
 
