@@ -133,4 +133,8 @@ When the user says "atualize a produção", run `restart_vps.py` (after pushing)
 ## Reference docs
 
 `docs/` has deeper notes per subsystem when you need them:
-`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `api-public.md`, `deploy.md`.
+`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `api-public.md`, `deploy.md`, `migration-wp-ld.md`.
+
+## Migração WP/LD/WC em andamento
+
+A migração dos dois sites WP de origem (`portalpco.online` LMS + `psicanaliseclinica.online` loja) para o AVA está em **Fase 1 concluída** (discovery feito). Estado vivo, slugs PT-BR, contagens, mappings e próximos passos: `docs/migration-wp-ld.md`. Creds dos dois sites ficam em `.env.import` (gitignored).
