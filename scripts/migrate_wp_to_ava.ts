@@ -126,10 +126,111 @@ async function ensureConnection(
 // deixando os do portal primeiro (já que têm progressão). O `adapter.upsertStudent`
 // faz dedup por email automaticamente.
 
+/**
+ * Detecta rows de spam SEO injetado por bots no WP/WC (display_name com
+ * "www.blogspot.com - BAM RUB BITCOIN" etc.). 436 dos 1775 customers do
+ * PSI estão assim — emails russos descartáveis. Não importar pro AVA.
+ */
+const SPAM_PATTERNS = [
+  /blogspot\.com/i,
+  /\bRUB\b/,
+  /\bUSD\b.*BITCOIN/i,
+  /\bBAM\s+\d/,
+  /SBERBANK/i,
+  /TINKOFF/i,
+  /PABOTA/i, // "работа" (work) em cirílico romanizado — termo recorrente nos spams
+  /www\.\w+\.(blog|info|biz)/i,
+];
+
+function isSpamRow(row: Record<string, unknown>): boolean {
+  const fields = [
+    String(row.display_name ?? ''),
+    String(row.first_name ?? ''),
+    String(row.last_name ?? ''),
+  ].join(' ');
+  if (!fields.trim()) return false;
+  return SPAM_PATTERNS.some((re) => re.test(fields));
+}
+
+function filterSpam(result: CollectResult): { kept: number; removed: number } {
+  const students = result.rowsByEntity.student;
+  if (!students) return { kept: 0, removed: 0 };
+  const spamIds = new Set<string>();
+  const kept: typeof students = [];
+  for (const s of students) {
+    if (isSpamRow(s)) {
+      const id = String(s.external_user_id ?? '');
+      if (id) spamIds.add(id);
+    } else {
+      kept.push(s);
+    }
+  }
+  result.rowsByEntity.student = kept;
+  result.perEntity.student = kept.length;
+
+  // Remove tambem enrollments/orders/progress que apontam pra users spam
+  // (esses entries spam não vão ter pra onde resolver depois do filtro)
+  const filterByUser = (e: 'enrollment' | 'progress' | 'order', key: string) => {
+    const rows = result.rowsByEntity[e];
+    if (!rows) return;
+    result.rowsByEntity[e] = rows.filter((r) => !spamIds.has(String(r[key] ?? '')));
+    result.perEntity[e] = result.rowsByEntity[e]!.length;
+  };
+  filterByUser('enrollment', 'user_external_id');
+  filterByUser('progress', 'user_external_id');
+  filterByUser('order', 'customer_external_id');
+
+  return { kept: kept.length, removed: students.length - kept.length };
+}
+
+/**
+ * Aplica prefixo no user_external_id (e external_user_id em student rows)
+ * para evitar colisão entre os 2 sites. Sem prefixo, refsStore('learndash',
+ * 'student', '1125') achava o user errado quando portal e psi tinham o
+ * mesmo numeric WP user ID (509 colisões observadas em prod). O merge
+ * por email (em upsertStudent) ainda funciona — só não confiamos no
+ * external_id como chave única cross-site.
+ */
+function prefixUserIds(result: CollectResult, prefix: string): void {
+  const rebrand = (row: Record<string, unknown>, key: string) => {
+    const v = row[key];
+    if (v == null || v === '') return;
+    const s = String(v);
+    if (!s.startsWith(prefix + ':')) row[key] = `${prefix}:${s}`;
+  };
+  for (const row of result.rowsByEntity.student ?? []) {
+    rebrand(row, 'external_user_id');
+    rebrand(row, 'wp_user_id');
+  }
+  for (const row of result.rowsByEntity.enrollment ?? []) {
+    rebrand(row, 'user_external_id');
+  }
+  for (const row of result.rowsByEntity.progress ?? []) {
+    rebrand(row, 'user_external_id');
+  }
+  // Orders carregam customer_external_id; também devem ser prefixadas pra
+  // não conflitar (1775 customers do PSI vs 785 do portal).
+  for (const row of result.rowsByEntity.order ?? []) {
+    rebrand(row, 'customer_external_id');
+  }
+}
+
 function mergeRows(
   portal: CollectResult,
   psi: CollectResult,
 ): Partial<Record<ImportEntityType, Array<Record<string, unknown>>>> {
+  // Filtra rows de spam SEO ANTES do prefixo/merge — só sobram users reais.
+  const portalFiltered = filterSpam(portal);
+  const psiFiltered = filterSpam(psi);
+  log(
+    `spam filter: portal -${portalFiltered.removed} (kept ${portalFiltered.kept}) · ` +
+      `psi -${psiFiltered.removed} (kept ${psiFiltered.kept})`,
+  );
+
+  // Prefixa IDs do user antes do merge — evita colisão entre os 2 sites.
+  prefixUserIds(portal, 'portal');
+  prefixUserIds(psi, 'psi');
+
   const merged: Partial<Record<ImportEntityType, Array<Record<string, unknown>>>> = {};
 
   const concat = (e: ImportEntityType) => {

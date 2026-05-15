@@ -16,6 +16,7 @@
 // Os endpoints que podem não existir em LD < 4.5 são tratados com try/catch — pulamos silenciosamente.
 
 import { paginate, getJson, ConnectorError } from './http';
+import { fetchWpStudents } from './wp';
 import type { ImportConnection } from '../connections-store';
 import { decryptCreds } from '../connections-store';
 
@@ -685,35 +686,42 @@ export async function fetchLdCoursePrerequisites(
 export async function fetchLdEnrollments(
   c: ImportConnection,
 ): Promise<Array<Record<string, unknown>>> {
-  const slugs = await getLdSlugs(c);
-  const courses = await fetchLdCourses(c, 100);
+  // PRECISO usar /users/{id}/courses (lista os cursos do user), NÃO
+  // /cursos/{id}/usuarios — quando o user da Application Password é admin,
+  // o segundo endpoint retorna TODOS os usuários do site indiscriminadamente,
+  // gerando enrollments fantasma cruzados (cada aluno em todos os cursos).
+  // /users/{id}/courses é estritamente os cursos em que o aluno se matriculou.
+  const users = await fetchWpStudents(c, 100);
   const out: Array<Record<string, unknown>> = [];
   const auth = basicAuthHeader(c);
+  let page = 1;
+  let processed = 0;
 
-  for (const co of courses) {
-    const courseId = String(co.external_course_id);
-    // Pagina todos os usuários de cada curso (X-WP-TotalPages do WP REST).
-    let page = 1;
+  for (const u of users) {
+    const userId = String(u.external_user_id);
+    if (!userId) continue;
+    // Pagina pra cobrir alunos com muitos cursos
+    page = 1;
     let totalPages = 1;
     do {
       try {
         const res = await fetch(
-          `${c.siteUrl}/wp-json/ldlms/v2/${slugs.courses}/${courseId}/${slugs.courseUsers}?per_page=100&page=${page}`,
+          `${c.siteUrl}/wp-json/ldlms/v2/users/${userId}/courses?context=edit&per_page=100&page=${page}`,
           { headers: { Accept: 'application/json', ...auth } },
         );
         if (!res.ok) break;
         const tp = Number(res.headers.get('x-wp-totalpages') ?? '');
         if (Number.isFinite(tp) && tp > 0) totalPages = tp;
-        const arr = (await res.json()) as Array<number | { id?: number; user_id?: number }>;
+        const arr = (await res.json()) as Array<{ id?: number }>;
         if (!Array.isArray(arr) || arr.length === 0) break;
-        for (const u of arr) {
-          const userId = typeof u === 'number' ? u : (u.id ?? u.user_id);
-          if (!userId) continue;
+        for (const co of arr) {
+          const courseId = co.id;
+          if (!courseId) continue;
           out.push({
             external_enrollment_id: `ld:${courseId}:${userId}`,
-            user_external_id: String(userId),
-            course_external_id: courseId,
-            learndash_course_id: courseId,
+            user_external_id: userId,
+            course_external_id: String(courseId),
+            learndash_course_id: String(courseId),
             status: 'active',
           });
         }
@@ -721,7 +729,12 @@ export async function fetchLdEnrollments(
         break;
       }
       page++;
-    } while (page <= totalPages && page <= 50); // teto de segurança
+    } while (page <= totalPages && page <= 20);
+    processed++;
+    if (processed % 100 === 0) {
+      // eslint-disable-next-line no-console
+      console.log(`[ld:enrollments] ${processed}/${users.length} users processados, ${out.length} matrículas até agora`);
+    }
   }
   return out;
 }

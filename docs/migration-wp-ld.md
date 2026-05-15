@@ -136,15 +136,16 @@ Formato:
 ```
 PORTAL_PCO_URL=https://portalpco.online
 PORTAL_PCO_USER=claude
-PORTAL_PCO_APP_PASSWORD=ibYs vril 09iY AhkB 8LSm rnvV
+PORTAL_PCO_APP_PASSWORD=<segredo — em .env.import local, não comitar>
 
 PSICANALISE_URL=https://psicanaliseclinica.online
 PSICANALISE_USER=claude
-PSICANALISE_APP_PASSWORD=PWb1 SIuK 8KZT hng3 eaK5 QTTF
+PSICANALISE_APP_PASSWORD=<segredo — em .env.import local, não comitar>
 ```
 
-Ambos os usuários `claude` têm role `administrator`. As app passwords foram
-expostas em chat — **devem ser rotacionadas após a migração**
+Ambos os usuários `claude` têm role `administrator`. As app passwords e
+a senha SSH foram expostas em commits anteriores deste repo (público) —
+**devem ser rotacionadas após o projeto finalizar**
 (`/wp-admin/profile.php` → Application Passwords → Revoke + gerar novas).
 
 ## Mapeamento WP → AVA
@@ -357,3 +358,109 @@ estruturado:
 
 Validado em produção: `GET /api/courses` retorna os 16 cursos via login
 do superadmin (`admin@psicanaliseclinica.online`).
+
+## Bugs críticos descobertos pós-deploy v2 (2026-05-15 22h)
+
+Análise dos dados em produção revelou 3 bugs sérios. **Re-coleta v3 em
+curso** com fixes aplicados ao código mas dados em produção ainda no
+estado bugado v2 — aguardando re-aplicar.
+
+### Bug #1: enrollments fantasma (cada aluno em todos os cursos)
+
+`GET /wp-json/ldlms/v2/cursos/{id}/usuarios` retorna **todos os usuários
+do site** quando o user da Application Password é admin, **não** apenas
+os matriculados nesse curso.
+
+Sintoma: cada um dos 785 alunos do portal apareceu matriculado em todos
+os 13 cursos (10.205 enrollments errados — só ~1500 são reais).
+
+Comprovação:
+```bash
+# user 1482 tem só 2 cursos reais
+curl .../ldlms/v2/users/1482/courses?context=edit → 2 cursos
+curl .../ldlms/v2/users/1482/course-progress     → 2 entries
+# mas o endpoint inverso retorna todos:
+curl .../ldlms/v2/cursos/14839/usuarios → 785 (todos, não só os matriculados)
+```
+
+**Fix em `server/imports/connectors/ld.ts:fetchLdEnrollments`:** iterar
+os 785 users e chamar `/users/{id}/courses` em vez de iterar os cursos.
+Mais lento (~25 min em vez de ~5 min) mas exato.
+
+### Bug #2: colisão de external_user_id entre portal e psi
+
+509 dos 785/1775 user IDs colidem entre os dois sites (números WP
+independentes — `1125` é Adriana no portal e `fixyou94` (spam) no psi).
+O `refsStore.find('learndash', 'student', '1125')` retornava sempre o
+mesmo internalId, fundindo dois users diferentes num só.
+
+Sintoma: 333 users sumiram (esperados 1972 únicos, criados 1639) +
+nomes spam SEO em ~436 alunos legítimos do portal.
+
+**Fix em `scripts/migrate_wp_to_ava.ts`:** novo `prefixUserIds(result,
+prefix)` aplicado antes do merge, gerando IDs como `portal:1125` /
+`psi:1125`. Refs ficam isoladas por origem.
+
+### Bug #3: SEO spam injection no WP
+
+Bots encheram `display_name` de 436 customers do PSI com texto tipo
+`"www.rabotaaa11.blogspot.com - SBERBANK 842211 RUB"`. Emails russos
+descartáveis (`@mail.ru`, `@bk.ru`, `@inbox.ru`, gmails genéricos).
+
+**Fix em `scripts/migrate_wp_to_ava.ts`:** novo `filterSpam(result)`
+com 8 patterns (blogspot.com, RUB, BAM, SBERBANK, TINKOFF, PABOTA,
+www.*.blog/info/biz). Filtra também enrollments/progress/orders que
+apontam pros users spam.
+
+### Estado em produção (ainda v2 buggy)
+
+- `users.json`: 1641 (1638 importados, 333 faltando, ~436 com nomes spam)
+- `admin-students.json`: 793 com 10.205 enrollments **errados** (cada um
+  em todos os 13 cursos)
+- `external-references.json`: 14.049 entries com colisões
+
+### Plano de recuperação v3 (em curso)
+
+1. ✅ Patch connector LD (`fetchLdEnrollments` via `/users/{id}/courses`)
+2. ✅ Patch migrate script (`prefixUserIds` + `filterSpam`)
+3. ✅ Script `scripts/reset_imported_data.ts` (mantém só seeds + admin@psicanaliseclinica.online)
+4. ✅ Reset local executado (1638 users → 4, 793 alunos → 8)
+5. ⏳ **Re-coletar (em background, ~30 min)** — gerando raw v3
+6. ⏳ Re-aplicar do raw v3 (~15 min)
+7. ⏳ Re-rodar `import_lessons_and_map_products`
+8. ⏳ Sync para VPS + restart
+9. ⏳ Importar secundários (112 questões, 77 posts, 1 cupom)
+
+## Como continuar de onde paramos
+
+Quando voltar nessa sessão:
+
+1. **Conferir se o re-coleta v3 terminou**:
+   ```bash
+   tail -5 Pco/data/migration/collect-v3.log
+   # esperado: "[migration] ==== fim collect-only em ..."
+   ```
+
+2. **Se terminou OK**, re-aplicar:
+   ```bash
+   cd Pco
+   # listar dump v3
+   ls data/migration/
+   # pegar o dir mais recente, ex: 2026-05-15T22-09-57-876Z
+   npx tsx scripts/migrate_wp_to_ava.ts --apply --from-raw=data/migration/<dir>
+   # depois lessons + products:
+   npx tsx scripts/import_lessons_and_map_products.ts
+   # depois sync pro VPS:
+   HOST=177.7.35.13 USER_NAME=avapco PORT=22 SSH_PASSWORD='<senha>' \
+     python scripts/sync_data_to_vps.py
+   ```
+
+3. **Pendências de importação** (tasks #17, #18, #19 no TaskList):
+   - 112 questões LD → `data/question-bank.json`
+   - 77 posts WP → `data/news.json`
+   - 1 cupom WC → `data/coupons.json`
+
+4. **Credenciais** (não-rotacionadas até final do projeto):
+   - WP Application Passwords (portal + psi): `Pco/.env.import` (gitignored)
+   - VPS SSH: `avapco@177.7.35.13:22` — senha em ambiente local do owner
+     (mesma senha do AVA superadmin `admin@psicanaliseclinica.online`)
