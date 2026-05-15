@@ -226,8 +226,11 @@ export async function runReal(input: RealRunInput): Promise<void> {
           case 'enrollment':
             res = await adapters.applyEnrollment(normalizeEnrollment(row), cfg, ctx);
             break;
+          case 'progress':
+            res = await adapters.applyProgress(normalizeProgress(row), ctx);
+            break;
           default:
-            // module/lesson/progress: não modificam dados sensíveis. Só registram refs/logs.
+            // module/lesson: não modificam dados sensíveis. Só registram refs/logs.
             res = { outcome: 'ignored', message: 'Entidade ainda não persistida (refs only).' };
             break;
         }

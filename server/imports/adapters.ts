@@ -14,6 +14,7 @@ import type {
   NormalizedProduct,
   NormalizedOrder,
   NormalizedEnrollment,
+  NormalizedProgress,
   ImportEntityConfig,
   ConflictStrategy,
   ImportSource,
@@ -609,6 +610,50 @@ export async function applyEnrollment(
     return { outcome: 'created', internalId: `${userId}:${internalCourseId}` };
   }
   return { outcome: 'updated', internalId: existing.internalId };
+}
+
+// ---------- Progress ----------
+//
+// Atualiza student.progressByCourse[courseId] = percent. Resolve aluno por
+// userMatchKeys (default email + external_id). Linha de progress por step
+// individual (post_id) é ignorada — só interessa o agregado por curso.
+
+export async function applyProgress(
+  norm: NormalizedProgress,
+  ctx: AdapterContext,
+): Promise<UpsertResult> {
+  // Linhas de step individual têm topicExternalId/lessonExternalId mas o
+  // percentual está só no payload de curso. Ignora silenciosamente.
+  if (norm.progressPercentage === undefined || norm.progressPercentage === null) {
+    if (norm.lessonExternalId || norm.topicExternalId) {
+      return { outcome: 'ignored', message: 'step-level progress sem percentual agregado' };
+    }
+  }
+
+  const resolved = await resolveUserOrPolicy(
+    {
+      externalId: norm.userExternalId,
+      email: norm.userEmail,
+      name: norm.userEmail,
+    },
+    ctx,
+  );
+  if (!resolved.userId) {
+    return { outcome: 'error', message: resolved.error };
+  }
+  const userId = resolved.userId;
+
+  const courseExternal = norm.courseExternalId;
+  if (!courseExternal) {
+    return { outcome: 'error', message: 'progress sem courseExternalId' };
+  }
+  const courseRef = await refsStore.find(ctx.source, 'course', courseExternal);
+  const internalCourseId = courseRef?.internalId ?? courseExternal;
+
+  const pct = norm.progressPercentage ?? 0;
+  await studentsRepo.setCourseProgress(userId, internalCourseId, pct);
+
+  return { outcome: 'updated', internalId: `${userId}:${internalCourseId}:progress` };
 }
 
 // ---------- Status helpers (re-exportados para conveniência) ----------

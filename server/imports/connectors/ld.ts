@@ -687,27 +687,36 @@ export async function fetchLdEnrollments(
 
   for (const co of courses) {
     const courseId = String(co.external_course_id);
-    try {
-      const res = await fetch(
-        `${c.siteUrl}/wp-json/ldlms/v2/${slugs.courses}/${courseId}/${slugs.courseUsers}?per_page=100`,
-        { headers: { Accept: 'application/json', ...auth } },
-      );
-      if (!res.ok) continue;
-      const arr = (await res.json()) as Array<number | { id?: number; user_id?: number }>;
-      for (const u of arr) {
-        const userId = typeof u === 'number' ? u : (u.id ?? u.user_id);
-        if (!userId) continue;
-        out.push({
-          external_enrollment_id: `ld:${courseId}:${userId}`,
-          user_external_id: String(userId),
-          course_external_id: courseId,
-          learndash_course_id: courseId,
-          status: 'active',
-        });
+    // Pagina todos os usuários de cada curso (X-WP-TotalPages do WP REST).
+    let page = 1;
+    let totalPages = 1;
+    do {
+      try {
+        const res = await fetch(
+          `${c.siteUrl}/wp-json/ldlms/v2/${slugs.courses}/${courseId}/${slugs.courseUsers}?per_page=100&page=${page}`,
+          { headers: { Accept: 'application/json', ...auth } },
+        );
+        if (!res.ok) break;
+        const tp = Number(res.headers.get('x-wp-totalpages') ?? '');
+        if (Number.isFinite(tp) && tp > 0) totalPages = tp;
+        const arr = (await res.json()) as Array<number | { id?: number; user_id?: number }>;
+        if (!Array.isArray(arr) || arr.length === 0) break;
+        for (const u of arr) {
+          const userId = typeof u === 'number' ? u : (u.id ?? u.user_id);
+          if (!userId) continue;
+          out.push({
+            external_enrollment_id: `ld:${courseId}:${userId}`,
+            user_external_id: String(userId),
+            course_external_id: courseId,
+            learndash_course_id: courseId,
+            status: 'active',
+          });
+        }
+      } catch {
+        break;
       }
-    } catch {
-      /* ignora */
-    }
+      page++;
+    } while (page <= totalPages && page <= 50); // teto de segurança
   }
   return out;
 }
@@ -715,6 +724,13 @@ export async function fetchLdEnrollments(
 // ---------- Progresso por aluno ----------
 
 interface LdUserCourseProgress {
+  // LD 4.x v2 nomes "novos"
+  course?: number;
+  progress_status?: string;
+  steps_completed?: number;
+  steps_total?: number;
+  date_started?: string | null;
+  // LD legado / variações
   course_id?: number;
   status?: string;
   completed?: number;
@@ -742,8 +758,9 @@ export async function fetchLdProgress(
   const out: Array<Record<string, unknown>> = [];
   const auth = basicAuthHeader(c);
 
-  // Limite defensivo — não passar de 500 users em um único job
-  for (const userId of userIds.slice(0, 500)) {
+  // Limite defensivo configurável via env (default 1000)
+  const max = Number(process.env.LD_PROGRESS_MAX_USERS ?? 1000);
+  for (const userId of userIds.slice(0, max)) {
     try {
       const res = await fetch(
         `${c.siteUrl}/wp-json/ldlms/v2/users/${userId}/${slugs.userCourseProgress}?per_page=100`,
@@ -752,26 +769,30 @@ export async function fetchLdProgress(
       if (!res.ok) continue;
       const data = (await res.json()) as LdUserCourseProgress[];
       for (const p of Array.isArray(data) ? data : []) {
-        if (!p.course_id) continue;
+        // LD 4.x v2 usa "course"; legado usa "course_id"
+        const courseId = p.course ?? p.course_id;
+        if (!courseId) continue;
+        const completed = p.steps_completed ?? p.completed ?? 0;
+        const total = p.steps_total ?? p.total ?? 0;
+        const status = p.progress_status ?? p.status ?? '';
         out.push({
           user_external_id: userId,
-          course_external_id: String(p.course_id),
-          learndash_course_id: String(p.course_id),
-          status: p.status ?? '',
-          completed_steps: p.completed ?? 0,
-          total_steps: p.total ?? 0,
+          course_external_id: String(courseId),
+          learndash_course_id: String(courseId),
+          status,
+          completed_steps: completed,
+          total_steps: total,
           last_step: p.last_step ? String(p.last_step) : '',
+          started_at: p.date_started ?? '',
           completed_at: p.date_completed ?? '',
           progress_percentage:
-            p.total && p.total > 0
-              ? Math.round(((p.completed ?? 0) / p.total) * 100)
-              : 0,
+            total > 0 ? Math.round((completed / total) * 100) : 0,
         });
         // Steps detalhadas (se vier — vira lista de progress por aula/topic/quiz)
         for (const step of p.steps ?? []) {
           out.push({
             user_external_id: userId,
-            course_external_id: String(p.course_id),
+            course_external_id: String(courseId),
             external_step_id: String(step.post_id),
             step_type: step.post_type,
             status: step.status ?? '',

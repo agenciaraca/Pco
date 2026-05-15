@@ -219,6 +219,43 @@ export async function unenrollFromCourse(
   });
 }
 
+/**
+ * Atualiza progressByCourse[courseId] = percentual (0..100). Usado pelo
+ * importer para refletir progresso vindo do LearnDash. Cria registro mínimo
+ * de student se necessário (mesmo padrão do enrollInCourse).
+ */
+export async function setCourseProgress(
+  userId: string,
+  courseId: string,
+  percent: number,
+): Promise<void> {
+  const pct = Math.max(0, Math.min(100, Math.round(percent)));
+  await adminStore.modify((rows) => {
+    let row = rows.find((s) => s.id === userId);
+    if (!row) {
+      const now = new Date().toISOString();
+      const fresh: AdminStudentDto = {
+        id: userId,
+        name: userId,
+        email: '',
+        status: 'ativo',
+        riskScore: 0,
+        enrolledCourseIds: [],
+        progressByCourse: {},
+        lastAccessAt: now,
+        createdAt: now,
+        enrollmentDates: {},
+      };
+      rows.push(fresh);
+      row = fresh;
+    }
+    if (!row.enrolledCourseIds.includes(courseId)) {
+      row.enrolledCourseIds = [...row.enrolledCourseIds, courseId];
+    }
+    row.progressByCourse = { ...row.progressByCourse, [courseId]: pct };
+  });
+}
+
 export async function deleteAdminStudent(id: string): Promise<boolean> {
   const db = getDb();
   if (!db) {

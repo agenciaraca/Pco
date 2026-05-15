@@ -268,21 +268,75 @@ async function discoverLdSlugs(c: ImportConnection): Promise<LdSlugMap> {
 
 ## Estado atual da sessão (handoff)
 
-- ✅ Discovery + inventário completos
-- ⏳ Fase 2 (coleta) — não iniciada
-- Última atividade: 2026-05-15
-- Próxima ação: implementar `scripts/migrate_wp_to_ava.ts` ou criar
-  conexão via UI `/admin/imports/conexoes` e usar o job runner existente.
+- ✅ Fase 1 — Discovery + inventário (slugs PT-BR mapeados)
+- ✅ Fase 2 — Coleta: `npx tsx scripts/migrate_wp_to_ava.ts --collect-only`
+- ✅ Fase 3 — Aplicação: 8128 entidades criadas, 928 alunos mergeados por email
+- ✅ Fase 4 — Re-apply idempotente: 0 created / 10.137 updated / 0 erros
+- ⏳ Fase 5 — Lessons (212) ainda `ignored` (sem adapter). Próximo passo
+  pra ter conteúdo do curso navegável no LMS — mas estrutura já está em
+  `external-references.json` consultável.
 
-## Decisão pendente
+## Resultado da migração
 
-Antes de seguir, alinhar com o owner:
+Última execução: **2026-05-15** com dump em
+`data/migration/2026-05-15T12-18-43-769Z/` (raw + report.json — gitignored).
 
-1. **Importa tudo de uma vez ou em fases por curso?** Recomendação: tudo
-   de uma vez (são 785 alunos, volume baixo).
-2. **Sobrescreve usuários existentes no AVA?** Recomendação: `conflictStrategy='update'`
-   por email (já é o default).
-3. **Importa orders cancelled/failed/pending?** Recomendação: sim, para
-   ter histórico completo de tentativas (já temos `status` na tabela).
-4. **Importa apenas alunos com progressão > 0 ou todos os 785?** Recomendação:
-   todos, mas marcar `status='inactive'` quem nunca logou.
+**Coletado:**
+- portalpco: 7560 rows (785 students, 6 courses, 212 lessons, 654 topics,
+  112 questions, 4710 enrollments, 1081 progress entries)
+- psi: 3555 rows (1775 customers, 5 products, 1775 orders)
+
+**Persistido (em `data/*.json`, gitignored):**
+
+| Arquivo                       | Conteúdo                                     |
+| ----------------------------- | -------------------------------------------- |
+| `users.json`                  | 1641 (3 seed + 1638 importados)              |
+| `admin-students.json`         | 793 alunos (785 portal + 8 seed)             |
+| `external-references.json`    | 8547 refs (4710 enroll + 2051 student + 1775 order + 6 course + 5 product) |
+| `payment-products.json`       | 5 produtos WC                                |
+| `lesson-progress.json`        | (vazio — progress agregado vive em admin-students.progressByCourse) |
+| `import-connections.json`     | 2 conexões com creds criptografadas AES-GCM  |
+| `import-jobs.json`            | 3 jobs registrados                           |
+
+**Distribuição de progresso (em produção, vivo):**
+
+- 523 alunos com progresso > 0%
+- 679 registros não-zero
+- Média 39.7%
+- Top: curso 14839 (Psicanálise Master) com 357 alunos engajados / média 39.3%
+
+**14 warnings (orders abandonadas sem email):** rows 696, 750, 752, 755, 769,
+824, 913, 914, 946, 1005, 1023, 1041, 1067, 1085 — todos pedidos
+pending/failed sem checkout completo. Persistidos como warnings via
+`skipValidationErrors: true`.
+
+## Como re-executar
+
+```bash
+cd Pco
+# Carrega .env.import (creds gitignored) e roda end-to-end
+npx tsx scripts/migrate_wp_to_ava.ts --collect-only          # só baixa raw (~12 min)
+npx tsx scripts/migrate_wp_to_ava.ts --dry-run --from-raw=data/migration/<TS>  # valida (~15s)
+npx tsx scripts/migrate_wp_to_ava.ts --apply --from-raw=data/migration/<TS>    # persiste (~10 min)
+```
+
+Flags suportadas:
+- `--collect-only` — só baixa raw em `data/migration/<ts>/raw/portal.json` e `psi.json`
+- `--dry-run` — valida sem persistir
+- `--apply` — persiste real (idempotente)
+- `--from-raw=<dir>` — reusa raw existente (pula coleta)
+- `--verbose` — debug
+
+## TODO futuro
+
+- **Lesson adapter:** persistir as 212 aulas em `courses.json` (estrutura
+  aninhada de modules/lessons). Hoje o conteúdo de cada aula está em
+  `external-references` mas o LMS lê de courses.json — precisa do adapter
+  pra fechar o loop.
+- **Mapping produto WC → curso LD:** produtos `8034`, `8258`, `13464`,
+  `21184` vendem acesso a cursos LD do portal. Esse vínculo não está nos
+  metadados WC (`_related_course` vazio nos 5). Criar tabela
+  `data/migration/product-to-course-map.json` editável.
+- **Rotacionar app passwords** dos dois sites depois que decidir que está
+  pronto. Comando para o owner: `/wp-admin/profile.php` → Application
+  Passwords → Revoke.

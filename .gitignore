@@ -66,4 +66,7 @@ data/coupons.json
 data/admin-digest-config.json
 data/import-schedules.json
 data/payment-products.json
+data/payment-orders.json
+data/admin-students.json
+data/lesson-progress.json
 data/migration/
