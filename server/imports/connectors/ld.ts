@@ -401,10 +401,13 @@ export async function fetchLdCourses(
   const slugs = await getLdSlugs(c);
   const courseSlug = await paginateWithSlugFallback(c, 'courses', slugs.courses, perPage);
   const out: Array<Record<string, unknown>> = [];
+  // status=any inclui drafts/private — sites WP frequentemente têm cursos
+  // não-publicados com alunos matriculados (rascunhos, programas internos).
   for await (const batch of paginate<LdCourse>(
     {
       baseUrl: c.siteUrl,
       path: `wp-json/ldlms/v2/${courseSlug}`,
+      query: { status: 'any' },
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -443,6 +446,7 @@ export async function fetchLdLessons(
     {
       baseUrl: c.siteUrl,
       path: `wp-json/ldlms/v2/${lessonSlug}`,
+      query: { status: 'any' },
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },
@@ -479,6 +483,7 @@ export async function fetchLdTopics(
     {
       baseUrl: c.siteUrl,
       path: `wp-json/ldlms/v2/${topicSlug}`,
+      query: { status: 'any' },
       username: creds.wpUsername,
       password: creds.wpAppPassword,
     },

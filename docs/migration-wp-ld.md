@@ -329,14 +329,31 @@ Flags suportadas:
 
 ## TODO futuro
 
-- **Lesson adapter:** persistir as 212 aulas em `courses.json` (estrutura
-  aninhada de modules/lessons). Hoje o conteúdo de cada aula está em
-  `external-references` mas o LMS lê de courses.json — precisa do adapter
-  pra fechar o loop.
-- **Mapping produto WC → curso LD:** produtos `8034`, `8258`, `13464`,
-  `21184` vendem acesso a cursos LD do portal. Esse vínculo não está nos
-  metadados WC (`_related_course` vazio nos 5). Criar tabela
-  `data/migration/product-to-course-map.json` editável.
 - **Rotacionar app passwords** dos dois sites depois que decidir que está
   pronto. Comando para o owner: `/wp-admin/profile.php` → Application
   Passwords → Revoke.
+- **Duração real das aulas:** hoje as 213 aulas LD recebem 15min default no
+  `courses.json` (LD não expõe duração direto). Se quiser duração real,
+  parsear `<video>` no `content_html` ou abrir cada aula no LD e ler meta.
+- **Cursos "draft":** 7 dos 13 cursos LD estão como `draft` no portal
+  (Autismo, Neuropsicologia, Suicídio etc.). Foram importados como ativos
+  no AVA — se o owner não quiser eles visíveis, marcar via UI ou criar
+  field `published` na importação.
+
+## Versão final (2026-05-15, sprint v2)
+
+Após adicionar `status=any` no connector LD (`fetchLdCourses`,
+`fetchLdLessons`, `fetchLdTopics`) pra incluir cursos draft + script
+`scripts/import_lessons_and_map_products.ts` que monta `courses.json`
+estruturado:
+
+| Métrica | Antes (v1) | Agora (v2) |
+|---|---|---|
+| Cursos | 6 publicados | **13 (publish + draft)** |
+| Lessons importadas | — | **213 distribuídas em courses.json** |
+| Enrollments | 4710 | **10.205** |
+| courses.json total | 3 seed | **16 (13 LD + 3 seed)** |
+| Produtos com refId | 0 | **3 linkados** (8034→14839, 8258→8748, 13464→12245) |
+
+Validado em produção: `GET /api/courses` retorna os 16 cursos via login
+do superadmin (`admin@psicanaliseclinica.online`).

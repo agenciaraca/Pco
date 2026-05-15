@@ -60,6 +60,7 @@ SYNC_FILES = [
     'payment-products.json',
     'payment-orders.json',
     'lesson-progress.json',
+    'courses.json',
 ]
 
 DRY_RUN = os.environ.get('DRY_RUN') == '1'
