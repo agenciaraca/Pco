@@ -1,6 +1,7 @@
 import { eq, desc, asc, and, ilike, or, sql, type SQL } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
 import { JsonStore } from '../db/json-store';
+import * as usersStore from '../auth/users-store';
 import {
   adminStudents as seedAdmin,
   currentStudent,
@@ -154,14 +155,16 @@ export async function setStudentStatus(
  * Idempotente. Cria entrada mínima para o aluno se ele não existir como adminStudent.
  */
 export async function enrollInCourse(userId: string, courseId: string): Promise<void> {
+  // Hidrata nome/email do users-store antes do modify (caso seja stub novo)
+  const u = await usersStore.findUserById(userId);
   await adminStore.modify((rows) => {
     let row = rows.find((s) => s.id === userId);
     if (!row) {
       const now = new Date().toISOString();
       const fresh: AdminStudentDto = {
         id: userId,
-        name: userId,
-        email: '',
+        name: u?.name || userId,
+        email: u?.email || '',
         status: 'ativo',
         riskScore: 0,
         enrolledCourseIds: [],
@@ -230,14 +233,15 @@ export async function setCourseProgress(
   percent: number,
 ): Promise<void> {
   const pct = Math.max(0, Math.min(100, Math.round(percent)));
+  const u = await usersStore.findUserById(userId);
   await adminStore.modify((rows) => {
     let row = rows.find((s) => s.id === userId);
     if (!row) {
       const now = new Date().toISOString();
       const fresh: AdminStudentDto = {
         id: userId,
-        name: userId,
-        email: '',
+        name: u?.name || userId,
+        email: u?.email || '',
         status: 'ativo',
         riskScore: 0,
         enrolledCourseIds: [],
