@@ -1,5 +1,5 @@
-import { useParams, Link, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useParams, Link, Navigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Mail,
@@ -48,7 +48,20 @@ const statusLabel: Record<string, string> = {
 
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
-  const [active, setActive] = useState('geral');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') ?? 'geral';
+  const [active, setActive] = useState(tabParam);
+  useEffect(() => {
+    if (tabParam !== active) setActive(tabParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam]);
+  const handleTabChange = (next: string) => {
+    setActive(next);
+    const nextParams = new URLSearchParams(searchParams);
+    if (next === 'geral') nextParams.delete('tab');
+    else nextParams.set('tab', next);
+    setSearchParams(nextParams, { replace: true });
+  };
   const [impersonating, setImpersonating] = useState(false);
   const [impersonateError, setImpersonateError] = useState<string | null>(null);
   const auth = useAuth();
@@ -180,7 +193,7 @@ export default function AdminUserDetail() {
         </div>
       )}
 
-      <Tabs items={tabs} active={active} onChange={setActive} />
+      <Tabs items={tabs} active={active} onChange={handleTabChange} />
 
       {active === 'geral' && (
         <div className="grid gap-5 lg:grid-cols-3">

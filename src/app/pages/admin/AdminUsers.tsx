@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,7 +17,13 @@ import {
   Save,
   Loader2,
   Trash2,
+  ChevronDown,
+  ChevronUp,
+  UserCog,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+import { useAuth } from '../../auth/AuthContext';
 import {
   useAdminStudents,
   useCourses,
@@ -53,10 +59,13 @@ const statusLabel: Record<AdminStudentRow['status'], string> = {
   inativo: 'Inativo',
 };
 
+type PageSize = 20 | 50 | 100 | 200 | 'all';
+
 export default function AdminUsers() {
   const t = useT();
   useDocumentMeta({ title: `${t('admin.nav.students')} — Admin AVA PCO` });
   const toast = useToast();
+  const auth = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] =
     useState<NonNullable<StudentsFilter['status']>>('todos');
@@ -67,6 +76,16 @@ export default function AdminUsers() {
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [riskMin, setRiskMin] = useState<number>(0);
+  const [riskMax, setRiskMax] = useState<number>(100);
+  const [progressMin, setProgressMin] = useState<number>(0);
+  const [progressMax, setProgressMax] = useState<number>(100);
+  const [lastAccessWithin, setLastAccessWithin] = useState<'any' | '7d' | '30d' | '90d' | '180d' | '365d' | 'never180'>('any');
+  const [enrolledMin, setEnrolledMin] = useState<number>(0);
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(50);
 
   const { data: courses } = useCourses();
   const studentsQ = useAdminStudents({
@@ -81,16 +100,75 @@ export default function AdminUsers() {
   const unblockMut = useUnblockStudent();
   const deleteMut = useDeleteAdminStudent();
 
-  const filtered = studentsQ.data ?? [];
+  const baseRows = studentsQ.data ?? [];
   const isLoading = studentsQ.isLoading;
   const isFetching = studentsQ.isFetching && !isLoading;
   const isError = studentsQ.isError;
 
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90, '180d': 180, '365d': 365 };
+    return baseRows.filter((s) => {
+      if (s.riskScore < riskMin || s.riskScore > riskMax) return false;
+      const progresses = Object.values(s.progressByCourse);
+      const avg = progresses.length
+        ? progresses.reduce((a, b) => a + b, 0) / progresses.length
+        : 0;
+      if (avg < progressMin || avg > progressMax) return false;
+      if (s.enrolledCourseIds.length < enrolledMin) return false;
+      if (lastAccessWithin !== 'any') {
+        const last = new Date(s.lastAccessAt).getTime();
+        const diffDays = (now - last) / 86_400_000;
+        if (lastAccessWithin === 'never180') {
+          if (!(diffDays > 180)) return false;
+        } else {
+          const cap = daysMap[lastAccessWithin];
+          if (diffDays > cap) return false;
+        }
+      }
+      return true;
+    });
+  }, [baseRows, riskMin, riskMax, progressMin, progressMax, enrolledMin, lastAccessWithin]);
+
+  const totalRows = filtered.length;
+  const effectivePageSize = pageSize === 'all' ? Math.max(totalRows, 1) : pageSize;
+  const totalPages = Math.max(1, Math.ceil(totalRows / effectivePageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIdx = (currentPage - 1) * effectivePageSize;
+  const endIdx = Math.min(startIdx + effectivePageSize, totalRows);
+  const pageRows = pageSize === 'all' ? filtered : filtered.slice(startIdx, endIdx);
+
   const totals = {
-    total: filtered.length,
-    ativos: filtered.filter((s) => s.status === 'ativo').length,
-    em_risco: filtered.filter((s) => s.status === 'em_risco').length,
-    bloqueados: filtered.filter((s) => s.status === 'bloqueado').length,
+    total: baseRows.length,
+    ativos: baseRows.filter((s) => s.status === 'ativo').length,
+    em_risco: baseRows.filter((s) => s.status === 'em_risco').length,
+    bloqueados: baseRows.filter((s) => s.status === 'bloqueado').length,
+  };
+
+  const activeFiltersCount =
+    (riskMin > 0 || riskMax < 100 ? 1 : 0) +
+    (progressMin > 0 || progressMax < 100 ? 1 : 0) +
+    (lastAccessWithin !== 'any' ? 1 : 0) +
+    (enrolledMin > 0 ? 1 : 0);
+
+  const resetExtraFilters = () => {
+    setRiskMin(0);
+    setRiskMax(100);
+    setProgressMin(0);
+    setProgressMax(100);
+    setLastAccessWithin('any');
+    setEnrolledMin(0);
+  };
+
+  const handleImpersonate = async (s: AdminStudentRow) => {
+    if (impersonatingId) return;
+    setImpersonatingId(s.id);
+    try {
+      await auth.startImpersonation(s.id);
+    } catch (err) {
+      setImpersonatingId(null);
+      toast.error('Falha ao entrar como aluno', err instanceof Error ? err.message : 'Erro');
+    }
   };
 
   const toggleBlock = async (s: AdminStudentRow) => {
@@ -151,7 +229,7 @@ export default function AdminUsers() {
         <SummaryCard label="Bloqueados" value={totals.bloqueados} accent="danger" />
       </div>
 
-      <div className="pco-card p-4">
+      <div className="pco-card p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[220px]">
             <Search
@@ -161,16 +239,20 @@ export default function AdminUsers() {
             />
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               placeholder="Buscar por nome ou e-mail..."
               className="pco-input pl-9"
             />
           </div>
           <select
             value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value as NonNullable<StudentsFilter['status']>)
-            }
+            onChange={(e) => {
+              setStatusFilter(e.target.value as NonNullable<StudentsFilter['status']>);
+              setPage(1);
+            }}
             className="pco-input w-auto"
           >
             <option value="todos">Todos os status</option>
@@ -181,7 +263,10 @@ export default function AdminUsers() {
           </select>
           <select
             value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
+            onChange={(e) => {
+              setCourseFilter(e.target.value);
+              setPage(1);
+            }}
             className="pco-input w-auto"
           >
             <option value="todos">Todos os cursos</option>
@@ -200,12 +285,142 @@ export default function AdminUsers() {
             <option value="risk">Ordenar: Risco</option>
             <option value="lastAccess">Ordenar: Último acesso</option>
           </select>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((v) => !v)}
+            className="pco-btn-ghost text-xs inline-flex items-center gap-1"
+            aria-expanded={filtersOpen}
+          >
+            <Filter size={12} strokeWidth={1.75} />
+            Filtros avançados
+            {activeFiltersCount > 0 && (
+              <span className="pco-badge bg-pco-blue text-white text-[10px] px-1.5 py-0">
+                {activeFiltersCount}
+              </span>
+            )}
+            {filtersOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
           <span className="text-xs text-ink-subtle ml-auto">
             <Filter size={12} className="inline mr-1" />
             {filtered.length} resultado(s)
+            {filtered.length !== baseRows.length && (
+              <span className="ml-1 text-ink-subtle/70">de {baseRows.length}</span>
+            )}
             {isFetching && <span className="ml-2 text-pco-blue">atualizando…</span>}
           </span>
         </div>
+
+        {filtersOpen && (
+          <div className="pt-3 border-t border-surface-gray grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
+                Risco entre
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={riskMin}
+                  onChange={(e) => {
+                    setRiskMin(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="pco-input w-20"
+                />
+                <span className="text-xs text-ink-subtle">e</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={riskMax}
+                  onChange={(e) => {
+                    setRiskMax(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="pco-input w-20"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
+                Progresso médio (%)
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={progressMin}
+                  onChange={(e) => {
+                    setProgressMin(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="pco-input w-20"
+                />
+                <span className="text-xs text-ink-subtle">e</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={progressMax}
+                  onChange={(e) => {
+                    setProgressMax(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="pco-input w-20"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
+                Último acesso
+              </div>
+              <select
+                value={lastAccessWithin}
+                onChange={(e) => {
+                  setLastAccessWithin(e.target.value as typeof lastAccessWithin);
+                  setPage(1);
+                }}
+                className="pco-input"
+              >
+                <option value="any">Qualquer</option>
+                <option value="7d">Últimos 7 dias</option>
+                <option value="30d">Últimos 30 dias</option>
+                <option value="90d">Últimos 90 dias</option>
+                <option value="180d">Últimos 180 dias</option>
+                <option value="365d">Últimos 365 dias</option>
+                <option value="never180">Sem acesso há +180 dias</option>
+              </select>
+            </div>
+            <div>
+              <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
+                Matriculado em ≥
+              </div>
+              <input
+                type="number"
+                min={0}
+                value={enrolledMin}
+                onChange={(e) => {
+                  setEnrolledMin(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="pco-input w-24"
+                placeholder="curso(s)"
+              />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
+              <button
+                type="button"
+                onClick={resetExtraFilters}
+                className="pco-btn-ghost text-xs"
+                disabled={activeFiltersCount === 0}
+              >
+                Limpar filtros avançados
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Barra de ações em massa — sempre visível no topo, contagem 0 quando vazio */}
@@ -427,6 +642,20 @@ export default function AdminUsers() {
 
       {!isLoading && !isError && filtered.length > 0 && (
         <div className="pco-card p-0 overflow-hidden">
+          <PaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalRows={totalRows}
+            startIdx={startIdx}
+            endIdx={endIdx}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              setPage(1);
+            }}
+            position="top"
+          />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-off">
@@ -435,18 +664,20 @@ export default function AdminUsers() {
                     <input
                       type="checkbox"
                       checked={
-                        filtered.length > 0 &&
-                        filtered.every((s) => selectedIds.has(s.id))
+                        pageRows.length > 0 &&
+                        pageRows.every((s) => selectedIds.has(s.id))
                       }
                       onChange={(e) => {
+                        const next = new Set(selectedIds);
                         if (e.target.checked) {
-                          setSelectedIds(new Set(filtered.map((s) => s.id)));
+                          pageRows.forEach((s) => next.add(s.id));
                         } else {
-                          setSelectedIds(new Set());
+                          pageRows.forEach((s) => next.delete(s.id));
                         }
+                        setSelectedIds(next);
                       }}
                       className="h-3.5 w-3.5 rounded text-pco-blue focus:ring-pco-blue"
-                      aria-label="Selecionar todos"
+                      aria-label="Selecionar todos na página"
                     />
                   </th>
                   <th className="px-4 py-3 text-left font-medium">Aluno</th>
@@ -467,21 +698,20 @@ export default function AdminUsers() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((s) => {
+                {pageRows.map((s) => {
                   const initials = s.name
                     .split(' ')
                     .map((n) => n[0])
                     .slice(0, 2)
                     .join('');
-                  const enrolledCourses = s.enrolledCourseIds
-                    .map((id) => (courses ?? []).find((c) => c.id === id))
-                    .filter(Boolean);
+                  const courseCount = s.enrolledCourseIds.length;
                   const avgProgress =
                     Object.values(s.progressByCourse).reduce((a, b) => a + b, 0) /
                     Math.max(1, Object.keys(s.progressByCourse).length);
+                  const progressHref = `/admin/alunos/${s.id}?tab=progresso`;
                   return (
                     <tr key={s.id} className="border-t border-surface-gray hover:bg-surface-off">
-                      <td className="px-3 py-3 w-8">
+                      <td className="px-3 py-3 w-8 align-top">
                         <input
                           type="checkbox"
                           checked={selectedIds.has(s.id)}
@@ -491,43 +721,53 @@ export default function AdminUsers() {
                             else next.delete(s.id);
                             setSelectedIds(next);
                           }}
-                          className="h-3.5 w-3.5 rounded text-pco-blue focus:ring-pco-blue"
+                          className="h-3.5 w-3.5 rounded text-pco-blue focus:ring-pco-blue mt-1"
                           aria-label={`Selecionar ${s.name}`}
                         />
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white">
+                      <td className="px-4 py-3 max-w-[280px]">
+                        <div className="flex items-start gap-3">
+                          <div className="h-9 w-9 shrink-0 rounded-lg bg-gradient-to-br from-pco-blue to-pco-cyan grid place-items-center text-xs font-semibold text-white">
                             {initials}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-pco-deep truncate">{s.name}</div>
-                            <div className="text-[11px] text-ink-subtle truncate">{s.email}</div>
+                            <div className="font-semibold text-pco-deep whitespace-normal break-words leading-snug">
+                              {s.name}
+                            </div>
+                            <div className="text-[11px] text-ink-subtle break-all">{s.email}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {enrolledCourses.map((c) => (
-                            <span
-                              key={c!.id}
-                              className="pco-badge bg-pco-blue/10 text-pco-blue"
-                            >
-                              {c!.shortTitle}
-                            </span>
-                          ))}
-                        </div>
+                      <td className="px-4 py-3 text-center">
+                        <Link
+                          to={progressHref}
+                          className="inline-flex flex-col items-center gap-0.5 hover:text-pco-blue group"
+                          title={`Ver ${courseCount} curso(s) matriculados`}
+                        >
+                          <span className="text-lg font-bold text-pco-deep group-hover:text-pco-blue tabular-nums">
+                            {courseCount}
+                          </span>
+                          <span className="text-[10px] text-ink-subtle uppercase tracking-wider">
+                            curso{courseCount === 1 ? '' : 's'}
+                          </span>
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-xs text-ink-muted mb-1">
-                          {Math.round(avgProgress)}% médio
-                        </div>
-                        <div className="h-1.5 w-24 rounded-full bg-surface-gray overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-pco-blue to-pco-cyan"
-                            style={{ width: `${avgProgress}%` }}
-                          />
-                        </div>
+                        <Link
+                          to={progressHref}
+                          className="block hover:opacity-80"
+                          title="Ver progresso detalhado"
+                        >
+                          <div className="text-xs text-ink-muted mb-1">
+                            {Math.round(avgProgress)}% médio
+                          </div>
+                          <div className="h-1.5 w-24 rounded-full bg-surface-gray overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-pco-blue to-pco-cyan"
+                              style={{ width: `${avgProgress}%` }}
+                            />
+                          </div>
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`pco-badge ${statusStyles[s.status]}`}>
@@ -566,6 +806,18 @@ export default function AdminUsers() {
                             <Eye size={12} strokeWidth={1.75} />
                           </Link>
                           <button
+                            onClick={() => handleImpersonate(s)}
+                            disabled={!!impersonatingId}
+                            className="pco-btn-ghost text-xs px-2.5 text-pco-blue hover:bg-pco-blue/10"
+                            title="Entrar como este aluno"
+                          >
+                            {impersonatingId === s.id ? (
+                              <Loader2 size={12} strokeWidth={1.75} className="animate-spin" />
+                            ) : (
+                              <UserCog size={12} strokeWidth={1.75} />
+                            )}
+                          </button>
+                          <button
                             onClick={() => toast.info('E-mail', `Composição para ${s.name} será aberta.`)}
                             className="pco-btn-ghost text-xs px-2.5"
                             title="Enviar e-mail"
@@ -599,6 +851,20 @@ export default function AdminUsers() {
               </tbody>
             </table>
           </div>
+          <PaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalRows={totalRows}
+            startIdx={startIdx}
+            endIdx={endIdx}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              setPage(1);
+            }}
+            position="bottom"
+          />
         </div>
       )}
 
@@ -785,6 +1051,93 @@ function Field({
       {children}
       {error && <p className="mt-1 text-xs text-status-danger">{error}</p>}
     </label>
+  );
+}
+
+function PaginationBar({
+  page,
+  totalPages,
+  pageSize,
+  totalRows,
+  startIdx,
+  endIdx,
+  onPageChange,
+  onPageSizeChange,
+  position,
+}: {
+  page: number;
+  totalPages: number;
+  pageSize: PageSize;
+  totalRows: number;
+  startIdx: number;
+  endIdx: number;
+  onPageChange: (p: number) => void;
+  onPageSizeChange: (s: PageSize) => void;
+  position: 'top' | 'bottom';
+}) {
+  const isAll = pageSize === 'all';
+  const fromLabel = totalRows === 0 ? 0 : startIdx + 1;
+  const toLabel = isAll ? totalRows : endIdx;
+  return (
+    <div
+      className={`flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-surface-off ${
+        position === 'top' ? 'border-b border-surface-gray' : 'border-t border-surface-gray'
+      }`}
+    >
+      <div className="flex items-center gap-2 text-xs text-ink-muted">
+        <span>Mostrando</span>
+        <span className="font-semibold text-pco-deep tabular-nums">
+          {fromLabel}–{toLabel}
+        </span>
+        <span>de</span>
+        <span className="font-semibold text-pco-deep tabular-nums">{totalRows}</span>
+        <span className="hidden sm:inline">aluno(s)</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-2 text-xs text-ink-muted">
+          <span>Por página:</span>
+          <select
+            value={String(pageSize)}
+            onChange={(e) => {
+              const v = e.target.value;
+              onPageSizeChange((v === 'all' ? 'all' : (Number(v) as PageSize)));
+            }}
+            className="pco-input w-auto py-1 text-xs"
+          >
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+            <option value="all">Todos</option>
+          </select>
+        </label>
+        {!isAll && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page <= 1}
+              className="pco-btn-ghost text-xs px-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Página anterior"
+            >
+              <ChevronLeft size={12} strokeWidth={1.75} />
+            </button>
+            <span className="text-xs text-ink-muted tabular-nums">
+              {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+              disabled={page >= totalPages}
+              className="pco-btn-ghost text-xs px-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Próxima página"
+            >
+              <ChevronRight size={12} strokeWidth={1.75} />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
