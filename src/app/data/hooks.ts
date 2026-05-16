@@ -271,6 +271,23 @@ export function useDeleteCourse() {
   });
 }
 
+export function useReorderCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: api.ReorderCourseInput;
+    }) => api.reorderCourse(id, payload),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+      qc.invalidateQueries({ queryKey: queryKeys.course(vars.id) });
+    },
+  });
+}
+
 // ---- Admin: news writes ----
 
 export function useCreateNews() {

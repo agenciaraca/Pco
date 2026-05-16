@@ -152,6 +152,79 @@ export async function duplicateCourse(sourceId: string): Promise<Course | null> 
  *
  * Retorna { ok: true } se removeu, null se não encontrou.
  */
+/**
+ * Reordena módulos e aulas de um curso em uma operação atômica.
+ * Aceita também mover aulas entre módulos (cross-module reorder via DnD).
+ *
+ * Input: lista de módulos na nova ordem. Cada módulo traz as lessons na
+ * nova ordem. Os ids precisam corresponder aos existentes; ids desconhecidos
+ * são ignorados (não cria nada novo).
+ *
+ * No modo JSON: substitui in-place. No modo DB: faz batch update de order +
+ * moduleId nas lessons.
+ */
+export async function reorderCourseContent(
+  courseId: string,
+  modules: Array<{ id: string; lessonIds: string[] }>,
+): Promise<Course | null> {
+  const db = getDb();
+  if (!db) {
+    return await store.modify((courses) => {
+      const c = courses.find((x) => x.id === courseId);
+      if (!c) return null;
+      const existingModules = new Map(c.modules.map((m) => [m.id, m]));
+      const allLessons = new Map<string, Lesson>();
+      for (const m of c.modules) {
+        for (const l of m.lessons) allLessons.set(l.id, l);
+      }
+
+      const newModules: Module[] = [];
+      let moduleOrder = 1;
+      for (const incoming of modules) {
+        const mod = existingModules.get(incoming.id);
+        if (!mod) continue;
+        let lessonOrder = 1;
+        const newLessons: Lesson[] = [];
+        for (const lid of incoming.lessonIds) {
+          const l = allLessons.get(lid);
+          if (!l) continue;
+          newLessons.push({
+            ...l,
+            moduleId: mod.id,
+            courseId,
+            order: lessonOrder++,
+          });
+          allLessons.delete(lid);
+        }
+        newModules.push({
+          ...mod,
+          order: moduleOrder++,
+          lessons: newLessons,
+        });
+      }
+      c.modules = newModules;
+      return c;
+    });
+  }
+
+  // DB path: atualiza order dos módulos e order + moduleId de cada lesson
+  let moduleOrder = 1;
+  for (const incoming of modules) {
+    await db
+      .update(schema.modules)
+      .set({ order: moduleOrder++ })
+      .where(eq(schema.modules.id, incoming.id));
+    let lessonOrder = 1;
+    for (const lid of incoming.lessonIds) {
+      await db
+        .update(schema.lessons)
+        .set({ order: lessonOrder++, moduleId: incoming.id })
+        .where(eq(schema.lessons.id, lid));
+    }
+  }
+  return await findCourse(courseId);
+}
+
 export async function deleteCourse(id: string): Promise<{ ok: true } | null> {
   const db = getDb();
   if (!db) {

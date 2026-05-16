@@ -2378,6 +2378,20 @@ export async function deleteCourse(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/courses/${encodeURIComponent(id)}`);
 }
 
+export interface ReorderCourseInput {
+  modules: Array<{ id: string; lessonIds: string[] }>;
+}
+
+export async function reorderCourse(
+  id: string,
+  payload: ReorderCourseInput,
+): Promise<Course> {
+  return http.post<Course>(
+    `/admin/courses/${encodeURIComponent(id)}/reorder`,
+    payload,
+  );
+}
+
 // ---------- Admin: News writes ----------
 
 export interface CreateNewsPayload {

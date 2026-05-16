@@ -1,5 +1,26 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -34,6 +55,7 @@ import {
   useCourses,
   useUpdateCourse,
   useDeleteCourse,
+  useReorderCourse,
   useCreateModule,
   useUpdateModule,
   useDeleteModule,
@@ -1042,6 +1064,160 @@ function ModulosPane({ course }: { course: Course }) {
   const createLessonMut = useCreateLesson(course.id);
   const updateLessonMut = useUpdateLesson(course.id);
   const deleteLessonMut = useDeleteLesson(course.id);
+  const reorderMut = useReorderCourse();
+
+  // Estado local — fonte da verdade durante drag. Sincroniza com course.modules
+  // quando vier um update de fora (após save).
+  const [localModules, setLocalModules] = useState<Module[]>(course.modules);
+  const isDirtyRef = useRef(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Sincroniza quando o servidor envia versão nova (e estamos limpos)
+    if (!isDirtyRef.current) {
+      setLocalModules(course.modules);
+    }
+  }, [course.modules]);
+
+  const persistOrder = (modules: Module[]) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    isDirtyRef.current = true;
+    saveTimeoutRef.current = setTimeout(async () => {
+      setSavingOrder(true);
+      try {
+        await reorderMut.mutateAsync({
+          id: course.id,
+          payload: {
+            modules: modules.map((m) => ({
+              id: m.id,
+              lessonIds: m.lessons.map((l) => l.id),
+            })),
+          },
+        });
+        isDirtyRef.current = false;
+      } catch (err) {
+        toast.error(
+          'Falha ao salvar ordem',
+          err instanceof Error ? err.message : 'Erro',
+        );
+        // Reverte para o estado do servidor
+        setLocalModules(course.modules);
+        isDirtyRef.current = false;
+      } finally {
+        setSavingOrder(false);
+      }
+    }, 500);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const moduleIds = localModules.map((m) => `mod:${m.id}`);
+  const lessonIdToModuleId = new Map<string, string>();
+  for (const m of localModules) {
+    for (const l of m.lessons) lessonIdToModuleId.set(l.id, m.id);
+  }
+
+  function handleDragStart(e: DragStartEvent) {
+    setActiveDragId(String(e.active.id));
+  }
+
+  function handleDragOver(e: DragOverEvent) {
+    const { active, over } = e;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (activeId === overId) return;
+    if (!activeId.startsWith('les:')) return; // só lessons reagem em onOver pra cross-module
+
+    const lessonId = activeId.slice(4);
+    const sourceModuleId = lessonIdToModuleId.get(lessonId);
+    if (!sourceModuleId) return;
+
+    // Destino: pode ser outra lesson OU um módulo (largar no header do módulo)
+    let targetModuleId: string | undefined;
+    let targetLessonId: string | undefined;
+    if (overId.startsWith('les:')) {
+      targetLessonId = overId.slice(4);
+      targetModuleId = lessonIdToModuleId.get(targetLessonId);
+    } else if (overId.startsWith('mod:')) {
+      targetModuleId = overId.slice(4);
+    } else if (overId.startsWith('drop-mod:')) {
+      targetModuleId = overId.slice(9);
+    }
+    if (!targetModuleId || targetModuleId === sourceModuleId) return;
+
+    // Move aula entre módulos preemptivamente (otimiza UX)
+    setLocalModules((prev) => {
+      const next = prev.map((m) => ({ ...m, lessons: [...m.lessons] }));
+      const sourceMod = next.find((m) => m.id === sourceModuleId);
+      const targetMod = next.find((m) => m.id === targetModuleId);
+      if (!sourceMod || !targetMod) return prev;
+      const idx = sourceMod.lessons.findIndex((l) => l.id === lessonId);
+      if (idx === -1) return prev;
+      const [moved] = sourceMod.lessons.splice(idx, 1);
+      if (!moved) return prev;
+      const movedClone: Lesson = { ...moved, moduleId: targetMod.id };
+      const targetIdx = targetLessonId
+        ? targetMod.lessons.findIndex((l) => l.id === targetLessonId)
+        : targetMod.lessons.length;
+      targetMod.lessons.splice(targetIdx === -1 ? targetMod.lessons.length : targetIdx, 0, movedClone);
+      return next;
+    });
+  }
+
+  function handleDragEnd(e: DragEndEvent) {
+    setActiveDragId(null);
+    const { active, over } = e;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (activeId === overId) return;
+
+    if (activeId.startsWith('mod:') && overId.startsWith('mod:')) {
+      const fromIdx = localModules.findIndex((m) => `mod:${m.id}` === activeId);
+      const toIdx = localModules.findIndex((m) => `mod:${m.id}` === overId);
+      if (fromIdx === -1 || toIdx === -1) return;
+      const next = arrayMove(localModules, fromIdx, toIdx);
+      setLocalModules(next);
+      persistOrder(next);
+      return;
+    }
+
+    if (activeId.startsWith('les:') && overId.startsWith('les:')) {
+      const lessonId = activeId.slice(4);
+      const overLessonId = overId.slice(4);
+      const sourceModuleId = lessonIdToModuleId.get(lessonId);
+      const targetModuleId = lessonIdToModuleId.get(overLessonId);
+      if (!sourceModuleId || !targetModuleId) return;
+
+      if (sourceModuleId === targetModuleId) {
+        // Reorder dentro do mesmo módulo
+        const next = localModules.map((m) => {
+          if (m.id !== sourceModuleId) return m;
+          const fromIdx = m.lessons.findIndex((l) => l.id === lessonId);
+          const toIdx = m.lessons.findIndex((l) => l.id === overLessonId);
+          if (fromIdx === -1 || toIdx === -1) return m;
+          return { ...m, lessons: arrayMove(m.lessons, fromIdx, toIdx) };
+        });
+        setLocalModules(next);
+        persistOrder(next);
+      } else {
+        // Cross-module já foi feito em onDragOver — apenas persiste o estado atual
+        persistOrder(localModules);
+      }
+      return;
+    }
+
+    if (activeId.startsWith('les:')) {
+      // Lesson largada num módulo (ou drop-zone do módulo) — estado já está correto via onDragOver
+      persistOrder(localModules);
+    }
+  }
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     Object.fromEntries(course.modules.map((m, i) => [m.id, i === 0])),
@@ -1118,160 +1294,92 @@ function ModulosPane({ course }: { course: Course }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-base font-semibold text-pco-deep">
-          Módulos · {course.modules.length}
+          Módulos · {localModules.length}
         </h3>
-        <button
-          onClick={() => setEditingModule('new')}
-          className="pco-btn-primary text-xs"
-        >
-          <Plus size={12} strokeWidth={2} />
-          Novo módulo
-        </button>
+        <div className="flex items-center gap-2">
+          {savingOrder && (
+            <span className="text-[11px] text-pco-blue inline-flex items-center gap-1">
+              <Loader2 size={11} strokeWidth={2} className="animate-spin" />
+              Salvando ordem...
+            </span>
+          )}
+          <button
+            onClick={() => setEditingModule('new')}
+            className="pco-btn-primary text-xs"
+          >
+            <Plus size={12} strokeWidth={2} />
+            Novo módulo
+          </button>
+        </div>
       </div>
 
-      <ul className="space-y-2">
-        {course.modules.map((module, i) => {
-          const isOpen = !!expanded[module.id];
-          return (
-            <li key={module.id} className="pco-card p-0 overflow-hidden">
-              <div className="flex items-center gap-3 p-4">
-                <button
-                  onClick={() => setExpanded((prev) => ({ ...prev, [module.id]: !isOpen }))}
-                  className="text-ink-muted hover:text-pco-deep h-7 w-7 grid place-items-center rounded-lg hover:bg-surface-gray"
-                  aria-label={isOpen ? 'Fechar' : 'Expandir'}
-                >
-                  {isOpen ? (
-                    <ChevronDown size={16} strokeWidth={1.75} />
-                  ) : (
-                    <ChevronRight size={16} strokeWidth={1.75} />
-                  )}
-                </button>
-                <div className="h-8 w-8 rounded-lg bg-pco-blue/10 grid place-items-center text-xs font-bold text-pco-blue shrink-0">
-                  {i + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-pco-deep">{module.title}</div>
-                  <div className="text-[11px] text-ink-subtle">
-                    {module.lessons.length} aula(s) ·{' '}
-                    {module.assessment ? '1 avaliação' : 'sem avaliação'}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setEditingModule(module)}
-                  className="pco-btn-ghost text-xs px-2.5"
-                  title="Editar módulo"
-                >
-                  <Edit3 size={12} strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setConfirmDeleteModule(module)}
-                  className="pco-btn-ghost text-xs px-2.5 text-status-danger hover:bg-status-danger/10"
-                  title="Excluir módulo"
-                >
-                  <Trash2 size={12} strokeWidth={1.75} />
-                </button>
-              </div>
+      <p className="text-[11px] text-ink-subtle">
+        Arraste módulos e aulas para reordenar. Aulas podem ser movidas entre módulos.
+        Salva automaticamente.
+      </p>
 
-              {isOpen && (
-                <div className="border-t border-surface-gray bg-surface-off px-4 py-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-[11px] uppercase tracking-wider font-semibold text-ink-subtle">
-                      Aulas do módulo
-                    </div>
-                    <button
-                      onClick={() => setEditingLesson({ moduleId: module.id, lesson: null })}
-                      className="pco-btn-secondary text-xs"
-                    >
-                      <Plus size={12} strokeWidth={2} />
-                      Nova aula
-                    </button>
-                  </div>
-                  {module.lessons.length === 0 ? (
-                    <p className="text-xs text-ink-muted py-3 text-center">
-                      Nenhuma aula ainda. Clique em Nova aula para criar.
-                    </p>
-                  ) : (
-                    <ul className="space-y-1.5">
-                      {module.lessons.map((lesson) => (
-                        <li
-                          key={lesson.id}
-                          className="flex items-center gap-3 bg-white rounded-lg border border-surface-gray p-3"
-                        >
-                          <Video
-                            size={14}
-                            className="text-pco-blue shrink-0"
-                            strokeWidth={1.75}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-pco-deep truncate">
-                              {lesson.title}
-                            </div>
-                            <div className="mt-0.5 flex items-center gap-3 text-[11px] text-ink-subtle">
-                              <span className="inline-flex items-center gap-1">
-                                <Clock size={10} />
-                                {lesson.durationMinutes} min
-                              </span>
-                              {lesson.isMandatory ? (
-                                <span className="pco-badge bg-pco-orange/10 text-pco-orange">
-                                  Obrigatória
-                                </span>
-                              ) : (
-                                <span className="pco-badge bg-surface-gray text-ink-muted">
-                                  Opcional
-                                </span>
-                              )}
-                              <span>· ordem {lesson.order}</span>
-                              {(() => {
-                                const locales = lesson.transcripts
-                                  ? Object.entries(lesson.transcripts).filter(
-                                      ([, v]) => typeof v === 'string' && v.trim().length > 0,
-                                    )
-                                  : [];
-                                if (locales.length === 0) return null;
-                                return (
-                                  <span
-                                    className="pco-badge bg-pco-cyan/10 text-pco-blue"
-                                    title="Transcrições configuradas"
-                                  >
-                                    {locales.map(([k]) => k.toUpperCase()).join('/')}
-                                  </span>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => setEditingLesson({ moduleId: module.id, lesson })}
-                            className="pco-btn-ghost text-xs px-2"
-                            title="Editar"
-                          >
-                            <Edit3 size={11} strokeWidth={1.75} />
-                          </button>
-                          <button
-                            onClick={() => setConfirmDeleteLesson(lesson)}
-                            className="pco-btn-ghost text-xs px-2 text-status-danger hover:bg-status-danger/10"
-                            title="Excluir"
-                          >
-                            <Trash2 size={11} strokeWidth={1.75} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </li>
-          );
-        })}
-        {course.modules.length === 0 && (
-          <li className="pco-card text-center py-8">
-            <p className="text-sm text-ink-muted">
-              Nenhum módulo. Clique em Novo módulo para começar.
-            </p>
-          </li>
-        )}
-      </ul>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={moduleIds} strategy={verticalListSortingStrategy}>
+          <ul className="space-y-2">
+            {localModules.map((module, i) => (
+              <SortableModule
+                key={module.id}
+                module={module}
+                index={i}
+                isOpen={!!expanded[module.id]}
+                onToggle={() =>
+                  setExpanded((prev) => ({ ...prev, [module.id]: !prev[module.id] }))
+                }
+                onEdit={() => setEditingModule(module)}
+                onDelete={() => setConfirmDeleteModule(module)}
+                onAddLesson={() =>
+                  setEditingLesson({ moduleId: module.id, lesson: null })
+                }
+                onEditLesson={(l) => setEditingLesson({ moduleId: module.id, lesson: l })}
+                onDeleteLesson={(l) => setConfirmDeleteLesson(l)}
+              />
+            ))}
+            {localModules.length === 0 && (
+              <li className="pco-card text-center py-8">
+                <p className="text-sm text-ink-muted">
+                  Nenhum módulo. Clique em Novo módulo para começar.
+                </p>
+              </li>
+            )}
+          </ul>
+        </SortableContext>
+        <DragOverlay>
+          {activeDragId && activeDragId.startsWith('mod:') && (
+            <div className="pco-card p-4 shadow-lift border-pco-blue/40">
+              <div className="text-sm font-semibold text-pco-deep">
+                {localModules.find((m) => `mod:${m.id}` === activeDragId)?.title ?? ''}
+              </div>
+            </div>
+          )}
+          {activeDragId && activeDragId.startsWith('les:') && (
+            <div className="bg-white rounded-lg border border-pco-blue/40 p-3 shadow-lift">
+              <div className="text-sm font-medium text-pco-deep">
+                {(() => {
+                  const id = activeDragId.slice(4);
+                  for (const m of localModules) {
+                    const l = m.lessons.find((x) => x.id === id);
+                    if (l) return l.title;
+                  }
+                  return '';
+                })()}
+              </div>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
 
       {editingModule && (
         <ModuleEditor
@@ -1335,6 +1443,208 @@ function ModulosPane({ course }: { course: Course }) {
         onConfirm={handleDeleteLesson}
       />
     </div>
+  );
+}
+
+interface SortableModuleProps {
+  module: Module;
+  index: number;
+  isOpen: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddLesson: () => void;
+  onEditLesson: (l: Lesson) => void;
+  onDeleteLesson: (l: Lesson) => void;
+}
+
+function SortableModule({
+  module,
+  index,
+  isOpen,
+  onToggle,
+  onEdit,
+  onDelete,
+  onAddLesson,
+  onEditLesson,
+  onDeleteLesson,
+}: SortableModuleProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: `mod:${module.id}` });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+  const lessonIds = module.lessons.map((l) => `les:${l.id}`);
+
+  return (
+    <li ref={setNodeRef} style={style} className="pco-card p-0 overflow-hidden">
+      <div className="flex items-center gap-2 p-4">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-ink-subtle hover:text-pco-deep p-1 rounded hover:bg-surface-gray touch-none"
+          aria-label="Arrastar módulo"
+          title="Arrastar para reordenar"
+        >
+          <GripVertical size={16} strokeWidth={1.75} />
+        </button>
+        <button
+          onClick={onToggle}
+          className="text-ink-muted hover:text-pco-deep h-7 w-7 grid place-items-center rounded-lg hover:bg-surface-gray"
+          aria-label={isOpen ? 'Fechar' : 'Expandir'}
+        >
+          {isOpen ? (
+            <ChevronDown size={16} strokeWidth={1.75} />
+          ) : (
+            <ChevronRight size={16} strokeWidth={1.75} />
+          )}
+        </button>
+        <div className="h-8 w-8 rounded-lg bg-pco-blue/10 grid place-items-center text-xs font-bold text-pco-blue shrink-0">
+          {index + 1}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-pco-deep">{module.title}</div>
+          <div className="text-[11px] text-ink-subtle">
+            {module.lessons.length} aula(s) ·{' '}
+            {module.assessment ? '1 avaliação' : 'sem avaliação'}
+          </div>
+        </div>
+        <button
+          onClick={onEdit}
+          className="pco-btn-ghost text-xs px-2.5"
+          title="Editar módulo"
+        >
+          <Edit3 size={12} strokeWidth={1.75} />
+        </button>
+        <button
+          onClick={onDelete}
+          className="pco-btn-ghost text-xs px-2.5 text-status-danger hover:bg-status-danger/10"
+          title="Excluir módulo"
+        >
+          <Trash2 size={12} strokeWidth={1.75} />
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="border-t border-surface-gray bg-surface-off px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[11px] uppercase tracking-wider font-semibold text-ink-subtle">
+              Aulas do módulo
+            </div>
+            <button onClick={onAddLesson} className="pco-btn-secondary text-xs">
+              <Plus size={12} strokeWidth={2} />
+              Nova aula
+            </button>
+          </div>
+          <SortableContext items={lessonIds} strategy={verticalListSortingStrategy}>
+            {module.lessons.length === 0 ? (
+              <DroppableEmptyZone moduleId={module.id} />
+            ) : (
+              <ul className="space-y-1.5">
+                {module.lessons.map((lesson) => (
+                  <SortableLesson
+                    key={lesson.id}
+                    lesson={lesson}
+                    onEdit={() => onEditLesson(lesson)}
+                    onDelete={() => onDeleteLesson(lesson)}
+                  />
+                ))}
+              </ul>
+            )}
+          </SortableContext>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function DroppableEmptyZone({ moduleId }: { moduleId: string }) {
+  const { setNodeRef, isOver } = useSortable({ id: `drop-mod:${moduleId}` });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`text-xs py-6 text-center rounded-lg border-2 border-dashed transition-colors ${
+        isOver
+          ? 'border-pco-blue/60 bg-pco-blue/5 text-pco-blue'
+          : 'border-surface-gray text-ink-muted'
+      }`}
+    >
+      Nenhuma aula. Arraste uma aula para cá ou clique em Nova aula.
+    </div>
+  );
+}
+
+interface SortableLessonProps {
+  lesson: Lesson;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function SortableLesson({ lesson, onEdit, onDelete }: SortableLessonProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: `les:${lesson.id}` });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+  const locales = lesson.transcripts
+    ? Object.entries(lesson.transcripts).filter(
+        ([, v]) => typeof v === 'string' && v.trim().length > 0,
+      )
+    : [];
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 bg-white rounded-lg border border-surface-gray p-3"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-ink-subtle hover:text-pco-deep p-0.5 rounded hover:bg-surface-gray touch-none"
+        aria-label="Arrastar aula"
+        title="Arrastar para reordenar"
+      >
+        <GripVertical size={14} strokeWidth={1.75} />
+      </button>
+      <Video size={14} className="text-pco-blue shrink-0" strokeWidth={1.75} />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-pco-deep truncate">{lesson.title}</div>
+        <div className="mt-0.5 flex items-center gap-3 text-[11px] text-ink-subtle flex-wrap">
+          <span className="inline-flex items-center gap-1">
+            <Clock size={10} />
+            {lesson.durationMinutes} min
+          </span>
+          {lesson.isMandatory ? (
+            <span className="pco-badge bg-pco-orange/10 text-pco-orange">Obrigatória</span>
+          ) : (
+            <span className="pco-badge bg-surface-gray text-ink-muted">Opcional</span>
+          )}
+          <span>· ordem {lesson.order}</span>
+          {locales.length > 0 && (
+            <span
+              className="pco-badge bg-pco-cyan/10 text-pco-blue"
+              title="Transcrições configuradas"
+            >
+              {locales.map(([k]) => k.toUpperCase()).join('/')}
+            </span>
+          )}
+        </div>
+      </div>
+      <button onClick={onEdit} className="pco-btn-ghost text-xs px-2" title="Editar">
+        <Edit3 size={11} strokeWidth={1.75} />
+      </button>
+      <button
+        onClick={onDelete}
+        className="pco-btn-ghost text-xs px-2 text-status-danger hover:bg-status-danger/10"
+        title="Excluir"
+      >
+        <Trash2 size={11} strokeWidth={1.75} />
+      </button>
+    </li>
   );
 }
 

@@ -365,6 +365,24 @@ export const updateCourseSchema = z.object({
 });
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
 
+/**
+ * Reordenação em massa de módulos e aulas de um curso.
+ * Lista de módulos na nova ordem; cada um traz as lessonIds na nova ordem.
+ * Permite mover aulas entre módulos (lessonId pode estar em qualquer módulo).
+ */
+export const reorderCourseSchema = z.object({
+  modules: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(80),
+        lessonIds: z.array(z.string().min(1).max(120)).max(500),
+      }),
+    )
+    .min(1)
+    .max(200),
+});
+export type ReorderCourseInput = z.infer<typeof reorderCourseSchema>;
+
 // ---- News writes ----
 
 export const createNewsSchema = z.object({
