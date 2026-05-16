@@ -571,7 +571,9 @@ export async function applyEnrollment(
   }
 
   if (norm.status === 'active') {
-    await studentsRepo.enrollInCourse(userId, internalCourseId);
+    // dates.startDate vem de resolveEnrollmentDates (proxy de quando o aluno
+    // realmente começou) — melhor que "agora" pra lastAccessAt em import histórico.
+    await studentsRepo.enrollInCourse(userId, internalCourseId, dates.startDate);
   }
 
   // Para merge, mantém startDate mais antiga e expirationDate mais recente
@@ -651,7 +653,14 @@ export async function applyProgress(
   const internalCourseId = courseRef?.internalId ?? courseExternal;
 
   const pct = norm.progressPercentage ?? 0;
-  await studentsRepo.setCourseProgress(userId, internalCourseId, pct);
+  // norm.lastAccessAt já vem do normalizer com fallback pra
+  // max(completed_at, started_at, last_access_at).
+  await studentsRepo.setCourseProgress(
+    userId,
+    internalCourseId,
+    pct,
+    norm.lastAccessAt ?? undefined,
+  );
 
   return { outcome: 'updated', internalId: `${userId}:${internalCourseId}:progress` };
 }

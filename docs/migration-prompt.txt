@@ -1,0 +1,290 @@
+============================================================================
+PROMPT — Migração WP/LearnDash/WooCommerce → AVA PCO (briefing pra Claude)
+============================================================================
+
+COMO USAR: Cole tudo abaixo num chat novo do Claude Code (ou Claude.ai com
+acesso ao repo), depois descreva o que precisa migrar/corrigir. Esse
+documento condensa o que aprendi rodando a v3 — evita repetir os 4 bugs
+sérios que pegaram a v2.
+
+----------------------------------------------------------------------------
+CONTEXTO DO PROJETO
+----------------------------------------------------------------------------
+
+AVA PCO é o LMS da Psicanálise Clínica Online. Migra dois sites WordPress:
+
+  - portalpco.online → LearnDash 4.x (cursos, aulas, tópicos, questões,
+    matrículas, progressão). Slugs LD em PT-BR (cursos, aulas, topicos,
+    teste em vez de sfwd-courses/lessons/topic/quiz).
+  - psicanaliseclinica.online → WooCommerce (produtos, customers, orders).
+
+Os dois têm bases de usuários distintas. O join cross-site é por EMAIL,
+nunca por WP user ID (números colidem entre os dois sites).
+
+Repo: https://github.com/agenciaraca/Pco · branch main · sem branch
+protection. Working dir do agent fica em `C:\ia\dev\pco`, mas o repo está
+em `Pco/`. SEMPRE `cd Pco` antes de qualquer npm/git.
+
+Stack relevante para migração:
+  - Hono v4 + Node 20 + tsx (sem build em runtime)
+  - JsonStore em data/*.json (fallback quando DATABASE_URL não setado)
+  - Drizzle Postgres (opcional via env)
+  - Connectors em server/imports/connectors/{wp.ts, ld.ts, wc.ts}
+  - Orchestrator em server/imports/connectors/orchestrator.ts
+  - Service em server/imports/service.ts
+  - Adapters em server/imports/adapters.ts
+
+----------------------------------------------------------------------------
+ARQUIVOS DE CONTEXTO VIVO (LEIA SEMPRE NO INÍCIO DA SESSÃO)
+----------------------------------------------------------------------------
+
+  Pco/CLAUDE.md ............... convenções do projeto ("aditivo, não
+                                destrutivo"), arquitetura, deploy, etc
+  Pco/docs/migration-wp-ld.md . handoff vivo da migração: slugs PT-BR,
+                                snapshots de contagens, bugs #1/#2/#3
+                                conhecidos, checklist "Como continuar"
+  Pco/.env.import ............. creds dos dois WP (gitignored). Vars:
+                                PORTAL_PCO_URL/USER/APP_PASSWORD
+                                PSICANALISE_URL/USER/APP_PASSWORD
+
+NUNCA commite .env.import. NUNCA cole senha de WP em mensagens.
+
+----------------------------------------------------------------------------
+PIPELINE DA MIGRAÇÃO (ordem obrigatória)
+----------------------------------------------------------------------------
+
+Sempre rodar a partir de `Pco/`. As três fases são separadas:
+
+  1. RESET LOCAL (se já existir migração v2/v3 anterior bugada):
+       npx tsx scripts/reset_imported_data.ts --dry-run    # confere
+       npx tsx scripts/reset_imported_data.ts              # aplica
+
+     Antes do reset, FAÇA BACKUP:
+       mkdir -p data/backup-before-reset
+       cp data/users.json data/admin-students.json \
+          data/external-references.json data/import-jobs.json \
+          data/payment-products.json data/courses.json \
+          data/backup-before-reset/
+
+     O reset mantém só: 3 seeds @pco.local + admin@psicanaliseclinica.online,
+     3 cursos seed (c-psi, c-tfs, c-hipno), 8 alunos seed @example.com.
+
+  2. COLETA (collect-only) — ~20–30 min:
+       npx tsx scripts/migrate_wp_to_ava.ts --collect-only
+
+     Escreve raw em data/migration/<ISO_TS>/raw/{portal,psi}.json.
+     Reutiliza as 2 connections já criadas no JsonStore (creds AES-GCM
+     encryptadas).
+
+     ATENÇÃO: o fetchLdProgress chama fetchLdEnrollments DE NOVO
+     internamente — você vai ver os contadores "100/786 ... 700/786"
+     duplicarem. NÃO é bug, é ineficiência. Deixe terminar.
+
+  3. APPLY — ~6–15 min:
+       npx tsx scripts/migrate_wp_to_ava.ts --apply \
+         --from-raw=data/migration/<TS>
+
+     Persiste em users.json, admin-students.json, external-references.json,
+     payment-products.json, payment-orders.json (vazio — orders ficam em
+     refs.metadata), import-jobs.json. Lessons "ignoradas" aqui — vêm na
+     fase 4.
+
+  4. MONTA courses.json (lessons + product mapping) — segundos:
+       npx tsx scripts/import_lessons_and_map_products.ts \
+         --raw=data/migration/<TS>
+
+     Gera 13 cursos LD (com módulos e aulas estruturadas) + 3 seed = 16
+     cursos. Mapeia 3 produtos WC → cursos LD por heurística de título.
+
+  5. BACKFILL admin-students nome/email + lastAccessAt (Bug #4 e #5):
+       npx tsx scripts/backfill_admin_students.ts --dry-run
+       npx tsx scripts/backfill_admin_students.ts
+       npx tsx scripts/backfill_last_access.ts --raw=data/migration/<TS> --dry-run
+       npx tsx scripts/backfill_last_access.ts --raw=data/migration/<TS>
+
+  6. SECUNDÁRIOS (opcional — posts + questões com conteúdo):
+       npx tsx scripts/import_secondaries.ts
+
+     Escreve news.json (77 posts publish) + question-bank-stubs.json
+     (~86 questões com enunciado mas SEM answers — postmeta LD não
+     exposto via REST).
+
+  7. SYNC + RESTART VPS (sempre nessa ordem):
+       HOST=177.7.35.13 USER_NAME=avapco PORT=22 SSH_PASSWORD='...' \
+         SKIP_RESTART=1 python scripts/sync_data_to_vps.py
+       HOST=177.7.35.13 USER_NAME=avapco PORT=22 SSH_PASSWORD='...' \
+         python scripts/restart_vps.py
+
+     Use SKIP_RESTART=1 no sync porque o restart embarcado do sync_data
+     tem hang conhecido (pkill mata o canal SSH). restart_vps.py usa
+     setsid + nohup pra detachar corretamente.
+
+  8. Para deploy de mudanças de código (não dados):
+       git push origin main
+       HOST=... SSH_PASSWORD='...' python scripts/update_vps_pwd.py
+     (faz git pull + npm install + build + restart no VPS)
+
+----------------------------------------------------------------------------
+OS 4 BUGS QUE PEGARAM A V2 (NÃO REPITA)
+----------------------------------------------------------------------------
+
+Bug #1 — "Enrollments fantasma" (cada aluno em todos os cursos):
+  CAUSA: GET /wp-json/ldlms/v2/cursos/{id}/usuarios MENTE quando
+    autenticado como admin — retorna TODOS os users do site, não
+    apenas os matriculados nesse curso.
+  SINTOMA: 785 alunos × 13 cursos = 10.205 enrollments errados (real ≈
+    1.016).
+  FIX: server/imports/connectors/ld.ts:fetchLdEnrollments itera os 786
+    users e chama /users/{id}/courses (slower ~25 min, exact).
+    Não retorne pro endpoint /cursos/{id}/usuarios.
+
+Bug #2 — "Colisão de external_user_id entre os 2 sites":
+  CAUSA: WP user IDs são numéricos independentes em cada site.
+    "1125" é Adriana no portal e fixyou94 (spam) no psi. O
+    refsStore.find('learndash', 'student', '1125') achava o
+    internalId errado, fundindo dois users diferentes.
+  SINTOMA: 509 colisões, 333 users sumiram, 436 nomes spam em alunos
+    legítimos.
+  FIX: scripts/migrate_wp_to_ava.ts:prefixUserIds(result, prefix)
+    aplica "portal:" ou "psi:" antes do merge. Refs ficam isoladas
+    por origem. Match por email em upsertStudent continua funcionando.
+
+Bug #3 — "SEO spam em display_name":
+  CAUSA: Bots encheram display_name de ~436 customers WC com
+    "www.rabotaaa11.blogspot.com - SBERBANK 842211 RUB". Emails russos
+    descartáveis (@mail.ru, @bk.ru, gmails genéricos).
+  FIX: scripts/migrate_wp_to_ava.ts:filterSpam(result) com 8 patterns
+    (blogspot.com, RUB, BAM, SBERBANK, TINKOFF, PABOTA,
+    www.*.blog/info/biz). Filtra também enrollments/progress/orders
+    que apontam pros users spam.
+
+Bug #4 — "Alunos com name = id e email vazio" (descoberto pós-v3):
+  CAUSA: server/repositories/students.ts:enrollInCourse e setCourseProgress
+    criam stub novo no admin-students.json sem cruzar com users.json.
+    Os dados estavam corretos em users.json, mas o admin UI lê de
+    admin-students.json.
+  SINTOMA: 564 alunos importados mostrando "stude-mp8cjb..." como
+    nome e email vazio. Progressão e matrículas OK.
+  FIX (já aplicado): hidrata via usersStore.findUserById(userId)
+    ANTES do adminStore.modify. Para dados existentes:
+    scripts/backfill_admin_students.ts.
+
+Bug #5 — "lastAccessAt = data da migração, não real":
+  CAUSA: students.ts:enrollInCourse/setCourseProgress setavam
+    lastAccessAt: new Date() ao criar stub. O normalizer só lia
+    row.last_access_at, que o LD REST NÃO expõe — virava
+    undefined → fallback pra "agora".
+  SINTOMA: todos os 564 imported com "último acesso = hoje", impossível
+    distinguir alunos engajados de inativos.
+  FIX (já aplicado):
+    - normalizer faz max(last_access_at, completed_at, started_at)
+    - enrollInCourse/setCourseProgress aceitam lastAccessAt opcional
+    - adapters passam dates.startDate / norm.lastAccessAt
+    - setCourseProgress atualiza row.lastAccessAt só se candidate > current
+      (não sobrescreve dado novo com import histórico)
+  Para corrigir admin-students.json existente:
+    npx tsx scripts/backfill_last_access.ts --raw=data/migration/<TS>
+
+----------------------------------------------------------------------------
+VALIDAÇÃO PÓS-MIGRAÇÃO (rode SEMPRE)
+----------------------------------------------------------------------------
+
+Localmente:
+  node -e "
+  const fs = require('fs');
+  const u = JSON.parse(fs.readFileSync('data/users.json'));
+  const s = JSON.parse(fs.readFileSync('data/admin-students.json'));
+  const r = JSON.parse(fs.readFileSync('data/external-references.json'));
+  const c = JSON.parse(fs.readFileSync('data/courses.json'));
+  console.log('users:', u.length);
+  console.log('admin-students:', s.length);
+  console.log('  com enrolls:', s.filter(x => x.enrolledCourseIds && x.enrolledCourseIds.length).length);
+  console.log('  com progresso > 0%:', s.filter(x => x.progressByCourse && Object.values(x.progressByCourse).some(v => v > 0)).length);
+  console.log('  com name = id (BUG #4):', s.filter(x => x.name === x.id).length);
+  console.log('  com email vazio (BUG #4):', s.filter(x => !x.email).length);
+  const today = new Date().toISOString().slice(0,10);
+  console.log('  lastAccess = hoje (BUG #5):', s.filter(x => x.lastAccessAt && x.lastAccessAt.slice(0,10) === today).length);
+  console.log('refs:', r.length);
+  console.log('  portal-prefixed:', r.filter(x => String(x.externalId).startsWith('portal:')).length);
+  console.log('  psi-prefixed:', r.filter(x => String(x.externalId).startsWith('psi:')).length);
+  console.log('courses:', c.length);
+  "
+
+Esperado (v3 saudável, após backfill):
+  users: ~1500–1600
+  admin-students: ~570
+    com enrolls: ~570 (= total)
+    com progresso > 0%: ~470–500
+    com name = id: 0
+    com email vazio: 0
+  refs: ~4900
+    portal-prefixed: ~786
+    psi-prefixed: ~1300
+  courses: 16
+
+Em produção (via SSH, depois de sync):
+  curl -s http://127.0.0.1:3035/api/health  # {"ok":true, ...}
+
+----------------------------------------------------------------------------
+GOTCHAS GERAIS
+----------------------------------------------------------------------------
+
+- Slugs LD do portal estão em PT-BR. Connectors em ld.ts já têm o mapa
+  (sfwd-courses → cursos, sfwd-lessons → aulas, sfwd-topic → topicos,
+  sfwd-quiz → teste). Mas users/{id}/courses, /course-progress,
+  /quiz-progress, /groups MANTIVERAM o slug original.
+
+- 7 dos 13 cursos LD estão como "draft" no portal (Autismo,
+  Neuropsicologia, Suicídio, etc). Connector pega via status=any. Se
+  o owner não quiser eles visíveis, marcar via UI ou criar field
+  `published` na importação.
+
+- 14 orders WC sem email são pending/failed (rows 696, 750, 752...).
+  Passam como WARNING ignorado via skipValidationErrors: true. OK.
+
+- Questões LD: o REST API NÃO expõe options/answers (postmeta
+  _question_pro_settings). Importar question content only via
+  scripts/import_secondaries.ts gera stubs em
+  question-bank-stubs.json. Pra alimentar question-bank.json
+  validado (precisa options[], correct), precisa SQL direto ou
+  plugin LD-export — TODO.
+
+- Cupom: psi tem 0 cupons WC no momento.
+
+- Senha SSH do VPS: case-sensitive. Se "Un-035677" não funcionar,
+  confirme caps com o owner antes de retentar — 3+ fails ativam
+  fail2ban.
+
+- Para deploy: update_vps_pwd.py historicamente tinha hang no pkill.
+  Hoje usa setsid+nohup e funciona, mas se sync_data_to_vps.py
+  travar no restart, recupere com restart_vps.py.
+
+- Convenção: "aditivo, não destrutivo". Novos features plugam sem
+  mudar URLs/schemas/JSON keys existentes. Repo signatures: adicione
+  novos exports, não renomeie.
+
+----------------------------------------------------------------------------
+CHECKLIST FINAL — DA COLETA AO PRODUTIVO
+----------------------------------------------------------------------------
+
+[ ] Read CLAUDE.md
+[ ] Read docs/migration-wp-ld.md
+[ ] .env.import existe e tem as 6 vars (portal + psi creds)
+[ ] Backup atual em data/backup-before-reset/
+[ ] reset_imported_data.ts --dry-run conferido → aplicado
+[ ] migrate_wp_to_ava.ts --collect-only finalizou (raw/portal.json +
+    psi.json escritos)
+[ ] migrate_wp_to_ava.ts --apply --from-raw=<dir> rodou (status:
+    completed, errors: 0, 14 warnings de email OK)
+[ ] import_lessons_and_map_products.ts → courses.json com 16 cursos
+[ ] backfill_admin_students.ts → 0 com name=id, 0 com email vazio
+[ ] backfill_last_access.ts → 0 (ou ~1) com lastAccess=hoje
+[ ] Validação local (script acima) bate com esperado
+[ ] sync_data_to_vps.py SKIP_RESTART=1 → contadores remote=local
+[ ] restart_vps.py → health 200
+[ ] Confirma no admin: /admin/alunos mostra nomes reais e progresso
+[ ] (opcional) import_secondaries.ts + sync + restart
+
+============================================================================
+FIM DO BRIEFING
+============================================================================

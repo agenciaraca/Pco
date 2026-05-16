@@ -215,6 +215,17 @@ export function normalizeEnrollment(row: Record<string, unknown>): NormalizedEnr
 }
 
 export function normalizeProgress(row: Record<string, unknown>): NormalizedProgress {
+  // lastAccessAt: connectors podem expor explícito ('last_access_at') OU
+  // só ter started_at/completed_at. Usamos o max disponível como proxy
+  // — sem esse fallback, alunos importados ficam todos com "último acesso
+  // = hoje" porque students.ts:enrollInCourse seta lastAccessAt: new Date()
+  // quando recebe `undefined`.
+  const explicit = date(row.last_access_at);
+  const completed = date(row.completed_at);
+  const started = date(row.started_at);
+  const lastAccessAt =
+    [explicit, completed, started].filter((v): v is string => !!v).sort().pop() ??
+    null;
   return {
     userExternalId: s(row.user_external_id) ?? null,
     userEmail: (s(row.user_email) ?? '').toLowerCase() || null,
@@ -224,6 +235,6 @@ export function normalizeProgress(row: Record<string, unknown>): NormalizedProgr
     completedAt: date(row.completed_at),
     progressPercentage: int(row.progress_percentage),
     status: (s(row.status) ?? 'in_progress') as NormalizedProgress['status'],
-    lastAccessAt: date(row.last_access_at),
+    lastAccessAt,
   };
 }

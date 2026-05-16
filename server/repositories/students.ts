@@ -154,7 +154,17 @@ export async function setStudentStatus(
  * Adiciona courseId ao enrolledCourseIds do aluno se ainda não estiver.
  * Idempotente. Cria entrada mínima para o aluno se ele não existir como adminStudent.
  */
-export async function enrollInCourse(userId: string, courseId: string): Promise<void> {
+export async function enrollInCourse(
+  userId: string,
+  courseId: string,
+  /**
+   * Quando vindo de import histórico, passe o real "último acesso" do
+   * aluno (ex: max de started_at/completed_at no sistema de origem) para
+   * não setar tudo como "hoje". Em fluxo runtime (aluno clicou em
+   * matricule-se agora), omita — vira new Date().
+   */
+  lastAccessAt?: string,
+): Promise<void> {
   // Hidrata nome/email do users-store antes do modify (caso seja stub novo)
   const u = await usersStore.findUserById(userId);
   await adminStore.modify((rows) => {
@@ -169,8 +179,8 @@ export async function enrollInCourse(userId: string, courseId: string): Promise<
         riskScore: 0,
         enrolledCourseIds: [],
         progressByCourse: {},
-        lastAccessAt: now,
-        createdAt: now,
+        lastAccessAt: lastAccessAt || now,
+        createdAt: lastAccessAt || now,
         enrollmentDates: {},
       };
       rows.push(fresh);
@@ -231,6 +241,8 @@ export async function setCourseProgress(
   userId: string,
   courseId: string,
   percent: number,
+  /** ver enrollInCourse — opcional, default = agora. */
+  lastAccessAt?: string,
 ): Promise<void> {
   const pct = Math.max(0, Math.min(100, Math.round(percent)));
   const u = await usersStore.findUserById(userId);
@@ -246,8 +258,8 @@ export async function setCourseProgress(
         riskScore: 0,
         enrolledCourseIds: [],
         progressByCourse: {},
-        lastAccessAt: now,
-        createdAt: now,
+        lastAccessAt: lastAccessAt || now,
+        createdAt: lastAccessAt || now,
         enrollmentDates: {},
       };
       rows.push(fresh);
@@ -257,6 +269,12 @@ export async function setCourseProgress(
       row.enrolledCourseIds = [...row.enrolledCourseIds, courseId];
     }
     row.progressByCourse = { ...row.progressByCourse, [courseId]: pct };
+    // Atualiza lastAccessAt apenas se o evento for mais recente que o atual
+    // (evita import histórico sobrescrever um valor mais novo).
+    const candidate = lastAccessAt;
+    if (candidate && (!row.lastAccessAt || candidate > row.lastAccessAt)) {
+      row.lastAccessAt = candidate;
+    }
   });
 }
 
