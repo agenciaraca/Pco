@@ -2898,6 +2898,18 @@ export function buildApp() {
     return c.json(updated);
   });
 
+  app.delete(
+    '/admin/courses/:id',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const result = await coursesRepo.deleteCourse(id);
+      if (!result) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
+      return c.json({ ok: true });
+    },
+  );
+
   /**
    * Emite explicitamente course.published quando admin clica em "publicar"
    * o curso no editor. Hoje a publicacao eh implicita (curso aparece no

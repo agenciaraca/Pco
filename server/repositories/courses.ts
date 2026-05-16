@@ -142,6 +142,36 @@ export async function duplicateCourse(sourceId: string): Promise<Course | null> 
   return cloned;
 }
 
+/**
+ * Exclui permanentemente um curso e seus módulos/aulas/avaliações aninhados.
+ *
+ * Em modo JSON: remove do array em data/courses.json.
+ * Em modo DB: marca como inactive (soft-delete) já que o cleanup em cascata
+ *   precisa de coordenação com tabelas de progresso/matrículas que ficam
+ *   fora deste repo. Chama-se separado em uma sprint de cleanup.
+ *
+ * Retorna { ok: true } se removeu, null se não encontrou.
+ */
+export async function deleteCourse(id: string): Promise<{ ok: true } | null> {
+  const db = getDb();
+  if (!db) {
+    const removed = await store.modify((courses) => {
+      const idx = courses.findIndex((c) => c.id === id);
+      if (idx === -1) return null;
+      courses.splice(idx, 1);
+      return { ok: true } as const;
+    });
+    return removed;
+  }
+  const existing = await findCourse(id);
+  if (!existing) return null;
+  await db
+    .update(schema.courses)
+    .set({ active: false })
+    .where(eq(schema.courses.id, id));
+  return { ok: true };
+}
+
 export async function listCourses(): Promise<Course[]> {
   if (getDb()) {
     const fromDb = await loadFromDb();
@@ -200,6 +230,7 @@ export async function updateCourse(
         ...(patch.changelog !== undefined
           ? { changelog: patch.changelog }
           : {}),
+        ...(patch.active !== undefined ? { active: patch.active } : {}),
       }),
     );
   }

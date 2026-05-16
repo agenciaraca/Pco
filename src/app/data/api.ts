@@ -2374,6 +2374,10 @@ export async function updateCourse(id: string, patch: UpdateCoursePatch): Promis
   return http.put<Course>(`/admin/courses/${encodeURIComponent(id)}`, patch);
 }
 
+export async function deleteCourse(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/courses/${encodeURIComponent(id)}`);
+}
+
 // ---------- Admin: News writes ----------
 
 export interface CreateNewsPayload {

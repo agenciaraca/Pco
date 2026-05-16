@@ -260,6 +260,17 @@ export function useUpdateCourse() {
   });
 }
 
+export function useDeleteCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteCourse(id),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+      qc.removeQueries({ queryKey: queryKeys.course(id) });
+    },
+  });
+}
+
 // ---- Admin: news writes ----
 
 export function useCreateNews() {

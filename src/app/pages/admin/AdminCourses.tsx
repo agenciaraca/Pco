@@ -13,8 +13,16 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  CheckCircle2,
+  EyeOff,
+  Loader2,
 } from 'lucide-react';
-import { useCourses, useDuplicateCourse, useAdminCoursesSummary } from '../../data/hooks';
+import {
+  useCourses,
+  useDuplicateCourse,
+  useAdminCoursesSummary,
+  useUpdateCourse,
+} from '../../data/hooks';
 import { useMemo, useState } from 'react';
 import { downloadCoursesCsv } from '../../data/api';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
@@ -66,8 +74,10 @@ export default function AdminCourses() {
   const t = useT();
   const { data, isLoading, isError, refetch } = useCourses();
   const duplicateMut = useDuplicateCourse();
+  const updateMut = useUpdateCourse();
   const summaryQ = useAdminCoursesSummary();
   const toast = useToast();
+  const [bulkBusy, setBulkBusy] = useState(false);
   const summaryMap = useMemo(
     () => new Map((summaryQ.data ?? []).map((s) => [s.courseId, s])),
     [summaryQ.data],
@@ -168,6 +178,31 @@ export default function AdminCourses() {
       toast.success(`${ok} curso(s) duplicado(s)`);
     } else {
       toast.error('Bulk duplicate parcial', `${ok} ok · ${fail} falhou`);
+    }
+    setSelected(new Set());
+  };
+
+  const setBulkActive = async (active: boolean) => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const action = active ? 'publicar' : 'despublicar';
+    if (!confirm(`Tem certeza que deseja ${action} ${ids.length} curso(s)?`)) return;
+    setBulkBusy(true);
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await updateMut.mutateAsync({ id, patch: { active } });
+        ok += 1;
+      } catch {
+        fail += 1;
+      }
+    }
+    setBulkBusy(false);
+    if (fail === 0) {
+      toast.success(`${ok} curso(s) ${active ? 'publicado(s)' : 'despublicado(s)'}`);
+    } else {
+      toast.info(`Concluído`, `${ok} ok · ${fail} falhou`);
     }
     setSelected(new Set());
   };
@@ -406,7 +441,31 @@ export default function AdminCourses() {
           <span className="text-xs font-semibold text-pco-deep">
             {selected.size} curso(s) selecionado(s)
           </span>
-          <div className="ml-auto inline-flex gap-2">
+          <div className="ml-auto inline-flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setBulkActive(true)}
+              disabled={bulkBusy}
+              className="pco-btn-secondary text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Publicar todos os selecionados"
+            >
+              {bulkBusy ? (
+                <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+              ) : (
+                <CheckCircle2 size={12} strokeWidth={2} />
+              )}
+              Publicar
+            </button>
+            <button
+              type="button"
+              onClick={() => setBulkActive(false)}
+              disabled={bulkBusy}
+              className="pco-btn-secondary text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Despublicar todos os selecionados"
+            >
+              <EyeOff size={12} strokeWidth={2} />
+              Despublicar
+            </button>
             <button
               type="button"
               onClick={bulkExport}
@@ -414,17 +473,17 @@ export default function AdminCourses() {
               title="Exportar seleção como CSV"
             >
               <Download size={12} strokeWidth={2} />
-              Exportar selecionados
+              Exportar
             </button>
             <button
               type="button"
               onClick={bulkDuplicate}
-              className="pco-btn-secondary text-xs"
+              className="pco-btn-ghost text-xs"
               disabled={duplicateMut.isPending}
               title="Duplicar todos os selecionados"
             >
               <Copy size={12} strokeWidth={2} />
-              Duplicar selecionados
+              Duplicar
             </button>
             <button
               type="button"
@@ -433,7 +492,7 @@ export default function AdminCourses() {
               title="Limpar seleção"
             >
               <X size={12} strokeWidth={2} />
-              Limpar seleção
+              Limpar
             </button>
           </div>
         </div>
@@ -584,9 +643,15 @@ export default function AdminCourses() {
                       })()}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="pco-badge bg-status-success/10 text-status-success">
-                        Ativo
-                      </span>
+                      {c.active === false ? (
+                        <span className="pco-badge bg-surface-gray text-ink-muted">
+                          Despublicado
+                        </span>
+                      ) : (
+                        <span className="pco-badge bg-status-success/10 text-status-success">
+                          Publicado
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex gap-1">

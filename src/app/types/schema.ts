@@ -117,6 +117,11 @@ export interface Course {
     date: string;
     notes: string;
   }>;
+  /**
+   * Curso publicado (true) ou rascunho/despublicado (false).
+   * Default em runtime: true (cursos antigos sem o campo são considerados publicados).
+   */
+  active?: boolean;
   /** Customização opcional do certificado de conclusão. */
   certificateTemplate?: {
     title?: string;

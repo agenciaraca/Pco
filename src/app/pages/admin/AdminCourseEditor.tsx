@@ -24,12 +24,16 @@ import {
   Clock,
   X,
   Video,
+  AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Tabs from '../../components/Tabs';
 import {
   useCourse,
   useCourses,
   useUpdateCourse,
+  useDeleteCourse,
   useCreateModule,
   useUpdateModule,
   useDeleteModule,
@@ -65,6 +69,7 @@ const tabs = [
   { id: 'avaliacoes', label: 'Avaliações', icon: <ScrollText size={14} strokeWidth={1.75} /> },
   { id: 'certificado', label: 'Certificado', icon: <Award size={14} strokeWidth={1.75} /> },
   { id: 'retencao', label: 'Retenção', icon: <Activity size={14} strokeWidth={1.75} /> },
+  { id: 'avancado', label: 'Avançado', icon: <ShieldAlert size={14} strokeWidth={1.75} /> },
 ];
 
 export default function AdminCourseEditor() {
@@ -136,6 +141,222 @@ export default function AdminCourseEditor() {
       {active === 'avaliacoes' && <AvaliacoesPane course={course} />}
       {active === 'certificado' && <CertificadoPane course={course} />}
       {active === 'retencao' && <RetencaoPane />}
+      {active === 'avancado' && <AvancadoPane course={course} />}
+    </div>
+  );
+}
+
+function AvancadoPane({ course }: { course: Course }) {
+  const navigate = useNavigate();
+  const toast = useToast();
+  const updateMut = useUpdateCourse();
+  const deleteMut = useDeleteCourse();
+  const [confirmInput, setConfirmInput] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const totalLessons = course.modules.reduce(
+    (acc, m) => acc + (m.lessons?.length ?? 0),
+    0,
+  );
+  const totalAssessments = course.modules.filter((m) => m.assessment).length;
+  const isPublished = course.active !== false;
+  const inputMatches = confirmInput.trim() === course.title.trim();
+
+  async function handleTogglePublish() {
+    try {
+      await updateMut.mutateAsync({
+        id: course.id,
+        patch: { active: !isPublished },
+      });
+      toast.success(
+        isPublished ? 'Curso despublicado' : 'Curso publicado',
+        course.title,
+      );
+    } catch (err) {
+      toast.error(
+        'Falha ao atualizar status',
+        err instanceof Error ? err.message : 'Erro',
+      );
+    }
+  }
+
+  async function handleDelete() {
+    if (!inputMatches) return;
+    try {
+      await deleteMut.mutateAsync(course.id);
+      toast.success('Curso excluído', course.title);
+      navigate('/admin/cursos', { replace: true });
+    } catch (err) {
+      toast.error(
+        'Falha ao excluir',
+        err instanceof Error ? err.message : 'Erro',
+      );
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div className="pco-card">
+        <h2 className="text-base font-bold text-pco-deep mb-1">
+          Visibilidade do curso
+        </h2>
+        <p className="text-xs text-ink-muted mb-4">
+          Cursos despublicados não aparecem no catálogo público nem ficam acessíveis para
+          novas matrículas. Alunos já matriculados continuam vendo o conteúdo.
+        </p>
+        <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-surface-off">
+          <div className="flex items-center gap-3">
+            <span
+              className={`pco-badge ${
+                isPublished
+                  ? 'bg-status-success/10 text-status-success'
+                  : 'bg-surface-gray text-ink-muted'
+              }`}
+            >
+              {isPublished ? 'Publicado' : 'Despublicado'}
+            </span>
+            <span className="text-sm text-ink-muted">
+              {isPublished
+                ? 'Visível no catálogo público.'
+                : 'Oculto do catálogo público.'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleTogglePublish}
+            disabled={updateMut.isPending}
+            className="pco-btn-secondary text-xs"
+          >
+            {updateMut.isPending ? (
+              <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+            ) : isPublished ? (
+              'Despublicar'
+            ) : (
+              'Publicar'
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="pco-card border-status-danger/40 bg-status-danger/5">
+        <div className="flex items-start gap-3">
+          <div className="h-9 w-9 rounded-lg bg-status-danger/15 grid place-items-center shrink-0">
+            <AlertTriangle size={16} strokeWidth={2} className="text-status-danger" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-base font-bold text-status-danger">Danger Zone</h2>
+            <p className="text-xs text-ink-muted mt-1">
+              Ações irreversíveis. Tenha certeza antes de prosseguir.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 p-4 rounded-lg border border-status-danger/30 bg-white">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="font-semibold text-pco-deep">Excluir este curso</h3>
+              <p className="text-xs text-ink-muted mt-1">
+                Remove permanentemente o curso e toda a sua estrutura. Não há como desfazer.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="pco-btn-danger text-xs whitespace-nowrap"
+            >
+              <Trash2 size={12} strokeWidth={2} />
+              Excluir curso
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showDeleteModal && (
+        <ModalShell
+          title={
+            <span className="inline-flex items-center gap-2 text-status-danger">
+              <AlertTriangle size={16} strokeWidth={2} />
+              Excluir curso permanentemente
+            </span>
+          }
+          onClose={() => {
+            if (!deleteMut.isPending) {
+              setShowDeleteModal(false);
+              setConfirmInput('');
+            }
+          }}
+        >
+          <div className="p-6 space-y-4 text-sm">
+            <div className="p-3 rounded-lg bg-status-danger/5 border border-status-danger/20 text-ink-muted text-xs">
+              Esta ação <strong className="text-status-danger">não pode ser desfeita</strong>.
+              Vai apagar:
+              <ul className="mt-2 space-y-1 list-disc list-inside">
+                <li>
+                  <strong className="text-pco-deep">{course.modules.length}</strong>{' '}
+                  módulo(s)
+                </li>
+                <li>
+                  <strong className="text-pco-deep">{totalLessons}</strong> aula(s)
+                </li>
+                {totalAssessments > 0 && (
+                  <li>
+                    <strong className="text-pco-deep">{totalAssessments}</strong>{' '}
+                    avaliação(ões) com banco de questões
+                  </li>
+                )}
+                <li>
+                  Vínculo do curso com matrículas existentes — alunos perdem o acesso
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-ink-muted mb-1.5">
+                Para confirmar, digite o título exato do curso:
+              </label>
+              <div className="text-xs text-pco-deep font-mono bg-surface-off rounded px-2 py-1.5 mb-2 select-all">
+                {course.title}
+              </div>
+              <input
+                type="text"
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                placeholder="Digite o título do curso aqui"
+                autoFocus
+                className="pco-input"
+                disabled={deleteMut.isPending}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-surface-gray">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setConfirmInput('');
+                }}
+                disabled={deleteMut.isPending}
+                className="pco-btn-ghost text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={!inputMatches || deleteMut.isPending}
+                className="pco-btn-danger text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {deleteMut.isPending ? (
+                  <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+                ) : (
+                  <Trash2 size={12} strokeWidth={2} />
+                )}
+                Excluir curso definitivamente
+              </button>
+            </div>
+          </div>
+        </ModalShell>
+      )}
     </div>
   );
 }
@@ -1476,13 +1697,13 @@ function LessonEditor({
 function ModalShell({
   title,
   subtitle,
-  submitting,
+  submitting = false,
   onClose,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   subtitle?: string;
-  submitting: boolean;
+  submitting?: boolean;
   onClose: () => void;
   children: React.ReactNode;
 }) {
