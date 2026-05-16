@@ -1469,6 +1469,7 @@ function SortableModule({
   onEditLesson,
   onDeleteLesson,
 }: SortableModuleProps) {
+  const courseId = module.courseId;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: `mod:${module.id}` });
   const style = {
@@ -1511,6 +1512,15 @@ function SortableModule({
             {module.assessment ? '1 avaliação' : 'sem avaliação'}
           </div>
         </div>
+        <Link
+          to={`/curso/${courseId}/modulo/${module.id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="pco-btn-ghost text-xs px-2.5"
+          title="Visualizar módulo (abre em nova aba)"
+        >
+          <Eye size={12} strokeWidth={1.75} />
+        </Link>
         <button
           onClick={onEdit}
           className="pco-btn-ghost text-xs px-2.5"
@@ -1634,6 +1644,15 @@ function SortableLesson({ lesson, onEdit, onDelete }: SortableLessonProps) {
           )}
         </div>
       </div>
+      <Link
+        to={`/curso/${lesson.courseId}/aula/${lesson.id}`}
+        target="_blank"
+        rel="noreferrer"
+        className="pco-btn-ghost text-xs px-2"
+        title="Visualizar aula (abre em nova aba)"
+      >
+        <Eye size={11} strokeWidth={1.75} />
+      </Link>
       <button onClick={onEdit} className="pco-btn-ghost text-xs px-2" title="Editar">
         <Edit3 size={11} strokeWidth={1.75} />
       </button>
