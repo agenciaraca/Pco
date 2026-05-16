@@ -30,6 +30,7 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import LessonComments from '../components/LessonComments';
 import AchievementCelebration from '../components/AchievementCelebration';
 import MarkdownLite from '../components/MarkdownLite';
+import { sanitizeHtml } from '../lib/sanitizeHtml';
 import { useLessonWatchHeartbeat } from '../hooks/useLessonWatchHeartbeat';
 import { useState, useEffect, useMemo } from 'react';
 import type { NewAchievementDto } from '../data/api';
@@ -179,30 +180,47 @@ export default function LMSLesson() {
         </div>
       </header>
 
-      <div className="pco-card p-0 overflow-hidden">
-        <div className="aspect-video bg-pco-deep relative grid place-items-center">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(12,192,223,0.2),transparent_60%)]" />
-          <button className="relative z-10 h-16 w-16 rounded-full bg-white/10 backdrop-blur grid place-items-center hover:bg-white/20 transition-colors border-2 border-white/30">
-            <PlayCircle size={36} className="text-white" strokeWidth={1.5} />
-          </button>
-          <div className="absolute bottom-3 left-4 text-white/80 text-xs">
-            Player de vídeo (mock)
+      {lesson.videoUrl ? (
+        <div className="pco-card p-0 overflow-hidden">
+          <div className="aspect-video bg-pco-deep">
+            <iframe
+              src={lesson.videoUrl}
+              title={lesson.title}
+              className="w-full h-full"
+              frameBorder={0}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
         </div>
-      </div>
+      ) : null}
 
       <TranscriptPanel lessonId={lesson.id} />
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-5">
-          <div className="pco-card">
-            <h3 className="text-base font-semibold text-pco-deep mb-3">Resumo da aula</h3>
-            <p className="text-sm text-ink-muted leading-relaxed">
-              Esta aula apresenta os conceitos centrais do tema, articulando teoria e clínica
-              com exemplos comentados. Conteúdo de apoio mockado — será substituído por texto
-              real ao integrar o backend.
-            </p>
-          </div>
+          {lesson.content ? (
+            <div className="pco-card">
+              <div
+                className="pco-prose text-sm text-pco-deep leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(lesson.content) }}
+              />
+            </div>
+          ) : lesson.description ? (
+            <div className="pco-card">
+              <h3 className="text-base font-semibold text-pco-deep mb-3">Sobre esta aula</h3>
+              <p className="text-sm text-ink-muted leading-relaxed whitespace-pre-line">
+                {lesson.description}
+              </p>
+            </div>
+          ) : (
+            <div className="pco-card">
+              <h3 className="text-base font-semibold text-pco-deep mb-3">Sobre esta aula</h3>
+              <p className="text-sm text-ink-subtle italic">
+                Conteúdo desta aula ainda não disponível.
+              </p>
+            </div>
+          )}
 
           <div className="pco-card">
             <h3 className="text-base font-semibold text-pco-deep mb-3 flex items-center gap-2">

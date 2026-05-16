@@ -41,11 +41,11 @@ interface StepsResponse {
 
 interface LdPost {
   id: number;
-  title?: { rendered?: string } | string;
+  title?: { rendered?: string; raw?: string } | string;
   slug?: string;
   menu_order?: number;
-  excerpt?: { rendered?: string } | string;
-  content?: { rendered?: string } | string;
+  excerpt?: { rendered?: string; raw?: string } | string;
+  content?: { rendered?: string; raw?: string } | string;
 }
 
 function loadCreds() {
@@ -77,6 +77,61 @@ function unwrap(v: unknown): string {
   return String(v);
 }
 
+/**
+ * Tira o ruído de wrapper que o LearnDash + Elementor injetam em /content.rendered:
+ * breadcrumbs, status, barra de progresso, navegação prev/next. O conteúdo real
+ * fica intacto.
+ */
+function cleanLdElementorWrapper(html: string): string {
+  return html
+    .replace(/<nav[^>]*ld-breadcrumbs[^>]*>[\s\S]*?<\/nav>/gi, '')
+    .replace(/<div[^>]*ld-progress[^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi, '')
+    .replace(/<div[^>]*ld-status[^>]*>[\s\S]*?<\/div>/gi, '')
+    .replace(/<div[^>]*learndash-wrapper[^>]*>/gi, '<div>')
+    .replace(/<div[^>]*ld-topic-status[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi, '')
+    .replace(/Módulo Progresso[\s\S]*?% Concluído/g, '')
+    .replace(/Aula anterior\s+Voltar para Módulo\s+Próximo Aula/g, '')
+    .trim();
+}
+
+/**
+ * Extrai a primeira URL de vídeo embedável (YouTube/Vimeo) do HTML.
+ * Procura em iframes e em URLs soltas no texto (shortcodes/links).
+ */
+function extractVideoUrl(html: string): string | null {
+  // 1. iframe src
+  const iframeMatch = html.match(/<iframe[^>]+src=["']([^"']+)["']/i);
+  if (iframeMatch) {
+    const src = iframeMatch[1]!;
+    if (/youtube\.com|youtu\.be|vimeo\.com/i.test(src)) {
+      // Normaliza: youtube /watch?v=ID → /embed/ID; vimeo/ID → player.vimeo.com/video/ID
+      return normalizeVideoEmbed(src);
+    }
+  }
+  // 2. Link YouTube solto
+  const yt = html.match(
+    /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/,
+  );
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  // 3. Vimeo solto
+  const vm = html.match(/(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/);
+  if (vm) return `https://player.vimeo.com/video/${vm[1]}`;
+  return null;
+}
+
+function normalizeVideoEmbed(src: string): string {
+  // /watch?v=ID → /embed/ID
+  const ytWatch = src.match(/youtube\.com\/watch\?v=([\w-]{11})/);
+  if (ytWatch) return `https://www.youtube.com/embed/${ytWatch[1]}`;
+  // youtu.be/ID → /embed/ID
+  const ytShort = src.match(/youtu\.be\/([\w-]{11})/);
+  if (ytShort) return `https://www.youtube.com/embed/${ytShort[1]}`;
+  // vimeo.com/ID → player.vimeo.com/video/ID
+  const vm = src.match(/^(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/);
+  if (vm) return `https://player.vimeo.com/video/${vm[1]}`;
+  return src;
+}
+
 function stripHtml(html: string): string {
   return html
     .replace(/<[^>]*>/g, ' ')
@@ -97,7 +152,9 @@ interface AvaLesson {
   courseId: string;
   title: string;
   durationMinutes: number;
+  videoUrl?: string;
   description?: string;
+  content?: string;
   isMandatory: boolean;
   order: number;
   status?: 'pending' | 'in_progress' | 'completed' | 'available';
@@ -171,13 +228,13 @@ async function main(): Promise<void> {
     const moduleId = `mod-${COURSE_ID}-${lid}`;
     log(`  [${mIdx + 1}] "${moduleTitle}" (${topicIds.length} aulas)`);
 
-    // Buscar título de cada topic
+    // Buscar conteúdo de cada topic (com context=edit pra pegar HTML real, não wrapper LD)
     const topicMeta = await runLimited(
       topicIds,
       5,
       async (tid): Promise<{ tid: string; post: LdPost }> => {
         const post = await fetchJson<LdPost>(
-          `/wp-json/ldlms/v2/topicos/${tid}`,
+          `/wp-json/ldlms/v2/topicos/${tid}?context=edit`,
         );
         return { tid, post };
       },
@@ -188,17 +245,34 @@ async function main(): Promise<void> {
       (a, b) => topicIds.indexOf(a.tid) - topicIds.indexOf(b.tid),
     );
 
-    const lessons: AvaLesson[] = topicMeta.map((t, idx) => ({
-      id: `lesson-${COURSE_ID}-${t.tid}`,
-      moduleId,
-      courseId: COURSE_ID,
-      title: stripHtml(unwrap(t.post.title)) || `Aula ${idx + 1}`,
-      durationMinutes: 15,
-      description: stripHtml(unwrap(t.post.excerpt)).slice(0, 500),
-      isMandatory: true,
-      order: idx + 1,
-      status: 'available' as const,
-    }));
+    const lessons: AvaLesson[] = topicMeta.map((t, idx) => {
+      // content.raw existe em context=edit. Usa raw quando disponível,
+      // senão cai no rendered limpando o wrapper LD/Elementor.
+      const contentRaw =
+        (t.post.content && typeof t.post.content === 'object' && 'raw' in t.post.content
+          ? String((t.post.content as { raw?: unknown }).raw ?? '')
+          : '');
+      const contentRendered = unwrap(t.post.content);
+      const contentHtml = contentRaw
+        ? contentRaw
+        : cleanLdElementorWrapper(contentRendered);
+      const videoUrl = extractVideoUrl(contentRendered) ?? extractVideoUrl(contentHtml) ?? undefined;
+      const plainText = stripHtml(contentHtml);
+      const description = plainText.slice(0, 500);
+      return {
+        id: `lesson-${COURSE_ID}-${t.tid}`,
+        moduleId,
+        courseId: COURSE_ID,
+        title: stripHtml(unwrap(t.post.title)) || `Aula ${idx + 1}`,
+        durationMinutes: 15,
+        videoUrl,
+        description: description || undefined,
+        content: contentHtml || undefined,
+        isMandatory: true,
+        order: idx + 1,
+        status: 'available' as const,
+      };
+    });
 
     totalTopics += lessons.length;
 

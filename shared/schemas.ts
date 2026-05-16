@@ -480,6 +480,8 @@ export const createLessonSchema = z.object({
   durationMinutes: z.number().int().min(0).max(600).default(0),
   videoUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
   description: z.string().max(4000).optional(),
+  /** Conteúdo HTML completo da aula (rich text, áudios embed, materiais). */
+  content: z.string().max(200_000).optional(),
   isMandatory: z.boolean().default(true),
   order: z.number().int().min(1).max(500),
   /**

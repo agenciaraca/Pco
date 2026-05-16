@@ -36,7 +36,14 @@ export interface Lesson {
   title: string;
   durationMinutes: number;
   videoUrl?: string;
+  /** Texto curto/resumo (até 4000 chars). Aparece no listing e no topo da aula. */
   description?: string;
+  /**
+   * Conteúdo HTML completo da aula (texto, imagens, links, áudio embeds, PDFs).
+   * Renderizado no corpo da página LMSLesson. Limite alto (até 200k chars).
+   * Sanitizado no front antes de injetar.
+   */
+  content?: string;
   isMandatory: boolean;
   order: number;
   status?: LessonStatus;

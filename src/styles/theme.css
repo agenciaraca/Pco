@@ -77,6 +77,55 @@ body {
   .pco-section-subtitle {
     @apply text-sm text-ink-muted;
   }
+
+  /* Conteúdo HTML importado (corpo da aula). Estiliza tags genéricas. */
+  .pco-prose h1 { @apply text-2xl font-bold text-pco-deep mt-6 mb-3; }
+  .pco-prose h2 { @apply text-xl font-bold text-pco-deep mt-5 mb-2.5; }
+  .pco-prose h3 { @apply text-lg font-semibold text-pco-deep mt-4 mb-2; }
+  .pco-prose h4 { @apply text-base font-semibold text-pco-deep mt-3 mb-1.5; }
+  .pco-prose p { @apply my-3 leading-relaxed; }
+  .pco-prose strong { @apply font-semibold text-pco-deep; }
+  .pco-prose em { @apply italic; }
+  .pco-prose ul { @apply list-disc ml-6 my-3 space-y-1; }
+  .pco-prose ol { @apply list-decimal ml-6 my-3 space-y-1; }
+  .pco-prose blockquote {
+    @apply border-l-4 border-pco-blue/40 pl-4 italic text-ink-muted my-3;
+  }
+  .pco-prose a {
+    @apply text-pco-blue underline decoration-pco-blue/40 underline-offset-2 hover:decoration-pco-blue;
+  }
+  .pco-prose img {
+    @apply rounded-xl my-4 max-w-full h-auto shadow-card;
+  }
+  .pco-prose figure { @apply my-4; }
+  .pco-prose figcaption {
+    @apply text-xs text-ink-subtle mt-1 text-center italic;
+  }
+  .pco-prose iframe {
+    @apply w-full rounded-xl my-4;
+    min-height: 300px;
+  }
+  .pco-prose table {
+    @apply w-full my-4 border-collapse text-sm;
+  }
+  .pco-prose th, .pco-prose td {
+    @apply border border-surface-gray px-3 py-2 text-left align-top;
+  }
+  .pco-prose th {
+    @apply bg-surface-off font-semibold text-pco-deep;
+  }
+  .pco-prose pre {
+    @apply bg-surface-mute rounded-xl p-3 overflow-x-auto text-xs font-mono my-3;
+  }
+  .pco-prose code {
+    @apply text-pco-deep bg-surface-mute px-1 py-0.5 rounded text-[12px];
+  }
+  .pco-prose pre code {
+    @apply bg-transparent p-0;
+  }
+  .pco-prose hr {
+    @apply my-6 border-surface-gray;
+  }
 }
 
 ::selection {
