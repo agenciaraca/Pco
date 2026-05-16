@@ -86,6 +86,17 @@ Public read-only API uses a parallel mechanism: `pcok_*` tokens hashed SHA-256, 
 
 `server/ai/providers/` — six providers (Anthropic, OpenAI, Google, Mistral, DeepSeek, Groq) implement a common `AiProvider` interface. Configs live in `ai_configurations` (DB) or JSON, keys decrypted only at call time. Admins switch provider/model from `/admin/ias` with no redeploy. Adding a provider = new file in `providers/` + register in `providers/index.ts`.
 
+### Outras abstrações multi-provider (mesmo padrão)
+
+| Domínio | Providers | Localização |
+|---|---|---|
+| Pagamentos | 6 (Mock, Stripe, Asaas, Pagar.me, MercadoPago, PayPal) | `server/payments/providers/` |
+| E-mail | 8 (Mock, Resend, SendGrid, Postmark, Mailgun, Brevo, AWS SES, SMTP nativo) | `server/notifications/email/` |
+| Webhooks outbound | 7 tipos (Generic, Slack, Discord, Telegram, Teams, Mattermost, Pushover) | `server/webhooks/` |
+| Imports | 3 connectors (WP, LearnDash, WooCommerce) + CSV | `server/imports/connectors/` |
+
+Padrão idêntico ao de IA: interface comum, factory, credenciais AES-GCM, switch sem redeploy.
+
 ### Frontend data flow
 
 `src/app/data/client.ts` (`request<T>` + `ApiError`) is the single fetch wrapper — adds Bearer token from `localStorage['ava-pco-auth']`, handles JSON+text, dispatches a `auth:expired` window event on 401 so `AuthContext` can sign out.
@@ -135,6 +146,35 @@ When the user says "atualize a produção", run `restart_vps.py` (after pushing)
 `docs/` has deeper notes per subsystem when you need them:
 `architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `api-public.md`, `deploy.md`, `migration-wp-ld.md`.
 
-## Migração WP/LD/WC em andamento
+## Migração WP/LD/WC — alunos, cursos e progressões NÃO migraram direito
 
-A migração dos dois sites WP de origem (`portalpco.online` LMS + `psicanaliseclinica.online` loja) para o AVA está em **Fase 1 concluída** (discovery feito). Estado vivo, slugs PT-BR, contagens, mappings e próximos passos: `docs/migration-wp-ld.md`. Creds dos dois sites ficam em `.env.import` (gitignored).
+Migração dos dois sites WP (`portalpco.online` LMS + `psicanaliseclinica.online` loja) para o AVA. Os dados de **alunos, cursos e progressões em produção estão sabidamente errados** desde o deploy v2 (2026-05-15) — não confiar neles antes da v3 reaplicar.
+
+**O que está quebrado em produção hoje:**
+
+| Entidade | Estado em prod (v2) | Estado esperado |
+|---|---|---|
+| Alunos (`users.json`) | 1641 importados, **333 faltando**, **~436 com nomes spam SEO** (Russian blogspot etc.) | ~1972 únicos limpos |
+| Cursos (`courses.json`) | 13 LD + 3 seed, mas 7 estão como `draft` no portal e foram importados como ativos | 6 publicados ou flag `published` por curso |
+| Matrículas (`admin-students.progressByCourse`) | **10.205 enrollments fantasma** — cada um dos 785 alunos aparece em todos os 13 cursos | ~1500 reais |
+| Progressões | 679 registros não-zero, média 39.7% — **amarrados aos enrollments errados**, então quase todos apontam pro curso errado | progresso só nos cursos realmente cursados |
+| `external-references.json` | 14.049 entries com colisões portal↔psi (mesmo WP user ID em ambos os sites era fundido num só) | refs prefixadas `portal:` / `psi:` |
+
+**Por que quebrou (raiz):**
+
+1. `GET /ldlms/v2/cursos/{id}/usuarios` mente quando autenticado como admin — retorna **todos** os users do site, não os matriculados. Fix: iterar users e chamar `/users/{id}/courses`.
+2. WP user IDs colidem entre os dois sites (`1125` é Adriana no portal e spam no psi) e o `refsStore` fundia ambos. Fix: prefixar com origem.
+3. Bots SEO encheram `display_name` de 436 customers do psi com lixo russo. Fix: `filterSpam()` com 8 patterns.
+
+**Status da recuperação v3 (= re-migrar tudo do zero com os fixes):** o pipeline é o mesmo dos scripts de import — re-coleta busca **alunos + cursos + aulas + tópicos + matrículas + progressões + produtos + pedidos** dos dois WP via REST com os connectors corrigidos; re-aplica persiste em `data/*.json` substituindo o estado v2 quebrado.
+
+Estado:
+1. ✅ Código corrigido (`server/imports/connectors/ld.ts`, `scripts/migrate_wp_to_ava.ts`)
+2. ✅ Reset local executado (`scripts/reset_imported_data.ts` — mantém só seeds + superadmin)
+3. ⏳ **Re-coleta v3 rodando em background** (~30 min) — gera novo dump em `data/migration/<ts>/raw/{portal,psi}.json`
+4. ⏳ Re-aplicar: `npx tsx scripts/migrate_wp_to_ava.ts --apply --from-raw=data/migration/<ts>` (~15 min) → reescreve `users.json`, `admin-students.json`, `external-references.json`, `payment-products.json` com dados corretos
+5. ⏳ `npx tsx scripts/import_lessons_and_map_products.ts` → monta `courses.json` com aulas e link cursos↔produtos
+6. ⏳ Sync para VPS: `python scripts/sync_data_to_vps.py` + restart
+7. ⏳ Secundários: 112 questões → `question-bank.json`, 77 posts → `news.json`, 1 cupom → `coupons.json`
+
+**Antes de mexer na migração, releia `docs/migration-wp-ld.md`** — é o handoff vivo com slugs PT-BR, snapshot de contagens, mappings, seções "Bug #1/#2/#3" e checklist em "Como continuar de onde paramos". Creds dos dois WP ficam em `.env.import` (gitignored).
