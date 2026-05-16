@@ -115,10 +115,10 @@ body {
     @apply bg-surface-off font-semibold text-pco-deep;
   }
   .pco-prose pre {
-    @apply bg-surface-mute rounded-xl p-3 overflow-x-auto text-xs font-mono my-3;
+    @apply bg-surface-gray rounded-xl p-3 overflow-x-auto text-xs font-mono my-3;
   }
   .pco-prose code {
-    @apply text-pco-deep bg-surface-mute px-1 py-0.5 rounded text-[12px];
+    @apply text-pco-deep bg-surface-gray px-1 py-0.5 rounded text-[12px];
   }
   .pco-prose pre code {
     @apply bg-transparent p-0;
