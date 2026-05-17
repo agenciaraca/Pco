@@ -119,23 +119,34 @@ async function main(): Promise<void> {
     }>('admin-students.json');
     log(`admin-students.json: ${adminStudents.length} registros`);
     if (adminStudents.length > 0 && !DRY_RUN) {
-      await db
-        .insert(schema.students)
-        .values(
-          adminStudents.map((s) => ({
-            id: s.id,
-            name: s.name,
-            email: s.email,
-            status: s.status,
-            riskScore: s.riskScore ?? 0,
-            lastAccessAt: new Date(s.lastAccessAt),
-            createdAt: new Date(s.createdAt),
-            weeklyGoalMinutes: s.weeklyGoalMinutes ?? 180,
-          })),
-        )
-        .onConflictDoNothing();
-      log(`  ✓ inseridos`);
-      total += adminStudents.length;
+      // students tem FK pra users.id. Filtra só os que têm user correspondente.
+      const userIds = new Set(
+        (await db.select({ id: schema.users.id }).from(schema.users)).map((u) => u.id),
+      );
+      const valid = adminStudents.filter((s) => userIds.has(s.id));
+      log(`  ${valid.length} alunos com user existente (${adminStudents.length - valid.length} sem user → pulam)`);
+      if (valid.length > 0) {
+        const BATCH = 500;
+        for (let i = 0; i < valid.length; i += BATCH) {
+          const slice = valid.slice(i, i + BATCH);
+          await db
+            .insert(schema.students)
+            .values(
+              slice.map((s) => ({
+                id: s.id,
+                userId: s.id, // students.id === users.id (convenção AVA PCO)
+                status: s.status,
+                riskScore: s.riskScore ?? 0,
+                lastAccessAt: s.lastAccessAt ? new Date(s.lastAccessAt) : null,
+                createdAt: new Date(s.createdAt),
+                weeklyGoalMinutes: s.weeklyGoalMinutes ?? 180,
+              })),
+            )
+            .onConflictDoNothing();
+        }
+        log(`  ✓ inseridos`);
+        total += valid.length;
+      }
     }
   }
 
