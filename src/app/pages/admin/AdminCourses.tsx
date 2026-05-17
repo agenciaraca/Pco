@@ -23,6 +23,8 @@ import {
   useAdminCoursesSummary,
   useUpdateCourse,
 } from '../../data/hooks';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 import { useMemo, useState } from 'react';
 import { downloadCoursesCsv } from '../../data/api';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
@@ -132,6 +134,34 @@ export default function AdminCourses() {
     if (filters.minStudents) n += 1;
     return n;
   }, [filters]);
+
+  const {
+    rows: sortedVisible,
+    field: sortField,
+    direction: sortDirection,
+    toggleSort,
+  } = useTableSort(
+    visible,
+    (row, field) => {
+      switch (field) {
+        case 'title':
+          return row.title;
+        case 'modules':
+          return row.modules.length;
+        case 'hours':
+          return row.totalHours;
+        case 'enrolled':
+          return summaryMap.get(row.id)?.enrolledCount ?? 0;
+        case 'progress':
+          return summaryMap.get(row.id)?.avgProgressPct ?? 0;
+        case 'status':
+          return row.active === false ? 0 : 1;
+        default:
+          return null;
+      }
+    },
+    'title',
+  );
 
   const visibleIds = useMemo(() => new Set(visible.map((c) => c.id)), [visible]);
   const allVisibleSelected =
@@ -529,17 +559,29 @@ export default function AdminCourses() {
                       aria-label="Selecionar todos visíveis"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">Curso</th>
-                  <th className="px-4 py-3 text-left font-medium">Módulos</th>
-                  <th className="px-4 py-3 text-left font-medium">Horas</th>
-                  <th className="px-4 py-3 text-left font-medium">Alunos</th>
-                  <th className="px-4 py-3 text-left font-medium">Progresso</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
+                  <SortableTh field="title" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Curso
+                  </SortableTh>
+                  <SortableTh field="modules" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Módulos
+                  </SortableTh>
+                  <SortableTh field="hours" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Horas
+                  </SortableTh>
+                  <SortableTh field="enrolled" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Alunos
+                  </SortableTh>
+                  <SortableTh field="progress" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Progresso
+                  </SortableTh>
+                  <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Status
+                  </SortableTh>
                   <th className="px-4 py-3 text-right font-medium">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {visible.map((c) => (
+                {sortedVisible.map((c) => (
                   <tr
                     key={c.id}
                     className={`border-t border-surface-gray hover:bg-surface-off ${

@@ -22,6 +22,8 @@ import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { useT } from '../../i18n';
 import type { OrderDto, OrderStatus } from '../../data/api';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 
 const statusStyle: Record<OrderStatus, { className: string; label: string; Icon: typeof Clock }> =
   {
@@ -82,6 +84,37 @@ export default function AdminOrders() {
     }
     return list;
   }, [data, statusFilter, search]);
+
+  const {
+    rows: sortedFiltered,
+    field: sortField,
+    direction: sortDirection,
+    toggleSort,
+  } = useTableSort(
+    filtered,
+    (row, field) => {
+      switch (field) {
+        case 'id':
+          return row.id;
+        case 'user':
+          return row.userEmail;
+        case 'product':
+          return row.productSnapshot.name;
+        case 'gateway':
+          return row.gatewayId;
+        case 'amount':
+          return row.amountCents;
+        case 'status':
+          return row.status;
+        case 'createdAt':
+          return row.createdAt;
+        default:
+          return null;
+      }
+    },
+    'createdAt',
+    'desc',
+  );
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {
@@ -242,18 +275,32 @@ export default function AdminOrders() {
           <table className="w-full text-sm">
             <thead className="bg-surface-mute text-ink-muted">
               <tr>
-                <th className="text-left px-3 py-2 font-medium">Pedido</th>
-                <th className="text-left px-3 py-2 font-medium">Aluno</th>
-                <th className="text-left px-3 py-2 font-medium">Produto</th>
-                <th className="text-left px-3 py-2 font-medium">Gateway</th>
-                <th className="text-left px-3 py-2 font-medium">Valor</th>
-                <th className="text-left px-3 py-2 font-medium">Status</th>
-                <th className="text-left px-3 py-2 font-medium">Quando</th>
+                <SortableTh field="id" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                  Pedido
+                </SortableTh>
+                <SortableTh field="user" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                  Aluno
+                </SortableTh>
+                <SortableTh field="product" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                  Produto
+                </SortableTh>
+                <SortableTh field="gateway" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                  Gateway
+                </SortableTh>
+                <SortableTh field="amount" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                  Valor
+                </SortableTh>
+                <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                  Status
+                </SortableTh>
+                <SortableTh field="createdAt" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                  Quando
+                </SortableTh>
                 <th className="text-right px-3 py-2 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-mute">
-              {filtered.map((o) => {
+              {sortedFiltered.map((o) => {
                 const style = statusStyle[o.status];
                 const Icon = style.Icon;
                 return (

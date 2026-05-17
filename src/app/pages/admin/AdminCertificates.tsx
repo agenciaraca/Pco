@@ -25,6 +25,8 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import type { Certificate } from '../../types/schema';
 import { useT } from '../../i18n';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 
 const tabs = [
   { id: 'emitidos', label: 'Emitidos', icon: <CheckCircle2 size={14} strokeWidth={1.75} /> },
@@ -81,6 +83,41 @@ export default function AdminCertificates() {
     }
     return list;
   }, [certs.data, search, statusFilter, studentById, courseById]);
+
+  const validationsByCode = useMemo(() => {
+    const m = new Map<string, number>();
+    (validationsQ.data ?? []).forEach((v) => m.set(v.code, v.count));
+    return m;
+  }, [validationsQ.data]);
+
+  const {
+    rows: sortedFiltered,
+    field: sortField,
+    direction: sortDirection,
+    toggleSort,
+  } = useTableSort(
+    filtered,
+    (row, field) => {
+      switch (field) {
+        case 'student':
+          return studentById.get(row.studentId) ?? row.studentId;
+        case 'course':
+          return courseById.get(row.courseId) ?? row.courseId;
+        case 'status':
+          return row.status;
+        case 'issuedAt':
+          return row.issuedAt ?? '';
+        case 'code':
+          return row.validationCode ?? '';
+        case 'validations':
+          return validationsByCode.get(row.validationCode) ?? 0;
+        default:
+          return null;
+      }
+    },
+    'issuedAt',
+    'desc',
+  );
 
   const issued = (certs.data ?? []).filter((c) => c.status === 'issued');
   const inProgress = (certs.data ?? []).filter((c) => c.status !== 'issued');
@@ -170,17 +207,29 @@ export default function AdminCertificates() {
                 <table className="w-full text-sm">
                   <thead className="bg-surface-off">
                     <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
-                      <th className="px-4 py-3 text-left font-medium">Aluno</th>
-                      <th className="px-4 py-3 text-left font-medium">Curso</th>
-                      <th className="px-4 py-3 text-left font-medium">Status</th>
-                      <th className="px-4 py-3 text-left font-medium">Emissão</th>
-                      <th className="px-4 py-3 text-left font-medium">Código</th>
-                      <th className="px-4 py-3 text-left font-medium">Validações</th>
+                      <SortableTh field="student" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                        Aluno
+                      </SortableTh>
+                      <SortableTh field="course" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                        Curso
+                      </SortableTh>
+                      <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                        Status
+                      </SortableTh>
+                      <SortableTh field="issuedAt" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                        Emissão
+                      </SortableTh>
+                      <SortableTh field="code" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                        Código
+                      </SortableTh>
+                      <SortableTh field="validations" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                        Validações
+                      </SortableTh>
                       <th className="px-4 py-3 text-right font-medium">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((c) => (
+                    {sortedFiltered.map((c) => (
                       <tr
                         key={c.id}
                         className="border-t border-surface-gray hover:bg-surface-off"

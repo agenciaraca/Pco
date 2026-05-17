@@ -12,7 +12,6 @@ import {
   Mail,
   Lock,
   Unlock,
-  ArrowUpDown,
   X,
   Save,
   Loader2,
@@ -23,6 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 import { useAuth } from '../../auth/AuthContext';
 import {
   useAdminStudents,
@@ -130,13 +131,45 @@ export default function AdminUsers() {
     });
   }, [baseRows, riskMin, riskMax, progressMin, progressMax, enrolledMin, lastAccessWithin]);
 
-  const totalRows = filtered.length;
+  const {
+    rows: sortedFiltered,
+    field: sortField,
+    direction: sortDirection,
+    toggleSort,
+  } = useTableSort(
+    filtered,
+    (row, field) => {
+      switch (field) {
+        case 'name':
+          return row.name;
+        case 'email':
+          return row.email;
+        case 'courses':
+          return row.enrolledCourseIds.length;
+        case 'progress': {
+          const vals = Object.values(row.progressByCourse);
+          return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+        }
+        case 'status':
+          return row.status;
+        case 'risk':
+          return row.riskScore;
+        case 'lastAccess':
+          return row.lastAccessAt;
+        default:
+          return null;
+      }
+    },
+    'name',
+  );
+
+  const totalRows = sortedFiltered.length;
   const effectivePageSize = pageSize === 'all' ? Math.max(totalRows, 1) : pageSize;
   const totalPages = Math.max(1, Math.ceil(totalRows / effectivePageSize));
   const currentPage = Math.min(page, totalPages);
   const startIdx = (currentPage - 1) * effectivePageSize;
   const endIdx = Math.min(startIdx + effectivePageSize, totalRows);
-  const pageRows = pageSize === 'all' ? filtered : filtered.slice(startIdx, endIdx);
+  const pageRows = pageSize === 'all' ? sortedFiltered : sortedFiltered.slice(startIdx, endIdx);
 
   const totals = {
     total: baseRows.length,
@@ -680,20 +713,24 @@ export default function AdminUsers() {
                       aria-label="Selecionar todos na página"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">Aluno</th>
-                  <th className="px-4 py-3 text-left font-medium">Cursos</th>
-                  <th className="px-4 py-3 text-left font-medium">Progresso</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-left font-medium">
-                    <button
-                      onClick={() => setSortBy('risk')}
-                      className="inline-flex items-center gap-1 hover:text-pco-deep"
-                    >
-                      Risco
-                      <ArrowUpDown size={10} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium">Último acesso</th>
+                  <SortableTh field="name" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Aluno
+                  </SortableTh>
+                  <SortableTh field="courses" current={sortField} direction={sortDirection} onSort={toggleSort} align="center">
+                    Cursos
+                  </SortableTh>
+                  <SortableTh field="progress" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Progresso
+                  </SortableTh>
+                  <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Status
+                  </SortableTh>
+                  <SortableTh field="risk" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Risco
+                  </SortableTh>
+                  <SortableTh field="lastAccess" current={sortField} direction={sortDirection} onSort={toggleSort}>
+                    Último acesso
+                  </SortableTh>
                   <th className="px-4 py-3 text-right font-medium">Ações</th>
                 </tr>
               </thead>
