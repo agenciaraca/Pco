@@ -21,7 +21,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useUnreadCount, useAdminAlerts } from '../data/hooks';
-import { AlertOctagon } from 'lucide-react';
+import { AlertOctagon, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import { useToast } from './Toast';
 import * as api from '../data/api';
 import { useT } from '../i18n';
@@ -53,6 +54,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
   const totalAlerts = isAdmin
     ? (alertsQ.data?.error ?? 0) + (alertsQ.data?.warn ?? 0)
     : 0;
+  const { theme, toggle: toggleTheme } = useTheme();
   const toast = useToast();
   const t = useT();
   const lastUnreadRef = useRef<number | null>(null);
@@ -273,6 +275,20 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
         </div>
 
         <div className="flex-1 md:hidden" />
+
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-gray transition-colors"
+          aria-label={theme === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro'}
+          title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+        >
+          {theme === 'dark' ? (
+            <Sun size={18} strokeWidth={1.75} />
+          ) : (
+            <Moon size={18} strokeWidth={1.75} />
+          )}
+        </button>
 
         <LocaleSwitcher variant="inline" className="hidden md:flex" />
 

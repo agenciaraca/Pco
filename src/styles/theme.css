@@ -24,6 +24,97 @@
   --status-gold: #d6a84f;
 }
 
+/*
+ * Dark mode — ativado via data-theme="dark" no <html>.
+ * Estratégia: redefine só as cores neutras (surfaces + ink). Cores de marca
+ * (azul PCO, laranja, ciano) ficam iguais — bom contraste em ambos.
+ * Status (success/danger/warning) também ficam iguais por consistência.
+ *
+ * Páginas legadas com cores hardcoded (ex: text-white em hero) vão se
+ * adaptar progressivamente. Esta primeira passada cobre cards, inputs e
+ * tipografia da maioria do app.
+ */
+html[data-theme='dark'] {
+  --surface-white: #0f1f25;
+  --surface-off: #0a1418;
+  --surface-gray: #1c2a30;
+
+  --ink-base: #e5edf0;
+  --ink-muted: #9aa9ae;
+  --ink-subtle: #6b7c82;
+
+  color-scheme: dark;
+}
+
+/* Body usa as vars dinâmicas */
+html[data-theme='dark'] body {
+  background-color: var(--surface-off);
+  color: var(--ink-base);
+}
+
+/* Cards e inputs ganham fundo escuro */
+html[data-theme='dark'] .pco-card {
+  background-color: var(--surface-white);
+  border-color: var(--surface-gray);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+html[data-theme='dark'] .pco-input {
+  background-color: var(--surface-white);
+  border-color: var(--surface-gray);
+  color: var(--ink-base);
+}
+html[data-theme='dark'] .pco-input::placeholder {
+  color: var(--ink-subtle);
+}
+html[data-theme='dark'] .pco-btn-secondary {
+  background-color: var(--surface-white);
+  border-color: var(--surface-gray);
+  color: var(--ink-base);
+}
+html[data-theme='dark'] .pco-btn-ghost:hover {
+  background-color: var(--surface-gray);
+  color: var(--ink-base);
+}
+
+/* Pega utilitários Tailwind direto: bg-white, bg-surface-off, etc */
+html[data-theme='dark'] .bg-white {
+  background-color: var(--surface-white) !important;
+}
+html[data-theme='dark'] .bg-surface-off {
+  background-color: var(--surface-off) !important;
+}
+html[data-theme='dark'] .bg-surface-gray {
+  background-color: var(--surface-gray) !important;
+}
+html[data-theme='dark'] .text-pco-deep {
+  color: var(--ink-base) !important;
+}
+html[data-theme='dark'] .text-ink-base {
+  color: var(--ink-base) !important;
+}
+html[data-theme='dark'] .text-ink-muted {
+  color: var(--ink-muted) !important;
+}
+html[data-theme='dark'] .text-ink-subtle {
+  color: var(--ink-subtle) !important;
+}
+html[data-theme='dark'] .border-surface-gray {
+  border-color: var(--surface-gray) !important;
+}
+html[data-theme='dark'] .divide-surface-gray > * + * {
+  border-color: var(--surface-gray) !important;
+}
+html[data-theme='dark'] .divide-surface-mute > * + * {
+  border-color: var(--surface-gray) !important;
+}
+html[data-theme='dark'] .bg-surface-mute {
+  background-color: var(--surface-gray) !important;
+}
+html[data-theme='dark'] kbd {
+  background-color: var(--surface-gray) !important;
+  color: var(--ink-base) !important;
+}
+
 * {
   box-sizing: border-box;
 }

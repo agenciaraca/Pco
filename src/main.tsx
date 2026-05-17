@@ -8,10 +8,12 @@ import { ToastProvider } from './app/components/Toast';
 import ErrorBoundary from './app/components/ErrorBoundary';
 import PwaInstallBanner from './app/components/PwaInstallBanner';
 import { initMonitoring } from './app/monitoring/sentry';
+import { initThemeEarly } from './app/hooks/useTheme';
 import { installChunkErrorRecovery } from './app/monitoring/chunk-error-recovery';
 import { router } from './app/routes';
 import './styles/theme.css';
 
+initThemeEarly();
 initMonitoring();
 
 // Auto-reload quando lazy chunk falha (deploy novo invalidou os hashes).

@@ -30,6 +30,7 @@ const Jornada = lazy(() => import('./pages/Jornada'));
 const Courses = lazy(() => import('./pages/Courses'));
 const Bundles = lazy(() => import('./pages/Bundles'));
 const Catalog = lazy(() => import('./pages/Catalog'));
+const CompareCourses = lazy(() => import('./pages/CompareCourses'));
 const CoursePreview = lazy(() => import('./pages/CoursePreview'));
 const LessonPreviewPublic = lazy(() => import('./pages/LessonPreviewPublic'));
 const MyNotes = lazy(() => import('./pages/MyNotes'));
@@ -158,6 +159,7 @@ export const router = createBrowserRouter([
   { path: '/landing', element: <S><Landing /></S>, errorElement: <RootError /> },
   { path: '/ava-pco', element: <S><Landing /></S>, errorElement: <RootError /> },
   { path: '/catalogo', element: <S><Catalog /></S>, errorElement: <RootError /> },
+  { path: '/comparar', element: <S><CompareCourses /></S>, errorElement: <RootError /> },
   { path: '/curso-preview/:id', element: <S><CoursePreview /></S>, errorElement: <RootError /> },
   { path: '/aula-preview/:id', element: <S><LessonPreviewPublic /></S>, errorElement: <RootError /> },
 
