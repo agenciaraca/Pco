@@ -13,6 +13,8 @@ import { useCourses, useUpdateLesson } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useToast } from '../../components/Toast';
 import { useT } from '../../i18n';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 
 export default function AdminLessons() {
   const t = useT();
@@ -56,6 +58,21 @@ export default function AdminLessons() {
     }
     return list;
   }, [allLessons, courseFilter, moduleFilter, mandatoryOnly, search]);
+
+  const { rows: sortedFiltered, field: sortField, direction: sortDirection, toggleSort } = useTableSort(
+    filtered,
+    (row, field) => {
+      switch (field) {
+        case 'title': return row.title;
+        case 'course': return row.courseTitle;
+        case 'module': return row.moduleTitle;
+        case 'duration': return row.durationMinutes;
+        case 'mandatory': return row.isMandatory;
+        default: return null;
+      }
+    },
+    'title',
+  );
 
   return (
     <div className="space-y-6">
@@ -131,16 +148,16 @@ export default function AdminLessons() {
           <table className="w-full text-sm">
             <thead className="bg-surface-off">
               <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
-                <th className="px-4 py-3 text-left font-medium">Aula</th>
-                <th className="px-4 py-3 text-left font-medium">Curso</th>
-                <th className="px-4 py-3 text-left font-medium">Módulo</th>
-                <th className="px-4 py-3 text-left font-medium">Duração</th>
-                <th className="px-4 py-3 text-left font-medium">Tipo</th>
+                <SortableTh field="title" current={sortField} direction={sortDirection} onSort={toggleSort}>Aula</SortableTh>
+                <SortableTh field="course" current={sortField} direction={sortDirection} onSort={toggleSort}>Curso</SortableTh>
+                <SortableTh field="module" current={sortField} direction={sortDirection} onSort={toggleSort}>Módulo</SortableTh>
+                <SortableTh field="duration" current={sortField} direction={sortDirection} onSort={toggleSort}>Duração</SortableTh>
+                <SortableTh field="mandatory" current={sortField} direction={sortDirection} onSort={toggleSort}>Tipo</SortableTh>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((l) => (
+              {sortedFiltered.map((l) => (
                 <tr key={l.id} className="border-t border-surface-gray hover:bg-surface-off">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">

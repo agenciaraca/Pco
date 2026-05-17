@@ -52,6 +52,7 @@ import {
   loginSchema,
   updateAiConfigSchema,
   tutorAskSchema,
+  createCourseSchema,
   updateCourseSchema,
   reorderCourseSchema,
   createNewsSchema,
@@ -2909,6 +2910,21 @@ export function buildApp() {
         enrolledCount: result.length,
         students: result,
       });
+    },
+  );
+
+  app.post(
+    '/admin/courses',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const v = validate(createCourseSchema, body);
+      if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+      const result = await coursesRepo.createCourse(v.data);
+      if ('error' in result) {
+        return jsonError(c, 409, 'DUPLICATE_SLUG', 'Já existe um curso com esse slug.');
+      }
+      return c.json(result, 201);
     },
   );
 

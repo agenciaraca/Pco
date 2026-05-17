@@ -277,6 +277,22 @@ export type TutorAskInput = z.infer<typeof tutorAskSchema>;
 
 // ---- Course writes ----
 
+export const createCourseSchema = z.object({
+  title: z.string().min(2).max(200),
+  slug: z
+    .string()
+    .min(2)
+    .max(80)
+    .regex(/^[a-z0-9-]+$/, 'Slug aceita apenas letras minúsculas, números e hífens'),
+  shortTitle: z.string().min(1).max(60),
+  description: z.string().max(2000).optional(),
+  totalHours: z.number().int().min(0).max(10000).default(0),
+  certificateAvailable: z.boolean().default(true),
+  coverColor: z.string().max(120).optional(),
+  active: z.boolean().default(true),
+});
+export type CreateCourseInput = z.infer<typeof createCourseSchema>;
+
 export const updateCourseSchema = z.object({
   title: z.string().min(2).max(200).optional(),
   slug: z

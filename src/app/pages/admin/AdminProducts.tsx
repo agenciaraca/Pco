@@ -23,6 +23,8 @@ import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { ProductDto, ProductKind } from '../../data/api';
 import { useT } from '../../i18n';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 
 const kindLabel: Record<ProductKind, string> = {
   course: 'Curso',
@@ -46,6 +48,20 @@ export default function AdminProducts() {
   const [confirmDelete, setConfirmDelete] = useState<ProductDto | null>(null);
 
   const products = productsQ.data ?? [];
+  const { rows: sortedProducts, field: sortField, direction: sortDirection, toggleSort } = useTableSort(
+    products,
+    (row, field) => {
+      switch (field) {
+        case 'name': return row.name;
+        case 'kind': return row.kind;
+        case 'refId': return row.refId ?? '';
+        case 'price': return row.priceCents;
+        case 'active': return row.active !== false;
+        default: return null;
+      }
+    },
+    'name',
+  );
 
   async function handleDelete() {
     if (!confirmDelete) return;
@@ -105,16 +121,16 @@ export default function AdminProducts() {
           <table className="w-full text-sm">
             <thead className="bg-surface-mute text-ink-muted">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Nome</th>
-                <th className="px-3 py-2 text-left font-medium">Tipo</th>
-                <th className="px-3 py-2 text-left font-medium">Vínculo</th>
-                <th className="px-3 py-2 text-left font-medium">Preço</th>
-                <th className="px-3 py-2 text-left font-medium">Status</th>
+                <SortableTh field="name" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Nome</SortableTh>
+                <SortableTh field="kind" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Tipo</SortableTh>
+                <SortableTh field="refId" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Vínculo</SortableTh>
+                <SortableTh field="price" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Preço</SortableTh>
+                <SortableTh field="active" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Status</SortableTh>
                 <th className="px-3 py-2 text-right font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-mute">
-              {products.map((p) => (
+              {sortedProducts.map((p) => (
                 <tr key={p.id} className="hover:bg-surface-mute/40">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">

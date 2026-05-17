@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Stethoscope,
   Users,
@@ -275,16 +276,19 @@ function ValoresPane() {
       </div>
 
       <div className="pco-card space-y-4">
-        <h3 className="text-base font-semibold text-pco-deep">Pacotes (em construção)</h3>
+        <h3 className="text-base font-semibold text-pco-deep">Pacotes de sessões</h3>
         <p className="text-sm text-ink-muted">
-          Configuração de pacotes (ex.: 4 sessões com desconto), link de pagamento externo,
-          status de pagamento e confirmação manual ou automática serão habilitados nas
-          próximas iterações.
+          Crie pacotes (ex.: 4 sessões com desconto) como produto do tipo
+          <span className="font-semibold"> pacote de sessões </span>
+          no catálogo. Eles aparecem aqui automaticamente após a primeira venda.
         </p>
-        <button className="pco-btn-secondary text-xs w-full justify-center">
+        <Link
+          to="/admin/produtos"
+          className="pco-btn-secondary text-xs w-full justify-center"
+        >
           <Plus size={12} strokeWidth={2} />
-          Criar pacote
-        </button>
+          Gerenciar pacotes no catálogo
+        </Link>
       </div>
     </div>
   );

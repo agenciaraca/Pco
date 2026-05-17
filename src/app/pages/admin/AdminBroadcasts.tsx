@@ -10,6 +10,8 @@ import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { BroadcastAudienceDto } from '../../data/api';
 import { useT } from '../../i18n';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 
 const AUDIENCE_LABELS: Record<BroadcastAudienceDto, string> = {
   all: 'Todos os usuários ativos',
@@ -28,6 +30,22 @@ export default function AdminBroadcasts() {
   const start = useStartBroadcast();
   const coursesQ = useCourses();
   const toast = useToast();
+
+  const { rows: sortedBroadcasts, field: sortField, direction: sortDirection, toggleSort } = useTableSort(
+    broadcasts.data ?? [],
+    (row, field) => {
+      switch (field) {
+        case 'createdAt': return row.createdAt;
+        case 'subject': return row.subject;
+        case 'audience': return row.audience;
+        case 'status': return row.status;
+        case 'sent': return row.sent;
+        default: return null;
+      }
+    },
+    'createdAt',
+    'desc',
+  );
 
   const [audience, setAudience] = useState<BroadcastAudienceDto>('students_active');
   const [courseId, setCourseId] = useState('');
@@ -227,15 +245,15 @@ export default function AdminBroadcasts() {
             <table className="w-full text-xs">
               <thead className="bg-surface-mute text-ink-muted">
                 <tr>
-                  <th className="text-left px-3 py-2">Data</th>
-                  <th className="text-left px-3 py-2">Assunto</th>
-                  <th className="text-left px-3 py-2">Audiência</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-left px-3 py-2">Enviados / Total</th>
+                  <SortableTh field="createdAt" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Data</SortableTh>
+                  <SortableTh field="subject" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Assunto</SortableTh>
+                  <SortableTh field="audience" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Audiência</SortableTh>
+                  <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Status</SortableTh>
+                  <SortableTh field="sent" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Enviados / Total</SortableTh>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-mute">
-                {(broadcasts.data ?? []).map((b) => (
+                {sortedBroadcasts.map((b) => (
                   <tr key={b.id}>
                     <td className="px-3 py-2 text-ink-muted whitespace-nowrap">
                       {new Date(b.createdAt).toLocaleString('pt-BR')}

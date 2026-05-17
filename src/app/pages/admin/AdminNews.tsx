@@ -28,6 +28,8 @@ import { createNewsSchema, type CreateNewsInput } from '../../../../shared/schem
 import { z } from 'zod';
 import type { NewsArticle } from '../../types/schema';
 import { useT } from '../../i18n';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 
 const coverPresets = [
   { label: 'Azul PCO → Ciano', value: 'from-pco-blue to-pco-cyan' },
@@ -68,6 +70,28 @@ export default function AdminNews() {
     if (featuredOnly) list = list.filter((a) => a.featured);
     return list;
   }, [newsQ.data, search, categoryFilter, featuredOnly]);
+
+  const courseTitleById = useMemo(() => {
+    const m = new Map<string, string>();
+    (courses ?? []).forEach((c) => m.set(c.id, c.shortTitle));
+    return m;
+  }, [courses]);
+
+  const { rows: sortedFiltered, field: sortField, direction: sortDirection, toggleSort } = useTableSort(
+    filtered,
+    (row, field) => {
+      switch (field) {
+        case 'title': return row.title;
+        case 'category': return row.category;
+        case 'course': return row.relatedCourseIds?.[0] ? courseTitleById.get(row.relatedCourseIds[0]) : '';
+        case 'author': return row.authorName ?? '';
+        case 'publishedAt': return row.publishedAt;
+        default: return null;
+      }
+    },
+    'publishedAt',
+    'desc',
+  );
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
@@ -164,16 +188,16 @@ export default function AdminNews() {
             <table className="w-full text-sm">
               <thead className="bg-surface-off">
                 <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
-                  <th className="px-4 py-3 text-left font-medium">Artigo</th>
-                  <th className="px-4 py-3 text-left font-medium">Categoria</th>
-                  <th className="px-4 py-3 text-left font-medium">Curso</th>
-                  <th className="px-4 py-3 text-left font-medium">Autor</th>
-                  <th className="px-4 py-3 text-left font-medium">Publicação</th>
+                  <SortableTh field="title" current={sortField} direction={sortDirection} onSort={toggleSort}>Artigo</SortableTh>
+                  <SortableTh field="category" current={sortField} direction={sortDirection} onSort={toggleSort}>Categoria</SortableTh>
+                  <SortableTh field="course" current={sortField} direction={sortDirection} onSort={toggleSort}>Curso</SortableTh>
+                  <SortableTh field="author" current={sortField} direction={sortDirection} onSort={toggleSort}>Autor</SortableTh>
+                  <SortableTh field="publishedAt" current={sortField} direction={sortDirection} onSort={toggleSort}>Publicação</SortableTh>
                   <th className="px-4 py-3 text-right font-medium">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((a) => (
+                {sortedFiltered.map((a) => (
                   <tr key={a.id} className="border-t border-surface-gray hover:bg-surface-off">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">

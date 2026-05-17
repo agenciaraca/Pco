@@ -271,6 +271,16 @@ export function useUpdateCourse() {
   });
 }
 
+export function useCreateCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: api.CreateCourseInput) => api.createCourse(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.courses });
+    },
+  });
+}
+
 export function useDeleteCourse() {
   const qc = useQueryClient();
   return useMutation({

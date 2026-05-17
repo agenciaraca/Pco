@@ -17,11 +17,13 @@ import {
   EyeOff,
   Loader2,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   useCourses,
   useDuplicateCourse,
   useAdminCoursesSummary,
   useUpdateCourse,
+  useCreateCourse,
 } from '../../data/hooks';
 import SortableTh from '../../components/SortableTh';
 import { useTableSort } from '../../hooks/useTableSort';
@@ -77,6 +79,9 @@ export default function AdminCourses() {
   const { data, isLoading, isError, refetch } = useCourses();
   const duplicateMut = useDuplicateCourse();
   const updateMut = useUpdateCourse();
+  const createMut = useCreateCourse();
+  const navigate = useNavigate();
+  const [showCreate, setShowCreate] = useState(false);
   const summaryQ = useAdminCoursesSummary();
   const toast = useToast();
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -303,7 +308,11 @@ export default function AdminCourses() {
             <Download size={12} strokeWidth={2} />
             Exportar CSV
           </button>
-          <button className="pco-btn-primary text-xs" disabled title="Em desenvolvimento">
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="pco-btn-primary text-xs"
+          >
             <Plus size={14} strokeWidth={2} />
             Novo curso
           </button>
@@ -753,6 +762,226 @@ export default function AdminCourses() {
           </div>
         </div>
       )}
+
+      {showCreate && (
+        <NewCourseModal
+          submitting={createMut.isPending}
+          onClose={() => setShowCreate(false)}
+          onSubmit={async (input) => {
+            try {
+              const created = await createMut.mutateAsync(input);
+              toast.success('Curso criado', created.title);
+              setShowCreate(false);
+              navigate(`/admin/cursos/${created.id}`);
+            } catch (err) {
+              toast.error('Falha ao criar', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+const COLOR_PRESETS: Array<{ label: string; value: string }> = [
+  { label: 'Azul PCO', value: 'from-pco-blue to-pco-cyan' },
+  { label: 'Laranja', value: 'from-pco-orange to-pco-orange/70' },
+  { label: 'Profundo', value: 'from-pco-deep to-pco-blue' },
+  { label: 'Ciano claro', value: 'from-pco-cyan to-pco-blue/60' },
+  { label: 'Verde', value: 'from-status-success to-pco-cyan' },
+];
+
+function NewCourseModal({
+  submitting,
+  onClose,
+  onSubmit,
+}: {
+  submitting: boolean;
+  onClose: () => void;
+  onSubmit: (input: {
+    title: string;
+    slug: string;
+    shortTitle: string;
+    totalHours: number;
+    certificateAvailable: boolean;
+    coverColor: string;
+  }) => Promise<void>;
+}) {
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [shortTitle, setShortTitle] = useState('');
+  const [totalHours, setTotalHours] = useState(20);
+  const [certificateAvailable, setCertificateAvailable] = useState(true);
+  const [coverColor, setCoverColor] = useState(COLOR_PRESETS[0]!.value);
+
+  const effectiveSlug = slugTouched ? slug : slugify(title);
+  const effectiveShort =
+    shortTitle.trim() || (title.length > 40 ? title.slice(0, 37) + '...' : title);
+  const canSubmit = title.trim().length >= 2 && effectiveSlug.length >= 2;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center px-4 py-6"
+      onClick={(e) => {
+        if (e.currentTarget === e.target && !submitting) onClose();
+      }}
+    >
+      <div className="absolute inset-0 bg-pco-deep/50 backdrop-blur-sm" />
+      <div className="relative pco-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-0">
+        <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+              Cadastro
+            </div>
+            <h2 className="text-lg font-bold text-pco-deep">Novo curso</h2>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="h-8 w-8 grid place-items-center rounded-lg text-ink-muted hover:bg-surface-gray"
+            aria-label="Fechar"
+          >
+            <X size={18} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <label className="block">
+            <div className="text-xs font-medium text-ink-muted mb-1.5">
+              Título completo
+            </div>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus
+              className="pco-input"
+              maxLength={200}
+              placeholder="Ex: Psicanálise Avançada - Módulo II"
+            />
+          </label>
+
+          <label className="block">
+            <div className="text-xs font-medium text-ink-muted mb-1.5">
+              Título curto (até 60 caracteres)
+            </div>
+            <input
+              type="text"
+              value={shortTitle}
+              onChange={(e) => setShortTitle(e.target.value)}
+              className="pco-input"
+              maxLength={60}
+              placeholder={effectiveShort || 'auto'}
+            />
+          </label>
+
+          <label className="block">
+            <div className="text-xs font-medium text-ink-muted mb-1.5 flex items-center gap-1.5">
+              Slug (URL)
+              {!slugTouched && title.length > 0 && (
+                <span className="text-[10px] text-ink-subtle">auto</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-ink-subtle">/curso/</span>
+              <input
+                type="text"
+                value={effectiveSlug}
+                onChange={(e) => {
+                  setSlug(e.target.value);
+                  setSlugTouched(true);
+                }}
+                className="pco-input font-mono text-xs"
+                maxLength={80}
+                pattern="[a-z0-9-]+"
+              />
+            </div>
+          </label>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block">
+              <div className="text-xs font-medium text-ink-muted mb-1.5">
+                Carga horária (h)
+              </div>
+              <input
+                type="number"
+                min={0}
+                max={10000}
+                value={totalHours}
+                onChange={(e) => setTotalHours(Number(e.target.value) || 0)}
+                className="pco-input"
+              />
+            </label>
+            <label className="flex items-end gap-2 pb-2">
+              <input
+                type="checkbox"
+                checked={certificateAvailable}
+                onChange={(e) => setCertificateAvailable(e.target.checked)}
+                className="h-4 w-4 rounded text-pco-blue"
+              />
+              <span className="text-xs text-ink-muted">Emite certificado</span>
+            </label>
+          </div>
+
+          <div>
+            <div className="text-xs font-medium text-ink-muted mb-1.5">
+              Cor da capa (até subir imagem)
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {COLOR_PRESETS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setCoverColor(p.value)}
+                  className={`h-10 rounded-lg bg-gradient-to-br ${p.value} ring-2 transition ${
+                    coverColor === p.value ? 'ring-pco-deep' : 'ring-transparent'
+                  }`}
+                  title={p.label}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-surface-gray">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={submitting}
+              className="pco-btn-ghost text-xs"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onSubmit({
+                  title: title.trim(),
+                  slug: effectiveSlug,
+                  shortTitle: effectiveShort,
+                  totalHours,
+                  certificateAvailable,
+                  coverColor,
+                })
+              }
+              disabled={!canSubmit || submitting}
+              className="pco-btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? '...' : 'Criar curso'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

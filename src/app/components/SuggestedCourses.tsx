@@ -73,8 +73,11 @@ export default function SuggestedCourses() {
               className="pco-card pco-card-hover p-0 overflow-hidden block"
             >
               <div
-                className={`relative h-24 bg-gradient-to-br ${course.coverColor} p-3`}
+                className={`relative h-24 p-3 ${course.coverImageUrl ? 'bg-pco-deep' : `bg-gradient-to-br ${course.coverColor}`}`}
               >
+                {course.coverImageUrl && (
+                  <img src={course.coverImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                )}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.15),transparent_60%)]" />
                 <div className="relative text-white">
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-white/20 backdrop-blur text-[9px] font-semibold uppercase tracking-wider">

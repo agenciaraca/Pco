@@ -239,15 +239,14 @@ export default function AdminUsers() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() =>
-              toast.info('Importar CSV', 'Em desenvolvimento — usar criação manual por enquanto.')
-            }
+          <Link
+            to="/admin/imports/wizard"
             className="pco-btn-secondary text-xs"
+            title="Importar alunos via CSV"
           >
             <Upload size={12} strokeWidth={2} />
             Importar CSV
-          </button>
+          </Link>
           <button onClick={() => setShowCreate(true)} className="pco-btn-primary text-xs">
             <Plus size={12} strokeWidth={2} />
             Novo aluno

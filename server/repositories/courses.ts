@@ -99,6 +99,46 @@ async function loadFromDb(): Promise<Course[]> {
  * Title vira "Cópia de X" e slug recebe sufixo "-copia".
  * No modo DB, atualmente não suportado — admin deve criar manual e usar import.
  */
+/**
+ * Cria um curso vazio (sem módulos). Usado pelo botão "Novo curso" no /admin/cursos.
+ * Gera id estável a partir do slug; falha se já existir.
+ */
+export async function createCourse(input: {
+  title: string;
+  slug: string;
+  shortTitle: string;
+  description?: string;
+  totalHours?: number;
+  certificateAvailable?: boolean;
+  coverColor?: string;
+  active?: boolean;
+}): Promise<Course | { error: 'DUPLICATE_SLUG' }> {
+  const db = getDb();
+  if (db) {
+    throw new Error('createCourse não implementado em modo DB ainda. Usar JSON.');
+  }
+  const id = `course-${input.slug}-${Date.now().toString(36).slice(-4)}`;
+  const all = await store.getAll();
+  if (all.some((c) => c.slug === input.slug)) {
+    return { error: 'DUPLICATE_SLUG' };
+  }
+  const course: Course = {
+    id,
+    slug: input.slug,
+    title: input.title,
+    shortTitle: input.shortTitle,
+    description: input.description ?? input.title,
+    coverColor: input.coverColor ?? 'from-pco-blue to-pco-cyan',
+    modules: [],
+    totalHours: input.totalHours ?? 0,
+    certificateAvailable: input.certificateAvailable ?? true,
+    active: input.active ?? true,
+    tags: [],
+  };
+  await store.unshift(course);
+  return course;
+}
+
 export async function duplicateCourse(sourceId: string): Promise<Course | null> {
   const db = getDb();
   const source = await findCourse(sourceId);
