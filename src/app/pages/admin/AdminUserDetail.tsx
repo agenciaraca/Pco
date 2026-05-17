@@ -31,6 +31,7 @@ import {
   useAllCertificates,
   useIssueCertificate,
   useUserTimeline,
+  useAdminStudentStats,
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { Plus, Loader2 } from 'lucide-react';
@@ -73,6 +74,7 @@ export default function AdminUserDetail() {
   const risksQ = useRetentionRisks();
   const certsQ = useAllCertificates();
   const timelineQ = useUserTimeline(id);
+  const statsQ = useAdminStudentStats(id);
 
   async function handleImpersonate() {
     if (!id || impersonating) return;
@@ -346,18 +348,41 @@ export default function AdminUserDetail() {
       )}
 
       {active === 'recursos' && (
-        <div className="pco-card text-center py-10">
-          <div className="inline-flex h-12 w-12 rounded-full bg-pco-blue/10 items-center justify-center mb-3">
-            <Bot size={20} className="text-pco-blue" strokeWidth={1.75} />
-          </div>
-          <h3 className="text-sm font-semibold text-pco-deep">
-            Estatísticas de Tutor / POD / Biblioteca em construção
-          </h3>
-          <p className="text-xs text-ink-muted mt-1 max-w-md mx-auto">
-            O tracking de uso por aluno desses recursos será integrado em uma
-            próxima sprint. Atividade global está disponível em /admin/tutor,
-            /admin/podcasts e /admin/biblioteca.
-          </p>
+        <div className="grid gap-4 md:grid-cols-3">
+          <ResourceCard
+            icon={<Bot size={18} className="text-pco-blue" strokeWidth={1.75} />}
+            title="Tutor Virtual"
+            value={
+              statsQ.data
+                ? `${statsQ.data.tutor.questionCount} pergunta${statsQ.data.tutor.questionCount === 1 ? '' : 's'}`
+                : '—'
+            }
+            sub={
+              statsQ.data?.tutor.lastAt
+                ? `Última: ${new Date(statsQ.data.tutor.lastAt).toLocaleDateString('pt-BR')}`
+                : 'Sem uso ainda'
+            }
+          />
+          <ResourceCard
+            icon={<Mic2 size={18} className="text-pco-cyan" strokeWidth={1.75} />}
+            title="PCO POD"
+            value={
+              statsQ.data
+                ? `${statsQ.data.podcast.plays} play${statsQ.data.podcast.plays === 1 ? '' : 's'}`
+                : '—'
+            }
+            sub={
+              statsQ.data
+                ? `${statsQ.data.podcast.favorites} favorito${statsQ.data.podcast.favorites === 1 ? '' : 's'}`
+                : 'Sem dados'
+            }
+          />
+          <ResourceCard
+            icon={<BookOpen size={18} className="text-pco-deep" strokeWidth={1.75} />}
+            title="Biblioteca"
+            value={statsQ.data?.library.downloads != null ? String(statsQ.data.library.downloads) : '—'}
+            sub="Tracking de download por aluno em breve"
+          />
         </div>
       )}
 

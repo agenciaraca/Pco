@@ -200,3 +200,6 @@ import('./notifications/weekly-report').then((m) => m.startWorker());
 
 // Worker de backup automático — tick a cada 1h, dispara 1x/dia às 04h UTC
 import('./db/backup-worker').then((m) => m.startWorker());
+
+// Worker de recompute de risco de evasão — a cada 6h
+import('./services/retention-worker').then((m) => m.startWorker(6 * 60 * 60 * 1000));

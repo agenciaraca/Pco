@@ -2402,6 +2402,17 @@ export async function createCourse(input: CreateCourseInput): Promise<Course> {
   return http.post<Course>('/admin/courses', input);
 }
 
+export interface AdminStudentStats {
+  studentId: string;
+  tutor: { questionCount: number; lastAt: string | null };
+  podcast: { plays: number; favorites: number };
+  library: { downloads: number | null; favorites: number | null };
+}
+
+export async function fetchAdminStudentStats(id: string): Promise<AdminStudentStats> {
+  return http.get<AdminStudentStats>(`/admin/students/${encodeURIComponent(id)}/stats`);
+}
+
 export async function deleteCourse(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/courses/${encodeURIComponent(id)}`);
 }

@@ -2617,6 +2617,46 @@ export function buildApp() {
     return c.json(s);
   });
 
+  /**
+   * Stats agregadas de uso de recursos por aluno: Tutor IA, Podcast e
+   * Biblioteca. Para a aba Recursos do AdminUserDetail. Dados reais
+   * baseados nos stores existentes; library ainda sem tracking real.
+   */
+  app.get('/admin/students/:id/stats', async (c) => {
+    const id = c.req.param('id') as string;
+    const s = await studentsRepo.findAdminStudent(id);
+    if (!s) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+
+    const tutor = await import('./repositories/tutor-history');
+    const tutorTurns = (await tutor.listAll()).filter((t) => t.userId === id);
+    const lastTutorAt =
+      tutorTurns.length > 0
+        ? tutorTurns.reduce((acc, t) => (t.ts > acc ? t.ts : acc), tutorTurns[0]!.ts)
+        : null;
+
+    const pe = await import('./repositories/podcast-engagement');
+    const podEngagement = await pe.listForUser(id);
+    const podPlays = podEngagement.filter((e) => e.listened).length;
+    const podFavorites = podEngagement.filter((e) => e.favorite).length;
+
+    return c.json({
+      studentId: id,
+      tutor: {
+        questionCount: tutorTurns.length,
+        lastAt: lastTutorAt,
+      },
+      podcast: {
+        plays: podPlays,
+        favorites: podFavorites,
+      },
+      library: {
+        // Library ainda sem tracking de download por usuário; placeholder honesto.
+        downloads: null,
+        favorites: null,
+      },
+    });
+  });
+
   // ---------- Recovery plan ----------
 
   app.post('/admin/recovery-plan', async (c) => {

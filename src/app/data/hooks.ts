@@ -281,6 +281,14 @@ export function useCreateCourse() {
   });
 }
 
+export function useAdminStudentStats(id: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-student-stats', id],
+    queryFn: () => api.fetchAdminStudentStats(id!),
+    enabled: !!id,
+  });
+}
+
 export function useDeleteCourse() {
   const qc = useQueryClient();
   return useMutation({
