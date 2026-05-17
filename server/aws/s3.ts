@@ -29,7 +29,12 @@ export interface PutObjectResult {
 
 function endpointFor(creds: S3Creds, override?: string): string {
   if (override) return override;
-  // virtual-hosted-style: <bucket>.s3.<region>.amazonaws.com
+  // Cloudflare R2 e MinIO usam path-style com endpoint fixo via S3_ENDPOINT env.
+  if (process.env.S3_ENDPOINT) {
+    const ep = process.env.S3_ENDPOINT.replace(/\/+$/, '');
+    return `${ep}/${creds.bucket}`;
+  }
+  // virtual-hosted-style AWS: <bucket>.s3.<region>.amazonaws.com
   return `https://${creds.bucket}.s3.${creds.region}.amazonaws.com`;
 }
 

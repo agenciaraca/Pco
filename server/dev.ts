@@ -203,3 +203,6 @@ import('./db/backup-worker').then((m) => m.startWorker());
 
 // Worker de recompute de risco de evasão — a cada 6h
 import('./services/retention-worker').then((m) => m.startWorker(6 * 60 * 60 * 1000));
+
+// Rotaciona app.log quando passa de 10MB (verifica a cada 1h)
+import('./services/log-rotator').then((m) => m.startWorker(60 * 60_000));

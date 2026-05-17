@@ -1,0 +1,76 @@
+name: Deploy to VPS
+
+# Auto-deploy on push to main após CI passar.
+# Requer secrets: VPS_HOST, VPS_USER, VPS_PORT, VPS_PASSWORD
+# Os hosts/secrets ficam em github.com/<repo>/settings/secrets/actions
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # permite trigger manual
+
+# Não roda 2 deploys ao mesmo tempo (concurrency lock)
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Pull + Build + Restart no VPS
+    runs-on: ubuntu-latest
+    # Só roda se o CI passou primeiro (ci.yml roda em push também)
+    if: github.repository_owner == 'agenciaraca'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy via SSH (pull + build + restart)
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+          PORT: ${{ secrets.VPS_PORT }}
+          PASS: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PASS" ]; then
+            echo "⚠ Secrets VPS_HOST / VPS_USER / VPS_PASSWORD não definidos. Pulando deploy."
+            exit 0
+          fi
+          PORT=${PORT:-22}
+          set -eu
+          sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USER@$HOST" bash -s <<'EOF'
+          set -eu
+          export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+          cd ~/ava-pco
+          git fetch --all
+          git reset --hard origin/main
+          npm install --legacy-peer-deps --no-audit --no-fund
+          npm run build
+          # Restart via pkill + setsid+nohup (mesmo padrão de scripts/update_vps_pwd.py)
+          pkill -f 'tsx server/dev.ts' 2>/dev/null || true
+          pkill -f 'node.*server/dev' 2>/dev/null || true
+          sleep 1
+          set -a && . ./.env && set +a
+          setsid nohup tsx server/dev.ts >> ~/ava-pco/app.log 2>&1 < /dev/null &
+          sleep 4
+          curl -s -m 5 http://127.0.0.1:3035/api/health || (tail -30 ~/ava-pco/app.log && exit 1)
+          echo "✓ Deploy concluído"
+          EOF
+
+      - name: Verifica health público
+        env:
+          PUBLIC_URL: ${{ secrets.PUBLIC_URL }}
+        run: |
+          URL="${PUBLIC_URL:-https://ava.psicanaliseclinica.online}"
+          for i in 1 2 3; do
+            if curl -fs -m 8 "$URL/api/health" > /dev/null; then
+              echo "✓ Health público OK em $URL"
+              exit 0
+            fi
+            echo "tentativa $i falhou, retry em 5s..."
+            sleep 5
+          done
+          echo "✗ Health público falhou após 3 tentativas"
+          exit 1
