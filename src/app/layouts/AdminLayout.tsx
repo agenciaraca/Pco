@@ -52,10 +52,15 @@ import MobileNav from '../components/MobileNav';
 import Footer from '../components/Footer';
 import AdminSearchPalette from '../components/AdminSearchPalette';
 import { useMemo } from 'react';
+import { useAdminKeyboardShortcuts, ADMIN_SHORTCUTS } from '../hooks/useKeyboardShortcuts';
 import { useT } from '../i18n';
 
 export default function AdminLayout() {
   const t = useT();
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  useAdminKeyboardShortcuts({
+    onShowHelp: () => setShowShortcuts(true),
+  });
   const adminGroups = useMemo(
     () => [
       {
@@ -182,6 +187,70 @@ export default function AdminLayout() {
         <Footer />
       </div>
       <AdminSearchPalette />
+      </div>
+      {showShortcuts && (
+        <ShortcutsModal onClose={() => setShowShortcuts(false)} />
+      )}
+    </div>
+  );
+}
+
+function ShortcutsModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center px-4"
+      onClick={(e) => {
+        if (e.currentTarget === e.target) onClose();
+      }}
+    >
+      <div className="absolute inset-0 bg-pco-deep/50 backdrop-blur-sm" />
+      <div className="relative pco-card w-full max-w-md max-h-[80vh] overflow-y-auto p-0">
+        <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+              Atalhos
+            </div>
+            <h2 className="text-lg font-bold text-pco-deep">Atalhos de teclado</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-ink-muted hover:text-pco-deep"
+            aria-label="Fechar"
+          >
+            ×
+          </button>
+        </div>
+        <div className="p-6 space-y-1">
+          <div className="flex items-center justify-between py-1.5 border-b border-surface-gray">
+            <span className="text-sm text-ink-muted">Buscar global</span>
+            <kbd className="px-2 py-0.5 text-[11px] font-mono bg-surface-off rounded border border-surface-gray">
+              Ctrl K
+            </kbd>
+          </div>
+          <div className="flex items-center justify-between py-1.5 border-b border-surface-gray">
+            <span className="text-sm text-ink-muted">Mostrar este modal</span>
+            <kbd className="px-2 py-0.5 text-[11px] font-mono bg-surface-off rounded border border-surface-gray">
+              ?
+            </kbd>
+          </div>
+          <div className="text-[11px] uppercase tracking-wider text-ink-subtle mt-4 mb-1">
+            Navegação rápida (sequência "g" + letra)
+          </div>
+          {ADMIN_SHORTCUTS.map((s) => (
+            <div
+              key={s.keys}
+              className="flex items-center justify-between py-1.5 border-b border-surface-gray last:border-0"
+            >
+              <span className="text-sm text-ink-muted">{s.label}</span>
+              <kbd className="px-2 py-0.5 text-[11px] font-mono bg-surface-off rounded border border-surface-gray">
+                {s.keys}
+              </kbd>
+            </div>
+          ))}
+          <p className="text-[10px] text-ink-subtle mt-4">
+            Atalhos não funcionam quando o foco está em um campo de texto.
+          </p>
+        </div>
       </div>
     </div>
   );
