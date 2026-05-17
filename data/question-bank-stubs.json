@@ -1,0 +1,1722 @@
+[
+  {
+    "id": "qstub-16601",
+    "ldQuestionId": 16601,
+    "quizExternalId": 15014,
+    "type": "essay",
+    "title": "Criar um storytelling de vendas para a PCO.",
+    "promptHtml": "<p>Storytelling é a técnica de contar histórias para envolver o público, transmitir conhecimento e influenciar comportamentos. É uma prática tão antiga quanto a comunicação humana.</p>",
+    "promptText": "Storytelling é a técnica de contar histórias para envolver o público, transmitir conhecimento e influenciar comportamentos. É uma prática tão antiga quanto a comunicação humana.",
+    "pointsTotal": 0,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-16072",
+    "ldQuestionId": 16072,
+    "quizExternalId": 14991,
+    "type": "sort_answer",
+    "title": "Organize as etapas abaixo na ordem mais adequada para um bom atendimento:",
+    "promptHtml": "<p><strong data-start=\"2978\" data-end=\"3026\"> Questão 5 – Ordem de uma abordagem eficaz</strong><br data-start=\"3026\" data-end=\"3029\" /><strong data-start=\"3029\" data-end=\"3042\">Pergunta:</strong> Organize as etapas abaixo na ordem mais adequada para um bom atendimento:</p>",
+    "promptText": "Questão 5 – Ordem de uma abordagem eficazPergunta: Organize as etapas abaixo na ordem mais adequada para um bom atendimento:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-16069",
+    "ldQuestionId": 16069,
+    "quizExternalId": 14991,
+    "type": "single",
+    "title": "Escolha a melhor forma de usar storytelling em um atendimento com alguém que está migrando de carreira:",
+    "promptHtml": "<p><strong data-start=\"2504\" data-end=\"2535\">Questão 4 – Storytelling</strong><br data-start=\"2535\" data-end=\"2538\" /><strong data-start=\"2538\" data-end=\"2551\">Pergunta:</strong> Escolha a melhor forma de usar storytelling em um atendimento com alguém que está migrando de carreira:</p>",
+    "promptText": "Questão 4 – StorytellingPergunta: Escolha a melhor forma de usar storytelling em um atendimento com alguém que está migrando de carreira:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-16066",
+    "ldQuestionId": 16066,
+    "quizExternalId": 14991,
+    "type": "single",
+    "title": "Esse cliente se encaixa melhor em qual perfil?",
+    "promptHtml": "<p class=\"\" data-start=\"2167\" data-end=\"2332\"><strong data-start=\"2167\" data-end=\"2209\">Questão 3 – Identificação de Perfil</strong><br data-start=\"2209\" data-end=\"2212\" /><strong data-start=\"2212\" data-end=\"2225\">Situação:</strong> Um cliente diz que é psicólogo e quer aprender mais sobre o inconsciente e ampliar seu repertório clínico.</p>\n<p class=\"\" data-start=\"2334\" data-end=\"2394\"><strong data-start=\"2334\" data-end=\"2347\">Pergunta:</strong> Esse cliente se encaixa melhor em qual perfil?</p>",
+    "promptText": "Questão 3 – Identificação de PerfilSituação: Um cliente diz que é psicólogo e quer aprender mais sobre o inconsciente e ampliar seu repertório clínico.\nPergunta: Esse cliente se encaixa melhor em qual perfil?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-16063",
+    "ldQuestionId": 16063,
+    "quizExternalId": 14991,
+    "type": "single",
+    "title": "O que o atendente deve fazer?",
+    "promptHtml": "<p class=\"\" data-start=\"1667\" data-end=\"1823\"><strong data-start=\"1667\" data-end=\"1704\">Questão 2 – Objeção Financeira</strong><br data-start=\"1704\" data-end=\"1707\" /><strong data-start=\"1707\" data-end=\"1720\">Situação:</strong> O cliente diz que está muito interessado, mas que o valor está acima do que ele pode pagar no momento.</p>\n<p class=\"\" data-start=\"1825\" data-end=\"1868\"><strong data-start=\"1825\" data-end=\"1838\">Pergunta:</strong> O que o atendente deve fazer?</p>",
+    "promptText": "Questão 2 – Objeção FinanceiraSituação: O cliente diz que está muito interessado, mas que o valor está acima do que ele pode pagar no momento.\nPergunta: O que o atendente deve fazer?",
+    "pointsTotal": 0,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-16060",
+    "ldQuestionId": 16060,
+    "quizExternalId": 14991,
+    "type": "single",
+    "title": "Qual das opções a seguir representa a melhor abordagem para esse perfil?",
+    "promptHtml": "<p class=\"\" data-start=\"1119\" data-end=\"1268\"><strong data-start=\"1119\" data-end=\"1156\">Questão 1 – Perfil do Sonhador</strong><br data-start=\"1156\" data-end=\"1159\" /><strong data-start=\"1159\" data-end=\"1172\">Situação:</strong> Um cliente diz que sonha em estudar Psicanálise, mas sente que ainda \"não é o momento certo\".</p>\n<p class=\"\" data-start=\"1270\" data-end=\"1356\"><strong data-start=\"1270\" data-end=\"1283\">Pergunta:</strong> Qual das opções a seguir representa a melhor abordagem para esse perfil?</p>",
+    "promptText": "Questão 1 – Perfil do SonhadorSituação: Um cliente diz que sonha em estudar Psicanálise, mas sente que ainda \"não é o momento certo\".\nPergunta: Qual das opções a seguir representa a melhor abordagem para esse perfil?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-15368",
+    "ldQuestionId": 15368,
+    "quizExternalId": 14993,
+    "type": "single",
+    "title": "Quais os requisitos para a matricula no curso de psicanálise?",
+    "promptHtml": "<p>Quais os requisitos para a matricula no curso de psicanálise?</p>",
+    "promptText": "Quais os requisitos para a matricula no curso de psicanálise?",
+    "pointsTotal": 0,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-15366",
+    "ldQuestionId": 15366,
+    "quizExternalId": 14993,
+    "type": "essay",
+    "title": "Na sua opinião, por que as  pessoas tem dúvidas sobre a legalidade da psicanálise e cursos livres?",
+    "promptHtml": "<p>Na sua opinião, por que as pessoas tem dúvidas sobre a legalidade da psicanálise e cursos livres?</p>",
+    "promptText": "Na sua opinião, por que as pessoas tem dúvidas sobre a legalidade da psicanálise e cursos livres?",
+    "pointsTotal": 0,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-15364",
+    "ldQuestionId": 15364,
+    "quizExternalId": 14993,
+    "type": "essay",
+    "title": "O que é RNTP?",
+    "promptHtml": "<p>O que é o RNTP? E qual a relação dele com a PCO?</p>",
+    "promptText": "O que é o RNTP? E qual a relação dele com a PCO?",
+    "pointsTotal": 0,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-15362",
+    "ldQuestionId": 15362,
+    "quizExternalId": 14993,
+    "type": "single",
+    "title": "Preciso ser formado anteriormente para fazer o curso?",
+    "promptHtml": "<p>Preciso ter alguma formação anterior antes do curso de psicanálise?</p>",
+    "promptText": "Preciso ter alguma formação anterior antes do curso de psicanálise?",
+    "pointsTotal": 0,
+    "correctMessage": {
+      "rendered": "<p>No Brasil e no mundo inteiro, psicanalistas são formados em escolas e sociedades psicanalíticas como a nossa. Não existe nenhuma obrigatoriedade de formação anterior.</p>\n",
+      "raw": "<p>No Brasil e no mundo inteiro, psicanalistas são formados em escolas e sociedades psicanalíticas como a nossa. Não existe nenhuma obrigatoriedade de formação anterior.</p>"
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-15360",
+    "ldQuestionId": 15360,
+    "quizExternalId": 14993,
+    "type": "essay",
+    "title": "Este curso é reconhecido pelo MEC?",
+    "promptHtml": "<p>O Curso de Psicanálise Clínica é Reconhecido pelo MEC?</p>",
+    "promptText": "O Curso de Psicanálise Clínica é Reconhecido pelo MEC?",
+    "pointsTotal": 0,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-15358",
+    "ldQuestionId": 15358,
+    "quizExternalId": 14993,
+    "type": "essay",
+    "title": "Depois deste curso poderei clinica? Posso atender pessoas?",
+    "promptHtml": "<p>Após minha formação na PCO como psicanalista poderei atender pessoas? Poderei clinicar com tranquilidade?</p>",
+    "promptText": "Após minha formação na PCO como psicanalista poderei atender pessoas? Poderei clinicar com tranquilidade?",
+    "pointsTotal": 0,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12929",
+    "ldQuestionId": 12929,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Qual o papel do Psicanalista?",
+    "promptHtml": "<p>Qual o papel do Psicanalista?</p>",
+    "promptText": "Qual o papel do Psicanalista?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12409",
+    "ldQuestionId": 12409,
+    "quizExternalId": 8752,
+    "type": "single",
+    "title": "Qual dos arquétipos citados abaixo tem este perfil. \"Eles se sentem mais realizados quando sentem que fizeram uma diferença tangível na vida de outras pessoas. Sua compaixão e generosidade podem ser notáveis. s\"",
+    "promptHtml": "<p>Qual dos arquétipos citados abaixo tem este perfil. \"Eles se sentem mais realizados quando sentem que fizeram uma diferença tangível na vida de outras pessoas. Sua compaixão e generosidade podem ser notáveis. \"</p>",
+    "promptText": "Qual dos arquétipos citados abaixo tem este perfil. \"Eles se sentem mais realizados quando sentem que fizeram uma diferença tangível na vida de outras pessoas. Sua compaixão e generosidade podem ser notáveis. \"",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12404",
+    "ldQuestionId": 12404,
+    "quizExternalId": 8779,
+    "type": "single",
+    "title": "As fobias são uma forma de ansiedade em que um determinado gatilho desencadeia uma forte resposta de medo na pessoa que sofre da fobia.",
+    "promptHtml": "<p><span style=\"font-weight: 400;\">As fobias são uma forma de ansiedade em que um determinado gatilho desencadeia uma forte resposta de medo na pessoa que sofre da fobia. </span></p>",
+    "promptText": "As fobias são uma forma de ansiedade em que um determinado gatilho desencadeia uma forte resposta de medo na pessoa que sofre da fobia.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12402",
+    "ldQuestionId": 12402,
+    "quizExternalId": 8779,
+    "type": "single",
+    "title": "Segundo os psicólogos Rashmi Nemade, Natalie Staats Reiss e Mark Dombeck destacam as características típicas observadas em dois tipos de depressão:",
+    "promptHtml": "<p><span style=\"font-weight: 400;\">Segundo os psicólogos Rashmi Nemade, Natalie Staats Reiss e Mark Dombeck destacam as características típicas observadas em dois tipos de depressão:</span></p>",
+    "promptText": "Segundo os psicólogos Rashmi Nemade, Natalie Staats Reiss e Mark Dombeck destacam as características típicas observadas em dois tipos de depressão:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12401",
+    "ldQuestionId": 12401,
+    "quizExternalId": 8779,
+    "type": "single",
+    "title": "Quando nossos mecanismos de defesa não funcionam mais ou nunca se desenvolveram, é mais provável que desenvolvamos sentimentos de ansiedade incontroláveis",
+    "promptHtml": "<p>Quando nossos mecanismos de defesa não funcionam mais ou nunca se desenvolveram, é mais provável que desenvolvamos sentimentos de ansiedade incontroláveis</p>",
+    "promptText": "Quando nossos mecanismos de defesa não funcionam mais ou nunca se desenvolveram, é mais provável que desenvolvamos sentimentos de ansiedade incontroláveis",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12400",
+    "ldQuestionId": 12400,
+    "quizExternalId": 8779,
+    "type": "single",
+    "title": "Qual mecanismo de defesa é empregado, o indivíduo desvia seu desejo de agir de forma socialmente inadequada, canalizando-o para uma atividade mais saudável.",
+    "promptHtml": "<p>Qual mecanismo de defesa é empregado, o indivíduo desvia seu desejo de agir de forma socialmente inadequada, canalizando-o para uma atividade mais saudável.</p>",
+    "promptText": "Qual mecanismo de defesa é empregado, o indivíduo desvia seu desejo de agir de forma socialmente inadequada, canalizando-o para uma atividade mais saudável.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12398",
+    "ldQuestionId": 12398,
+    "quizExternalId": 8779,
+    "type": "single",
+    "title": "O que Freud acreditava que causava depressão?",
+    "promptHtml": "<p><span style=\"font-weight: 400;\">O que Freud acreditava que causava depressão?</span></p>",
+    "promptText": "O que Freud acreditava que causava depressão?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12397",
+    "ldQuestionId": 12397,
+    "quizExternalId": 8779,
+    "type": "single",
+    "title": "Freud traçou uma ligação entre depressão e sentimentos excessivos de culpa. Isso está relacionado:",
+    "promptHtml": "<p><span style=\"font-weight: 400;\"> Freud também traçou uma ligação entre depressão e sentimentos excessivos de culpa. Isso está relacionado:</span></p>",
+    "promptText": "Freud também traçou uma ligação entre depressão e sentimentos excessivos de culpa. Isso está relacionado:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12394",
+    "ldQuestionId": 12394,
+    "quizExternalId": 8779,
+    "type": "single",
+    "title": "Segundo Vaillant concluiu que os mecanismos de defesa podem ser classificados em quatro “níveis”. Quais são eles?",
+    "promptHtml": "<p>Segundo Vaillant concluiu que os mecanismos de defesa podem ser classificados em quatro “níveis”. Quais são eles?</p>",
+    "promptText": "Segundo Vaillant concluiu que os mecanismos de defesa podem ser classificados em quatro “níveis”. Quais são eles?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12393",
+    "ldQuestionId": 12393,
+    "quizExternalId": 8553,
+    "type": "single",
+    "title": "Chamam-se Mecanismos de Defesa os diversos tipos de processos psíquicos que têm por finalidade afastar um evento gerador de angústia da percepção consciente. Entre os Mecanismos de Defesa está o da Negação, que consiste em:",
+    "promptHtml": "<p>Chamam-se Mecanismos de Defesa os diversos tipos de processos psíquicos que têm por finalidade afastar um evento gerador de angústia da percepção consciente.<br />Entre os Mecanismos de Defesa está o da Negação, que consiste em:</p>",
+    "promptText": "Chamam-se Mecanismos de Defesa os diversos tipos de processos psíquicos que têm por finalidade afastar um evento gerador de angústia da percepção consciente.Entre os Mecanismos de Defesa está o da Negação, que consiste em:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12391",
+    "ldQuestionId": 12391,
+    "quizExternalId": 8553,
+    "type": "single",
+    "title": "Uma pessoa governada pelo superego pode:",
+    "promptHtml": "<p>Uma pessoa governada pelo superego pode</p>",
+    "promptText": "Uma pessoa governada pelo superego pode",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12390",
+    "ldQuestionId": 12390,
+    "quizExternalId": 8553,
+    "type": "single",
+    "title": "Qual das respostas NÃO é um dos principais mecanismos de defesa:",
+    "promptHtml": "<p>Qual das respostas <strong>NÃO</strong> é um dos principais mecanismos de defesa:</p>",
+    "promptText": "Qual das respostas NÃO é um dos principais mecanismos de defesa:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12389",
+    "ldQuestionId": 12389,
+    "quizExternalId": 8553,
+    "type": "single",
+    "title": "Nas alternativas abaixo, há alguns mecanismos de defesa do ego, EXCETO:",
+    "promptHtml": "<p>Nas alternativas abaixo, há alguns mecanismos de defesa do ego, EXCETO:</p>",
+    "promptText": "Nas alternativas abaixo, há alguns mecanismos de defesa do ego, EXCETO:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12387",
+    "ldQuestionId": 12387,
+    "quizExternalId": 8553,
+    "type": "single",
+    "title": "Para Freud, os mecanismos de defesa são processos que ocorrem de maneira inconsciente, operados pelo Eu. São exemplos de mecanismos de defesa a repressão, a formação reativa, o recalque e a foraclusão.",
+    "promptHtml": "<p>Para Freud, os mecanismos de defesa são processos que ocorrem de maneira inconsciente, operados pelo Eu. São exemplos de mecanismos de defesa a repressão, a formação reativa, o recalque e a foraclusão.</p>",
+    "promptText": "Para Freud, os mecanismos de defesa são processos que ocorrem de maneira inconsciente, operados pelo Eu. São exemplos de mecanismos de defesa a repressão, a formação reativa, o recalque e a foraclusão.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12386",
+    "ldQuestionId": 12386,
+    "quizExternalId": 8553,
+    "type": "single",
+    "title": "Um perfil dos mecanismos de defesa utilizados frequentemente por um paciente é um indicador de sua saúde psicológica. Nos casos de psicose, alguns dos mecanismos de defesa identificados são:",
+    "promptHtml": "<p>Um perfil dos mecanismos de defesa utilizados frequentemente por um paciente é um indicador de sua saúde psicológica. Nos casos de psicose, alguns dos mecanismos de defesa identificados são:</p>",
+    "promptText": "Um perfil dos mecanismos de defesa utilizados frequentemente por um paciente é um indicador de sua saúde psicológica. Nos casos de psicose, alguns dos mecanismos de defesa identificados são:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12384",
+    "ldQuestionId": 12384,
+    "quizExternalId": 8553,
+    "type": "single",
+    "title": "A teoria de Freud fornece uma conceituação de como a personalidade é estruturada e como os elementos da personalidade funcionam. Na opinião de Freud, um equilíbrio na interação dinâmica do id, ego e superego é necessário para uma personalidade saudável.",
+    "promptHtml": "<p>A teoria de Freud fornece uma conceituação de como a personalidade é estruturada e como os elementos da personalidade funcionam. Na opinião de Freud, um equilíbrio na interação dinâmica do id, ego e superego é necessário para uma personalidade saudável.</p>",
+    "promptText": "A teoria de Freud fornece uma conceituação de como a personalidade é estruturada e como os elementos da personalidade funcionam. Na opinião de Freud, um equilíbrio na interação dinâmica do id, ego e superego é necessário para uma personalidade saudável.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12381",
+    "ldQuestionId": 12381,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Segundo conceitos psicanalíticos, o ser humano utiliza mecanismos de defesa para aliviar as angústias e ansiedades da vida. Um dos mecanismos de defesa utilizados é a racionalização, muito comum nas organizações, independentemente do cargo. Assinale a alternativa correspondente ao conceito de racionalização:",
+    "promptHtml": "<p>Segundo conceitos psicanalíticos, o ser humano utiliza mecanismos de defesa para aliviar as angústias e ansiedades da vida. Um dos mecanismos de defesa utilizados é a racionalização, muito comum nas organizações, independentemente do cargo. Assinale a alternativa correspondente ao conceito de racionalização:</p>",
+    "promptText": "Segundo conceitos psicanalíticos, o ser humano utiliza mecanismos de defesa para aliviar as angústias e ansiedades da vida. Um dos mecanismos de defesa utilizados é a racionalização, muito comum nas organizações, independentemente do cargo. Assinale a alternativa correspondente ao conceito de racionalização:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12242",
+    "ldQuestionId": 12242,
+    "quizExternalId": 8541,
+    "type": "single",
+    "title": "A psicanálise pode ajudar pessoas de todas as faixas etárias?",
+    "promptHtml": "<p><em><strong>A psicanálise pode ajudar pessoas de todas as faixas etárias?</strong></em></p>",
+    "promptText": "A psicanálise pode ajudar pessoas de todas as faixas etárias?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-12241",
+    "ldQuestionId": 12241,
+    "quizExternalId": 8541,
+    "type": "single",
+    "title": "A premissa básica da abordagem psicanalítica é que a personalidade humana expressa no presente é o resultado de motivos inconscientes formados por experiências da infância:",
+    "promptHtml": "<p>A premissa básica da abordagem psicanalítica é que a personalidade humana expressa no presente é o resultado de motivos inconscientes formados por experiências da infância:</p>",
+    "promptText": "A premissa básica da abordagem psicanalítica é que a personalidade humana expressa no presente é o resultado de motivos inconscientes formados por experiências da infância:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-10256",
+    "ldQuestionId": 10256,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "8",
+    "promptHtml": "<p><span style=\"font-weight: 400;\">Segundo Horney acreditava que uma pessoa saudável é movida por qual desejo?</span></p>",
+    "promptText": "Segundo Horney acreditava que uma pessoa saudável é movida por qual desejo?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-10254",
+    "ldQuestionId": 10254,
+    "quizExternalId": 8752,
+    "type": "single",
+    "title": "Qual Não é uma das “Dez Necessidades Neuróticas” segundo Karen Horney:",
+    "promptHtml": "<p>Qual Não é uma das <span style=\"font-weight: 400;\"> “Dez Necessidades Neuróticas” segundo Karen Horney:</span></p>",
+    "promptText": "Qual Não é uma das  “Dez Necessidades Neuróticas” segundo Karen Horney:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-10241",
+    "ldQuestionId": 10241,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "7",
+    "promptHtml": "<p><span style=\"font-weight: 400;\">Qual a ideia mais influente de Winnicott?</span></p>",
+    "promptText": "Qual a ideia mais influente de Winnicott?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9940",
+    "ldQuestionId": 9940,
+    "quizExternalId": 8770,
+    "type": "single",
+    "title": "3",
+    "promptHtml": "<p>Um psicanalista pode adotar vários tipos de abordagem ?</p>",
+    "promptText": "Um psicanalista pode adotar vários tipos de abordagem ?",
+    "pointsTotal": 10,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9623",
+    "ldQuestionId": 9623,
+    "quizExternalId": 8770,
+    "type": "single",
+    "title": "2",
+    "promptHtml": "<p><span style=\"font-weight: 400;\"> Qual dessas escalas medem a gravidade da depressão do paciente:</span></p>",
+    "promptText": "Qual dessas escalas medem a gravidade da depressão do paciente:",
+    "pointsTotal": 5,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9621",
+    "ldQuestionId": 9621,
+    "quizExternalId": 8770,
+    "type": "single",
+    "title": "1",
+    "promptHtml": "<p>Podemos dizer que é possível medir a eficaz da terapia?</p>",
+    "promptText": "Podemos dizer que é possível medir a eficaz da terapia?",
+    "pointsTotal": 5,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9617",
+    "ldQuestionId": 9617,
+    "quizExternalId": 9607,
+    "type": "single",
+    "title": "5",
+    "promptHtml": "<p>Psicodinâmica é o estudo e teorização sistemáticos das forças psicológicas que agem sobre o comportamento humano, enfatizando a interação entre as motivações consciente e inconsciente: </p>",
+    "promptText": "Psicodinâmica é o estudo e teorização sistemáticos das forças psicológicas que agem sobre o comportamento humano, enfatizando a interação entre as motivações consciente e inconsciente:",
+    "pointsTotal": 2,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9615",
+    "ldQuestionId": 9615,
+    "quizExternalId": 9607,
+    "type": "single",
+    "title": "4",
+    "promptHtml": "<p>Quais os problemas que o <span style=\"font-weight: 400;\">TCC é considerada uma boa opção?</span></p>",
+    "promptText": "Quais os problemas que o TCC é considerada uma boa opção?",
+    "pointsTotal": 2,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9613",
+    "ldQuestionId": 9613,
+    "quizExternalId": 9607,
+    "type": "single",
+    "title": "3",
+    "promptHtml": "<p><span style=\"font-weight: 400;\">É correto afirmar que em uma relação terapêutica é limitada por um conjunto muito diferente de normas, ética e valores. Marque a alternativa incorreta:</span></p>",
+    "promptText": "É correto afirmar que em uma relação terapêutica é limitada por um conjunto muito diferente de normas, ética e valores. Marque a alternativa incorreta:",
+    "pointsTotal": 2,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9611",
+    "ldQuestionId": 9611,
+    "quizExternalId": 9607,
+    "type": "single",
+    "title": "2",
+    "promptHtml": "<p>É possível que<span style=\"font-weight: 400;\"> duas pessoas que respondam a uma terapia em particular da mesma maneira?</span></p>",
+    "promptText": "É possível que duas pessoas que respondam a uma terapia em particular da mesma maneira?",
+    "pointsTotal": 2,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9610",
+    "ldQuestionId": 9610,
+    "quizExternalId": 9607,
+    "type": "single",
+    "title": "1",
+    "promptHtml": "<p>Qual foi a primeira psicanalista feminista ?</p>",
+    "promptText": "Qual foi a primeira psicanalista feminista ?",
+    "pointsTotal": 2,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9292",
+    "ldQuestionId": 9292,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "É verdadeiro afirmar que em essência, então, a psicoterapia trata do uso de interações verbais - principalmente conversas e discussões - para compreender e tratar dificuldades emocionais e problemas de saúde mental.",
+    "promptHtml": "<p>É verdadeiro afirmar que em essência, então, a psicoterapia trata do uso de interações verbais - principalmente conversas e discussões - para compreender e tratar dificuldades emocionais e problemas de saúde mental.</p>",
+    "promptText": "É verdadeiro afirmar que em essência, então, a psicoterapia trata do uso de interações verbais - principalmente conversas e discussões - para compreender e tratar dificuldades emocionais e problemas de saúde mental.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9191",
+    "ldQuestionId": 9191,
+    "quizExternalId": 0,
+    "type": "essay",
+    "title": "10",
+    "promptHtml": "<p>Cite os estágios de desenvolvimento de Erik Erikson.</p>",
+    "promptText": "Cite os estágios de desenvolvimento de Erik Erikson.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9190",
+    "ldQuestionId": 9190,
+    "quizExternalId": 0,
+    "type": "essay",
+    "title": "9",
+    "promptHtml": "<p>Karen Horney concordava com a teoria de Freud sobre a inveja do pênis?</p>",
+    "promptText": "Karen Horney concordava com a teoria de Freud sobre a inveja do pênis?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9189",
+    "ldQuestionId": 9189,
+    "quizExternalId": 0,
+    "type": "essay",
+    "title": "8",
+    "promptHtml": "<p><span>O que é uma neurose? </span><span>Cite um sintoma de neurose.</span></p>",
+    "promptText": "O que é uma neurose? Cite um sintoma de neurose.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9188",
+    "ldQuestionId": 9188,
+    "quizExternalId": 8752,
+    "type": "multiple",
+    "title": "5",
+    "promptHtml": "<p>Quem foi o criador das “relações de objetais”?</p>",
+    "promptText": "Quem foi o criador das “relações de objetais”?",
+    "pointsTotal": 3,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9187",
+    "ldQuestionId": 9187,
+    "quizExternalId": 0,
+    "type": "essay",
+    "title": "6",
+    "promptHtml": "<p>Como a visão de Melanie Klein sobre agressão difere daquela sustentada por Anna Freud?</p>",
+    "promptText": "Como a visão de Melanie Klein sobre agressão difere daquela sustentada por Anna Freud?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9186",
+    "ldQuestionId": 9186,
+    "quizExternalId": 8752,
+    "type": "multiple",
+    "title": "4",
+    "promptHtml": "<p>Qual grupo de pessoas que Anna Freud se destacou como tema de investigação.?</p>",
+    "promptText": "Qual grupo de pessoas que Anna Freud se destacou como tema de investigação.?",
+    "pointsTotal": 3,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9185",
+    "ldQuestionId": 9185,
+    "quizExternalId": 0,
+    "type": "essay",
+    "title": "4",
+    "promptHtml": "<p>O que Carl Jung quis dizer com o termo “individuação” e como esse processo se relaciona com a religião?</p>",
+    "promptText": "O que Carl Jung quis dizer com o termo “individuação” e como esse processo se relaciona com a religião?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9184",
+    "ldQuestionId": 9184,
+    "quizExternalId": 8752,
+    "type": "multiple",
+    "title": "3",
+    "promptHtml": "<p>Os conteúdos do inconsciente coletivo, que representam o papel de modelos endógenos de condutas e produções imaginativas, são denominados:</p>",
+    "promptText": "Os conteúdos do inconsciente coletivo, que representam o papel de modelos endógenos de condutas e produções imaginativas, são denominados:",
+    "pointsTotal": 3,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9183",
+    "ldQuestionId": 9183,
+    "quizExternalId": 8752,
+    "type": "multiple",
+    "title": "2",
+    "promptHtml": "<p>Tanto para Freud como para Jung, a mente ou psique atua no nível consciente e no inconsciente. No entanto, Jung defendia que a parte mais significativa do inconsciente provinha do inconsciente coletivo, e não, das experiências passadas do indivíduo, como acreditava Freud.</p>",
+    "promptText": "Tanto para Freud como para Jung, a mente ou psique atua no nível consciente e no inconsciente. No entanto, Jung defendia que a parte mais significativa do inconsciente provinha do inconsciente coletivo, e não, das experiências passadas do indivíduo, como acreditava Freud.",
+    "pointsTotal": 2,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9182",
+    "ldQuestionId": 9182,
+    "quizExternalId": 8752,
+    "type": "multiple",
+    "title": "1",
+    "promptHtml": "<p>No que se refere às ideias de Freud sobre a técnica psicanalítica, analise os itens a seguir e, ao final, assinale a alternativa correta:</p>\n<p>I – O psicanalista pode atender amigos ou familiares.<br />II – A transferência deve ser analisada quando se converter em uma resistência.<br />III – O sucesso de uma análise está relacionado à confiança apresentada inicialmente pelo analisando.</p>",
+    "promptText": "No que se refere às ideias de Freud sobre a técnica psicanalítica, analise os itens a seguir e, ao final, assinale a alternativa correta:\nI – O psicanalista pode atender amigos ou familiares.II – A transferência deve ser analisada quando se converter em uma resistência.III – O sucesso de uma análise está relacionado à confiança apresentada inicialmente pelo analisando.",
+    "pointsTotal": 2,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-9088",
+    "ldQuestionId": 9088,
+    "quizExternalId": 8541,
+    "type": "single",
+    "title": "O psicanalista pode explorar o possível simbolismo contido nos sonhos de seu cliente e usar esses insights para entender melhor a história de um cliente e o funcionamento psicológico atual:",
+    "promptHtml": "<p><span style=\"font-weight: 400;\">O psicanalista pode explorar o possível simbolismo contido nos sonhos de seu cliente e usar esses insights para entender melhor a história de um cliente e o funcionamento psicológico atual:</span></p>",
+    "promptText": "O psicanalista pode explorar o possível simbolismo contido nos sonhos de seu cliente e usar esses insights para entender melhor a história de um cliente e o funcionamento psicológico atual:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8596",
+    "ldQuestionId": 8596,
+    "quizExternalId": 8580,
+    "type": "single",
+    "title": "Com base na Teoria do Apego, informe a alternativa INCORRETA:",
+    "promptHtml": "<p>Com base na Teoria do Apego, informe a alternativa INCORRETA: </p>",
+    "promptText": "Com base na Teoria do Apego, informe a alternativa INCORRETA:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8595",
+    "ldQuestionId": 8595,
+    "quizExternalId": 8580,
+    "type": "single",
+    "title": "O fenômeno como “privação materna” acontece nos primeiros dois anos de vida de um bebê, eles são cruciais para formar um vínculo saudável e confiável com um cuidador responsivo.",
+    "promptHtml": "<p><span style=\"font-weight: 400;\">O fenômeno como “privação materna” acontece nos primeiros dois anos de vida de um bebê, eles são cruciais para formar um vínculo saudável e confiável com um cuidador responsivo.</span></p>",
+    "promptText": "O fenômeno como “privação materna” acontece nos primeiros dois anos de vida de um bebê, eles são cruciais para formar um vínculo saudável e confiável com um cuidador responsivo.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8593",
+    "ldQuestionId": 8593,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Fase genital: a fase final do desenvolvimento biológico e psicológico ocorre com o início da puberdade e o consequente retorno da energia libidinal aos órgãos sexuais. Neste momento, meninos e meninas estão ambos conscientes de suas identidades sexuais distintas e começam a buscar formas de satisfazer suas necessidades eróticas e interpessoais.",
+    "promptHtml": "<p>Fase genital: a fase final do desenvolvimento biológico e psicológico ocorre com o início da puberdade e o consequente retorno da energia libidinal aos órgãos sexuais. Neste momento, meninos e meninas estão ambos conscientes de suas identidades sexuais distintas e começam a buscar formas de satisfazer suas necessidades eróticas e interpessoais.</p>",
+    "promptText": "Fase genital: a fase final do desenvolvimento biológico e psicológico ocorre com o início da puberdade e o consequente retorno da energia libidinal aos órgãos sexuais. Neste momento, meninos e meninas estão ambos conscientes de suas identidades sexuais distintas e começam a buscar formas de satisfazer suas necessidades eróticas e interpessoais.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8592",
+    "ldQuestionId": 8592,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Fase oral: ocorre desde o nascimento. Mostra-se pela necessidade e gratificação concentradas predominantemente em volta dos lábios, língua e, um pouco mais tarde, nos dentes. A pulsão básica do bebê não é social ou interpessoal, é apenas receber alimento para atenuar as tensões de fome e sede.",
+    "promptHtml": "<p>Fase oral: ocorre desde o nascimento. Mostra-se pela necessidade e gratificação concentradas predominantemente em volta dos lábios, língua e, um pouco mais tarde, nos dentes. A pulsão básica do bebê não é social ou interpessoal, é apenas receber alimento para atenuar as tensões de fome e sede.</p>",
+    "promptText": "Fase oral: ocorre desde o nascimento. Mostra-se pela necessidade e gratificação concentradas predominantemente em volta dos lábios, língua e, um pouco mais tarde, nos dentes. A pulsão básica do bebê não é social ou interpessoal, é apenas receber alimento para atenuar as tensões de fome e sede.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8586",
+    "ldQuestionId": 8586,
+    "quizExternalId": 8580,
+    "type": "single",
+    "title": "De acordo com a Teoria Psicanalítica, o fato de uma pessoa não progredir normalmente de uma fase para outra, permanecendo muito envolvida numa fase particular, caracteriza o fenômeno de:",
+    "promptHtml": "<p>De acordo com a Teoria Psicanalítica, o fato de uma pessoa não progredir normalmente de uma fase para outra, permanecendo muito envolvida numa fase particular, caracteriza o fenômeno de:</p>",
+    "promptText": "De acordo com a Teoria Psicanalítica, o fato de uma pessoa não progredir normalmente de uma fase para outra, permanecendo muito envolvida numa fase particular, caracteriza o fenômeno de:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8585",
+    "ldQuestionId": 8585,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Fase anal: ocorre entre dois e quatro anos, quando a criança geralmente aprende a controlar os esfíncteres anais e a bexiga. A obtenção do controle fisiológico é ligada à percepção de que esse controle é uma nova fonte de prazer. Além de ser fonte de atenção e elogio por parte dos pais.",
+    "promptHtml": "<p>Fase anal: ocorre entre dois e quatro anos, quando a criança geralmente aprende a controlar os esfíncteres anais e a bexiga. A obtenção do controle fisiológico é ligada à percepção de que esse controle é uma nova fonte de prazer. Além de ser fonte de atenção e elogio por parte dos pais.</p>",
+    "promptText": "Fase anal: ocorre entre dois e quatro anos, quando a criança geralmente aprende a controlar os esfíncteres anais e a bexiga. A obtenção do controle fisiológico é ligada à percepção de que esse controle é uma nova fonte de prazer. Além de ser fonte de atenção e elogio por parte dos pais.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8584",
+    "ldQuestionId": 8584,
+    "quizExternalId": 8580,
+    "type": "single",
+    "title": "Na infância, apesar da dominação preponderantemente localizada nas zonas erógenas, as pessoas também podem ser vistas como objeto de satisfação.",
+    "promptHtml": "<p>Na infância, apesar da dominação preponderantemente localizada nas zonas erógenas, as pessoas também podem ser vistas como objeto de satisfação.</p>",
+    "promptText": "Na infância, apesar da dominação preponderantemente localizada nas zonas erógenas, as pessoas também podem ser vistas como objeto de satisfação.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "<p>Na sexualidade infantil, diferente da adulta, falta uma centralização dos instintos sexuais, eles seguem seu próprio rumo, separadamente.</p>\n",
+      "raw": "<p>Na sexualidade infantil, diferente da adulta, falta uma centralização dos instintos sexuais, eles seguem seu próprio rumo, separadamente.</p>"
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8583",
+    "ldQuestionId": 8583,
+    "quizExternalId": 8580,
+    "type": "single",
+    "title": "Na sexualidade infantil, diferente da adulta, falta uma centralização dos instintos sexuais, eles seguem seu próprio rumo, separadamente.",
+    "promptHtml": "<p>Na sexualidade infantil, diferente da adulta, falta uma centralização dos instintos sexuais, eles seguem seu próprio rumo, separadamente.</p>",
+    "promptText": "Na sexualidade infantil, diferente da adulta, falta uma centralização dos instintos sexuais, eles seguem seu próprio rumo, separadamente.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8582",
+    "ldQuestionId": 8582,
+    "quizExternalId": 8580,
+    "type": "single",
+    "title": "O alvo sexual da pulsão infantil, consiste em provocar satisfação, pela estimulação da zona erógena.",
+    "promptHtml": "<p>O alvo sexual da pulsão infantil, consiste em provocar satisfação, pela estimulação da zona erógena.</p>",
+    "promptText": "O alvo sexual da pulsão infantil, consiste em provocar satisfação, pela estimulação da zona erógena.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8581",
+    "ldQuestionId": 8581,
+    "quizExternalId": 8580,
+    "type": "single",
+    "title": "A atividade sexual, apoia-se inicialmente nas funções de preservação da vida, e depois se torna independente delas.",
+    "promptHtml": "<p>A atividade sexual, apoia-se inicialmente nas funções de preservação da vida, e depois se torna independente delas.</p>",
+    "promptText": "A atividade sexual, apoia-se inicialmente nas funções de preservação da vida, e depois se torna independente delas.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8575",
+    "ldQuestionId": 8575,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "De acordo com a teoria psicanalítica de Freud, está incorreto afirmar que:",
+    "promptHtml": "<p>De acordo com a teoria psicanalítica de Freud, está incorreto afirmar que:</p>",
+    "promptText": "De acordo com a teoria psicanalítica de Freud, está incorreto afirmar que:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8574",
+    "ldQuestionId": 8574,
+    "quizExternalId": 8553,
+    "type": "single",
+    "title": "Para Sigmund Freud, a personalidade forma-se ao redor de três estruturas: o id, o ego e o superego.",
+    "promptHtml": "<p>Para Sigmund Freud, a personalidade forma-se ao redor de três estruturas: o id, o ego e o superego. </p>",
+    "promptText": "Para Sigmund Freud, a personalidade forma-se ao redor de três estruturas: o id, o ego e o superego.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8573",
+    "ldQuestionId": 8573,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Sigmund Freud propôs três componentes básicos estruturais da psique. A parte do aparelho psíquico que está em contato com a realidade externa e tem a tarefa de garantir a saúde, segurança e sanidade da personalidade é o:",
+    "promptHtml": "<p>Sigmund Freud propôs três componentes básicos estruturais da psique. A parte do aparelho psíquico que está em contato com a realidade externa e tem a tarefa de garantir a saúde, segurança e sanidade da personalidade é o: </p>",
+    "promptText": "Sigmund Freud propôs três componentes básicos estruturais da psique. A parte do aparelho psíquico que está em contato com a realidade externa e tem a tarefa de garantir a saúde, segurança e sanidade da personalidade é o:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8572",
+    "ldQuestionId": 8572,
+    "quizExternalId": 8553,
+    "type": "single",
+    "title": "De acordo com o modelo dinâmico da estruturação da personalidade, proposto por Sigmund Freud, o EGO",
+    "promptHtml": "<p>De acordo com o modelo dinâmico da estruturação da personalidade, proposto por Sigmund Freud, o EGO</p>",
+    "promptText": "De acordo com o modelo dinâmico da estruturação da personalidade, proposto por Sigmund Freud, o EGO",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8571",
+    "ldQuestionId": 8571,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Na Psicanálise, Freud (1856-1939) identificou vários mecanismos psíquicos de defesa, que são processos inconscientes realizados pelo ego, isto é, ocorrem independentemente da vontade do indivíduo. Esses mecanismos são:",
+    "promptHtml": "<p>Na Psicanálise, Freud (1856-1939) identificou vários mecanismos psíquicos de defesa, que são processos inconscientes realizados pelo ego, isto é, ocorrem independentemente da vontade do indivíduo. Esses mecanismos são:</p>",
+    "promptText": "Na Psicanálise, Freud (1856-1939) identificou vários mecanismos psíquicos de defesa, que são processos inconscientes realizados pelo ego, isto é, ocorrem independentemente da vontade do indivíduo. Esses mecanismos são:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8570",
+    "ldQuestionId": 8570,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Considerando a multiplicidade dos objetos de estudos psicológicos desenvolvidos a partir do século 19, julgue o item a seguir. Para Freud, os mecanismos de defesa são processos que ocorrem de maneira inconsciente, operados pelo Eu. São exemplos de mecanismos de defesa a repressão, a formação reativa, o recalque e a foraclusão.",
+    "promptHtml": "<p>Considerando a multiplicidade dos objetos de estudos psicológicos desenvolvidos a partir do século 19, julgue o item a seguir. Para Freud, os mecanismos de defesa são processos que ocorrem de maneira inconsciente, operados pelo Eu. São exemplos de mecanismos de defesa a repressão, a formação reativa, o recalque e a foraclusão.</p>",
+    "promptText": "Considerando a multiplicidade dos objetos de estudos psicológicos desenvolvidos a partir do século 19, julgue o item a seguir. Para Freud, os mecanismos de defesa são processos que ocorrem de maneira inconsciente, operados pelo Eu. São exemplos de mecanismos de defesa a repressão, a formação reativa, o recalque e a foraclusão.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8568",
+    "ldQuestionId": 8568,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Na prática da psicanálise freudiana, o conteúdo manifesto de um sonho é o significado superficial ou a descrição consciente oferecida por quem sonha, enquanto o conteúdo latente refere-se ao seu material",
+    "promptHtml": "<p>Na prática da psicanálise freudiana, o conteúdo manifesto de um sonho é o significado superficial ou a descrição consciente oferecida por quem sonha, enquanto o conteúdo latente refere-se ao seu material</p>",
+    "promptText": "Na prática da psicanálise freudiana, o conteúdo manifesto de um sonho é o significado superficial ou a descrição consciente oferecida por quem sonha, enquanto o conteúdo latente refere-se ao seu material",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8567",
+    "ldQuestionId": 8567,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "A transferência é um conceito psicanalítico freudiano que compreende as atitudes e os sentimentos inconscientes do paciente para com o psicanalista e vice-versa.",
+    "promptHtml": "<p>A transferência é um conceito psicanalítico freudiano que compreende as atitudes e os sentimentos inconscientes do paciente para com o psicanalista e vice-versa.</p>",
+    "promptText": "A transferência é um conceito psicanalítico freudiano que compreende as atitudes e os sentimentos inconscientes do paciente para com o psicanalista e vice-versa.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8566",
+    "ldQuestionId": 8566,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Sobre a teoria do aparelho psíquico para a Psicanálise as pulsões gozam de uma posição privilegiada nessa teoria. Considerando a teoria das pulsões é correto afirmar que:",
+    "promptHtml": "<p>Sobre a teoria do aparelho psíquico para a Psicanálise as pulsões gozam de uma posição privilegiada nessa teoria. Considerando a teoria das pulsões é correto afirmar que:</p>",
+    "promptText": "Sobre a teoria do aparelho psíquico para a Psicanálise as pulsões gozam de uma posição privilegiada nessa teoria. Considerando a teoria das pulsões é correto afirmar que:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8565",
+    "ldQuestionId": 8565,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Sobre o processo denominado de Complexo de Édipo, teorizado pela Psicanálise, é correto afirmar que:",
+    "promptHtml": "<p>Sobre o processo denominado de Complexo de Édipo, teorizado pela Psicanálise, é correto afirmar que:</p>",
+    "promptText": "Sobre o processo denominado de Complexo de Édipo, teorizado pela Psicanálise, é correto afirmar que:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8530",
+    "ldQuestionId": 8530,
+    "quizExternalId": 8511,
+    "type": "single",
+    "title": "A Psicoterapia é uma terapia:",
+    "promptHtml": "<p>A Psicoterapia é uma terapia:</p>",
+    "promptText": "A Psicoterapia é uma terapia:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8529",
+    "ldQuestionId": 8529,
+    "quizExternalId": 8511,
+    "type": "single",
+    "title": "Qual é o trabalho do terapeuta em um atendimento?",
+    "promptHtml": "<p>Qual é o trabalho do terapeuta em um atendimento?</p>",
+    "promptText": "Qual é o trabalho do terapeuta em um atendimento?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8528",
+    "ldQuestionId": 8528,
+    "quizExternalId": 8511,
+    "type": "single",
+    "title": "Sobre a psicoterapia, está INCORRETO afirmar que:",
+    "promptHtml": "<p>Sobre a psicoterapia, está INCORRETO afirmar que:</p>",
+    "promptText": "Sobre a psicoterapia, está INCORRETO afirmar que:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8527",
+    "ldQuestionId": 8527,
+    "quizExternalId": 8511,
+    "type": "single",
+    "title": "Psicoterapia é o tratamento de perturbações da personalidade ou da conduta",
+    "promptHtml": "<p>Psicoterapia é o tratamento de perturbações da personalidade ou da conduta</p>",
+    "promptText": "Psicoterapia é o tratamento de perturbações da personalidade ou da conduta",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8526",
+    "ldQuestionId": 8526,
+    "quizExternalId": 8511,
+    "type": "single",
+    "title": "A Terapia Cognitivo-Comportamental é considerada uma Psicoterapia?",
+    "promptHtml": "<p>A Terapia Cognitivo-Comportamental é considerada uma Psicoterapia?</p>",
+    "promptText": "A Terapia Cognitivo-Comportamental é considerada uma Psicoterapia?",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8523",
+    "ldQuestionId": 8523,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Marque a alternativa CORRETA.",
+    "promptHtml": "Marque a alternativa CORRETA.",
+    "promptText": "Marque a alternativa CORRETA.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8522",
+    "ldQuestionId": 8522,
+    "quizExternalId": 8511,
+    "type": "single",
+    "title": "Marque a alternativa CORRETA:",
+    "promptHtml": "Marque a alternativa CORRETA:",
+    "promptText": "Marque a alternativa CORRETA:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "<p>Correto!</p>\n",
+      "raw": "Correto!"
+    },
+    "incorrectMessage": {
+      "rendered": "<p>Errado!</p>\n",
+      "raw": "Errado!"
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8521",
+    "ldQuestionId": 8521,
+    "quizExternalId": 8511,
+    "type": "single",
+    "title": "Em relação ao Diagnóstico, Orientação, Aconselhamento da Psicoterapia marque a alternativa CORRETA:",
+    "promptHtml": "<p>Em relação ao Diagnóstico, Orientação, Aconselhamento da Psicoterapia marque a alternativa CORRETA:</p>",
+    "promptText": "Em relação ao Diagnóstico, Orientação, Aconselhamento da Psicoterapia marque a alternativa CORRETA:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8519",
+    "ldQuestionId": 8519,
+    "quizExternalId": 8511,
+    "type": "single",
+    "title": "Para a terapia ter sucesso é indispensável que:",
+    "promptHtml": "<p>Para a terapia ter sucesso é indispensável que:</p>",
+    "promptText": "Para a terapia ter sucesso é indispensável que:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8515",
+    "ldQuestionId": 8515,
+    "quizExternalId": 8511,
+    "type": "single",
+    "title": "Marque VERDADEIRO ou FALSO: Orientar, significa facilitar o conhecimento e a análise de caminhos ou direções para a conduta, com base em referenciais pessoais e sociais.",
+    "promptHtml": "<p>Marque VERDADEIRO ou FALSO:</p>\r\n<p>Orientar, significa facilitar o conhecimento e a análise de caminhos ou direções para a conduta, com base em referenciais pessoais e sociais.</p>",
+    "promptText": "Marque VERDADEIRO ou FALSO:\r\nOrientar, significa facilitar o conhecimento e a análise de caminhos ou direções para a conduta, com base em referenciais pessoais e sociais.",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8514",
+    "ldQuestionId": 8514,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Em relação ao Diagnóstico, Orientação, Aconselhamento e Psicoterapia",
+    "promptHtml": "marque a alternativa CORRETA:",
+    "promptText": "marque a alternativa CORRETA:",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  },
+  {
+    "id": "qstub-8512",
+    "ldQuestionId": 8512,
+    "quizExternalId": 0,
+    "type": "single",
+    "title": "Para a terapia ter sucesso é indispensável que:",
+    "promptHtml": "<p>Escolha a alternativa correta</p>",
+    "promptText": "Escolha a alternativa correta",
+    "pointsTotal": 1,
+    "correctMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "incorrectMessage": {
+      "rendered": "",
+      "raw": ""
+    },
+    "hasAnswers": false,
+    "reason": "REST API não expõe options/answers (postmeta _question_pro_settings). Importação completa exige acesso DB direto ou plugin LD-export."
+  }
+]

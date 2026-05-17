@@ -2332,6 +2332,7 @@ export async function fetchAdminStudent(id: string): Promise<AdminStudentRow | n
 // ---------- Admin: Course writes ----------
 
 export interface UpdateCoursePatch {
+  coverImageUrl?: string;
   title?: string;
   slug?: string;
   shortTitle?: string;

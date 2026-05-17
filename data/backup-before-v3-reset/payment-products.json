@@ -1,0 +1,158 @@
+[
+  {
+    "id": "prod-mp7fvlan2e1e90",
+    "kind": "course",
+    "refId": "8495",
+    "name": "Curso de Psicanálise Clínica Online",
+    "priceCents": 349650,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "sku": "PCO-Psicanalise",
+      "wcProductId": "8034",
+      "externalProductId": "8034"
+    },
+    "createdAt": "2026-05-15T21:38:19.918Z",
+    "updatedAt": "2026-05-15T21:38:19.918Z"
+  },
+  {
+    "id": "prod-mp7fvl9j9d0b1f",
+    "kind": "course",
+    "refId": null,
+    "name": "Certificado Impresso + Taxas de Envio",
+    "priceCents": 5500,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "wcProductId": "8109",
+      "externalProductId": "8109"
+    },
+    "createdAt": "2026-05-15T21:38:19.879Z",
+    "updatedAt": "2026-05-15T21:38:19.879Z"
+  },
+  {
+    "id": "prod-mp7fvl8k068b34",
+    "kind": "course",
+    "refId": null,
+    "name": "Curso de Hipnoterapia Clínica",
+    "priceCents": 119980,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "sku": "PCO-Hipnose",
+      "wcProductId": "8258",
+      "externalProductId": "8258"
+    },
+    "createdAt": "2026-05-15T21:38:19.844Z",
+    "updatedAt": "2026-05-15T21:38:19.844Z"
+  },
+  {
+    "id": "prod-mp7fvl7taec4cf",
+    "kind": "course",
+    "refId": "8495",
+    "name": "Terapia Familiar Sistêmica",
+    "priceCents": 219650,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "sku": "PCO-terapia-familiar",
+      "wcProductId": "13464",
+      "externalProductId": "13464"
+    },
+    "createdAt": "2026-05-15T21:38:19.817Z",
+    "updatedAt": "2026-05-15T21:38:19.817Z"
+  },
+  {
+    "id": "prod-mp7fvl6q327c9f",
+    "kind": "course",
+    "refId": null,
+    "name": "Extensão 6 meses",
+    "priceCents": 39900,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "wcProductId": "21184",
+      "externalProductId": "21184"
+    },
+    "createdAt": "2026-05-15T21:38:19.778Z",
+    "updatedAt": "2026-05-15T21:38:19.778Z"
+  },
+  {
+    "id": "prod-mp6wop6sc2eb58",
+    "kind": "course",
+    "refId": "8495",
+    "name": "Curso de Psicanálise Clínica Online",
+    "priceCents": 349650,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "sku": "PCO-Psicanalise",
+      "wcProductId": "8034",
+      "externalProductId": "8034"
+    },
+    "createdAt": "2026-05-15T12:41:05.668Z",
+    "updatedAt": "2026-05-15T17:53:05.493Z"
+  },
+  {
+    "id": "prod-mp6wop6i55904b",
+    "kind": "course",
+    "refId": null,
+    "name": "Certificado Impresso + Taxas de Envio",
+    "priceCents": 5500,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "wcProductId": "8109",
+      "externalProductId": "8109"
+    },
+    "createdAt": "2026-05-15T12:41:05.658Z",
+    "updatedAt": "2026-05-15T17:53:05.475Z"
+  },
+  {
+    "id": "prod-mp6wop68b3b00a",
+    "kind": "course",
+    "refId": "8748",
+    "name": "Curso de Hipnoterapia Clínica",
+    "priceCents": 119980,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "sku": "PCO-Hipnose",
+      "wcProductId": "8258",
+      "externalProductId": "8258"
+    },
+    "createdAt": "2026-05-15T12:41:05.648Z",
+    "updatedAt": "2026-05-15T17:53:05.454Z"
+  },
+  {
+    "id": "prod-mp6wop5z263579",
+    "kind": "course",
+    "refId": "8495",
+    "name": "Terapia Familiar Sistêmica",
+    "priceCents": 219650,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "sku": "PCO-terapia-familiar",
+      "wcProductId": "13464",
+      "externalProductId": "13464"
+    },
+    "createdAt": "2026-05-15T12:41:05.639Z",
+    "updatedAt": "2026-05-15T17:53:05.438Z"
+  },
+  {
+    "id": "prod-mp6wop5e5b35fc",
+    "kind": "course",
+    "refId": null,
+    "name": "Extensão 6 meses",
+    "priceCents": 39900,
+    "currency": "BRL",
+    "active": true,
+    "metadata": {
+      "wcProductId": "21184",
+      "externalProductId": "21184"
+    },
+    "createdAt": "2026-05-15T12:41:05.618Z",
+    "updatedAt": "2026-05-15T17:53:05.422Z"
+  }
+]

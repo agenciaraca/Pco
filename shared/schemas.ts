@@ -290,6 +290,8 @@ export const updateCourseSchema = z.object({
   totalHours: z.number().int().min(0).max(10000).optional(),
   certificateAvailable: z.boolean().optional(),
   coverColor: z.string().max(120).optional(),
+  /** URL absoluta ou relativa (/uploads/...) da imagem de capa. Vazia = remove. */
+  coverImageUrl: z.string().max(500).optional().or(z.literal('')),
   active: z.boolean().optional(),
   tags: z.array(z.string().min(1).max(40)).max(20).optional(),
   /**

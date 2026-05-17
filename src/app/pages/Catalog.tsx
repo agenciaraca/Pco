@@ -184,8 +184,15 @@ export default function Catalog() {
                   className="pco-card pco-card-hover overflow-hidden p-0 block"
                 >
                   <div
-                    className={`relative h-40 bg-gradient-to-br ${course.coverColor} p-5`}
+                    className={`relative h-40 p-5 ${course.coverImageUrl ? 'bg-pco-deep' : `bg-gradient-to-br ${course.coverColor}`}`}
                   >
+                    {course.coverImageUrl && (
+                      <img
+                        src={course.coverImageUrl}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.2),transparent_60%)]" />
                     {course.modules.some((m) => m.lessons.some((l) => l.isPreview)) && (
                       <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white text-pco-deep text-[10px] font-bold uppercase tracking-wider shadow-sm">

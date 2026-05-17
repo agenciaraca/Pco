@@ -278,6 +278,9 @@ export async function updateCourse(
           ? { certificateAvailable: patch.certificateAvailable }
           : {}),
         ...(patch.coverColor !== undefined ? { coverColor: patch.coverColor } : {}),
+        ...(patch.coverImageUrl !== undefined
+          ? { coverImageUrl: patch.coverImageUrl || undefined }
+          : {}),
         ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
         ...(patch.prerequisiteCourseIds !== undefined
           ? { prerequisiteCourseIds: patch.prerequisiteCourseIds }

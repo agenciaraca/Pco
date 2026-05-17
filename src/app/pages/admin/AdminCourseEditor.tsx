@@ -118,7 +118,15 @@ export default function AdminCourseEditor() {
 
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-4">
-          <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${course.coverColor}`} />
+          {course.coverImageUrl ? (
+            <img
+              src={course.coverImageUrl}
+              alt=""
+              className="h-14 w-14 rounded-2xl object-cover"
+            />
+          ) : (
+            <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${course.coverColor}`} />
+          )}
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
               Editor de curso
@@ -1034,11 +1042,7 @@ function GeralPane({ course }: { course: Course }) {
       <div className="space-y-5">
         <div className="pco-card">
           <Field label="Capa do curso">
-            <div className={`h-32 rounded-xl bg-gradient-to-br ${course.coverColor} mb-3`} />
-            <button type="button" className="pco-btn-secondary w-full justify-center text-xs">
-              <Upload size={12} strokeWidth={2} />
-              Substituir imagem
-            </button>
+            <CourseCoverUploader course={course} />
           </Field>
         </div>
 
@@ -1053,6 +1057,118 @@ function GeralPane({ course }: { course: Course }) {
         <CoursePublishChecklist course={course} />
       </div>
     </form>
+  );
+}
+
+function CourseCoverUploader({ course }: { course: Course }) {
+  const toast = useToast();
+  const update = useUpdateCourse();
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const currentUrl = course.coverImageUrl;
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Arquivo inválido', 'Selecione uma imagem (JPG, PNG, WEBP ou GIF).');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Arquivo grande demais', 'Máximo 5MB.');
+      return;
+    }
+    setUploading(true);
+    try {
+      const result = await api.uploadFile(file);
+      await update.mutateAsync({
+        id: course.id,
+        patch: { coverImageUrl: result.url },
+      });
+      toast.success('Capa atualizada');
+    } catch (err) {
+      toast.error('Falha no upload', err instanceof Error ? err.message : 'Erro');
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  async function handleRemove() {
+    if (!currentUrl) return;
+    if (!confirm('Remover capa do curso? Vai voltar ao gradient padrão.')) return;
+    setUploading(true);
+    try {
+      await update.mutateAsync({
+        id: course.id,
+        patch: { coverImageUrl: '' },
+      });
+      toast.success('Capa removida');
+    } catch (err) {
+      toast.error('Falha ao remover', err instanceof Error ? err.message : 'Erro');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="relative h-32 rounded-xl overflow-hidden mb-3 border border-surface-gray">
+        {currentUrl ? (
+          <img
+            src={currentUrl}
+            alt={`Capa do curso ${course.title}`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div
+            className={`w-full h-full bg-gradient-to-br ${course.coverColor || 'from-pco-blue to-pco-cyan'}`}
+          />
+        )}
+        {uploading && (
+          <div className="absolute inset-0 bg-pco-deep/40 grid place-items-center">
+            <Loader2 size={20} className="text-white animate-spin" strokeWidth={2} />
+          </div>
+        )}
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+        }}
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="pco-btn-secondary flex-1 justify-center text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {uploading ? (
+            <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+          ) : (
+            <Upload size={12} strokeWidth={2} />
+          )}
+          {currentUrl ? 'Substituir' : 'Enviar imagem'}
+        </button>
+        {currentUrl && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={uploading}
+            className="pco-btn-ghost text-xs text-status-danger disabled:opacity-50"
+            title="Remover capa"
+          >
+            <Trash2 size={12} strokeWidth={2} />
+          </button>
+        )}
+      </div>
+      <p className="text-[10px] text-ink-subtle mt-2">
+        JPG, PNG, WEBP ou GIF · até 5MB. Recomendado: 1280×720px.
+      </p>
+    </div>
   );
 }
 

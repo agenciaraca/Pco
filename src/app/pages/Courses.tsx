@@ -153,7 +153,16 @@ export default function Courses() {
 
             return (
               <article key={course.id} className="pco-card pco-card-hover overflow-hidden p-0">
-                <div className={`relative h-40 bg-gradient-to-br ${course.coverColor} p-5`}>
+                <div
+                  className={`relative h-40 p-5 ${course.coverImageUrl ? 'bg-pco-deep' : `bg-gradient-to-br ${course.coverColor}`}`}
+                >
+                  {course.coverImageUrl && (
+                    <img
+                      src={course.coverImageUrl}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.2),transparent_60%)]" />
                   <div className="relative flex flex-col justify-between h-full text-white">
                     <div className="flex items-start justify-between gap-3">

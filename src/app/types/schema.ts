@@ -129,6 +129,12 @@ export interface Course {
    * Default em runtime: true (cursos antigos sem o campo são considerados publicados).
    */
   active?: boolean;
+  /**
+   * URL da imagem de capa do curso (featured image). Quando presente,
+   * sobrepõe o coverColor (gradient) na renderização. URL relativa
+   * (`/uploads/...`) ou absoluta.
+   */
+  coverImageUrl?: string;
   /** Customização opcional do certificado de conclusão. */
   certificateTemplate?: {
     title?: string;

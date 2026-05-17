@@ -556,7 +556,17 @@ export default function AdminCourses() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${c.coverColor}`} />
+                        {c.coverImageUrl ? (
+                          <img
+                            src={c.coverImageUrl}
+                            alt=""
+                            className="h-9 w-9 rounded-lg object-cover shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className={`h-9 w-9 rounded-lg bg-gradient-to-br ${c.coverColor} shrink-0`}
+                          />
+                        )}
                         <div>
                           <div className="font-semibold text-pco-deep flex items-center gap-1.5 flex-wrap">
                             {c.title}

@@ -200,29 +200,36 @@ async function resolveTopicUrl(topicId: string): Promise<string | null> {
 async function buildLessonUrlMap(
   courses: AvaCourse[],
 ): Promise<Map<string, string>> {
-  const topicIds: string[] = [];
-  const lessonByTopicId = new Map<string, string>();
+  // topicId pode estar em VÁRIAS lessons (LD shared steps).
+  // Coletamos topicIds únicos, resolvemos URL uma vez, e atribuímos a TODAS
+  // as lessons que referenciam aquele topic.
+  const uniqueTopicIds = new Set<string>();
+  const lessonsByTopicId = new Map<string, string[]>();
   for (const c of courses) {
     for (const m of c.modules ?? []) {
       for (const l of m.lessons ?? []) {
         const match = l.id.match(/^lesson-\d+-(\d+)$/);
         if (!match) continue;
         const topicId = match[1]!;
-        topicIds.push(topicId);
-        lessonByTopicId.set(topicId, l.id);
+        uniqueTopicIds.add(topicId);
+        if (!lessonsByTopicId.has(topicId)) lessonsByTopicId.set(topicId, []);
+        lessonsByTopicId.get(topicId)!.push(l.id);
       }
     }
   }
+  const topicIds = [...uniqueTopicIds];
   const map = new Map<string, string>();
   let resolved = 0;
   await runLimited(topicIds, 8, async (topicId) => {
     const url = await resolveTopicUrl(topicId);
     if (url) {
-      map.set(lessonByTopicId.get(topicId)!, url);
+      for (const lid of lessonsByTopicId.get(topicId) ?? []) {
+        map.set(lid, url);
+      }
       resolved++;
     }
     if (resolved % 100 === 0 && resolved > 0) {
-      log(`  ...resolvidos ${resolved} URLs`);
+      log(`  ...resolvidos ${resolved} topicIds (${map.size} lessons)`);
     }
   });
   return map;

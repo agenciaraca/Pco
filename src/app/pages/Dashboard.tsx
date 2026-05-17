@@ -305,8 +305,15 @@ export default function Dashboard() {
             return (
               <Link key={course.id} to={`/curso/${course.id}`} className="pco-card pco-card-hover group">
                 <div
-                  className={`relative h-32 rounded-xl bg-gradient-to-br ${course.coverColor} mb-4 overflow-hidden`}
+                  className={`relative h-32 rounded-xl mb-4 overflow-hidden ${course.coverImageUrl ? 'bg-pco-deep' : `bg-gradient-to-br ${course.coverColor}`}`}
                 >
+                  {course.coverImageUrl && (
+                    <img
+                      src={course.coverImageUrl}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.25),transparent_60%)]" />
                   <div className="absolute bottom-3 left-4 text-white">
                     <div className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
