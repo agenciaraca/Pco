@@ -7,6 +7,8 @@ import {
   RotateCcw,
   Loader2,
   Eye,
+  Info,
+  Copy,
 } from 'lucide-react';
 import {
   useTemplateOverrides,
@@ -24,6 +26,35 @@ const TEMPLATES = [
   { name: 'course_enrolled', label: 'Matrícula confirmada' },
   { name: 'welcome', label: 'Boas-vindas' },
 ] as const;
+
+// Variáveis preenchidas pelo sistema no body de cada template.
+// Hoje o body é fixo e usa esses valores automaticamente — mas o admin
+// pode mencionar os mesmos rótulos no greeting/footer/subject pra
+// consistência visual.
+const TEMPLATE_VARS: Record<string, Array<{ key: string; desc: string }>> = {
+  password_reset: [
+    { key: 'userName', desc: 'Nome do destinatário' },
+    { key: 'resetUrl', desc: 'Link único de redefinição (24h)' },
+    { key: 'expiresInMinutes', desc: 'Validade do link em minutos' },
+  ],
+  order_paid: [
+    { key: 'userName', desc: 'Nome do comprador' },
+    { key: 'productName', desc: 'Produto/curso adquirido' },
+    { key: 'amountFormatted', desc: 'Valor em BRL formatado' },
+    { key: 'orderUrl', desc: 'Link pro pedido na conta do aluno' },
+  ],
+  course_enrolled: [
+    { key: 'userName', desc: 'Nome do aluno' },
+    { key: 'courseTitle', desc: 'Título do curso' },
+    { key: 'courseUrl', desc: 'Link direto pro curso' },
+    { key: 'expiresAt', desc: 'Data de expiração do acesso (se houver)' },
+  ],
+  welcome: [
+    { key: 'userName', desc: 'Nome do novo aluno' },
+    { key: 'loginUrl', desc: 'Link de login no AVA' },
+    { key: 'tempPassword', desc: 'Senha temporária (só no welcome auto)' },
+  ],
+};
 
 interface EditState {
   subject: string;
@@ -280,6 +311,42 @@ export default function AdminEmailTemplates() {
             Campos vazios usam o default global do template. Cor inválida
             (não-hex) é ignorada.
           </p>
+
+          <details className="border border-pco-border rounded-lg overflow-hidden">
+            <summary className="text-xs font-semibold text-pco-deep px-3 py-2 cursor-pointer bg-surface-off hover:bg-surface-gray inline-flex items-center gap-1.5 w-full">
+              <Info size={12} strokeWidth={2} />
+              Variáveis disponíveis neste template
+              <span className="ml-auto text-[10px] text-ink-subtle font-normal">
+                {TEMPLATE_VARS[active]?.length ?? 0} vars
+              </span>
+            </summary>
+            <div className="p-3 space-y-1.5">
+              {(TEMPLATE_VARS[active] ?? []).map((v) => (
+                <div key={v.key} className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard
+                        .writeText(`{{${v.key}}}`)
+                        .then(() => toast.success(`{{${v.key}}} copiado`))
+                        .catch(() => {});
+                    }}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-pco-blue/10 text-pco-blue font-mono text-[11px] hover:bg-pco-blue/20"
+                    title="Copiar placeholder"
+                  >
+                    {`{{${v.key}}}`}
+                    <Copy size={9} strokeWidth={2} />
+                  </button>
+                  <span className="text-ink-muted">{v.desc}</span>
+                </div>
+              ))}
+              <p className="text-[10px] text-ink-subtle pt-1 border-t border-pco-border mt-2">
+                Estas variáveis aparecem automaticamente no corpo do template
+                (sistema). Use os mesmos termos no subject/greeting/footer pra
+                manter consistência visual.
+              </p>
+            </div>
+          </details>
         </section>
 
         <section className="pco-card p-0 overflow-hidden">
