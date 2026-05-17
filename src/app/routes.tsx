@@ -107,6 +107,7 @@ const ImportsHistory = lazy(() => import('./pages/admin/imports/ImportsHistory')
 const AdminEmail = lazy(() => import('./pages/admin/AdminEmail'));
 const AdminEmailTemplates = lazy(() => import('./pages/admin/AdminEmailTemplates'));
 const AdminMessaging = lazy(() => import('./pages/admin/AdminMessaging'));
+const AdminExperiments = lazy(() => import('./pages/admin/AdminExperiments'));
 const AdminWeeklyReport = lazy(() => import('./pages/admin/AdminWeeklyReport'));
 const AdminWebhooks = lazy(() => import('./pages/admin/AdminWebhooks'));
 const AdminSaude = lazy(() => import('./pages/admin/AdminSaude'));
@@ -262,6 +263,7 @@ export const router = createBrowserRouter([
       { path: 'email/templates', element: <S><AdminEmailTemplates /></S> },
       { path: 'email/weekly-report', element: <S><AdminWeeklyReport /></S> },
       { path: 'mensageria', element: <S><AdminMessaging /></S> },
+      { path: 'experiments', element: <S><AdminExperiments /></S> },
       { path: 'webhooks', element: <S><AdminWebhooks /></S> },
       { path: 'saude', element: <S><AdminSaude /></S> },
       { path: 'reengajamento-auto', element: <S><AdminReengagementAuto /></S> },

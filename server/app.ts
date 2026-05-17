@@ -8092,6 +8092,114 @@ export function buildApp() {
     c.json({ names: TEMPLATE_NAMES }),
   );
 
+  // ---------- A/B testing experiments ----------
+
+  app.get('/experiments/active', async (c) => {
+    const { getRunningExperiments, assignVariant, recordEvent } = await import(
+      './experiments/store'
+    );
+    const userId = c.req.query('userId') ?? '';
+    const sessionId = c.req.query('sessionId') ?? '';
+    const key = userId || sessionId;
+    if (!key) return c.json({ assignments: {} });
+    const running = await getRunningExperiments();
+    const assignments: Record<string, string> = {};
+    for (const exp of running) {
+      const v = assignVariant(key, exp);
+      if (v) {
+        assignments[exp.id] = v;
+        // Fire-and-forget evento assigned
+        void recordEvent({ experimentId: exp.id, variant: v, eventName: 'assigned', userId: userId || undefined, sessionId: sessionId || undefined });
+      }
+    }
+    return c.json({ assignments });
+  });
+
+  app.post('/experiments/:id/track', async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const { recordEvent, getExperiment, assignVariant } = await import(
+      './experiments/store'
+    );
+    const exp = await getExperiment(c.req.param('id') as string);
+    if (!exp || exp.status !== 'running') return c.json({ ok: false });
+    const userId = typeof body.userId === 'string' ? body.userId : '';
+    const sessionId = typeof body.sessionId === 'string' ? body.sessionId : '';
+    const eventName = typeof body.eventName === 'string' ? body.eventName : 'converted';
+    const key = userId || sessionId;
+    if (!key) return c.json({ ok: false });
+    const variant = assignVariant(key, exp);
+    if (!variant) return c.json({ ok: false });
+    await recordEvent({
+      experimentId: exp.id,
+      variant,
+      eventName,
+      userId: userId || undefined,
+      sessionId: sessionId || undefined,
+      meta: body.meta,
+    });
+    return c.json({ ok: true });
+  });
+
+  app.get(
+    '/admin/experiments',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const { listExperiments } = await import('./experiments/store');
+      return c.json(await listExperiments());
+    },
+  );
+
+  app.post(
+    '/admin/experiments',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      if (!body.name || !Array.isArray(body.variants)) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'name e variants[] obrigatórios');
+      }
+      const { createExperiment } = await import('./experiments/store');
+      try {
+        const exp = await createExperiment(body);
+        return c.json(exp, 201);
+      } catch (err) {
+        return jsonError(c, 400, 'INVALID_INPUT', (err as Error).message);
+      }
+    },
+  );
+
+  app.put(
+    '/admin/experiments/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const { updateExperiment } = await import('./experiments/store');
+      const updated = await updateExperiment(c.req.param('id') as string, body);
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Experiment não encontrado');
+      return c.json(updated);
+    },
+  );
+
+  app.delete(
+    '/admin/experiments/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const { deleteExperiment } = await import('./experiments/store');
+      const ok = await deleteExperiment(c.req.param('id') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Experiment não encontrado');
+      return c.json({ ok: true });
+    },
+  );
+
+  app.get(
+    '/admin/experiments/:id/results',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const { aggregate } = await import('./experiments/store');
+      const rows = await aggregate(c.req.param('id') as string);
+      return c.json({ rows });
+    },
+  );
+
   app.get('/admin/email/broadcasts', requireAuth('admin', 'superadmin'), async (c) =>
     c.json(await emailBroadcasts.listBroadcasts()),
   );

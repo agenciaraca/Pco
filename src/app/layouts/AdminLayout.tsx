@@ -70,6 +70,7 @@ export default function AdminLayout() {
           { to: '/admin/setup', label: t('admin.nav.setup'), icon: ListChecks },
           { to: '/admin/saude', label: t('admin.nav.health'), icon: Heart },
           { to: '/admin/atividade', label: t('admin.nav.activity'), icon: Activity },
+          { to: '/admin/experiments', label: 'A/B Experiments', icon: Activity },
           { to: '/admin/alertas', label: t('admin.nav.alerts'), icon: BellIcon },
         ],
       },
