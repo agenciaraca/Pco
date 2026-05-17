@@ -31,6 +31,7 @@ const Courses = lazy(() => import('./pages/Courses'));
 const Bundles = lazy(() => import('./pages/Bundles'));
 const Catalog = lazy(() => import('./pages/Catalog'));
 const CompareCourses = lazy(() => import('./pages/CompareCourses'));
+const CourseForum = lazy(() => import('./pages/CourseForum'));
 const CoursePreview = lazy(() => import('./pages/CoursePreview'));
 const LessonPreviewPublic = lazy(() => import('./pages/LessonPreviewPublic'));
 const MyNotes = lazy(() => import('./pages/MyNotes'));
@@ -205,6 +206,7 @@ export const router = createBrowserRouter([
       { path: '/curso/:courseId/modulo/:moduleId', element: <S><LMSModule /></S> },
       { path: '/curso/:courseId/aula/:lessonId', element: <S><LMSLesson /></S> },
       { path: '/curso/:courseId/avaliacao/:assessmentId', element: <S><LMSAssessment /></S> },
+      { path: '/curso/:courseId/forum', element: <S><CourseForum /></S> },
     ],
   },
 

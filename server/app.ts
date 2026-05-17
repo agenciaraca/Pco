@@ -8200,6 +8200,120 @@ export function buildApp() {
     },
   );
 
+  // ---------- Forum por curso ----------
+
+  app.get('/courses/:courseId/forum/threads', async (c) => {
+    const { listThreads } = await import('./forum/store');
+    return c.json(await listThreads(c.req.param('courseId') as string));
+  });
+
+  app.get('/forum/threads/:id', async (c) => {
+    const { getThread, listReplies } = await import('./forum/store');
+    const t = await getThread(c.req.param('id') as string);
+    if (!t) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+    const replies = await listReplies(t.id);
+    return c.json({ thread: t, replies });
+  });
+
+  app.post(
+    '/courses/:courseId/forum/threads',
+    requireAuth(),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const u = c.get('user')!;
+      if (
+        typeof body.title !== 'string' ||
+        body.title.trim().length < 3 ||
+        typeof body.body !== 'string' ||
+        body.body.trim().length < 5
+      ) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'title e body obrigatórios');
+      }
+      const kind = ['pergunta', 'dica', 'discussao'].includes(body.kind)
+        ? body.kind
+        : 'discussao';
+      const { createThread } = await import('./forum/store');
+      const t = await createThread({
+        courseId: c.req.param('courseId') as string,
+        authorId: u.sub,
+        authorName: u.email,
+        title: body.title.trim(),
+        body: body.body.trim(),
+        kind,
+      });
+      return c.json(t, 201);
+    },
+  );
+
+  app.post(
+    '/forum/threads/:id/replies',
+    requireAuth(),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const u = c.get('user')!;
+      if (typeof body.body !== 'string' || body.body.trim().length < 3) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'body obrigatório (mín 3 chars)');
+      }
+      const { createReply } = await import('./forum/store');
+      const r = await createReply({
+        threadId: c.req.param('id') as string,
+        authorId: u.sub,
+        authorName: u.email,
+        body: body.body.trim(),
+      });
+      if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+      return c.json(r, 201);
+    },
+  );
+
+  app.post('/forum/threads/:id/like', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const { likeThread } = await import('./forum/store');
+    const t = await likeThread(c.req.param('id') as string, u.sub);
+    if (!t) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+    return c.json(t);
+  });
+
+  app.post('/forum/replies/:id/like', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const { likeReply } = await import('./forum/store');
+    const r = await likeReply(c.req.param('id') as string, u.sub);
+    if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Reply não encontrada');
+    return c.json(r);
+  });
+
+  app.post('/forum/threads/:id/resolve', requireAuth(), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const { markThreadResolved, getThread } = await import('./forum/store');
+    const t = await getThread(c.req.param('id') as string);
+    const u = c.get('user')!;
+    if (!t) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+    if (t.authorId !== u.sub && u.role !== 'admin' && u.role !== 'superadmin') {
+      return jsonError(c, 403, 'FORBIDDEN', 'Só o autor ou admin pode marcar resolvido');
+    }
+    const updated = await markThreadResolved(t.id, !!body.resolved);
+    return c.json(updated);
+  });
+
+  app.delete('/forum/threads/:id', requireAuth(), async (c) => {
+    const { getThread, deleteThread } = await import('./forum/store');
+    const t = await getThread(c.req.param('id') as string);
+    if (!t) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+    const u = c.get('user')!;
+    if (t.authorId !== u.sub && u.role !== 'admin' && u.role !== 'superadmin') {
+      return jsonError(c, 403, 'FORBIDDEN', 'Só o autor ou admin pode excluir');
+    }
+    await deleteThread(t.id);
+    return c.json({ ok: true });
+  });
+
+  app.delete('/forum/replies/:id', requireAuth(), async (c) => {
+    const { deleteReply } = await import('./forum/store');
+    const ok = await deleteReply(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Reply não encontrada');
+    return c.json({ ok: true });
+  });
+
   app.get('/admin/email/broadcasts', requireAuth('admin', 'superadmin'), async (c) =>
     c.json(await emailBroadcasts.listBroadcasts()),
   );

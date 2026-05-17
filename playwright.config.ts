@@ -33,7 +33,7 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    // Para rodar em outros browsers em CI: --project=firefox / --project=webkit.
+    // Cross-browser opt-in (--project=firefox / --project=webkit).
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
@@ -41,6 +41,17 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+    },
+    // Mobile (--project=mobile-chrome / --project=mobile-safari)
+    {
+      name: 'mobile-chrome',
+      use: { ...devices['Pixel 5'] },
+      testMatch: /mobile-.*\.spec\.ts$/,
+    },
+    {
+      name: 'mobile-safari',
+      use: { ...devices['iPhone 12'] },
+      testMatch: /mobile-.*\.spec\.ts$/,
     },
   ],
 
