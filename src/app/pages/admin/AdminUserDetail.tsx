@@ -29,8 +29,11 @@ import {
   useCourses,
   useRetentionRisks,
   useAllCertificates,
+  useIssueCertificate,
   useUserTimeline,
 } from '../../data/hooks';
+import { useToast } from '../../components/Toast';
+import { Plus, Loader2 } from 'lucide-react';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 
 const statusStyles: Record<string, string> = {
@@ -339,36 +342,7 @@ export default function AdminUserDetail() {
       )}
 
       {active === 'certificados' && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {certificates.map((cert) => {
-            const c = courses.find((co) => co.id === cert.courseId);
-            if (!c) return null;
-            return (
-              <div key={cert.id} className="pco-card">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-status-gold/15 grid place-items-center">
-                    <Award size={18} className="text-status-gold" strokeWidth={1.75} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-pco-deep">{c.title}</div>
-                    <div className="text-[11px] text-ink-subtle font-mono">
-                      {cert.validationCode}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <div className="text-[11px] text-ink-muted mb-1">{cert.progress}% concluído</div>
-                  <div className="h-1.5 rounded-full bg-surface-gray overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-status-gold to-pco-orange"
-                      style={{ width: `${cert.progress}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <CertificadosTab student={student} courses={courses} certificates={certificates} />
       )}
 
       {active === 'recursos' && (
@@ -524,5 +498,156 @@ function Event({
         <p className="text-xs text-ink-muted mt-0.5">{text}</p>
       </div>
     </li>
+  );
+}
+
+function CertificadosTab({
+  student,
+  courses,
+  certificates,
+}: {
+  student: { id: string; name: string; enrolledCourseIds: string[]; progressByCourse: Record<string, number> };
+  courses: Array<{ id: string; title: string; certificateAvailable?: boolean }>;
+  certificates: Array<{
+    id: string;
+    courseId: string;
+    studentId: string;
+    issuedAt?: string;
+    validationCode: string;
+    status: 'in_progress' | 'available' | 'issued';
+    progress: number;
+  }>;
+}) {
+  const toast = useToast();
+  const issueMut = useIssueCertificate();
+  const certifiedCourseIds = new Set(
+    certificates.filter((c) => c.status === 'issued').map((c) => c.courseId),
+  );
+  const eligibleCourses = student.enrolledCourseIds
+    .map((cid) => courses.find((c) => c.id === cid))
+    .filter((c): c is NonNullable<typeof c> => !!c && !certifiedCourseIds.has(c.id));
+
+  async function handleIssue(courseId: string, courseTitle: string) {
+    if (!confirm(`Emitir certificado de "${courseTitle}" para ${student.name}?`))
+      return;
+    try {
+      await issueMut.mutateAsync({ studentId: student.id, courseId });
+      toast.success('Certificado emitido', courseTitle);
+    } catch (err) {
+      toast.error('Falha ao emitir', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <h3 className="text-sm font-semibold text-pco-deep mb-3">
+          Emitidos · {certificates.length}
+        </h3>
+        {certificates.length === 0 ? (
+          <div className="pco-card text-center py-6 text-sm text-ink-muted">
+            Nenhum certificado emitido ainda.
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {certificates.map((cert) => {
+              const c = courses.find((co) => co.id === cert.courseId);
+              if (!c) return null;
+              return (
+                <div key={cert.id} className="pco-card">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-status-gold/15 grid place-items-center">
+                      <Award size={18} className="text-status-gold" strokeWidth={1.75} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-pco-deep truncate">
+                        {c.title}
+                      </div>
+                      <div className="text-[11px] text-ink-subtle font-mono">
+                        {cert.validationCode}
+                      </div>
+                      {cert.issuedAt && (
+                        <div className="text-[10px] text-ink-subtle mt-0.5">
+                          Emitido em {new Date(cert.issuedAt).toLocaleDateString('pt-BR')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-[11px] text-ink-muted mb-1">
+                      {cert.progress}% concluído
+                    </div>
+                    <div className="h-1.5 rounded-full bg-surface-gray overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-status-gold to-pco-orange"
+                        style={{ width: `${cert.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h3 className="text-sm font-semibold text-pco-deep mb-3">
+          Disponíveis para emissão manual · {eligibleCourses.length}
+        </h3>
+        {eligibleCourses.length === 0 ? (
+          <div className="pco-card text-center py-6 text-sm text-ink-muted">
+            Aluno já tem certificado em todos os cursos matriculados.
+          </div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {eligibleCourses.map((c) => {
+              const progress = student.progressByCourse?.[c.id] ?? 0;
+              const certEnabled = c.certificateAvailable !== false;
+              return (
+                <div
+                  key={c.id}
+                  className="pco-card flex items-center gap-3"
+                >
+                  <div className="h-9 w-9 rounded-lg bg-pco-blue/10 grid place-items-center shrink-0">
+                    <Award size={16} className="text-pco-blue" strokeWidth={1.75} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-pco-deep truncate">
+                      {c.title}
+                    </div>
+                    <div className="text-[11px] text-ink-subtle">
+                      {progress}% concluído
+                      {!certEnabled && (
+                        <span className="ml-2 pco-badge bg-status-warning/10 text-status-warning">
+                          Emissão desabilitada
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleIssue(c.id, c.title)}
+                    disabled={issueMut.isPending || !certEnabled}
+                    className="pco-btn-primary text-xs whitespace-nowrap"
+                    title={
+                      !certEnabled
+                        ? 'Habilite a emissão no editor do curso → aba Certificado'
+                        : `Emitir certificado para ${student.name}`
+                    }
+                  >
+                    {issueMut.isPending ? (
+                      <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+                    ) : (
+                      <Plus size={12} strokeWidth={2} />
+                    )}
+                    Emitir
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

@@ -2470,54 +2470,389 @@ function AssessmentEditor({
 }
 
 function CertificadoPane({ course }: { course: Course }) {
+  const toast = useToast();
+  const update = useUpdateCourse();
+  const tpl = course.certificateTemplate ?? {};
+  const [enabled, setEnabled] = useState(course.certificateAvailable);
+  const [hours, setHours] = useState(course.totalHours);
+  const [title, setTitle] = useState(tpl.title ?? 'Certificado de Conclusão');
+  const [preamble, setPreamble] = useState(tpl.preamble ?? 'Concedido a');
+  const [bodyText, setBodyText] = useState(
+    tpl.bodyText ?? 'pela conclusão do curso',
+  );
+  const [orgName, setOrgName] = useState(tpl.orgName ?? 'Psicanálise Clínica Online');
+  const [signatureName, setSignatureName] = useState(tpl.signatureName ?? '');
+  const [signatureRole, setSignatureRole] = useState(
+    tpl.signatureRole ?? 'Direção Acadêmica',
+  );
+  const [accentColor, setAccentColor] = useState(tpl.accentColor ?? '#D6A84F');
+  const [ribbonColor, setRibbonColor] = useState(tpl.ribbonColor ?? '#0097B2');
+  const [logoUrl, setLogoUrl] = useState(tpl.logoUrl ?? '');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const dirty =
+    enabled !== course.certificateAvailable ||
+    hours !== course.totalHours ||
+    title !== (tpl.title ?? 'Certificado de Conclusão') ||
+    preamble !== (tpl.preamble ?? 'Concedido a') ||
+    bodyText !== (tpl.bodyText ?? 'pela conclusão do curso') ||
+    orgName !== (tpl.orgName ?? 'Psicanálise Clínica Online') ||
+    signatureName !== (tpl.signatureName ?? '') ||
+    signatureRole !== (tpl.signatureRole ?? 'Direção Acadêmica') ||
+    accentColor !== (tpl.accentColor ?? '#D6A84F') ||
+    ribbonColor !== (tpl.ribbonColor ?? '#0097B2') ||
+    logoUrl !== (tpl.logoUrl ?? '');
+
+  async function handleLogoUpload(file: File) {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Arquivo inválido', 'Selecione uma imagem (PNG transparente é o ideal).');
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const r = await api.uploadFile(file);
+      setLogoUrl(r.url);
+      toast.success('Logo carregado', 'Lembre de salvar.');
+    } catch (err) {
+      toast.error('Falha no upload', err instanceof Error ? err.message : 'Erro');
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  }
+
+  async function handleSave() {
+    try {
+      await update.mutateAsync({
+        id: course.id,
+        patch: {
+          certificateAvailable: enabled,
+          totalHours: hours,
+          certificateTemplate: {
+            title,
+            preamble,
+            bodyText,
+            orgName,
+            signatureName,
+            signatureRole,
+            accentColor,
+            ribbonColor,
+            logoUrl,
+          },
+        },
+      });
+      toast.success('Modelo de certificado salvo');
+    } catch (err) {
+      toast.error('Falha ao salvar', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      <div className="pco-card space-y-4">
-        <h3 className="text-base font-semibold text-pco-deep">Configuração</h3>
-        <Field label="Emissão de certificado">
-          <select className="pco-input" defaultValue={course.certificateAvailable ? 'sim' : 'nao'}>
-            <option value="sim">Habilitada</option>
-            <option value="nao">Desabilitada</option>
-          </select>
-        </Field>
-        <Field label="Carga horária do certificado">
-          <input type="number" className="pco-input" defaultValue={course.totalHours} />
-        </Field>
-        <Field label="Modelo de certificado">
-          <select className="pco-input">
-            <option>Modelo PCO Padrão</option>
-            <option>Modelo PCO Premium</option>
-          </select>
-        </Field>
-        <Field label="Requisitos de conclusão">
-          <div className="space-y-2 text-sm">
-            <Check label="Concluir todas as aulas obrigatórias" defaultChecked />
-            <Check label="Aprovação em todas as avaliações" defaultChecked />
-            <Check label="Aceite dos termos do certificado" />
+    <div className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="pco-card space-y-4">
+          <h3 className="text-base font-semibold text-pco-deep">Configuração</h3>
+
+          <Field label="Emissão de certificado">
+            <select
+              value={enabled ? 'sim' : 'nao'}
+              onChange={(e) => setEnabled(e.target.value === 'sim')}
+              className="pco-input"
+            >
+              <option value="sim">Habilitada</option>
+              <option value="nao">Desabilitada</option>
+            </select>
+          </Field>
+
+          <Field label="Carga horária (h)">
+            <input
+              type="number"
+              min={0}
+              max={10000}
+              value={hours}
+              onChange={(e) => setHours(Number(e.target.value) || 0)}
+              className="pco-input"
+            />
+          </Field>
+
+          <Field label="Logotipo / Brasão (PNG transparente)">
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-14 rounded-lg bg-surface-off grid place-items-center overflow-hidden shrink-0 border border-surface-gray">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Award size={20} className="text-ink-subtle" strokeWidth={1.5} />
+                )}
+              </div>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleLogoUpload(f);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={uploadingLogo}
+                className="pco-btn-secondary text-xs"
+              >
+                {uploadingLogo ? (
+                  <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+                ) : (
+                  <Upload size={12} strokeWidth={2} />
+                )}
+                {logoUrl ? 'Trocar' : 'Enviar logo'}
+              </button>
+              {logoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setLogoUrl('')}
+                  className="pco-btn-ghost text-xs text-status-danger"
+                  title="Remover logo"
+                >
+                  <Trash2 size={12} strokeWidth={2} />
+                </button>
+              )}
+            </div>
+          </Field>
+
+          <Field label="Organização emissora">
+            <input
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              className="pco-input"
+              maxLength={120}
+            />
+          </Field>
+
+          <Field label="Título do certificado">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="pco-input"
+              maxLength={120}
+            />
+          </Field>
+
+          <Field label="Preâmbulo (linha acima do nome do aluno)">
+            <input
+              value={preamble}
+              onChange={(e) => setPreamble(e.target.value)}
+              className="pco-input"
+              maxLength={200}
+              placeholder="Ex: Concedido a"
+            />
+          </Field>
+
+          <Field label="Corpo (linha abaixo do nome do aluno)">
+            <textarea
+              value={bodyText}
+              onChange={(e) => setBodyText(e.target.value)}
+              className="pco-input min-h-[64px]"
+              maxLength={500}
+              placeholder="Ex: pela conclusão do curso de psicanálise clínica"
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Cor da assinatura">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="h-9 w-12 rounded border border-surface-gray cursor-pointer"
+                />
+                <input
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="pco-input font-mono text-xs"
+                  pattern="^#[0-9a-fA-F]{6}$"
+                  maxLength={7}
+                />
+              </div>
+            </Field>
+            <Field label="Cor da fita">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={ribbonColor}
+                  onChange={(e) => setRibbonColor(e.target.value)}
+                  className="h-9 w-12 rounded border border-surface-gray cursor-pointer"
+                />
+                <input
+                  value={ribbonColor}
+                  onChange={(e) => setRibbonColor(e.target.value)}
+                  className="pco-input font-mono text-xs"
+                  pattern="^#[0-9a-fA-F]{6}$"
+                  maxLength={7}
+                />
+              </div>
+            </Field>
           </div>
-        </Field>
+
+          <Field label="Assinatura: nome">
+            <input
+              value={signatureName}
+              onChange={(e) => setSignatureName(e.target.value)}
+              className="pco-input"
+              maxLength={120}
+              placeholder="Ex: Dr. João Silva"
+            />
+          </Field>
+
+          <Field label="Assinatura: cargo">
+            <input
+              value={signatureRole}
+              onChange={(e) => setSignatureRole(e.target.value)}
+              className="pco-input"
+              maxLength={120}
+              placeholder="Ex: Direção Acadêmica"
+            />
+          </Field>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-surface-gray">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!dirty || update.isPending}
+              className="pco-btn-primary text-xs"
+            >
+              {update.isPending ? (
+                <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+              ) : (
+                <Save size={12} strokeWidth={2} />
+              )}
+              Salvar modelo
+            </button>
+          </div>
+        </div>
+
+        <div className="pco-card">
+          <h3 className="text-base font-semibold text-pco-deep mb-3">Pré-visualização</h3>
+          <CertificatePreview
+            courseTitle={course.title}
+            title={title}
+            preamble={preamble}
+            bodyText={bodyText}
+            orgName={orgName}
+            signatureName={signatureName}
+            signatureRole={signatureRole}
+            accentColor={accentColor}
+            ribbonColor={ribbonColor}
+            logoUrl={logoUrl}
+            totalHours={hours}
+            studentName="Maria da Silva (exemplo)"
+          />
+          <p className="mt-3 text-[11px] text-ink-subtle">
+            O nome do aluno e código de validação são preenchidos na emissão. A
+            pré-visualização usa "Maria da Silva" como exemplo.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CertificatePreview({
+  courseTitle,
+  title,
+  preamble,
+  bodyText,
+  orgName,
+  signatureName,
+  signatureRole,
+  accentColor,
+  ribbonColor,
+  logoUrl,
+  totalHours,
+  studentName,
+}: {
+  courseTitle: string;
+  title: string;
+  preamble: string;
+  bodyText: string;
+  orgName: string;
+  signatureName: string;
+  signatureRole: string;
+  accentColor: string;
+  ribbonColor: string;
+  logoUrl?: string;
+  totalHours: number;
+  studentName: string;
+}) {
+  return (
+    <div
+      className="aspect-[1.41] rounded-xl border bg-white p-6 flex flex-col relative overflow-hidden"
+      style={{ borderColor: `${accentColor}55` }}
+    >
+      {/* fita lateral */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-2"
+        style={{ background: ribbonColor }}
+      />
+      <div className="absolute right-0 top-0 bottom-0 w-2 opacity-60"
+        style={{ background: ribbonColor }}
+      />
+
+      <div className="text-center pl-4 pr-4">
+        {logoUrl && (
+          <img
+            src={logoUrl}
+            alt={orgName}
+            className="h-10 mx-auto mb-2 object-contain"
+          />
+        )}
+        <div
+          className="text-[10px] uppercase tracking-[0.3em] font-semibold"
+          style={{ color: accentColor }}
+        >
+          {orgName}
+        </div>
+        <div
+          className="mt-1 text-base font-bold tracking-wider"
+          style={{ color: accentColor }}
+        >
+          {title}
+        </div>
       </div>
 
-      <div className="pco-card">
-        <h3 className="text-base font-semibold text-pco-deep mb-3">Pré-visualização</h3>
-        <div className="aspect-[1.41] rounded-xl bg-gradient-to-br from-status-gold/10 via-white to-pco-cyan/10 border border-status-gold/30 p-6 flex flex-col justify-between">
-          <div className="text-center">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-status-gold font-semibold">
-              Certificado de Conclusão
+      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
+        <div className="text-xs text-ink-muted">{preamble}</div>
+        <div className="text-xl font-bold text-pco-deep mt-1 mb-2">{studentName}</div>
+        <div className="text-xs text-ink-muted leading-relaxed">
+          {bodyText}{' '}
+          <span className="font-semibold text-pco-deep">{courseTitle}</span>
+          {totalHours > 0 && (
+            <>
+              , com carga horária de{' '}
+              <span className="font-semibold text-pco-deep">{totalHours}h</span>
+            </>
+          )}
+          .
+        </div>
+      </div>
+
+      <div className="flex items-end justify-between text-[10px] text-ink-subtle pl-4 pr-4">
+        <div className="flex flex-col items-start">
+          <span className="font-mono">PCO-XXXX-YYYY</span>
+          <span className="opacity-70">código de validação</span>
+        </div>
+        <div className="text-center">
+          {signatureName && (
+            <div
+              className="text-sm font-semibold border-t pt-1"
+              style={{ color: accentColor, borderColor: `${accentColor}77` }}
+            >
+              {signatureName}
             </div>
-            <div className="mt-2 text-lg font-bold text-pco-deep">{course.title}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs text-ink-muted">Concedido a</div>
-            <div className="text-base font-semibold text-pco-deep">[Nome do Aluno]</div>
-            <div className="mt-1 text-[10px] text-ink-subtle">
-              Carga horária: {course.totalHours}h
-            </div>
-          </div>
-          <div className="flex items-end justify-between text-[10px] text-ink-subtle">
-            <span>QR Code</span>
-            <span className="font-mono">PCO-XXXX-YYYY</span>
-          </div>
+          )}
+          <div className="opacity-80">{signatureRole}</div>
         </div>
       </div>
     </div>
