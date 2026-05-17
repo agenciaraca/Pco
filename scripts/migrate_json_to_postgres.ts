@@ -200,9 +200,19 @@ async function main(): Promise<void> {
         .onConflictDoNothing();
       total += courses.length;
 
-      const allModules = courses.flatMap((c) =>
-        c.modules.map((m) => ({ ...m, courseId: c.id })),
-      );
+      // FK safety: só insere modules/lessons de courses que realmente entraram.
+      const insertedCourses = await db
+        .select({ id: schema.courses.id })
+        .from(schema.courses);
+      const validCourseIds = new Set(insertedCourses.map((r) => r.id));
+      const skipped = courses.filter((c) => !validCourseIds.has(c.id));
+      if (skipped.length > 0) {
+        log(`  ⚠ ${skipped.length} curso(s) pulado(s) (slug duplicado ou outro conflito): ${skipped.map((s) => s.id).join(', ')}`);
+      }
+
+      const allModules = courses
+        .filter((c) => validCourseIds.has(c.id))
+        .flatMap((c) => c.modules.map((m) => ({ ...m, courseId: c.id })));
       log(`  modules: ${allModules.length}`);
       if (allModules.length > 0) {
         await db
@@ -220,15 +230,17 @@ async function main(): Promise<void> {
         total += allModules.length;
       }
 
-      const allLessons = courses.flatMap((c) =>
-        c.modules.flatMap((m) =>
-          m.lessons.map((l) => ({
-            ...l,
-            moduleId: m.id,
-            courseId: c.id,
-          })),
-        ),
-      );
+      const allLessons = courses
+        .filter((c) => validCourseIds.has(c.id))
+        .flatMap((c) =>
+          c.modules.flatMap((m) =>
+            m.lessons.map((l) => ({
+              ...l,
+              moduleId: m.id,
+              courseId: c.id,
+            })),
+          ),
+        );
       log(`  lessons: ${allLessons.length}`);
       if (allLessons.length > 0) {
         // Insert em batches de 500 (Postgres tem limite de parâmetros)
