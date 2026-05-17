@@ -20,7 +20,8 @@ import {
   Package,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-import { useUnreadCount } from '../data/hooks';
+import { useUnreadCount, useAdminAlerts } from '../data/hooks';
+import { AlertOctagon } from 'lucide-react';
 import { useToast } from './Toast';
 import * as api from '../data/api';
 import { useT } from '../i18n';
@@ -47,6 +48,11 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
   const { user, logout, logoutAllDevices } = useAuth();
   const navigate = useNavigate();
   const unread = useUnreadCount();
+  const isAdmin = variant === 'admin';
+  const alertsQ = useAdminAlerts();
+  const totalAlerts = isAdmin
+    ? (alertsQ.data?.error ?? 0) + (alertsQ.data?.warn ?? 0)
+    : 0;
   const toast = useToast();
   const t = useT();
   const lastUnreadRef = useRef<number | null>(null);
@@ -269,6 +275,20 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
         <div className="flex-1 md:hidden" />
 
         <LocaleSwitcher variant="inline" className="hidden md:flex" />
+
+        {isAdmin && totalAlerts > 0 && (
+          <Link
+            to="/admin/alertas"
+            className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-status-danger hover:bg-status-danger/10 transition-colors"
+            aria-label={`${totalAlerts} alerta(s) ativo(s)`}
+            title={`${alertsQ.data?.error ?? 0} erro(s) · ${alertsQ.data?.warn ?? 0} aviso(s)`}
+          >
+            <AlertOctagon size={18} strokeWidth={1.75} />
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-status-danger text-[9px] font-bold text-white grid place-items-center ring-2 ring-white">
+              {totalAlerts > 99 ? '99+' : totalAlerts}
+            </span>
+          </Link>
+        )}
 
         <Link
           to="/notificacoes"

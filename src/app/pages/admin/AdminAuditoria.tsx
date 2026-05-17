@@ -19,6 +19,8 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import type { AuditEntryDto, AuditFilter } from '../../data/api';
 import { useT } from '../../i18n';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 
 const roleIcon: Record<string, React.ReactNode> = {
   superadmin: <ShieldCheck size={12} strokeWidth={2} />,
@@ -87,6 +89,23 @@ export default function AdminAuditoria() {
       );
     });
   }, [data, search]);
+
+  const { rows: sortedFiltered, field: sortField, direction: sortDirection, toggleSort } = useTableSort(
+    filtered,
+    (row, field) => {
+      switch (field) {
+        case 'ts': return row.ts;
+        case 'actor': return row.actorEmail ?? '';
+        case 'action': return row.action ?? '';
+        case 'target': return `${row.targetType ?? ''}:${row.targetId ?? ''}`;
+        case 'ip': return row.ip ?? '';
+        case 'status': return row.status ?? '';
+        default: return null;
+      }
+    },
+    'ts',
+    'desc',
+  );
 
   const targetTypes = useMemo(() => {
     const set = new Set<string>();
@@ -308,16 +327,16 @@ export default function AdminAuditoria() {
             <table className="w-full text-xs">
               <thead className="bg-surface-mute text-ink-muted">
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium">Quando</th>
-                  <th className="text-left px-3 py-2 font-medium">Autor</th>
-                  <th className="text-left px-3 py-2 font-medium">Ação</th>
-                  <th className="text-left px-3 py-2 font-medium">Alvo</th>
-                  <th className="text-left px-3 py-2 font-medium">IP</th>
-                  <th className="text-left px-3 py-2 font-medium">Status</th>
+                  <SortableTh field="ts" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Quando</SortableTh>
+                  <SortableTh field="actor" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Autor</SortableTh>
+                  <SortableTh field="action" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Ação</SortableTh>
+                  <SortableTh field="target" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Alvo</SortableTh>
+                  <SortableTh field="ip" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">IP</SortableTh>
+                  <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Status</SortableTh>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-mute">
-                {filtered.map((e) => (
+                {sortedFiltered.map((e) => (
                   <tr key={e.id} className="hover:bg-surface-mute/40">
                     <td className="px-3 py-2 whitespace-nowrap text-ink-muted">
                       {formatTs(e.ts)}

@@ -23,6 +23,8 @@ import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useState } from 'react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useT } from '../../i18n';
+import SortableTh from '../../components/SortableTh';
+import { useTableSort } from '../../hooks/useTableSort';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -39,6 +41,20 @@ export default function AdminBackups() {
   const toast = useToast();
   const [pending, setPending] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
+
+  const { rows: sortedBackups, field: sortField, direction: sortDirection, toggleSort } = useTableSort(
+    backups.data ?? [],
+    (row, field) => {
+      switch (field) {
+        case 'name': return row.name;
+        case 'size': return row.sizeBytes;
+        case 'mtime': return row.mtime;
+        default: return null;
+      }
+    },
+    'mtime',
+    'desc',
+  );
 
   async function handleDownload(name: string) {
     setPending(name);
@@ -161,14 +177,14 @@ export default function AdminBackups() {
           <table className="w-full text-sm">
             <thead className="bg-surface-mute text-ink-muted">
               <tr>
-                <th className="text-left px-3 py-2 font-medium">Arquivo</th>
-                <th className="text-left px-3 py-2 font-medium">Tamanho</th>
-                <th className="text-left px-3 py-2 font-medium">Modificado</th>
+                <SortableTh field="name" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Arquivo</SortableTh>
+                <SortableTh field="size" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Tamanho</SortableTh>
+                <SortableTh field="mtime" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Modificado</SortableTh>
                 <th className="text-right px-3 py-2 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-mute">
-              {backups.data.map((b) => (
+              {sortedBackups.map((b) => (
                 <tr key={b.name} className="hover:bg-surface-mute/40">
                   <td className="px-3 py-2 font-mono text-xs text-pco-deep break-all">
                     {b.name}
