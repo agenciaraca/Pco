@@ -2208,6 +2208,28 @@ export function buildApp() {
     c.json(await retentionRepo.listRetentionRisks(c.req.query('level'))),
   );
 
+  /**
+   * Recalcula o risco de evasão de todos os alunos a partir dos dados atuais
+   * (último acesso, progresso por curso, datas de matrícula). Atualiza
+   * admin-students.riskScore + status e substitui retention-risks por um
+   * snapshot novo.
+   */
+  app.post(
+    '/admin/retention/recompute',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const { recomputeAllRisks } = await import('./services/retention-calculator');
+      // carga horária real por curso (default 30h se desconhecido)
+      const courses = await coursesRepo.listCourses();
+      const hoursById = new Map(courses.map((co) => [co.id, co.totalHours ?? 30]));
+      const summary = await recomputeAllRisks({
+        courseHours: (id) => hoursById.get(id) ?? 30,
+      });
+      return c.json({ ok: true, ...summary });
+    },
+  );
+
   // ---------- Sessions / Professionals ----------
 
   app.get('/sessions/services', async (c) => c.json(await sessionsRepo.listSessionServices()));

@@ -8,7 +8,8 @@ import {
   LayoutGrid,
   List as ListIcon,
 } from 'lucide-react';
-import { useRetentionRisks, useBroadcastNotification } from '../../data/hooks';
+import { useRetentionRisks, useBroadcastNotification, useRecomputeRetention } from '../../data/hooks';
+import { RefreshCw, Loader2 } from 'lucide-react';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
@@ -42,7 +43,20 @@ export default function AdminEvasion() {
   const { data, isLoading, isError, refetch } = useRetentionRisks(level);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const broadcast = useBroadcastNotification();
+  const recompute = useRecomputeRetention();
   const toast = useToast();
+
+  async function handleRecompute() {
+    try {
+      const r = await recompute.mutateAsync();
+      toast.success(
+        'Risco recalculado',
+        `${r.total} alunos · ${r.byLevel.critico} críticos · ${r.byLevel.alto} altos · ${r.updated} atualizados`,
+      );
+    } catch (err) {
+      toast.error('Falha ao recalcular', err instanceof Error ? err.message : 'Erro');
+    }
+  }
 
   const grouped = useMemo(() => {
     const map: Record<string, typeof data> = {
@@ -137,6 +151,20 @@ export default function AdminEvasion() {
             <option value="medio">Médio</option>
             <option value="baixo">Baixo</option>
           </select>
+          <button
+            type="button"
+            onClick={handleRecompute}
+            disabled={recompute.isPending}
+            className="pco-btn-secondary text-xs"
+            title="Recalcula o risco de todos os alunos usando dados atuais"
+          >
+            {recompute.isPending ? (
+              <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+            ) : (
+              <RefreshCw size={12} strokeWidth={2} />
+            )}
+            Recalcular
+          </button>
           <Link to="/admin/plano-retomada-ia" className="pco-btn-primary text-xs">
             <Sparkles size={12} strokeWidth={2} />
             Plano de Retomada IA

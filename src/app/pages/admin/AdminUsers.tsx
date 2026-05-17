@@ -741,15 +741,10 @@ export default function AdminUsers() {
                       <td className="px-4 py-3 text-center">
                         <Link
                           to={progressHref}
-                          className="inline-flex flex-col items-center gap-0.5 hover:text-pco-blue group"
+                          className="inline-block text-sm font-medium text-ink-muted hover:text-pco-blue tabular-nums"
                           title={`Ver ${courseCount} curso(s) matriculados`}
                         >
-                          <span className="text-lg font-bold text-pco-deep group-hover:text-pco-blue tabular-nums">
-                            {courseCount}
-                          </span>
-                          <span className="text-[10px] text-ink-subtle uppercase tracking-wider">
-                            curso{courseCount === 1 ? '' : 's'}
-                          </span>
+                          {courseCount}
                         </Link>
                       </td>
                       <td className="px-4 py-3">

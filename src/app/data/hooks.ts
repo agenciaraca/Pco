@@ -120,6 +120,17 @@ export function useRetentionRisks(level?: string) {
   });
 }
 
+export function useRecomputeRetention() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.recomputeRetentionRisks(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['retention-risks'] });
+      qc.invalidateQueries({ queryKey: ['admin-students'] });
+    },
+  });
+}
+
 export function useProfessionals() {
   return useQuery({
     queryKey: queryKeys.professionals,

@@ -2171,6 +2171,18 @@ export async function revokeCertificate(id: string): Promise<{ ok: true }> {
 
 // ---------- Retention ----------
 
+export interface RetentionRecomputeSummary {
+  ok: true;
+  total: number;
+  byLevel: { baixo: number; medio: number; alto: number; critico: number };
+  updated: number;
+  durationMs: number;
+}
+
+export async function recomputeRetentionRisks(): Promise<RetentionRecomputeSummary> {
+  return http.post<RetentionRecomputeSummary>('/admin/retention/recompute', {});
+}
+
 export async function fetchRetentionRisks(level?: string): Promise<RetentionRisk[]> {
   return http.get<RetentionRisk[]>('/retention/risks', {
     query: { level },
