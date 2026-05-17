@@ -183,10 +183,8 @@ export default function PodcastEpisode() {
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2 pco-card">
           <h3 className="text-base font-semibold text-pco-deep mb-3">Sobre este episódio</h3>
-          <p className="text-sm text-ink-muted leading-relaxed">{episode.description}</p>
-          <p className="mt-3 text-sm text-ink-muted leading-relaxed">
-            Episódio mockado para a primeira fase do AVA PCO. Ao integrar com backend, os
-            metadados, capítulos, transcrição e arquivos de áudio reais serão carregados aqui.
+          <p className="text-sm text-ink-muted leading-relaxed whitespace-pre-line">
+            {episode.description}
           </p>
         </div>
 

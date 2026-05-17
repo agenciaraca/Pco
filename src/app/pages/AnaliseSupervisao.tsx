@@ -28,25 +28,17 @@ interface Booking {
 
 const slots = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
 
-const mySessions = [
-  {
-    id: 'b-1',
-    service: 'Análise Pessoal',
-    professional: 'Dra. Helena Vieira',
-    date: '2026-05-08',
-    time: '14:00',
-    status: 'confirmed' as const,
-    meetingLink: 'https://meet.google.com/mock-abc-def',
-  },
-  {
-    id: 'b-2',
-    service: 'Supervisão Clínica',
-    professional: 'Dr. Marco Aurélio',
-    date: '2026-04-20',
-    time: '10:00',
-    status: 'done' as const,
-  },
-];
+// Sessões agendadas do aluno virão do backend em sprint futura
+// (integração com calendar/booking system). Por enquanto sempre vazio.
+const mySessions: Array<{
+  id: string;
+  service: string;
+  professional: string;
+  date: string;
+  time: string;
+  status: 'confirmed' | 'done' | 'pending_payment' | 'scheduled' | 'cancelled';
+  meetingLink?: string;
+}> = [];
 
 const statusStyles: Record<string, string> = {
   pending_payment: 'bg-pco-orange/15 text-pco-orange',

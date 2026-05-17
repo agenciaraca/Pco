@@ -346,25 +346,18 @@ export default function AdminUserDetail() {
       )}
 
       {active === 'recursos' && (
-        <div className="grid gap-4 md:grid-cols-3">
-          <ResourceCard
-            icon={<Bot size={18} className="text-pco-blue" strokeWidth={1.75} />}
-            title="Tutor Virtual"
-            value="12 perguntas"
-            sub="Última: há 3 dias"
-          />
-          <ResourceCard
-            icon={<Mic2 size={18} className="text-pco-cyan" strokeWidth={1.75} />}
-            title="PCO POD"
-            value="6 plays"
-            sub="2 episódios concluídos"
-          />
-          <ResourceCard
-            icon={<BookOpen size={18} className="text-pco-deep" strokeWidth={1.75} />}
-            title="Biblioteca"
-            value="3 downloads"
-            sub="1 favorito"
-          />
+        <div className="pco-card text-center py-10">
+          <div className="inline-flex h-12 w-12 rounded-full bg-pco-blue/10 items-center justify-center mb-3">
+            <Bot size={20} className="text-pco-blue" strokeWidth={1.75} />
+          </div>
+          <h3 className="text-sm font-semibold text-pco-deep">
+            Estatísticas de Tutor / POD / Biblioteca em construção
+          </h3>
+          <p className="text-xs text-ink-muted mt-1 max-w-md mx-auto">
+            O tracking de uso por aluno desses recursos será integrado em uma
+            próxima sprint. Atividade global está disponível em /admin/tutor,
+            /admin/podcasts e /admin/biblioteca.
+          </p>
         </div>
       )}
 

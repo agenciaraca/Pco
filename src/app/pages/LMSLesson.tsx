@@ -3,10 +3,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  PlayCircle,
   StickyNote,
   HelpCircle,
-  BookOpen,
   Clock,
   Languages,
   Copy,
@@ -222,22 +220,6 @@ export default function LMSLesson() {
             </div>
           )}
 
-          <div className="pco-card">
-            <h3 className="text-base font-semibold text-pco-deep mb-3 flex items-center gap-2">
-              <BookOpen size={16} className="text-pco-blue" strokeWidth={1.75} />
-              Materiais complementares
-            </h3>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center justify-between p-3 rounded-xl border border-surface-gray hover:bg-surface-off">
-                <span>Apostila do módulo (PDF)</span>
-                <button className="pco-btn-ghost text-xs">Baixar</button>
-              </li>
-              <li className="flex items-center justify-between p-3 rounded-xl border border-surface-gray hover:bg-surface-off">
-                <span>Slides da aula</span>
-                <button className="pco-btn-ghost text-xs">Abrir</button>
-              </li>
-            </ul>
-          </div>
 
           <div className="pco-card p-4">
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
