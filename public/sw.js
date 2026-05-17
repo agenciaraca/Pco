@@ -8,7 +8,7 @@
 // - Push notifications: showNotification + click → focus/open URL.
 // - Update flow: postMessage SKIP_WAITING + 'controllerchange' no client.
 
-const VERSION = 'avapco-v3-pwa';
+const VERSION = 'avapco-v4-pwa';
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const API_CACHE = `${VERSION}-api`;
@@ -79,6 +79,13 @@ self.addEventListener('fetch', (event) => {
   // Assets versionados → stale-while-revalidate
   if (url.pathname.startsWith('/assets/')) {
     event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
+    return;
+  }
+
+  // Uploads (capas de curso, logos de certificado) → cache-first
+  // (imutáveis: filename inclui hash). Permite UI instantânea offline.
+  if (url.pathname.startsWith('/uploads/')) {
+    event.respondWith(cacheFirst(req, RUNTIME_CACHE));
     return;
   }
 
