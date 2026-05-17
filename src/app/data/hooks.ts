@@ -281,6 +281,38 @@ export function useCreateCourse() {
   });
 }
 
+export function useMessagingConfigs() {
+  return useQuery({
+    queryKey: ['messaging-configs'],
+    queryFn: api.fetchMessagingConfigs,
+  });
+}
+
+export function useCreateMessagingConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: api.MessagingConfigInput) => api.createMessagingConfig(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['messaging-configs'] }),
+  });
+}
+
+export function useUpdateMessagingConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<api.MessagingConfigInput> }) =>
+      api.updateMessagingConfig(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['messaging-configs'] }),
+  });
+}
+
+export function useDeleteMessagingConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteMessagingConfig(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['messaging-configs'] }),
+  });
+}
+
 export function useAdminStudentStats(id: string | undefined) {
   return useQuery({
     queryKey: ['admin-student-stats', id],

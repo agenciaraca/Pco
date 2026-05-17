@@ -41,6 +41,7 @@ import {
   Cpu,
   Radio,
   Gauge,
+  MessageSquare,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ScrollToTop from '../components/ScrollToTop';
@@ -105,6 +106,7 @@ export default function AdminLayout() {
         title: t('admin.section.communications'),
         items: [
           { to: '/admin/email', label: t('admin.nav.email'), icon: Mail },
+          { to: '/admin/mensageria', label: 'WhatsApp / SMS', icon: MessageSquare },
           { to: '/admin/broadcasts', label: t('admin.nav.broadcasts'), icon: Send },
           { to: '/admin/digest', label: 'Digest diário', icon: Mail },
           { to: '/admin/notificacoes', label: t('notifications.title'), icon: BellIcon },

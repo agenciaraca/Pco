@@ -2402,6 +2402,77 @@ export async function createCourse(input: CreateCourseInput): Promise<Course> {
   return http.post<Course>('/admin/courses', input);
 }
 
+// ---------- Messaging configs (SMS / WhatsApp) ----------
+
+export type MessagingProviderId = 'mock' | 'twilio' | 'whatsapp-meta';
+
+export interface MessagingConfigView {
+  id: string;
+  provider: MessagingProviderId;
+  enabled: boolean;
+  fromNumber: string;
+  whatsappPhoneNumberId?: string;
+  hasApiKey: boolean;
+  hasAccountSid: boolean;
+  lastTestedAt?: string;
+  lastTestStatus?: 'ok' | 'error';
+  lastTestMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MessagingConfigInput {
+  provider: MessagingProviderId;
+  enabled?: boolean;
+  fromNumber: string;
+  apiKey?: string;
+  accountSid?: string;
+  whatsappPhoneNumberId?: string;
+}
+
+export async function fetchMessagingConfigs(): Promise<MessagingConfigView[]> {
+  return http.get<MessagingConfigView[]>('/admin/messaging-configs');
+}
+
+export async function createMessagingConfig(
+  input: MessagingConfigInput,
+): Promise<MessagingConfigView> {
+  return http.post<MessagingConfigView>('/admin/messaging-configs', input);
+}
+
+export async function updateMessagingConfig(
+  id: string,
+  patch: Partial<MessagingConfigInput>,
+): Promise<MessagingConfigView> {
+  return http.put<MessagingConfigView>(
+    `/admin/messaging-configs/${encodeURIComponent(id)}`,
+    patch,
+  );
+}
+
+export async function deleteMessagingConfig(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(
+    `/admin/messaging-configs/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function pingMessagingConfig(id: string): Promise<{ ok: boolean; message: string }> {
+  return http.post<{ ok: boolean; message: string }>(
+    `/admin/messaging-configs/${encodeURIComponent(id)}/ping`,
+    {},
+  );
+}
+
+export async function testSendMessage(
+  id: string,
+  payload: { to: string; body?: string; whatsappTemplate?: string },
+): Promise<{ ok: boolean; error?: { code: string; message: string } }> {
+  return http.post<{ ok: boolean; error?: { code: string; message: string } }>(
+    `/admin/messaging-configs/${encodeURIComponent(id)}/test-send`,
+    payload,
+  );
+}
+
 export interface AdminStudentStats {
   studentId: string;
   tutor: { questionCount: number; lastAt: string | null };

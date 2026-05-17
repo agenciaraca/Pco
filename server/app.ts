@@ -7963,6 +7963,131 @@ export function buildApp() {
     },
   );
 
+  // ---------- Messaging configs CRUD (SMS / WhatsApp) ----------
+
+  app.get(
+    '/admin/messaging-configs',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const { listConfigs } = await import('./messaging/configs-store');
+      return c.json(await listConfigs());
+    },
+  );
+
+  app.post(
+    '/admin/messaging-configs',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      if (!body.provider || !['mock', 'twilio', 'whatsapp-meta'].includes(body.provider)) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'provider inválido');
+      }
+      if (!body.fromNumber || typeof body.fromNumber !== 'string') {
+        return jsonError(c, 400, 'INVALID_INPUT', 'fromNumber obrigatório');
+      }
+      const { createConfig } = await import('./messaging/configs-store');
+      const created = await createConfig({
+        provider: body.provider,
+        enabled: body.enabled,
+        fromNumber: body.fromNumber,
+        apiKey: body.apiKey,
+        accountSid: body.accountSid,
+        whatsappPhoneNumberId: body.whatsappPhoneNumberId,
+      });
+      return c.json(created, 201);
+    },
+  );
+
+  app.put(
+    '/admin/messaging-configs/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const { updateConfig } = await import('./messaging/configs-store');
+      const updated = await updateConfig(c.req.param('id') as string, body);
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada');
+      return c.json(updated);
+    },
+  );
+
+  app.delete(
+    '/admin/messaging-configs/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const { deleteConfig } = await import('./messaging/configs-store');
+      const ok = await deleteConfig(c.req.param('id') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada');
+      return c.json({ ok: true });
+    },
+  );
+
+  /** Faz ping no provider (Twilio: account fetch, Meta: GET phone number). */
+  app.post(
+    '/admin/messaging-configs/:id/ping',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const { getConfig, recordTest } = await import(
+        './messaging/configs-store'
+      );
+      const { decryptApiKey } = await import('./db/encryption');
+      const { getMessagingProvider } = await import(
+        './messaging/providers/registry'
+      );
+      const cfg = await getConfig(c.req.param('id') as string);
+      if (!cfg) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada');
+      const provider = getMessagingProvider(cfg.provider);
+      if (!provider.ping) {
+        return c.json({ ok: true, message: 'Provider sem ping disponível (provavelmente mock).' });
+      }
+      const creds = {
+        apiKey: cfg.apiKeyEncrypted ? decryptApiKey(cfg.apiKeyEncrypted) : undefined,
+        accountSid: cfg.accountSidEncrypted ? decryptApiKey(cfg.accountSidEncrypted) : undefined,
+      };
+      const result = await provider.ping(cfg, creds);
+      await recordTest(cfg.id, result);
+      return c.json(result);
+    },
+  );
+
+  /** Envia mensagem de teste pra um número específico. */
+  app.post(
+    '/admin/messaging-configs/:id/test-send',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const to = typeof body.to === 'string' ? body.to.trim() : '';
+      const text = typeof body.body === 'string' ? body.body.trim() : '';
+      const whatsappTemplate =
+        typeof body.whatsappTemplate === 'string' && body.whatsappTemplate.trim().length > 0
+          ? body.whatsappTemplate.trim()
+          : undefined;
+      if (!to || !/^\+\d{8,15}$/.test(to)) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'to deve estar em E.164 (ex: +5511999999999)');
+      }
+      if (!text && !whatsappTemplate) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'body ou whatsappTemplate obrigatório');
+      }
+      const { getConfig } = await import('./messaging/configs-store');
+      const { decryptApiKey } = await import('./db/encryption');
+      const { sendSafe } = await import('./messaging/sender');
+      const cfg = await getConfig(c.req.param('id') as string);
+      if (!cfg) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada');
+      const creds = {
+        apiKey: cfg.apiKeyEncrypted ? decryptApiKey(cfg.apiKeyEncrypted) : undefined,
+        accountSid: cfg.accountSidEncrypted ? decryptApiKey(cfg.accountSidEncrypted) : undefined,
+      };
+      const result = await sendSafe(cfg, creds, {
+        to,
+        body: text || `Teste AVA PCO ${new Date().toLocaleString('pt-BR')}`,
+        whatsappTemplate,
+        tag: 'admin-test',
+      });
+      return c.json(result);
+    },
+  );
+
   app.get('/admin/email/templates', requireAuth('admin', 'superadmin'), (c) =>
     c.json({ names: TEMPLATE_NAMES }),
   );
