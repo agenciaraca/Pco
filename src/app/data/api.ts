@@ -2259,6 +2259,22 @@ export async function fetchAiConfigurations(): Promise<AiConfigPublic[]> {
   return http.get<AiConfigPublic[]>('/admin/ai/configurations');
 }
 
+export async function createAiConfiguration(input: {
+  module: string;
+  provider: string;
+  model: string;
+  apiKey?: string;
+  active?: boolean;
+  systemMessage?: string;
+  temperature?: number;
+}): Promise<AiConfigPublic> {
+  return http.post<AiConfigPublic>('/admin/ai/configurations', input);
+}
+
+export async function deleteAiConfiguration(id: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/ai/configurations/${encodeURIComponent(id)}`);
+}
+
 export async function fetchAiConfiguration(
   id: string,
 ): Promise<AiConfigPublic & { usage: { inputTokens: number; outputTokens: number; costUsd: number; total: number; successCount: number; successRate: number } }> {

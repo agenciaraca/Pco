@@ -147,6 +147,89 @@ export async function updateConfig(
   return rows[0] ? rowToConfig(rows[0]) : null;
 }
 
+export interface CreateAiConfigInput {
+  id?: string;
+  module: AiModule;
+  provider: string;
+  model: string;
+  apiKey?: string;
+  temperature?: number;
+  maxTokens?: number;
+  perStudentLimit?: number;
+  perDayLimit?: number;
+  perMonthLimit?: number;
+  monthlyCostCap?: number;
+  systemMessage?: string;
+  allowedScopes?: string[];
+  blockedTopics?: string[];
+  fallbackResponse?: string;
+  active?: boolean;
+}
+
+export async function createConfig(input: CreateAiConfigInput): Promise<AiConfig> {
+  const db = getDb();
+  const now = new Date();
+  const id = input.id ?? `ai-${input.module}-${Date.now().toString(36)}`;
+  const cfg: AiConfig = {
+    id,
+    module: input.module,
+    provider: input.provider as AiConfig['provider'],
+    model: input.model,
+    apiKey: input.apiKey ?? '',
+    temperature: input.temperature ?? 0.3,
+    maxTokens: input.maxTokens ?? 1200,
+    perStudentLimit: input.perStudentLimit ?? 50,
+    perDayLimit: input.perDayLimit ?? 5000,
+    perMonthLimit: input.perMonthLimit ?? 120000,
+    monthlyCostCap: input.monthlyCostCap ?? 200,
+    systemMessage: input.systemMessage ?? '',
+    allowedScopes: input.allowedScopes ?? [],
+    blockedTopics: input.blockedTopics ?? [],
+    fallbackResponse: input.fallbackResponse ?? '',
+    active: input.active ?? false,
+    updatedAt: now.toISOString(),
+  };
+  if (!db) {
+    // memoryUpdate cria-se-não-existe quando passamos os mesmos campos
+    const m = await import('../ai/store');
+    return m.upsertConfig(cfg);
+  }
+  const apiKeyEncrypted = input.apiKey ? encryptApiKey(input.apiKey) : '';
+  await db.insert(schema.aiConfigurations).values({
+    id,
+    module: cfg.module,
+    provider: cfg.provider,
+    model: cfg.model,
+    apiKeyEncrypted,
+    temperature: cfg.temperature,
+    maxTokens: cfg.maxTokens,
+    perStudentLimit: cfg.perStudentLimit,
+    perDayLimit: cfg.perDayLimit,
+    perMonthLimit: cfg.perMonthLimit,
+    monthlyCostCap: cfg.monthlyCostCap,
+    systemMessage: cfg.systemMessage,
+    allowedScopes: cfg.allowedScopes,
+    blockedTopics: cfg.blockedTopics,
+    fallbackResponse: cfg.fallbackResponse,
+    active: cfg.active,
+    updatedAt: now,
+  });
+  return cfg;
+}
+
+export async function deleteConfig(id: string): Promise<boolean> {
+  const db = getDb();
+  if (!db) {
+    const m = await import('../ai/store');
+    return m.deleteConfig(id);
+  }
+  const rows = await db
+    .delete(schema.aiConfigurations)
+    .where(eq(schema.aiConfigurations.id, id))
+    .returning({ id: schema.aiConfigurations.id });
+  return rows.length > 0;
+}
+
 export async function recordUsage(entry: UsageEntry): Promise<void> {
   const db = getDb();
   if (!db) return memoryRecord(entry);

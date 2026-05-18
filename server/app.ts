@@ -2258,6 +2258,46 @@ export function buildApp() {
 
   app.get('/admin/ai/configurations', async (c) => c.json(await aiConfigRepo.listConfigs()));
 
+  app.post(
+    '/admin/ai/configurations',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      if (!body.module || !body.provider || !body.model) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'module, provider e model são obrigatórios');
+      }
+      const created = await aiConfigRepo.createConfig({
+        id: typeof body.id === 'string' ? body.id : undefined,
+        module: body.module as 'tutor',
+        provider: String(body.provider),
+        model: String(body.model),
+        apiKey: typeof body.apiKey === 'string' ? body.apiKey : undefined,
+        temperature: typeof body.temperature === 'number' ? body.temperature : undefined,
+        maxTokens: typeof body.maxTokens === 'number' ? body.maxTokens : undefined,
+        perStudentLimit: typeof body.perStudentLimit === 'number' ? body.perStudentLimit : undefined,
+        perDayLimit: typeof body.perDayLimit === 'number' ? body.perDayLimit : undefined,
+        perMonthLimit: typeof body.perMonthLimit === 'number' ? body.perMonthLimit : undefined,
+        monthlyCostCap: typeof body.monthlyCostCap === 'number' ? body.monthlyCostCap : undefined,
+        systemMessage: typeof body.systemMessage === 'string' ? body.systemMessage : undefined,
+        allowedScopes: Array.isArray(body.allowedScopes) ? (body.allowedScopes as string[]) : undefined,
+        blockedTopics: Array.isArray(body.blockedTopics) ? (body.blockedTopics as string[]) : undefined,
+        fallbackResponse: typeof body.fallbackResponse === 'string' ? body.fallbackResponse : undefined,
+        active: body.active === true,
+      });
+      return c.json(aiConfigRepo.toPublic(created), 201);
+    },
+  );
+
+  app.delete(
+    '/admin/ai/configurations/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const ok = await aiConfigRepo.deleteConfig(c.req.param('id') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
+      return c.json({ ok: true });
+    },
+  );
+
   app.get('/admin/ai/configurations/:id', async (c) => {
     const cfg = await aiConfigRepo.getConfig(c.req.param('id'));
     if (!cfg) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');

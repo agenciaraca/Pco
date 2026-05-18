@@ -134,6 +134,15 @@ export function getConfig(id: string): AiConfig | null {
   return store.get(id) ?? null;
 }
 
+export function upsertConfig(cfg: AiConfig): AiConfig {
+  store.set(cfg.id, cfg);
+  return cfg;
+}
+
+export function deleteConfig(id: string): boolean {
+  return store.delete(id);
+}
+
 export function getActiveByModule(module: AiModule): AiConfig | null {
   for (const c of store.values()) {
     if (c.module === module && c.active && c.apiKey) return c;

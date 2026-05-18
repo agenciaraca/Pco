@@ -191,6 +191,23 @@ export function useUpdateAiConfiguration() {
   });
 }
 
+export function useCreateAiConfiguration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof api.createAiConfiguration>[0]) =>
+      api.createAiConfiguration(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.aiConfigurations }),
+  });
+}
+
+export function useDeleteAiConfiguration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteAiConfiguration(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.aiConfigurations }),
+  });
+}
+
 export function useTestAiConnection() {
   return useMutation({
     mutationFn: ({ provider, apiKey }: { provider: AiProviderInfo['id']; apiKey: string }) =>

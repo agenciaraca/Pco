@@ -17,8 +17,11 @@ import {
   useAiConfigurations,
   useAiProviders,
   useUpdateAiConfiguration,
+  useCreateAiConfiguration,
+  useDeleteAiConfiguration,
   useTestAiConnection,
 } from '../../data/hooks';
+import { Trash2, Plus } from 'lucide-react';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
@@ -92,13 +95,12 @@ export default function AdminIAs() {
         </div>
       )}
 
-      {configsQ.data && configsQ.data.length === 0 && (
-        <div className="pco-card">
-          <EmptyState
-            title="Nenhuma configuração de IA"
-            description="Configurações iniciais devem ser semeadas pelo backend."
-          />
-        </div>
+      {configsQ.data && (
+        <ModuleMatrix
+          configs={configsQ.data}
+          providers={providersQ.data ?? []}
+          onConfigureClick={setEditingId}
+        />
       )}
 
       {configsQ.data && configsQ.data.length > 0 && (
@@ -513,6 +515,171 @@ function Box({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg bg-surface-off p-2.5">
       <div className="text-[10px] uppercase tracking-wider text-ink-subtle">{label}</div>
       <div className="text-sm font-semibold text-pco-deep">{value}</div>
+    </div>
+  );
+}
+
+const ALL_MODULES: Array<{ key: string; label: string; description: string }> = [
+  { key: 'tutor', label: 'Tutor Virtual', description: 'IA que responde dúvidas dos alunos.' },
+  { key: 'recovery_plan', label: 'Plano de Retomada', description: 'Planos para alunos em risco de evasão.' },
+  { key: 'evasion', label: 'Previsão de Evasão', description: 'Score e motivos de risco por aluno.' },
+  { key: 'recommendations', label: 'Recomendações', description: 'Sugere conteúdo personalizado.' },
+  { key: 'support', label: 'Suporte', description: 'Assistente de primeiro atendimento.' },
+  { key: 'summaries', label: 'Resumos', description: 'Resumos automáticos de aulas longas.' },
+];
+
+function ModuleMatrix({
+  configs,
+  providers,
+  onConfigureClick,
+}: {
+  configs: AiConfigPublic[];
+  providers: AiProviderInfo[];
+  onConfigureClick: (id: string) => void;
+}) {
+  const createMut = useCreateAiConfiguration();
+  const toast = useToast();
+  const configByModule = new Map<string, AiConfigPublic>();
+  for (const c of configs) configByModule.set(c.module, c);
+
+  async function setupModule(moduleKey: string, providerId: string, modelId: string) {
+    try {
+      const created = await createMut.mutateAsync({
+        module: moduleKey,
+        provider: providerId,
+        model: modelId,
+        active: false,
+      });
+      toast.success('Provider escolhido', `${providerId}/${modelId}`);
+      onConfigureClick(created.id);
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-semibold text-pco-deep">Módulos de IA</h2>
+      <div className="grid gap-3 lg:grid-cols-2">
+        {ALL_MODULES.map((mod) => {
+          const cfg = configByModule.get(mod.key);
+          const provider = cfg ? providers.find((p) => p.id === cfg.provider) : null;
+          const isReady = cfg && cfg.active && cfg.apiKeyConfigured;
+          return (
+            <div key={mod.key} className="pco-card">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div>
+                  <h3 className="text-sm font-bold text-pco-deep">{mod.label}</h3>
+                  <p className="text-[11px] text-ink-muted mt-0.5">{mod.description}</p>
+                </div>
+                {cfg ? (
+                  <span
+                    className={`pco-badge text-[10px] ${
+                      isReady
+                        ? 'bg-status-success/10 text-status-success'
+                        : cfg.active
+                          ? 'bg-pco-orange/10 text-pco-orange'
+                          : 'bg-surface-gray text-ink-muted'
+                    }`}
+                  >
+                    {isReady ? 'Ativo' : cfg.active ? 'Sem chave' : 'Desativado'}
+                  </span>
+                ) : (
+                  <span className="pco-badge bg-surface-gray text-ink-subtle text-[10px]">
+                    Não configurado
+                  </span>
+                )}
+              </div>
+              {cfg ? (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <div className="text-xs">
+                    <div className="font-medium text-pco-deep">
+                      {provider?.name ?? cfg.provider}
+                    </div>
+                    <div className="text-[11px] text-ink-subtle font-mono">{cfg.model}</div>
+                  </div>
+                  <button
+                    onClick={() => onConfigureClick(cfg.id)}
+                    className="pco-btn-secondary text-xs"
+                  >
+                    <Edit3 size={11} strokeWidth={1.75} /> Configurar
+                  </button>
+                </div>
+              ) : (
+                <ProviderPicker
+                  providers={providers}
+                  loading={createMut.isPending}
+                  onPick={(pId, mId) => setupModule(mod.key, pId, mId)}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ProviderPicker({
+  providers,
+  loading,
+  onPick,
+}: {
+  providers: AiProviderInfo[];
+  loading: boolean;
+  onPick: (providerId: string, modelId: string) => void;
+}) {
+  const [providerId, setProviderId] = useState<string>(providers[0]?.id ?? '');
+  const provider = providers.find((p) => p.id === providerId);
+  const [modelId, setModelId] = useState<string>(provider?.models[0]?.id ?? '');
+
+  if (providers.length === 0)
+    return <p className="text-[11px] text-ink-subtle">Carregando providers...</p>;
+
+  return (
+    <div className="space-y-2 mt-2">
+      <div className="grid grid-cols-2 gap-2">
+        <select
+          value={providerId}
+          onChange={(e) => {
+            const np = e.target.value;
+            setProviderId(np);
+            const next = providers.find((p) => p.id === np);
+            setModelId(next?.models[0]?.id ?? '');
+          }}
+          className="pco-input text-xs py-1.5"
+        >
+          {providers.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={modelId}
+          onChange={(e) => setModelId(e.target.value)}
+          className="pco-input text-xs py-1.5 font-mono"
+        >
+          {(provider?.models ?? []).map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.id}
+            </option>
+          ))}
+        </select>
+      </div>
+      <button
+        type="button"
+        onClick={() => onPick(providerId, modelId)}
+        disabled={loading || !providerId || !modelId}
+        className="pco-btn-primary text-xs w-full justify-center"
+      >
+        {loading ? (
+          <Loader2 size={11} strokeWidth={2} className="animate-spin" />
+        ) : (
+          <Plus size={11} strokeWidth={2} />
+        )}
+        Escolher e configurar
+      </button>
     </div>
   );
 }
