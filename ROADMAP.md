@@ -6,7 +6,27 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado em 2026-05-09 — sprints 469-563)
+## Estado atual (atualizado 2026-05-18 — pós go-live)
+
+**🟢 EM PRODUÇÃO REAL**: https://ava.psicanaliseclinica.online
+
+| Sistema | Status |
+|---|---|
+| **Postgres Neon** (sa-east-1) | ✅ `db:connected`, 2828 registros |
+| **Email Brevo** + domínio verificado (DKIM+DMARC) | ✅ De `naoresponda@psicanaliseclinica.online` |
+| **Sentry** backend + frontend (org `eixo4`) | ✅ Capturando |
+| **UptimeRobot** | ✅ Monitora `/api/health` |
+| **GitHub Actions** deploy automático em push to main | ✅ 4 secrets cadastrados |
+| **Pagamentos**: 2 gateways live | ✅ Ativos |
+| **CI** passing | ✅ 0 errors |
+| **Tests** | ✅ 1474 passando |
+| **HTTPS via Cloudflare** | ✅ HSTS + CSP + X-Frame |
+
+**Login admin**: `psicanaliseclinica.online@gmail.com` / senha trocada em 2026-05-18
+
+---
+
+## Estado anterior (sprints 469-563)
 
 | Métrica | Valor |
 |---|---|
