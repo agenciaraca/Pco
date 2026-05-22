@@ -36,6 +36,10 @@ e2e/.test-results
 playwright-report
 playwright/.cache
 
+# Claude Code local config (agents, skills, settings, MCP)
+.claude/
+.mcp.json
+
 # Runtime data — contém hashes de senha, audit log, notificações, etc.
 data/users.json
 data/audit-log.json
