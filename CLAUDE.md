@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Common commands
 
-Always run from `Pco/` (the repo root inside `C:\ia\dev\pco`).
+Repo root é `C:\ia\dev\pco\` — `package.json`, `.git` e todas as pastas (`src/`, `server/`, `shared/`, `api/`, etc.) ficam aqui. Não existe mais subpasta `Pco/` (consolidado em 2026-05-22).
 
 ```bash
 npm run dev            # concurrent: Vite (5173) + Hono dev server (3001)

@@ -946,10 +946,11 @@ interface StudentEditorProps {
 
 function StudentEditor({ courses, submitting, onClose, onSubmit }: StudentEditorProps) {
   type FormInput = z.input<typeof createStudentSchema>;
+  const toast = useToast();
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitted },
     setValue,
     watch,
   } = useForm<FormInput, unknown, CreateStudentInput>({
@@ -964,6 +965,15 @@ function StudentEditor({ courses, submitting, onClose, onSubmit }: StudentEditor
   });
 
   const enrolled = watch('enrolledCourseIds') ?? [];
+  const errorList = Object.entries(errors)
+    .map(([field, e]) => (e as { message?: string })?.message)
+    .filter((m): m is string => !!m);
+  const onInvalid = (errs: typeof errors) => {
+    const first = Object.values(errs).find((e) => (e as { message?: string })?.message) as
+      | { message?: string }
+      | undefined;
+    toast.error('Verifique os campos', first?.message ?? 'Há campos inválidos no formulário.');
+  };
 
   return (
     <div
@@ -991,7 +1001,20 @@ function StudentEditor({ courses, submitting, onClose, onSubmit }: StudentEditor
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4" noValidate>
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="p-6 space-y-4" noValidate>
+          {isSubmitted && errorList.length > 0 && (
+            <div
+              role="alert"
+              className="rounded-lg border border-status-danger/30 bg-status-danger/5 px-3 py-2 text-xs text-status-danger"
+            >
+              <div className="font-semibold mb-1">Corrija antes de salvar:</div>
+              <ul className="list-disc pl-4 space-y-0.5">
+                {errorList.map((m, i) => (
+                  <li key={i}>{m}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <Field label="Nome completo" error={errors.name?.message}>
             <input {...register('name')} className="pco-input" />
           </Field>
