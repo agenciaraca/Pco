@@ -30,7 +30,7 @@ function rowToItem(r: typeof schema.libraryItems.$inferSelect): LibraryItem {
     relatedCourseIds: r.relatedCourseIds ?? [],
     relatedModuleIds: r.relatedModuleIds ?? [],
     theme: r.theme ?? undefined,
-    tags: (r as { tags?: string[] }).tags,
+    tags: r.tags ?? [],
   };
 }
 
@@ -104,6 +104,7 @@ export async function createLibrary(input: CreateLibraryInput): Promise<LibraryI
     type: item.type,
     mandatory: item.mandatory,
     fileMockUrl: item.fileMockUrl,
+    tags: item.tags ?? [],
     relatedCourseIds: item.relatedCourseIds ?? [],
     relatedModuleIds: item.relatedModuleIds ?? [],
     theme: item.theme ?? null,
@@ -129,6 +130,7 @@ export async function updateLibrary(
   if (patch.type !== undefined) update.type = patch.type;
   if (patch.mandatory !== undefined) update.mandatory = patch.mandatory;
   if (patch.fileMockUrl !== undefined) update.fileMockUrl = patch.fileMockUrl;
+  if (patch.tags !== undefined) update.tags = patch.tags;
   if (patch.relatedCourseIds !== undefined) update.relatedCourseIds = patch.relatedCourseIds;
   if (patch.relatedModuleIds !== undefined) update.relatedModuleIds = patch.relatedModuleIds;
   if (patch.theme !== undefined) update.theme = patch.theme ?? null;

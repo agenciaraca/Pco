@@ -24,7 +24,7 @@ function rowToEpisode(r: typeof schema.podcasts.$inferSelect): PodcastEpisode {
     audioUrl: r.audioUrl ?? undefined,
     relatedCourseIds: r.relatedCourseIds ?? [],
     relatedModuleIds: r.relatedModuleIds ?? [],
-    tags: (r as { tags?: string[] }).tags,
+    tags: r.tags ?? [],
   };
 }
 
@@ -77,6 +77,7 @@ export async function createPodcast(input: CreatePodcastInput): Promise<PodcastE
     publishedAt: ep.publishedAt,
     coverColor: ep.coverColor,
     audioUrl: ep.audioUrl ?? null,
+    tags: ep.tags ?? [],
     relatedCourseIds: ep.relatedCourseIds ?? [],
     relatedModuleIds: ep.relatedModuleIds ?? [],
   });
@@ -102,6 +103,7 @@ export async function updatePodcast(
   if (patch.publishedAt !== undefined) update.publishedAt = patch.publishedAt;
   if (patch.coverColor !== undefined) update.coverColor = patch.coverColor;
   if (patch.audioUrl !== undefined) update.audioUrl = patch.audioUrl || null;
+  if (patch.tags !== undefined) update.tags = patch.tags;
   if (patch.relatedCourseIds !== undefined) update.relatedCourseIds = patch.relatedCourseIds;
   if (patch.relatedModuleIds !== undefined) update.relatedModuleIds = patch.relatedModuleIds;
 

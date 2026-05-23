@@ -218,6 +218,7 @@ export const podcasts = pgTable('podcasts', {
   publishedAt: text('published_at').notNull(),
   coverColor: text('cover_color').notNull(),
   audioUrl: text('audio_url'),
+  tags: jsonb('tags').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   relatedCourseIds: jsonb('related_course_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   relatedModuleIds: jsonb('related_module_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
 });
@@ -229,6 +230,7 @@ export const libraryItems = pgTable('library_items', {
   type: text('type').notNull(), // 'pdf' | 'apostila' | 'leitura' | 'artigo'
   mandatory: boolean('mandatory').notNull().default(false),
   fileMockUrl: text('file_url').notNull(),
+  tags: jsonb('tags').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   relatedCourseIds: jsonb('related_course_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   relatedModuleIds: jsonb('related_module_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   theme: text('theme'),
