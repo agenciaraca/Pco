@@ -2754,11 +2754,52 @@ export function buildApp() {
       if (!['draft', 'sent', 'in_followup', 'completed'].includes(status)) {
         return jsonError(c, 400, 'INVALID_STATUS', 'Status inválido.');
       }
+      const plan = await recoveryPlans.findById(id);
+      if (!plan) return jsonError(c, 404, 'NOT_FOUND', 'Plano não encontrado.');
+
       const updated = await recoveryPlans.updateStatus(
         id,
         status as 'draft' | 'sent' | 'in_followup' | 'completed',
       );
-      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Plano não encontrado.');
+
+      if (status === 'sent' && plan.status !== 'sent') {
+        const student = await studentsRepo.findAdminStudent(plan.studentId);
+
+        if (plan.channel === 'in_app' || plan.channel === 'email') {
+          void notificationsRepo.createOne({
+            userId: plan.studentId,
+            title: 'Plano de retomada',
+            body: plan.message.slice(0, 300),
+            category: 'info',
+            link: '/dashboard',
+          });
+        }
+
+        if (student?.email && (plan.channel === 'email' || plan.channel === 'in_app')) {
+          void sendSafe({
+            to: { email: student.email, name: student.name },
+            subject: 'Plano de retomada — AVA PCO',
+            html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px">
+              <h2 style="color:#0097B2;margin:0 0 16px">Plano de Retomada</h2>
+              <div style="white-space:pre-line;color:#0f172a;font-size:14px;line-height:1.6">${plan.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+              ${plan.suggestedTutorPrompt ? `<div style="margin-top:16px;padding:12px;background:#f0f9ff;border-left:3px solid #0097B2;border-radius:4px">
+                <strong style="color:#0097B2;font-size:12px">Pergunta sugerida ao Tutor:</strong>
+                <p style="margin:4px 0 0;font-size:13px;color:#334155">${plan.suggestedTutorPrompt.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+              </div>` : ''}
+              <p style="margin-top:24px;font-size:12px;color:#64748b">Equipe pedagógica — PCO</p>
+            </div>`,
+            text: plan.message,
+            tag: 'recovery-plan',
+          });
+        }
+        await recordAudit(c, {
+          action: 'recovery_plan.send',
+          targetType: 'recovery_plan',
+          targetId: id,
+          meta: { studentId: plan.studentId, channel: plan.channel },
+        });
+      }
+
       return c.json(updated);
     },
   );
