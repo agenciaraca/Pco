@@ -30,10 +30,10 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 | Métrica | Valor |
 |---|---|
-| Sprints entregues | **563+** |
-| Commits no main | **338+** |
-| Arquivos de teste | **148** unit + **1** E2E (5 specs) |
-| Testes passando | **1449** unit ✅ + **5** E2E smoke ✅ |
+| Sprints entregues | **570+** |
+| Commits no main | **348+** |
+| Arquivos de teste | **158** unit + **3** E2E (15 specs) |
+| Testes passando | **1516** unit ✅ + **15** E2E ✅ |
 | Coverage statements | **70.67%** (badge dinâmico no README) |
 | Módulos backend | 30 |
 | Páginas admin | 63+ |
@@ -358,65 +358,72 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ---
 
-## Backlog (não iniciado)
+## Backlog
 
 ### Cobertura de testes restante
-- ~~**api-token-middleware**~~ ✅ (sprint 432, 10 testes)
-- **invoice generator** — render PDF/HTML de comprovante (não-iniciado)
-- **dispatcher webhooks** — fetch HTTP real, retry com backoff (não-iniciado)
-- **runReal full E2E** — integration com runner (apenas unit no adapters)
-- **schedules-worker tick logic** — cron-like trigger (não-iniciado)
+- ~~**api-token-middleware**~~ ✅ (sprint 432)
+- **invoice generator** — render PDF/HTML de comprovante
+- **dispatcher webhooks** — fetch HTTP real, retry com backoff
+- **runReal full E2E** — integration com runner (apenas unit nos adapters)
 
 ### Documentação
-- ✅ docs técnica de cada módulo (já tem 13 docs)
-- ✅ **Documentação de deployment passo-a-passo** (`docs/deploy.md` — sprint 433)
-- **Guias de usuário admin** (não-técnico) — não-iniciado
-- **API pública openapi.json** — não-iniciado
-- **Cookbook de webhooks** — não-iniciado
+- ✅ docs técnica de cada módulo (15+ docs em `docs/`)
+- ✅ deploy passo-a-passo (`docs/deploy.md` — sprint 433)
+- ✅ API pública openapi.json + Swagger UI (sprints 472, 546)
+- ✅ Cookbook de webhooks (sprint 510)
+- ✅ Guias de usuário admin (sprint 512)
 
 ### Features extras
-- ✅ **Admin onboarding wizard interativo** (2026-05-23 — role-aware para atendentes/coordenadores/admins, redirect no primeiro login)
-- ✅ **Live session embed direto na aula** (2026-05-23 — Zoom Meeting SDK, config admin em /admin/zoom, embed dentro da plataforma)
-- **Course collaborators / co-instrutores** — papel "instrutor" com acesso parcial
-- ✅ **Quiz auto-correção via Tutor IA** (2026-05-23 — tipo open_ended, módulo AI 'grading', score 0-100 + feedback)
-- ~~**Forum/canal por curso**~~ — descartado (decisão de produto: alunos não interagem entre si)
-- **Kanban admin de evasão** — extensão do AdminEvasion já existente
-- **Live transcription / chat IA durante aula** — fora do escopo atual
-- **Mobile app nativo** — PWA atual cobre o essencial
-- **Editor visual de e-mail templates** — hoje é HTML cru
-- ✅ **Digest IA semanal** (2026-05-23 — relatório semanal enriquecido com erros/retenção/completions + análise automática via IA)
+- ✅ **Admin onboarding wizard** (2026-05-23 — role-aware, redirect no primeiro login)
+- ✅ **Live session embed Zoom** (2026-05-23 — Meeting SDK + admin config /admin/zoom)
+- ✅ **Course collaborators** (sprint 504 — até 10 co-instrutores)
+- ✅ **Quiz auto-correção IA** (2026-05-23 — tipo open_ended, módulo 'grading')
+- ~~**Forum/canal por curso**~~ — descartado (alunos não interagem entre si)
+- ✅ **Kanban evasão + Plano Retomada IA** (2026-05-23 — cards enriquecidos, AI real, persistência)
+- **Live transcription / chat IA durante aula** — futuro
+- **Mobile app nativo** — PWA cobre o essencial, só após escala
+- ✅ **Editor de e-mail templates** (sprints 515-516 — editor com preview live)
+- ✅ **Digest IA semanal** (2026-05-23 — relatório + análise automática IA)
 
 ### Robustez
-- **Tests de UI/integration** com Testing Library + MSW (hoje só unit em puros) — não-iniciado
-- 🟡 **E2E** com Playwright — sprint 539 entregue smoke (5 tests cobrindo health, home, login form, SPA fallback, 401 sem token); falta golden path login → enroll → complete
-- ✅ **CI** GitHub Actions (`npm test && npm run typecheck && npm run build` + coverage)
-- ✅ **Coverage badge no README** (sprint 538 — script scripts/update-coverage-badge.mjs lê coverage-summary.json)
-- **Migrações Drizzle** dos novos campos `tags` em libraryItems/podcasts — não-iniciado
-- ✅ **Rate limit por API token** dedicado (sprint 432, X-RateLimit headers)
-- ✅ **Backup remoto S3** (sprint 545 — env-gated S3_BUCKET/REGION/KEYS, reuse SigV4)
+- **Tests UI/integration** com Testing Library + MSW
+- ✅ **E2E Playwright** — smoke (sprint 539, 5 specs) + golden path expandido (2026-05-23, 10 specs: student+admin journeys)
+- ✅ CI GitHub Actions + coverage badge
+- **Migrações Drizzle** dos novos campos `tags` em library/podcasts
+- ✅ Rate limit por API token (sprint 432)
+- ✅ Backup remoto S3 (sprint 545)
 
-### Integrações (não-iniciadas)
-- **Webhook templates** (presets prontos para Zapier/n8n/Make)
-- ✅ **Mais providers de e-mail** (Mailgun + Brevo + SES + SMTP nativo — sprints 540-541-543-550)
-- **OAuth login social** (Google/Microsoft) — só email/senha hoje
-- 🟡 **SSO SAML** (sprint 552 — BETA, sem signature validation; estrutura pronta + tests, completar com xml-crypto pra prod hardened)
-- ✅ **SMS via Twilio + WhatsApp Cloud API (Meta)** (sprints 547-548 — 3 providers: mock, twilio, whatsapp-meta)
+### Integrações
+- ✅ **Webhook presets** (sprint 509 — Slack/Discord/Zapier/n8n/Make/Pipedream)
+- ✅ **8 providers de e-mail** (sprints 540-541-543-550)
+- ✅ **OAuth Google + Microsoft** (sprints 551, 558)
+- 🟡 **SSO SAML** (sprint 552 — BETA, falta xml-crypto pra prod hardened)
+- ✅ **SMS Twilio + WhatsApp Meta** (sprints 547-548)
 - **Calendly/Cal.com** para agendamento de mentoria
 
-### LMS específicos (não-iniciados)
-- **Streak counter detalhado** com heatmap (já tem o counter, falta visualização)
-- **Goal setting** (meta semanal de minutos estudados)
-- **Drip content** (libera aulas progressivamente) — já modelado no schema, falta UI
-- **Pré-requisitos entre cursos**
-- **Trilhas de estudo** (sequência guiada de cursos)
-- **Certificate templates customizáveis** (hoje é fixo)
-- **Quiz com banco de questões** (hoje é estático na lesson)
-- **Notas de aluno por aula** (já tem lesson-notes, não exposto na UI)
+### LMS
+- ✅ **Heatmap de estudo** (sprint 479 — 365 dias + dashboard student sprint 528)
+- ✅ **Meta semanal** (sprint 478 — self-service)
+- ✅ **Drip content** (sprint 480 — releaseAt com 10 testes)
+- ✅ **Pré-requisitos entre cursos** (sprint 482 — 8 testes)
+- ✅ **Trilhas de estudo** (sprint 500 — 15 testes)
+- ✅ **Certificate templates** (sprint 501 — customizáveis, 6 testes)
+- ✅ **Quiz banco de questões** (sprints 503+513+514 + auto-correção IA 2026-05-23)
+- ✅ **Notas de aluno por aula** (sprint 442 — inline no player + página /anotacoes + export .md)
 
-### Painel admin (não-iniciados)
-- **Top dashboard com KPIs unificados** (revenue + alunos + completion + avaliação)
-- **Reports agendados** (e-mail semanal pra admin com snapshot)
+### Painel admin
+- ✅ **KPIs unificados** (sprint 502)
+- ✅ **Reports agendados** (2026-05-23 — digest IA semanal)
 - **Multi-tenant / white-label** — outro projeto inteiro
+
+### Genuinamente não-iniciado
+- **Live transcription / chat IA durante aula**
+- **Mobile app nativo** (após escala)
+- **Multi-tenant**
+- **Calendly/Cal.com** mentoria
+- **SSO SAML hardened** (xml-crypto)
+- **Tests UI/integration** com MSW
+- **Migrações Drizzle** campos tags
 
 ---
 
