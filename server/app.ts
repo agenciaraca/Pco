@@ -159,6 +159,7 @@ import * as backupWorker from './db/backup-worker';
 import * as deletionRequests from './auth/deletion-requests-store';
 import * as adminDigest from './notifications/admin-digest';
 import * as weeklyReport from './notifications/weekly-report';
+import * as studentProgressEmail from './notifications/student-progress-email';
 import * as welcome from './notifications/welcome';
 import * as wishlistStore from './activity/wishlist-store';
 import { buildLeaderboard, getUserRank } from './activity/leaderboard';
@@ -8734,6 +8735,40 @@ export function buildApp() {
       const email = weeklyReport.renderEmailHtml(data, aiDigest?.text);
       return c.json({ data, email, aiDigest });
     },
+  );
+
+  // ---------- Student weekly progress email ----------
+
+  app.get(
+    '/admin/email/student-progress',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(await studentProgressEmail.getConfig()),
+  );
+
+  app.put(
+    '/admin/email/student-progress',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const cfg = await studentProgressEmail.setConfig({
+        enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+        dayOfWeekUtc:
+          typeof body.dayOfWeekUtc === 'number' ? body.dayOfWeekUtc : undefined,
+        hourUtc: typeof body.hourUtc === 'number' ? body.hourUtc : undefined,
+      });
+      await recordAudit(c, {
+        action: 'student_progress_email.config',
+        targetType: 'config',
+        targetId: 'student-progress',
+      });
+      return c.json(cfg);
+    },
+  );
+
+  app.get(
+    '/admin/email/student-progress/status',
+    requireAuth('admin', 'superadmin'),
+    async (c) => c.json(studentProgressEmail.getStatus()),
   );
 
   app.get(

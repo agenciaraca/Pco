@@ -198,6 +198,9 @@ import('./notifications/admin-digest').then((m) => m.startWorker());
 // Worker de relatório semanal — verifica a cada 1h, dispara segunda 9h UTC default
 import('./notifications/weekly-report').then((m) => m.startWorker());
 
+// Worker de progresso semanal do aluno — verifica a cada 1h, dispara domingo 10h UTC default
+import('./notifications/student-progress-email').then((m) => m.startWorker());
+
 // Worker de backup automático — tick a cada 1h, dispara 1x/dia às 04h UTC
 import('./db/backup-worker').then((m) => m.startWorker());
 
