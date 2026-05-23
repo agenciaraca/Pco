@@ -16,8 +16,11 @@ export interface LiveSession {
   startAt: string; // ISO
   durationMinutes: number;
   status: LiveSessionStatus;
-  // Audiência: 'all' (qualquer aluno autenticado) ou 'enrolled' (matriculados no courseId)
   audience: 'all' | 'enrolled';
+  /** 'link' (abre URL externo) ou 'zoom_embed' (Meeting SDK dentro da plataforma). */
+  embedType?: 'link' | 'zoom_embed';
+  zoomMeetingNumber?: string;
+  zoomPassword?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +58,9 @@ export interface CreateInput {
   startAt: string;
   durationMinutes: number;
   audience: 'all' | 'enrolled';
+  embedType?: 'link' | 'zoom_embed';
+  zoomMeetingNumber?: string;
+  zoomPassword?: string;
 }
 
 export async function createSession(input: CreateInput): Promise<LiveSession> {
@@ -70,6 +76,9 @@ export async function createSession(input: CreateInput): Promise<LiveSession> {
     durationMinutes: input.durationMinutes,
     status: 'scheduled',
     audience: input.audience,
+    embedType: input.embedType ?? 'link',
+    zoomMeetingNumber: input.zoomMeetingNumber,
+    zoomPassword: input.zoomPassword,
     createdAt: now,
     updatedAt: now,
   };
@@ -95,6 +104,9 @@ export async function updateSession(
         ? { durationMinutes: patch.durationMinutes }
         : {}),
       ...(patch.audience !== undefined ? { audience: patch.audience } : {}),
+      ...(patch.embedType !== undefined ? { embedType: patch.embedType } : {}),
+      ...(patch.zoomMeetingNumber !== undefined ? { zoomMeetingNumber: patch.zoomMeetingNumber } : {}),
+      ...(patch.zoomPassword !== undefined ? { zoomPassword: patch.zoomPassword } : {}),
       ...(patch.status !== undefined ? { status: patch.status } : {}),
       updatedAt: new Date().toISOString(),
     }),

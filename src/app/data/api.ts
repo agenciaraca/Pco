@@ -4365,6 +4365,9 @@ export interface LiveSessionDto {
   status: LiveSessionStatusDto;
   statusComputed: LiveSessionStatusDto;
   audience: 'all' | 'enrolled';
+  embedType?: 'link' | 'zoom_embed';
+  zoomMeetingNumber?: string;
+  zoomPassword?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -4378,6 +4381,9 @@ export interface LiveSessionInputDto {
   startAt: string;
   durationMinutes: number;
   audience: 'all' | 'enrolled';
+  embedType?: 'link' | 'zoom_embed';
+  zoomMeetingNumber?: string;
+  zoomPassword?: string;
 }
 
 export async function fetchMyLiveSessions(): Promise<LiveSessionDto[]> {
@@ -4405,6 +4411,12 @@ export async function deleteLiveSession(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(
     `/admin/live-sessions/${encodeURIComponent(id)}`,
   );
+}
+
+export async function fetchZoomSignature(
+  meetingNumber: string,
+): Promise<{ signature: string; sdkKey: string }> {
+  return http.post('/zoom/signature', { meetingNumber });
 }
 
 // ---------- Lesson discussions ----------

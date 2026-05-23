@@ -70,7 +70,7 @@ export interface CreateQuestionInput {
   moduleId?: string;
   type: QuestionType;
   prompt: string;
-  options: { text: string; correct: boolean }[];
+  options?: { text: string; correct: boolean }[];
   expectedAnswer?: string;
   explanation?: string;
   tags?: string[];
@@ -91,7 +91,7 @@ function validateInput(input: CreateQuestionInput): void {
   if (input.type === 'open_ended') {
     return;
   }
-  if (!Array.isArray(input.options)) {
+  if (!Array.isArray(input.options) || input.options.length === 0) {
     throw new QuestionError('INVALID_OPTIONS', 'options deve ser array.');
   }
   if (input.type === 'multiple_choice') {
@@ -141,7 +141,7 @@ export async function createQuestion(input: CreateQuestionInput): Promise<Questi
     options:
       input.type === 'open_ended'
         ? []
-        : input.options.map((o) => ({
+        : (input.options ?? []).map((o) => ({
             id: newOptionId(),
             text: o.text.trim(),
             correct: !!o.correct,

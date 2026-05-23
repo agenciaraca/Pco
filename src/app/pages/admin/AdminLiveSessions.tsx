@@ -202,6 +202,9 @@ function Editor({
     startAt: string;
     durationMinutes: number;
     audience: 'all' | 'enrolled';
+    embedType?: 'link' | 'zoom_embed';
+    zoomMeetingNumber?: string;
+    zoomPassword?: string;
   }) => void;
 }) {
   const [title, setTitle] = useState(editing?.title ?? '');
@@ -218,6 +221,15 @@ function Editor({
   );
   const [audience, setAudience] = useState<'all' | 'enrolled'>(
     editing?.audience ?? 'all',
+  );
+  const [embedType, setEmbedType] = useState<'link' | 'zoom_embed'>(
+    editing?.embedType ?? 'link',
+  );
+  const [zoomMeetingNumber, setZoomMeetingNumber] = useState(
+    editing?.zoomMeetingNumber ?? '',
+  );
+  const [zoomPassword, setZoomPassword] = useState(
+    editing?.zoomPassword ?? '',
   );
 
   return (
@@ -301,6 +313,36 @@ function Editor({
             </select>
           </Field>
         </div>
+        <Field label="Tipo de acesso">
+          <select
+            value={embedType}
+            onChange={(e) => setEmbedType(e.target.value as 'link' | 'zoom_embed')}
+            className="pco-input text-sm"
+          >
+            <option value="link">Link externo (abre nova aba)</option>
+            <option value="zoom_embed">Zoom embed (dentro da plataforma)</option>
+          </select>
+        </Field>
+        {embedType === 'zoom_embed' && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Zoom Meeting Number">
+              <input
+                value={zoomMeetingNumber}
+                onChange={(e) => setZoomMeetingNumber(e.target.value)}
+                className="pco-input text-sm"
+                placeholder="123 456 7890"
+              />
+            </Field>
+            <Field label="Zoom Password (opcional)">
+              <input
+                value={zoomPassword}
+                onChange={(e) => setZoomPassword(e.target.value)}
+                className="pco-input text-sm"
+                placeholder="Senha da reuniao"
+              />
+            </Field>
+          </div>
+        )}
         <Field label="Curso vinculado (opcional)">
           <select
             value={courseId ?? ''}
@@ -337,6 +379,9 @@ function Editor({
                 startAt: new Date(startAt).toISOString(),
                 durationMinutes,
                 audience,
+                embedType,
+                zoomMeetingNumber: embedType === 'zoom_embed' ? zoomMeetingNumber || undefined : undefined,
+                zoomPassword: embedType === 'zoom_embed' ? zoomPassword || undefined : undefined,
               });
             }}
             disabled={submitting || !title || !joinUrl || !startAt}

@@ -162,6 +162,7 @@ import * as welcome from './notifications/welcome';
 import * as wishlistStore from './activity/wishlist-store';
 import { buildLeaderboard, getUserRank } from './activity/leaderboard';
 import * as liveSessions from './live-sessions/store';
+import * as zoomConfig from './live-sessions/zoom-config';
 import * as savedSearches from './saved-searches/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
 import { buildOpenApiSpec } from './http/openapi';
@@ -6589,6 +6590,8 @@ export function buildApp() {
       if (!Number.isFinite(durationMinutes) || durationMinutes <= 0 || durationMinutes > 720) {
         return jsonError(c, 400, 'INVALID_DURATION', 'duration entre 1 e 720 min');
       }
+      const embedType =
+        body.embedType === 'zoom_embed' ? 'zoom_embed' : 'link';
       const created = await liveSessions.createSession({
         title,
         description: body.description ? String(body.description) : undefined,
@@ -6598,6 +6601,13 @@ export function buildApp() {
         startAt,
         durationMinutes: Math.floor(durationMinutes),
         audience,
+        embedType,
+        zoomMeetingNumber: body.zoomMeetingNumber
+          ? String(body.zoomMeetingNumber)
+          : undefined,
+        zoomPassword: body.zoomPassword
+          ? String(body.zoomPassword)
+          : undefined,
       });
       return c.json(created, 201);
     },
@@ -6619,6 +6629,12 @@ export function buildApp() {
         body.status === 'canceled'
           ? body.status
           : undefined;
+      const embedType =
+        body.embedType === 'zoom_embed'
+          ? 'zoom_embed'
+          : body.embedType === 'link'
+            ? 'link'
+            : undefined;
       const updated = await liveSessions.updateSession(c.req.param('id') as string, {
         title: body.title ? String(body.title) : undefined,
         description: body.description !== undefined ? String(body.description) : undefined,
@@ -6634,6 +6650,15 @@ export function buildApp() {
         durationMinutes:
           body.durationMinutes !== undefined ? Number(body.durationMinutes) : undefined,
         audience,
+        embedType,
+        zoomMeetingNumber:
+          body.zoomMeetingNumber !== undefined
+            ? String(body.zoomMeetingNumber)
+            : undefined,
+        zoomPassword:
+          body.zoomPassword !== undefined
+            ? String(body.zoomPassword)
+            : undefined,
         status,
       });
       if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Sessão não encontrada.');
@@ -6650,6 +6675,49 @@ export function buildApp() {
       return c.json({ ok: true });
     },
   );
+
+  // ---------- Zoom config + signature ----------
+
+  app.get('/admin/zoom/config', requireAuth('admin', 'superadmin'), async (c) => {
+    const cfg = await zoomConfig.getConfig();
+    if (!cfg) return c.json({ configured: false });
+    return c.json({ configured: true, ...zoomConfig.getPublicConfig(cfg) });
+  });
+
+  app.put('/admin/zoom/config', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const sdkKey = String(body.sdkKey ?? '').trim();
+    const sdkSecret = String(body.sdkSecret ?? '').trim();
+    if (!sdkKey || !sdkSecret) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'sdkKey e sdkSecret obrigatórios.');
+    }
+    const cfg = await zoomConfig.setConfig({ sdkKey, sdkSecret });
+    await recordAudit(c, {
+      action: 'zoom.config',
+      targetType: 'config',
+      targetId: 'zoom',
+    });
+    return c.json(zoomConfig.getPublicConfig(cfg));
+  });
+
+  app.post('/zoom/signature', requireAuth(), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const meetingNumber = String(body.meetingNumber ?? '').trim();
+    if (!meetingNumber) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'meetingNumber obrigatório.');
+    }
+    const cfg = await zoomConfig.getConfig();
+    if (!cfg || !cfg.enabled) {
+      return jsonError(c, 503, 'ZOOM_NOT_CONFIGURED', 'Zoom SDK não configurado.');
+    }
+    const signature = zoomConfig.generateSignature(
+      cfg.sdkKey,
+      cfg.sdkSecretEncrypted,
+      meetingNumber,
+      0,
+    );
+    return c.json({ signature, sdkKey: cfg.sdkKey });
+  });
 
   // ---------- Lesson discussions ----------
 

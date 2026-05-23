@@ -1,4 +1,5 @@
-import { Video, Calendar, ExternalLink, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Video, Calendar, ExternalLink, Monitor, Users } from 'lucide-react';
 import { useMyLiveSessions, useCourses } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
@@ -95,15 +96,25 @@ function SessionCard({
             {courseTitle && <> · {courseTitle}</>}
           </div>
         </div>
-        <a
-          href={session.joinUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={highlight ? 'pco-btn-primary text-xs' : 'pco-btn-secondary text-xs'}
-        >
-          <ExternalLink size={12} strokeWidth={2} />
-          {session.statusComputed === 'live' ? 'Entrar agora' : 'Acessar link'}
-        </a>
+        {session.embedType === 'zoom_embed' && session.zoomMeetingNumber ? (
+          <Link
+            to={`/eventos/${session.id}`}
+            className={highlight ? 'pco-btn-primary text-xs' : 'pco-btn-secondary text-xs'}
+          >
+            <Monitor size={12} strokeWidth={2} />
+            {session.statusComputed === 'live' ? 'Entrar agora' : 'Abrir sessao'}
+          </Link>
+        ) : (
+          <a
+            href={session.joinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={highlight ? 'pco-btn-primary text-xs' : 'pco-btn-secondary text-xs'}
+          >
+            <ExternalLink size={12} strokeWidth={2} />
+            {session.statusComputed === 'live' ? 'Entrar agora' : 'Acessar link'}
+          </a>
+        )}
       </div>
     </li>
   );
