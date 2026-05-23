@@ -1,6 +1,6 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { ArrowRight, Clock, Layers, Lock, PlayCircle } from 'lucide-react';
-import { useCourses, useMyProgress, useCurrentStudent } from '../data/hooks';
+import { ArrowRight, CalendarCheck, Clock, ExternalLink, Layers, Lock, PlayCircle } from 'lucide-react';
+import { useCourses, useMyProgress, useCurrentStudent, useMyMentoring } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import CourseReviews from '../components/CourseReviews';
 
@@ -9,6 +9,7 @@ export default function LMSCourse() {
   const { data: courses = [], isLoading } = useCourses();
   const progress = useMyProgress();
   const { data: student } = useCurrentStudent();
+  const mentoringQ = useMyMentoring(courseId);
 
   if (isLoading) return <CardListSkeleton count={3} />;
   const course = courses.find((c) => c.id === courseId);
@@ -211,6 +212,43 @@ export default function LMSCourse() {
           })}
         </div>
       </section>
+
+      {(mentoringQ.data?.configs ?? []).length > 0 && (
+        <section className="pco-card p-5">
+          <h2 className="text-base font-bold text-pco-deep flex items-center gap-2 mb-3">
+            <CalendarCheck size={16} className="text-pco-blue" strokeWidth={1.75} />
+            Mentoria
+          </h2>
+          <ul className="space-y-2">
+            {mentoringQ.data!.configs.map((m) => (
+              <li
+                key={m.id}
+                className="flex items-center justify-between p-3 rounded-lg bg-surface-off"
+              >
+                <div>
+                  <div className="text-sm font-medium text-pco-deep">{m.instructorName}</div>
+                  {m.description && (
+                    <div className="text-xs text-ink-muted">{m.description}</div>
+                  )}
+                  {m.durationMinutes && (
+                    <div className="text-[10px] text-ink-subtle">{m.durationMinutes} min</div>
+                  )}
+                </div>
+                <a
+                  href={m.bookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pco-btn-primary text-xs shrink-0"
+                >
+                  <CalendarCheck size={12} />
+                  Agendar
+                  <ExternalLink size={10} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <CourseReviews
         courseId={course.id}

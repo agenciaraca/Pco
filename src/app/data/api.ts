@@ -4468,6 +4468,58 @@ export async function fetchZoomSignature(
   return http.post('/zoom/signature', { meetingNumber });
 }
 
+// ---------- Mentoring ----------
+
+export interface MentoringConfigDto {
+  id: string;
+  courseId: string;
+  instructorName: string;
+  bookingUrl: string;
+  provider: 'calendly' | 'calcom' | 'other';
+  description?: string;
+  durationMinutes?: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchMyMentoring(
+  courseId: string,
+): Promise<{ configs: MentoringConfigDto[] }> {
+  return http.get(`/me/mentoring/${encodeURIComponent(courseId)}`);
+}
+
+export async function fetchAdminMentoring(): Promise<{ configs: MentoringConfigDto[] }> {
+  return http.get('/admin/mentoring');
+}
+
+export async function createMentoring(input: {
+  courseId: string;
+  instructorName: string;
+  bookingUrl: string;
+  description?: string;
+  durationMinutes?: number;
+}): Promise<MentoringConfigDto> {
+  return http.post('/admin/mentoring', input);
+}
+
+export async function updateMentoring(
+  id: string,
+  patch: Partial<{
+    instructorName: string;
+    bookingUrl: string;
+    description: string;
+    durationMinutes: number;
+    active: boolean;
+  }>,
+): Promise<MentoringConfigDto> {
+  return http.put(`/admin/mentoring/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteMentoring(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/mentoring/${encodeURIComponent(id)}`);
+}
+
 // ---------- Lesson discussions ----------
 
 export interface LessonCommentDto {

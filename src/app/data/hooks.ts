@@ -2539,6 +2539,53 @@ export function useDeleteLiveSession() {
   });
 }
 
+// Mentoring
+export function useMyMentoring(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ['mentoring', courseId] as const,
+    queryFn: () => api.fetchMyMentoring(courseId!),
+    enabled: !!courseId,
+  });
+}
+
+export function useAdminMentoring() {
+  return useQuery({
+    queryKey: ['admin', 'mentoring'] as const,
+    queryFn: api.fetchAdminMentoring,
+  });
+}
+
+export function useCreateMentoring() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createMentoring,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'mentoring'] });
+    },
+  });
+}
+
+export function useUpdateMentoring() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof api.updateMentoring>[1] }) =>
+      api.updateMentoring(id, patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'mentoring'] });
+    },
+  });
+}
+
+export function useDeleteMentoring() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteMentoring,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'mentoring'] });
+    },
+  });
+}
+
 // Zoom config
 export function useZoomConfig() {
   return useQuery({

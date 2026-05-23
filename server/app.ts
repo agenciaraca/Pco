@@ -165,6 +165,7 @@ import * as wishlistStore from './activity/wishlist-store';
 import { buildLeaderboard, getUserRank } from './activity/leaderboard';
 import * as liveSessions from './live-sessions/store';
 import * as zoomConfig from './live-sessions/zoom-config';
+import * as mentoringStore from './mentoring/store';
 import * as savedSearches from './saved-searches/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
 import { buildOpenApiSpec } from './http/openapi';
@@ -6764,6 +6765,75 @@ export function buildApp() {
       return c.json({ ok: true });
     },
   );
+
+  // ---------- Mentoring / booking ----------
+
+  app.get('/me/mentoring/:courseId', requireAuth(), async (c) => {
+    const courseId = c.req.param('courseId') as string;
+    const configs = await mentoringStore.listByCourse(courseId);
+    return c.json({ configs });
+  });
+
+  app.get('/admin/mentoring', requireAuth('admin', 'superadmin'), async (c) => {
+    return c.json({ configs: await mentoringStore.listAll() });
+  });
+
+  app.post(
+    '/admin/mentoring',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 20 }),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const courseId = String(body.courseId ?? '').trim();
+      const instructorName = String(body.instructorName ?? '').trim();
+      const bookingUrl = String(body.bookingUrl ?? '').trim();
+      if (!courseId || !instructorName || !bookingUrl) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'courseId, instructorName e bookingUrl obrigatórios.');
+      }
+      if (!/^https?:\/\//.test(bookingUrl)) {
+        return jsonError(c, 400, 'INVALID_URL', 'bookingUrl deve começar com http(s)://');
+      }
+      const provider =
+        bookingUrl.includes('calendly.com') ? 'calendly' as const
+          : bookingUrl.includes('cal.com') ? 'calcom' as const
+          : 'other' as const;
+      const cfg = await mentoringStore.create({
+        courseId,
+        instructorName,
+        bookingUrl,
+        provider,
+        description: body.description ? String(body.description) : undefined,
+        durationMinutes: typeof body.durationMinutes === 'number' ? body.durationMinutes : undefined,
+      });
+      await recordAudit(c, {
+        action: 'mentoring.create',
+        targetType: 'mentoring',
+        targetId: cfg.id,
+      });
+      return c.json(cfg, 201);
+    },
+  );
+
+  app.put('/admin/mentoring/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const updated = await mentoringStore.update(id, {
+      instructorName: typeof body.instructorName === 'string' ? body.instructorName : undefined,
+      bookingUrl: typeof body.bookingUrl === 'string' ? body.bookingUrl : undefined,
+      provider: typeof body.provider === 'string' ? body.provider as 'calendly' | 'calcom' | 'other' : undefined,
+      description: typeof body.description === 'string' ? body.description : undefined,
+      durationMinutes: typeof body.durationMinutes === 'number' ? body.durationMinutes : undefined,
+      active: typeof body.active === 'boolean' ? body.active : undefined,
+    });
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Config de mentoria não encontrada.');
+    return c.json(updated);
+  });
+
+  app.delete('/admin/mentoring/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await mentoringStore.remove(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
+    return c.json({ ok: true });
+  });
 
   // ---------- Zoom config + signature ----------
 

@@ -109,6 +109,7 @@ export default function AdminLayout() {
           { to: '/admin/sessoes-ao-vivo', label: t('admin.nav.liveSessions'), icon: Radio },
           { to: '/admin/zoom', label: 'Zoom SDK', icon: Radio },
           { to: '/admin/analise-supervisao', label: t('admin.nav.supervision'), icon: Stethoscope },
+          { to: '/admin/mentorias', label: 'Mentorias', icon: Stethoscope },
         ],
       },
       {
