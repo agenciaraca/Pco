@@ -28,6 +28,7 @@ export interface SystemUser {
   active: boolean;
   // Documento (CPF/RG/passport) — opcional, normalizado (só dígitos para CPF/RG)
   document?: string | null;
+  onboardingCompletedAt?: string | null;
   // 2FA TOTP
   totpEnabled?: boolean;
   totpSecretEncrypted?: string;
@@ -48,6 +49,7 @@ export interface SystemUserPublic {
   lastLoginAt?: string;
   active: boolean;
   document?: string | null;
+  onboardingCompletedAt?: string | null;
   totpEnabled?: boolean;
 }
 
@@ -251,6 +253,7 @@ interface UpdateInput {
   customRoleSlug?: string | null;
   active?: boolean;
   avatarUrl?: string | null;
+  onboardingCompletedAt?: string | null;
 }
 
 export async function updateUser(
@@ -277,6 +280,9 @@ export async function updateUser(
       : {}),
     ...(patch.active !== undefined ? { active: patch.active } : {}),
     ...(patch.avatarUrl !== undefined ? { avatarUrl: patch.avatarUrl } : {}),
+    ...(patch.onboardingCompletedAt !== undefined
+      ? { onboardingCompletedAt: patch.onboardingCompletedAt }
+      : {}),
     ...(willDeactivate ? { tokenVersion: (users[i].tokenVersion ?? 0) + 1 } : {}),
     updatedAt: new Date().toISOString(),
   };

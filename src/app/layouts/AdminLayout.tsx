@@ -1,5 +1,5 @@
-import { Outlet } from 'react-router-dom';
-import { useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   AlertTriangle,
@@ -53,14 +53,27 @@ import Footer from '../components/Footer';
 import AdminSearchPalette from '../components/AdminSearchPalette';
 import { useMemo } from 'react';
 import { useAdminKeyboardShortcuts, ADMIN_SHORTCUTS } from '../hooks/useKeyboardShortcuts';
+import { useOnboardingStatus } from '../data/hooks';
 import { useT } from '../i18n';
 
 export default function AdminLayout() {
   const t = useT();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { data: onboarding } = useOnboardingStatus();
   const [showShortcuts, setShowShortcuts] = useState(false);
   useAdminKeyboardShortcuts({
     onShowHelp: () => setShowShortcuts(true),
   });
+
+  useEffect(() => {
+    if (
+      onboarding?.needsOnboarding &&
+      !location.pathname.startsWith('/admin/onboarding')
+    ) {
+      navigate('/admin/onboarding', { replace: true });
+    }
+  }, [onboarding, location.pathname, navigate]);
   const adminGroups = useMemo(
     () => [
       {

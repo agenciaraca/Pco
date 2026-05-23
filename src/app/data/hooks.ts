@@ -2437,6 +2437,25 @@ export function useSetupStatus() {
   });
 }
 
+// Onboarding wizard
+export function useOnboardingStatus() {
+  return useQuery({
+    queryKey: ['admin', 'onboarding-status'] as const,
+    queryFn: api.fetchOnboardingStatus,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCompleteOnboarding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.completeOnboarding,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'onboarding-status'] });
+    },
+  });
+}
+
 // Saved searches
 export function useSavedSearches(scope?: api.SavedSearchScopeDto) {
   return useQuery({

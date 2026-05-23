@@ -2738,6 +2738,7 @@ export interface SystemUser {
   totpEnabled?: boolean;
   tokenVersion?: number;
   avatarUrl?: string | null;
+  onboardingCompletedAt?: string | null;
 }
 
 export interface CreateSystemUserPayload {
@@ -4268,6 +4269,23 @@ export interface SetupStatusDto {
 
 export async function fetchSetupStatus(): Promise<SetupStatusDto> {
   return http.get('/admin/setup/status');
+}
+
+// ---------- Onboarding wizard ----------
+
+export interface OnboardingStatusDto {
+  needsOnboarding: boolean;
+  completedAt: string | null;
+  role: string;
+  customRoleSlug: string | null;
+}
+
+export async function fetchOnboardingStatus(): Promise<OnboardingStatusDto> {
+  return http.get('/admin/onboarding/status');
+}
+
+export async function completeOnboarding(): Promise<{ ok: boolean; completedAt: string }> {
+  return http.post('/admin/onboarding/complete', {});
 }
 
 // ---------- Saved searches ----------

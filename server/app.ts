@@ -6379,6 +6379,37 @@ export function buildApp() {
     });
   });
 
+  // ---------- Onboarding wizard ----------
+
+  app.get('/admin/onboarding/status', requireAuth('admin', 'superadmin'), async (c) => {
+    const u = c.get('user')!;
+    const me = await usersStore.findUserById(u.sub);
+    if (!me) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+    return c.json({
+      needsOnboarding: !me.onboardingCompletedAt,
+      completedAt: me.onboardingCompletedAt ?? null,
+      role: me.role,
+      customRoleSlug: me.customRoleSlug ?? null,
+    });
+  });
+
+  app.post('/admin/onboarding/complete', requireAuth('admin', 'superadmin'), async (c) => {
+    const u = c.get('user')!;
+    const me = await usersStore.findUserById(u.sub);
+    if (!me) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+    if (me.onboardingCompletedAt) {
+      return c.json({ ok: true, completedAt: me.onboardingCompletedAt });
+    }
+    const now = new Date().toISOString();
+    await usersStore.updateUser(me.id, { onboardingCompletedAt: now });
+    await recordAudit(c, {
+      action: 'onboarding.complete',
+      targetType: 'user',
+      targetId: me.id,
+    });
+    return c.json({ ok: true, completedAt: now });
+  });
+
   // ---------- Saved searches/filters ----------
 
   app.get('/admin/saved-searches', requireAuth('admin', 'superadmin'), async (c) => {

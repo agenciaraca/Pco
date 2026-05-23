@@ -128,6 +128,7 @@ const AdminCoursePreview = lazy(() => import('./pages/admin/AdminCoursePreview')
 const AdminCourseAnalytics = lazy(() => import('./pages/admin/AdminCourseAnalytics'));
 const AdminLiveSessions = lazy(() => import('./pages/admin/AdminLiveSessions'));
 const AdminSetup = lazy(() => import('./pages/admin/AdminSetup'));
+const AdminOnboarding = lazy(() => import('./pages/admin/AdminOnboarding'));
 const ImportWizardApi = lazy(() => import('./pages/admin/imports/ImportWizardApi'));
 const ImportSchedules = lazy(() => import('./pages/admin/imports/ImportSchedules'));
 
@@ -290,6 +291,7 @@ export const router = createBrowserRouter([
       { path: 'sobre', element: <S><AdminAbout /></S> },
       { path: 'sessoes-ao-vivo', element: <S><AdminLiveSessions /></S> },
       { path: 'setup', element: <S><AdminSetup /></S> },
+      { path: 'onboarding', element: <S><AdminOnboarding /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },
       { path: 'imports/wizard', element: <S><ImportWizardCsv /></S> },
       { path: 'imports/wizard-api', element: <S><ImportWizardApi /></S> },
