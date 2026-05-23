@@ -64,17 +64,16 @@ export async function ensureEnrolled(
   request: APIRequestContext,
   superadminToken: string,
   courseId: string,
-  studentEmail: string,
+  studentId: string,
 ): Promise<void> {
   const res = await request.post(
     `/api/admin/courses/${courseId}/enroll-bulk`,
     {
       headers: { Authorization: `Bearer ${superadminToken}` },
-      data: { emails: [studentEmail] },
+      data: { studentIds: [studentId] },
     },
   );
   if (!res.ok() && res.status() !== 409) {
-    // 409 = já matriculado. Outros = erro real.
     const body = await res.text();
     throw new Error(`enroll-bulk falhou: HTTP ${res.status()} ${body}`);
   }

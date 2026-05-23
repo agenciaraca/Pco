@@ -86,7 +86,7 @@ test.describe('AVA PCO golden path — student journey', () => {
       request,
       admin.token,
       courseWithLesson!.id,
-      STUDENT_EMAIL,
+      student.user.id,
     );
 
     // 5) Marca lesson como concluída via API student
@@ -117,5 +117,91 @@ test.describe('AVA PCO golden path — student journey', () => {
     await page.waitForLoadState('networkidle');
     // Player ou listagem de módulos deve estar visível
     expect(page.url()).toContain(`/aprender/${courseWithLesson!.id}`);
+  });
+
+  test('student navega conteúdo do curso (módulos + lições)', async ({
+    page,
+    request,
+  }) => {
+    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
+    await loginAs(page, STUDENT_EMAIL, STUDENT_PASSWORD);
+
+    const courses = await fetchCourses(request);
+    const course = courses[0];
+    expect(course).toBeDefined();
+
+    await page.goto(`/aprender/${course.id}`);
+    await page.waitForLoadState('networkidle');
+    expect(page.url()).toContain(`/aprender/${course.id}`);
+    await expect(page.locator('body')).toContainText(/módulo|aula|lição|conteúdo/i);
+  });
+
+  test('student acessa página de quiz do curso', async ({ page, request }) => {
+    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
+    await loginAs(page, STUDENT_EMAIL, STUDENT_PASSWORD);
+
+    const courses = await fetchCourses(request);
+    const course = courses[0];
+
+    await page.goto(`/curso/${course.id}/quiz`);
+    await page.waitForLoadState('networkidle');
+    expect(page.url()).toContain(`/curso/${course.id}/quiz`);
+    await expect(page.locator('body')).toContainText(
+      /quiz|questão|questões|nenhuma questão/i,
+    );
+  });
+
+  test('student acessa página de eventos', async ({ page }) => {
+    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
+    await loginAs(page, STUDENT_EMAIL, STUDENT_PASSWORD);
+
+    await page.goto('/eventos');
+    await page.waitForLoadState('networkidle');
+    expect(page.url()).toContain('/eventos');
+    await expect(page.locator('body')).toContainText(
+      /eventos|encontros|sem encontros|ao vivo/i,
+    );
+  });
+});
+
+test.describe('AVA PCO golden path — admin journey', () => {
+  test('login admin + dashboard renderiza KPIs', async ({ page }) => {
+    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
+    await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    await page.goto('/admin/dashboard');
+    await page.waitForLoadState('networkidle');
+
+    expect(page.url()).toContain('/admin/dashboard');
+    await expect(page.locator('body')).toContainText(/dashboard|receita|alunos|certificados/i);
+  });
+
+  test('admin acessa health check', async ({ page }) => {
+    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
+    await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    await page.goto('/admin/saude');
+    await page.waitForLoadState('networkidle');
+
+    expect(page.url()).toContain('/admin/saude');
+    await expect(page.locator('body')).toContainText(/saúde|uptime|memória|health/i);
+  });
+
+  test('admin acessa gestão de cursos', async ({ page }) => {
+    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
+    await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    await page.goto('/admin/cursos');
+    await page.waitForLoadState('networkidle');
+
+    expect(page.url()).toContain('/admin/cursos');
+    await expect(page.locator('body')).toContainText(/cursos|psican|terapia/i);
+  });
+
+  test('admin acessa configuração de Zoom SDK', async ({ page }) => {
+    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
+    await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    await page.goto('/admin/zoom');
+    await page.waitForLoadState('networkidle');
+
+    expect(page.url()).toContain('/admin/zoom');
+    await expect(page.locator('body')).toContainText(/zoom sdk|configurad|sdk key/i);
   });
 });
