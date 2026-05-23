@@ -8478,6 +8478,10 @@ export function buildApp() {
                 r === 'admin' || r === 'superadmin',
             )
           : undefined,
+        aiDigestEnabled:
+          typeof body.aiDigestEnabled === 'boolean'
+            ? body.aiDigestEnabled
+            : undefined,
       });
       await recordAudit(c, {
         action: 'weekly_report.config',
@@ -8492,9 +8496,15 @@ export function buildApp() {
     '/admin/email/weekly-report/preview',
     requireAuth('admin', 'superadmin'),
     async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const withAi = body.withAi === true;
       const data = await weeklyReport.buildReport();
-      const email = weeklyReport.renderEmailHtml(data);
-      return c.json({ data, email });
+      let aiDigest: { text: string; provider: string; model: string } | null = null;
+      if (withAi) {
+        aiDigest = await weeklyReport.generateAiDigest(data);
+      }
+      const email = weeklyReport.renderEmailHtml(data, aiDigest?.text);
+      return c.json({ data, email, aiDigest });
     },
   );
 

@@ -83,6 +83,9 @@ describe('weekly-report', () => {
         reviews: { new: 3, averageRating: 4.5 },
         support: { opened: 2, closed: 1 },
         topProducts: [{ name: 'Curso X', revenueCents: 50000, count: 1 }],
+        errors: { totalServer: 0, totalClient: 0, byDay: [] },
+        retention: { highRisk: 0, mediumRisk: 0, lowRisk: 0 },
+        completions: { total: 0, byDay: [] },
       };
       const r = report.renderEmailHtml(data);
       expect(r.subject).toContain('R$ 500,00');
@@ -95,7 +98,7 @@ describe('weekly-report', () => {
     });
 
     it('arrow = quando delta zero', () => {
-      const data = {
+      const data: import('../server/notifications/weekly-report').WeeklyReportData = {
         windowFrom: '2026-04-29T00:00:00Z',
         windowTo: '2026-05-06T00:00:00Z',
         prevWindowFrom: '2026-04-22T00:00:00Z',
@@ -105,6 +108,9 @@ describe('weekly-report', () => {
         reviews: { new: 0, averageRating: 0 },
         support: { opened: 0, closed: 0 },
         topProducts: [],
+        errors: { totalServer: 0, totalClient: 0, byDay: [] },
+        retention: { highRisk: 0, mediumRisk: 0, lowRisk: 0 },
+        completions: { total: 0, byDay: [] },
       };
       const r = report.renderEmailHtml(data);
       expect(r.html).toContain('— 0%');

@@ -19,8 +19,11 @@ npm run typecheck      # tsc -b --noEmit
 npm run lint           # ESLint (flat config in eslint.config.js)
 npm run lint:fix
 npm run format         # Prettier --write
+npm run format:check   # Prettier --check (CI dry-run)
 npm run test           # Vitest (executable mode)
 npm run test:watch
+npm run test:ui        # Vitest browser UI
+npm run test:coverage  # Vitest + v8 coverage
 npm run test -- <pattern>            # run a subset, e.g. `npm run test -- jwt`
 npm run test -- test/jwt.test.ts     # single file
 npm run db:generate    # drizzle-kit generate (after schema.ts change)
@@ -28,7 +31,11 @@ npm run db:migrate     # apply migrations (needs DATABASE_URL)
 npm run db:push        # dev-only schema sync without migration
 npm run db:seed        # idempotent (onConflictDoNothing)
 npm run db:studio
+npm run e2e            # Playwright smoke (chromium)
+npm run e2e:ui         # Playwright interactive UI
 ```
+
+Env setup: copy `.env.example` → `.env` (or `.env.local`). Minimum for local dev: no vars needed (JSON fallback, no DB). For Postgres: set `DATABASE_URL`. For encryption: set `AI_KEY_ENCRYPTION_SECRET` (32 bytes hex).
 
 CI (`.github/workflows/ci.yml`) runs typecheck → lint → test → build on every push/PR to `main`. PR is blocked if any step fails.
 
@@ -54,6 +61,8 @@ When migrating an entity from JSON to DB, follow the `server/repositories/course
 
 When changing app behavior, edit `server/app.ts`. The two entrypoints stay thin.
 
+**Note:** `server/app.ts` is a monolith — all route handlers are defined inline in this single file (~3k+ lines). There is no `server/routes/` directory. New endpoints go directly into `buildApp()` following the existing grouping pattern (auth, admin CRUD, student-facing, public API).
+
 ### Background workers
 
 Started in `server/dev.ts` via dynamic imports after `serve()` returns:
@@ -76,7 +85,9 @@ Public read-only API uses a parallel mechanism: `pcok_*` tokens hashed SHA-256, 
 
 ### Validation contract
 
-`shared/schemas.ts` is the single source of truth for both client and server Zod schemas. Naming convention: `createXSchema` for POST bodies, `updateXSchema = createXSchema.partial()`. Server always validates via `validate(schema, body)` from `server/http.ts`, returning `jsonError(c, 400, 'VALIDATION', …)` on failure. Frontend infers types via `z.infer<typeof xSchema>`.
+`shared/schemas.ts` is the single source of truth for both client and server Zod schemas (Zod v4). Naming convention: `createXSchema` for POST bodies, `updateXSchema = createXSchema.partial()`. Server always validates via `validate(schema, body)` from `server/http.ts`, returning `jsonError(c, 400, 'VALIDATION', …)` on failure. Frontend infers types via `z.infer<typeof xSchema>`.
+
+**Zod v4 + React Hook Form pitfall:** Zod v4 is stricter (e.g. `z.string().email()` rejects addresses without TLD). Always pass `onInvalid` to `handleSubmit` and surface validation errors in a toast/banner — otherwise the form silently does nothing on submit.
 
 ### Encryption at rest
 
@@ -104,6 +115,10 @@ Padrão idêntico ao de IA: interface comum, factory, credenciais AES-GCM, switc
 `src/app/data/api.ts` is a thin namespace of typed callers; `src/app/data/hooks.ts` wraps them in TanStack Query hooks. Pages should consume hooks, not call `request` directly.
 
 Routes are in `src/app/routes.tsx` — three layouts (`StudentLayout`, `AdminLayout`, `LearningLayout`), nearly all pages lazy-loaded. Admin routes nest under `/admin/*` and are guarded by `ProtectedRoute` with role check.
+
+### Styling
+
+Tailwind CSS 3 with PostCSS. Config in `tailwind.config.js` + `postcss.config.js`. No component library — utility classes throughout, with custom `@media print` rules for certificates/invoices.
 
 ## Conventions to keep
 
@@ -144,7 +159,7 @@ When the user says "atualize a produção", run `restart_vps.py` (after pushing)
 ## Reference docs
 
 `docs/` has deeper notes per subsystem when you need them:
-`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `api-public.md`, `deploy.md`, `migration-wp-ld.md`.
+`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `webhooks-cookbook.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `admin-user-guide.md`, `api-public.md`, `deploy.md`, `production-checklist.md`, `migration-wp-ld.md`.
 
 ## Migração WP/LD/WC — alunos, cursos e progressões NÃO migraram direito
 

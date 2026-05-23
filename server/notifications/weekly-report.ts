@@ -8,6 +8,11 @@ import * as ordersRepo from '../payments/orders-repo';
 import * as certsRepo from '../repositories/certificates';
 import * as courseReviews from '../reviews/store';
 import * as supportRepo from '../repositories/support';
+import { errorsByDay } from '../errors/store';
+import { completionsByDay } from '../repositories/progress';
+import { listRetentionRisks } from '../repositories/retention';
+import { getActiveByModule } from '../ai/store';
+import { getProvider } from '../ai/providers';
 import { sendSafe } from './sender';
 
 export interface WeeklyReportConfig {
@@ -16,6 +21,8 @@ export interface WeeklyReportConfig {
   dayOfWeekUtc: number;
   hourUtc: number;
   recipientRoles: Array<'admin' | 'superadmin'>;
+  /** Quando true, inclui análise gerada por IA (módulo 'summaries') no e-mail. */
+  aiDigestEnabled: boolean;
 }
 
 const DEFAULT_CFG: WeeklyReportConfig = {
@@ -23,6 +30,7 @@ const DEFAULT_CFG: WeeklyReportConfig = {
   dayOfWeekUtc: 1, // segunda
   hourUtc: 9,
   recipientRoles: ['admin', 'superadmin'],
+  aiDigestEnabled: false,
 };
 
 const cfgStore = new JsonStore<WeeklyReportConfig>(
@@ -71,6 +79,20 @@ export interface WeeklyReportData {
     closed: number;
   };
   topProducts: Array<{ name: string; revenueCents: number; count: number }>;
+  errors: {
+    totalServer: number;
+    totalClient: number;
+    byDay: Array<{ day: string; server: number; client: number }>;
+  };
+  retention: {
+    highRisk: number;
+    mediumRisk: number;
+    lowRisk: number;
+  };
+  completions: {
+    total: number;
+    byDay: Array<{ day: string; count: number }>;
+  };
 }
 
 const WEEK_MS = 7 * 24 * 60 * 60_000;
@@ -161,6 +183,18 @@ export async function buildReport(
     return ts >= fromMs && ts < toMs;
   }).length;
 
+  const errDays = await errorsByDay(7);
+  const totalServer = errDays.reduce((s, d) => s + d.server, 0);
+  const totalClient = errDays.reduce((s, d) => s + d.client, 0);
+
+  const risks = await listRetentionRisks();
+  const highRisk = risks.filter((r) => r.level === 'alto').length;
+  const mediumRisk = risks.filter((r) => r.level === 'medio').length;
+  const lowRisk = risks.filter((r) => r.level === 'baixo').length;
+
+  const compDays = await completionsByDay(7);
+  const totalCompletions = compDays.reduce((s, d) => s + d.count, 0);
+
   return {
     windowFrom: new Date(fromMs).toISOString(),
     windowTo: new Date(toMs).toISOString(),
@@ -182,10 +216,71 @@ export async function buildReport(
     },
     support: { opened, closed },
     topProducts,
+    errors: {
+      totalServer,
+      totalClient,
+      byDay: errDays.map((d) => ({ day: d.day, server: d.server, client: d.client })),
+    },
+    retention: { highRisk, mediumRisk, lowRisk },
+    completions: { total: totalCompletions, byDay: compDays },
   };
 }
 
-export function renderEmailHtml(data: WeeklyReportData): {
+const AI_DIGEST_SYSTEM = `Você é um analista de dados da plataforma AVA PCO (LMS de Psicanálise Clínica Online).
+Recebe um snapshot semanal de métricas e produz uma análise executiva em português brasileiro.
+
+Formato da resposta (máximo 300 palavras):
+1. **Resumo**: 2-3 frases sobre a saúde geral da plataforma na semana.
+2. **Destaques**: até 3 pontos positivos.
+3. **Alertas**: até 3 pontos de atenção ou risco.
+4. **Recomendações**: até 3 ações concretas e prioritizadas.
+
+Tom: direto, profissional, orientado a ação. Sem saudações, sem formalidades.
+Nunca invente dados — use apenas o que foi fornecido.`;
+
+export async function generateAiDigest(
+  data: WeeklyReportData,
+): Promise<{ text: string; provider: string; model: string } | null> {
+  const cfg = getActiveByModule('summaries');
+  if (!cfg) return null;
+
+  const provider = getProvider(cfg.provider);
+  if (!provider) return null;
+
+  const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  const snapshot = [
+    `Período: ${data.windowFrom.slice(0, 10)} a ${data.windowTo.slice(0, 10)}`,
+    `Receita: ${fmt.format(data.revenue.currentCents / 100)} (${data.revenue.deltaPct > 0 ? '+' : ''}${data.revenue.deltaPct}% vs semana anterior)`,
+    `Novos alunos: ${data.newStudents.current} (${data.newStudents.deltaPct > 0 ? '+' : ''}${data.newStudents.deltaPct}% vs anterior)`,
+    `Certificados emitidos: ${data.certificatesIssued}`,
+    `Avaliações: ${data.reviews.new} novas, média ${data.reviews.averageRating.toFixed(1)} estrelas`,
+    `Suporte: ${data.support.opened} aberto(s), ${data.support.closed} fechado(s)`,
+    `Erros servidor: ${data.errors.totalServer} | Erros cliente: ${data.errors.totalClient}`,
+    `Retenção — risco alto: ${data.retention.highRisk}, médio: ${data.retention.mediumRisk}, baixo: ${data.retention.lowRisk}`,
+    `Aulas concluídas: ${data.completions.total} (${data.completions.byDay.map((d) => `${d.day.slice(5)}: ${d.count}`).join(', ')})`,
+    data.topProducts.length > 0
+      ? `Top produtos: ${data.topProducts.map((p) => `${p.name} ${fmt.format(p.revenueCents / 100)} (${p.count}x)`).join('; ')}`
+      : 'Sem vendas na semana.',
+  ].join('\n');
+
+  try {
+    const result = await provider.chat({
+      apiKey: cfg.apiKey,
+      model: cfg.model,
+      messages: [{ role: 'user', content: snapshot }],
+      systemPrompt: AI_DIGEST_SYSTEM,
+      temperature: cfg.temperature ?? 0.4,
+      maxTokens: cfg.maxTokens ?? 800,
+      timeoutMs: 30_000,
+    });
+    return { text: result.text, provider: cfg.provider, model: cfg.model };
+  } catch (err) {
+    console.error('[weekly-report] AI digest falhou:', err);
+    return null;
+  }
+}
+
+export function renderEmailHtml(data: WeeklyReportData, aiDigest?: string | null): {
   subject: string;
   html: string;
   text: string;
@@ -259,10 +354,30 @@ export function renderEmailHtml(data: WeeklyReportData): {
     <p style="margin:0;color:#0f172a">
       ${data.support.opened} ticket(s) aberto(s) · ${data.support.closed} fechado(s)
     </p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:20px 0">
+      <div style="padding:12px;background:#f8fafc;border-radius:6px">
+        <div style="font-size:11px;color:#64748b;text-transform:uppercase">Aulas concluídas</div>
+        <div style="font-size:20px;font-weight:bold;color:#0f172a">${data.completions.total}</div>
+      </div>
+      <div style="padding:12px;background:${data.errors.totalServer > 0 ? '#fef2f2' : '#f8fafc'};border-radius:6px">
+        <div style="font-size:11px;color:#64748b;text-transform:uppercase">Erros servidor</div>
+        <div style="font-size:20px;font-weight:bold;color:${data.errors.totalServer > 0 ? '#dc2626' : '#0f172a'}">${data.errors.totalServer}</div>
+      </div>
+      <div style="padding:12px;background:${data.retention.highRisk > 0 ? '#fffbeb' : '#f8fafc'};border-radius:6px">
+        <div style="font-size:11px;color:#64748b;text-transform:uppercase">Risco evasão alto</div>
+        <div style="font-size:20px;font-weight:bold;color:${data.retention.highRisk > 0 ? '#d97706' : '#0f172a'}">${data.retention.highRisk}</div>
+      </div>
+    </div>${aiDigest ? `
+
+    <div style="margin:20px 0;padding:16px;background:#f0f9ff;border-left:4px solid #0097B2;border-radius:0 6px 6px 0">
+      <h2 style="font-size:15px;color:#0097B2;margin:0 0 8px">🤖 Análise da IA</h2>
+      <div style="font-size:14px;color:#0f172a;line-height:1.6;white-space:pre-line">${escapeHtml(aiDigest)}</div>
+    </div>` : ''}
   </div>
 </body></html>`;
 
-  const text = [
+  const textLines = [
     'Relatório semanal AVA PCO',
     `Período: ${formatDate(data.windowFrom)} a ${formatDate(data.windowTo)}`,
     '',
@@ -271,12 +386,19 @@ export function renderEmailHtml(data: WeeklyReportData): {
     `Certificados emitidos: ${data.certificatesIssued}`,
     `Avaliações: ${data.reviews.averageRating.toFixed(1)} ★ (${data.reviews.new} novas)`,
     `Suporte: ${data.support.opened} aberto(s), ${data.support.closed} fechado(s)`,
+    `Aulas concluídas: ${data.completions.total}`,
+    `Erros servidor: ${data.errors.totalServer} | Erros cliente: ${data.errors.totalClient}`,
+    `Retenção — alto: ${data.retention.highRisk}, médio: ${data.retention.mediumRisk}, baixo: ${data.retention.lowRisk}`,
     '',
     'Top produtos:',
     ...data.topProducts.map(
       (p) => `  • ${p.name}: ${fmt.format(p.revenueCents / 100)} (${p.count})`,
     ),
-  ].join('\n');
+  ];
+  if (aiDigest) {
+    textLines.push('', '--- Análise da IA ---', '', aiDigest);
+  }
+  const text = textLines.join('\n');
 
   return { subject, html, text };
 }
@@ -312,7 +434,14 @@ export async function tickWorker(now: Date = new Date()): Promise<{
   lastFiredKey = key;
 
   const data = await buildReport(now);
-  const email = renderEmailHtml(data);
+
+  let aiDigestText: string | null = null;
+  if (cfg.aiDigestEnabled) {
+    const digest = await generateAiDigest(data);
+    if (digest) aiDigestText = digest.text;
+  }
+
+  const email = renderEmailHtml(data, aiDigestText);
   const users = await usersStore.listUsers();
   const recipients = users
     .filter(
@@ -337,7 +466,6 @@ export async function tickWorker(now: Date = new Date()): Promise<{
 export function startWorker(intervalMs = 60 * 60_000): NodeJS.Timeout {
   return setInterval(() => {
     void tickWorker().catch((err) => {
-      // eslint-disable-next-line no-console
       console.error('[weekly-report] erro:', err);
     });
   }, intervalMs);
