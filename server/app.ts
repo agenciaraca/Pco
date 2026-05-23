@@ -5305,7 +5305,6 @@ export function buildApp() {
     if (sampled.length === 0) {
       return c.json({ questions: [] });
     }
-    // Esconde flag correct nas options pra não vazar resposta no client
     const safe = sampled.map((q) => ({
       id: q.id,
       type: q.type,
@@ -5327,30 +5326,70 @@ export function buildApp() {
     const answers = Array.isArray(body.answers) ? body.answers : [];
     const results: Array<{
       questionId: string;
+      type: string;
       correct: boolean;
       correctOptionIds: string[];
       explanation: string | null;
+      aiScore?: number | null;
+      aiFeedback?: string | null;
     }> = [];
     let score = 0;
+    let totalPoints = 0;
     for (const a of answers) {
-      const ans = a as { questionId?: string; selectedOptionIds?: string[] };
+      const ans = a as {
+        questionId?: string;
+        selectedOptionIds?: string[];
+        textAnswer?: string;
+      };
       if (!ans.questionId) continue;
       const q = await questionBank.findById(ans.questionId);
       if (!q || q.courseId !== courseId) continue;
-      const grade = questionBank.gradeAnswer(q, ans.selectedOptionIds ?? []);
-      if (grade.correct) score++;
-      results.push({
-        questionId: q.id,
-        correct: grade.correct,
-        correctOptionIds: grade.correctOptionIds,
-        explanation: q.explanation ?? null,
-      });
+
+      if (q.type === 'open_ended') {
+        const text = (ans.textAnswer ?? '').trim();
+        if (!text) {
+          results.push({
+            questionId: q.id,
+            type: q.type,
+            correct: false,
+            correctOptionIds: [],
+            explanation: q.explanation ?? null,
+            aiScore: 0,
+            aiFeedback: 'Resposta em branco.',
+          });
+          totalPoints += 100;
+          continue;
+        }
+        const aiResult = await questionBank.gradeOpenEndedWithAi(q, text);
+        const aiScore = aiResult?.score ?? null;
+        results.push({
+          questionId: q.id,
+          type: q.type,
+          correct: (aiScore ?? 0) >= 70,
+          correctOptionIds: [],
+          explanation: q.explanation ?? null,
+          aiScore,
+          aiFeedback: aiResult?.feedback ?? 'Correção automática indisponível.',
+        });
+        score += aiScore ?? 0;
+        totalPoints += 100;
+      } else {
+        const grade = questionBank.gradeAnswer(q, ans.selectedOptionIds ?? []);
+        if (grade.correct) score += 100;
+        totalPoints += 100;
+        results.push({
+          questionId: q.id,
+          type: q.type,
+          correct: grade.correct,
+          correctOptionIds: grade.correctOptionIds,
+          explanation: q.explanation ?? null,
+        });
+      }
     }
-    const total = results.length;
     return c.json({
-      score,
-      total,
-      pct: total > 0 ? Math.round((score / total) * 100) : 0,
+      score: totalPoints > 0 ? Math.round(score / totalPoints * 100) : 0,
+      total: results.length,
+      pct: totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0,
       results,
     });
   });
@@ -5377,7 +5416,7 @@ export function buildApp() {
         const q = await questionBank.createQuestion({
           courseId,
           moduleId: typeof body.moduleId === 'string' ? body.moduleId : undefined,
-          type: body.type as 'multiple_choice' | 'true_false',
+          type: body.type as 'multiple_choice' | 'true_false' | 'open_ended',
           prompt: String(body.prompt ?? ''),
           options: Array.isArray(body.options)
             ? (body.options as Array<{ text?: string; correct?: boolean }>).map((o) => ({
@@ -5385,6 +5424,7 @@ export function buildApp() {
                 correct: !!o?.correct,
               }))
             : [],
+          expectedAnswer: typeof body.expectedAnswer === 'string' ? body.expectedAnswer : undefined,
           explanation: typeof body.explanation === 'string' ? body.explanation : undefined,
           tags: Array.isArray(body.tags) ? (body.tags as unknown[]).map((t) => String(t)) : undefined,
           difficulty: typeof body.difficulty === 'number' ? body.difficulty : undefined,
@@ -5414,7 +5454,7 @@ export function buildApp() {
       const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
       try {
         const updated = await questionBank.updateQuestion(id, {
-          type: body.type as 'multiple_choice' | 'true_false' | undefined,
+          type: body.type as 'multiple_choice' | 'true_false' | 'open_ended' | undefined,
           prompt: typeof body.prompt === 'string' ? body.prompt : undefined,
           options: Array.isArray(body.options)
             ? (body.options as Array<{ text?: string; correct?: boolean }>).map((o) => ({
@@ -5422,6 +5462,7 @@ export function buildApp() {
                 correct: !!o?.correct,
               }))
             : undefined,
+          expectedAnswer: typeof body.expectedAnswer === 'string' ? body.expectedAnswer : undefined,
           explanation: typeof body.explanation === 'string' ? body.explanation : undefined,
           tags: Array.isArray(body.tags) ? (body.tags as unknown[]).map((t) => String(t)) : undefined,
           difficulty: typeof body.difficulty === 'number' ? body.difficulty : undefined,

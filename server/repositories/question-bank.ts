@@ -4,8 +4,10 @@
 
 import crypto from 'node:crypto';
 import { JsonStore } from '../db/json-store';
+import { getActiveByModule } from '../ai/store';
+import { getProvider } from '../ai/providers';
 
-export type QuestionType = 'multiple_choice' | 'true_false';
+export type QuestionType = 'multiple_choice' | 'true_false' | 'open_ended';
 
 export interface QuestionOption {
   id: string;
@@ -22,8 +24,10 @@ export interface Question {
   type: QuestionType;
   /** Enunciado da questão (pode usar markdown lite). */
   prompt: string;
-  /** Para multiple_choice: 2-6 opções. Pra true_false: 2 fixas. */
+  /** Para multiple_choice: 2-6 opções. Pra true_false: 2 fixas. Vazio para open_ended. */
   options: QuestionOption[];
+  /** Resposta esperada/rubrica para correção IA (open_ended). */
+  expectedAnswer?: string;
   /** Justificativa exibida após o aluno responder. */
   explanation?: string;
   /** Tags pra filtragem (ex: "fundamentos", "lacan"). */
@@ -67,19 +71,25 @@ export interface CreateQuestionInput {
   type: QuestionType;
   prompt: string;
   options: { text: string; correct: boolean }[];
+  expectedAnswer?: string;
   explanation?: string;
   tags?: string[];
   difficulty?: number;
   active?: boolean;
 }
 
+const VALID_TYPES: QuestionType[] = ['multiple_choice', 'true_false', 'open_ended'];
+
 function validateInput(input: CreateQuestionInput): void {
-  if (input.type !== 'multiple_choice' && input.type !== 'true_false') {
+  if (!VALID_TYPES.includes(input.type)) {
     throw new QuestionError('INVALID_TYPE', `Tipo inválido: "${input.type}".`);
   }
   const prompt = input.prompt?.trim() ?? '';
   if (!prompt || prompt.length > 2000) {
     throw new QuestionError('INVALID_PROMPT', 'Enunciado deve ter 1-2000 caracteres.');
+  }
+  if (input.type === 'open_ended') {
+    return;
   }
   if (!Array.isArray(input.options)) {
     throw new QuestionError('INVALID_OPTIONS', 'options deve ser array.');
@@ -128,11 +138,15 @@ export async function createQuestion(input: CreateQuestionInput): Promise<Questi
     moduleId: input.moduleId,
     type: input.type,
     prompt: input.prompt.trim(),
-    options: input.options.map((o) => ({
-      id: newOptionId(),
-      text: o.text.trim(),
-      correct: !!o.correct,
-    })),
+    options:
+      input.type === 'open_ended'
+        ? []
+        : input.options.map((o) => ({
+            id: newOptionId(),
+            text: o.text.trim(),
+            correct: !!o.correct,
+          })),
+    expectedAnswer: input.type === 'open_ended' ? input.expectedAnswer?.trim() || undefined : undefined,
     explanation: input.explanation?.trim() || undefined,
     tags: (input.tags ?? []).map((t) => t.trim().toLowerCase()).filter(Boolean),
     difficulty: clampDifficulty(input.difficulty ?? 3),
@@ -166,6 +180,7 @@ export interface UpdateQuestionInput {
   type?: QuestionType;
   prompt?: string;
   options?: { text: string; correct: boolean }[];
+  expectedAnswer?: string;
   explanation?: string;
   tags?: string[];
   difficulty?: number;
@@ -198,6 +213,8 @@ export async function updateQuestion(
       correct: !!o.correct,
     }));
   }
+  if (patch.expectedAnswer !== undefined)
+    updates.expectedAnswer = patch.expectedAnswer.trim() || undefined;
   if (patch.explanation !== undefined)
     updates.explanation = patch.explanation.trim() || undefined;
   if (patch.tags !== undefined) {
@@ -258,6 +275,70 @@ export function gradeAnswer(
     selectedOptionIds.length === correctIds.length &&
     correctIds.every((cid) => selectedOptionIds.includes(cid));
   return { correct, correctOptionIds: correctIds };
+}
+
+const AI_GRADING_SYSTEM = `Você é um avaliador acadêmico da plataforma PCO (Psicanálise Clínica Online).
+Recebe a pergunta, a resposta esperada (rubrica) e a resposta do aluno.
+Avalie a resposta do aluno e retorne EXATAMENTE neste formato JSON (sem markdown, sem código):
+{"score":N,"feedback":"..."}
+
+Onde:
+- score: número inteiro de 0 a 100 (0=totalmente errado, 100=perfeito)
+- feedback: 1-3 frases em português brasileiro explicando a nota. Seja construtivo.
+
+Critérios: aderência ao conteúdo da rubrica, clareza, uso correto de conceitos.
+Não penalize estilo ou formatação. Valorize respostas que demonstrem compreensão mesmo com palavras diferentes.`;
+
+export interface AiGradeResult {
+  score: number;
+  feedback: string;
+  provider: string;
+  model: string;
+}
+
+export async function gradeOpenEndedWithAi(
+  question: Question,
+  studentAnswer: string,
+): Promise<AiGradeResult | null> {
+  const cfg = getActiveByModule('grading');
+  if (!cfg) return null;
+
+  const provider = getProvider(cfg.provider);
+  if (!provider) return null;
+
+  const userMessage = [
+    `**Pergunta:** ${question.prompt}`,
+    question.expectedAnswer
+      ? `**Resposta esperada (rubrica):** ${question.expectedAnswer}`
+      : '',
+    `**Resposta do aluno:** ${studentAnswer}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  try {
+    const result = await provider.chat({
+      apiKey: cfg.apiKey,
+      model: cfg.model,
+      messages: [{ role: 'user', content: userMessage }],
+      systemPrompt: AI_GRADING_SYSTEM,
+      temperature: cfg.temperature ?? 0.2,
+      maxTokens: cfg.maxTokens ?? 400,
+      timeoutMs: 20_000,
+    });
+
+    const parsed = JSON.parse(result.text) as { score: number; feedback: string };
+    const score = Math.max(0, Math.min(100, Math.round(parsed.score)));
+    return {
+      score,
+      feedback: parsed.feedback ?? '',
+      provider: cfg.provider,
+      model: cfg.model,
+    };
+  } catch (err) {
+    console.error('[question-bank] AI grading falhou:', err);
+    return null;
+  }
 }
 
 export async function _resetForTests(): Promise<void> {

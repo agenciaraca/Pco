@@ -30,6 +30,7 @@ interface EditState {
   type: QuestionTypeDto;
   prompt: string;
   options: { text: string; correct: boolean }[];
+  expectedAnswer: string;
   explanation: string;
   tags: string[];
   difficulty: number;
@@ -46,6 +47,7 @@ function emptyEdit(): EditState {
       { text: '', correct: true },
       { text: '', correct: false },
     ],
+    expectedAnswer: '',
     explanation: '',
     tags: [],
     difficulty: 3,
@@ -67,7 +69,7 @@ export default function AdminQuestions() {
 
   const [editing, setEditing] = useState<EditState | null>(null);
   const [filterModule, setFilterModule] = useState<string>('all');
-  const [filterType, setFilterType] = useState<'all' | 'multiple_choice' | 'true_false'>('all');
+  const [filterType, setFilterType] = useState<'all' | QuestionTypeDto>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [search, setSearch] = useState('');
   const [tagInput, setTagInput] = useState('');
@@ -107,6 +109,7 @@ export default function AdminQuestions() {
       type: q.type,
       prompt: q.prompt,
       options: q.options.map((o) => ({ text: o.text, correct: o.correct })),
+      expectedAnswer: q.expectedAnswer ?? '',
       explanation: q.explanation ?? '',
       tags: [...q.tags],
       difficulty: q.difficulty,
@@ -185,6 +188,19 @@ export default function AdminQuestions() {
           ],
         };
       }
+      if (newType === 'open_ended') {
+        return { ...prev, type: newType, options: [] };
+      }
+      if (prev.type === 'open_ended') {
+        return {
+          ...prev,
+          type: newType,
+          options: [
+            { text: '', correct: true },
+            { text: '', correct: false },
+          ],
+        };
+      }
       return { ...prev, type: newType };
     });
   }
@@ -202,22 +218,27 @@ export default function AdminQuestions() {
       toast.error('Enunciado obrigatório');
       return;
     }
-    if (editing.options.some((o) => !o.text.trim())) {
-      toast.error('Todas as opções precisam ter texto');
-      return;
-    }
-    if (!editing.options.some((o) => o.correct)) {
-      toast.error('Marque pelo menos uma opção como correta');
-      return;
+    if (editing.type !== 'open_ended') {
+      if (editing.options.some((o) => !o.text.trim())) {
+        toast.error('Todas as opções precisam ter texto');
+        return;
+      }
+      if (!editing.options.some((o) => o.correct)) {
+        toast.error('Marque pelo menos uma opção como correta');
+        return;
+      }
     }
     const payload = {
       moduleId: editing.moduleId || undefined,
       type: editing.type,
       prompt: editing.prompt.trim(),
-      options: editing.options.map((o) => ({
-        text: o.text.trim(),
-        correct: o.correct,
-      })),
+      options: editing.type === 'open_ended'
+        ? []
+        : editing.options.map((o) => ({
+            text: o.text.trim(),
+            correct: o.correct,
+          })),
+      expectedAnswer: editing.type === 'open_ended' ? editing.expectedAnswer.trim() || undefined : undefined,
       explanation: editing.explanation.trim() || undefined,
       tags: editing.tags,
       difficulty: editing.difficulty,
@@ -298,15 +319,14 @@ export default function AdminQuestions() {
         <select
           value={filterType}
           onChange={(e) =>
-            setFilterType(
-              e.target.value as 'all' | 'multiple_choice' | 'true_false',
-            )
+            setFilterType(e.target.value as 'all' | QuestionTypeDto)
           }
           className="pco-input text-xs w-auto"
         >
           <option value="all">Todos os tipos</option>
           <option value="multiple_choice">Múltipla escolha</option>
           <option value="true_false">Verdadeiro/Falso</option>
+          <option value="open_ended">Dissertativa (IA)</option>
         </select>
         <select
           value={filterStatus}
@@ -353,10 +373,12 @@ export default function AdminQuestions() {
                         className={`pco-badge ${
                           q.type === 'true_false'
                             ? 'bg-pco-cyan/10 text-pco-cyan'
-                            : 'bg-pco-blue/10 text-pco-blue'
+                            : q.type === 'open_ended'
+                              ? 'bg-pco-orange/10 text-pco-orange'
+                              : 'bg-pco-blue/10 text-pco-blue'
                         }`}
                       >
-                        {q.type === 'true_false' ? 'V/F' : 'Múltipla'}
+                        {q.type === 'true_false' ? 'V/F' : q.type === 'open_ended' ? 'Dissertativa' : 'Múltipla'}
                       </span>
                       <span className="pco-badge bg-pco-orange/10 text-pco-orange">
                         Dif. {q.difficulty}/5
@@ -465,6 +487,7 @@ export default function AdminQuestions() {
                   >
                     <option value="multiple_choice">Múltipla escolha</option>
                     <option value="true_false">Verdadeiro / Falso</option>
+                    <option value="open_ended">Dissertativa (IA)</option>
                   </select>
                 </label>
                 <label className="block">
@@ -506,62 +529,83 @@ export default function AdminQuestions() {
                 />
               </label>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
+              {editing.type === 'open_ended' ? (
+                <label className="block">
                   <span className="text-[11px] uppercase tracking-wide text-ink-muted">
-                    Opções ({editing.options.length}{editing.type === 'multiple_choice' ? '/6' : ''})
+                    Resposta esperada / rubrica (usada pela IA para corrigir)
                   </span>
-                  {editing.type === 'multiple_choice' && (
-                    <button
-                      type="button"
-                      onClick={addOption}
-                      disabled={editing.options.length >= 6}
-                      className="text-xs text-pco-blue hover:underline disabled:opacity-30"
-                    >
-                      + Adicionar opção
-                    </button>
-                  )}
+                  <textarea
+                    value={editing.expectedAnswer}
+                    onChange={(e) =>
+                      setEditing((p) => (p ? { ...p, expectedAnswer: e.target.value } : p))
+                    }
+                    rows={4}
+                    placeholder="Descreva a resposta ideal ou os pontos-chave que o aluno deve abordar..."
+                    className="pco-input text-sm mt-1"
+                    maxLength={4000}
+                  />
+                  <p className="text-[11px] text-ink-subtle mt-1">
+                    A IA compara a resposta do aluno com esta rubrica e atribui nota de 0-100.
+                  </p>
+                </label>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                      Opções ({editing.options.length}{editing.type === 'multiple_choice' ? '/6' : ''})
+                    </span>
+                    {editing.type === 'multiple_choice' && (
+                      <button
+                        type="button"
+                        onClick={addOption}
+                        disabled={editing.options.length >= 6}
+                        className="text-xs text-pco-blue hover:underline disabled:opacity-30"
+                      >
+                        + Adicionar opção
+                      </button>
+                    )}
+                  </div>
+                  <ul className="space-y-2">
+                    {editing.options.map((o, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-center gap-2 bg-surface-off rounded-lg p-2"
+                      >
+                        <input
+                          type={editing.type === 'true_false' ? 'radio' : 'checkbox'}
+                          name="correct-option"
+                          checked={o.correct}
+                          onChange={(e) => setOptionCorrect(idx, e.target.checked)}
+                          className="accent-pco-blue"
+                          title="Marcar como correta"
+                        />
+                        <input
+                          value={o.text}
+                          onChange={(e) => setOptionText(idx, e.target.value)}
+                          disabled={editing.type === 'true_false'}
+                          placeholder={`Opção ${idx + 1}`}
+                          className="pco-input text-sm flex-1 disabled:opacity-60"
+                          maxLength={500}
+                        />
+                        {editing.type === 'multiple_choice' && editing.options.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => removeOption(idx)}
+                            className="text-status-danger text-xs hover:underline"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-[11px] text-ink-subtle mt-2">
+                    {editing.type === 'multiple_choice'
+                      ? 'Marque uma OU mais opções como corretas (multi-select).'
+                      : 'V/F: marque a opção correta. Apenas uma pode ser correta.'}
+                  </p>
                 </div>
-                <ul className="space-y-2">
-                  {editing.options.map((o, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-center gap-2 bg-surface-off rounded-lg p-2"
-                    >
-                      <input
-                        type={editing.type === 'true_false' ? 'radio' : 'checkbox'}
-                        name="correct-option"
-                        checked={o.correct}
-                        onChange={(e) => setOptionCorrect(idx, e.target.checked)}
-                        className="accent-pco-blue"
-                        title="Marcar como correta"
-                      />
-                      <input
-                        value={o.text}
-                        onChange={(e) => setOptionText(idx, e.target.value)}
-                        disabled={editing.type === 'true_false'}
-                        placeholder={`Opção ${idx + 1}`}
-                        className="pco-input text-sm flex-1 disabled:opacity-60"
-                        maxLength={500}
-                      />
-                      {editing.type === 'multiple_choice' && editing.options.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => removeOption(idx)}
-                          className="text-status-danger text-xs hover:underline"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-[11px] text-ink-subtle mt-2">
-                  {editing.type === 'multiple_choice'
-                    ? 'Marque uma OU mais opções como corretas (multi-select).'
-                    : 'V/F: marque a opção correta. Apenas uma pode ser correta.'}
-                </p>
-              </div>
+              )}
 
               <label className="block">
                 <span className="text-[11px] uppercase tracking-wide text-ink-muted">

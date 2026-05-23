@@ -61,6 +61,7 @@ export const aiModuleEnum = pgEnum('ai_module', [
   'recommendations',
   'support',
   'summaries',
+  'grading',
 ]);
 
 export const aiProviderEnum = pgEnum('ai_provider', [

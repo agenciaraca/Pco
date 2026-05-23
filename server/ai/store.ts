@@ -13,7 +13,8 @@ export type AiModule =
   | 'evasion'
   | 'recommendations'
   | 'support'
-  | 'summaries';
+  | 'summaries'
+  | 'grading';
 
 export interface AiConfig {
   id: string;

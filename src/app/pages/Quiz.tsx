@@ -28,6 +28,7 @@ export default function Quiz() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [questions, setQuestions] = useState<QuizQuestionPublicDto[]>([]);
   const [answers, setAnswers] = useState<Record<string, Set<string>>>({});
+  const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<QuizGradeResultDto | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
@@ -66,7 +67,7 @@ export default function Quiz() {
   const course = courseQ.data;
   if (!course) return <Navigate to="/cursos" replace />;
 
-  function toggleOption(questionId: string, optionId: string, type: 'multiple_choice' | 'true_false') {
+  function toggleOption(questionId: string, optionId: string, type: string) {
     setAnswers((prev) => {
       const next = { ...prev };
       const current = new Set(next[questionId] ?? []);
@@ -83,9 +84,10 @@ export default function Quiz() {
 
   async function submit() {
     if (!courseId) return;
-    const unanswered = questions.filter(
-      (q) => (answers[q.id]?.size ?? 0) === 0,
-    );
+    const unanswered = questions.filter((q) => {
+      if (q.type === 'open_ended') return !(textAnswers[q.id]?.trim());
+      return (answers[q.id]?.size ?? 0) === 0;
+    });
     if (unanswered.length > 0) {
       const ok = confirm(
         `Você deixou ${unanswered.length} questão(ões) em branco. Enviar mesmo assim?`,
@@ -94,10 +96,15 @@ export default function Quiz() {
     }
     setPhase('submitting');
     try {
-      const payload = questions.map((q) => ({
-        questionId: q.id,
-        selectedOptionIds: Array.from(answers[q.id] ?? []),
-      }));
+      const payload: api.QuizAnswerInput[] = questions.map((q) => {
+        if (q.type === 'open_ended') {
+          return { questionId: q.id, textAnswer: textAnswers[q.id] ?? '' };
+        }
+        return {
+          questionId: q.id,
+          selectedOptionIds: Array.from(answers[q.id] ?? []),
+        };
+      });
       const r = await api.submitQuiz(courseId, payload);
       setResult(r);
       setPhase('result');
@@ -225,28 +232,49 @@ export default function Quiz() {
                     {q.prompt}
                   </p>
                 </div>
-                <ul className="ml-6 space-y-1 text-xs">
-                  {q.options.map((o) => {
-                    const wasMine = myAnswers.has(o.id);
-                    const isCorrect = r?.correctOptionIds.includes(o.id) ?? false;
-                    let cls = 'text-ink-muted';
-                    if (isCorrect) cls = 'text-status-success font-semibold';
-                    else if (wasMine) cls = 'text-status-danger line-through';
-                    return (
-                      <li key={o.id} className={`flex items-center gap-2 ${cls}`}>
-                        <span>
-                          {isCorrect ? '✓' : wasMine ? '✗' : '○'}
+                {q.type === 'open_ended' ? (
+                  <div className="ml-6 space-y-2">
+                    <div className="text-xs text-ink-muted bg-surface-off rounded p-2">
+                      <strong>Sua resposta:</strong>{' '}
+                      {textAnswers[q.id] || <em className="text-ink-subtle">Em branco</em>}
+                    </div>
+                    {r?.aiScore != null && (
+                      <div className="text-xs">
+                        <span className={`font-bold ${r.aiScore >= 70 ? 'text-status-success' : 'text-pco-orange'}`}>
+                          Nota: {r.aiScore}/100
                         </span>
-                        <span>{o.text}</span>
-                        {wasMine && !isCorrect && (
-                          <span className="text-[10px] text-ink-subtle">
-                            (sua resposta)
+                      </div>
+                    )}
+                    {r?.aiFeedback && (
+                      <div className="text-xs text-ink-muted bg-pco-cyan/5 border border-pco-cyan/20 rounded p-2">
+                        <strong className="text-pco-blue">Feedback da IA:</strong> {r.aiFeedback}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <ul className="ml-6 space-y-1 text-xs">
+                    {q.options.map((o) => {
+                      const wasMine = myAnswers.has(o.id);
+                      const isCorrect = r?.correctOptionIds.includes(o.id) ?? false;
+                      let cls = 'text-ink-muted';
+                      if (isCorrect) cls = 'text-status-success font-semibold';
+                      else if (wasMine) cls = 'text-status-danger line-through';
+                      return (
+                        <li key={o.id} className={`flex items-center gap-2 ${cls}`}>
+                          <span>
+                            {isCorrect ? '✓' : wasMine ? '✗' : '○'}
                           </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                          <span>{o.text}</span>
+                          {wasMine && !isCorrect && (
+                            <span className="text-[10px] text-ink-subtle">
+                              (sua resposta)
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
                 {r?.explanation && (
                   <div className="ml-6 mt-2 text-xs text-ink-muted bg-pco-blue/5 border border-pco-blue/20 rounded p-2">
                     <strong className="text-pco-blue">Explicação:</strong> {r.explanation}
@@ -261,7 +289,10 @@ export default function Quiz() {
   }
 
   // phase === 'taking' ou 'submitting'
-  const answered = Object.values(answers).filter((s) => s.size > 0).length;
+  const answered = questions.filter((q) => {
+    if (q.type === 'open_ended') return !!(textAnswers[q.id]?.trim());
+    return (answers[q.id]?.size ?? 0) > 0;
+  }).length;
   const totalQ = questions.length;
   return (
     <div className="space-y-6">
@@ -294,29 +325,41 @@ export default function Quiz() {
               <span className="text-ink-subtle text-xs">{idx + 1}.</span>{' '}
               {q.prompt}
             </p>
-            <ul className="space-y-2">
-              {q.options.map((o) => {
-                const checked = answers[q.id]?.has(o.id) ?? false;
-                return (
-                  <li key={o.id}>
-                    <label
-                      className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-surface-mute ${
-                        checked ? 'bg-pco-blue/10 border border-pco-blue/30' : 'border border-transparent'
-                      }`}
-                    >
-                      <input
-                        type={q.type === 'true_false' ? 'radio' : 'checkbox'}
-                        name={`q-${q.id}`}
-                        checked={checked}
-                        onChange={() => toggleOption(q.id, o.id, q.type)}
-                        className="accent-pco-blue"
-                      />
-                      <span className="text-sm">{o.text}</span>
-                    </label>
-                  </li>
-                );
-              })}
-            </ul>
+            {q.type === 'open_ended' ? (
+              <textarea
+                value={textAnswers[q.id] ?? ''}
+                onChange={(e) =>
+                  setTextAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                }
+                placeholder="Escreva sua resposta aqui..."
+                rows={4}
+                className="w-full rounded-lg border border-surface-gray p-3 text-sm focus:border-pco-blue focus:ring-1 focus:ring-pco-blue/30 outline-none resize-y"
+              />
+            ) : (
+              <ul className="space-y-2">
+                {q.options.map((o) => {
+                  const checked = answers[q.id]?.has(o.id) ?? false;
+                  return (
+                    <li key={o.id}>
+                      <label
+                        className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-surface-mute ${
+                          checked ? 'bg-pco-blue/10 border border-pco-blue/30' : 'border border-transparent'
+                        }`}
+                      >
+                        <input
+                          type={q.type === 'true_false' ? 'radio' : 'checkbox'}
+                          name={`q-${q.id}`}
+                          checked={checked}
+                          onChange={() => toggleOption(q.id, o.id, q.type)}
+                          className="accent-pco-blue"
+                        />
+                        <span className="text-sm">{o.text}</span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </li>
         ))}
       </ul>

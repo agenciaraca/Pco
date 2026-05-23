@@ -3220,7 +3220,7 @@ export async function deleteApiToken(id: string): Promise<{ ok: true }> {
 
 // ---------- Question bank ----------
 
-export type QuestionTypeDto = 'multiple_choice' | 'true_false';
+export type QuestionTypeDto = 'multiple_choice' | 'true_false' | 'open_ended';
 
 export interface QuestionOptionDto {
   id: string;
@@ -3235,6 +3235,7 @@ export interface QuestionDto {
   type: QuestionTypeDto;
   prompt: string;
   options: QuestionOptionDto[];
+  expectedAnswer?: string;
   explanation?: string;
   tags: string[];
   difficulty: number;
@@ -3254,6 +3255,7 @@ export interface CreateQuestionInput {
   type: QuestionTypeDto;
   prompt: string;
   options: { text: string; correct: boolean }[];
+  expectedAnswer?: string;
   explanation?: string;
   tags?: string[];
   difficulty?: number;
@@ -3307,15 +3309,24 @@ export interface QuizGradeResultDto {
   pct: number;
   results: Array<{
     questionId: string;
+    type?: string;
     correct: boolean;
     correctOptionIds: string[];
     explanation: string | null;
+    aiScore?: number | null;
+    aiFeedback?: string | null;
   }>;
+}
+
+export interface QuizAnswerInput {
+  questionId: string;
+  selectedOptionIds?: string[];
+  textAnswer?: string;
 }
 
 export async function submitQuiz(
   courseId: string,
-  answers: { questionId: string; selectedOptionIds: string[] }[],
+  answers: QuizAnswerInput[],
 ): Promise<QuizGradeResultDto> {
   return http.post(`/me/quiz/${encodeURIComponent(courseId)}/grade`, {
     answers,
