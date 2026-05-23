@@ -2539,6 +2539,24 @@ export function useDeleteLiveSession() {
   });
 }
 
+// Zoom config
+export function useZoomConfig() {
+  return useQuery({
+    queryKey: ['admin', 'zoom-config'] as const,
+    queryFn: api.fetchZoomConfig,
+  });
+}
+
+export function useSaveZoomConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.saveZoomConfig,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'zoom-config'] });
+    },
+  });
+}
+
 export function useStudentAnalytics(studentId: string | undefined) {
   return useQuery({
     queryKey: ['admin', 'students', studentId, 'analytics'] as const,

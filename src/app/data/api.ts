@@ -4413,6 +4413,24 @@ export async function deleteLiveSession(id: string): Promise<{ ok: true }> {
   );
 }
 
+export interface ZoomConfigDto {
+  configured: boolean;
+  sdkKey?: string;
+  enabled?: boolean;
+  hasSecret?: boolean;
+}
+
+export async function fetchZoomConfig(): Promise<ZoomConfigDto> {
+  return http.get('/admin/zoom/config');
+}
+
+export async function saveZoomConfig(input: {
+  sdkKey: string;
+  sdkSecret: string;
+}): Promise<{ sdkKey: string; enabled: boolean; hasSecret: boolean }> {
+  return http.put('/admin/zoom/config', input);
+}
+
 export async function fetchZoomSignature(
   meetingNumber: string,
 ): Promise<{ signature: string; sdkKey: string }> {

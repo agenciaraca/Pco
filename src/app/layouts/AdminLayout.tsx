@@ -107,6 +107,7 @@ export default function AdminLayout() {
           { to: '/admin/news', label: t('admin.nav.news'), icon: Newspaper },
           { to: '/admin/podcasts', label: t('admin.nav.podcasts'), icon: Mic2 },
           { to: '/admin/sessoes-ao-vivo', label: t('admin.nav.liveSessions'), icon: Radio },
+          { to: '/admin/zoom', label: 'Zoom SDK', icon: Radio },
           { to: '/admin/analise-supervisao', label: t('admin.nav.supervision'), icon: Stethoscope },
         ],
       },
