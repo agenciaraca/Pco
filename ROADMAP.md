@@ -19,7 +19,7 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 | **GitHub Actions** deploy automático em push to main | ✅ 4 secrets cadastrados |
 | **Pagamentos**: 2 gateways live | ✅ Ativos |
 | **CI** passing | ✅ 0 errors |
-| **Tests** | ✅ 1474 passando |
+| **Tests** | ✅ 1507 passando |
 | **HTTPS via Cloudflare** | ✅ HSTS + CSP + X-Frame |
 
 **Login admin**: `psicanaliseclinica.online@gmail.com` / senha trocada em 2026-05-18
@@ -374,17 +374,17 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - **API pública openapi.json** — não-iniciado
 - **Cookbook de webhooks** — não-iniciado
 
-### Features extras (não-iniciadas)
-- **Admin onboarding wizard interativo** (oposto do checklist passivo)
-- **Live session embed direto na aula** (Zoom SDK) em vez de só link externo
+### Features extras
+- ✅ **Admin onboarding wizard interativo** (2026-05-23 — role-aware para atendentes/coordenadores/admins, redirect no primeiro login)
+- ✅ **Live session embed direto na aula** (2026-05-23 — Zoom Meeting SDK, config admin em /admin/zoom, embed dentro da plataforma)
 - **Course collaborators / co-instrutores** — papel "instrutor" com acesso parcial
-- **Quiz auto-correção via Tutor IA** — ramificação do tutor
-- **Forum/canal por curso** (acima de comentários por aula) — discussão geral
+- ✅ **Quiz auto-correção via Tutor IA** (2026-05-23 — tipo open_ended, módulo AI 'grading', score 0-100 + feedback)
+- ~~**Forum/canal por curso**~~ — descartado (decisão de produto: alunos não interagem entre si)
 - **Kanban admin de evasão** — extensão do AdminEvasion já existente
 - **Live transcription / chat IA durante aula** — fora do escopo atual
 - **Mobile app nativo** — PWA atual cobre o essencial
 - **Editor visual de e-mail templates** — hoje é HTML cru
-- **Bilhetes IA semanal** (digest pra admin sobre saúde da plataforma)
+- ✅ **Digest IA semanal** (2026-05-23 — relatório semanal enriquecido com erros/retenção/completions + análise automática via IA)
 
 ### Robustez
 - **Tests de UI/integration** com Testing Library + MSW (hoje só unit em puros) — não-iniciado
@@ -452,8 +452,12 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 | 🟡 MÉDIA | OAuth Google login | reduzir fricção signup | 1 dia |
 | ~~🟡~~ ✅ | ~~Coverage badge no README~~ (sprint 538) | visibilidade | 0.3 dia |
 | ~~🟡~~ ✅ | ~~API pública openapi.json~~ + .yaml + Swagger UI (sprints 472, 546) | docs | 1 dia |
+| ~~🟡~~ ✅ | ~~Digest IA semanal~~ (2026-05-23 — weekly-report + AI summaries) | visibilidade admin | 0.5 dia |
+| ~~🟡~~ ✅ | ~~Onboarding wizard~~ (2026-05-23 — role-aware redirect) | staff novo | 0.5 dia |
+| ~~🟡~~ ✅ | ~~Quiz auto-correção IA~~ (2026-05-23 — open_ended + grading AI) | pedagógico | 1 dia |
+| ~~🟡~~ ✅ | ~~Zoom embed~~ (2026-05-23 — Meeting SDK + admin config) | UX aluno | 1 dia |
 | 🟢 BAIXA | Editor visual de e-mail templates | UX admin | 3 dias |
-| 🟢 BAIXA | Quiz com banco de questões | feature ampla | 5+ dias |
+| ~~🟢~~ ✅ | ~~Quiz com banco de questões~~ (sprints 503+513+514 + 2026-05-23 auto-correção) | feature ampla | entregue |
 | 🟢 BAIXA | Migrações Drizzle aplicadas em prod | unlock Postgres | 1 dia |
 | 🟢 BAIXA | Multi-tenant | praticamente outro projeto | indefinido |
 
