@@ -2782,11 +2782,42 @@ export async function deleteSystemUser(
 
 // ---------- Recovery plans ----------
 
-export async function generateRecoveryPlan(input: RecoveryPlanInput): Promise<{
+export interface RecoveryPlanDto {
+  id: string;
+  studentId: string;
+  studentName: string;
+  tone: string;
+  channel: string;
+  intensity: string;
+  goal: string;
+  diagnosis: string;
   message: string;
-  plan: Record<string, unknown>;
-}> {
+  suggestedTutorPrompt?: string;
+  weeklyGoalMinutes: number;
+  status: 'draft' | 'sent' | 'in_followup' | 'completed';
+  aiProvider?: string;
+  aiModel?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function generateRecoveryPlan(
+  input: RecoveryPlanInput,
+): Promise<{ plan: RecoveryPlanDto }> {
   return http.post('/admin/recovery-plan', input);
+}
+
+export async function fetchStudentRecoveryPlans(
+  studentId: string,
+): Promise<{ plans: RecoveryPlanDto[] }> {
+  return http.get(`/admin/recovery-plans/${encodeURIComponent(studentId)}`);
+}
+
+export async function updateRecoveryPlanStatus(
+  id: string,
+  status: RecoveryPlanDto['status'],
+): Promise<RecoveryPlanDto> {
+  return http.put(`/admin/recovery-plans/${encodeURIComponent(id)}/status`, { status });
 }
 
 // ---------- Email transacional ----------

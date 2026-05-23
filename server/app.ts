@@ -103,6 +103,7 @@ import * as podcastsRepo from './repositories/podcasts';
 import * as libraryRepo from './repositories/library';
 import * as certsRepo from './repositories/certificates';
 import * as retentionRepo from './repositories/retention';
+import * as recoveryPlans from './repositories/recovery-plans';
 import * as sessionsRepo from './repositories/sessions';
 import * as studentsRepo from './repositories/students';
 import * as metricsRepo from './repositories/metrics';
@@ -2700,21 +2701,67 @@ export function buildApp() {
 
   // ---------- Recovery plan ----------
 
-  app.post('/admin/recovery-plan', async (c) => {
-    const body = await c.req.json().catch(() => ({}));
-    const v = validate(recoveryPlanSchema, body);
-    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const message = `Plano gerado (mock) com tom ${v.data.tone}, canal ${v.data.channel}, intensidade ${v.data.intensity}.`;
-    return c.json({
-      message,
-      plan: {
-        ...v.data,
-        message,
-        weeklyGoalMinutes: 120,
-        status: 'draft',
-      },
-    });
+  app.post(
+    '/admin/recovery-plan',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const v = validate(recoveryPlanSchema, body);
+      if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+
+      const student = await studentsRepo.findAdminStudent(v.data.studentId);
+      const risks = await retentionRepo.listRetentionRisks();
+      const risk = risks.find((r) => r.studentId === v.data.studentId);
+
+      const plan = await recoveryPlans.generateWithAi({
+        studentId: v.data.studentId,
+        studentName: student?.name ?? risk?.studentName ?? 'Aluno',
+        riskScore: risk?.score ?? 50,
+        riskReasons: risk?.reasons ?? [],
+        realProgress: risk?.realProgress ?? 0,
+        expectedProgress: risk?.expectedProgress ?? 0,
+        tone: v.data.tone,
+        channel: v.data.channel,
+        intensity: v.data.intensity,
+        goal: v.data.goal,
+      });
+
+      await recordAudit(c, {
+        action: 'recovery_plan.generate',
+        targetType: 'recovery_plan',
+        targetId: plan.id,
+        meta: { studentId: v.data.studentId },
+      });
+
+      return c.json({ plan });
+    },
+  );
+
+  app.get('/admin/recovery-plans/:studentId', requireAuth('admin', 'superadmin'), async (c) => {
+    const studentId = c.req.param('studentId') as string;
+    const plans = await recoveryPlans.listForStudent(studentId);
+    return c.json({ plans });
   });
+
+  app.put(
+    '/admin/recovery-plans/:id/status',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const status = body.status as string;
+      if (!['draft', 'sent', 'in_followup', 'completed'].includes(status)) {
+        return jsonError(c, 400, 'INVALID_STATUS', 'Status inválido.');
+      }
+      const updated = await recoveryPlans.updateStatus(
+        id,
+        status as 'draft' | 'sent' | 'in_followup' | 'completed',
+      );
+      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Plano não encontrado.');
+      return c.json(updated);
+    },
+  );
 
   // ---------- Admin: Course writes ----------
 

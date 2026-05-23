@@ -257,21 +257,42 @@ export default function AdminEvasion() {
                               <div className="text-sm font-semibold text-pco-deep truncate">
                                 {r.studentName}
                               </div>
-                              <div className="text-[10px] text-ink-subtle">
-                                Score: <strong>{r.score}</strong>
+                              <div className="flex items-center gap-2 text-[10px] text-ink-subtle mt-0.5">
+                                <span>Score: <strong>{r.score}</strong></span>
+                                <span>·</span>
+                                <span>{Math.round((Date.now() - new Date(r.lastAccessAt).getTime()) / 86400000)}d inativo</span>
+                              </div>
+                              <div className="mt-1.5 h-1 rounded-full bg-surface-gray overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-pco-blue"
+                                  style={{ width: `${r.realProgress}%` }}
+                                  title={`Progresso: ${r.realProgress}% (esperado: ${r.expectedProgress}%)`}
+                                />
+                              </div>
+                              <div className="text-[9px] text-ink-subtle mt-0.5">
+                                {r.realProgress}% / {r.expectedProgress}% esperado
                               </div>
                               {r.reasons && r.reasons.length > 0 && (
                                 <div className="text-[10px] text-ink-muted mt-1 line-clamp-2">
                                   {r.reasons.slice(0, 2).join(' · ')}
                                 </div>
                               )}
-                              <Link
-                                to={`/admin/alunos/${r.studentId}`}
-                                className="text-[10px] text-pco-blue hover:underline mt-1 inline-flex items-center gap-0.5"
-                              >
-                                Ver perfil
-                                <ArrowRight size={9} strokeWidth={2} />
-                              </Link>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <Link
+                                  to={`/admin/plano-retomada-ia?studentId=${r.studentId}`}
+                                  className="text-[10px] text-pco-blue hover:underline inline-flex items-center gap-0.5 font-medium"
+                                >
+                                  <Sparkles size={9} strokeWidth={2} />
+                                  Plano IA
+                                </Link>
+                                <Link
+                                  to={`/admin/alunos/${r.studentId}`}
+                                  className="text-[10px] text-ink-muted hover:text-pco-blue hover:underline inline-flex items-center gap-0.5"
+                                >
+                                  Perfil
+                                  <ArrowRight size={8} strokeWidth={2} />
+                                </Link>
+                              </div>
                             </div>
                           </label>
                         </li>
