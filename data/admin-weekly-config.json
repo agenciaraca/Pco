@@ -1,0 +1,11 @@
+[
+  {
+    "enabled": false,
+    "dayOfWeekUtc": 1,
+    "hourUtc": 9,
+    "recipientRoles": [
+      "admin",
+      "superadmin"
+    ]
+  }
+]
