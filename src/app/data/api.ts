@@ -3314,6 +3314,28 @@ export async function deleteQuestion(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/questions/${encodeURIComponent(id)}`);
 }
 
+export interface GenerateQuestionsInput {
+  count?: number;
+  moduleId?: string;
+}
+
+export interface GenerateQuestionsResult {
+  generated: number;
+  provider: string;
+  model: string;
+  questions: QuestionDto[];
+}
+
+export async function generateQuestions(
+  courseId: string,
+  input: GenerateQuestionsInput,
+): Promise<GenerateQuestionsResult> {
+  return http.post(
+    `/admin/courses/${encodeURIComponent(courseId)}/questions/generate`,
+    input,
+  );
+}
+
 export interface QuizQuestionPublicDto {
   id: string;
   type: QuestionTypeDto;

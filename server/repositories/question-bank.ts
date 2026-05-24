@@ -341,6 +341,182 @@ export async function gradeOpenEndedWithAi(
   }
 }
 
+// ---- Geração de questões com IA a partir do conteúdo do curso ----
+
+const AI_QUESTION_GEN_SYSTEM = `Você é um especialista em avaliação educacional da PCO (Psicanálise Clínica Online).
+Recebe o conteúdo de aulas de um curso e gera questões de prova de alta qualidade.
+
+Gere EXATAMENTE o número de questões solicitado. Cada questão deve seguir EXATAMENTE este formato JSON (sem markdown, sem código):
+
+[
+  {
+    "type": "multiple_choice",
+    "prompt": "Enunciado claro e específico",
+    "options": [
+      {"text": "Alternativa A", "correct": false},
+      {"text": "Alternativa B", "correct": true},
+      {"text": "Alternativa C", "correct": false},
+      {"text": "Alternativa D", "correct": false}
+    ],
+    "explanation": "Explicação da resposta correta",
+    "tags": ["tag1", "tag2"],
+    "difficulty": 3,
+    "moduleId": "id-do-modulo-se-fornecido"
+  }
+]
+
+Regras:
+- Tipos válidos: "multiple_choice" (2-6 opções, pelo menos 1 correta), "true_false" (exatamente 2 opções: "Verdadeiro" e "Falso", 1 correta).
+- Enunciado: 1-2000 caracteres, claro, sem ambiguidade.
+- Opções: texto de 1-500 caracteres cada.
+- Explicação: 1-3 frases justificando a resposta correta.
+- Tags: palavras-chave em português, lowercase.
+- Difficulty: 1 (fácil) a 5 (muito difícil). Distribua variadamente.
+- moduleId: use o ID do módulo de onde o conteúdo veio, se disponível.
+- Misture tipos: ~70% múltipla escolha, ~30% verdadeiro/falso.
+- NÃO gere questões dissertativas (open_ended).
+- Questões devem avaliar compreensão, não memorização superficial.
+- Evite pegadinhas ou formulações confusas.
+- Retorne APENAS o array JSON, sem texto adicional.`;
+
+export interface GenerateQuestionsInput {
+  courseId: string;
+  moduleId?: string;
+  count: number;
+  courseTitle: string;
+  modulesContent: {
+    moduleId: string;
+    moduleTitle: string;
+    lessons: { title: string; description?: string; content?: string }[];
+  }[];
+}
+
+export interface GenerateQuestionsResult {
+  questions: Question[];
+  provider: string;
+  model: string;
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export async function generateQuestionsFromCourse(
+  input: GenerateQuestionsInput,
+): Promise<GenerateQuestionsResult | null> {
+  const cfg = getActiveByModule('question_generation');
+  if (!cfg) return null;
+
+  const provider = getProvider(cfg.provider);
+  if (!provider) return null;
+
+  const contentParts: string[] = [
+    `Curso: ${input.courseTitle}`,
+    `Gere ${input.count} questões baseadas no conteúdo abaixo.`,
+    '',
+  ];
+
+  const modules = input.moduleId
+    ? input.modulesContent.filter((m) => m.moduleId === input.moduleId)
+    : input.modulesContent;
+
+  for (const mod of modules) {
+    contentParts.push(`## Módulo: ${mod.moduleTitle} (ID: ${mod.moduleId})`);
+    for (const lesson of mod.lessons) {
+      contentParts.push(`### Aula: ${lesson.title}`);
+      if (lesson.description) {
+        contentParts.push(lesson.description);
+      }
+      if (lesson.content) {
+        const plain = stripHtml(lesson.content);
+        contentParts.push(plain.slice(0, 8000));
+      }
+    }
+    contentParts.push('');
+  }
+
+  const userMessage = contentParts.join('\n');
+  const maxChars = 60000;
+  const trimmed = userMessage.length > maxChars
+    ? userMessage.slice(0, maxChars) + '\n[… conteúdo truncado]'
+    : userMessage;
+
+  try {
+    const result = await provider.chat({
+      apiKey: cfg.apiKey,
+      model: cfg.model,
+      messages: [{ role: 'user', content: trimmed }],
+      systemPrompt: AI_QUESTION_GEN_SYSTEM,
+      temperature: cfg.temperature ?? 0.7,
+      maxTokens: cfg.maxTokens ?? 4000,
+      timeoutMs: 60_000,
+    });
+
+    const { recordUsage } = await import('../ai/store');
+    recordUsage({
+      configId: cfg.id,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      costUsd: result.costUsd ?? 0,
+      successful: true,
+    });
+
+    let parsed: unknown[];
+    try {
+      const cleaned = result.text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      console.error('[question-bank] AI retornou JSON inválido:', result.text.slice(0, 500));
+      return null;
+    }
+
+    if (!Array.isArray(parsed)) return null;
+
+    const created: Question[] = [];
+    for (const raw of parsed) {
+      const item = raw as Record<string, unknown>;
+      try {
+        const q = await createQuestion({
+          courseId: input.courseId,
+          moduleId: typeof item.moduleId === 'string' ? item.moduleId : undefined,
+          type: item.type as QuestionType,
+          prompt: String(item.prompt ?? ''),
+          options: Array.isArray(item.options)
+            ? (item.options as Array<{ text?: string; correct?: boolean }>).map((o) => ({
+                text: String(o?.text ?? ''),
+                correct: !!o?.correct,
+              }))
+            : [],
+          expectedAnswer: typeof item.expectedAnswer === 'string' ? item.expectedAnswer : undefined,
+          explanation: typeof item.explanation === 'string' ? item.explanation : undefined,
+          tags: Array.isArray(item.tags) ? (item.tags as unknown[]).map((t) => String(t)) : undefined,
+          difficulty: typeof item.difficulty === 'number' ? item.difficulty : undefined,
+          active: true,
+        });
+        created.push(q);
+      } catch (err) {
+        console.warn('[question-bank] Questão gerada pela IA falhou validação:', err);
+      }
+    }
+
+    return {
+      questions: created,
+      provider: cfg.provider,
+      model: cfg.model,
+    };
+  } catch (err) {
+    console.error('[question-bank] AI generation falhou:', err);
+    return null;
+  }
+}
+
 export async function _resetForTests(): Promise<void> {
   await store.setAll([]);
 }

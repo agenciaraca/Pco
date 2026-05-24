@@ -1899,6 +1899,18 @@ export function useDeleteQuestion(courseId: string) {
   });
 }
 
+export function useGenerateQuestions(courseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: api.GenerateQuestionsInput) =>
+      api.generateQuestions(courseId, input),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: ['admin', 'course-questions', courseId],
+      }),
+  });
+}
+
 export function useAdminKpis() {
   return useQuery({
     queryKey: ['admin', 'kpis'] as const,

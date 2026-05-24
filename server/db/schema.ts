@@ -62,6 +62,7 @@ export const aiModuleEnum = pgEnum('ai_module', [
   'support',
   'summaries',
   'grading',
+  'question_generation',
 ]);
 
 export const aiProviderEnum = pgEnum('ai_provider', [

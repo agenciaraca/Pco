@@ -5605,6 +5605,69 @@ export function buildApp() {
     },
   );
 
+  // ---------- AI question generation ----------
+
+  app.post(
+    '/admin/courses/:id/questions/generate',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const courseId = c.req.param('id') as string;
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const count = typeof body.count === 'number' ? Math.max(1, Math.min(30, body.count)) : 10;
+      const moduleId = typeof body.moduleId === 'string' ? body.moduleId : undefined;
+
+      const course = await coursesRepo.findCourse(courseId);
+      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+
+      const modulesContent = course.modules
+        .filter((m) => !moduleId || m.id === moduleId)
+        .map((m) => ({
+          moduleId: m.id,
+          moduleTitle: m.title,
+          lessons: m.lessons.map((l) => ({
+            title: l.title,
+            description: l.description,
+            content: (l as unknown as Record<string, unknown>).content as string | undefined,
+          })),
+        }));
+
+      if (modulesContent.length === 0 || modulesContent.every((m) => m.lessons.length === 0)) {
+        return jsonError(c, 400, 'NO_CONTENT', 'Curso/módulo sem aulas com conteúdo.');
+      }
+
+      const result = await questionBank.generateQuestionsFromCourse({
+        courseId,
+        moduleId,
+        count,
+        courseTitle: course.title,
+        modulesContent,
+      });
+
+      if (!result) {
+        return jsonError(
+          c,
+          503,
+          'AI_UNAVAILABLE',
+          'IA não configurada ou falhou. Verifique as configurações em Admin > IA.',
+        );
+      }
+
+      await recordAudit(c, {
+        action: 'question.ai_generate',
+        targetType: 'course',
+        targetId: courseId,
+        meta: { count: result.questions.length, provider: result.provider, model: result.model },
+      });
+
+      return c.json({
+        generated: result.questions.length,
+        provider: result.provider,
+        model: result.model,
+        questions: result.questions,
+      });
+    },
+  );
+
   // ---------- Trilhas de estudo (study paths) ----------
 
   app.get('/study-paths', async (c) => {

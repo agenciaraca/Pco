@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   Circle,
   HelpCircle,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import {
   useCourse,
@@ -17,6 +19,7 @@ import {
   useCreateQuestion,
   useUpdateQuestion,
   useDeleteQuestion,
+  useGenerateQuestions,
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -67,12 +70,17 @@ export default function AdminQuestions() {
   const deleteMut = useDeleteQuestion(courseId ?? '');
   const toast = useToast();
 
+  const generateMut = useGenerateQuestions(courseId ?? '');
+
   const [editing, setEditing] = useState<EditState | null>(null);
   const [filterModule, setFilterModule] = useState<string>('all');
   const [filterType, setFilterType] = useState<'all' | QuestionTypeDto>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [search, setSearch] = useState('');
   const [tagInput, setTagInput] = useState('');
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [genCount, setGenCount] = useState(10);
+  const [genModuleId, setGenModuleId] = useState<string>('');
 
   const course = courseQ.data;
   const questions = questionsQ.data?.questions ?? [];
@@ -288,10 +296,20 @@ export default function AdminQuestions() {
             opções) ou Verdadeiro/Falso.
           </p>
         </div>
-        <button type="button" onClick={openCreate} className="pco-btn-primary text-xs">
-          <Plus size={12} strokeWidth={2} />
-          Nova questão
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowGenerate(true)}
+            className="pco-btn-ghost text-xs border border-pco-blue/30 text-pco-blue hover:bg-pco-blue/5"
+          >
+            <Sparkles size={12} strokeWidth={2} />
+            Gerar com IA
+          </button>
+          <button type="button" onClick={openCreate} className="pco-btn-primary text-xs">
+            <Plus size={12} strokeWidth={2} />
+            Nova questão
+          </button>
+        </div>
       </header>
 
       <div className="pco-card p-3 flex flex-wrap items-center gap-2">
@@ -452,6 +470,114 @@ export default function AdminQuestions() {
             );
           })}
         </ul>
+      )}
+
+      {showGenerate && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div
+            role="dialog"
+            aria-label="Gerar questões com IA"
+            className="bg-white rounded-xl shadow-xl max-w-md w-full flex flex-col"
+          >
+            <header className="flex items-center justify-between p-4 border-b border-pco-border">
+              <h2 className="text-lg font-bold text-pco-deep flex items-center gap-2">
+                <Sparkles size={18} className="text-pco-blue" />
+                Gerar questões com IA
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowGenerate(false)}
+                className="text-ink-muted hover:text-pco-deep"
+              >
+                <X size={20} />
+              </button>
+            </header>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-ink-muted">
+                A IA analisará o conteúdo das aulas (textos, descrições e materiais)
+                e gerará questões de múltipla escolha e verdadeiro/falso automaticamente.
+              </p>
+              <label className="block">
+                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  Quantidade de questões
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={genCount}
+                  onChange={(e) => setGenCount(Math.max(1, Math.min(30, Number(e.target.value))))}
+                  className="pco-input text-sm mt-1 w-full"
+                />
+                <p className="text-[11px] text-ink-subtle mt-1">Máximo 30 por geração.</p>
+              </label>
+              <label className="block">
+                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  Módulo (opcional)
+                </span>
+                <select
+                  value={genModuleId}
+                  onChange={(e) => setGenModuleId(e.target.value)}
+                  className="pco-input text-sm mt-1 w-full"
+                >
+                  <option value="">Todo o curso</option>
+                  {course.modules.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-ink-subtle mt-1">
+                  Filtre por módulo ou gere com base em todo o conteúdo do curso.
+                </p>
+              </label>
+            </div>
+            <footer className="flex justify-end gap-2 p-4 border-t border-pco-border">
+              <button
+                type="button"
+                onClick={() => setShowGenerate(false)}
+                className="pco-btn-ghost text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={generateMut.isPending}
+                onClick={async () => {
+                  try {
+                    const result = await generateMut.mutateAsync({
+                      count: genCount,
+                      moduleId: genModuleId || undefined,
+                    });
+                    toast.success(
+                      `${result.generated} questão(ões) gerada(s)`,
+                      `Via ${result.provider}/${result.model}`,
+                    );
+                    setShowGenerate(false);
+                  } catch (err) {
+                    toast.error(
+                      'Falha na geração',
+                      err instanceof Error ? err.message : 'Verifique as configurações de IA.',
+                    );
+                  }
+                }}
+                className="pco-btn-primary text-xs"
+              >
+                {generateMut.isPending ? (
+                  <>
+                    <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+                    Gerando…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={12} strokeWidth={2} />
+                    Gerar {genCount} questão(ões)
+                  </>
+                )}
+              </button>
+            </footer>
+          </div>
+        </div>
       )}
 
       {editing && (

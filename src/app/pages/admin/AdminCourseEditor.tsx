@@ -1064,8 +1064,16 @@ function CourseCoverUploader({ course }: { course: Course }) {
   const toast = useToast();
   const update = useUpdateCourse();
   const [uploading, setUploading] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const currentUrl = course.coverImageUrl;
+  const displayUrl = localPreview ?? currentUrl;
+
+  useEffect(() => {
+    return () => {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+    };
+  }, [localPreview]);
 
   async function handleFile(file: File) {
     if (!file.type.startsWith('image/')) {
@@ -1076,6 +1084,8 @@ function CourseCoverUploader({ course }: { course: Course }) {
       toast.error('Arquivo grande demais', 'Máximo 5MB.');
       return;
     }
+    const preview = URL.createObjectURL(file);
+    setLocalPreview(preview);
     setUploading(true);
     try {
       const result = await api.uploadFile(file);
@@ -1085,6 +1095,7 @@ function CourseCoverUploader({ course }: { course: Course }) {
       });
       toast.success('Capa atualizada');
     } catch (err) {
+      setLocalPreview(null);
       toast.error('Falha no upload', err instanceof Error ? err.message : 'Erro');
     } finally {
       setUploading(false);
@@ -1093,9 +1104,10 @@ function CourseCoverUploader({ course }: { course: Course }) {
   }
 
   async function handleRemove() {
-    if (!currentUrl) return;
+    if (!displayUrl) return;
     if (!confirm('Remover capa do curso? Vai voltar ao gradient padrão.')) return;
     setUploading(true);
+    setLocalPreview(null);
     try {
       await update.mutateAsync({
         id: course.id,
@@ -1109,12 +1121,23 @@ function CourseCoverUploader({ course }: { course: Course }) {
     }
   }
 
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  }
+
   return (
     <div>
-      <div className="relative h-32 rounded-xl overflow-hidden mb-3 border border-surface-gray">
-        {currentUrl ? (
+      <div
+        className="relative h-32 rounded-xl overflow-hidden mb-3 border border-surface-gray cursor-pointer group"
+        onClick={() => !uploading && fileRef.current?.click()}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+      >
+        {displayUrl ? (
           <img
-            src={currentUrl}
+            src={displayUrl}
             alt={`Capa do curso ${course.title}`}
             className="w-full h-full object-cover"
           />
@@ -1126,6 +1149,11 @@ function CourseCoverUploader({ course }: { course: Course }) {
         {uploading && (
           <div className="absolute inset-0 bg-pco-deep/40 grid place-items-center">
             <Loader2 size={20} className="text-white animate-spin" strokeWidth={2} />
+          </div>
+        )}
+        {!uploading && (
+          <div className="absolute inset-0 bg-pco-deep/0 group-hover:bg-pco-deep/30 transition-colors grid place-items-center opacity-0 group-hover:opacity-100">
+            <Upload size={20} className="text-white" strokeWidth={2} />
           </div>
         )}
       </div>
@@ -1151,9 +1179,9 @@ function CourseCoverUploader({ course }: { course: Course }) {
           ) : (
             <Upload size={12} strokeWidth={2} />
           )}
-          {currentUrl ? 'Substituir' : 'Enviar imagem'}
+          {displayUrl ? 'Substituir' : 'Enviar imagem'}
         </button>
-        {currentUrl && (
+        {displayUrl && (
           <button
             type="button"
             onClick={handleRemove}
@@ -1166,7 +1194,7 @@ function CourseCoverUploader({ course }: { course: Course }) {
         )}
       </div>
       <p className="text-[10px] text-ink-subtle mt-2">
-        JPG, PNG, WEBP ou GIF · até 5MB. Recomendado: 1280×720px.
+        JPG, PNG, WEBP ou GIF · até 5MB. Recomendado: 1280×720px. Clique ou arraste.
       </p>
     </div>
   );

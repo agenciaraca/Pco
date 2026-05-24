@@ -14,7 +14,8 @@ export type AiModule =
   | 'recommendations'
   | 'support'
   | 'summaries'
-  | 'grading';
+  | 'grading'
+  | 'question_generation';
 
 export interface AiConfig {
   id: string;
