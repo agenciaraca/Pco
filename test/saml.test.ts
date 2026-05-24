@@ -8,12 +8,14 @@ import {
   buildRedirectUrl,
   parseSamlResponse,
   validateConditions,
+  verifySamlSignature,
 } from '../server/auth/saml';
 
 const baseConfig = {
   issuer: 'ava-pco',
   idpSsoUrl: 'https://idp.example.com/sso',
   acsUrl: 'https://app.example.com/api/auth/saml/acs',
+  idpCert: null as string | null,
 };
 
 beforeEach(() => {
@@ -43,6 +45,7 @@ describe('samlConfigFromEnv', () => {
       issuer: 'ava',
       idpSsoUrl: 'https://idp/sso',
       acsUrl: 'https://sp/acs',
+      idpCert: null,
     });
   });
 });
@@ -212,5 +215,32 @@ describe('validateConditions', () => {
       5 * 60 * 1000, // 5 min skew
     );
     expect(r.ok).toBe(true);
+  });
+});
+
+describe('verifySamlSignature', () => {
+  it('retorna valid quando idpCert é null (modo BETA)', () => {
+    const fakeResponse = Buffer.from('<Response>test</Response>').toString('base64');
+    const result = verifySamlSignature(fakeResponse, null);
+    expect(result.valid).toBe(true);
+  });
+
+  it('retorna invalid quando não há assinatura no XML', () => {
+    const fakeResponse = Buffer.from('<Response>sem signature</Response>').toString('base64');
+    const result = verifySamlSignature(fakeResponse, 'MIIC_fake_cert');
+    expect(result.valid).toBe(false);
+    expect(result.reason).toContain('Nenhuma assinatura');
+  });
+
+  it('retorna invalid com certificado inválido + assinatura presente', () => {
+    const xml = `<Response>
+      <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+        <ds:SignedInfo><ds:Reference URI=""/></ds:SignedInfo>
+        <ds:SignatureValue>fake</ds:SignatureValue>
+      </ds:Signature>
+    </Response>`;
+    const b64 = Buffer.from(xml).toString('base64');
+    const result = verifySamlSignature(b64, 'INVALID_CERT_DATA');
+    expect(result.valid).toBe(false);
   });
 });

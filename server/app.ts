@@ -717,10 +717,7 @@ export function buildApp() {
     return c.redirect(`/auth/oauth/finish#token=${encodeURIComponent(token)}`, 302);
   });
 
-  // ---------- SAML SSO (env-gated, BETA — sem signature validation) ----------
-  // Pra prod hardened com IDP nao confiavel: adicione xml-crypto + verifique
-  // assinatura X.509 do IDP em parseSamlResponse. Atualmente confia no
-  // transporte HTTPS + IDP cadastrado via env vars.
+  // ---------- SAML SSO (env-gated, com signature validation via xml-crypto) ----------
   app.get('/auth/saml/login', async (c) => {
     const cfg = samlAuth.samlConfigFromEnv();
     if (!cfg) {
@@ -746,6 +743,14 @@ export function buildApp() {
     }
     const rs = body['RelayState'];
     const relayState = typeof rs === 'string' ? rs : '/dashboard';
+
+    const sigCheck = samlAuth.verifySamlSignature(samlResponse, cfg.idpCert);
+    if (!sigCheck.valid) {
+      return c.redirect(
+        `/login?error=saml_sig_${encodeURIComponent(sigCheck.reason ?? 'invalid')}`,
+        302,
+      );
+    }
 
     let assertion;
     try {

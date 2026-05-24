@@ -1,30 +1,26 @@
-// SAML 2.0 SP-initiated flow minimal — SEM xml-crypto.
+// SAML 2.0 SP-initiated flow com verificação de assinatura via xml-crypto.
 //
 // Suporta:
 // - buildAuthnRequest: XML + base64 + deflate (HTTP Redirect binding)
 // - parseSamlResponse: extrai NameID + email de um SAMLResponse base64
+// - verifySamlSignature: valida assinatura XML do IDP via certificado X.509
 // - validateConditions: confere NotBefore/NotOnOrAfter
-//
-// IMPORTANTE: signature validation NAO esta implementada aqui. Para prod
-// hardened com IDP nao confiavel, adicione xml-crypto + verificacao do
-// X.509 do IDP. Esta implementacao confia no transporte HTTPS + IDP
-// pre-cadastrado via env.
 //
 // Env-gated:
 //   SAML_ISSUER (entityID do SP, ex: ava-pco)
 //   SAML_IDP_SSO_URL (URL onde o IDP recebe AuthnRequest)
 //   SAML_ACS_URL (callback do SP onde IDP devolve SAMLResponse)
+//   SAML_IDP_CERT (certificado X.509 do IDP, PEM sem header/footer, opcional)
 
 import * as zlib from 'node:zlib';
 import crypto from 'node:crypto';
 
 export interface SamlConfig {
-  /** entityID do SP (geralmente um URL ou string opaca). */
   issuer: string;
-  /** URL onde o IDP recebe AuthnRequest (Redirect binding). */
   idpSsoUrl: string;
-  /** Callback URL no SP. */
   acsUrl: string;
+  /** PEM do certificado X.509 do IDP (sem BEGIN/END). Se ausente, assinatura não é verificada. */
+  idpCert: string | null;
 }
 
 export function samlConfigFromEnv(): SamlConfig | null {
@@ -32,7 +28,8 @@ export function samlConfigFromEnv(): SamlConfig | null {
   const idpSsoUrl = process.env.SAML_IDP_SSO_URL;
   const acsUrl = process.env.SAML_ACS_URL;
   if (!issuer || !idpSsoUrl || !acsUrl) return null;
-  return { issuer, idpSsoUrl, acsUrl };
+  const rawCert = process.env.SAML_IDP_CERT ?? null;
+  return { issuer, idpSsoUrl, acsUrl, idpCert: rawCert };
 }
 
 /**
@@ -71,6 +68,45 @@ export function buildRedirectUrl(
   let url = `${config.idpSsoUrl}${sep}SAMLRequest=${encoded}`;
   if (relayState) url += `&RelayState=${encodeURIComponent(relayState)}`;
   return url;
+}
+
+/**
+ * Verifica a assinatura XML de um SAMLResponse usando o certificado X.509 do IDP.
+ * Retorna { valid: true } se a assinatura é válida, ou { valid: false, reason } se não.
+ * Se idpCert é null, pula a verificação (modo BETA).
+ */
+export function verifySamlSignature(
+  samlResponseB64: string,
+  idpCert: string | null,
+): { valid: boolean; reason?: string } {
+  if (!idpCert) return { valid: true };
+
+  const xml = Buffer.from(samlResponseB64, 'base64').toString('utf8');
+  const sigMatch = /<ds:Signature[^>]*xmlns:ds="http:\/\/www\.w3\.org\/2000\/09\/xmldsig#"[\s\S]*?<\/ds:Signature>/.exec(xml);
+  if (!sigMatch) {
+    return { valid: false, reason: 'Nenhuma assinatura encontrada no SAMLResponse.' };
+  }
+
+  try {
+    const { SignedXml } = require('xml-crypto') as typeof import('xml-crypto');
+    const pem = idpCert.includes('BEGIN CERTIFICATE')
+      ? idpCert
+      : `-----BEGIN CERTIFICATE-----\n${idpCert}\n-----END CERTIFICATE-----`;
+
+    const sig = new SignedXml({ publicCert: pem });
+    sig.loadSignature(sigMatch[0]);
+    const isValid = sig.checkSignature(xml);
+    if (!isValid) {
+      const errors = (sig as unknown as { validationErrors?: string[] }).validationErrors ?? [];
+      return { valid: false, reason: `Assinatura invalida: ${errors.join('; ')}` };
+    }
+    return { valid: true };
+  } catch (err) {
+    return {
+      valid: false,
+      reason: `Erro ao verificar assinatura: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
 }
 
 export interface SamlAssertion {
