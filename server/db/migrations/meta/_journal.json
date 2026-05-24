@@ -8,6 +8,13 @@
       "when": 1777825195609,
       "tag": "0000_puzzling_thunderbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779570106976,
+      "tag": "0001_panoramic_makkari",
+      "breakpoints": true
     }
   ]
 }
