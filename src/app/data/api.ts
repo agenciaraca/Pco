@@ -4468,6 +4468,44 @@ export async function fetchZoomSignature(
   return http.post('/zoom/signature', { meetingNumber });
 }
 
+// ---------- Transcription ----------
+
+export interface TranscriptionSegmentDto {
+  start: number;
+  end: number;
+  text: string;
+  speaker?: string;
+  confidence?: number;
+}
+
+export interface SessionTranscriptDto {
+  id: string;
+  sessionId: string;
+  segments: TranscriptionSegmentDto[];
+  fullText: string;
+  language: string;
+  durationSeconds: number;
+  provider: string;
+  model: string;
+  aiSummary?: string;
+  status: 'processing' | 'completed' | 'failed';
+  error?: string;
+  createdAt: string;
+}
+
+export async function fetchSessionTranscript(
+  sessionId: string,
+): Promise<SessionTranscriptDto> {
+  return http.get(`/session/${encodeURIComponent(sessionId)}/transcript`);
+}
+
+export async function startTranscription(
+  sessionId: string,
+  audioUrl: string,
+): Promise<{ transcript: SessionTranscriptDto; message: string }> {
+  return http.post(`/admin/transcription/transcribe/${encodeURIComponent(sessionId)}`, { audioUrl });
+}
+
 // ---------- Mentoring ----------
 
 export interface MentoringConfigDto {

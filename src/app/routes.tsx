@@ -20,6 +20,7 @@ const CheckoutMock = lazy(() => import('./pages/CheckoutMock'));
 const Pedidos = lazy(() => import('./pages/Pedidos'));
 const Eventos = lazy(() => import('./pages/Eventos'));
 const EventoDetail = lazy(() => import('./pages/EventoDetail'));
+const SessionTranscript = lazy(() => import('./pages/SessionTranscript'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacidade = lazy(() => import('./pages/Privacidade'));
@@ -195,6 +196,7 @@ export const router = createBrowserRouter([
       { path: '/pedidos', element: <S><Pedidos /></S> },
       { path: '/eventos', element: <S><Eventos /></S> },
       { path: '/eventos/:id', element: <S><EventoDetail /></S> },
+      { path: '/eventos/:id/transcript', element: <S><SessionTranscript /></S> },
     ],
   },
 

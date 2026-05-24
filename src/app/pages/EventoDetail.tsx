@@ -1,10 +1,11 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Calendar,
   Clock,
   ExternalLink,
+  FileText,
   Radio,
   User,
 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
+import LiveCaptions from '../components/LiveCaptions';
 
 const ZoomEmbed = lazy(() => import('../components/ZoomEmbed'));
 
@@ -23,6 +25,7 @@ export default function EventoDetail() {
   const sessionsQ = useMyLiveSessions();
   const sessions = sessionsQ.data ?? [];
   const session = sessions.find((s) => s.id === id);
+  const [showCaptions, setShowCaptions] = useState(false);
 
   if (sessionsQ.isLoading) return <CardListSkeleton count={1} />;
   if (!session) {
@@ -165,9 +168,24 @@ export default function EventoDetail() {
         </section>
       )}
 
+      {(isLive || session.statusComputed === 'ended') && id && (
+        <LiveCaptions
+          sessionId={id}
+          visible={showCaptions}
+          onToggle={() => setShowCaptions((v) => !v)}
+        />
+      )}
+
       {session.statusComputed === 'ended' && (
-        <div className="pco-card p-6 text-center text-sm text-ink-muted">
-          Esta sessao ja foi encerrada.
+        <div className="pco-card p-6 text-center space-y-3">
+          <p className="text-sm text-ink-muted">Esta sessao ja foi encerrada.</p>
+          <Link
+            to={`/eventos/${id}/transcript`}
+            className="pco-btn-secondary text-xs inline-flex items-center gap-1"
+          >
+            <FileText size={12} />
+            Ver transcricao
+          </Link>
         </div>
       )}
     </div>

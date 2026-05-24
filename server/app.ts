@@ -166,6 +166,10 @@ import { buildLeaderboard, getUserRank } from './activity/leaderboard';
 import * as liveSessions from './live-sessions/store';
 import * as zoomConfig from './live-sessions/zoom-config';
 import * as mentoringStore from './mentoring/store';
+import * as transcriptionConfig from './transcription/config';
+import * as transcriptionStore from './transcription/store';
+import { getTranscriptionProvider } from './transcription/providers';
+import { PSYCHOANALYSIS_VOCABULARY } from './transcription/vocabulary';
 import * as savedSearches from './saved-searches/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
 import { buildOpenApiSpec } from './http/openapi';
@@ -6770,6 +6774,141 @@ export function buildApp() {
       return c.json({ ok: true });
     },
   );
+
+  // ---------- Transcription ----------
+
+  app.get('/admin/transcription/config', requireAuth('admin', 'superadmin'), async (c) => {
+    const cfg = await transcriptionConfig.getConfig();
+    if (!cfg) return c.json({ configured: false });
+    return c.json({ configured: true, ...transcriptionConfig.getPublicConfig(cfg) });
+  });
+
+  app.put(
+    '/admin/transcription/config',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const provider = String(body.provider ?? 'whisper');
+      const apiKey = String(body.apiKey ?? '').trim();
+      if (!apiKey) return jsonError(c, 400, 'INVALID_INPUT', 'apiKey obrigatório.');
+      if (provider !== 'whisper' && provider !== 'deepgram') {
+        return jsonError(c, 400, 'INVALID_PROVIDER', 'Provider deve ser whisper ou deepgram.');
+      }
+      const cfg = await transcriptionConfig.setConfig({
+        provider: provider as 'whisper' | 'deepgram',
+        apiKey,
+        model: typeof body.model === 'string' ? body.model : undefined,
+        language: typeof body.language === 'string' ? body.language : undefined,
+      });
+      await recordAudit(c, {
+        action: 'transcription.config',
+        targetType: 'config',
+        targetId: 'transcription',
+      });
+      return c.json(transcriptionConfig.getPublicConfig(cfg));
+    },
+  );
+
+  app.post(
+    '/admin/transcription/transcribe/:sessionId',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 5 }),
+    async (c) => {
+      const sessionId = c.req.param('sessionId') as string;
+      const session = await liveSessions.findById(sessionId);
+      if (!session) return jsonError(c, 404, 'NOT_FOUND', 'Sessão não encontrada.');
+
+      const cfg = await transcriptionConfig.getConfig();
+      if (!cfg || !cfg.enabled) {
+        return jsonError(c, 503, 'NOT_CONFIGURED', 'Transcrição não configurada.');
+      }
+
+      const existing = await transcriptionStore.findBySessionId(sessionId);
+      if (existing?.status === 'processing') {
+        return c.json({ transcript: existing, message: 'Transcrição em andamento.' });
+      }
+
+      const provider = getTranscriptionProvider(cfg.provider);
+      if (!provider) {
+        return jsonError(c, 503, 'PROVIDER_ERROR', `Provider ${cfg.provider} não disponível.`);
+      }
+
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      const audioUrl = typeof body.audioUrl === 'string' ? body.audioUrl : undefined;
+      if (!audioUrl) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'audioUrl obrigatório (URL do áudio da sessão).');
+      }
+
+      const record = await transcriptionStore.createProcessing(sessionId);
+
+      void (async () => {
+        try {
+          const result = await provider.transcribe({
+            apiKey: transcriptionConfig.getDecryptedKey(cfg),
+            audioUrl,
+            language: cfg.language,
+            customVocabulary: PSYCHOANALYSIS_VOCABULARY,
+            model: cfg.model,
+          });
+          await transcriptionStore.markCompleted(record.id, {
+            segments: result.segments,
+            fullText: result.fullText,
+            language: result.language,
+            durationSeconds: result.durationSeconds,
+            provider: result.provider,
+            model: result.model,
+          });
+
+          const aiCfg = (await import('./ai/store')).getActiveByModule('summaries');
+          if (aiCfg) {
+            const aiProvider = (await import('./ai/providers')).getProvider(aiCfg.provider);
+            if (aiProvider) {
+              try {
+                const summary = await aiProvider.chat({
+                  apiKey: aiCfg.apiKey,
+                  model: aiCfg.model,
+                  messages: [{
+                    role: 'user',
+                    content: `Resuma esta transcrição de aula de psicanálise em PT-BR (máx 300 palavras). Destaque: pontos-chave, conceitos abordados, e recomendações de estudo.\n\n${result.fullText.slice(0, 8000)}`,
+                  }],
+                  systemPrompt: 'Você é um assistente acadêmico da PCO. Gere resumos claros e concisos de aulas.',
+                  temperature: 0.3,
+                  maxTokens: 600,
+                });
+                await transcriptionStore.setAiSummary(record.id, summary.text);
+              } catch {
+                // summary is optional
+              }
+            }
+          }
+        } catch (err) {
+          await transcriptionStore.markFailed(
+            record.id,
+            err instanceof Error ? err.message : 'Erro desconhecido.',
+          );
+        }
+      })();
+
+      await recordAudit(c, {
+        action: 'transcription.start',
+        targetType: 'live_session',
+        targetId: sessionId,
+      });
+
+      return c.json({ transcript: record, message: 'Transcrição iniciada em background.' }, 202);
+    },
+  );
+
+  app.get('/admin/transcriptions', requireAuth('admin', 'superadmin'), async (c) => {
+    return c.json({ transcripts: await transcriptionStore.listAll() });
+  });
+
+  app.get('/session/:sessionId/transcript', requireAuth(), async (c) => {
+    const sessionId = c.req.param('sessionId') as string;
+    const transcript = await transcriptionStore.findBySessionId(sessionId);
+    if (!transcript) return jsonError(c, 404, 'NOT_FOUND', 'Transcrição não encontrada.');
+    return c.json(transcript);
+  });
 
   // ---------- Mentoring / booking ----------
 
