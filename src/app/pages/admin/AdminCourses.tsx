@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   EyeOff,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -24,6 +25,7 @@ import {
   useAdminCoursesSummary,
   useUpdateCourse,
   useCreateCourse,
+  useDeleteCourse,
 } from '../../data/hooks';
 import SortableTh from '../../components/SortableTh';
 import { useTableSort } from '../../hooks/useTableSort';
@@ -80,6 +82,7 @@ export default function AdminCourses() {
   const duplicateMut = useDuplicateCourse();
   const updateMut = useUpdateCourse();
   const createMut = useCreateCourse();
+  const deleteMut = useDeleteCourse();
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const summaryQ = useAdminCoursesSummary();
@@ -238,6 +241,35 @@ export default function AdminCourses() {
       toast.success(`${ok} curso(s) ${active ? 'publicado(s)' : 'despublicado(s)'}`);
     } else {
       toast.info(`Concluído`, `${ok} ok · ${fail} falhou`);
+    }
+    setSelected(new Set());
+  };
+
+  const bulkDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (
+      !confirm(
+        `Excluir ${ids.length} curso(s) selecionado(s)? Esta ação não pode ser desfeita.`,
+      )
+    )
+      return;
+    setBulkBusy(true);
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await deleteMut.mutateAsync(id);
+        ok += 1;
+      } catch {
+        fail += 1;
+      }
+    }
+    setBulkBusy(false);
+    if (fail === 0) {
+      toast.success(`${ok} curso(s) excluído(s)`);
+    } else {
+      toast.error('Exclusão parcial', `${ok} ok · ${fail} falhou`);
     }
     setSelected(new Set());
   };
@@ -526,6 +558,16 @@ export default function AdminCourses() {
             </button>
             <button
               type="button"
+              onClick={bulkDelete}
+              disabled={bulkBusy || deleteMut.isPending}
+              className="pco-btn-ghost text-xs text-status-danger hover:bg-status-danger/10 disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Excluir todos os selecionados"
+            >
+              <Trash2 size={12} strokeWidth={2} />
+              Excluir
+            </button>
+            <button
+              type="button"
               onClick={() => setSelected(new Set())}
               className="pco-btn-ghost text-xs"
               title="Limpar seleção"
@@ -753,6 +795,31 @@ export default function AdminCourses() {
                           <Edit3 size={12} strokeWidth={2} />
                           Editar
                         </Link>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (
+                              !confirm(
+                                `Excluir "${c.title}"? Esta ação não pode ser desfeita.`,
+                              )
+                            )
+                              return;
+                            try {
+                              await deleteMut.mutateAsync(c.id);
+                              toast.success('Curso excluído', c.title);
+                            } catch (err) {
+                              toast.error(
+                                'Falha ao excluir',
+                                err instanceof Error ? err.message : 'Erro',
+                              );
+                            }
+                          }}
+                          disabled={deleteMut.isPending}
+                          className="pco-btn-ghost text-xs text-status-danger hover:bg-status-danger/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Excluir curso"
+                        >
+                          <Trash2 size={12} strokeWidth={2} />
+                        </button>
                       </div>
                     </td>
                   </tr>

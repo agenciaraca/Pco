@@ -3120,7 +3120,7 @@ export function buildApp() {
   app.delete(
     '/admin/courses/:id',
     requireAuth('admin', 'superadmin'),
-    rateLimit({ windowMs: 60_000, max: 10 }),
+    rateLimit({ windowMs: 60_000, max: 100 }),
     async (c) => {
       const id = c.req.param('id') as string;
       const result = await coursesRepo.deleteCourse(id);
