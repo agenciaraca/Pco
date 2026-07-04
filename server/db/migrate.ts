@@ -1,10 +1,10 @@
-// Aplica migrações em uma database remota usando Neon HTTP.
+// Aplica migrações em uma database remota usando node-postgres (TCP).
 // Uso: DATABASE_URL=... npm run db:migrate
 
 import 'dotenv/config';
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
-import { migrate } from 'drizzle-orm/neon-http/migrator';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import pg from 'pg';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -15,8 +15,12 @@ async function main() {
     process.exit(1);
   }
 
-  const sql = neon(url);
-  const db = drizzle(sql);
+  const cleanUrl = url
+    .replace(/([?&])sslmode=[^&]*/gi, '$1')
+    .replace(/([?&])channel_binding=[^&]*/gi, '$1')
+    .replace(/[?&]$/, '');
+  const pool = new pg.Pool({ connectionString: cleanUrl, ssl: { rejectUnauthorized: false } });
+  const db = drizzle(pool);
 
   const here = dirname(fileURLToPath(import.meta.url));
   const migrationsFolder = resolve(here, 'migrations');
@@ -24,6 +28,7 @@ async function main() {
   console.log('[migrate] aplicando migrações...');
   await migrate(db, { migrationsFolder });
   console.log('[migrate] OK.');
+  await pool.end();
 }
 
 main().catch((err) => {

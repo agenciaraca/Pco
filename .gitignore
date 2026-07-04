@@ -49,6 +49,7 @@ data/support-tickets.json
 data/sessions.json
 data/uploads/
 data/backups/
+backups/
 data/certificates.json
 data/students.json
 data/courses.json

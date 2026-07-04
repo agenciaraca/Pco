@@ -1,19 +1,32 @@
 // Cliente Drizzle env-gated.
 //
 // - Se DATABASE_URL não está definido, db === null (caller faz fallback no seed).
-// - Se está definido, usa @neondatabase/serverless (HTTP), que funciona
-//   em Vercel Functions (Node), edge e Bun sem mudar nada.
+// - Se está definido, usa node-postgres (pg) via TCP, compatível com qualquer
+//   Postgres padrão (DivZ, RDS, VPS self-hosted, Neon via pooler TCP, etc.).
 //
-// Em runtime serverless o pool é por invocação — Neon cuida de manter conexão.
+// Nota de deploy: o Pool mantém conexões TCP vivas — ideal para o processo
+// long-lived do VPS. Em Vercel Functions o pool é por invocação; o `max` baixo
+// evita esgotar o limite de conexões do servidor.
 
-import { drizzle, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
+import pg from 'pg';
 import * as schema from './schema';
 
-export type DB = NeonHttpDatabase<typeof schema>;
+export type DB = NodePgDatabase<typeof schema>;
 
 let _db: DB | null = null;
 let _initialized = false;
+
+// Remove params de SSL da connection string. O pg-connection-string moderno
+// trata `sslmode=require` como `verify-full`, o que rejeita certificados
+// self-signed (o caso do DivZ). Passamos o SSL explicitamente via objeto.
+function stripSslParams(url: string): string {
+  return url
+    .replace(/([?&])sslmode=[^&]*/gi, '$1')
+    .replace(/([?&])channel_binding=[^&]*/gi, '$1')
+    .replace(/[?&]$/, '')
+    .replace(/\?&/, '?');
+}
 
 export function getDb(): DB | null {
   if (_initialized) return _db;
@@ -31,11 +44,24 @@ export function getDb(): DB | null {
   }
 
   try {
-    const sql = neon(url);
-    _db = drizzle(sql, { schema });
+    const pool = new pg.Pool({
+      connectionString: stripSslParams(url),
+      // rejectUnauthorized:false aceita cert self-signed (DivZ). A conexão
+      // continua criptografada; apenas não valida a cadeia da CA.
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 15_000,
+    });
+    // Log de erros do pool para não derrubar o processo em desconexões.
+    pool.on('error', (err) => {
+      // eslint-disable-next-line no-console
+      console.error('[db] erro idle no pool pg:', err.message);
+    });
+    _db = drizzle(pool, { schema });
     if (process.env.NODE_ENV !== 'test') {
       // eslint-disable-next-line no-console
-      console.log('[db] conectado ao Postgres via Neon HTTP');
+      console.log('[db] conectado ao Postgres via node-postgres (pg)');
     }
     return _db;
   } catch (err) {

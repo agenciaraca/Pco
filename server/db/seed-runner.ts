@@ -2,8 +2,8 @@
 // Uso: DATABASE_URL=... npm run db:seed
 
 import 'dotenv/config';
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import pg from 'pg';
 import { sql as sqlT } from 'drizzle-orm';
 import * as schema from './schema';
 import {
@@ -26,8 +26,12 @@ async function main() {
     process.exit(1);
   }
 
-  const sql = neon(url);
-  const db = drizzle(sql, { schema });
+  const cleanUrl = url
+    .replace(/([?&])sslmode=[^&]*/gi, '$1')
+    .replace(/([?&])channel_binding=[^&]*/gi, '$1')
+    .replace(/[?&]$/, '');
+  const pool = new pg.Pool({ connectionString: cleanUrl, ssl: { rejectUnauthorized: false } });
+  const db = drizzle(pool, { schema });
 
   console.log('[seed] populando users e students...');
 
@@ -324,6 +328,7 @@ Linguagem em PT-BR, adulta e acolhedora.`,
     courses: counts.courses[0]?.n,
     aiConfigurations: counts.aiConfigurations[0]?.n,
   });
+  await pool.end();
 }
 
 main().catch((err) => {
