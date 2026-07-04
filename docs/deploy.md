@@ -11,8 +11,8 @@ Guia passo-a-passo para subir e atualizar a produção. O AVA PCO roda como proc
 | Build front | Vite (saída em `dist/`) |
 | Static + API | Hono serve `dist/` + roteia `/api/*` |
 | Persistência | JsonStore (default em `data/*.json`) |
-| Postgres | Opcional via `DATABASE_URL` (Neon ou similar) |
-| Process supervisor | nohup + setsid (sem systemd unit) |
+| Postgres | Via `DATABASE_URL` — produção em **DivZ** (`db.divz.com.br`); driver node-postgres (pg) |
+| Process supervisor | **pm2** (`ecosystem.config.cjs`); boot via cron `@reboot pm2 resurrect` |
 
 ## Pré-requisitos no VPS
 

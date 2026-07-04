@@ -12,7 +12,7 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 | Sistema | Status |
 |---|---|
-| **Postgres Neon** (sa-east-1) | ✅ `db:connected`, 2828 registros |
+| **Postgres DivZ** (`db.divz.com.br`, PG 16.9) | ✅ `db:connected` — migrado do Neon em 2026-07-03 (custo) |
 | **Email Brevo** + domínio verificado (DKIM+DMARC) | ✅ De `naoresponda@psicanaliseclinica.online` |
 | **Sentry** backend + frontend (org `eixo4`) | ✅ Capturando |
 | **UptimeRobot** | ✅ Monitora `/api/health` |
@@ -432,7 +432,7 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - **Deploy à produção via `scripts/update_vps_pwd.py`** requer envs `HOST`, `PORT`, `USER_NAME`, `KEY_PATH` SSH. Cada admin precisa configurar localmente.
 - ~~**`AI_KEY_ENCRYPTION_SECRET` em prod**~~: ✅ configurado em sprint 555.
 - ~~**Import via API portalpco.online**~~: sprint 555 rodou diagnose. portalpco.com.br: DNS ENOTFOUND (URL precisa correção). psicanaliseclinica.online: LD REST desabilitado (owner habilita no admin WP).
-- **Drizzle migrations**: script de aplicação pronto (`scripts/migrate_prod_db.py`); aguarda DATABASE_URL provisionada no Neon. Modo JSON segue como vigente.
+- **Drizzle migrations**: produção plugada no DivZ (Postgres) desde 2026-07-03; driver node-postgres. Modo JSON segue como fallback para entidades ainda não migradas. Nota: há drift schema.ts↔DB (ex.: coluna `tags` faltava em `library_items`/`podcasts`, corrigida via ALTER) — auditar migrations vs banco real.
 
 ---
 

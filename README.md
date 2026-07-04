@@ -19,7 +19,7 @@ Frontend SPA + backend serverless TypeScript end-to-end.
 | Backend | Hono (Vercel Functions / Node) |
 | Validação | Zod (schemas compartilhados client + server) |
 | Auth | Clerk (env-gated) — mock local fallback |
-| DB | Postgres (Neon recomendado) + Drizzle ORM (a plugar) |
+| DB | Postgres (DivZ em produção) + Drizzle ORM · driver node-postgres |
 | IA | Anthropic Claude (server-side proxy, env-gated) |
 | Testes | Vitest + Testing Library + jsdom |
 | Lint/Format | ESLint flat config + Prettier |
@@ -145,15 +145,17 @@ npm install @clerk/clerk-react
 4. Em `src/app/auth/AuthContext.tsx`, substitua `api.login` por
    `useUser()` + `useAuth()` do Clerk
 
-### 2. Database com Neon + Drizzle (já implementado)
+### 2. Database com Postgres + Drizzle (produção em DivZ)
 
 Schema completo, repositórios, criptografia AES-GCM e migrações **já estão
-implementados**. Para ativar, basta definir as env vars.
+implementados e ativos**. Produção roda em **DivZ** (`db.divz.com.br`, PG 16.9)
+via driver node-postgres (`pg`). Para plugar em outro ambiente, defina as env vars.
 
 **Passo a passo:**
 
-1. **Crie database no Neon**: https://console.neon.tech → New Project →
-   copie a connection string (formato `postgres://USER:PASSWORD@HOST/db?sslmode=require`)
+1. **Provisione um Postgres** (DivZ, ou qualquer Postgres TCP) e copie a
+   connection string (formato `postgres://USER:PASSWORD@HOST:5432/db?sslmode=require`).
+   O driver `pg` aceita cert self-signed.
 
 2. **Gere uma master key de criptografia** para chaves de IA:
    ```bash
@@ -187,7 +189,7 @@ implementados**. Para ativar, basta definir as env vars.
   auditoria, billing e enforcement de limites por aluno.
 
 **Sem `DATABASE_URL`** o sistema continua funcionando 100% no fallback
-in-memory — útil para dev rápido sem subir Neon.
+in-memory — útil para dev rápido sem subir um Postgres.
 
 **Comandos disponíveis:**
 ```bash
@@ -302,7 +304,7 @@ PR não merge se algum step falhar.
 ## Roadmap próximo
 
 - [ ] Plugar Clerk (auth real)
-- [ ] Plugar Neon + Drizzle (substituir seed)
+- [x] Postgres + Drizzle em produção (DivZ) — migrado do Neon em 2026-07-03
 - [ ] Plugar Anthropic (tutor real) — código já pronto, basta env
 - [ ] Plugar Sentry — código já pronto, basta env + npm install
 - [ ] Migrações Drizzle versionadas

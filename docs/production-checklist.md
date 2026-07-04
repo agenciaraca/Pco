@@ -68,19 +68,13 @@ Sem isso: erros ficam só em `data/errors.json` (visível em `/admin/erros`).
 
 ## 🟠 Preparado pra escala (próximas 1-2 semanas)
 
-### 6. Postgres (Neon)
+### 6. Postgres (DivZ) — ✅ ATIVO
 
-**Status:** código Drizzle pronto. JSON é fallback.
+**Status:** produção roda no **DivZ** (`db.divz.com.br:5432/pco-lms`, PG 16.9) desde 2026-07-03. Migrado do Neon (motivo=custo). JSON segue como fallback para entidades ainda não migradas.
 
-**Como ativar:**
-1. Criar projeto em https://neon.tech (0.5GB grátis)
-2. Copiar connection string (`postgresql://...?sslmode=require`)
-3. `echo "DATABASE_URL=postgresql://..." >> ~/ava-pco/.env` no VPS
-4. `npm run db:migrate` (aplica migrations)
-5. `npx tsx scripts/migrate_json_to_postgres.ts` (move dados existentes — script vai ser criado quando você quiser)
-6. Restart
+**Driver:** node-postgres (`pg`) — TCP padrão. O `DATABASE_URL` fica no `.env` do VPS. Cert self-signed aceito (`rejectUnauthorized:false` em `server/db/client.ts`).
 
-Depois disso: leituras paralelas, indexes, transactions.
+**Trocar de provedor no futuro:** basta trocar `DATABASE_URL` no `.env` e reiniciar (`pm2 restart ava-pco`). O driver `pg` fala com qualquer Postgres TCP. Backup do Neon pré-migração em `backups/neon-2026-07-03.{dump,sql}` (gitignored).
 
 ### 7. CDN para uploads (Cloudflare R2)
 
@@ -140,7 +134,7 @@ Hoje 1 processo Node. Pra escalar:
 ### 11. Read replicas Postgres
 
 Quando queries começarem a engargolar:
-- Configurar 1 replica read-only no Neon
+- Configurar 1 replica read-only no DivZ (ou provedor vigente)
 - Adaptar repos pra usar replica em queries pesadas (analytics, reports)
 
 ### 12. Mobile app
