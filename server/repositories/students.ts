@@ -1,4 +1,4 @@
-import { eq, desc, asc, and, ilike, or, sql, type SQL } from 'drizzle-orm';
+import { eq, desc, asc, and, ilike, or, sql, inArray, type SQL } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
 import { JsonStore } from '../db/json-store';
 import * as usersStore from '../auth/users-store';
@@ -376,7 +376,9 @@ export async function listAdminStudents(filter: StudentsFilter): Promise<AdminSt
       : await db
           .select()
           .from(schema.enrollments)
-          .where(sql`${schema.enrollments.studentId} = ANY(${ids})`);
+          // inArray gera `IN (...)` — portável em node-postgres. O antigo
+          // `= ANY(${ids})` virava tupla no driver pg e quebrava.
+          .where(inArray(schema.enrollments.studentId, ids));
 
   const result: AdminStudentDto[] = rows.map((r) => {
     const myEnrolls = enrolls.filter((e) => e.studentId === r.id);
