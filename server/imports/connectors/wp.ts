@@ -203,16 +203,32 @@ export async function fetchWpStudents(
     return acc;
   }
 
-  try {
-    return await fetchAll('edit');
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const is401 = msg.includes('HTTP 401');
-    const isForbiddenContext = msg.includes('rest_forbidden_context');
-    if (!is401 || !isForbiddenContext) {
-      throw new Error(
-        `Falha ao listar usuários WP: ${msg}\n\nDica: o Application Password precisa pertencer a um usuário com role "administrator" no WordPress para listar todos os alunos com email. Caso contrário, o WP retorna 401 com "rest_forbidden_context".`,
-      );
+  // Retry em erros transitórios de rede (fetch failed / ECONNRESET / timeout).
+  // NÃO retenta 401/403/rest_forbidden_context — é permissão, retry não ajuda.
+  const isTransient = (m: string): boolean =>
+    /fetch failed|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|network|timed? ?out|and retry|aborted/i.test(
+      m,
+    ) && !/HTTP 40[13]|rest_forbidden/i.test(m);
+
+  const MAX_ATTEMPTS = 4;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fetchAll('edit');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (isTransient(msg) && attempt < MAX_ATTEMPTS) {
+        // backoff linear: 2s, 4s, 6s
+        await new Promise((r) => setTimeout(r, attempt * 2000));
+        continue;
+      }
+      const is401 = msg.includes('HTTP 401');
+      const isForbiddenContext = msg.includes('rest_forbidden_context');
+      if (!is401 || !isForbiddenContext) {
+        throw new Error(
+          `Falha ao listar usuários WP: ${msg}\n\nDica: o Application Password precisa pertencer a um usuário com role "administrator" no WordPress para listar todos os alunos com email. Caso contrário, o WP retorna 401 com "rest_forbidden_context".`,
+        );
+      }
+      break; // 401 + forbidden_context → cai no fallback context=view
     }
   }
 
