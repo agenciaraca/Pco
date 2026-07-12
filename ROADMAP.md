@@ -6,9 +6,25 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado 2026-05-18 — pós go-live)
+## Estado atual (atualizado 2026-07-12)
 
 **🟢 EM PRODUÇÃO REAL**: https://ava.psicanaliseclinica.online
+
+**Painel do projeto (ondas, features, migração):** https://claude.ai/code/artifact/3419cff6-beab-4914-a9bb-4cf0566e5df7
+
+### Ondas
+
+| Onda | Período | Estado |
+|---|---|---|
+| 1 — Construção da plataforma | 3–10 mai 2026 (385 commits) | ✅ concluída |
+| 2 — Go-live + migração v1/v2 | 15–18 mai 2026 | ✅ software / ❌ dados importados errados |
+| 3 — Blitz de 13 features + tentativa via dump SQL | 22–26 mai 2026 | ✅ features / ❌ trilha SQL abandonada |
+| 4 — Banco DivZ + recuperação v3 dos dados | 15 jun – jul 2026 | 🔵 ~85% — falta a carga em prod (`--commit`) |
+| 5 — Dívida técnica e qualidade | jul 2026 | 🔵 em andamento |
+| 6 — Área de Publicações (SEO/GEO/E-E-A-T) | a definir | ⚪ não iniciada (blueprints escritos) |
+| 7 — App móvel nativo | após 5k alunos ativos | ⚪ congelada |
+
+**Bloqueio único da Onda 4:** a produção segue servindo os dados quebrados da v2 (2 matrículas em vez de ~1.109). O loader `scripts/load_v3_to_divz.ts` está validado em ensaio com rollback; falta rodar com `--commit` (passo irreversível) e rotacionar a senha do DivZ.
 
 | Sistema | Status |
 |---|---|
@@ -362,9 +378,11 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 
 ### Cobertura de testes restante
 - ~~**api-token-middleware**~~ ✅ (sprint 432)
-- **invoice generator** — render PDF/HTML de comprovante
-- **dispatcher webhooks** — fetch HTTP real, retry com backoff
-- **runReal full E2E** — integration com runner (apenas unit nos adapters)
+- ~~**invoice generator**~~ ✅ (`test/invoice.test.ts`)
+- ~~**dispatcher webhooks**~~ ✅ (`test/webhooks-dispatcher.test.ts`)
+- ~~**runReal full E2E**~~ ✅ (`test/import-runReal.test.ts`)
+
+Auditoria de 2026-07-12: os três itens acima já tinham teste — o backlog é que estava desatualizado. Suíte atual: **1552 unit + 15 E2E**, typecheck limpo.
 
 ### Documentação
 - ✅ docs técnica de cada módulo (15+ docs em `docs/`)
@@ -432,7 +450,9 @@ Stack: Hono v4 + Node 20 + tsx (sem build, runtime). React 18 + Vite + TanStack 
 - **Deploy à produção via `scripts/update_vps_pwd.py`** requer envs `HOST`, `PORT`, `USER_NAME`, `KEY_PATH` SSH. Cada admin precisa configurar localmente.
 - ~~**`AI_KEY_ENCRYPTION_SECRET` em prod**~~: ✅ configurado em sprint 555.
 - ~~**Import via API portalpco.online**~~: sprint 555 rodou diagnose. portalpco.com.br: DNS ENOTFOUND (URL precisa correção). psicanaliseclinica.online: LD REST desabilitado (owner habilita no admin WP).
-- **Drizzle migrations**: produção plugada no DivZ (Postgres) desde 2026-07-03; driver node-postgres. Modo JSON segue como fallback para entidades ainda não migradas. Nota: há drift schema.ts↔DB (ex.: coluna `tags` faltava em `library_items`/`podcasts`, corrigida via ALTER) — auditar migrations vs banco real.
+- ~~**Drift schema.ts↔DB**~~: ✅ auditado em 2026-07-12 com `scripts/audit_schema_drift.ts` contra o DivZ — **0 divergências** (17 tabelas, nenhuma coluna faltando ou sobrando). Rodar esse script depois de qualquer mudança em `schema.ts`; ele só lê `information_schema`.
+- **Carga v3 em produção** (Onda 4): único passo irreversível pendente — `DATABASE_URL=<divz> npx tsx scripts/load_v3_to_divz.ts --commit`. Sem a flag, faz ROLLBACK e apenas conta.
+- **Conexão ao DivZ da máquina local**: `ETIMEDOUT` (allowlist de IP no banco). Scripts de banco devem rodar pelo VPS, que tem acesso.
 
 ---
 

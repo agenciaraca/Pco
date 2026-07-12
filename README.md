@@ -1,14 +1,14 @@
 # AVA PCO
 
 [![CI](https://github.com/agenciaraca/Pco/actions/workflows/ci.yml/badge.svg)](https://github.com/agenciaraca/Pco/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-1449%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1552%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-71%25-green)
-![Sprints](https://img.shields.io/badge/sprints-563%2B-blue)
+![Sprints](https://img.shields.io/badge/sprints-570%2B-blue)
 ![License](https://img.shields.io/badge/license-Proprietary-lightgrey)
 
 Ambiente Virtual de Aprendizagem da Psicanálise Clínica Online.
 
-Frontend SPA + backend serverless TypeScript end-to-end.
+Frontend SPA + backend TypeScript end-to-end, no ar em https://ava.psicanaliseclinica.online.
 
 ## Stack
 
@@ -16,15 +16,15 @@ Frontend SPA + backend serverless TypeScript end-to-end.
 |---|---|
 | Frontend | Vite 5 · React 18 · TypeScript 5 · Tailwind 3 · React Router 6 |
 | Estado/dados | TanStack Query · React Hook Form + Zod |
-| Backend | Hono (Vercel Functions / Node) |
+| Backend | Hono v4 (Node via tsx; Vercel Functions como alvo alternativo) |
 | Validação | Zod (schemas compartilhados client + server) |
-| Auth | Clerk (env-gated) — mock local fallback |
-| DB | Postgres (DivZ em produção) + Drizzle ORM · driver node-postgres |
-| IA | Anthropic Claude (server-side proxy, env-gated) |
-| Testes | Vitest + Testing Library + jsdom |
+| Auth | JWT HS256 próprio + bcrypt + tokenVersion · 2FA TOTP · OAuth Google/Microsoft · SAML |
+| DB | Postgres (DivZ em produção) + Drizzle ORM · driver node-postgres · fallback JsonStore |
+| IA | 6 providers trocáveis pelo admin (Anthropic, OpenAI, Google, Mistral, DeepSeek, Groq) |
+| Testes | Vitest + Testing Library + jsdom · Playwright (E2E) |
 | Lint/Format | ESLint flat config + Prettier |
-| Monitoring | Sentry (env-gated) |
-| Deploy | Vercel (frontend + functions no mesmo repo) |
+| Monitoring | Sentry (env-gated) · UptimeRobot |
+| Deploy | VPS Node sob pm2 (produção) · Vercel (alvo alternativo) |
 | CI | GitHub Actions |
 
 ## Rodando localmente
