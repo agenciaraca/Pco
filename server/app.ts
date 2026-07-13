@@ -2318,17 +2318,17 @@ export function buildApp() {
     return c.json({ ...aiConfigRepo.toPublic(cfg), usage });
   });
 
-  app.put('/admin/ai/configurations/:id', async (c) => {
+  app.put('/admin/ai/configurations/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateAiConfigSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await aiConfigRepo.updateConfig(c.req.param('id'), v.data);
+    const updated = await aiConfigRepo.updateConfig((c.req.param('id') as string), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
     return c.json(aiConfigRepo.toPublic(updated));
   });
 
   // Test connection com a chave fornecida (não persiste).
-  app.post('/admin/ai/test', async (c) => {
+  app.post('/admin/ai/test', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const provider = body?.provider as string;
     const apiKey = body?.apiKey as string;
@@ -3108,11 +3108,11 @@ export function buildApp() {
     },
   );
 
-  app.put('/admin/courses/:id', async (c) => {
+  app.put('/admin/courses/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateCourseSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await coursesRepo.updateCourse(c.req.param('id'), v.data);
+    const updated = await coursesRepo.updateCourse((c.req.param('id') as string), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
     return c.json(updated);
   });
@@ -3174,7 +3174,7 @@ export function buildApp() {
 
   // ---------- Admin: News writes ----------
 
-  app.post('/admin/news', async (c) => {
+  app.post('/admin/news', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createNewsSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
@@ -3182,24 +3182,24 @@ export function buildApp() {
     return c.json(created, 201);
   });
 
-  app.put('/admin/news/:id', async (c) => {
+  app.put('/admin/news/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateNewsSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await newsRepo.updateNews(c.req.param('id'), v.data);
+    const updated = await newsRepo.updateNews((c.req.param('id') as string), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Artigo não encontrado');
     return c.json(updated);
   });
 
-  app.delete('/admin/news/:id', async (c) => {
-    const ok = await newsRepo.deleteNews(c.req.param('id'));
+  app.delete('/admin/news/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await newsRepo.deleteNews((c.req.param('id') as string));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Artigo não encontrado');
     return c.json({ ok: true });
   });
 
   // ---------- Admin: Library writes ----------
 
-  app.post('/admin/library', async (c) => {
+  app.post('/admin/library', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createLibrarySchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
@@ -3207,24 +3207,24 @@ export function buildApp() {
     return c.json(created, 201);
   });
 
-  app.put('/admin/library/:id', async (c) => {
+  app.put('/admin/library/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateLibrarySchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await libraryRepo.updateLibrary(c.req.param('id'), v.data);
+    const updated = await libraryRepo.updateLibrary((c.req.param('id') as string), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Material não encontrado');
     return c.json(updated);
   });
 
-  app.delete('/admin/library/:id', async (c) => {
-    const ok = await libraryRepo.deleteLibrary(c.req.param('id'));
+  app.delete('/admin/library/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await libraryRepo.deleteLibrary((c.req.param('id') as string));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Material não encontrado');
     return c.json({ ok: true });
   });
 
   // ---------- Admin: Podcasts writes ----------
 
-  app.post('/admin/podcasts', async (c) => {
+  app.post('/admin/podcasts', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createPodcastSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
@@ -3232,17 +3232,17 @@ export function buildApp() {
     return c.json(created, 201);
   });
 
-  app.put('/admin/podcasts/:id', async (c) => {
+  app.put('/admin/podcasts/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updatePodcastSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await podcastsRepo.updatePodcast(c.req.param('id'), v.data);
+    const updated = await podcastsRepo.updatePodcast((c.req.param('id') as string), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Episódio não encontrado');
     return c.json(updated);
   });
 
-  app.delete('/admin/podcasts/:id', async (c) => {
-    const ok = await podcastsRepo.deletePodcast(c.req.param('id'));
+  app.delete('/admin/podcasts/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await podcastsRepo.deletePodcast((c.req.param('id') as string));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Episódio não encontrado');
     return c.json({ ok: true });
   });
@@ -3270,59 +3270,59 @@ export function buildApp() {
 
   // ---------- Admin: Modules ----------
 
-  app.post('/admin/courses/:courseId/modules', async (c) => {
+  app.post('/admin/courses/:courseId/modules', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createModuleSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const created = await coursesRepo.createModule(c.req.param('courseId'), v.data);
+    const created = await coursesRepo.createModule((c.req.param('courseId') as string), v.data);
     if (!created) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
     return c.json(created, 201);
   });
 
-  app.put('/admin/modules/:id', async (c) => {
+  app.put('/admin/modules/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateModuleSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await coursesRepo.updateModule(c.req.param('id'), v.data);
+    const updated = await coursesRepo.updateModule((c.req.param('id') as string), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
     return c.json(updated);
   });
 
-  app.delete('/admin/modules/:id', async (c) => {
-    const ok = await coursesRepo.deleteModule(c.req.param('id'));
+  app.delete('/admin/modules/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await coursesRepo.deleteModule((c.req.param('id') as string));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
     return c.json({ ok: true });
   });
 
   // ---------- Admin: Lessons ----------
 
-  app.post('/admin/modules/:moduleId/lessons', async (c) => {
+  app.post('/admin/modules/:moduleId/lessons', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createLessonSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const created = await coursesRepo.createLesson(c.req.param('moduleId'), v.data);
+    const created = await coursesRepo.createLesson((c.req.param('moduleId') as string), v.data);
     if (!created) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
     return c.json(created, 201);
   });
 
-  app.put('/admin/lessons/:id', async (c) => {
+  app.put('/admin/lessons/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateLessonSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await coursesRepo.updateLesson(c.req.param('id'), v.data);
+    const updated = await coursesRepo.updateLesson((c.req.param('id') as string), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada');
     return c.json(updated);
   });
 
-  app.delete('/admin/lessons/:id', async (c) => {
-    const ok = await coursesRepo.deleteLesson(c.req.param('id'));
+  app.delete('/admin/lessons/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await coursesRepo.deleteLesson((c.req.param('id') as string));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada');
     return c.json({ ok: true });
   });
 
   // ---------- Admin: Student writes ----------
 
-  app.post('/admin/students', async (c) => {
+  app.post('/admin/students', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createStudentSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
@@ -3330,65 +3330,65 @@ export function buildApp() {
     return c.json(created, 201);
   });
 
-  app.put('/admin/students/:id', async (c) => {
+  app.put('/admin/students/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateStudentSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await studentsRepo.updateAdminStudent(c.req.param('id'), v.data);
+    const updated = await studentsRepo.updateAdminStudent((c.req.param('id') as string), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(updated);
   });
 
-  app.post('/admin/students/:id/block', async (c) => {
-    const updated = await studentsRepo.setStudentStatus(c.req.param('id'), 'bloqueado');
+  app.post('/admin/students/:id/block', requireAuth('admin', 'superadmin'), async (c) => {
+    const updated = await studentsRepo.setStudentStatus((c.req.param('id') as string), 'bloqueado');
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(updated);
   });
 
-  app.post('/admin/students/:id/unblock', async (c) => {
-    const updated = await studentsRepo.setStudentStatus(c.req.param('id'), 'ativo');
+  app.post('/admin/students/:id/unblock', requireAuth('admin', 'superadmin'), async (c) => {
+    const updated = await studentsRepo.setStudentStatus((c.req.param('id') as string), 'ativo');
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(updated);
   });
 
-  app.put('/admin/students/:id/status', async (c) => {
+  app.put('/admin/students/:id/status', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const parsed = studentStatusEnum.safeParse(body?.status);
     if (!parsed.success)
       return jsonError(c, 400, 'INVALID_INPUT', 'Status inválido', parsed.error.flatten());
-    const updated = await studentsRepo.setStudentStatus(c.req.param('id'), parsed.data);
+    const updated = await studentsRepo.setStudentStatus((c.req.param('id') as string), parsed.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(updated);
   });
 
-  app.delete('/admin/students/:id', async (c) => {
-    const ok = await studentsRepo.deleteAdminStudent(c.req.param('id'));
+  app.delete('/admin/students/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await studentsRepo.deleteAdminStudent((c.req.param('id') as string));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json({ ok: true });
   });
 
   // ---------- Admin: Assessments ----------
 
-  app.post('/admin/modules/:moduleId/assessment', async (c) => {
+  app.post('/admin/modules/:moduleId/assessment', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createAssessmentSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const result = await coursesRepo.upsertAssessment(c.req.param('moduleId'), v.data);
+    const result = await coursesRepo.upsertAssessment((c.req.param('moduleId') as string), v.data);
     if (!result) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
     return c.json(result);
   });
 
-  app.put('/admin/assessments/:id', async (c) => {
+  app.put('/admin/assessments/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateAssessmentSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await coursesRepo.updateAssessment(c.req.param('id'), v.data);
+    const updated = await coursesRepo.updateAssessment((c.req.param('id') as string), v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Avaliação não encontrada');
     return c.json(updated);
   });
 
-  app.delete('/admin/assessments/:id', async (c) => {
-    const ok = await coursesRepo.deleteAssessment(c.req.param('id'));
+  app.delete('/admin/assessments/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await coursesRepo.deleteAssessment((c.req.param('id') as string));
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Avaliação não encontrada');
     return c.json({ ok: true });
   });
