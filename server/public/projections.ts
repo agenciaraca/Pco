@@ -14,6 +14,7 @@
 
 import * as coursesRepo from '../repositories/courses';
 import * as productsRepo from '../payments/products-repo';
+import * as newsRepo from '../repositories/news';
 
 type Product = Awaited<ReturnType<typeof productsRepo.listActive>>[number];
 
@@ -165,4 +166,101 @@ export async function getPublicCourseBySlug(slug: string): Promise<PublicCourse 
   );
   if (!match) return null;
   return toFull(match, productMap.get(String(match.id)));
+}
+
+// ============================ POSTS (blog) ============================
+
+/** Slug estável derivado do título (posts importados não têm slug próprio). */
+export function slugify(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 80);
+}
+
+export interface PublicPostSummary {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  category?: string;
+  tags: string[];
+  coverColor?: string;
+  authorName: string;
+  publishedAt: string;
+  readingMinutes: number;
+}
+export interface PublicPost extends PublicPostSummary {
+  /** Corpo já em HTML seguro para render (CSP bloqueia scripts/handlers inline). */
+  bodyHtml: string;
+  relatedCourseSlugs: string[];
+}
+
+function readingMinutes(text: string): number {
+  const words = text
+    .replace(/<[^>]+>/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+/** Corpo: se já vier com tags HTML mantém; senão quebra parágrafos por linha. */
+function bodyToHtml(raw: string): string {
+  if (/<\/?(p|h[1-6]|ul|ol|blockquote|div|br)\b/i.test(raw)) return raw;
+  return raw
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+    .join('\n');
+}
+
+function toPostSummary(p: Row): PublicPostSummary {
+  const title = str(p.title) ?? 'Artigo';
+  return {
+    id: String(p.id),
+    slug: slugify(title) || String(p.id),
+    title,
+    excerpt: str(p.excerpt) ?? '',
+    category: str(p.category),
+    tags: strArr(p.tags),
+    coverColor: str(p.coverColor),
+    authorName: str(p.authorName) ?? 'Equipe PCO',
+    publishedAt: str(p.publishedAt) ?? '',
+    readingMinutes: readingMinutes(str(p.body) ?? str(p.excerpt) ?? ''),
+  };
+}
+
+/** Posts públicos, mais recentes primeiro. */
+export async function listPublicPosts(): Promise<PublicPostSummary[]> {
+  const posts = (await newsRepo.listNews()) as unknown as Row[];
+  return posts
+    .map(toPostSummary)
+    .filter((p) => p.title && p.publishedAt)
+    .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
+}
+
+/** Post público por slug (deriva slug do título; primeiro match vence). */
+export async function getPublicPostBySlug(slug: string): Promise<PublicPost | null> {
+  const posts = (await newsRepo.listNews()) as unknown as Row[];
+  const match = posts.find((p) => (slugify(str(p.title) ?? '') || String(p.id)) === slug);
+  if (!match) return null;
+  const relatedIds = Array.isArray(match.relatedCourseIds)
+    ? (match.relatedCourseIds as unknown[]).map(String)
+    : [];
+  let relatedCourseSlugs: string[] = [];
+  if (relatedIds.length) {
+    const courses = (await coursesRepo.listCourses()) as unknown as Row[];
+    relatedCourseSlugs = courses
+      .filter((c) => relatedIds.includes(String(c.id)) && c.active !== false)
+      .map((c) => str(c.slug) ?? String(c.id));
+  }
+  return {
+    ...toPostSummary(match),
+    bodyHtml: bodyToHtml(str(match.body) ?? ''),
+    relatedCourseSlugs,
+  };
 }

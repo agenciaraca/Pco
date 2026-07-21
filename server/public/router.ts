@@ -17,8 +17,18 @@ import {
   breadcrumbJsonLd,
   contactPageJsonLd,
   aboutPageJsonLd,
+  blogJsonLd,
+  blogPostingJsonLd,
 } from './jsonld';
+import { listPublicPosts, getPublicPostBySlug } from './projections';
 import { PUBLIC_JS } from './client';
+
+/** Data pt-BR legível a partir de ISO. */
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
 
 export const publicSite = new Hono();
 
@@ -267,6 +277,175 @@ publicSite.get('/contato', async (c) => {
         breadcrumbJsonLd([
           { name: 'Início', path: '/' },
           { name: 'Contato', path: '/contato' },
+        ]),
+      ],
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
+// ============================ helpers blog ============================
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ============================ /blog ============================
+publicSite.get('/blog', async (c) => {
+  const posts = await listPublicPosts();
+  const [featured, ...rest] = posts;
+  const card = (p: (typeof posts)[number], big = false): string => `
+    <a class="card" href="/blog/${p.slug}" style="display:block${big ? ';grid-column:1/-1' : ''}">
+      <div aria-hidden="true" style="height:8px;border-radius:6px;background:${esc(p.coverColor || 'var(--accent)')};margin:-6px -6px 16px"></div>
+      ${p.category ? `<span class="tag-chip">${esc(p.category)}</span>` : ''}
+      <h3 style="font-size:${big ? 22 : 18}px;margin:10px 0 8px">${esc(p.title)}</h3>
+      <p style="color:var(--ink-soft);font-size:14.5px">${esc(p.excerpt.slice(0, big ? 220 : 120))}${p.excerpt.length > (big ? 220 : 120) ? '…' : ''}</p>
+      <p style="color:var(--ink-faint);font-size:12.5px;margin-top:14px">${esc(p.authorName)} · ${fmtDate(p.publishedAt)} · ${p.readingMinutes} min de leitura</p>
+    </a>`;
+  const body = html`
+    <section class="section-tight hero-deep">
+      <div class="wrap">
+        <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
+          <a href="/">Início</a><span>›</span><span>Blog</span>
+        </nav>
+        <span class="eyebrow">Blog da ${ORG.shortName}</span>
+        <h1 style="margin:14px 0 12px">Artigos sobre psicanálise clínica</h1>
+        <p class="lead" style="max-width:56ch">
+          Fundamentos, carreira e prática — conteúdo honesto para quem estuda ou pensa em estudar
+          psicanálise.
+        </p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="wrap">
+        <div class="three-col">
+          ${raw(featured ? card(featured, true) : '')} ${raw(rest.map((p) => card(p)).join(''))}
+        </div>
+        ${posts.length === 0
+          ? raw('<p style="color:var(--ink-soft)">Nenhum artigo publicado ainda.</p>')
+          : ''}
+      </div>
+    </section>
+  `;
+  return c.html(
+    renderPage({
+      title: `Blog — ${ORG.name}`,
+      description: `Artigos sobre psicanálise clínica, formação e carreira pela ${ORG.shortName}. Conteúdo honesto sobre estudar e atuar em psicanálise.`,
+      path: '/blog',
+      activeNav: 'blog',
+      bodyHtml: body,
+      jsonLd: [
+        blogJsonLd(posts),
+        breadcrumbJsonLd([
+          { name: 'Início', path: '/' },
+          { name: 'Blog', path: '/blog' },
+        ]),
+      ],
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
+// ============================ /blog/:slug ============================
+publicSite.get('/blog/:slug', async (c) => {
+  const post = await getPublicPostBySlug(c.req.param('slug'));
+  if (!post) {
+    const nf = html`
+      <section class="section" style="text-align:center">
+        <div class="wrap">
+          <h1>Artigo não encontrado</h1>
+          <p class="lead" style="margin:12px 0 24px">
+            O texto que você procura pode ter sido movido.
+          </p>
+          <a class="btn btn-primary" href="/blog">Ver todos os artigos</a>
+        </div>
+      </section>
+    `;
+    return c.html(
+      renderPage({
+        title: `Artigo não encontrado — ${ORG.shortName}`,
+        description: 'Artigo não encontrado.',
+        path: `/blog/${c.req.param('slug')}`,
+        noindex: true,
+        bodyHtml: nf,
+      }),
+      404,
+      HTML_HEADERS,
+    );
+  }
+  const tagsHtml = post.tags.length
+    ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:24px 0">${post.tags
+        .map((t) => `<span class="tag-chip">#${esc(t)}</span>`)
+        .join('')}</div>`
+    : '';
+  const relatedHtml = post.relatedCourseSlugs.length
+    ? `<div style="margin-top:28px"><h2 style="font-size:20px;margin-bottom:12px">Cursos relacionados</h2>${post.relatedCourseSlugs
+        .map(
+          (s) =>
+            `<a class="btn btn-outline" href="/curso/${s}" style="margin:0 8px 8px 0">Ver curso</a>`,
+        )
+        .join('')}</div>`
+    : '';
+  const body = html`
+    <article>
+      <section class="section-tight">
+        <div class="wrap" style="max-width:760px">
+          <nav class="breadcrumb" aria-label="Trilha">
+            <a href="/">Início</a><span>›</span><a href="/blog">Blog</a><span>›</span
+            ><span>${post.category ?? 'Artigo'}</span>
+          </nav>
+          ${post.category ? raw(`<span class="tag-chip">${esc(post.category)}</span>`) : ''}
+          <h1 style="margin:14px 0 12px">${post.title}</h1>
+          <p class="lead">${post.excerpt}</p>
+          <p style="color:var(--ink-faint);font-size:13px;margin-top:16px">
+            Por <a href="/autor" style="color:var(--accent)">${post.authorName}</a> ·
+            ${raw(fmtDate(post.publishedAt))} · ${post.readingMinutes} min de leitura
+          </p>
+        </div>
+      </section>
+      <section style="padding-bottom:32px">
+        <div class="wrap prose" style="max-width:760px">
+          <div class="disclaimer" style="margin-bottom:24px">
+            <strong>Em resumo:</strong> ${post.excerpt}
+          </div>
+          ${raw(post.bodyHtml)} ${raw(tagsHtml)}
+          <div class="card" style="margin-top:28px;display:flex;gap:16px;align-items:center">
+            <div
+              aria-hidden="true"
+              style="width:56px;height:56px;border-radius:50%;flex:0 0 auto;background:linear-gradient(135deg,#0a3f3a,#1f9e93)"
+            ></div>
+            <div>
+              <div style="font-weight:700">${esc(post.authorName)}</div>
+              <a href="/autor" style="color:var(--accent);font-size:14px"
+                >Conheça o responsável técnico →</a
+              >
+            </div>
+          </div>
+          <div class="disclaimer" style="margin-top:20px">${YMYL_DISCLAIMER}</div>
+          ${raw(relatedHtml)}
+        </div>
+      </section>
+    </article>
+  `;
+  return c.html(
+    renderPage({
+      title: `${post.title} — ${ORG.shortName}`,
+      description: post.excerpt.slice(0, 155),
+      path: `/blog/${post.slug}`,
+      ogType: 'article',
+      activeNav: 'blog',
+      bodyHtml: body,
+      jsonLd: [
+        blogPostingJsonLd(post),
+        breadcrumbJsonLd([
+          { name: 'Início', path: '/' },
+          { name: 'Blog', path: '/blog' },
+          { name: post.title },
         ]),
       ],
     }),

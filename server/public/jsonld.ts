@@ -5,7 +5,7 @@
  * soltos. Só marcar conteúdo realmente visível na página.
  */
 import { ORG, AUTHOR, type AuthorConfig } from './config';
-import type { PublicCourse, PublicFaq } from './projections';
+import type { PublicCourse, PublicFaq, PublicPost, PublicPostSummary } from './projections';
 
 export const ORG_ID = `${ORG.url}/#org`;
 export const WEBSITE_ID = `${ORG.url}/#website`;
@@ -140,6 +140,45 @@ export function courseJsonLd(course: PublicCourse): Json {
           },
         }
       : {}),
+  };
+}
+
+export function blogPostingJsonLd(post: PublicPost): Json {
+  const url = `${ORG.url}/blog/${post.slug}`;
+  const named = post.authorName && post.authorName !== AUTHOR.name;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.excerpt,
+    inLanguage: 'pt-BR',
+    ...(post.publishedAt ? { datePublished: post.publishedAt } : {}),
+    ...(post.publishedAt ? { dateModified: post.publishedAt } : {}),
+    // Autor: entidade nomeada se houver; senão o responsável técnico por @id.
+    author: named ? { '@type': 'Person', name: post.authorName } : { '@id': authorId(AUTHOR.slug) },
+    publisher: { '@id': ORG_ID },
+    mainEntityOfPage: url,
+    url,
+    ...(post.category ? { articleSection: post.category } : {}),
+    ...(post.tags.length ? { keywords: post.tags.join(', ') } : {}),
+  };
+}
+
+export function blogJsonLd(posts: PublicPostSummary[]): Json {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    '@id': `${ORG.url}/blog#blog`,
+    name: `Blog — ${ORG.shortName}`,
+    url: `${ORG.url}/blog`,
+    inLanguage: 'pt-BR',
+    publisher: { '@id': ORG_ID },
+    blogPost: posts.slice(0, 20).map((p) => ({
+      '@type': 'BlogPosting',
+      headline: p.title,
+      url: `${ORG.url}/blog/${p.slug}`,
+      ...(p.publishedAt ? { datePublished: p.publishedAt } : {}),
+    })),
   };
 }
 
