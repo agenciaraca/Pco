@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import path from 'node:path';
 import { installConsoleCapture } from './monitoring/log-buffer';
 import { buildApp } from './app';
+import { publicSite } from './public/router';
 
 // Captura console.* em ring buffer ANTES de qualquer log do app
 installConsoleCapture();
@@ -141,6 +142,12 @@ ${allUrls
     c.header('Cache-Control', 'public, max-age=3600');
   });
   root.use('/uploads/*', serveStatic({ root: path.relative(process.cwd(), dataDir) || '.' }));
+
+  // ===== SITE PÚBLICO (SSR, sem auth) =====
+  // Montado ANTES do static/SPA fallback: rotas públicas (/sobre, /autor,
+  // /contato, ...) são servidas por SSR; qualquer outra rota cai no SPA logado.
+  // Isolamento físico entre plano público e plano restrito (aluno/admin).
+  root.route('/', publicSite);
 
   // Cache control: /assets/* é imutável (hash no nome), index.html nunca cacheia
   root.use('/*', async (c, next) => {
