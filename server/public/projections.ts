@@ -32,6 +32,23 @@ export function fmtBRL(cents: number): string {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+/**
+ * Degradação graciosa: o site público NUNCA pode dar 500 por erro de leitura
+ * (ex.: tabela ausente no DB). Loga e devolve o fallback.
+ */
+async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[public-site] leitura falhou (${label}):`,
+      err instanceof Error ? err.message : err,
+    );
+    return fallback;
+  }
+}
+
 export interface PublicCourseSummary {
   id: string;
   slug: string;
@@ -145,27 +162,41 @@ async function activeCourseProducts(): Promise<Map<string, Product>> {
 
 /** Cursos visíveis no site público (ativos + com produto ativo). */
 export async function listPublicCourses(): Promise<PublicCourseSummary[]> {
-  const [courses, productMap] = await Promise.all([
-    coursesRepo.listCourses(),
-    activeCourseProducts(),
-  ]);
-  return (courses as unknown as Row[])
-    .filter((c) => c.active !== false && productMap.has(String(c.id)))
-    .map((c) => toSummary(c, productMap.get(String(c.id))));
+  return safe(
+    'courses',
+    async () => {
+      const [courses, productMap] = await Promise.all([
+        coursesRepo.listCourses(),
+        activeCourseProducts(),
+      ]);
+      return (courses as unknown as Row[])
+        .filter((c) => c.active !== false && productMap.has(String(c.id)))
+        .map((c) => toSummary(c, productMap.get(String(c.id))));
+    },
+    [],
+  );
 }
 
 /** Página pública de um curso por slug. Retorna null se não for público. */
 export async function getPublicCourseBySlug(slug: string): Promise<PublicCourse | null> {
-  const [courses, productMap] = await Promise.all([
-    coursesRepo.listCourses(),
-    activeCourseProducts(),
-  ]);
-  const match = (courses as unknown as Row[]).find(
-    (c) =>
-      (str(c.slug) ?? String(c.id)) === slug && c.active !== false && productMap.has(String(c.id)),
+  return safe(
+    `course:${slug}`,
+    async () => {
+      const [courses, productMap] = await Promise.all([
+        coursesRepo.listCourses(),
+        activeCourseProducts(),
+      ]);
+      const match = (courses as unknown as Row[]).find(
+        (c) =>
+          (str(c.slug) ?? String(c.id)) === slug &&
+          c.active !== false &&
+          productMap.has(String(c.id)),
+      );
+      if (!match) return null;
+      return toFull(match, productMap.get(String(match.id)));
+    },
+    null,
   );
-  if (!match) return null;
-  return toFull(match, productMap.get(String(match.id)));
 }
 
 // ============================ POSTS (blog) ============================
@@ -236,31 +267,43 @@ function toPostSummary(p: Row): PublicPostSummary {
 
 /** Posts públicos, mais recentes primeiro. */
 export async function listPublicPosts(): Promise<PublicPostSummary[]> {
-  const posts = (await newsRepo.listNews()) as unknown as Row[];
-  return posts
-    .map(toPostSummary)
-    .filter((p) => p.title && p.publishedAt)
-    .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
+  return safe(
+    'posts',
+    async () => {
+      const posts = (await newsRepo.listNews()) as unknown as Row[];
+      return posts
+        .map(toPostSummary)
+        .filter((p) => p.title && p.publishedAt)
+        .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
+    },
+    [],
+  );
 }
 
 /** Post público por slug (deriva slug do título; primeiro match vence). */
 export async function getPublicPostBySlug(slug: string): Promise<PublicPost | null> {
-  const posts = (await newsRepo.listNews()) as unknown as Row[];
-  const match = posts.find((p) => (slugify(str(p.title) ?? '') || String(p.id)) === slug);
-  if (!match) return null;
-  const relatedIds = Array.isArray(match.relatedCourseIds)
-    ? (match.relatedCourseIds as unknown[]).map(String)
-    : [];
-  let relatedCourseSlugs: string[] = [];
-  if (relatedIds.length) {
-    const courses = (await coursesRepo.listCourses()) as unknown as Row[];
-    relatedCourseSlugs = courses
-      .filter((c) => relatedIds.includes(String(c.id)) && c.active !== false)
-      .map((c) => str(c.slug) ?? String(c.id));
-  }
-  return {
-    ...toPostSummary(match),
-    bodyHtml: bodyToHtml(str(match.body) ?? ''),
-    relatedCourseSlugs,
-  };
+  return safe(
+    `post:${slug}`,
+    async () => {
+      const posts = (await newsRepo.listNews()) as unknown as Row[];
+      const match = posts.find((p) => (slugify(str(p.title) ?? '') || String(p.id)) === slug);
+      if (!match) return null;
+      const relatedIds = Array.isArray(match.relatedCourseIds)
+        ? (match.relatedCourseIds as unknown[]).map(String)
+        : [];
+      let relatedCourseSlugs: string[] = [];
+      if (relatedIds.length) {
+        const courses = (await coursesRepo.listCourses()) as unknown as Row[];
+        relatedCourseSlugs = courses
+          .filter((c) => relatedIds.includes(String(c.id)) && c.active !== false)
+          .map((c) => str(c.slug) ?? String(c.id));
+      }
+      return {
+        ...toPostSummary(match),
+        bodyHtml: bodyToHtml(str(match.body) ?? ''),
+        relatedCourseSlugs,
+      };
+    },
+    null,
+  );
 }
