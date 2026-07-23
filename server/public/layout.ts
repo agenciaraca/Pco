@@ -21,10 +21,14 @@ export interface NavItem {
 }
 export const NAV: NavItem[] = [
   { label: 'Início', href: '/', key: 'home' },
-  { label: 'Cursos', href: '/cursos', key: 'cursos' },
+  // Interino: aponta pro catálogo público existente até a Sprint 3 tornar
+  // /cursos e /curso/:slug públicos (com a migração do app logado p/ /app/*).
+  { label: 'Cursos', href: '/catalogo', key: 'cursos' },
   { label: 'Blog', href: '/blog', key: 'blog' },
   { label: 'Sobre', href: '/sobre', key: 'sobre' },
   { label: 'Contato', href: '/contato', key: 'contato' },
+  // A landing original do AVA (SPA) vira um item de menu.
+  { label: 'Nosso AVA', href: '/ava-pco', key: 'ava' },
 ];
 
 export interface PageOptions {

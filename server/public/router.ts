@@ -20,7 +20,7 @@ import {
   blogJsonLd,
   blogPostingJsonLd,
 } from './jsonld';
-import { listPublicPosts, getPublicPostBySlug } from './projections';
+import { listPublicPosts, getPublicPostBySlug, listPublicCourses } from './projections';
 import { PUBLIC_JS } from './client';
 
 /** Data pt-BR legível a partir de ISO. */
@@ -448,6 +448,137 @@ publicSite.get('/blog/:slug', async (c) => {
           { name: post.title },
         ]),
       ],
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
+// ============================ / (Home) ============================
+publicSite.get('/', async (c) => {
+  const [courses, posts] = await Promise.all([listPublicCourses(), listPublicPosts()]);
+  const courseCard = (co: (typeof courses)[number]): string => `
+    <a class="card" href="/catalogo" style="display:block">
+      <div aria-hidden="true" style="height:8px;border-radius:6px;background:${esc(co.coverColor || 'var(--accent)')};margin:-6px -6px 16px"></div>
+      ${co.badge ? `<span class="tag-chip">${esc(co.badge)}</span>` : ''}
+      <h3 style="font-size:19px;margin:10px 0 8px">${esc(co.shortTitle || co.title)}</h3>
+      <p style="color:var(--ink-soft);font-size:14px">${esc((co.tagline || co.description || '').slice(0, 110))}</p>
+      <p style="color:var(--ink);font-weight:800;margin-top:14px">${co.priceFormatted ? esc(co.priceFormatted) : 'Consulte'}${co.installmentFormatted ? ` <span style="font-weight:600;color:var(--ink-faint);font-size:13px">ou 12x ${esc(co.installmentFormatted)}</span>` : ''}</p>
+    </a>`;
+  const postCard = (p: (typeof posts)[number]): string => `
+    <a class="card" href="/blog/${p.slug}" style="display:block">
+      ${p.category ? `<span class="tag-chip">${esc(p.category)}</span>` : ''}
+      <h3 style="font-size:17px;margin:10px 0 8px">${esc(p.title)}</h3>
+      <p style="color:var(--ink-soft);font-size:14px">${esc(p.excerpt.slice(0, 100))}…</p>
+      <p style="color:var(--ink-faint);font-size:12.5px;margin-top:12px">${p.readingMinutes} min de leitura</p>
+    </a>`;
+  const body = html`
+    <section class="hero-deep" style="padding:clamp(56px,9vw,110px) 0">
+      <div class="wrap" style="max-width:820px">
+        <span class="eyebrow">Formação livre em psicanálise clínica · desde ${ORG.founded}</span>
+        <h1 style="margin:18px 0 18px">Estude psicanálise clínica com seriedade, no seu ritmo</h1>
+        <p class="lead" style="max-width:60ch">
+          Percursos estruturados dos fundamentos freudianos às abordagens contemporâneas — com
+          certificado digital, ética e o reconhecimento da ${ORG.rntp}.
+        </p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px">
+          <a class="btn btn-primary" href="/catalogo">Ver cursos</a>
+          <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow">Falar no WhatsApp</a>
+        </div>
+        <p style="color:#cfe0dc;font-size:13.5px;margin-top:22px">
+          ★ 4,7/5 · centenas de alunos formados · ${ORG.rntp}
+        </p>
+      </div>
+    </section>
+
+    <section class="section-tight" style="background:var(--brand-deep)">
+      <div class="wrap three-col" style="text-align:center;color:var(--on-deep)">
+        <div>
+          <div style="font-size:38px;font-weight:800"><span data-count-to="2018">2018</span></div>
+          <div style="color:#cfe0dc;font-size:14px">no ar desde</div>
+        </div>
+        <div>
+          <div style="font-size:38px;font-weight:800"><span data-count-to="1000">0</span>+</div>
+          <div style="color:#cfe0dc;font-size:14px">alunos formados</div>
+        </div>
+        <div>
+          <div style="font-size:38px;font-weight:800">4,7</div>
+          <div style="color:#cfe0dc;font-size:14px">avaliação média</div>
+        </div>
+      </div>
+    </section>
+
+    ${courses.length
+      ? html`<section class="section">
+          <div class="wrap">
+            <span class="eyebrow">Nossas formações</span>
+            <h2 style="margin:12px 0 24px">Escolha por onde começar</h2>
+            <div class="three-col">${raw(courses.slice(0, 3).map(courseCard).join(''))}</div>
+            <div style="margin-top:24px">
+              <a class="btn btn-outline" href="/catalogo">Ver todos os cursos</a>
+            </div>
+          </div>
+        </section>`
+      : ''}
+
+    <section class="section" style="background:var(--surface-2)">
+      <div class="wrap">
+        <span class="eyebrow">Por que a ${ORG.shortName}</span>
+        <h2 style="margin:12px 0 24px">Uma escolha séria para estudar psicanálise</h2>
+        <div class="three-col">
+          <div class="card">
+            <h3 style="font-size:17px">Conteúdo estruturado</h3>
+            <p style="color:var(--ink-soft);font-size:14.5px;margin-top:8px">
+              Dos fundamentos de Freud às abordagens contemporâneas, em módulos progressivos.
+            </p>
+          </div>
+          <div class="card">
+            <h3 style="font-size:17px">No seu ritmo</h3>
+            <p style="color:var(--ink-soft);font-size:14.5px;margin-top:8px">
+              Estude quando e onde quiser, com acesso estendido e revisão do material.
+            </p>
+          </div>
+          <div class="card">
+            <h3 style="font-size:17px">Ética e transparência</h3>
+            <p style="color:var(--ink-soft);font-size:14.5px;margin-top:8px">
+              Responsável técnico identificado e clareza sobre os limites da formação livre.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    ${posts.length
+      ? html`<section class="section">
+          <div class="wrap">
+            <span class="eyebrow">Do blog</span>
+            <h2 style="margin:12px 0 24px">Artigos recentes</h2>
+            <div class="three-col">${raw(posts.slice(0, 3).map(postCard).join(''))}</div>
+            <div style="margin-top:24px">
+              <a class="btn btn-outline" href="/blog">Ver todos os artigos</a>
+            </div>
+          </div>
+        </section>`
+      : ''}
+
+    <section class="section hero-deep" style="text-align:center">
+      <div class="wrap" style="max-width:640px">
+        <h2 style="color:#fff;margin-bottom:14px">Pronto para dar o primeiro passo?</h2>
+        <p class="lead" style="color:#cfe0dc;margin-bottom:24px">
+          Comece sua formação em psicanálise clínica hoje.
+        </p>
+        <a class="btn btn-primary" href="/catalogo">Ver cursos e matricular-se</a>
+      </div>
+    </section>
+  `;
+  return c.html(
+    renderPage({
+      title: `${ORG.name} — Formação em Psicanálise Clínica`,
+      description: `Estude psicanálise clínica com a ${ORG.shortName}: formação livre estruturada, certificado digital e ${ORG.rntp}. Desde ${ORG.founded}. Não substitui graduação em Psicologia ou Medicina.`,
+      path: '/',
+      activeNav: 'home',
+      bodyHtml: body,
+      jsonLd: [orgJsonLd(), websiteJsonLd()],
     }),
     200,
     HTML_HEADERS,
