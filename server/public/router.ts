@@ -48,6 +48,51 @@ publicSite.get('/_pub/site.js', (c) => {
   return c.body(PUBLIC_JS);
 });
 
+// ---- /llms.txt (padrão llmstxt.org) — Markdown c/ H1 + links, p/ GEO/LLM ----
+publicSite.get('/llms.txt', async (c) => {
+  const [courses, posts] = await Promise.all([listPublicCourses(), listPublicPosts()]);
+  const u = (p: string) => ORG.url + p;
+  const lines: string[] = [];
+  lines.push(`# ${ORG.name}`);
+  lines.push('');
+  lines.push(
+    `> Formação livre em psicanálise clínica online desde ${ORG.founded}. Cursos estruturados, no seu ritmo, com certificado digital e ${ORG.rntp}. Não substitui graduação em Psicologia ou Medicina.`,
+  );
+  lines.push('');
+  lines.push(
+    'A PCO é um ambiente de aprendizagem (LMS) focado em psicanálise clínica e áreas afins. Conteúdo educacional YMYL (saúde mental) revisado eticamente por responsável técnico identificado.',
+  );
+  lines.push('');
+  lines.push('## Páginas principais');
+  lines.push(`- [Início](${u('/')}): apresentação da PCO e das formações.`);
+  lines.push(`- [Formações](${u('/formacoes')}): catálogo de cursos de psicanálise clínica.`);
+  lines.push(`- [Blog](${u('/blog')}): artigos sobre psicanálise, formação e carreira.`);
+  lines.push(`- [Sobre](${u('/sobre')}): missão, método e credibilidade da PCO.`);
+  lines.push(`- [Responsável técnico](${u('/autor')}): perfil, credenciais e autoria (E-E-A-T).`);
+  lines.push(`- [Contato](${u('/contato')}): canais de atendimento.`);
+  if (courses.length) {
+    lines.push('');
+    lines.push('## Formações');
+    for (const co of courses) {
+      const d = (co.tagline || co.description || '').slice(0, 120);
+      lines.push(`- [${co.title}](${u('/formacao/' + co.slug)})${d ? ': ' + d : ''}`);
+    }
+  }
+  if (posts.length) {
+    lines.push('');
+    lines.push('## Artigos recentes');
+    for (const p of posts.slice(0, 15)) {
+      lines.push(
+        `- [${p.title}](${u('/blog/' + p.slug)})${p.excerpt ? ': ' + p.excerpt.slice(0, 120) : ''}`,
+      );
+    }
+  }
+  lines.push('');
+  c.header('Content-Type', 'text/plain; charset=utf-8');
+  c.header('Cache-Control', 'public, max-age=3600');
+  return c.body(lines.join('\n'));
+});
+
 // ============================ /sobre ============================
 publicSite.get('/sobre', async (c) => {
   const body = html`

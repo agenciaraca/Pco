@@ -46,10 +46,7 @@ if (staticRoot) {
       c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
     }
     if (!c.res.headers.has('Permissions-Policy')) {
-      c.header(
-        'Permissions-Policy',
-        'camera=(), microphone=(), geolocation=(), payment=()',
-      );
+      c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
     }
     if (!c.res.headers.has('X-Content-Type-Options')) {
       c.header('X-Content-Type-Options', 'nosniff');
@@ -93,36 +90,37 @@ if (staticRoot) {
 
     const staticUrls = [
       { path: '/', priority: '1.0', changefreq: 'weekly' },
-      { path: '/catalogo', priority: '0.9', changefreq: 'weekly' },
-      { path: '/login', priority: '0.5', changefreq: 'monthly' },
-      { path: '/landing', priority: '0.7', changefreq: 'monthly' },
+      { path: '/formacoes', priority: '0.9', changefreq: 'weekly' },
+      { path: '/blog', priority: '0.8', changefreq: 'weekly' },
+      { path: '/sobre', priority: '0.6', changefreq: 'monthly' },
+      { path: '/autor', priority: '0.6', changefreq: 'monthly' },
+      { path: '/contato', priority: '0.5', changefreq: 'monthly' },
       { path: '/termos', priority: '0.3', changefreq: 'yearly' },
       { path: '/privacidade', priority: '0.3', changefreq: 'yearly' },
-      { path: '/esqueci-senha', priority: '0.2', changefreq: 'yearly' },
     ];
 
-    // Pega cursos com produto ativo para incluir no sitemap
-    let courseUrls: Array<{ path: string; priority: string; changefreq: string }> = [];
+    // Páginas públicas de curso e blog (via projeção pública — mesmos slugs/gate).
+    let dynamicUrls: Array<{ path: string; priority: string; changefreq: string }> = [];
     try {
-      const coursesRepo = await import('./repositories/courses');
-      const productsRepo = await import('./payments/products-repo');
-      const courses = await coursesRepo.listCourses();
-      const products = await productsRepo.listActive();
-      const activeRefs = new Set(
-        products.filter((p) => p.kind === 'course').map((p) => p.refId),
-      );
-      courseUrls = courses
-        .filter((co) => activeRefs.has(co.id))
-        .map((co) => ({
-          path: `/curso-preview/${co.id}`,
+      const pub = await import('./public/projections');
+      const [courses, posts] = await Promise.all([pub.listPublicCourses(), pub.listPublicPosts()]);
+      dynamicUrls = [
+        ...courses.map((co) => ({
+          path: `/formacao/${co.slug}`,
           priority: '0.8',
           changefreq: 'weekly',
-        }));
+        })),
+        ...posts.map((p) => ({
+          path: `/blog/${p.slug}`,
+          priority: '0.6',
+          changefreq: 'monthly',
+        })),
+      ];
     } catch {
       /* ignore */
     }
 
-    const allUrls = [...staticUrls, ...courseUrls];
+    const allUrls = [...staticUrls, ...dynamicUrls];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${allUrls
