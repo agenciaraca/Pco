@@ -39,11 +39,7 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 // Profile (self-service)
 export const updateProfileSchema = z.object({
   name: z.string().min(2, 'Nome muito curto').max(120, 'Nome muito longo').optional(),
-  avatarUrl: z
-    .string()
-    .max(500, 'URL muito longa')
-    .nullable()
-    .optional(),
+  avatarUrl: z.string().max(500, 'URL muito longa').nullable().optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
@@ -98,10 +94,7 @@ export const supportCategorySchema = z.enum([
 ]);
 
 export const createSupportTicketSchema = z.object({
-  subject: z
-    .string()
-    .min(4, 'Assunto muito curto')
-    .max(120, 'Assunto muito longo'),
+  subject: z.string().min(4, 'Assunto muito curto').max(120, 'Assunto muito longo'),
   category: supportCategorySchema,
   message: z
     .string()
@@ -184,6 +177,24 @@ export const checkoutSchema = z.object({
   couponCode: z.string().max(40).optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
+
+/**
+ * Checkout PÚBLICO (visitante não logado). Provisiona a conta pelo e-mail e
+ * cria o pedido no gateway. Usado pelo site público de vendas.
+ */
+export const publicCheckoutSchema = z.object({
+  courseSlug: z.string().min(1).max(120),
+  name: z.string().min(2).max(120),
+  email: z.string().email().max(160),
+  /** CPF/CNPJ (opcional; alguns gateways exigem). */
+  document: z.string().max(20).optional().or(z.literal('')),
+  whatsapp: z.string().max(30).optional().or(z.literal('')),
+  gatewayId: z.string().min(1).optional(),
+  couponCode: z.string().max(40).optional(),
+  /** Consentimento LGPD obrigatório. */
+  consent: z.literal(true),
+});
+export type PublicCheckoutInput = z.infer<typeof publicCheckoutSchema>;
 
 // Cupons
 export const couponDiscountSchema = z.discriminatedUnion('kind', [
@@ -480,11 +491,7 @@ export const createPodcastSchema = z.object({
   durationMinutes: z.number().int().min(1).max(600).default(30),
   publishedAt: z.string().min(8).max(20),
   coverColor: z.string().max(120).default('from-pco-blue to-pco-cyan'),
-  audioUrl: z
-    .string()
-    .url('URL inválida')
-    .or(z.literal(''))
-    .optional(),
+  audioUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
   relatedCourseIds: z.array(z.string().max(40)).max(50).default([]),
   relatedModuleIds: z.array(z.string().max(40)).max(100).default([]),
   tags: z.array(z.string().min(1).max(40)).max(20).optional(),
@@ -514,13 +521,7 @@ export const createModuleSchema = z.object({
    * passados, o aluno só vê quando AMBOS forem satisfeitos (lock mais
    * tardio vence). 1-365 dias.
    */
-  releaseAfterEnrollmentDays: z
-    .number()
-    .int()
-    .min(1)
-    .max(365)
-    .optional()
-    .nullable(),
+  releaseAfterEnrollmentDays: z.number().int().min(1).max(365).optional().nullable(),
 });
 export type CreateModuleInput = z.infer<typeof createModuleSchema>;
 

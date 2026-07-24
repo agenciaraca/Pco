@@ -48,6 +48,36 @@ export const PUBLIC_JS = `
     var add=e.target.closest('[data-add-cart]');if(add){e.preventDefault();window.pcoCart.add({slug:add.getAttribute('data-slug'),title:add.getAttribute('data-title'),price:Number(add.getAttribute('data-price')||0)});return;}
     var acc=e.target.closest('[data-accordion]');if(acc){var panel=acc.nextElementSibling;var open=acc.getAttribute('aria-expanded')==='true';acc.setAttribute('aria-expanded',open?'false':'true');if(panel){panel.style.maxHeight=open?'0px':panel.scrollHeight+'px';}return;}
   });
+  // ---- checkout público (form -> API -> redirect pro gateway) ----
+  document.addEventListener('submit', function (e) {
+    var f = e.target.closest('form[data-checkout]');
+    if (!f) return;
+    e.preventDefault();
+    var btn = f.querySelector('[data-checkout-submit]');
+    var errEl = f.querySelector('[data-checkout-error]');
+    if (errEl) errEl.style.display = 'none';
+    var g = function (n) { var el = f.querySelector('[name="' + n + '"]'); return el ? el.value : ''; };
+    var cons = f.querySelector('[name="consent"]');
+    var payload = {
+      courseSlug: f.getAttribute('data-slug'),
+      name: g('name'), email: g('email'), whatsapp: g('whatsapp'),
+      document: g('document'), consent: !!(cons && cons.checked)
+    };
+    if (btn) { btn.disabled = true; btn.textContent = 'Processando…'; }
+    fetch('/api/public/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (res.ok && res.j && res.j.checkoutUrl) { window.location.href = res.j.checkoutUrl; return; }
+        var msg = (res.j && res.j.error && res.j.error.message) || 'Não foi possível iniciar o pagamento. Tente novamente.';
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Ir para o pagamento'; }
+      })
+      .catch(function () {
+        if (errEl) { errEl.textContent = 'Erro de conexão. Tente novamente.'; errEl.style.display = 'block'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Ir para o pagamento'; }
+      });
+  });
+
   // ---- contadores ao entrar na viewport ----
   var counters=document.querySelectorAll('[data-count-to]');
   if(counters.length&&'IntersectionObserver'in window){

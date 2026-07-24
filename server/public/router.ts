@@ -840,3 +840,82 @@ publicSite.get('/formacao/:slug', async (c) => {
     HTML_HEADERS,
   );
 });
+
+// ============================ /checkout (público) ============================
+publicSite.get('/checkout', async (c) => {
+  const slug = c.req.query('curso') ?? '';
+  const co = slug ? await getPublicCourseBySlug(slug) : null;
+  if (!co) return c.redirect('/formacoes', 302);
+  const forSale = co.priceCents != null;
+  const summary = `
+    <div class="card">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);font-weight:600">Sua matrícula</div>
+      <h3 style="font-size:18px;margin:8px 0 10px">${esc(co.title)}</h3>
+      ${
+        forSale
+          ? `<div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line-soft);padding-top:12px;margin-top:12px">
+               <span style="color:var(--ink-soft)">Total</span>
+               <span style="font-size:24px;font-weight:800">${esc(co.priceFormatted || '')}</span>
+             </div>
+             ${co.installmentFormatted ? `<div style="text-align:right;color:var(--ink-soft);font-size:13px">ou 12x de ${esc(co.installmentFormatted)}</div>` : ''}`
+          : '<p style="color:var(--ink-soft);font-size:14px;margin-top:8px">Este curso ainda não está com matrícula online. Fale com a gente pelo WhatsApp.</p>'
+      }
+    </div>`;
+  const form = forSale
+    ? `
+    <form data-checkout data-slug="${esc(co.slug)}" class="card" style="display:grid;gap:14px">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Nome completo</label>
+        <input name="name" required minlength="2" autocomplete="name" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">E-mail</label>
+        <input name="email" type="email" required autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">WhatsApp</label>
+          <input name="whatsapp" autocomplete="tel" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit">
+        </div>
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">CPF</label>
+          <input name="document" inputmode="numeric" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit">
+        </div>
+      </div>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--ink-soft);cursor:pointer">
+        <input type="checkbox" name="consent" required style="margin-top:3px">
+        <span>Concordo com os <a href="/termos" style="color:var(--accent)">Termos</a> e a <a href="/privacidade" style="color:var(--accent)">Política de Privacidade</a> (LGPD).</span>
+      </label>
+      <button type="submit" data-checkout-submit class="btn btn-primary" style="width:100%">Ir para o pagamento</button>
+      <p data-checkout-error role="alert" style="display:none;color:var(--crit);font-size:13.5px;margin:0"></p>
+      <p style="color:var(--ink-faint);font-size:12px;margin:0;text-align:center">Pagamento processado com segurança pelo gateway. Você recebe um e-mail para definir sua senha de acesso.</p>
+    </form>`
+    : `<a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow" style="width:100%">Falar no WhatsApp</a>`;
+  const body = html`
+    <section class="section">
+      <div class="wrap" style="max-width:920px">
+        <nav class="breadcrumb" aria-label="Trilha">
+          <a href="/">Início</a><span>›</span><a href="/formacoes">Formações</a><span>›</span
+          ><a href="/formacao/${co.slug}">${co.shortTitle}</a><span>›</span><span>Checkout</span>
+        </nav>
+        <h1 style="margin:8px 0 24px">Finalizar matrícula</h1>
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:28px;align-items:start">
+          <div>${raw(form)}</div>
+          <aside style="position:sticky;top:88px">${raw(summary)}</aside>
+        </div>
+      </div>
+    </section>
+  `;
+  return c.html(
+    renderPage({
+      title: `Checkout — ${co.title} | ${ORG.shortName}`,
+      description: `Finalize sua matrícula em ${co.title}.`,
+      path: `/checkout?curso=${co.slug}`,
+      noindex: true,
+      activeNav: 'cursos',
+      bodyHtml: body,
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});

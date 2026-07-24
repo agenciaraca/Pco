@@ -31,11 +31,7 @@ import {
 } from './auth/totp';
 import { encryptApiKey, decryptApiKey } from './db/encryption';
 import { attachUser, requireAuth } from './auth/middleware';
-import {
-  canImpersonate,
-  startImpersonation,
-  exitImpersonation,
-} from './auth/impersonation';
+import { canImpersonate, startImpersonation, exitImpersonation } from './auth/impersonation';
 import { blockDuringImpersonation } from './auth/block-during-impersonation';
 import { createResetToken, consumeResetToken } from './auth/password-reset';
 import { auditMiddleware } from './audit/middleware';
@@ -83,6 +79,7 @@ import {
   createProductSchema,
   updateProductSchema,
   checkoutSchema,
+  publicCheckoutSchema,
   createCouponSchema,
   updateCouponSchema,
 } from '../shared/schemas';
@@ -129,11 +126,7 @@ import {
 import { parseCsvBuffer } from './imports/connectors/csv';
 import { runDryRun, runReal } from './imports/service';
 import { triggerApiImport } from './imports/runner';
-import {
-  exportJobAsCsv,
-  exportJobAsJson,
-  listJobsFiltered,
-} from './imports/reports';
+import { exportJobAsCsv, exportJobAsJson, listJobsFiltered } from './imports/reports';
 import { rollbackJob, previewRollback } from './imports/rollback';
 import * as importConnections from './imports/connections-store';
 import * as importSchedules from './imports/schedules-store';
@@ -210,21 +203,14 @@ import { computeModuleLock, findModuleLockForLesson } from './repositories/drip'
 import * as studyPaths from './repositories/study-paths';
 import { computePathProgress } from './repositories/study-paths';
 import * as questionBank from './repositories/question-bank';
-import {
-  checkPrerequisites,
-  computeCompletedCourseIds,
-} from './repositories/prerequisites';
+import { checkPrerequisites, computeCompletedCourseIds } from './repositories/prerequisites';
 
 /**
  * Libera acesso do usuário ao produto pago.
  * - course: enroll no curso (adiciona ao enrolledCourseIds do estudante)
  * - session_pack/tutor_pack: registra em metadata para uso futuro (sprint subsequente)
  */
-function renderUnsubPage(
-  kind: 'ok' | 'error',
-  title: string,
-  message: string,
-): string {
+function renderUnsubPage(kind: 'ok' | 'error', title: string, message: string): string {
   const accent = kind === 'ok' ? '#10b981' : '#dc2626';
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -514,53 +500,49 @@ export function buildApp() {
   });
 
   // Conclui login após TOTP. Aceita 6-digit ou backup code (formato AAAA-AAAA).
-  app.post(
-    '/auth/login/totp',
-    rateLimit({ windowMs: 60_000, max: 10 }),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as {
-        ticket?: string;
-        code?: string;
-      };
-      if (!body.ticket || !body.code) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'Ticket e code são obrigatórios.');
-      }
-      const claims = await verifyToken(body.ticket).catch(() => null);
-      if (!claims || (claims as { totp?: string }).totp !== 'pending') {
-        return jsonError(c, 401, 'INVALID_TICKET', 'Ticket inválido ou expirado.');
-      }
-      const raw = await usersStore.findRawById(claims.sub);
-      if (!raw || !raw.totpEnabled || !raw.totpSecretEncrypted) {
-        return jsonError(c, 400, 'NO_TOTP', 'Usuário sem 2FA ativo.');
-      }
+  app.post('/auth/login/totp', rateLimit({ windowMs: 60_000, max: 10 }), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as {
+      ticket?: string;
+      code?: string;
+    };
+    if (!body.ticket || !body.code) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'Ticket e code são obrigatórios.');
+    }
+    const claims = await verifyToken(body.ticket).catch(() => null);
+    if (!claims || (claims as { totp?: string }).totp !== 'pending') {
+      return jsonError(c, 401, 'INVALID_TICKET', 'Ticket inválido ou expirado.');
+    }
+    const raw = await usersStore.findRawById(claims.sub);
+    if (!raw || !raw.totpEnabled || !raw.totpSecretEncrypted) {
+      return jsonError(c, 400, 'NO_TOTP', 'Usuário sem 2FA ativo.');
+    }
 
-      const code = body.code.trim();
-      let valid = false;
+    const code = body.code.trim();
+    let valid = false;
 
-      // Tenta TOTP primeiro
-      if (/^\d{6}$/.test(code.replace(/\s+/g, ''))) {
-        const secret = decryptApiKey(raw.totpSecretEncrypted);
-        valid = verifyTotp(secret, code);
-      } else {
-        // Senão tenta backup code
-        const hash = hashBackupCode(code);
-        valid = await usersStore.consumeBackupCode(raw.id, hash);
-      }
+    // Tenta TOTP primeiro
+    if (/^\d{6}$/.test(code.replace(/\s+/g, ''))) {
+      const secret = decryptApiKey(raw.totpSecretEncrypted);
+      valid = verifyTotp(secret, code);
+    } else {
+      // Senão tenta backup code
+      const hash = hashBackupCode(code);
+      valid = await usersStore.consumeBackupCode(raw.id, hash);
+    }
 
-      if (!valid) {
-        return jsonError(c, 401, 'INVALID_CODE', 'Código 2FA inválido.');
-      }
+    if (!valid) {
+      return jsonError(c, 401, 'INVALID_CODE', 'Código 2FA inválido.');
+    }
 
-      const user = usersStore.toPublic(raw);
-      const token = await signToken({
-        sub: user.id,
-        email: user.email,
-        role: user.role,
-        tv: user.tokenVersion ?? 0,
-      });
-      return c.json({ user, token });
-    },
-  );
+    const user = usersStore.toPublic(raw);
+    const token = await signToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      tv: user.tokenVersion ?? 0,
+    });
+    return c.json({ user, token });
+  });
 
   // ---------- OAuth Google (env-gated) ----------
   // Inicio: redirect para Google. Salva state em cookie HttpOnly.
@@ -572,10 +554,7 @@ export function buildApp() {
     const state = oauthGoogle.generateState();
     const url = oauthGoogle.buildGoogleAuthUrl({ config: cfg, state });
     // 10 min
-    c.header(
-      'Set-Cookie',
-      `oauth_state=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`,
-    );
+    c.header('Set-Cookie', `oauth_state=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`);
     return c.redirect(url, 302);
   });
 
@@ -653,10 +632,7 @@ export function buildApp() {
     }
     const state = oauthMicrosoft.generateState();
     const url = oauthMicrosoft.buildMicrosoftAuthUrl({ config: cfg, state });
-    c.header(
-      'Set-Cookie',
-      `oauth_state=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`,
-    );
+    c.header('Set-Cookie', `oauth_state=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`);
     return c.redirect(url, 302);
   });
 
@@ -781,7 +757,10 @@ export function buildApp() {
       const password = crypto.randomBytes(24).toString('hex');
       const created = await usersStore.createUser({
         email: assertion.email,
-        name: assertion.attributes.displayName ?? assertion.attributes.name ?? assertion.email.split('@')[0],
+        name:
+          assertion.attributes.displayName ??
+          assertion.attributes.name ??
+          assertion.email.split('@')[0],
         role: 'student',
         password,
         active: true,
@@ -822,41 +801,51 @@ export function buildApp() {
   });
 
   // Enable TOTP — usuário envia primeiro código pra confirmar setup.
-  app.post('/auth/me/totp/enable', requireAuth(), blockDuringImpersonation('user.totp.enable'), async (c) => {
-    const u = c.get('user')!;
-    const body = (await c.req.json().catch(() => ({}))) as { code?: string };
-    if (!body.code) return jsonError(c, 400, 'INVALID_INPUT', 'code é obrigatório.');
-    const raw = await usersStore.findRawById(u.sub);
-    if (!raw || !raw.totpSecretEncrypted) {
-      return jsonError(c, 400, 'NO_SETUP', 'Setup não iniciado. Chame /setup antes.');
-    }
-    const secret = decryptApiKey(raw.totpSecretEncrypted);
-    if (!verifyTotp(secret, body.code)) {
-      return jsonError(c, 401, 'INVALID_CODE', 'Código inválido.');
-    }
-    const codes = generateBackupCodes(10);
-    const hashes = codes.map(hashBackupCode);
-    await usersStore.enableTotp(raw.id, hashes);
-    return c.json({ enabled: true, backupCodes: codes });
-  });
+  app.post(
+    '/auth/me/totp/enable',
+    requireAuth(),
+    blockDuringImpersonation('user.totp.enable'),
+    async (c) => {
+      const u = c.get('user')!;
+      const body = (await c.req.json().catch(() => ({}))) as { code?: string };
+      if (!body.code) return jsonError(c, 400, 'INVALID_INPUT', 'code é obrigatório.');
+      const raw = await usersStore.findRawById(u.sub);
+      if (!raw || !raw.totpSecretEncrypted) {
+        return jsonError(c, 400, 'NO_SETUP', 'Setup não iniciado. Chame /setup antes.');
+      }
+      const secret = decryptApiKey(raw.totpSecretEncrypted);
+      if (!verifyTotp(secret, body.code)) {
+        return jsonError(c, 401, 'INVALID_CODE', 'Código inválido.');
+      }
+      const codes = generateBackupCodes(10);
+      const hashes = codes.map(hashBackupCode);
+      await usersStore.enableTotp(raw.id, hashes);
+      return c.json({ enabled: true, backupCodes: codes });
+    },
+  );
 
   // Disable TOTP — exige código atual para evitar lockout indireto.
-  app.post('/auth/me/totp/disable', requireAuth(), blockDuringImpersonation('user.totp.disable'), async (c) => {
-    const u = c.get('user')!;
-    const body = (await c.req.json().catch(() => ({}))) as { code?: string };
-    const raw = await usersStore.findRawById(u.sub);
-    if (!raw || !raw.totpEnabled || !raw.totpSecretEncrypted) {
-      return jsonError(c, 400, 'NOT_ENABLED', '2FA não está ativo.');
-    }
-    const secret = decryptApiKey(raw.totpSecretEncrypted);
-    const code = (body.code ?? '').trim();
-    let valid = false;
-    if (/^\d{6}$/.test(code)) valid = verifyTotp(secret, code);
-    else if (code) valid = await usersStore.consumeBackupCode(raw.id, hashBackupCode(code));
-    if (!valid) return jsonError(c, 401, 'INVALID_CODE', 'Código inválido.');
-    await usersStore.disableTotp(raw.id);
-    return c.json({ enabled: false });
-  });
+  app.post(
+    '/auth/me/totp/disable',
+    requireAuth(),
+    blockDuringImpersonation('user.totp.disable'),
+    async (c) => {
+      const u = c.get('user')!;
+      const body = (await c.req.json().catch(() => ({}))) as { code?: string };
+      const raw = await usersStore.findRawById(u.sub);
+      if (!raw || !raw.totpEnabled || !raw.totpSecretEncrypted) {
+        return jsonError(c, 400, 'NOT_ENABLED', '2FA não está ativo.');
+      }
+      const secret = decryptApiKey(raw.totpSecretEncrypted);
+      const code = (body.code ?? '').trim();
+      let valid = false;
+      if (/^\d{6}$/.test(code)) valid = verifyTotp(secret, code);
+      else if (code) valid = await usersStore.consumeBackupCode(raw.id, hashBackupCode(code));
+      if (!valid) return jsonError(c, 401, 'INVALID_CODE', 'Código inválido.');
+      await usersStore.disableTotp(raw.id);
+      return c.json({ enabled: false });
+    },
+  );
 
   // Regenera backup codes (revoga todos os antigos).
   app.post('/auth/me/totp/backup-codes/regenerate', requireAuth(), async (c) => {
@@ -1029,24 +1018,29 @@ export function buildApp() {
   });
 
   // Self-service: troca de senha (exige senha atual)
-  app.post('/auth/me/password', requireAuth(), blockDuringImpersonation('user.password.change'), async (c) => {
-    const u = c.get('user')!;
-    const body = await c.req.json().catch(() => ({}));
-    const v = validate(selfChangePasswordSchema, body);
-    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const result = await usersStore.verifyAndChangePassword(
-      u.sub,
-      v.data.currentPassword,
-      v.data.newPassword,
-    );
-    if (result === 'wrong-password') {
-      return jsonError(c, 400, 'WRONG_PASSWORD', 'Senha atual incorreta.');
-    }
-    if (result === 'not-found') {
-      return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
-    }
-    return c.json({ ok: true });
-  });
+  app.post(
+    '/auth/me/password',
+    requireAuth(),
+    blockDuringImpersonation('user.password.change'),
+    async (c) => {
+      const u = c.get('user')!;
+      const body = await c.req.json().catch(() => ({}));
+      const v = validate(selfChangePasswordSchema, body);
+      if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+      const result = await usersStore.verifyAndChangePassword(
+        u.sub,
+        v.data.currentPassword,
+        v.data.newPassword,
+      );
+      if (result === 'wrong-password') {
+        return jsonError(c, 400, 'WRONG_PASSWORD', 'Senha atual incorreta.');
+      }
+      if (result === 'not-found') {
+        return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
+      }
+      return c.json({ ok: true });
+    },
+  );
 
   // Revoga todos os tokens do user logado (logout em todos os dispositivos)
   app.post('/auth/logout-all-devices', requireAuth(), async (c) => {
@@ -1110,9 +1104,7 @@ export function buildApp() {
     weekStart.setUTCDate(now.getUTCDate() - daysFromMon);
     weekStart.setUTCHours(0, 0, 0, 0);
     const weekStartIso = weekStart.toISOString();
-    const completedThisWeek = list.filter(
-      (p) => p.completedAt >= weekStartIso,
-    );
+    const completedThisWeek = list.filter((p) => p.completedAt >= weekStartIso);
     const allCourses = await coursesRepo.listCourses();
     const lessonDurations = new Map<string, number>();
     for (const co of allCourses) {
@@ -1152,12 +1144,7 @@ export function buildApp() {
     const courseForLock = await coursesRepo.findCourse(courseId);
     if (courseForLock) {
       const enrolledAt = await studentsRepo.getEnrollmentDate(u.sub, courseId);
-      const found = findModuleLockForLesson(
-        courseForLock,
-        lessonId,
-        Date.now(),
-        { enrolledAt },
-      );
+      const found = findModuleLockForLesson(courseForLock, lessonId, Date.now(), { enrolledAt });
       if (found?.lock.locked) {
         return jsonError(
           c,
@@ -1187,9 +1174,7 @@ export function buildApp() {
           const allCerts = await certsRepo.listAllCertificates();
           const existing = allCerts.find(
             (cert) =>
-              cert.studentId === u.sub &&
-              cert.courseId === courseId &&
-              cert.status === 'issued',
+              cert.studentId === u.sub && cert.courseId === courseId && cert.status === 'issued',
           );
           if (!existing) {
             const newCert = await certsRepo.issueCertificate({
@@ -1300,7 +1285,11 @@ export function buildApp() {
     const courses = await coursesRepo.listCourses();
     const lessonToCourse = new Map<
       string,
-      { course: { id: string; title: string }; module: { id: string; title: string }; lesson: { id: string; title: string } }
+      {
+        course: { id: string; title: string };
+        module: { id: string; title: string };
+        lesson: { id: string; title: string };
+      }
     >();
     for (const course of courses) {
       for (const m of course.modules) {
@@ -1394,9 +1383,7 @@ export function buildApp() {
       if (!n.content.trim()) continue;
       if (search && !n.content.toLowerCase().includes(search)) continue;
       for (const c of courses) {
-        const m = c.modules.find((mod) =>
-          mod.lessons.some((l) => l.id === n.lessonId),
-        );
+        const m = c.modules.find((mod) => mod.lessons.some((l) => l.id === n.lessonId));
         if (m) {
           const lesson = m.lessons.find((l) => l.id === n.lessonId)!;
           hits.push({
@@ -1447,86 +1434,76 @@ export function buildApp() {
     });
   });
 
-  app.get(
-    '/admin/lessons/:id/watch-stats',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(await watchTimeRepo.aggregateLesson(c.req.param('id') as string)),
+  app.get('/admin/lessons/:id/watch-stats', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await watchTimeRepo.aggregateLesson(c.req.param('id') as string)),
   );
 
-  app.get(
-    '/admin/courses/:id/watch-stats',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(await watchTimeRepo.aggregateCourse(c.req.param('id') as string)),
+  app.get('/admin/courses/:id/watch-stats', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await watchTimeRepo.aggregateCourse(c.req.param('id') as string)),
   );
 
   /**
    * Analytics consolidado por curso: matriculados + completion + watch-time + rating.
    */
-  app.get(
-    '/admin/courses/:id/analytics',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const courseId = c.req.param('id') as string;
-      const course = await coursesRepo.findCourse(courseId);
-      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
+  app.get('/admin/courses/:id/analytics', requireAuth('admin', 'superadmin'), async (c) => {
+    const courseId = c.req.param('id') as string;
+    const course = await coursesRepo.findCourse(courseId);
+    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
 
-      const allLessons = (course.modules ?? []).flatMap((m) => m.lessons ?? []);
-      const totalLessonsInCourse = allLessons.length;
+    const allLessons = (course.modules ?? []).flatMap((m) => m.lessons ?? []);
+    const totalLessonsInCourse = allLessons.length;
 
-      // Matriculados
-      const allStudents = await studentsRepo.listAdminStudents({ limit: 5000 } as never);
-      const enrolled = allStudents.filter((s) =>
-        (s.enrolledCourseIds ?? []).includes(courseId),
-      );
+    // Matriculados
+    const allStudents = await studentsRepo.listAdminStudents({ limit: 5000 } as never);
+    const enrolled = allStudents.filter((s) => (s.enrolledCourseIds ?? []).includes(courseId));
 
-      // Progress: completion por aluno
-      const allProgress = await progressRepo.listAll();
-      const progressByUser = new Map<string, Set<string>>();
-      for (const p of allProgress) {
-        if (p.courseId !== courseId) continue;
-        const set = progressByUser.get(p.userId) ?? new Set<string>();
-        set.add(p.lessonId);
-        progressByUser.set(p.userId, set);
-      }
+    // Progress: completion por aluno
+    const allProgress = await progressRepo.listAll();
+    const progressByUser = new Map<string, Set<string>>();
+    for (const p of allProgress) {
+      if (p.courseId !== courseId) continue;
+      const set = progressByUser.get(p.userId) ?? new Set<string>();
+      set.add(p.lessonId);
+      progressByUser.set(p.userId, set);
+    }
 
-      const distribution = { notStarted: 0, inProgress: 0, completed: 0 };
-      const completionRates: number[] = [];
-      for (const s of enrolled) {
-        const done = (progressByUser.get(s.id) ?? new Set()).size;
-        const rate = totalLessonsInCourse > 0 ? done / totalLessonsInCourse : 0;
-        completionRates.push(rate);
-        if (done === 0) distribution.notStarted++;
-        else if (rate >= 1) distribution.completed++;
-        else distribution.inProgress++;
-      }
-      const avgCompletion =
-        completionRates.length === 0
-          ? 0
-          : completionRates.reduce((s, r) => s + r, 0) / completionRates.length;
+    const distribution = { notStarted: 0, inProgress: 0, completed: 0 };
+    const completionRates: number[] = [];
+    for (const s of enrolled) {
+      const done = (progressByUser.get(s.id) ?? new Set()).size;
+      const rate = totalLessonsInCourse > 0 ? done / totalLessonsInCourse : 0;
+      completionRates.push(rate);
+      if (done === 0) distribution.notStarted++;
+      else if (rate >= 1) distribution.completed++;
+      else distribution.inProgress++;
+    }
+    const avgCompletion =
+      completionRates.length === 0
+        ? 0
+        : completionRates.reduce((s, r) => s + r, 0) / completionRates.length;
 
-      // Watch time
-      const watchAgg = await watchTimeRepo.aggregateCourse(courseId);
+    // Watch time
+    const watchAgg = await watchTimeRepo.aggregateCourse(courseId);
 
-      // Reviews
-      const ratingSummary = await courseReviews.summary(courseId);
+    // Reviews
+    const ratingSummary = await courseReviews.summary(courseId);
 
-      return c.json({
-        course: {
-          id: course.id,
-          title: course.title,
-          totalLessons: totalLessonsInCourse,
-          totalModules: (course.modules ?? []).length,
-        },
-        enrollment: {
-          total: enrolled.length,
-          ...distribution,
-          avgCompletionPct: Math.round(avgCompletion * 100),
-        },
-        watchTime: watchAgg,
-        rating: ratingSummary,
-      });
-    },
-  );
+    return c.json({
+      course: {
+        id: course.id,
+        title: course.title,
+        totalLessons: totalLessonsInCourse,
+        totalModules: (course.modules ?? []).length,
+      },
+      enrollment: {
+        total: enrolled.length,
+        ...distribution,
+        avgCompletionPct: Math.round(avgCompletion * 100),
+      },
+      watchTime: watchAgg,
+      rating: ratingSummary,
+    });
+  });
 
   app.delete('/lessons/:id/complete', requireAuth(), async (c) => {
     const u = c.get('user')!;
@@ -1600,12 +1577,7 @@ export function buildApp() {
         });
         return c.json(r, 201);
       } catch (err) {
-        return jsonError(
-          c,
-          409,
-          'CONFLICT',
-          err instanceof Error ? err.message : 'Erro',
-        );
+        return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : 'Erro');
       }
     },
   );
@@ -1721,11 +1693,7 @@ export function buildApp() {
         windowDays: 30,
       });
     }
-    const used = await aiConfigRepo.countUsageInWindow(
-      config.id,
-      u.sub,
-      30 * 24 * 60 * 60 * 1000,
-    );
+    const used = await aiConfigRepo.countUsageInWindow(config.id, u.sub, 30 * 24 * 60 * 60 * 1000);
     return c.json({
       configured: true,
       used,
@@ -1742,10 +1710,7 @@ export function buildApp() {
   app.get('/tutor/history', requireAuth(), async (c) => {
     const u = c.get('user')!;
     const limit = Number(c.req.query('limit') ?? '50');
-    const list = await tutorHistory.listForUser(
-      u.sub,
-      Number.isFinite(limit) ? limit : 50,
-    );
+    const list = await tutorHistory.listForUser(u.sub, Number.isFinite(limit) ? limit : 50);
     return c.json(list);
   });
 
@@ -1792,29 +1757,22 @@ export function buildApp() {
   // Histórico de broadcasts (admin)
   app.get('/admin/notifications/sent', requireAuth('admin', 'superadmin'), async (c) => {
     const limit = Number(c.req.query('limit') ?? '50');
-    const list = await notificationsRepo.listSentBroadcasts(
-      Number.isFinite(limit) ? limit : 50,
-    );
+    const list = await notificationsRepo.listSentBroadcasts(Number.isFinite(limit) ? limit : 50);
     return c.json(list);
   });
 
   // Broadcast — admin/superadmin
-  app.post(
-    '/admin/notifications/broadcast',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      const v = validate(broadcastNotificationSchema, body);
-      if (!v.ok)
-        return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-      const u = c.get('user')!;
-      const sent = await notificationsRepo.broadcast({
-        ...v.data,
-        authorEmail: u.email,
-      });
-      return c.json({ ok: true, sent });
-    },
-  );
+  app.post('/admin/notifications/broadcast', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(broadcastNotificationSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const u = c.get('user')!;
+    const sent = await notificationsRepo.broadcast({
+      ...v.data,
+      authorEmail: u.email,
+    });
+    return c.json({ ok: true, sent });
+  });
 
   // ---------- Courses ----------
 
@@ -1861,8 +1819,7 @@ export function buildApp() {
       }
     }
     const transcripts =
-      (foundLesson as { transcripts?: Record<string, string | undefined> })
-        .transcripts ?? {};
+      (foundLesson as { transcripts?: Record<string, string | undefined> }).transcripts ?? {};
     const availableLocales = Object.entries(transcripts)
       .filter(([, v]) => typeof v === 'string' && v.trim().length > 0)
       .map(([k]) => k);
@@ -1929,8 +1886,7 @@ export function buildApp() {
       }
     }
     const transcripts =
-      (foundLesson as { transcripts?: Record<string, string | undefined> })
-        .transcripts ?? {};
+      (foundLesson as { transcripts?: Record<string, string | undefined> }).transcripts ?? {};
     const availableLocales = Object.entries(transcripts)
       .filter(([, v]) => typeof v === 'string' && v.trim().length > 0)
       .map(([k]) => k);
@@ -1978,7 +1934,7 @@ export function buildApp() {
   app.get('/lessons/:id/preview', async (c) => {
     const lessonId = c.req.param('id') as string;
     const all = await coursesRepo.listCourses();
-    let foundLesson: typeof all[number]['modules'][number]['lessons'][number] | null = null;
+    let foundLesson: (typeof all)[number]['modules'][number]['lessons'][number] | null = null;
     let parentCourse: (typeof all)[number] | null = null;
     let parentModule: (typeof all)[number]['modules'][number] | null = null;
     for (const co of all) {
@@ -1997,12 +1953,7 @@ export function buildApp() {
       return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
     }
     if (!foundLesson.isPreview) {
-      return jsonError(
-        c,
-        403,
-        'NOT_PREVIEW',
-        'Esta aula não está disponível como preview livre.',
-      );
+      return jsonError(c, 403, 'NOT_PREVIEW', 'Esta aula não está disponível como preview livre.');
     }
     return c.json({
       lesson: {
@@ -2032,9 +1983,7 @@ export function buildApp() {
     // Drip: usa data de matrícula do aluno logado (se houver) pra
     // computar drip relativo. Visitantes só veem o lock absoluto.
     const me = c.get('user');
-    const enrolledAt = me
-      ? await studentsRepo.getEnrollmentDate(me.sub, course.id)
-      : null;
+    const enrolledAt = me ? await studentsRepo.getEnrollmentDate(me.sub, course.id) : null;
     const ctx = { enrolledAt };
     const enriched = {
       ...course,
@@ -2064,10 +2013,7 @@ export function buildApp() {
     const allCourses = await coursesRepo.listCourses();
     const myProgress = await progressRepo.listForUser(u.sub);
     const completedLessonIds = myProgress.map((p) => p.lessonId);
-    const completedCourseIds = computeCompletedCourseIds(
-      allCourses,
-      completedLessonIds,
-    );
+    const completedCourseIds = computeCompletedCourseIds(allCourses, completedLessonIds);
     const result = checkPrerequisites(required, completedCourseIds);
     // Anexa info dos cursos pra UI mostrar título/slug
     const detailById = new Map(allCourses.map((co) => [co.id, co]));
@@ -2185,28 +2131,24 @@ export function buildApp() {
   );
 
   // Admin: emite certificado manualmente
-  app.post(
-    '/admin/certificates',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      const studentId = typeof body.studentId === 'string' ? body.studentId : '';
-      const courseId = typeof body.courseId === 'string' ? body.courseId : '';
-      if (!studentId || !courseId) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'studentId e courseId são obrigatórios.');
-      }
-      const cert = await certsRepo.issueCertificate({ studentId, courseId });
-      void webhooksDispatcher.emit('certificate.issued', {
-        certificateId: cert.id,
-        studentId,
-        courseId,
-        validationCode: cert.validationCode,
-        issuedAt: cert.issuedAt,
-        manual: true,
-      });
-      return c.json(cert, 201);
-    },
-  );
+  app.post('/admin/certificates', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const studentId = typeof body.studentId === 'string' ? body.studentId : '';
+    const courseId = typeof body.courseId === 'string' ? body.courseId : '';
+    if (!studentId || !courseId) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'studentId e courseId são obrigatórios.');
+    }
+    const cert = await certsRepo.issueCertificate({ studentId, courseId });
+    void webhooksDispatcher.emit('certificate.issued', {
+      certificateId: cert.id,
+      studentId,
+      courseId,
+      validationCode: cert.validationCode,
+      issuedAt: cert.issuedAt,
+      manual: true,
+    });
+    return c.json(cert, 201);
+  });
 
   // Admin: revoga
   app.delete('/admin/certificates/:id', requireAuth('admin', 'superadmin'), async (c) => {
@@ -2271,45 +2213,42 @@ export function buildApp() {
 
   app.get('/admin/ai/configurations', async (c) => c.json(await aiConfigRepo.listConfigs()));
 
-  app.post(
-    '/admin/ai/configurations',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      if (!body.module || !body.provider || !body.model) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'module, provider e model são obrigatórios');
-      }
-      const created = await aiConfigRepo.createConfig({
-        id: typeof body.id === 'string' ? body.id : undefined,
-        module: body.module as 'tutor',
-        provider: String(body.provider),
-        model: String(body.model),
-        apiKey: typeof body.apiKey === 'string' ? body.apiKey : undefined,
-        temperature: typeof body.temperature === 'number' ? body.temperature : undefined,
-        maxTokens: typeof body.maxTokens === 'number' ? body.maxTokens : undefined,
-        perStudentLimit: typeof body.perStudentLimit === 'number' ? body.perStudentLimit : undefined,
-        perDayLimit: typeof body.perDayLimit === 'number' ? body.perDayLimit : undefined,
-        perMonthLimit: typeof body.perMonthLimit === 'number' ? body.perMonthLimit : undefined,
-        monthlyCostCap: typeof body.monthlyCostCap === 'number' ? body.monthlyCostCap : undefined,
-        systemMessage: typeof body.systemMessage === 'string' ? body.systemMessage : undefined,
-        allowedScopes: Array.isArray(body.allowedScopes) ? (body.allowedScopes as string[]) : undefined,
-        blockedTopics: Array.isArray(body.blockedTopics) ? (body.blockedTopics as string[]) : undefined,
-        fallbackResponse: typeof body.fallbackResponse === 'string' ? body.fallbackResponse : undefined,
-        active: body.active === true,
-      });
-      return c.json(aiConfigRepo.toPublic(created), 201);
-    },
-  );
+  app.post('/admin/ai/configurations', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!body.module || !body.provider || !body.model) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'module, provider e model são obrigatórios');
+    }
+    const created = await aiConfigRepo.createConfig({
+      id: typeof body.id === 'string' ? body.id : undefined,
+      module: body.module as 'tutor',
+      provider: String(body.provider),
+      model: String(body.model),
+      apiKey: typeof body.apiKey === 'string' ? body.apiKey : undefined,
+      temperature: typeof body.temperature === 'number' ? body.temperature : undefined,
+      maxTokens: typeof body.maxTokens === 'number' ? body.maxTokens : undefined,
+      perStudentLimit: typeof body.perStudentLimit === 'number' ? body.perStudentLimit : undefined,
+      perDayLimit: typeof body.perDayLimit === 'number' ? body.perDayLimit : undefined,
+      perMonthLimit: typeof body.perMonthLimit === 'number' ? body.perMonthLimit : undefined,
+      monthlyCostCap: typeof body.monthlyCostCap === 'number' ? body.monthlyCostCap : undefined,
+      systemMessage: typeof body.systemMessage === 'string' ? body.systemMessage : undefined,
+      allowedScopes: Array.isArray(body.allowedScopes)
+        ? (body.allowedScopes as string[])
+        : undefined,
+      blockedTopics: Array.isArray(body.blockedTopics)
+        ? (body.blockedTopics as string[])
+        : undefined,
+      fallbackResponse:
+        typeof body.fallbackResponse === 'string' ? body.fallbackResponse : undefined,
+      active: body.active === true,
+    });
+    return c.json(aiConfigRepo.toPublic(created), 201);
+  });
 
-  app.delete(
-    '/admin/ai/configurations/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const ok = await aiConfigRepo.deleteConfig(c.req.param('id') as string);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/ai/configurations/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await aiConfigRepo.deleteConfig(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
+    return c.json({ ok: true });
+  });
 
   app.get('/admin/ai/configurations/:id', async (c) => {
     const cfg = await aiConfigRepo.getConfig(c.req.param('id'));
@@ -2322,7 +2261,7 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateAiConfigSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await aiConfigRepo.updateConfig((c.req.param('id') as string), v.data);
+    const updated = await aiConfigRepo.updateConfig(c.req.param('id') as string, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
     return c.json(aiConfigRepo.toPublic(updated));
   });
@@ -2531,85 +2470,81 @@ export function buildApp() {
 
   // ---------- Timeline do aluno (admin) ----------
 
-  app.get(
-    '/admin/users/:id/timeline',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const userId = c.req.param('id') as string;
-      const events: Array<{
-        type: 'progress' | 'cert' | 'ticket' | 'tutor' | 'login';
-        ts: string;
-        title: string;
-        body: string;
-        meta?: Record<string, unknown>;
-      }> = [];
+  app.get('/admin/users/:id/timeline', requireAuth('admin', 'superadmin'), async (c) => {
+    const userId = c.req.param('id') as string;
+    const events: Array<{
+      type: 'progress' | 'cert' | 'ticket' | 'tutor' | 'login';
+      ts: string;
+      title: string;
+      body: string;
+      meta?: Record<string, unknown>;
+    }> = [];
 
-      const progress = await progressRepo.listForUser(userId);
-      for (const p of progress) {
+    const progress = await progressRepo.listForUser(userId);
+    for (const p of progress) {
+      events.push({
+        type: 'progress',
+        ts: p.completedAt,
+        title: 'Aula concluída',
+        body: `lessonId ${p.lessonId} (curso ${p.courseId})`,
+        meta: { lessonId: p.lessonId, courseId: p.courseId },
+      });
+    }
+
+    const allCerts = await certsRepo.listAllCertificates();
+    for (const cert of allCerts.filter((x) => x.studentId === userId)) {
+      if (cert.issuedAt) {
         events.push({
-          type: 'progress',
-          ts: p.completedAt,
-          title: 'Aula concluída',
-          body: `lessonId ${p.lessonId} (curso ${p.courseId})`,
-          meta: { lessonId: p.lessonId, courseId: p.courseId },
+          type: 'cert',
+          ts: cert.issuedAt,
+          title: 'Certificado emitido',
+          body: `Curso ${cert.courseId} — código ${cert.validationCode}`,
+          meta: { code: cert.validationCode },
         });
       }
+    }
 
-      const allCerts = await certsRepo.listAllCertificates();
-      for (const cert of allCerts.filter((x) => x.studentId === userId)) {
-        if (cert.issuedAt) {
-          events.push({
-            type: 'cert',
-            ts: cert.issuedAt,
-            title: 'Certificado emitido',
-            body: `Curso ${cert.courseId} — código ${cert.validationCode}`,
-            meta: { code: cert.validationCode },
-          });
-        }
-      }
+    const tickets = await supportRepo.listTicketsForStudent(userId);
+    for (const t of tickets) {
+      events.push({
+        type: 'ticket',
+        ts: t.createdAt,
+        title: `Ticket aberto: ${t.subject}`,
+        body: t.message.slice(0, 200),
+        meta: { id: t.id, status: t.status, category: t.category },
+      });
+    }
 
-      const tickets = await supportRepo.listTicketsForStudent(userId);
-      for (const t of tickets) {
-        events.push({
-          type: 'ticket',
-          ts: t.createdAt,
-          title: `Ticket aberto: ${t.subject}`,
-          body: t.message.slice(0, 200),
-          meta: { id: t.id, status: t.status, category: t.category },
-        });
-      }
+    const tutorTurns = await tutorHistory.listForUser(userId, 1000);
+    // Conta por dia (não polui timeline com cada pergunta)
+    const tutorByDay = new Map<string, number>();
+    for (const t of tutorTurns) {
+      const day = t.ts.slice(0, 10);
+      tutorByDay.set(day, (tutorByDay.get(day) ?? 0) + 1);
+    }
+    for (const [day, count] of tutorByDay) {
+      events.push({
+        type: 'tutor',
+        ts: `${day}T23:59:59.000Z`,
+        title: `Tutor Virtual: ${count} pergunta${count === 1 ? '' : 's'}`,
+        body: `Interações com Tutor neste dia.`,
+        meta: { count },
+      });
+    }
 
-      const tutorTurns = await tutorHistory.listForUser(userId, 1000);
-      // Conta por dia (não polui timeline com cada pergunta)
-      const tutorByDay = new Map<string, number>();
-      for (const t of tutorTurns) {
-        const day = t.ts.slice(0, 10);
-        tutorByDay.set(day, (tutorByDay.get(day) ?? 0) + 1);
-      }
-      for (const [day, count] of tutorByDay) {
-        events.push({
-          type: 'tutor',
-          ts: `${day}T23:59:59.000Z`,
-          title: `Tutor Virtual: ${count} pergunta${count === 1 ? '' : 's'}`,
-          body: `Interações com Tutor neste dia.`,
-          meta: { count },
-        });
-      }
+    const u = await usersStore.findUserById(userId);
+    if (u?.lastLoginAt) {
+      events.push({
+        type: 'login',
+        ts: u.lastLoginAt,
+        title: 'Último login',
+        body: u.email,
+      });
+    }
 
-      const u = await usersStore.findUserById(userId);
-      if (u?.lastLoginAt) {
-        events.push({
-          type: 'login',
-          ts: u.lastLoginAt,
-          title: 'Último login',
-          body: u.email,
-        });
-      }
-
-      events.sort((a, b) => (b.ts > a.ts ? 1 : -1));
-      return c.json(events.slice(0, 200));
-    },
-  );
+    events.sort((a, b) => (b.ts > a.ts ? 1 : -1));
+    return c.json(events.slice(0, 200));
+  });
 
   // ---------- Admin students ----------
 
@@ -2625,44 +2560,38 @@ export function buildApp() {
   });
 
   /** Export CSV de alunos respeitando os mesmos filtros. */
-  app.get(
-    '/admin/students/export.csv',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const filtersResult = studentsFilterSchema.safeParse({
-        search: c.req.query('search'),
-        status: c.req.query('status'),
-        courseId: c.req.query('courseId'),
-        sortBy: c.req.query('sortBy'),
-      });
-      const filters = filtersResult.success ? filtersResult.data : {};
-      const list = await studentsRepo.listAdminStudents(filters);
-      const rows: string[] = [];
-      rows.push(
-        'id,name,email,status,risk_score,enrolled_courses,last_access_at,created_at',
-      );
-      for (const s of list) {
-        const cells = [
-          s.id,
-          (s.name ?? '').replace(/[",\n]/g, ' '),
-          s.email,
-          s.status,
-          String(s.riskScore ?? 0),
-          String((s.enrolledCourseIds ?? []).length),
-          s.lastAccessAt ?? '',
-          s.createdAt,
-        ];
-        rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
-      }
-      return new Response(rows.join('\n'), {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="alunos-${new Date().toISOString().slice(0, 10)}.csv"`,
-        },
-      });
-    },
-  );
+  app.get('/admin/students/export.csv', requireAuth('admin', 'superadmin'), async (c) => {
+    const filtersResult = studentsFilterSchema.safeParse({
+      search: c.req.query('search'),
+      status: c.req.query('status'),
+      courseId: c.req.query('courseId'),
+      sortBy: c.req.query('sortBy'),
+    });
+    const filters = filtersResult.success ? filtersResult.data : {};
+    const list = await studentsRepo.listAdminStudents(filters);
+    const rows: string[] = [];
+    rows.push('id,name,email,status,risk_score,enrolled_courses,last_access_at,created_at');
+    for (const s of list) {
+      const cells = [
+        s.id,
+        (s.name ?? '').replace(/[",\n]/g, ' '),
+        s.email,
+        s.status,
+        String(s.riskScore ?? 0),
+        String((s.enrolledCourseIds ?? []).length),
+        s.lastAccessAt ?? '',
+        s.createdAt,
+      ];
+      rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
+    }
+    return new Response(rows.join('\n'), {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="alunos-${new Date().toISOString().slice(0, 10)}.csv"`,
+      },
+    });
+  });
 
   app.get('/admin/students/:id', async (c) => {
     const s = await studentsRepo.findAdminStudent(c.req.param('id'));
@@ -2755,65 +2684,65 @@ export function buildApp() {
     return c.json({ plans });
   });
 
-  app.put(
-    '/admin/recovery-plans/:id/status',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const status = body.status as string;
-      if (!['draft', 'sent', 'in_followup', 'completed'].includes(status)) {
-        return jsonError(c, 400, 'INVALID_STATUS', 'Status inválido.');
-      }
-      const plan = await recoveryPlans.findById(id);
-      if (!plan) return jsonError(c, 404, 'NOT_FOUND', 'Plano não encontrado.');
+  app.put('/admin/recovery-plans/:id/status', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const status = body.status as string;
+    if (!['draft', 'sent', 'in_followup', 'completed'].includes(status)) {
+      return jsonError(c, 400, 'INVALID_STATUS', 'Status inválido.');
+    }
+    const plan = await recoveryPlans.findById(id);
+    if (!plan) return jsonError(c, 404, 'NOT_FOUND', 'Plano não encontrado.');
 
-      const updated = await recoveryPlans.updateStatus(
-        id,
-        status as 'draft' | 'sent' | 'in_followup' | 'completed',
-      );
+    const updated = await recoveryPlans.updateStatus(
+      id,
+      status as 'draft' | 'sent' | 'in_followup' | 'completed',
+    );
 
-      if (status === 'sent' && plan.status !== 'sent') {
-        const student = await studentsRepo.findAdminStudent(plan.studentId);
+    if (status === 'sent' && plan.status !== 'sent') {
+      const student = await studentsRepo.findAdminStudent(plan.studentId);
 
-        if (plan.channel === 'in_app' || plan.channel === 'email') {
-          void notificationsRepo.createOne({
-            userId: plan.studentId,
-            title: 'Plano de retomada',
-            body: plan.message.slice(0, 300),
-            category: 'info',
-            link: '/dashboard',
-          });
-        }
-
-        if (student?.email && (plan.channel === 'email' || plan.channel === 'in_app')) {
-          void sendSafe({
-            to: { email: student.email, name: student.name },
-            subject: 'Plano de retomada — AVA PCO',
-            html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px">
-              <h2 style="color:#0097B2;margin:0 0 16px">Plano de Retomada</h2>
-              <div style="white-space:pre-line;color:#0f172a;font-size:14px;line-height:1.6">${plan.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-              ${plan.suggestedTutorPrompt ? `<div style="margin-top:16px;padding:12px;background:#f0f9ff;border-left:3px solid #0097B2;border-radius:4px">
-                <strong style="color:#0097B2;font-size:12px">Pergunta sugerida ao Tutor:</strong>
-                <p style="margin:4px 0 0;font-size:13px;color:#334155">${plan.suggestedTutorPrompt.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
-              </div>` : ''}
-              <p style="margin-top:24px;font-size:12px;color:#64748b">Equipe pedagógica — PCO</p>
-            </div>`,
-            text: plan.message,
-            tag: 'recovery-plan',
-          });
-        }
-        await recordAudit(c, {
-          action: 'recovery_plan.send',
-          targetType: 'recovery_plan',
-          targetId: id,
-          meta: { studentId: plan.studentId, channel: plan.channel },
+      if (plan.channel === 'in_app' || plan.channel === 'email') {
+        void notificationsRepo.createOne({
+          userId: plan.studentId,
+          title: 'Plano de retomada',
+          body: plan.message.slice(0, 300),
+          category: 'info',
+          link: '/dashboard',
         });
       }
 
-      return c.json(updated);
-    },
-  );
+      if (student?.email && (plan.channel === 'email' || plan.channel === 'in_app')) {
+        void sendSafe({
+          to: { email: student.email, name: student.name },
+          subject: 'Plano de retomada — AVA PCO',
+          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px">
+              <h2 style="color:#0097B2;margin:0 0 16px">Plano de Retomada</h2>
+              <div style="white-space:pre-line;color:#0f172a;font-size:14px;line-height:1.6">${plan.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+              ${
+                plan.suggestedTutorPrompt
+                  ? `<div style="margin-top:16px;padding:12px;background:#f0f9ff;border-left:3px solid #0097B2;border-radius:4px">
+                <strong style="color:#0097B2;font-size:12px">Pergunta sugerida ao Tutor:</strong>
+                <p style="margin:4px 0 0;font-size:13px;color:#334155">${plan.suggestedTutorPrompt.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+              </div>`
+                  : ''
+              }
+              <p style="margin-top:24px;font-size:12px;color:#64748b">Equipe pedagógica — PCO</p>
+            </div>`,
+          text: plan.message,
+          tag: 'recovery-plan',
+        });
+      }
+      await recordAudit(c, {
+        action: 'recovery_plan.send',
+        targetType: 'recovery_plan',
+        targetId: id,
+        meta: { studentId: plan.studentId, channel: plan.channel },
+      });
+    }
+
+    return c.json(updated);
+  });
 
   // ---------- Admin: Course writes ----------
 
@@ -2826,19 +2755,14 @@ export function buildApp() {
       const courseId = c.req.param('id') as string;
       const course = await coursesRepo.findCourse(courseId);
       if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
-      const totalLessons = course.modules.reduce(
-        (s, m) => s + m.lessons.length,
-        0,
-      );
+      const totalLessons = course.modules.reduce((s, m) => s + m.lessons.length, 0);
       if (totalLessons === 0) {
         return jsonError(c, 400, 'NO_LESSONS', 'Curso sem aulas.');
       }
       const allStudents = await studentsRepo.listAdminStudents({
         limit: 5000,
       } as never);
-      const enrolled = allStudents.filter((s) =>
-        (s.enrolledCourseIds ?? []).includes(courseId),
-      );
+      const enrolled = allStudents.filter((s) => (s.enrolledCourseIds ?? []).includes(courseId));
       const allProgress = await progressRepo.listAll();
       const progressByUser = new Map<string, number>();
       for (const p of allProgress) {
@@ -2891,47 +2815,36 @@ export function buildApp() {
   );
 
   /** Resumo agregado por curso pra tabela admin: enrolledCount + avgPct. */
-  app.get(
-    '/admin/courses-summary',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const courses = await coursesRepo.listCourses();
-      const allStudents = await studentsRepo.listAdminStudents({
-        limit: 5000,
-      } as never);
-      const allProgress = await progressRepo.listAll();
-      const out = courses.map((course) => {
-        const totalLessons = course.modules.reduce(
-          (s, m) => s + m.lessons.length,
-          0,
-        );
-        const enrolled = allStudents.filter((s) =>
-          (s.enrolledCourseIds ?? []).includes(course.id),
-        );
-        const progressByUser = new Map<string, number>();
-        for (const p of allProgress) {
-          if (p.courseId !== course.id) continue;
-          progressByUser.set(p.userId, (progressByUser.get(p.userId) ?? 0) + 1);
-        }
-        const rates = enrolled.map((s) => {
-          const done = progressByUser.get(s.id) ?? 0;
-          return totalLessons > 0 ? done / totalLessons : 0;
-        });
-        const avgPct =
-          rates.length > 0
-            ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100)
-            : 0;
-        const completed = rates.filter((r) => r >= 1).length;
-        return {
-          courseId: course.id,
-          enrolledCount: enrolled.length,
-          completedCount: completed,
-          avgProgressPct: avgPct,
-        };
+  app.get('/admin/courses-summary', requireAuth('admin', 'superadmin'), async (c) => {
+    const courses = await coursesRepo.listCourses();
+    const allStudents = await studentsRepo.listAdminStudents({
+      limit: 5000,
+    } as never);
+    const allProgress = await progressRepo.listAll();
+    const out = courses.map((course) => {
+      const totalLessons = course.modules.reduce((s, m) => s + m.lessons.length, 0);
+      const enrolled = allStudents.filter((s) => (s.enrolledCourseIds ?? []).includes(course.id));
+      const progressByUser = new Map<string, number>();
+      for (const p of allProgress) {
+        if (p.courseId !== course.id) continue;
+        progressByUser.set(p.userId, (progressByUser.get(p.userId) ?? 0) + 1);
+      }
+      const rates = enrolled.map((s) => {
+        const done = progressByUser.get(s.id) ?? 0;
+        return totalLessons > 0 ? done / totalLessons : 0;
       });
-      return c.json(out);
-    },
-  );
+      const avgPct =
+        rates.length > 0 ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100) : 0;
+      const completed = rates.filter((r) => r >= 1).length;
+      return {
+        courseId: course.id,
+        enrolledCount: enrolled.length,
+        completedCount: completed,
+        avgProgressPct: avgPct,
+      };
+    });
+    return c.json(out);
+  });
 
   /** Bulk enroll de alunos existentes num curso. body: { studentIds: string[] } */
   app.post(
@@ -2944,9 +2857,7 @@ export function buildApp() {
       if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
       const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
       const ids = Array.isArray(body.studentIds)
-        ? (body.studentIds as unknown[]).filter(
-            (x): x is string => typeof x === 'string',
-          )
+        ? (body.studentIds as unknown[]).filter((x): x is string => typeof x === 'string')
         : [];
       if (ids.length === 0) {
         return jsonError(c, 400, 'INVALID_INPUT', 'studentIds vazio.');
@@ -2978,10 +2889,7 @@ export function buildApp() {
           if (required.length > 0 && !force) {
             const myProgress = await progressRepo.listForUser(studentId);
             const completedLessonIds = myProgress.map((p) => p.lessonId);
-            const completedCourseIds = computeCompletedCourseIds(
-              allCourses,
-              completedLessonIds,
-            );
+            const completedCourseIds = computeCompletedCourseIds(allCourses, completedLessonIds);
             const check = checkPrerequisites(required, completedCourseIds);
             if (!check.ok) {
               ineligible.push({ studentId, missing: check.missing });
@@ -2996,9 +2904,7 @@ export function buildApp() {
               userId: studentId,
               title: `🎓 Você foi matriculado em ${course.title}`,
               body: `Acesse o curso e comece a estudar.${
-                required.length > 0 && force
-                  ? ' (Matrícula manual concedida pelo admin.)'
-                  : ''
+                required.length > 0 && force ? ' (Matrícula manual concedida pelo admin.)' : ''
               }`,
               category: 'announcement',
               link: `/curso/${course.id}`,
@@ -3025,94 +2931,77 @@ export function buildApp() {
   );
 
   /** Lista alunos matriculados num curso com progresso individual. */
-  app.get(
-    '/admin/courses/:id/students',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const courseId = c.req.param('id') as string;
-      const course = await coursesRepo.findCourse(courseId);
-      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+  app.get('/admin/courses/:id/students', requireAuth('admin', 'superadmin'), async (c) => {
+    const courseId = c.req.param('id') as string;
+    const course = await coursesRepo.findCourse(courseId);
+    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
 
-      const allLessons = course.modules.flatMap((m) => m.lessons);
-      const totalLessons = allLessons.length;
+    const allLessons = course.modules.flatMap((m) => m.lessons);
+    const totalLessons = allLessons.length;
 
-      const allStudents = await studentsRepo.listAdminStudents({
-        limit: 5000,
-      } as never);
-      const enrolled = allStudents.filter((s) =>
-        (s.enrolledCourseIds ?? []).includes(courseId),
-      );
+    const allStudents = await studentsRepo.listAdminStudents({
+      limit: 5000,
+    } as never);
+    const enrolled = allStudents.filter((s) => (s.enrolledCourseIds ?? []).includes(courseId));
 
-      const allProgress = await progressRepo.listAll();
-      const progressByUser = new Map<
-        string,
-        { done: number; lastCompletedAt: string | null }
-      >();
-      for (const p of allProgress) {
-        if (p.courseId !== courseId) continue;
-        const cur = progressByUser.get(p.userId) ?? {
-          done: 0,
-          lastCompletedAt: null as string | null,
-        };
-        cur.done++;
-        if (
-          !cur.lastCompletedAt ||
-          (p.completedAt && p.completedAt > cur.lastCompletedAt)
-        ) {
-          cur.lastCompletedAt = p.completedAt ?? null;
-        }
-        progressByUser.set(p.userId, cur);
+    const allProgress = await progressRepo.listAll();
+    const progressByUser = new Map<string, { done: number; lastCompletedAt: string | null }>();
+    for (const p of allProgress) {
+      if (p.courseId !== courseId) continue;
+      const cur = progressByUser.get(p.userId) ?? {
+        done: 0,
+        lastCompletedAt: null as string | null,
+      };
+      cur.done++;
+      if (!cur.lastCompletedAt || (p.completedAt && p.completedAt > cur.lastCompletedAt)) {
+        cur.lastCompletedAt = p.completedAt ?? null;
       }
+      progressByUser.set(p.userId, cur);
+    }
 
-      const result = enrolled.map((s) => {
-        const prog = progressByUser.get(s.id) ?? { done: 0, lastCompletedAt: null };
-        const pct =
-          totalLessons > 0 ? Math.round((prog.done / totalLessons) * 100) : 0;
-        return {
-          studentId: s.id,
-          name: s.name,
-          email: s.email,
-          status: s.status,
-          lessonsCompleted: prog.done,
-          totalLessons,
-          progressPct: pct,
-          lastCompletedAt: prog.lastCompletedAt,
-          lastAccessAt: s.lastAccessAt,
-          riskScore: s.riskScore,
-        };
-      });
-
-      result.sort((a, b) => b.progressPct - a.progressPct);
-      return c.json({
-        courseId,
-        courseTitle: course.title,
+    const result = enrolled.map((s) => {
+      const prog = progressByUser.get(s.id) ?? { done: 0, lastCompletedAt: null };
+      const pct = totalLessons > 0 ? Math.round((prog.done / totalLessons) * 100) : 0;
+      return {
+        studentId: s.id,
+        name: s.name,
+        email: s.email,
+        status: s.status,
+        lessonsCompleted: prog.done,
         totalLessons,
-        enrolledCount: result.length,
-        students: result,
-      });
-    },
-  );
+        progressPct: pct,
+        lastCompletedAt: prog.lastCompletedAt,
+        lastAccessAt: s.lastAccessAt,
+        riskScore: s.riskScore,
+      };
+    });
 
-  app.post(
-    '/admin/courses',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      const v = validate(createCourseSchema, body);
-      if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-      const result = await coursesRepo.createCourse(v.data);
-      if ('error' in result) {
-        return jsonError(c, 409, 'DUPLICATE_SLUG', 'Já existe um curso com esse slug.');
-      }
-      return c.json(result, 201);
-    },
-  );
+    result.sort((a, b) => b.progressPct - a.progressPct);
+    return c.json({
+      courseId,
+      courseTitle: course.title,
+      totalLessons,
+      enrolledCount: result.length,
+      students: result,
+    });
+  });
+
+  app.post('/admin/courses', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(createCourseSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const result = await coursesRepo.createCourse(v.data);
+    if ('error' in result) {
+      return jsonError(c, 409, 'DUPLICATE_SLUG', 'Já existe um curso com esse slug.');
+    }
+    return c.json(result, 201);
+  });
 
   app.put('/admin/courses/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateCourseSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await coursesRepo.updateCourse((c.req.param('id') as string), v.data);
+    const updated = await coursesRepo.updateCourse(c.req.param('id') as string, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
     return c.json(updated);
   });
@@ -3154,23 +3043,19 @@ export function buildApp() {
    * catalog se nao tem releaseAt no futuro), mas este endpoint permite
    * acionar webhooks manualmente para integradores que precisam saber.
    */
-  app.post(
-    '/admin/courses/:id/publish',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const courseId = c.req.param('id') as string;
-      const course = await coursesRepo.findCourse(courseId);
-      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso nao encontrado');
-      void webhooksDispatcher.emit('course.published', {
-        courseId: course.id,
-        slug: course.slug,
-        title: course.title,
-        shortTitle: course.shortTitle,
-        publishedAt: new Date().toISOString(),
-      });
-      return c.json({ ok: true, courseId });
-    },
-  );
+  app.post('/admin/courses/:id/publish', requireAuth('admin', 'superadmin'), async (c) => {
+    const courseId = c.req.param('id') as string;
+    const course = await coursesRepo.findCourse(courseId);
+    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso nao encontrado');
+    void webhooksDispatcher.emit('course.published', {
+      courseId: course.id,
+      slug: course.slug,
+      title: course.title,
+      shortTitle: course.shortTitle,
+      publishedAt: new Date().toISOString(),
+    });
+    return c.json({ ok: true, courseId });
+  });
 
   // ---------- Admin: News writes ----------
 
@@ -3186,13 +3071,13 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateNewsSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await newsRepo.updateNews((c.req.param('id') as string), v.data);
+    const updated = await newsRepo.updateNews(c.req.param('id') as string, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Artigo não encontrado');
     return c.json(updated);
   });
 
   app.delete('/admin/news/:id', requireAuth('admin', 'superadmin'), async (c) => {
-    const ok = await newsRepo.deleteNews((c.req.param('id') as string));
+    const ok = await newsRepo.deleteNews(c.req.param('id') as string);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Artigo não encontrado');
     return c.json({ ok: true });
   });
@@ -3211,13 +3096,13 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateLibrarySchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await libraryRepo.updateLibrary((c.req.param('id') as string), v.data);
+    const updated = await libraryRepo.updateLibrary(c.req.param('id') as string, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Material não encontrado');
     return c.json(updated);
   });
 
   app.delete('/admin/library/:id', requireAuth('admin', 'superadmin'), async (c) => {
-    const ok = await libraryRepo.deleteLibrary((c.req.param('id') as string));
+    const ok = await libraryRepo.deleteLibrary(c.req.param('id') as string);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Material não encontrado');
     return c.json({ ok: true });
   });
@@ -3236,13 +3121,13 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updatePodcastSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await podcastsRepo.updatePodcast((c.req.param('id') as string), v.data);
+    const updated = await podcastsRepo.updatePodcast(c.req.param('id') as string, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Episódio não encontrado');
     return c.json(updated);
   });
 
   app.delete('/admin/podcasts/:id', requireAuth('admin', 'superadmin'), async (c) => {
-    const ok = await podcastsRepo.deletePodcast((c.req.param('id') as string));
+    const ok = await podcastsRepo.deletePodcast(c.req.param('id') as string);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Episódio não encontrado');
     return c.json({ ok: true });
   });
@@ -3258,12 +3143,7 @@ export function buildApp() {
         if (!cloned) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
         return c.json(cloned, 201);
       } catch (err) {
-        return jsonError(
-          c,
-          501,
-          'NOT_SUPPORTED',
-          err instanceof Error ? err.message : String(err),
-        );
+        return jsonError(c, 501, 'NOT_SUPPORTED', err instanceof Error ? err.message : String(err));
       }
     },
   );
@@ -3274,7 +3154,7 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createModuleSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const created = await coursesRepo.createModule((c.req.param('courseId') as string), v.data);
+    const created = await coursesRepo.createModule(c.req.param('courseId') as string, v.data);
     if (!created) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
     return c.json(created, 201);
   });
@@ -3283,13 +3163,13 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateModuleSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await coursesRepo.updateModule((c.req.param('id') as string), v.data);
+    const updated = await coursesRepo.updateModule(c.req.param('id') as string, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
     return c.json(updated);
   });
 
   app.delete('/admin/modules/:id', requireAuth('admin', 'superadmin'), async (c) => {
-    const ok = await coursesRepo.deleteModule((c.req.param('id') as string));
+    const ok = await coursesRepo.deleteModule(c.req.param('id') as string);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
     return c.json({ ok: true });
   });
@@ -3300,7 +3180,7 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createLessonSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const created = await coursesRepo.createLesson((c.req.param('moduleId') as string), v.data);
+    const created = await coursesRepo.createLesson(c.req.param('moduleId') as string, v.data);
     if (!created) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
     return c.json(created, 201);
   });
@@ -3309,13 +3189,13 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateLessonSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await coursesRepo.updateLesson((c.req.param('id') as string), v.data);
+    const updated = await coursesRepo.updateLesson(c.req.param('id') as string, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada');
     return c.json(updated);
   });
 
   app.delete('/admin/lessons/:id', requireAuth('admin', 'superadmin'), async (c) => {
-    const ok = await coursesRepo.deleteLesson((c.req.param('id') as string));
+    const ok = await coursesRepo.deleteLesson(c.req.param('id') as string);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada');
     return c.json({ ok: true });
   });
@@ -3334,19 +3214,19 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateStudentSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await studentsRepo.updateAdminStudent((c.req.param('id') as string), v.data);
+    const updated = await studentsRepo.updateAdminStudent(c.req.param('id') as string, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(updated);
   });
 
   app.post('/admin/students/:id/block', requireAuth('admin', 'superadmin'), async (c) => {
-    const updated = await studentsRepo.setStudentStatus((c.req.param('id') as string), 'bloqueado');
+    const updated = await studentsRepo.setStudentStatus(c.req.param('id') as string, 'bloqueado');
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(updated);
   });
 
   app.post('/admin/students/:id/unblock', requireAuth('admin', 'superadmin'), async (c) => {
-    const updated = await studentsRepo.setStudentStatus((c.req.param('id') as string), 'ativo');
+    const updated = await studentsRepo.setStudentStatus(c.req.param('id') as string, 'ativo');
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(updated);
   });
@@ -3356,13 +3236,13 @@ export function buildApp() {
     const parsed = studentStatusEnum.safeParse(body?.status);
     if (!parsed.success)
       return jsonError(c, 400, 'INVALID_INPUT', 'Status inválido', parsed.error.flatten());
-    const updated = await studentsRepo.setStudentStatus((c.req.param('id') as string), parsed.data);
+    const updated = await studentsRepo.setStudentStatus(c.req.param('id') as string, parsed.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(updated);
   });
 
   app.delete('/admin/students/:id', requireAuth('admin', 'superadmin'), async (c) => {
-    const ok = await studentsRepo.deleteAdminStudent((c.req.param('id') as string));
+    const ok = await studentsRepo.deleteAdminStudent(c.req.param('id') as string);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json({ ok: true });
   });
@@ -3373,7 +3253,7 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createAssessmentSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const result = await coursesRepo.upsertAssessment((c.req.param('moduleId') as string), v.data);
+    const result = await coursesRepo.upsertAssessment(c.req.param('moduleId') as string, v.data);
     if (!result) return jsonError(c, 404, 'NOT_FOUND', 'Módulo não encontrado');
     return c.json(result);
   });
@@ -3382,13 +3262,13 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateAssessmentSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const updated = await coursesRepo.updateAssessment((c.req.param('id') as string), v.data);
+    const updated = await coursesRepo.updateAssessment(c.req.param('id') as string, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Avaliação não encontrada');
     return c.json(updated);
   });
 
   app.delete('/admin/assessments/:id', requireAuth('admin', 'superadmin'), async (c) => {
-    const ok = await coursesRepo.deleteAssessment((c.req.param('id') as string));
+    const ok = await coursesRepo.deleteAssessment(c.req.param('id') as string);
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Avaliação não encontrada');
     return c.json({ ok: true });
   });
@@ -3422,8 +3302,7 @@ export function buildApp() {
       await notificationsRepo.createOne({
         userId: created.id,
         title: `Bem-vindo(a) ao AVA PCO, ${created.name}!`,
-        body:
-          'Sua conta foi criada. Acesse seu perfil para confirmar dados e, se receber uma senha temporária, troque-a no primeiro acesso.',
+        body: 'Sua conta foi criada. Acesse seu perfil para confirmar dados e, se receber uma senha temporária, troque-a no primeiro acesso.',
         category: 'announcement',
         link: '/perfil',
         authorEmail: acting?.email ?? null,
@@ -3485,15 +3364,20 @@ export function buildApp() {
     }
   });
 
-  app.put('/admin/users/:id/password', requireAuth('admin', 'superadmin'), blockDuringImpersonation('user.password.change'), async (c) => {
-    const body = await c.req.json().catch(() => ({}));
-    const v = validate(changePasswordSchema, body);
-    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const id = c.req.param('id') as string;
-    const ok = await usersStore.changePassword(id, v.data.password);
-    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
-    return c.json({ ok: true });
-  });
+  app.put(
+    '/admin/users/:id/password',
+    requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('user.password.change'),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const v = validate(changePasswordSchema, body);
+      if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+      const id = c.req.param('id') as string;
+      const ok = await usersStore.changePassword(id, v.data.password);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+      return c.json({ ok: true });
+    },
+  );
 
   /**
    * Inspector de sessões — retorna user list com hint de "está com sessão viva?"
@@ -3512,45 +3396,44 @@ export function buildApp() {
       tokenVersion: u.tokenVersion,
       totpEnabled: u.totpEnabled === true,
       hasLikelyActiveSession:
-        u.active &&
-        !!u.lastLoginAt &&
-        new Date(u.lastLoginAt).getTime() >= cutoff,
+        u.active && !!u.lastLoginAt && new Date(u.lastLoginAt).getTime() >= cutoff,
     }));
     return c.json(result);
   });
 
-  app.post(
-    '/admin/users/:id/force-logout',
+  app.post('/admin/users/:id/force-logout', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const tv = await usersStore.bumpTokenVersion(id);
+    if (tv === null) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
+    return c.json({ ok: true, tokenVersion: tv });
+  });
+
+  app.delete(
+    '/admin/users/:id',
     requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('user.delete'),
     async (c) => {
-      const id = c.req.param('id') as string;
-      const tv = await usersStore.bumpTokenVersion(id);
-      if (tv === null) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado.');
-      return c.json({ ok: true, tokenVersion: tv });
+      try {
+        const id = c.req.param('id') as string;
+        const target = await usersStore.findUserById(id);
+        if (!target) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+        const provided = readConfirmHeader(c);
+        if (!confirmMatches(provided, target.email)) {
+          return jsonError(
+            c,
+            428,
+            'CONFIRM_REQUIRED',
+            `Confirme digitando o e-mail "${target.email}" no header X-Confirm-Name.`,
+          );
+        }
+        const ok = await usersStore.deleteUser(id);
+        if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
+        return c.json({ ok: true });
+      } catch (err) {
+        return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
+      }
     },
   );
-
-  app.delete('/admin/users/:id', requireAuth('admin', 'superadmin'), blockDuringImpersonation('user.delete'), async (c) => {
-    try {
-      const id = c.req.param('id') as string;
-      const target = await usersStore.findUserById(id);
-      if (!target) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
-      const provided = readConfirmHeader(c);
-      if (!confirmMatches(provided, target.email)) {
-        return jsonError(
-          c,
-          428,
-          'CONFIRM_REQUIRED',
-          `Confirme digitando o e-mail "${target.email}" no header X-Confirm-Name.`,
-        );
-      }
-      const ok = await usersStore.deleteUser(id);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Usuário não encontrado');
-      return c.json({ ok: true });
-    } catch (err) {
-      return jsonError(c, 409, 'CONFLICT', err instanceof Error ? err.message : String(err));
-    }
-  });
 
   // ---------- Impersonation ----------
   // Admin/superadmin "entra" como aluno (suporte). Token tem TTL curto (30 min)
@@ -3568,19 +3451,14 @@ export function buildApp() {
       if (!target.active)
         return jsonError(c, 409, 'INACTIVE_TARGET', 'Usuário alvo está desativado.');
 
-      const check = canImpersonate(
-        { role: me.role },
-        { role: target.role },
-        Boolean(me.act),
-      );
+      const check = canImpersonate({ role: me.role }, { role: target.role }, Boolean(me.act));
       if (!check.ok) return jsonError(c, 403, 'IMPERSONATION_DENIED', check.reason);
 
       const actor = await usersStore.findUserById(me.sub);
       if (!actor) return jsonError(c, 401, 'UNAUTHORIZED', 'Sessão inválida.');
 
       const result = await startImpersonation(actor, targetId);
-      if (!result)
-        return jsonError(c, 500, 'IMPERSONATION_FAILED', 'Falha ao gerar token.');
+      if (!result) return jsonError(c, 500, 'IMPERSONATION_FAILED', 'Falha ao gerar token.');
 
       await recordAudit(c, {
         action: 'impersonation.start',
@@ -3603,15 +3481,9 @@ export function buildApp() {
     const me = c.get('user');
     if (!me) return jsonError(c, 401, 'UNAUTHORIZED', 'Token ausente ou inválido.');
     if (!me.act)
-      return jsonError(
-        c,
-        409,
-        'NOT_IMPERSONATING',
-        'Você não está em sessão de impersonation.',
-      );
+      return jsonError(c, 409, 'NOT_IMPERSONATING', 'Você não está em sessão de impersonation.');
     const newToken = await exitImpersonation(me);
-    if (!newToken)
-      return jsonError(c, 500, 'EXIT_FAILED', 'Falha ao restaurar sessão original.');
+    if (!newToken) return jsonError(c, 500, 'EXIT_FAILED', 'Falha ao restaurar sessão original.');
 
     await recordAudit(c, {
       action: 'impersonation.exit',
@@ -3795,10 +3667,7 @@ export function buildApp() {
                 enrolledCourseTitles: courseTitles,
               })
               .catch((err) =>
-                console.error(
-                  '[welcome email bulk]',
-                  err instanceof Error ? err.message : err,
-                ),
+                console.error('[welcome email bulk]', err instanceof Error ? err.message : err),
               );
           }
         } catch (err) {
@@ -3842,24 +3711,20 @@ export function buildApp() {
 
   // ---------- Client error reporting (público, rate-limited) ----------
 
-  app.post(
-    '/client-errors',
-    rateLimit({ windowMs: 60_000, max: 30 }),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      const message = typeof body.message === 'string' ? body.message : '';
-      if (!message || message.length > 1000) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'Mensagem ausente ou muito longa.');
-      }
-      await recordClientError(c, {
-        message,
-        stack: typeof body.stack === 'string' ? body.stack : null,
-        path: typeof body.path === 'string' ? body.path : null,
-        userAgent: typeof body.userAgent === 'string' ? body.userAgent : null,
-      });
-      return c.json({ ok: true });
-    },
-  );
+  app.post('/client-errors', rateLimit({ windowMs: 60_000, max: 30 }), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const message = typeof body.message === 'string' ? body.message : '';
+    if (!message || message.length > 1000) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'Mensagem ausente ou muito longa.');
+    }
+    await recordClientError(c, {
+      message,
+      stack: typeof body.stack === 'string' ? body.stack : null,
+      path: typeof body.path === 'string' ? body.path : null,
+      userAgent: typeof body.userAgent === 'string' ? body.userAgent : null,
+    });
+    return c.json({ ok: true });
+  });
 
   // ---------- Backup sob demanda (admin) ----------
 
@@ -3871,11 +3736,7 @@ export function buildApp() {
       const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
       const backupsDir = path.join(dataDir, 'backups');
       await fs.mkdir(backupsDir, { recursive: true });
-      const ts = new Date()
-        .toISOString()
-        .replace(/[:.]/g, '-')
-        .replace('T', '_')
-        .slice(0, 19);
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
       const filename = `manual-${ts}.tar.gz`;
       const filepath = path.join(backupsDir, filename);
 
@@ -3889,15 +3750,10 @@ export function buildApp() {
       }
 
       await new Promise<void>((resolve, reject) => {
-        execFile(
-          'tar',
-          ['-czf', filepath, '-C', dataDir, ...files],
-          { timeout: 30_000 },
-          (err) => {
-            if (err) reject(err);
-            else resolve();
-          },
-        );
+        execFile('tar', ['-czf', filepath, '-C', dataDir, ...files], { timeout: 30_000 }, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
       });
 
       const st = await fs.stat(filepath);
@@ -4011,8 +3867,7 @@ export function buildApp() {
   app.post('/admin/payments/gateways', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createPaymentGatewaySchema, body);
-    if (!v.ok)
-      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
     const created = await gatewaysRepo.createGateway(v.data);
     return c.json(created, 201);
   });
@@ -4021,8 +3876,7 @@ export function buildApp() {
     const id = c.req.param('id') as string;
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updatePaymentGatewaySchema, body);
-    if (!v.ok)
-      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
     const updated = await gatewaysRepo.updateGateway(id, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado');
     return c.json(updated);
@@ -4051,8 +3905,7 @@ export function buildApp() {
   app.post('/admin/products', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createProductSchema, body);
-    if (!v.ok)
-      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
     const created = await productsRepo.createProduct({
       kind: v.data.kind,
       refId: v.data.refId ?? null,
@@ -4070,8 +3923,7 @@ export function buildApp() {
     const id = c.req.param('id') as string;
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateProductSchema, body);
-    if (!v.ok)
-      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
     const updated = await productsRepo.updateProduct(id, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Produto não encontrado');
     return c.json(updated);
@@ -4166,11 +4018,7 @@ export function buildApp() {
           r.externalRefundId ? `refundId=${r.externalRefundId}` : null,
           partial ? `parcial: ${r.refundedCents}c de ${order.amountCents}c` : 'total',
         ].filter(Boolean);
-        const updated = await ordersRepo.updateStatus(
-          id,
-          finalStatus,
-          noteParts.join(' · '),
-        );
+        const updated = await ordersRepo.updateStatus(id, finalStatus, noteParts.join(' · '));
         // Revoga acesso quando refund total
         if (updated && finalStatus === 'refunded') {
           try {
@@ -4303,8 +4151,12 @@ export function buildApp() {
         toLang?: string;
       };
       const courseId = String(body.courseId ?? '').trim();
-      const fromLang = String(body.fromLang ?? '').trim().toLowerCase();
-      const toLang = String(body.toLang ?? '').trim().toLowerCase();
+      const fromLang = String(body.fromLang ?? '')
+        .trim()
+        .toLowerCase();
+      const toLang = String(body.toLang ?? '')
+        .trim()
+        .toLowerCase();
       const valid = ['pt', 'es', 'en'];
       if (!courseId) return jsonError(c, 400, 'BAD_REQUEST', 'courseId obrigatório.');
       if (!valid.includes(fromLang) || !valid.includes(toLang)) {
@@ -4345,8 +4197,7 @@ export function buildApp() {
 
       for (const lesson of allLessons) {
         const transcripts =
-          (lesson as { transcripts?: Record<string, string | undefined> })
-            .transcripts ?? {};
+          (lesson as { transcripts?: Record<string, string | undefined> }).transcripts ?? {};
         const source = transcripts[fromLang];
         if (!source || source.trim().length === 0) {
           results.push({
@@ -4457,7 +4308,9 @@ export function buildApp() {
         lang?: string;
       };
       const lessonId = String(body.lessonId ?? '').trim();
-      const lang = String(body.lang ?? 'pt').trim().toLowerCase();
+      const lang = String(body.lang ?? 'pt')
+        .trim()
+        .toLowerCase();
       const valid = ['pt', 'es', 'en'];
       if (!lessonId) return jsonError(c, 400, 'BAD_REQUEST', 'lessonId obrigatório.');
       if (!valid.includes(lang)) {
@@ -4465,13 +4318,14 @@ export function buildApp() {
       }
 
       const courses = await coursesRepo.listCourses();
-      let foundLesson:
-        | (typeof courses)[number]['modules'][number]['lessons'][number]
-        | null = null;
+      let foundLesson: (typeof courses)[number]['modules'][number]['lessons'][number] | null = null;
       for (const co of courses) {
         for (const m of co.modules ?? []) {
           const l = m.lessons.find((x) => x.id === lessonId);
-          if (l) { foundLesson = l; break; }
+          if (l) {
+            foundLesson = l;
+            break;
+          }
         }
         if (foundLesson) break;
       }
@@ -4488,9 +4342,7 @@ export function buildApp() {
 
       // Procura config OpenAI ativa em algum módulo
       const allConfigs = await aiConfigRepo.listConfigs();
-      const fullConfigs = await Promise.all(
-        allConfigs.map((p) => aiConfigRepo.getConfig(p.id)),
-      );
+      const fullConfigs = await Promise.all(allConfigs.map((p) => aiConfigRepo.getConfig(p.id)));
       const openAiConfig = fullConfigs.find(
         (cfg) => cfg && cfg.provider === 'openai' && cfg.active !== false,
       );
@@ -4518,8 +4370,7 @@ export function buildApp() {
         }
 
         const existing =
-          (foundLesson as { transcripts?: Record<string, string | undefined> })
-            .transcripts ?? {};
+          (foundLesson as { transcripts?: Record<string, string | undefined> }).transcripts ?? {};
         const newTranscripts = { ...existing, [lang]: result.text };
         await coursesRepo.updateLesson(lessonId, {
           transcripts: newTranscripts,
@@ -4579,8 +4430,12 @@ export function buildApp() {
         toLang?: string;
       };
       const lessonId = String(body.lessonId ?? '').trim();
-      const fromLang = String(body.fromLang ?? '').trim().toLowerCase();
-      const toLang = String(body.toLang ?? '').trim().toLowerCase();
+      const fromLang = String(body.fromLang ?? '')
+        .trim()
+        .toLowerCase();
+      const toLang = String(body.toLang ?? '')
+        .trim()
+        .toLowerCase();
       const valid = ['pt', 'es', 'en'];
       if (!lessonId) return jsonError(c, 400, 'BAD_REQUEST', 'lessonId obrigatório.');
       if (!valid.includes(fromLang) || !valid.includes(toLang)) {
@@ -4591,9 +4446,7 @@ export function buildApp() {
       }
 
       const courses = await coursesRepo.listCourses();
-      let foundLesson:
-        | (typeof courses)[number]['modules'][number]['lessons'][number]
-        | null = null;
+      let foundLesson: (typeof courses)[number]['modules'][number]['lessons'][number] | null = null;
       for (const co of courses) {
         for (const m of co.modules ?? []) {
           const l = m.lessons.find((x) => x.id === lessonId);
@@ -4607,8 +4460,7 @@ export function buildApp() {
       if (!foundLesson) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
 
       const transcripts =
-        (foundLesson as { transcripts?: Record<string, string | undefined> })
-          .transcripts ?? {};
+        (foundLesson as { transcripts?: Record<string, string | undefined> }).transcripts ?? {};
       const sourceText = transcripts[fromLang];
       if (!sourceText || sourceText.trim().length === 0) {
         return jsonError(
@@ -4687,12 +4539,7 @@ export function buildApp() {
         });
       } catch (err) {
         const e = err as { code?: string; message?: string };
-        return jsonError(
-          c,
-          502,
-          e.code ?? 'AI_FAILED',
-          e.message ?? 'Falha ao chamar IA.',
-        );
+        return jsonError(c, 502, e.code ?? 'AI_FAILED', e.message ?? 'Falha ao chamar IA.');
       }
     },
   );
@@ -4737,7 +4584,9 @@ export function buildApp() {
       }> = [];
       for (const item of body.items) {
         const lessonId = String(item.lessonId ?? '').trim();
-        const lang = String(item.lang ?? '').trim().toLowerCase();
+        const lang = String(item.lang ?? '')
+          .trim()
+          .toLowerCase();
         const text = String(item.text ?? '');
         if (!lessonId) {
           results.push({ lessonId, lang, ok: false, error: 'lessonId vazio' });
@@ -4762,8 +4611,7 @@ export function buildApp() {
           continue;
         }
         const existing =
-          (found.lesson as { transcripts?: Record<string, string | undefined> })
-            .transcripts ?? {};
+          (found.lesson as { transcripts?: Record<string, string | undefined> }).transcripts ?? {};
         const newTranscripts = { ...existing, [lang]: text };
         try {
           await coursesRepo.updateLesson(lessonId, {
@@ -4793,71 +4641,62 @@ export function buildApp() {
    * Coverage stats de transcrições por curso. Útil pro admin saber
    * quantas aulas tem transcrição em cada idioma, % cobertura, etc.
    */
-  app.get(
-    '/admin/transcripts/coverage',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const courses = await coursesRepo.listCourses();
-      type Lang = 'pt' | 'es' | 'en';
-      const langs: Lang[] = ['pt', 'es', 'en'];
-      const courseStats = courses.map((co) => {
-        const lessons = (co.modules ?? []).flatMap((m) => m.lessons);
-        const totalLessons = lessons.length;
-        const perLang: Record<Lang, number> = { pt: 0, es: 0, en: 0 };
-        let withAnyTranscript = 0;
-        for (const l of lessons) {
-          const tr = (l as { transcripts?: Record<string, string | undefined> })
-            .transcripts ?? {};
-          let hasAny = false;
-          for (const lang of langs) {
-            if (typeof tr[lang] === 'string' && tr[lang]!.trim().length > 0) {
-              perLang[lang]++;
-              hasAny = true;
-            }
+  app.get('/admin/transcripts/coverage', requireAuth('admin', 'superadmin'), async (c) => {
+    const courses = await coursesRepo.listCourses();
+    type Lang = 'pt' | 'es' | 'en';
+    const langs: Lang[] = ['pt', 'es', 'en'];
+    const courseStats = courses.map((co) => {
+      const lessons = (co.modules ?? []).flatMap((m) => m.lessons);
+      const totalLessons = lessons.length;
+      const perLang: Record<Lang, number> = { pt: 0, es: 0, en: 0 };
+      let withAnyTranscript = 0;
+      for (const l of lessons) {
+        const tr = (l as { transcripts?: Record<string, string | undefined> }).transcripts ?? {};
+        let hasAny = false;
+        for (const lang of langs) {
+          if (typeof tr[lang] === 'string' && tr[lang]!.trim().length > 0) {
+            perLang[lang]++;
+            hasAny = true;
           }
-          if (hasAny) withAnyTranscript++;
         }
-        return {
-          courseId: co.id,
-          title: co.title,
-          shortTitle: co.shortTitle ?? co.title,
-          totalLessons,
-          withAnyTranscript,
-          perLang,
-          coveragePct: totalLessons > 0
-            ? Math.round((withAnyTranscript / totalLessons) * 100)
+        if (hasAny) withAnyTranscript++;
+      }
+      return {
+        courseId: co.id,
+        title: co.title,
+        shortTitle: co.shortTitle ?? co.title,
+        totalLessons,
+        withAnyTranscript,
+        perLang,
+        coveragePct: totalLessons > 0 ? Math.round((withAnyTranscript / totalLessons) * 100) : 0,
+      };
+    });
+    const totalsAcrossCourses = courseStats.reduce(
+      (acc, s) => {
+        acc.totalLessons += s.totalLessons;
+        acc.withAnyTranscript += s.withAnyTranscript;
+        for (const l of langs) acc.perLang[l] += s.perLang[l];
+        return acc;
+      },
+      {
+        totalLessons: 0,
+        withAnyTranscript: 0,
+        perLang: { pt: 0, es: 0, en: 0 } as Record<Lang, number>,
+      },
+    );
+    return c.json({
+      courses: courseStats,
+      totals: {
+        ...totalsAcrossCourses,
+        coveragePct:
+          totalsAcrossCourses.totalLessons > 0
+            ? Math.round(
+                (totalsAcrossCourses.withAnyTranscript / totalsAcrossCourses.totalLessons) * 100,
+              )
             : 0,
-        };
-      });
-      const totalsAcrossCourses = courseStats.reduce(
-        (acc, s) => {
-          acc.totalLessons += s.totalLessons;
-          acc.withAnyTranscript += s.withAnyTranscript;
-          for (const l of langs) acc.perLang[l] += s.perLang[l];
-          return acc;
-        },
-        {
-          totalLessons: 0,
-          withAnyTranscript: 0,
-          perLang: { pt: 0, es: 0, en: 0 } as Record<Lang, number>,
-        },
-      );
-      return c.json({
-        courses: courseStats,
-        totals: {
-          ...totalsAcrossCourses,
-          coveragePct:
-            totalsAcrossCourses.totalLessons > 0
-              ? Math.round(
-                  (totalsAcrossCourses.withAnyTranscript /
-                    totalsAcrossCourses.totalLessons) *
-                    100,
-                )
-              : 0,
-        },
-      });
-    },
-  );
+      },
+    });
+  });
 
   // ---------- Imports — templates + jobs (Sprint A) ----------
 
@@ -4910,7 +4749,11 @@ export function buildApp() {
         return jsonError(c, 400, 'INVALID_ENTITY', 'Entidade inválida.');
       }
       const tpl = CSV_TEMPLATES[entity as keyof typeof CSV_TEMPLATES];
-      const norm = (s: string) => s.toLowerCase().trim().replace(/[\s_-]+/g, '_');
+      const norm = (s: string) =>
+        s
+          .toLowerCase()
+          .trim()
+          .replace(/[\s_-]+/g, '_');
       const targetByNorm = new Map<string, string>();
       for (const f of tpl.fields) {
         targetByNorm.set(norm(f.name), f.name);
@@ -4965,8 +4808,7 @@ export function buildApp() {
       | undefined;
     const mode = c.req.query('mode') as 'api' | 'csv' | undefined;
     const dryRunRaw = c.req.query('dryRun');
-    const dryRun =
-      dryRunRaw === 'true' ? true : dryRunRaw === 'false' ? false : undefined;
+    const dryRun = dryRunRaw === 'true' ? true : dryRunRaw === 'false' ? false : undefined;
     const data = await listJobsFiltered({
       limit: Number.isFinite(limit) ? limit : 200,
       status,
@@ -4987,62 +4829,54 @@ export function buildApp() {
     return c.json(job);
   });
 
-  app.get(
-    '/admin/imports/jobs/:id/export',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const format = (c.req.query('format') ?? 'csv').toLowerCase();
-      try {
-        if (format === 'json') {
-          const body = await exportJobAsJson(id);
-          return new Response(body, {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'Content-Disposition': `attachment; filename="import-${id}.json"`,
-            },
-          });
-        }
-        const body = await exportJobAsCsv(id);
+  app.get('/admin/imports/jobs/:id/export', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const format = (c.req.query('format') ?? 'csv').toLowerCase();
+    try {
+      if (format === 'json') {
+        const body = await exportJobAsJson(id);
         return new Response(body, {
           status: 200,
           headers: {
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="import-${id}.csv"`,
+            'Content-Type': 'application/json; charset=utf-8',
+            'Content-Disposition': `attachment; filename="import-${id}.json"`,
           },
         });
-      } catch (err) {
-        return jsonError(
-          c,
-          404,
-          'NOT_FOUND',
-          err instanceof Error ? err.message : 'Job não encontrado.',
-        );
       }
-    },
-  );
+      const body = await exportJobAsCsv(id);
+      return new Response(body, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="import-${id}.csv"`,
+        },
+      });
+    } catch (err) {
+      return jsonError(
+        c,
+        404,
+        'NOT_FOUND',
+        err instanceof Error ? err.message : 'Job não encontrado.',
+      );
+    }
+  });
 
-  app.post(
-    '/admin/imports/jobs/:id/cancel',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const job = await importJobs.findJob(id);
-      if (!job) return jsonError(c, 404, 'NOT_FOUND', 'Job não encontrado.');
-      if (job.status !== 'running' && job.status !== 'pending') {
-        return jsonError(
-          c,
-          400,
-          'INVALID_STATUS',
-          `Job em status ${job.status} não pode ser cancelado.`,
-        );
-      }
-      importJobs.requestCancel(id);
-      await importJobs.addNote(id, 'warn', 'Cancelamento solicitado via API');
-      return c.json({ ok: true, jobId: id });
-    },
-  );
+  app.post('/admin/imports/jobs/:id/cancel', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const job = await importJobs.findJob(id);
+    if (!job) return jsonError(c, 404, 'NOT_FOUND', 'Job não encontrado.');
+    if (job.status !== 'running' && job.status !== 'pending') {
+      return jsonError(
+        c,
+        400,
+        'INVALID_STATUS',
+        `Job em status ${job.status} não pode ser cancelado.`,
+      );
+    }
+    importJobs.requestCancel(id);
+    await importJobs.addNote(id, 'warn', 'Cancelamento solicitado via API');
+    return c.json({ ok: true, jobId: id });
+  });
 
   app.get(
     '/admin/imports/jobs/:id/rollback/preview',
@@ -5101,9 +4935,7 @@ export function buildApp() {
       }
       const u = c.get('user')!;
 
-      const rowsByEntity: Partial<
-        Record<ImportEntityType, Array<Record<string, unknown>>>
-      > = {};
+      const rowsByEntity: Partial<Record<ImportEntityType, Array<Record<string, unknown>>>> = {};
       let totalRows = 0;
       const ENTITIES: ImportEntityType[] = [
         'student',
@@ -5199,15 +5031,11 @@ export function buildApp() {
         startRule: startRule as EnrollmentStartRule,
         expirationRule: expirationRule as EnrollmentExpirationRule,
         defaultAccessDurationDays:
-          Number.isFinite(defaultDuration) && defaultDuration > 0
-            ? defaultDuration
-            : undefined,
+          Number.isFinite(defaultDuration) && defaultDuration > 0 ? defaultDuration : undefined,
         wcStatusMap: {},
       };
 
-      const rowsByEntity: Partial<
-        Record<ImportEntityType, Array<Record<string, unknown>>>
-      > = {};
+      const rowsByEntity: Partial<Record<ImportEntityType, Array<Record<string, unknown>>>> = {};
       let totalRows = 0;
       const ENTITIES: ImportEntityType[] = [
         'student',
@@ -5289,9 +5117,7 @@ export function buildApp() {
 
   app.get('/admin/reengagement/sent', requireAuth('admin', 'superadmin'), async (c) => {
     const limit = Number(c.req.query('limit') ?? '200');
-    return c.json(
-      await reengagementCfg.listRecentSends(Number.isFinite(limit) ? limit : 200),
-    );
+    return c.json(await reengagementCfg.listRecentSends(Number.isFinite(limit) ? limit : 200));
   });
 
   app.post(
@@ -5351,9 +5177,7 @@ export function buildApp() {
     ).length;
 
     const ratingsAvg =
-      reviews.length === 0
-        ? 0
-        : reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+      reviews.length === 0 ? 0 : reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
 
     function pctDelta(curr: number, prev: number): number {
       if (prev === 0) return curr > 0 ? 100 : 0;
@@ -5487,7 +5311,7 @@ export function buildApp() {
       }
     }
     return c.json({
-      score: totalPoints > 0 ? Math.round(score / totalPoints * 100) : 0,
+      score: totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0,
       total: results.length,
       pct: totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0,
       results,
@@ -5496,114 +5320,98 @@ export function buildApp() {
 
   // ---------- Banco de questões (question bank) ----------
 
-  app.get(
-    '/admin/courses/:id/questions',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      return c.json({
-        questions: await questionBank.listByCourse(c.req.param('id') as string),
+  app.get('/admin/courses/:id/questions', requireAuth('admin', 'superadmin'), async (c) => {
+    return c.json({
+      questions: await questionBank.listByCourse(c.req.param('id') as string),
+    });
+  });
+
+  app.post('/admin/courses/:id/questions', requireAuth('admin', 'superadmin'), async (c) => {
+    const courseId = c.req.param('id') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    try {
+      const q = await questionBank.createQuestion({
+        courseId,
+        moduleId: typeof body.moduleId === 'string' ? body.moduleId : undefined,
+        type: body.type as 'multiple_choice' | 'true_false' | 'open_ended',
+        prompt: String(body.prompt ?? ''),
+        options: Array.isArray(body.options)
+          ? (body.options as Array<{ text?: string; correct?: boolean }>).map((o) => ({
+              text: String(o?.text ?? ''),
+              correct: !!o?.correct,
+            }))
+          : [],
+        expectedAnswer: typeof body.expectedAnswer === 'string' ? body.expectedAnswer : undefined,
+        explanation: typeof body.explanation === 'string' ? body.explanation : undefined,
+        tags: Array.isArray(body.tags) ? (body.tags as unknown[]).map((t) => String(t)) : undefined,
+        difficulty: typeof body.difficulty === 'number' ? body.difficulty : undefined,
+        active: typeof body.active === 'boolean' ? body.active : undefined,
       });
-    },
-  );
-
-  app.post(
-    '/admin/courses/:id/questions',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const courseId = c.req.param('id') as string;
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      try {
-        const q = await questionBank.createQuestion({
-          courseId,
-          moduleId: typeof body.moduleId === 'string' ? body.moduleId : undefined,
-          type: body.type as 'multiple_choice' | 'true_false' | 'open_ended',
-          prompt: String(body.prompt ?? ''),
-          options: Array.isArray(body.options)
-            ? (body.options as Array<{ text?: string; correct?: boolean }>).map((o) => ({
-                text: String(o?.text ?? ''),
-                correct: !!o?.correct,
-              }))
-            : [],
-          expectedAnswer: typeof body.expectedAnswer === 'string' ? body.expectedAnswer : undefined,
-          explanation: typeof body.explanation === 'string' ? body.explanation : undefined,
-          tags: Array.isArray(body.tags) ? (body.tags as unknown[]).map((t) => String(t)) : undefined,
-          difficulty: typeof body.difficulty === 'number' ? body.difficulty : undefined,
-          active: typeof body.active === 'boolean' ? body.active : undefined,
-        });
-        await recordAudit(c, {
-          action: 'question.create',
-          targetType: 'question',
-          targetId: q.id,
-          meta: { courseId },
-        });
-        return c.json(q, 201);
-      } catch (err) {
-        if (err instanceof questionBank.QuestionError) {
-          return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
-        }
-        throw err;
-      }
-    },
-  );
-
-  app.put(
-    '/admin/questions/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      try {
-        const updated = await questionBank.updateQuestion(id, {
-          type: body.type as 'multiple_choice' | 'true_false' | 'open_ended' | undefined,
-          prompt: typeof body.prompt === 'string' ? body.prompt : undefined,
-          options: Array.isArray(body.options)
-            ? (body.options as Array<{ text?: string; correct?: boolean }>).map((o) => ({
-                text: String(o?.text ?? ''),
-                correct: !!o?.correct,
-              }))
-            : undefined,
-          expectedAnswer: typeof body.expectedAnswer === 'string' ? body.expectedAnswer : undefined,
-          explanation: typeof body.explanation === 'string' ? body.explanation : undefined,
-          tags: Array.isArray(body.tags) ? (body.tags as unknown[]).map((t) => String(t)) : undefined,
-          difficulty: typeof body.difficulty === 'number' ? body.difficulty : undefined,
-          active: typeof body.active === 'boolean' ? body.active : undefined,
-          moduleId:
-            body.moduleId === null
-              ? null
-              : typeof body.moduleId === 'string'
-                ? body.moduleId
-                : undefined,
-        });
-        await recordAudit(c, {
-          action: 'question.update',
-          targetType: 'question',
-          targetId: id,
-        });
-        return c.json(updated);
-      } catch (err) {
-        if (err instanceof questionBank.QuestionError) {
-          return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
-        }
-        throw err;
-      }
-    },
-  );
-
-  app.delete(
-    '/admin/questions/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const ok = await questionBank.deleteQuestion(id);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Questão não encontrada.');
       await recordAudit(c, {
-        action: 'question.delete',
+        action: 'question.create',
+        targetType: 'question',
+        targetId: q.id,
+        meta: { courseId },
+      });
+      return c.json(q, 201);
+    } catch (err) {
+      if (err instanceof questionBank.QuestionError) {
+        return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
+      }
+      throw err;
+    }
+  });
+
+  app.put('/admin/questions/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    try {
+      const updated = await questionBank.updateQuestion(id, {
+        type: body.type as 'multiple_choice' | 'true_false' | 'open_ended' | undefined,
+        prompt: typeof body.prompt === 'string' ? body.prompt : undefined,
+        options: Array.isArray(body.options)
+          ? (body.options as Array<{ text?: string; correct?: boolean }>).map((o) => ({
+              text: String(o?.text ?? ''),
+              correct: !!o?.correct,
+            }))
+          : undefined,
+        expectedAnswer: typeof body.expectedAnswer === 'string' ? body.expectedAnswer : undefined,
+        explanation: typeof body.explanation === 'string' ? body.explanation : undefined,
+        tags: Array.isArray(body.tags) ? (body.tags as unknown[]).map((t) => String(t)) : undefined,
+        difficulty: typeof body.difficulty === 'number' ? body.difficulty : undefined,
+        active: typeof body.active === 'boolean' ? body.active : undefined,
+        moduleId:
+          body.moduleId === null
+            ? null
+            : typeof body.moduleId === 'string'
+              ? body.moduleId
+              : undefined,
+      });
+      await recordAudit(c, {
+        action: 'question.update',
         targetType: 'question',
         targetId: id,
       });
-      return c.json({ ok: true });
-    },
-  );
+      return c.json(updated);
+    } catch (err) {
+      if (err instanceof questionBank.QuestionError) {
+        return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
+      }
+      throw err;
+    }
+  });
+
+  app.delete('/admin/questions/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const ok = await questionBank.deleteQuestion(id);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Questão não encontrada.');
+    await recordAudit(c, {
+      action: 'question.delete',
+      targetType: 'question',
+      targetId: id,
+    });
+    return c.json({ ok: true });
+  });
 
   // ---------- AI question generation ----------
 
@@ -5693,9 +5501,7 @@ export function buildApp() {
       const total = co.modules.reduce((s, m) => s + m.lessons.length, 0);
       if (total === 0) continue;
       const completed = co.modules.reduce(
-        (s, m) =>
-          s + m.lessons.filter((l) => myProgress.some((p) => p.lessonId === l.id))
-            .length,
+        (s, m) => s + m.lessons.filter((l) => myProgress.some((p) => p.lessonId === l.id)).length,
         0,
       );
       if (completed === total) completedCourseIds.push(co.id);
@@ -5707,96 +5513,79 @@ export function buildApp() {
     return c.json({ paths: await studyPaths.listPaths() });
   });
 
-  app.post(
-    '/admin/study-paths',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      try {
-        const created = await studyPaths.createPath({
-          slug: String(body.slug ?? ''),
-          title: String(body.title ?? ''),
-          description: typeof body.description === 'string' ? body.description : undefined,
-          coverColor: typeof body.coverColor === 'string' ? body.coverColor : undefined,
-          courseIds: Array.isArray(body.courseIds)
-            ? (body.courseIds as unknown[]).map((x) => String(x))
-            : undefined,
-          active: typeof body.active === 'boolean' ? body.active : undefined,
-          publicVisible:
-            typeof body.publicVisible === 'boolean' ? body.publicVisible : undefined,
-        });
-        await recordAudit(c, {
-          action: 'study_path.create',
-          targetType: 'study_path',
-          targetId: created.id,
-          meta: { slug: created.slug },
-        });
-        return c.json(created, 201);
-      } catch (err) {
-        if (err instanceof studyPaths.PathError) {
-          return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
-        }
-        throw err;
-      }
-    },
-  );
-
-  app.put(
-    '/admin/study-paths/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      try {
-        const updated = await studyPaths.updatePath(id, {
-          title: typeof body.title === 'string' ? body.title : undefined,
-          description: typeof body.description === 'string' ? body.description : undefined,
-          coverColor: typeof body.coverColor === 'string' ? body.coverColor : undefined,
-          courseIds: Array.isArray(body.courseIds)
-            ? (body.courseIds as unknown[]).map((x) => String(x))
-            : undefined,
-          active: typeof body.active === 'boolean' ? body.active : undefined,
-          publicVisible:
-            typeof body.publicVisible === 'boolean' ? body.publicVisible : undefined,
-        });
-        await recordAudit(c, {
-          action: 'study_path.update',
-          targetType: 'study_path',
-          targetId: id,
-        });
-        return c.json(updated);
-      } catch (err) {
-        if (err instanceof studyPaths.PathError) {
-          return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
-        }
-        throw err;
-      }
-    },
-  );
-
-  app.delete(
-    '/admin/study-paths/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const ok = await studyPaths.deletePath(id);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Trilha não encontrada.');
+  app.post('/admin/study-paths', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    try {
+      const created = await studyPaths.createPath({
+        slug: String(body.slug ?? ''),
+        title: String(body.title ?? ''),
+        description: typeof body.description === 'string' ? body.description : undefined,
+        coverColor: typeof body.coverColor === 'string' ? body.coverColor : undefined,
+        courseIds: Array.isArray(body.courseIds)
+          ? (body.courseIds as unknown[]).map((x) => String(x))
+          : undefined,
+        active: typeof body.active === 'boolean' ? body.active : undefined,
+        publicVisible: typeof body.publicVisible === 'boolean' ? body.publicVisible : undefined,
+      });
       await recordAudit(c, {
-        action: 'study_path.delete',
+        action: 'study_path.create',
+        targetType: 'study_path',
+        targetId: created.id,
+        meta: { slug: created.slug },
+      });
+      return c.json(created, 201);
+    } catch (err) {
+      if (err instanceof studyPaths.PathError) {
+        return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
+      }
+      throw err;
+    }
+  });
+
+  app.put('/admin/study-paths/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    try {
+      const updated = await studyPaths.updatePath(id, {
+        title: typeof body.title === 'string' ? body.title : undefined,
+        description: typeof body.description === 'string' ? body.description : undefined,
+        coverColor: typeof body.coverColor === 'string' ? body.coverColor : undefined,
+        courseIds: Array.isArray(body.courseIds)
+          ? (body.courseIds as unknown[]).map((x) => String(x))
+          : undefined,
+        active: typeof body.active === 'boolean' ? body.active : undefined,
+        publicVisible: typeof body.publicVisible === 'boolean' ? body.publicVisible : undefined,
+      });
+      await recordAudit(c, {
+        action: 'study_path.update',
         targetType: 'study_path',
         targetId: id,
       });
-      return c.json({ ok: true });
-    },
-  );
+      return c.json(updated);
+    } catch (err) {
+      if (err instanceof studyPaths.PathError) {
+        return jsonError(c, err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message);
+      }
+      throw err;
+    }
+  });
+
+  app.delete('/admin/study-paths/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const ok = await studyPaths.deletePath(id);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Trilha não encontrada.');
+    await recordAudit(c, {
+      action: 'study_path.delete',
+      targetType: 'study_path',
+      targetId: id,
+    });
+    return c.json({ ok: true });
+  });
 
   // ---------- Roles & Permissions (admin CRUD) ----------
 
   app.get('/admin/roles', requireAuth('admin', 'superadmin'), async (c) => {
-    const [roles, allUsers] = await Promise.all([
-      rolesStore.listRoles(),
-      usersStore.listUsers(),
-    ]);
+    const [roles, allUsers] = await Promise.all([rolesStore.listRoles(), usersStore.listUsers()]);
     const counts: Record<string, number> = {};
     for (const u of allUsers) {
       counts[u.role] = (counts[u.role] ?? 0) + 1;
@@ -5867,12 +5656,7 @@ export function buildApp() {
         return c.json(role);
       } catch (err) {
         if (err instanceof rolesStore.RoleError) {
-          const status =
-            err.code === 'NOT_FOUND'
-              ? 404
-              : err.code === 'SYSTEM_ROLE'
-                ? 403
-                : 400;
+          const status = err.code === 'NOT_FOUND' ? 404 : err.code === 'SYSTEM_ROLE' ? 403 : 400;
           return jsonError(c, status, err.code, err.message);
         }
         throw err;
@@ -5896,12 +5680,7 @@ export function buildApp() {
         return c.json({ ok: true });
       } catch (err) {
         if (err instanceof rolesStore.RoleError) {
-          const status =
-            err.code === 'NOT_FOUND'
-              ? 404
-              : err.code === 'SYSTEM_ROLE'
-                ? 403
-                : 400;
+          const status = err.code === 'NOT_FOUND' ? 404 : err.code === 'SYSTEM_ROLE' ? 403 : 400;
           return jsonError(c, status, err.code, err.message);
         }
         throw err;
@@ -5946,15 +5725,11 @@ export function buildApp() {
     },
   );
 
-  app.post(
-    '/admin/api-tokens/:id/revoke',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const ok = await apiTokens.revokeToken(c.req.param('id') as string);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Token não encontrado.');
-      return c.json({ ok: true });
-    },
-  );
+  app.post('/admin/api-tokens/:id/revoke', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await apiTokens.revokeToken(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Token não encontrado.');
+    return c.json({ ok: true });
+  });
 
   app.delete('/admin/api-tokens/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const ok = await apiTokens.deleteToken(c.req.param('id') as string);
@@ -5970,9 +5745,10 @@ export function buildApp() {
    */
   app.get('/v1/openapi.json', (c) => {
     const queryOrigin = c.req.query('origin');
-    const headerOrigin = c.req.header('x-forwarded-proto') && c.req.header('host')
-      ? `${c.req.header('x-forwarded-proto')}://${c.req.header('host')}`
-      : undefined;
+    const headerOrigin =
+      c.req.header('x-forwarded-proto') && c.req.header('host')
+        ? `${c.req.header('x-forwarded-proto')}://${c.req.header('host')}`
+        : undefined;
     const spec = buildOpenApiSpec({
       origin: queryOrigin ?? process.env.PUBLIC_ORIGIN ?? headerOrigin,
       version: AVA_VERSION,
@@ -5987,9 +5763,10 @@ export function buildApp() {
    */
   app.get('/v1/openapi.yaml', async (c) => {
     const queryOrigin = c.req.query('origin');
-    const headerOrigin = c.req.header('x-forwarded-proto') && c.req.header('host')
-      ? `${c.req.header('x-forwarded-proto')}://${c.req.header('host')}`
-      : undefined;
+    const headerOrigin =
+      c.req.header('x-forwarded-proto') && c.req.header('host')
+        ? `${c.req.header('x-forwarded-proto')}://${c.req.header('host')}`
+        : undefined;
     const spec = buildOpenApiSpec({
       origin: queryOrigin ?? process.env.PUBLIC_ORIGIN ?? headerOrigin,
       version: AVA_VERSION,
@@ -6132,10 +5909,7 @@ export function buildApp() {
         title: co.title,
         slug: co.slug ?? null,
         moduleCount: (co.modules ?? []).length,
-        lessonCount: (co.modules ?? []).reduce(
-          (s, m) => s + (m.lessons ?? []).length,
-          0,
-        ),
+        lessonCount: (co.modules ?? []).reduce((s, m) => s + (m.lessons ?? []).length, 0),
       })),
     );
   });
@@ -6255,9 +6029,7 @@ export function buildApp() {
       emailLogs.listLogs(50),
     ]);
     const cutoff24h = Date.now() - 24 * 60 * 60_000;
-    const recentEmails = eqlogs.filter(
-      (l) => new Date(l.ts).getTime() >= cutoff24h,
-    ).length;
+    const recentEmails = eqlogs.filter((l) => new Date(l.ts).getTime() >= cutoff24h).length;
     return c.json({
       jobs: [
         {
@@ -6320,88 +6092,80 @@ export function buildApp() {
    * Analytics consolidado por aluno: matrículas + watch time + progresso +
    * reviews + última atividade + achievements.
    */
-  app.get(
-    '/admin/students/:id/analytics',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const student = await studentsRepo.findAdminStudent(id);
-      if (!student) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+  app.get('/admin/students/:id/analytics', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const student = await studentsRepo.findAdminStudent(id);
+    if (!student) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
 
-      const allCourses = await coursesRepo.listCourses();
-      const enrolledCourseIds = new Set(student.enrolledCourseIds ?? []);
-      const enrolledCourses = allCourses.filter((c) => enrolledCourseIds.has(c.id));
+    const allCourses = await coursesRepo.listCourses();
+    const enrolledCourseIds = new Set(student.enrolledCourseIds ?? []);
+    const enrolledCourses = allCourses.filter((c) => enrolledCourseIds.has(c.id));
 
-      const myProgress = await progressRepo.listForUser(id);
-      const completedByCourse = new Map<string, Set<string>>();
-      for (const p of myProgress) {
-        const set = completedByCourse.get(p.courseId) ?? new Set<string>();
-        set.add(p.lessonId);
-        completedByCourse.set(p.courseId, set);
-      }
+    const myProgress = await progressRepo.listForUser(id);
+    const completedByCourse = new Map<string, Set<string>>();
+    for (const p of myProgress) {
+      const set = completedByCourse.get(p.courseId) ?? new Set<string>();
+      set.add(p.lessonId);
+      completedByCourse.set(p.courseId, set);
+    }
 
-      const perCourse = enrolledCourses.map((co) => {
-        const lessons = (co.modules ?? []).flatMap((m) => m.lessons ?? []);
-        const total = lessons.length;
-        const done = (completedByCourse.get(co.id) ?? new Set()).size;
-        return {
-          courseId: co.id,
-          title: co.title,
-          totalLessons: total,
-          completedLessons: done,
-          completionPct: total === 0 ? 0 : Math.round((done / total) * 100),
-        };
-      });
+    const perCourse = enrolledCourses.map((co) => {
+      const lessons = (co.modules ?? []).flatMap((m) => m.lessons ?? []);
+      const total = lessons.length;
+      const done = (completedByCourse.get(co.id) ?? new Set()).size;
+      return {
+        courseId: co.id,
+        title: co.title,
+        totalLessons: total,
+        completedLessons: done,
+        completionPct: total === 0 ? 0 : Math.round((done / total) * 100),
+      };
+    });
 
-      const myWatch = await watchTimeRepo.listForUser(id);
-      const totalSecondsWatched = myWatch.reduce((s, w) => s + w.totalSeconds, 0);
+    const myWatch = await watchTimeRepo.listForUser(id);
+    const totalSecondsWatched = myWatch.reduce((s, w) => s + w.totalSeconds, 0);
 
-      const allReviews = await courseReviews.listAll();
-      const myReviews = allReviews.filter((r) => r.userId === id);
+    const allReviews = await courseReviews.listAll();
+    const myReviews = allReviews.filter((r) => r.userId === id);
 
-      const streak = await progressRepo.streakInfo(id);
-      const earned = await achievementsStore.listForUser(id);
+    const streak = await progressRepo.streakInfo(id);
+    const earned = await achievementsStore.listForUser(id);
 
-      return c.json({
-        student: {
-          id: student.id,
-          name: student.name,
-          email: student.email,
-          status: student.status,
-          createdAt: student.createdAt,
-          lastAccessAt: student.lastAccessAt ?? null,
-        },
-        enrollment: {
-          total: enrolledCourses.length,
-          courses: perCourse,
-          totalLessonsCompleted: myProgress.length,
-        },
-        watchTime: {
-          totalSeconds: totalSecondsWatched,
-          lessonsTouched: myWatch.length,
-        },
-        engagement: {
-          streak,
-          reviewsWritten: myReviews.length,
-          achievementsEarned: earned.length,
-          achievementIds: earned.map((b) => b.badgeId),
-        },
-      });
-    },
-  );
+    return c.json({
+      student: {
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        status: student.status,
+        createdAt: student.createdAt,
+        lastAccessAt: student.lastAccessAt ?? null,
+      },
+      enrollment: {
+        total: enrolledCourses.length,
+        courses: perCourse,
+        totalLessonsCompleted: myProgress.length,
+      },
+      watchTime: {
+        totalSeconds: totalSecondsWatched,
+        lessonsTouched: myWatch.length,
+      },
+      engagement: {
+        streak,
+        reviewsWritten: myReviews.length,
+        achievementsEarned: earned.length,
+        achievementIds: earned.map((b) => b.badgeId),
+      },
+    });
+  });
 
-  app.get(
-    '/admin/students/:id/achievements',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const list = await achievementsStore.listForUser(id);
-      return c.json({
-        catalog: achievementsStore.BADGES,
-        awarded: list,
-      });
-    },
-  );
+  app.get('/admin/students/:id/achievements', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const list = await achievementsStore.listForUser(id);
+    return c.json({
+      catalog: achievementsStore.BADGES,
+      awarded: list,
+    });
+  });
 
   /**
    * Unsubscribe público — token assinado com scope=unsubscribe.
@@ -6416,9 +6180,11 @@ export function buildApp() {
         400,
       );
     }
-    const claims = (await verifyToken(token).catch(() => null)) as
-      | { sub: string; email: string; scope?: string }
-      | null;
+    const claims = (await verifyToken(token).catch(() => null)) as {
+      sub: string;
+      email: string;
+      scope?: string;
+    } | null;
     if (!claims || claims.scope !== 'unsubscribe') {
       return c.html(
         renderUnsubPage('error', 'Token inválido', 'Link expirado ou adulterado.'),
@@ -6436,11 +6202,7 @@ export function buildApp() {
       );
     } catch (err) {
       return c.html(
-        renderUnsubPage(
-          'error',
-          'Falha',
-          err instanceof Error ? err.message : 'Erro inesperado.',
-        ),
+        renderUnsubPage('error', 'Falha', err instanceof Error ? err.message : 'Erro inesperado.'),
         500,
       );
     }
@@ -6461,13 +6223,9 @@ export function buildApp() {
     else if (typeof body.snoozedUntil === 'string') snoozedUntil = body.snoozedUntil;
     const next = await notificationPrefs.setPrefs(u.sub, {
       receiveBroadcasts:
-        typeof body.receiveBroadcasts === 'boolean'
-          ? body.receiveBroadcasts
-          : undefined,
+        typeof body.receiveBroadcasts === 'boolean' ? body.receiveBroadcasts : undefined,
       receiveReengagement:
-        typeof body.receiveReengagement === 'boolean'
-          ? body.receiveReengagement
-          : undefined,
+        typeof body.receiveReengagement === 'boolean' ? body.receiveReengagement : undefined,
       snoozedUntil,
     });
     return c.json(next);
@@ -6479,9 +6237,7 @@ export function buildApp() {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const days = Math.max(0, Math.min(Number(body.days ?? 0), 90));
     const snoozedUntil =
-      days > 0
-        ? new Date(Date.now() + days * 24 * 60 * 60_000).toISOString()
-        : null;
+      days > 0 ? new Date(Date.now() + days * 24 * 60 * 60_000).toISOString() : null;
     const next = await notificationPrefs.setPrefs(u.sub, { snoozedUntil });
     return c.json(next);
   });
@@ -6550,9 +6306,7 @@ export function buildApp() {
         id: 'admin_password',
         label: 'Senha do admin trocada após setup inicial',
         ok: passwordChanged,
-        message: passwordChanged
-          ? 'OK'
-          : 'Recomendado: trocar senha do admin inicial',
+        message: passwordChanged ? 'OK' : 'Recomendado: trocar senha do admin inicial',
         link: '/perfil',
       },
       {
@@ -6566,10 +6320,7 @@ export function buildApp() {
         id: 'totp',
         label: '2FA habilitado pelo admin atual',
         ok: myUser?.totpEnabled === true,
-        message:
-          myUser?.totpEnabled === true
-            ? '2FA ativo'
-            : 'Sem 2FA — recomendado para admins',
+        message: myUser?.totpEnabled === true ? '2FA ativo' : 'Sem 2FA — recomendado para admins',
         link: '/perfil',
       },
     ];
@@ -6685,16 +6436,12 @@ export function buildApp() {
     return c.json(updated);
   });
 
-  app.delete(
-    '/admin/saved-searches/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const u = c.get('user')!;
-      const ok = await savedSearches.deleteSearch(c.req.param('id') as string, u.sub);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Filtro não encontrado.');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/saved-searches/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const u = c.get('user')!;
+    const ok = await savedSearches.deleteSearch(c.req.param('id') as string, u.sub);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Filtro não encontrado.');
+    return c.json({ ok: true });
+  });
 
   // ---------- Live sessions ----------
 
@@ -6752,8 +6499,7 @@ export function buildApp() {
       if (!Number.isFinite(durationMinutes) || durationMinutes <= 0 || durationMinutes > 720) {
         return jsonError(c, 400, 'INVALID_DURATION', 'duration entre 1 e 720 min');
       }
-      const embedType =
-        body.embedType === 'zoom_embed' ? 'zoom_embed' : 'link';
+      const embedType = body.embedType === 'zoom_embed' ? 'zoom_embed' : 'link';
       const created = await liveSessions.createSession({
         title,
         description: body.description ? String(body.description) : undefined,
@@ -6764,79 +6510,56 @@ export function buildApp() {
         durationMinutes: Math.floor(durationMinutes),
         audience,
         embedType,
-        zoomMeetingNumber: body.zoomMeetingNumber
-          ? String(body.zoomMeetingNumber)
-          : undefined,
-        zoomPassword: body.zoomPassword
-          ? String(body.zoomPassword)
-          : undefined,
+        zoomMeetingNumber: body.zoomMeetingNumber ? String(body.zoomMeetingNumber) : undefined,
+        zoomPassword: body.zoomPassword ? String(body.zoomPassword) : undefined,
       });
       return c.json(created, 201);
     },
   );
 
-  app.put(
-    '/admin/live-sessions/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const audience =
-        body.audience === 'enrolled' || body.audience === 'all'
-          ? body.audience
+  app.put('/admin/live-sessions/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const audience =
+      body.audience === 'enrolled' || body.audience === 'all' ? body.audience : undefined;
+    const status =
+      body.status === 'scheduled' ||
+      body.status === 'live' ||
+      body.status === 'ended' ||
+      body.status === 'canceled'
+        ? body.status
+        : undefined;
+    const embedType =
+      body.embedType === 'zoom_embed'
+        ? 'zoom_embed'
+        : body.embedType === 'link'
+          ? 'link'
           : undefined;
-      const status =
-        body.status === 'scheduled' ||
-        body.status === 'live' ||
-        body.status === 'ended' ||
-        body.status === 'canceled'
-          ? body.status
-          : undefined;
-      const embedType =
-        body.embedType === 'zoom_embed'
-          ? 'zoom_embed'
-          : body.embedType === 'link'
-            ? 'link'
-            : undefined;
-      const updated = await liveSessions.updateSession(c.req.param('id') as string, {
-        title: body.title ? String(body.title) : undefined,
-        description: body.description !== undefined ? String(body.description) : undefined,
-        courseId:
-          body.courseId !== undefined
-            ? body.courseId
-              ? String(body.courseId)
-              : null
-            : undefined,
-        hostName: body.hostName !== undefined ? String(body.hostName) : undefined,
-        joinUrl: body.joinUrl ? String(body.joinUrl) : undefined,
-        startAt: body.startAt ? String(body.startAt) : undefined,
-        durationMinutes:
-          body.durationMinutes !== undefined ? Number(body.durationMinutes) : undefined,
-        audience,
-        embedType,
-        zoomMeetingNumber:
-          body.zoomMeetingNumber !== undefined
-            ? String(body.zoomMeetingNumber)
-            : undefined,
-        zoomPassword:
-          body.zoomPassword !== undefined
-            ? String(body.zoomPassword)
-            : undefined,
-        status,
-      });
-      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Sessão não encontrada.');
-      return c.json(updated);
-    },
-  );
+    const updated = await liveSessions.updateSession(c.req.param('id') as string, {
+      title: body.title ? String(body.title) : undefined,
+      description: body.description !== undefined ? String(body.description) : undefined,
+      courseId:
+        body.courseId !== undefined ? (body.courseId ? String(body.courseId) : null) : undefined,
+      hostName: body.hostName !== undefined ? String(body.hostName) : undefined,
+      joinUrl: body.joinUrl ? String(body.joinUrl) : undefined,
+      startAt: body.startAt ? String(body.startAt) : undefined,
+      durationMinutes:
+        body.durationMinutes !== undefined ? Number(body.durationMinutes) : undefined,
+      audience,
+      embedType,
+      zoomMeetingNumber:
+        body.zoomMeetingNumber !== undefined ? String(body.zoomMeetingNumber) : undefined,
+      zoomPassword: body.zoomPassword !== undefined ? String(body.zoomPassword) : undefined,
+      status,
+    });
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Sessão não encontrada.');
+    return c.json(updated);
+  });
 
-  app.delete(
-    '/admin/live-sessions/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const ok = await liveSessions.deleteSession(c.req.param('id') as string);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Sessão não encontrada.');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/live-sessions/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await liveSessions.deleteSession(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Sessão não encontrada.');
+    return c.json({ ok: true });
+  });
 
   // ---------- Transcription ----------
 
@@ -6846,31 +6569,27 @@ export function buildApp() {
     return c.json({ configured: true, ...transcriptionConfig.getPublicConfig(cfg) });
   });
 
-  app.put(
-    '/admin/transcription/config',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const provider = String(body.provider ?? 'whisper');
-      const apiKey = String(body.apiKey ?? '').trim();
-      if (!apiKey) return jsonError(c, 400, 'INVALID_INPUT', 'apiKey obrigatório.');
-      if (provider !== 'whisper' && provider !== 'deepgram') {
-        return jsonError(c, 400, 'INVALID_PROVIDER', 'Provider deve ser whisper ou deepgram.');
-      }
-      const cfg = await transcriptionConfig.setConfig({
-        provider: provider as 'whisper' | 'deepgram',
-        apiKey,
-        model: typeof body.model === 'string' ? body.model : undefined,
-        language: typeof body.language === 'string' ? body.language : undefined,
-      });
-      await recordAudit(c, {
-        action: 'transcription.config',
-        targetType: 'config',
-        targetId: 'transcription',
-      });
-      return c.json(transcriptionConfig.getPublicConfig(cfg));
-    },
-  );
+  app.put('/admin/transcription/config', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const provider = String(body.provider ?? 'whisper');
+    const apiKey = String(body.apiKey ?? '').trim();
+    if (!apiKey) return jsonError(c, 400, 'INVALID_INPUT', 'apiKey obrigatório.');
+    if (provider !== 'whisper' && provider !== 'deepgram') {
+      return jsonError(c, 400, 'INVALID_PROVIDER', 'Provider deve ser whisper ou deepgram.');
+    }
+    const cfg = await transcriptionConfig.setConfig({
+      provider: provider as 'whisper' | 'deepgram',
+      apiKey,
+      model: typeof body.model === 'string' ? body.model : undefined,
+      language: typeof body.language === 'string' ? body.language : undefined,
+    });
+    await recordAudit(c, {
+      action: 'transcription.config',
+      targetType: 'config',
+      targetId: 'transcription',
+    });
+    return c.json(transcriptionConfig.getPublicConfig(cfg));
+  });
 
   app.post(
     '/admin/transcription/transcribe/:sessionId',
@@ -6930,11 +6649,14 @@ export function buildApp() {
                 const summary = await aiProvider.chat({
                   apiKey: aiCfg.apiKey,
                   model: aiCfg.model,
-                  messages: [{
-                    role: 'user',
-                    content: `Resuma esta transcrição de aula de psicanálise em PT-BR (máx 300 palavras). Destaque: pontos-chave, conceitos abordados, e recomendações de estudo.\n\n${result.fullText.slice(0, 8000)}`,
-                  }],
-                  systemPrompt: 'Você é um assistente acadêmico da PCO. Gere resumos claros e concisos de aulas.',
+                  messages: [
+                    {
+                      role: 'user',
+                      content: `Resuma esta transcrição de aula de psicanálise em PT-BR (máx 300 palavras). Destaque: pontos-chave, conceitos abordados, e recomendações de estudo.\n\n${result.fullText.slice(0, 8000)}`,
+                    },
+                  ],
+                  systemPrompt:
+                    'Você é um assistente acadêmico da PCO. Gere resumos claros e concisos de aulas.',
                   temperature: 0.3,
                   maxTokens: 600,
                 });
@@ -6995,22 +6717,29 @@ export function buildApp() {
       const instructorName = String(body.instructorName ?? '').trim();
       const bookingUrl = String(body.bookingUrl ?? '').trim();
       if (!courseId || !instructorName || !bookingUrl) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'courseId, instructorName e bookingUrl obrigatórios.');
+        return jsonError(
+          c,
+          400,
+          'INVALID_INPUT',
+          'courseId, instructorName e bookingUrl obrigatórios.',
+        );
       }
       if (!/^https?:\/\//.test(bookingUrl)) {
         return jsonError(c, 400, 'INVALID_URL', 'bookingUrl deve começar com http(s)://');
       }
-      const provider =
-        bookingUrl.includes('calendly.com') ? 'calendly' as const
-          : bookingUrl.includes('cal.com') ? 'calcom' as const
-          : 'other' as const;
+      const provider = bookingUrl.includes('calendly.com')
+        ? ('calendly' as const)
+        : bookingUrl.includes('cal.com')
+          ? ('calcom' as const)
+          : ('other' as const);
       const cfg = await mentoringStore.create({
         courseId,
         instructorName,
         bookingUrl,
         provider,
         description: body.description ? String(body.description) : undefined,
-        durationMinutes: typeof body.durationMinutes === 'number' ? body.durationMinutes : undefined,
+        durationMinutes:
+          typeof body.durationMinutes === 'number' ? body.durationMinutes : undefined,
       });
       await recordAudit(c, {
         action: 'mentoring.create',
@@ -7027,7 +6756,10 @@ export function buildApp() {
     const updated = await mentoringStore.update(id, {
       instructorName: typeof body.instructorName === 'string' ? body.instructorName : undefined,
       bookingUrl: typeof body.bookingUrl === 'string' ? body.bookingUrl : undefined,
-      provider: typeof body.provider === 'string' ? body.provider as 'calendly' | 'calcom' | 'other' : undefined,
+      provider:
+        typeof body.provider === 'string'
+          ? (body.provider as 'calendly' | 'calcom' | 'other')
+          : undefined,
       description: typeof body.description === 'string' ? body.description : undefined,
       durationMinutes: typeof body.durationMinutes === 'number' ? body.durationMinutes : undefined,
       active: typeof body.active === 'boolean' ? body.active : undefined,
@@ -7106,8 +6838,7 @@ export function buildApp() {
       const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
       const text = String(body.body ?? '').trim();
       const courseId = String(body.courseId ?? '').trim();
-      const parentId =
-        typeof body.parentId === 'string' ? body.parentId : undefined;
+      const parentId = typeof body.parentId === 'string' ? body.parentId : undefined;
       if (!text) return jsonError(c, 400, 'INVALID_INPUT', 'body é obrigatório');
       if (text.length > 3000) {
         return jsonError(c, 400, 'TOO_LONG', 'máx 3000 caracteres');
@@ -7289,46 +7020,42 @@ export function buildApp() {
   });
 
   /** Estatísticas de achievements para admin: count por badge, top users. */
-  app.get(
-    '/admin/achievements/stats',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const all = await achievementsStore.listAll();
-      const users = await usersStore.listUsers();
-      const userMap = new Map(users.map((u) => [u.id, u]));
-      const byBadge = new Map<string, number>();
-      const byUser = new Map<string, number>();
-      for (const a of all) {
-        byBadge.set(a.badgeId, (byBadge.get(a.badgeId) ?? 0) + 1);
-        byUser.set(a.userId, (byUser.get(a.userId) ?? 0) + 1);
-      }
-      const badges = Object.entries(achievementsStore.BADGES).map(([id, def]) => ({
-        id,
-        name: def.name,
-        description: def.description,
-        icon: def.icon,
-        awarded: byBadge.get(id) ?? 0,
-      }));
-      const topUsers = Array.from(byUser.entries())
-        .map(([userId, count]) => {
-          const u = userMap.get(userId);
-          return {
-            userId,
-            count,
-            name: u?.name ?? '?',
-            email: u?.email ?? '?',
-          };
-        })
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20);
-      return c.json({
-        totalAwarded: all.length,
-        uniqueRecipients: byUser.size,
-        badges: badges.sort((a, b) => b.awarded - a.awarded),
-        topUsers,
-      });
-    },
-  );
+  app.get('/admin/achievements/stats', requireAuth('admin', 'superadmin'), async (c) => {
+    const all = await achievementsStore.listAll();
+    const users = await usersStore.listUsers();
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const byBadge = new Map<string, number>();
+    const byUser = new Map<string, number>();
+    for (const a of all) {
+      byBadge.set(a.badgeId, (byBadge.get(a.badgeId) ?? 0) + 1);
+      byUser.set(a.userId, (byUser.get(a.userId) ?? 0) + 1);
+    }
+    const badges = Object.entries(achievementsStore.BADGES).map(([id, def]) => ({
+      id,
+      name: def.name,
+      description: def.description,
+      icon: def.icon,
+      awarded: byBadge.get(id) ?? 0,
+    }));
+    const topUsers = Array.from(byUser.entries())
+      .map(([userId, count]) => {
+        const u = userMap.get(userId);
+        return {
+          userId,
+          count,
+          name: u?.name ?? '?',
+          email: u?.email ?? '?',
+        };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20);
+    return c.json({
+      totalAwarded: all.length,
+      uniqueRecipients: byUser.size,
+      badges: badges.sort((a, b) => b.awarded - a.awarded),
+      topUsers,
+    });
+  });
 
   /** Lista conversas do tutor IA (admin auditoria). */
   app.get('/admin/tutor/history', requireAuth('admin', 'superadmin'), async (c) => {
@@ -7368,32 +7095,16 @@ export function buildApp() {
 
   /** Centro de alertas — agrega itens de várias fontes que precisam atenção. */
   app.get('/admin/alerts/center', requireAuth('admin', 'superadmin'), async (c) => {
-    const [
-      healthSnap,
-      deletionPending,
-      ticketsAll,
-      hiddenComments,
-      failedJobs,
-      failedDeliveries,
-    ] = await Promise.all([
-      buildHealthSnapshot(),
-      deletionRequests
-        .listAll()
-        .then((all) => all.filter((r) => r.status === 'pending')),
-      supportRepo
-        .listAllTickets()
-        .then((all) => all.filter((t) => t.status === 'open')),
-      discussions.listAll({ hidden: true, limit: 20 }),
-      importJobs
-        .listJobs(50)
-        .then((all) => all.filter((j) => j.status === 'failed')),
-      webhookDeliveries
-        .listAll(100)
-        .then((all) => all.filter((d) => d.status === 'failed')),
-    ]);
-    const issues = healthSnap.checks.filter(
-      (c) => c.status === 'warn' || c.status === 'error',
-    );
+    const [healthSnap, deletionPending, ticketsAll, hiddenComments, failedJobs, failedDeliveries] =
+      await Promise.all([
+        buildHealthSnapshot(),
+        deletionRequests.listAll().then((all) => all.filter((r) => r.status === 'pending')),
+        supportRepo.listAllTickets().then((all) => all.filter((t) => t.status === 'open')),
+        discussions.listAll({ hidden: true, limit: 20 }),
+        importJobs.listJobs(50).then((all) => all.filter((j) => j.status === 'failed')),
+        webhookDeliveries.listAll(100).then((all) => all.filter((d) => d.status === 'failed')),
+      ]);
+    const issues = healthSnap.checks.filter((c) => c.status === 'warn' || c.status === 'error');
     return c.json({
       generatedAt: new Date().toISOString(),
       health: { issues, overall: healthSnap.overall },
@@ -7446,9 +7157,7 @@ export function buildApp() {
   /** Resumo de alertas que admin precisa ver no Dashboard. */
   app.get('/admin/alerts', requireAuth('admin', 'superadmin'), async (c) => {
     const snap = await buildHealthSnapshot();
-    const issues = snap.checks.filter(
-      (c) => c.status === 'warn' || c.status === 'error',
-    );
+    const issues = snap.checks.filter((c) => c.status === 'warn' || c.status === 'error');
     return c.json({
       generatedAt: snap.generatedAt,
       overall: snap.overall,
@@ -7528,12 +7237,7 @@ export function buildApp() {
         uploadFilesCount: uploadFiles,
       });
     } catch (err) {
-      return jsonError(
-        c,
-        500,
-        'INTERNAL',
-        err instanceof Error ? err.message : 'erro',
-      );
+      return jsonError(c, 500, 'INTERNAL', err instanceof Error ? err.message : 'erro');
     }
   });
 
@@ -7579,38 +7283,34 @@ export function buildApp() {
   });
 
   /** Export CSV de leaderboard. */
-  app.get(
-    '/admin/leaderboard/export.csv',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const days = Number(c.req.query('days') ?? '30');
-      const limit = Number(c.req.query('limit') ?? '100');
-      const r = await buildLeaderboard(
-        Number.isFinite(days) ? days : 30,
-        Number.isFinite(limit) ? limit : 100,
-      );
-      const rows = ['rank,user_name,user_email,lessons,active_days,achievements,score'];
-      for (const e of r.entries) {
-        const cells = [
-          String(e.rank),
-          e.userName.replace(/[",\n]/g, ' '),
-          e.userEmail,
-          String(e.lessonsCompleted),
-          String(e.activeDays),
-          String(e.achievements),
-          String(e.score),
-        ];
-        rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
-      }
-      return new Response(rows.join('\n'), {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="leaderboard-${days}d-${new Date().toISOString().slice(0, 10)}.csv"`,
-        },
-      });
-    },
-  );
+  app.get('/admin/leaderboard/export.csv', requireAuth('admin', 'superadmin'), async (c) => {
+    const days = Number(c.req.query('days') ?? '30');
+    const limit = Number(c.req.query('limit') ?? '100');
+    const r = await buildLeaderboard(
+      Number.isFinite(days) ? days : 30,
+      Number.isFinite(limit) ? limit : 100,
+    );
+    const rows = ['rank,user_name,user_email,lessons,active_days,achievements,score'];
+    for (const e of r.entries) {
+      const cells = [
+        String(e.rank),
+        e.userName.replace(/[",\n]/g, ' '),
+        e.userEmail,
+        String(e.lessonsCompleted),
+        String(e.activeDays),
+        String(e.achievements),
+        String(e.score),
+      ];
+      rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
+    }
+    return new Response(rows.join('\n'), {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="leaderboard-${days}d-${new Date().toISOString().slice(0, 10)}.csv"`,
+      },
+    });
+  });
 
   // Leaderboard global (admin) e self (aluno)
   app.get('/admin/leaderboard', requireAuth('admin', 'superadmin'), async (c) => {
@@ -7654,39 +7354,33 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
-  app.get(
-    '/admin/wishlist/aggregate',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(await wishlistStore.aggregateByCourse()),
+  app.get('/admin/wishlist/aggregate', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await wishlistStore.aggregateByCourse()),
   );
 
-  app.get(
-    '/admin/wishlist/export.csv',
-    requireAuth('admin', 'superadmin'),
-    async () => {
-      const agg = await wishlistStore.aggregateByCourse();
-      const courses = await coursesRepo.listCourses();
-      const titleMap = new Map(courses.map((co) => [co.id, co.title]));
-      const rows = ['rank,course_id,course_title,total,added_last_week'];
-      agg.forEach((row, i) => {
-        const cells = [
-          String(i + 1),
-          row.courseId,
-          (titleMap.get(row.courseId) ?? '').replace(/[",\n]/g, ' '),
-          String(row.count),
-          String(row.addedLastWeek),
-        ];
-        rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
-      });
-      return new Response(rows.join('\n'), {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="wishlist-${new Date().toISOString().slice(0, 10)}.csv"`,
-        },
-      });
-    },
-  );
+  app.get('/admin/wishlist/export.csv', requireAuth('admin', 'superadmin'), async () => {
+    const agg = await wishlistStore.aggregateByCourse();
+    const courses = await coursesRepo.listCourses();
+    const titleMap = new Map(courses.map((co) => [co.id, co.title]));
+    const rows = ['rank,course_id,course_title,total,added_last_week'];
+    agg.forEach((row, i) => {
+      const cells = [
+        String(i + 1),
+        row.courseId,
+        (titleMap.get(row.courseId) ?? '').replace(/[",\n]/g, ' '),
+        String(row.count),
+        String(row.addedLastWeek),
+      ];
+      rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
+    });
+    return new Response(rows.join('\n'), {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="wishlist-${new Date().toISOString().slice(0, 10)}.csv"`,
+      },
+    });
+  });
 
   // Top 5 com nomes mascarados (privacidade): "Maria S." em vez de "Maria Silva"
   app.get('/leaderboard/top', requireAuth(), async (c) => {
@@ -7783,10 +7477,8 @@ export function buildApp() {
 
   // ---------- Admin notes (notas internas sobre alunos) ----------
 
-  app.get(
-    '/admin/students/:id/notes',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(await adminNotes.listForStudent(c.req.param('id') as string)),
+  app.get('/admin/students/:id/notes', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await adminNotes.listForStudent(c.req.param('id') as string)),
   );
 
   app.post(
@@ -7862,10 +7554,7 @@ export function buildApp() {
         map: (u) => (u.totpEnabled ? 'true' : 'false'),
       },
     ]);
-    return csvResponse(
-      csv,
-      `users-${new Date().toISOString().slice(0, 10)}.csv`,
-    );
+    return csvResponse(csv, `users-${new Date().toISOString().slice(0, 10)}.csv`);
   });
 
   app.get('/admin/orders/export.csv', requireAuth('admin', 'superadmin'), async () => {
@@ -7900,10 +7589,7 @@ export function buildApp() {
         { key: 'updatedAt', label: 'updated_at' },
       ],
     );
-    return csvResponse(
-      csv,
-      `orders-${new Date().toISOString().slice(0, 10)}.csv`,
-    );
+    return csvResponse(csv, `orders-${new Date().toISOString().slice(0, 10)}.csv`);
   });
 
   app.get('/admin/courses/export.csv', requireAuth('admin', 'superadmin'), async () => {
@@ -7915,10 +7601,7 @@ export function buildApp() {
         slug: co.slug ?? '',
         description: co.description ?? '',
         moduleCount: (co.modules ?? []).length,
-        lessonCount: (co.modules ?? []).reduce(
-          (s, m) => s + (m.lessons ?? []).length,
-          0,
-        ),
+        lessonCount: (co.modules ?? []).reduce((s, m) => s + (m.lessons ?? []).length, 0),
       })),
       [
         { key: 'id', label: 'id' },
@@ -7929,29 +7612,22 @@ export function buildApp() {
         { key: 'lessonCount', label: 'lesson_count' },
       ],
     );
-    return csvResponse(
-      csv,
-      `courses-${new Date().toISOString().slice(0, 10)}.csv`,
-    );
+    return csvResponse(csv, `courses-${new Date().toISOString().slice(0, 10)}.csv`);
   });
 
   // ---------- Settings backup / restore ----------
 
-  app.get(
-    '/admin/settings/backup',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const data = await settingsBackup.exportBackup();
-      const filename = `ava-pco-backup-${data.createdAt.slice(0, 19).replace(/[:T]/g, '-')}.json`;
-      return new Response(JSON.stringify(data, null, 2), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-        },
-      });
-    },
-  );
+  app.get('/admin/settings/backup', requireAuth('admin', 'superadmin'), async (c) => {
+    const data = await settingsBackup.exportBackup();
+    const filename = `ava-pco-backup-${data.createdAt.slice(0, 19).replace(/[:T]/g, '-')}.json`;
+    return new Response(JSON.stringify(data, null, 2), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
+    });
+  });
 
   app.post(
     '/admin/settings/restore',
@@ -8005,10 +7681,8 @@ export function buildApp() {
 
   // ---------- Imports — connections REST (Sprint C) ----------
 
-  app.get(
-    '/admin/imports/connections',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(await importConnections.listConnections()),
+  app.get('/admin/imports/connections', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await importConnections.listConnections()),
   );
 
   app.post(
@@ -8028,9 +7702,7 @@ export function buildApp() {
         wpUsername: body.wpUsername ? String(body.wpUsername) : undefined,
         wpAppPassword: body.wpAppPassword ? String(body.wpAppPassword) : undefined,
         wcConsumerKey: body.wcConsumerKey ? String(body.wcConsumerKey) : undefined,
-        wcConsumerSecret: body.wcConsumerSecret
-          ? String(body.wcConsumerSecret)
-          : undefined,
+        wcConsumerSecret: body.wcConsumerSecret ? String(body.wcConsumerSecret) : undefined,
         defaultUserMatchKeys: Array.isArray(body.defaultUserMatchKeys)
           ? (body.defaultUserMatchKeys as Array<
               'email' | 'document' | 'external_id' | 'wp_user_id'
@@ -8047,51 +7719,37 @@ export function buildApp() {
     },
   );
 
-  app.put(
-    '/admin/imports/connections/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const updated = await importConnections.updateConnection(id, {
-        name: body.name ? String(body.name) : undefined,
-        siteUrl: body.siteUrl ? String(body.siteUrl) : undefined,
-        wpUsername: body.wpUsername !== undefined ? String(body.wpUsername) : undefined,
-        wpAppPassword:
-          body.wpAppPassword !== undefined ? String(body.wpAppPassword) : undefined,
-        wcConsumerKey:
-          body.wcConsumerKey !== undefined ? String(body.wcConsumerKey) : undefined,
-        wcConsumerSecret:
-          body.wcConsumerSecret !== undefined
-            ? String(body.wcConsumerSecret)
-            : undefined,
-        defaultUserMatchKeys: Array.isArray(body.defaultUserMatchKeys)
-          ? (body.defaultUserMatchKeys as Array<
-              'email' | 'document' | 'external_id' | 'wp_user_id'
-            >)
-          : undefined,
-        defaultConflictStrategy: body.defaultConflictStrategy as
-          | 'ignore'
-          | 'update'
-          | 'merge'
-          | 'error'
-          | undefined,
-      });
-      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
-      return c.json(updated);
-    },
-  );
+  app.put('/admin/imports/connections/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const updated = await importConnections.updateConnection(id, {
+      name: body.name ? String(body.name) : undefined,
+      siteUrl: body.siteUrl ? String(body.siteUrl) : undefined,
+      wpUsername: body.wpUsername !== undefined ? String(body.wpUsername) : undefined,
+      wpAppPassword: body.wpAppPassword !== undefined ? String(body.wpAppPassword) : undefined,
+      wcConsumerKey: body.wcConsumerKey !== undefined ? String(body.wcConsumerKey) : undefined,
+      wcConsumerSecret:
+        body.wcConsumerSecret !== undefined ? String(body.wcConsumerSecret) : undefined,
+      defaultUserMatchKeys: Array.isArray(body.defaultUserMatchKeys)
+        ? (body.defaultUserMatchKeys as Array<'email' | 'document' | 'external_id' | 'wp_user_id'>)
+        : undefined,
+      defaultConflictStrategy: body.defaultConflictStrategy as
+        | 'ignore'
+        | 'update'
+        | 'merge'
+        | 'error'
+        | undefined,
+    });
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+    return c.json(updated);
+  });
 
-  app.delete(
-    '/admin/imports/connections/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const ok = await importConnections.deleteConnection(id);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/imports/connections/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const ok = await importConnections.deleteConnection(id);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+    return c.json({ ok: true });
+  });
 
   app.post(
     '/admin/imports/connections/:id/test',
@@ -8198,8 +7856,7 @@ export function buildApp() {
           : conn.defaultUserMatchKeys,
         userMatchStrategy: body.enrollment?.userMatchStrategy,
         unmatchedUserPolicy: body.enrollment?.unmatchedUserPolicy,
-        conflictStrategy:
-          body.enrollment?.conflictStrategy ?? conn.defaultConflictStrategy,
+        conflictStrategy: body.enrollment?.conflictStrategy ?? conn.defaultConflictStrategy,
         skipValidationErrors: body.enrollment?.skipValidationErrors === true,
       };
       const dryRun = body.dryRun !== false;
@@ -8217,65 +7874,52 @@ export function buildApp() {
 
   // ---------- Schedules — agendamentos recorrentes ----------
 
-  app.get(
-    '/admin/imports/schedules',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(await importSchedules.listSchedules()),
+  app.get('/admin/imports/schedules', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await importSchedules.listSchedules()),
   );
 
-  app.post(
-    '/admin/imports/schedules',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const name = String(body.name ?? '').trim();
-      const connectionId = String(body.connectionId ?? '').trim();
-      if (!name || !connectionId) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'name e connectionId obrigatórios.');
-      }
-      const conn = await importConnections.getConnection(connectionId);
-      if (!conn) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
-      const frequency = (body.frequency === 'weekly' ? 'weekly' : 'daily') as
-        | 'daily'
-        | 'weekly';
-      const created = await importSchedules.createSchedule({
-        name,
-        connectionId,
-        enabled: body.enabled !== false,
-        frequency,
-        hourUtc: Number(body.hourUtc ?? 3),
-        minute: Number(body.minute ?? 0),
-        weekday: body.weekday !== undefined ? (Number(body.weekday) as 0 | 1 | 2 | 3 | 4 | 5 | 6) : undefined,
-        entities: Array.isArray(body.entities) ? (body.entities as ImportEntityType[]) : [],
-        dryRun: body.dryRun !== false,
-        enrollment: body.enrollment as Record<string, unknown> | undefined as never,
-      });
-      return c.json(created, 201);
-    },
-  );
+  app.post('/admin/imports/schedules', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const name = String(body.name ?? '').trim();
+    const connectionId = String(body.connectionId ?? '').trim();
+    if (!name || !connectionId) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'name e connectionId obrigatórios.');
+    }
+    const conn = await importConnections.getConnection(connectionId);
+    if (!conn) return jsonError(c, 404, 'NOT_FOUND', 'Conexão não encontrada.');
+    const frequency = (body.frequency === 'weekly' ? 'weekly' : 'daily') as 'daily' | 'weekly';
+    const created = await importSchedules.createSchedule({
+      name,
+      connectionId,
+      enabled: body.enabled !== false,
+      frequency,
+      hourUtc: Number(body.hourUtc ?? 3),
+      minute: Number(body.minute ?? 0),
+      weekday:
+        body.weekday !== undefined
+          ? (Number(body.weekday) as 0 | 1 | 2 | 3 | 4 | 5 | 6)
+          : undefined,
+      entities: Array.isArray(body.entities) ? (body.entities as ImportEntityType[]) : [],
+      dryRun: body.dryRun !== false,
+      enrollment: body.enrollment as Record<string, unknown> | undefined as never,
+    });
+    return c.json(created, 201);
+  });
 
-  app.put(
-    '/admin/imports/schedules/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const updated = await importSchedules.updateSchedule(id, body as never);
-      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Schedule não encontrado.');
-      return c.json(updated);
-    },
-  );
+  app.put('/admin/imports/schedules/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const updated = await importSchedules.updateSchedule(id, body as never);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Schedule não encontrado.');
+    return c.json(updated);
+  });
 
-  app.delete(
-    '/admin/imports/schedules/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const ok = await importSchedules.deleteSchedule(id);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Schedule não encontrado.');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/imports/schedules/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const ok = await importSchedules.deleteSchedule(id);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Schedule não encontrado.');
+    return c.json({ ok: true });
+  });
 
   app.post(
     '/admin/imports/schedules/:id/run-now',
@@ -8294,11 +7938,9 @@ export function buildApp() {
           'start_plus_duration') as EnrollmentExpirationRule,
         defaultAccessDurationDays: sched.enrollment?.defaultAccessDurationDays,
         wcStatusMap: {},
-        userMatchKeys:
-          sched.enrollment?.userMatchKeys ?? conn.defaultUserMatchKeys,
+        userMatchKeys: sched.enrollment?.userMatchKeys ?? conn.defaultUserMatchKeys,
         unmatchedUserPolicy: sched.enrollment?.unmatchedUserPolicy,
-        conflictStrategy:
-          sched.enrollment?.conflictStrategy ?? conn.defaultConflictStrategy,
+        conflictStrategy: sched.enrollment?.conflictStrategy ?? conn.defaultConflictStrategy,
       };
       const r = await triggerApiImport({
         connectionId: sched.connectionId,
@@ -8362,29 +8004,23 @@ export function buildApp() {
       enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
       fromEmail: body.fromEmail ? String(body.fromEmail) : undefined,
       fromName: body.fromName !== undefined ? String(body.fromName) : undefined,
-      replyToEmail:
-        body.replyToEmail !== undefined ? String(body.replyToEmail) : undefined,
+      replyToEmail: body.replyToEmail !== undefined ? String(body.replyToEmail) : undefined,
       apiKey: body.apiKey !== undefined ? String(body.apiKey) : undefined,
       smtpHost: body.smtpHost !== undefined ? String(body.smtpHost) : undefined,
       smtpPort: body.smtpPort !== undefined ? Number(body.smtpPort) : undefined,
       smtpUser: body.smtpUser !== undefined ? String(body.smtpUser) : undefined,
-      smtpPassword:
-        body.smtpPassword !== undefined ? String(body.smtpPassword) : undefined,
+      smtpPassword: body.smtpPassword !== undefined ? String(body.smtpPassword) : undefined,
       smtpSecure: typeof body.smtpSecure === 'boolean' ? body.smtpSecure : undefined,
     });
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
     return c.json(updated);
   });
 
-  app.delete(
-    '/admin/email/configs/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const ok = await emailConfigs.deleteConfig(c.req.param('id') as string);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/email/configs/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await emailConfigs.deleteConfig(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
+    return c.json({ ok: true });
+  });
 
   app.post(
     '/admin/email/configs/:id/test',
@@ -8421,12 +8057,7 @@ export function buildApp() {
         });
         return c.json({ ok: true, result: r });
       } catch (err) {
-        return jsonError(
-          c,
-          500,
-          'EMAIL_FAILED',
-          err instanceof Error ? err.message : String(err),
-        );
+        return jsonError(c, 500, 'EMAIL_FAILED', err instanceof Error ? err.message : String(err));
       }
     },
   );
@@ -8438,134 +8069,107 @@ export function buildApp() {
 
   // ---------- Messaging logs (SMS / WhatsApp) ----------
   // Reusa o pattern de /admin/email/logs mas com filtros mais ricos.
-  app.get(
-    '/admin/messaging/logs',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const messagingLog = await import('./messaging/log-store');
-      const limit = Number(c.req.query('limit') ?? '200');
-      const provider = c.req.query('provider') as
-        | import('./messaging/types').MessagingProviderId
-        | undefined;
-      const status = c.req.query('status') as
-        | import('./messaging/log-store').MessagingLogStatus
-        | undefined;
-      const to = c.req.query('to');
-      const since = c.req.query('since');
-      return c.json(
-        await messagingLog.listLog({
-          limit: Number.isFinite(limit) ? limit : 200,
-          provider,
-          status,
-          to: to || undefined,
-          since: since || undefined,
-        }),
-      );
-    },
-  );
+  app.get('/admin/messaging/logs', requireAuth('admin', 'superadmin'), async (c) => {
+    const messagingLog = await import('./messaging/log-store');
+    const limit = Number(c.req.query('limit') ?? '200');
+    const provider = c.req.query('provider') as
+      | import('./messaging/types').MessagingProviderId
+      | undefined;
+    const status = c.req.query('status') as
+      | import('./messaging/log-store').MessagingLogStatus
+      | undefined;
+    const to = c.req.query('to');
+    const since = c.req.query('since');
+    return c.json(
+      await messagingLog.listLog({
+        limit: Number.isFinite(limit) ? limit : 200,
+        provider,
+        status,
+        to: to || undefined,
+        since: since || undefined,
+      }),
+    );
+  });
 
   // CSV export do messaging log — BOM UTF-8.
-  app.get(
-    '/admin/messaging/logs/export.csv',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const messagingLog = await import('./messaging/log-store');
-      const limit = Math.max(
-        1,
-        Math.min(Number(c.req.query('limit') ?? '1000'), 5000),
-      );
-      const provider = c.req.query('provider') as
-        | import('./messaging/types').MessagingProviderId
-        | undefined;
-      const status = c.req.query('status') as
-        | import('./messaging/log-store').MessagingLogStatus
-        | undefined;
-      const list = await messagingLog.listLog({ limit, provider, status });
-      const csv = buildCsv(list, [
-        { key: 'id', label: 'id' },
-        { key: 'ts', label: 'timestamp' },
-        { key: 'provider', label: 'provider' },
-        { key: 'to', label: 'to' },
-        { key: 'status', label: 'status' },
-        {
-          key: 'externalId',
-          label: 'external_id',
-          map: (e) => e.externalId ?? '',
-        },
-        { key: 'tag', label: 'tag', map: (e) => e.tag ?? '' },
-        {
-          key: 'body',
-          label: 'body_preview',
-          map: (e) => e.body.slice(0, 80),
-        },
-        {
-          key: 'error',
-          label: 'error',
-          map: (e) => (e.error ?? '').slice(0, 200),
-        },
-      ]);
-      const date = new Date().toISOString().slice(0, 10);
-      return csvResponse(csv, `messaging-log-${date}.csv`);
-    },
-  );
+  app.get('/admin/messaging/logs/export.csv', requireAuth('admin', 'superadmin'), async (c) => {
+    const messagingLog = await import('./messaging/log-store');
+    const limit = Math.max(1, Math.min(Number(c.req.query('limit') ?? '1000'), 5000));
+    const provider = c.req.query('provider') as
+      | import('./messaging/types').MessagingProviderId
+      | undefined;
+    const status = c.req.query('status') as
+      | import('./messaging/log-store').MessagingLogStatus
+      | undefined;
+    const list = await messagingLog.listLog({ limit, provider, status });
+    const csv = buildCsv(list, [
+      { key: 'id', label: 'id' },
+      { key: 'ts', label: 'timestamp' },
+      { key: 'provider', label: 'provider' },
+      { key: 'to', label: 'to' },
+      { key: 'status', label: 'status' },
+      {
+        key: 'externalId',
+        label: 'external_id',
+        map: (e) => e.externalId ?? '',
+      },
+      { key: 'tag', label: 'tag', map: (e) => e.tag ?? '' },
+      {
+        key: 'body',
+        label: 'body_preview',
+        map: (e) => e.body.slice(0, 80),
+      },
+      {
+        key: 'error',
+        label: 'error',
+        map: (e) => (e.error ?? '').slice(0, 200),
+      },
+    ]);
+    const date = new Date().toISOString().slice(0, 10);
+    return csvResponse(csv, `messaging-log-${date}.csv`);
+  });
 
   // ---------- Messaging configs CRUD (SMS / WhatsApp) ----------
 
-  app.get(
-    '/admin/messaging-configs',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const { listConfigs } = await import('./messaging/configs-store');
-      return c.json(await listConfigs());
-    },
-  );
+  app.get('/admin/messaging-configs', requireAuth('admin', 'superadmin'), async (c) => {
+    const { listConfigs } = await import('./messaging/configs-store');
+    return c.json(await listConfigs());
+  });
 
-  app.post(
-    '/admin/messaging-configs',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      if (!body.provider || !['mock', 'twilio', 'whatsapp-meta'].includes(body.provider)) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'provider inválido');
-      }
-      if (!body.fromNumber || typeof body.fromNumber !== 'string') {
-        return jsonError(c, 400, 'INVALID_INPUT', 'fromNumber obrigatório');
-      }
-      const { createConfig } = await import('./messaging/configs-store');
-      const created = await createConfig({
-        provider: body.provider,
-        enabled: body.enabled,
-        fromNumber: body.fromNumber,
-        apiKey: body.apiKey,
-        accountSid: body.accountSid,
-        whatsappPhoneNumberId: body.whatsappPhoneNumberId,
-      });
-      return c.json(created, 201);
-    },
-  );
+  app.post('/admin/messaging-configs', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    if (!body.provider || !['mock', 'twilio', 'whatsapp-meta'].includes(body.provider)) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'provider inválido');
+    }
+    if (!body.fromNumber || typeof body.fromNumber !== 'string') {
+      return jsonError(c, 400, 'INVALID_INPUT', 'fromNumber obrigatório');
+    }
+    const { createConfig } = await import('./messaging/configs-store');
+    const created = await createConfig({
+      provider: body.provider,
+      enabled: body.enabled,
+      fromNumber: body.fromNumber,
+      apiKey: body.apiKey,
+      accountSid: body.accountSid,
+      whatsappPhoneNumberId: body.whatsappPhoneNumberId,
+    });
+    return c.json(created, 201);
+  });
 
-  app.put(
-    '/admin/messaging-configs/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      const { updateConfig } = await import('./messaging/configs-store');
-      const updated = await updateConfig(c.req.param('id') as string, body);
-      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada');
-      return c.json(updated);
-    },
-  );
+  app.put('/admin/messaging-configs/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const { updateConfig } = await import('./messaging/configs-store');
+    const updated = await updateConfig(c.req.param('id') as string, body);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada');
+    return c.json(updated);
+  });
 
-  app.delete(
-    '/admin/messaging-configs/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const { deleteConfig } = await import('./messaging/configs-store');
-      const ok = await deleteConfig(c.req.param('id') as string);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/messaging-configs/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const { deleteConfig } = await import('./messaging/configs-store');
+    const ok = await deleteConfig(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada');
+    return c.json({ ok: true });
+  });
 
   /** Faz ping no provider (Twilio: account fetch, Meta: GET phone number). */
   app.post(
@@ -8573,13 +8177,9 @@ export function buildApp() {
     requireAuth('admin', 'superadmin'),
     rateLimit({ windowMs: 60_000, max: 10 }),
     async (c) => {
-      const { getConfig, recordTest } = await import(
-        './messaging/configs-store'
-      );
+      const { getConfig, recordTest } = await import('./messaging/configs-store');
       const { decryptApiKey } = await import('./db/encryption');
-      const { getMessagingProvider } = await import(
-        './messaging/providers/registry'
-      );
+      const { getMessagingProvider } = await import('./messaging/providers/registry');
       const cfg = await getConfig(c.req.param('id') as string);
       if (!cfg) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada');
       const provider = getMessagingProvider(cfg.provider);
@@ -8641,9 +8241,8 @@ export function buildApp() {
   // ---------- A/B testing experiments ----------
 
   app.get('/experiments/active', async (c) => {
-    const { getRunningExperiments, assignVariant, recordEvent } = await import(
-      './experiments/store'
-    );
+    const { getRunningExperiments, assignVariant, recordEvent } =
+      await import('./experiments/store');
     const userId = c.req.query('userId') ?? '';
     const sessionId = c.req.query('sessionId') ?? '';
     const key = userId || sessionId;
@@ -8655,7 +8254,13 @@ export function buildApp() {
       if (v) {
         assignments[exp.id] = v;
         // Fire-and-forget evento assigned
-        void recordEvent({ experimentId: exp.id, variant: v, eventName: 'assigned', userId: userId || undefined, sessionId: sessionId || undefined });
+        void recordEvent({
+          experimentId: exp.id,
+          variant: v,
+          eventName: 'assigned',
+          userId: userId || undefined,
+          sessionId: sessionId || undefined,
+        });
       }
     }
     return c.json({ assignments });
@@ -8663,9 +8268,7 @@ export function buildApp() {
 
   app.post('/experiments/:id/track', async (c) => {
     const body = await c.req.json().catch(() => ({}));
-    const { recordEvent, getExperiment, assignVariant } = await import(
-      './experiments/store'
-    );
+    const { recordEvent, getExperiment, assignVariant } = await import('./experiments/store');
     const exp = await getExperiment(c.req.param('id') as string);
     if (!exp || exp.status !== 'running') return c.json({ ok: false });
     const userId = typeof body.userId === 'string' ? body.userId : '';
@@ -8686,65 +8289,45 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
-  app.get(
-    '/admin/experiments',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const { listExperiments } = await import('./experiments/store');
-      return c.json(await listExperiments());
-    },
-  );
+  app.get('/admin/experiments', requireAuth('admin', 'superadmin'), async (c) => {
+    const { listExperiments } = await import('./experiments/store');
+    return c.json(await listExperiments());
+  });
 
-  app.post(
-    '/admin/experiments',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      if (!body.name || !Array.isArray(body.variants)) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'name e variants[] obrigatórios');
-      }
-      const { createExperiment } = await import('./experiments/store');
-      try {
-        const exp = await createExperiment(body);
-        return c.json(exp, 201);
-      } catch (err) {
-        return jsonError(c, 400, 'INVALID_INPUT', (err as Error).message);
-      }
-    },
-  );
+  app.post('/admin/experiments', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    if (!body.name || !Array.isArray(body.variants)) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'name e variants[] obrigatórios');
+    }
+    const { createExperiment } = await import('./experiments/store');
+    try {
+      const exp = await createExperiment(body);
+      return c.json(exp, 201);
+    } catch (err) {
+      return jsonError(c, 400, 'INVALID_INPUT', (err as Error).message);
+    }
+  });
 
-  app.put(
-    '/admin/experiments/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      const { updateExperiment } = await import('./experiments/store');
-      const updated = await updateExperiment(c.req.param('id') as string, body);
-      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Experiment não encontrado');
-      return c.json(updated);
-    },
-  );
+  app.put('/admin/experiments/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const { updateExperiment } = await import('./experiments/store');
+    const updated = await updateExperiment(c.req.param('id') as string, body);
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Experiment não encontrado');
+    return c.json(updated);
+  });
 
-  app.delete(
-    '/admin/experiments/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const { deleteExperiment } = await import('./experiments/store');
-      const ok = await deleteExperiment(c.req.param('id') as string);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Experiment não encontrado');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/experiments/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const { deleteExperiment } = await import('./experiments/store');
+    const ok = await deleteExperiment(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Experiment não encontrado');
+    return c.json({ ok: true });
+  });
 
-  app.get(
-    '/admin/experiments/:id/results',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const { aggregate } = await import('./experiments/store');
-      const rows = await aggregate(c.req.param('id') as string);
-      return c.json({ rows });
-    },
-  );
+  app.get('/admin/experiments/:id/results', requireAuth('admin', 'superadmin'), async (c) => {
+    const { aggregate } = await import('./experiments/store');
+    const rows = await aggregate(c.req.param('id') as string);
+    return c.json({ rows });
+  });
 
   // ---------- Forum por curso ----------
 
@@ -8761,56 +8344,46 @@ export function buildApp() {
     return c.json({ thread: t, replies });
   });
 
-  app.post(
-    '/courses/:courseId/forum/threads',
-    requireAuth(),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      const u = c.get('user')!;
-      if (
-        typeof body.title !== 'string' ||
-        body.title.trim().length < 3 ||
-        typeof body.body !== 'string' ||
-        body.body.trim().length < 5
-      ) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'title e body obrigatórios');
-      }
-      const kind = ['pergunta', 'dica', 'discussao'].includes(body.kind)
-        ? body.kind
-        : 'discussao';
-      const { createThread } = await import('./forum/store');
-      const t = await createThread({
-        courseId: c.req.param('courseId') as string,
-        authorId: u.sub,
-        authorName: u.email,
-        title: body.title.trim(),
-        body: body.body.trim(),
-        kind,
-      });
-      return c.json(t, 201);
-    },
-  );
+  app.post('/courses/:courseId/forum/threads', requireAuth(), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const u = c.get('user')!;
+    if (
+      typeof body.title !== 'string' ||
+      body.title.trim().length < 3 ||
+      typeof body.body !== 'string' ||
+      body.body.trim().length < 5
+    ) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'title e body obrigatórios');
+    }
+    const kind = ['pergunta', 'dica', 'discussao'].includes(body.kind) ? body.kind : 'discussao';
+    const { createThread } = await import('./forum/store');
+    const t = await createThread({
+      courseId: c.req.param('courseId') as string,
+      authorId: u.sub,
+      authorName: u.email,
+      title: body.title.trim(),
+      body: body.body.trim(),
+      kind,
+    });
+    return c.json(t, 201);
+  });
 
-  app.post(
-    '/forum/threads/:id/replies',
-    requireAuth(),
-    async (c) => {
-      const body = await c.req.json().catch(() => ({}));
-      const u = c.get('user')!;
-      if (typeof body.body !== 'string' || body.body.trim().length < 3) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'body obrigatório (mín 3 chars)');
-      }
-      const { createReply } = await import('./forum/store');
-      const r = await createReply({
-        threadId: c.req.param('id') as string,
-        authorId: u.sub,
-        authorName: u.email,
-        body: body.body.trim(),
-      });
-      if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
-      return c.json(r, 201);
-    },
-  );
+  app.post('/forum/threads/:id/replies', requireAuth(), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const u = c.get('user')!;
+    if (typeof body.body !== 'string' || body.body.trim().length < 3) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'body obrigatório (mín 3 chars)');
+    }
+    const { createReply } = await import('./forum/store');
+    const r = await createReply({
+      threadId: c.req.param('id') as string,
+      authorId: u.sub,
+      authorName: u.email,
+      body: body.body.trim(),
+    });
+    if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+    return c.json(r, 201);
+  });
 
   app.post('/forum/threads/:id/like', requireAuth(), async (c) => {
     const u = c.get('user')!;
@@ -8864,22 +8437,18 @@ export function buildApp() {
     c.json(await emailBroadcasts.listBroadcasts()),
   );
 
-  app.post(
-    '/admin/email/broadcasts/preview',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as {
-        audience?: string;
-        courseId?: string;
-        inactivityDays?: number;
-      };
-      const recipients = await emailBroadcasts.resolveAudience(
-        (body.audience ?? 'all') as Parameters<typeof emailBroadcasts.resolveAudience>[0],
-        { courseId: body.courseId, inactivityDays: body.inactivityDays },
-      );
-      return c.json({ count: recipients.length, sample: recipients.slice(0, 10) });
-    },
-  );
+  app.post('/admin/email/broadcasts/preview', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as {
+      audience?: string;
+      courseId?: string;
+      inactivityDays?: number;
+    };
+    const recipients = await emailBroadcasts.resolveAudience(
+      (body.audience ?? 'all') as Parameters<typeof emailBroadcasts.resolveAudience>[0],
+      { courseId: body.courseId, inactivityDays: body.inactivityDays },
+    );
+    return c.json({ count: recipients.length, sample: recipients.slice(0, 10) });
+  });
 
   app.post(
     '/admin/email/broadcasts',
@@ -8902,7 +8471,9 @@ export function buildApp() {
         subject: body.subject,
         html: body.html,
         text: body.text,
-        audience: (body.audience ?? 'all') as Parameters<typeof emailBroadcasts.startBroadcast>[0]['audience'],
+        audience: (body.audience ?? 'all') as Parameters<
+          typeof emailBroadcasts.startBroadcast
+        >[0]['audience'],
         courseId: body.courseId,
         inactivityDays: body.inactivityDays,
         createdBy: u.email,
@@ -8911,25 +8482,21 @@ export function buildApp() {
     },
   );
 
-  app.get(
-    '/admin/email/templates/:name/preview',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const name = c.req.param('name') as string;
-      try {
-        const override = await templateOverrides.getOverride(name);
-        const r = previewTemplate(name, override ?? undefined);
-        return c.json(r);
-      } catch (err) {
-        return jsonError(
-          c,
-          404,
-          'NOT_FOUND',
-          err instanceof Error ? err.message : 'Template não encontrado.',
-        );
-      }
-    },
-  );
+  app.get('/admin/email/templates/:name/preview', requireAuth('admin', 'superadmin'), async (c) => {
+    const name = c.req.param('name') as string;
+    try {
+      const override = await templateOverrides.getOverride(name);
+      const r = previewTemplate(name, override ?? undefined);
+      return c.json(r);
+    } catch (err) {
+      return jsonError(
+        c,
+        404,
+        'NOT_FOUND',
+        err instanceof Error ? err.message : 'Template não encontrado.',
+      );
+    }
+  });
 
   /** Permite preview com override em-flight (sem salvar). */
   app.post(
@@ -8941,13 +8508,11 @@ export function buildApp() {
       try {
         const override = {
           subject: typeof body.subject === 'string' ? body.subject : undefined,
-          brandColor:
-            typeof body.brandColor === 'string' ? body.brandColor : undefined,
+          brandColor: typeof body.brandColor === 'string' ? body.brandColor : undefined,
           logoUrl: typeof body.logoUrl === 'string' ? body.logoUrl : undefined,
           orgName: typeof body.orgName === 'string' ? body.orgName : undefined,
           greeting: typeof body.greeting === 'string' ? body.greeting : undefined,
-          footerNote:
-            typeof body.footerNote === 'string' ? body.footerNote : undefined,
+          footerNote: typeof body.footerNote === 'string' ? body.footerNote : undefined,
         };
         const r = previewTemplate(name, override);
         return c.json(r);
@@ -8962,97 +8527,70 @@ export function buildApp() {
     },
   );
 
-  app.get(
-    '/admin/email/weekly-report',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(await weeklyReport.getConfig()),
+  app.get('/admin/email/weekly-report', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await weeklyReport.getConfig()),
   );
 
-  app.put(
-    '/admin/email/weekly-report',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const cfg = await weeklyReport.setConfig({
-        enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
-        dayOfWeekUtc:
-          typeof body.dayOfWeekUtc === 'number' ? body.dayOfWeekUtc : undefined,
-        hourUtc: typeof body.hourUtc === 'number' ? body.hourUtc : undefined,
-        recipientRoles: Array.isArray(body.recipientRoles)
-          ? (body.recipientRoles as unknown[]).filter(
-              (r): r is 'admin' | 'superadmin' =>
-                r === 'admin' || r === 'superadmin',
-            )
-          : undefined,
-        aiDigestEnabled:
-          typeof body.aiDigestEnabled === 'boolean'
-            ? body.aiDigestEnabled
-            : undefined,
-      });
-      await recordAudit(c, {
-        action: 'weekly_report.config',
-        targetType: 'config',
-        targetId: 'weekly-report',
-      });
-      return c.json(cfg);
-    },
-  );
+  app.put('/admin/email/weekly-report', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const cfg = await weeklyReport.setConfig({
+      enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+      dayOfWeekUtc: typeof body.dayOfWeekUtc === 'number' ? body.dayOfWeekUtc : undefined,
+      hourUtc: typeof body.hourUtc === 'number' ? body.hourUtc : undefined,
+      recipientRoles: Array.isArray(body.recipientRoles)
+        ? (body.recipientRoles as unknown[]).filter(
+            (r): r is 'admin' | 'superadmin' => r === 'admin' || r === 'superadmin',
+          )
+        : undefined,
+      aiDigestEnabled: typeof body.aiDigestEnabled === 'boolean' ? body.aiDigestEnabled : undefined,
+    });
+    await recordAudit(c, {
+      action: 'weekly_report.config',
+      targetType: 'config',
+      targetId: 'weekly-report',
+    });
+    return c.json(cfg);
+  });
 
-  app.post(
-    '/admin/email/weekly-report/preview',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const withAi = body.withAi === true;
-      const data = await weeklyReport.buildReport();
-      let aiDigest: { text: string; provider: string; model: string } | null = null;
-      if (withAi) {
-        aiDigest = await weeklyReport.generateAiDigest(data);
-      }
-      const email = weeklyReport.renderEmailHtml(data, aiDigest?.text);
-      return c.json({ data, email, aiDigest });
-    },
-  );
+  app.post('/admin/email/weekly-report/preview', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const withAi = body.withAi === true;
+    const data = await weeklyReport.buildReport();
+    let aiDigest: { text: string; provider: string; model: string } | null = null;
+    if (withAi) {
+      aiDigest = await weeklyReport.generateAiDigest(data);
+    }
+    const email = weeklyReport.renderEmailHtml(data, aiDigest?.text);
+    return c.json({ data, email, aiDigest });
+  });
 
   // ---------- Student weekly progress email ----------
 
-  app.get(
-    '/admin/email/student-progress',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(await studentProgressEmail.getConfig()),
+  app.get('/admin/email/student-progress', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await studentProgressEmail.getConfig()),
   );
 
-  app.put(
-    '/admin/email/student-progress',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const cfg = await studentProgressEmail.setConfig({
-        enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
-        dayOfWeekUtc:
-          typeof body.dayOfWeekUtc === 'number' ? body.dayOfWeekUtc : undefined,
-        hourUtc: typeof body.hourUtc === 'number' ? body.hourUtc : undefined,
-      });
-      await recordAudit(c, {
-        action: 'student_progress_email.config',
-        targetType: 'config',
-        targetId: 'student-progress',
-      });
-      return c.json(cfg);
-    },
+  app.put('/admin/email/student-progress', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const cfg = await studentProgressEmail.setConfig({
+      enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+      dayOfWeekUtc: typeof body.dayOfWeekUtc === 'number' ? body.dayOfWeekUtc : undefined,
+      hourUtc: typeof body.hourUtc === 'number' ? body.hourUtc : undefined,
+    });
+    await recordAudit(c, {
+      action: 'student_progress_email.config',
+      targetType: 'config',
+      targetId: 'student-progress',
+    });
+    return c.json(cfg);
+  });
+
+  app.get('/admin/email/student-progress/status', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(studentProgressEmail.getStatus()),
   );
 
-  app.get(
-    '/admin/email/student-progress/status',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(studentProgressEmail.getStatus()),
-  );
-
-  app.get(
-    '/admin/email/template-overrides',
-    requireAuth('admin', 'superadmin'),
-    async (c) =>
-      c.json({ overrides: await templateOverrides.listOverrides() }),
+  app.get('/admin/email/template-overrides', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json({ overrides: await templateOverrides.listOverrides() }),
   );
 
   app.put(
@@ -9063,13 +8601,11 @@ export function buildApp() {
       const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
       const saved = await templateOverrides.setOverride(name, {
         subject: typeof body.subject === 'string' ? body.subject : undefined,
-        brandColor:
-          typeof body.brandColor === 'string' ? body.brandColor : undefined,
+        brandColor: typeof body.brandColor === 'string' ? body.brandColor : undefined,
         logoUrl: typeof body.logoUrl === 'string' ? body.logoUrl : undefined,
         orgName: typeof body.orgName === 'string' ? body.orgName : undefined,
         greeting: typeof body.greeting === 'string' ? body.greeting : undefined,
-        footerNote:
-          typeof body.footerNote === 'string' ? body.footerNote : undefined,
+        footerNote: typeof body.footerNote === 'string' ? body.footerNote : undefined,
       });
       await recordAudit(c, {
         action: 'email_template.override',
@@ -9098,22 +8634,16 @@ export function buildApp() {
 
   // ---------- Webhooks de saída ----------
 
-  app.get(
-    '/admin/webhooks/events',
-    requireAuth('admin', 'superadmin'),
-    (c) => c.json({ events: ALL_WEBHOOK_EVENTS }),
+  app.get('/admin/webhooks/events', requireAuth('admin', 'superadmin'), (c) =>
+    c.json({ events: ALL_WEBHOOK_EVENTS }),
   );
 
-  app.get(
-    '/admin/webhooks/presets',
-    requireAuth('admin', 'superadmin'),
-    (c) => c.json({ presets: WEBHOOK_PRESETS }),
+  app.get('/admin/webhooks/presets', requireAuth('admin', 'superadmin'), (c) =>
+    c.json({ presets: WEBHOOK_PRESETS }),
   );
 
-  app.get(
-    '/admin/webhooks/endpoints',
-    requireAuth('admin', 'superadmin'),
-    async (c) => c.json(await webhookEndpoints.listEndpoints()),
+  app.get('/admin/webhooks/endpoints', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await webhookEndpoints.listEndpoints()),
   );
 
   app.post(
@@ -9155,68 +8685,55 @@ export function buildApp() {
     },
   );
 
-  app.put(
-    '/admin/webhooks/endpoints/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-      const events = Array.isArray(body.events)
-        ? (body.events as WebhookEventType[]).filter((e) => ALL_WEBHOOK_EVENTS.includes(e))
+  app.put('/admin/webhooks/endpoints/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const events = Array.isArray(body.events)
+      ? (body.events as WebhookEventType[]).filter((e) => ALL_WEBHOOK_EVENTS.includes(e))
+      : undefined;
+    const channelType =
+      body.channelType === 'slack' ||
+      body.channelType === 'discord' ||
+      body.channelType === 'generic'
+        ? body.channelType
         : undefined;
-      const channelType =
-        body.channelType === 'slack' ||
-        body.channelType === 'discord' ||
-        body.channelType === 'generic'
-          ? body.channelType
-          : undefined;
-      const updated = await webhookEndpoints.updateEndpoint(id, {
-        name: body.name ? String(body.name) : undefined,
-        url: body.url ? String(body.url) : undefined,
-        events,
-        enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
-        channelType,
-        secret: body.secret !== undefined ? String(body.secret) : undefined,
-        headers:
-          body.headers && typeof body.headers === 'object'
-            ? (body.headers as Record<string, string>)
-            : undefined,
-      });
-      if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Endpoint não encontrado.');
-      return c.json(updated);
-    },
-  );
+    const updated = await webhookEndpoints.updateEndpoint(id, {
+      name: body.name ? String(body.name) : undefined,
+      url: body.url ? String(body.url) : undefined,
+      events,
+      enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+      channelType,
+      secret: body.secret !== undefined ? String(body.secret) : undefined,
+      headers:
+        body.headers && typeof body.headers === 'object'
+          ? (body.headers as Record<string, string>)
+          : undefined,
+    });
+    if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Endpoint não encontrado.');
+    return c.json(updated);
+  });
 
-  app.delete(
-    '/admin/webhooks/endpoints/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const ok = await webhookEndpoints.deleteEndpoint(c.req.param('id') as string);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Endpoint não encontrado.');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/webhooks/endpoints/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await webhookEndpoints.deleteEndpoint(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Endpoint não encontrado.');
+    return c.json({ ok: true });
+  });
 
   app.post(
     '/admin/webhooks/endpoints/:id/test',
     requireAuth('admin', 'superadmin'),
     rateLimit({ windowMs: 60_000, max: 10 }),
-    async (c) =>
-      c.json(await webhooksDispatcher.testEndpoint(c.req.param('id') as string)),
+    async (c) => c.json(await webhooksDispatcher.testEndpoint(c.req.param('id') as string)),
   );
 
-  app.get(
-    '/admin/webhooks/deliveries',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const limit = Number(c.req.query('limit') ?? '200');
-      const endpointId = c.req.query('endpointId');
-      const list = endpointId
-        ? await webhookDeliveries.listByEndpoint(endpointId, Number.isFinite(limit) ? limit : 200)
-        : await webhookDeliveries.listAll(Number.isFinite(limit) ? limit : 200);
-      return c.json(list);
-    },
-  );
+  app.get('/admin/webhooks/deliveries', requireAuth('admin', 'superadmin'), async (c) => {
+    const limit = Number(c.req.query('limit') ?? '200');
+    const endpointId = c.req.query('endpointId');
+    const list = endpointId
+      ? await webhookDeliveries.listByEndpoint(endpointId, Number.isFinite(limit) ? limit : 200)
+      : await webhookDeliveries.listAll(Number.isFinite(limit) ? limit : 200);
+    return c.json(list);
+  });
 
   app.post(
     '/admin/webhooks/deliveries/:id/retry',
@@ -9240,10 +8757,7 @@ export function buildApp() {
     '/admin/webhooks/deliveries/export.csv',
     requireAuth('admin', 'superadmin'),
     async (c) => {
-      const limit = Math.max(
-        1,
-        Math.min(Number(c.req.query('limit') ?? '1000'), 5000),
-      );
+      const limit = Math.max(1, Math.min(Number(c.req.query('limit') ?? '1000'), 5000));
       const endpointId = c.req.query('endpointId');
       const list = endpointId
         ? await webhookDeliveries.listByEndpoint(endpointId, limit)
@@ -9292,8 +8806,7 @@ export function buildApp() {
   app.post('/admin/coupons', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createCouponSchema, body);
-    if (!v.ok)
-      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
     try {
       const created = await couponsRepo.createCoupon(v.data);
       return c.json(created, 201);
@@ -9311,8 +8824,7 @@ export function buildApp() {
     const id = c.req.param('id') as string;
     const body = await c.req.json().catch(() => ({}));
     const v = validate(updateCouponSchema, body);
-    if (!v.ok)
-      return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
     const updated = await couponsRepo.updateCoupon(id, v.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Cupom não encontrado');
     return c.json(updated);
@@ -9337,8 +8849,7 @@ export function buildApp() {
           prefix: typeof body.prefix === 'string' ? body.prefix : undefined,
           sequential: body.sequential === true,
           randomLength: typeof body.randomLength === 'number' ? body.randomLength : 8,
-          description:
-            typeof body.description === 'string' ? body.description : undefined,
+          description: typeof body.description === 'string' ? body.description : undefined,
           discount: body.discount as never,
           appliesToProductIds: Array.isArray(body.appliesToProductIds)
             ? (body.appliesToProductIds as string[])
@@ -9369,20 +8880,16 @@ export function buildApp() {
     },
   );
 
-  app.get(
-    '/admin/coupons/export',
-    requireAuth('admin', 'superadmin'),
-    async () => {
-      const csv = await couponsRepo.exportCouponsAsCsv();
-      return new Response(csv, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="cupons-${new Date().toISOString().slice(0, 10)}.csv"`,
-        },
-      });
-    },
-  );
+  app.get('/admin/coupons/export', requireAuth('admin', 'superadmin'), async () => {
+    const csv = await couponsRepo.exportCouponsAsCsv();
+    return new Response(csv, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="cupons-${new Date().toISOString().slice(0, 10)}.csv"`,
+      },
+    });
+  });
 
   // Aluno consulta validade de um cupom para um produto antes do checkout
   app.get('/coupons/check', requireAuth(), async (c) => {
@@ -9415,8 +8922,7 @@ export function buildApp() {
       const u = c.get('user')!;
       const body = await c.req.json().catch(() => ({}));
       const v = validate(checkoutSchema, body);
-      if (!v.ok)
-        return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+      if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
 
       const product = await productsRepo.findById(v.data.productId);
       if (!product || !product.active) {
@@ -9496,9 +9002,7 @@ export function buildApp() {
           amountCents,
           currency: product.currency,
           description:
-            discountCents > 0
-              ? `${product.name} (cupom ${appliedCouponCode})`
-              : product.name,
+            discountCents > 0 ? `${product.name} (cupom ${appliedCouponCode})` : product.name,
           customerEmail: u.email,
           metadata: { orderId: order.id, userId: u.sub },
         });
@@ -9532,148 +9036,271 @@ export function buildApp() {
     },
   );
 
-  // ---------- Webhook (público; cada gateway tem URL própria) ----------
+  // ---------- Checkout PÚBLICO (visitante não logado; provisiona conta) ----------
+  // Fluxo do site público de vendas: cria/recupera a conta pelo e-mail, cria o
+  // pedido e devolve a checkoutUrl do gateway (padrão hospedado, sem PCI local).
+  // O webhook existente confirma → grantAccessForOrder matricula. Conta nova
+  // recebe e-mail para definir senha.
+  app.post('/public/checkout', rateLimit({ windowMs: 60_000, max: 8 }), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(publicCheckoutSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
 
-  app.post(
-    '/payments/webhook/:gatewayId',
-    rateLimit({ windowMs: 60_000, max: 60 }),
-    async (c) => {
-      const gatewayId = c.req.param('gatewayId') as string;
-      const gw = await gatewaysRepo.findById(gatewayId);
-      if (!gw) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado.');
+    const courses = await coursesRepo.listCourses();
+    const course = courses.find(
+      (co) => (co.slug ?? String(co.id)) === v.data.courseSlug && co.active !== false,
+    );
+    if (!course) return jsonError(c, 404, 'COURSE_NOT_FOUND', 'Curso não encontrado.');
 
-      const provider = getPaymentProvider(gw.provider);
-      if (!provider) return jsonError(c, 501, 'NOT_IMPLEMENTED', 'Provider não implementado.');
-
-      const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
-      if (!creds) return jsonError(c, 500, 'INTERNAL', 'Falha ao ler credenciais.');
-
-      const rawBody = await c.req.text();
-      const headers: Record<string, string> = {};
-      for (const [k, v] of Object.entries(c.req.header())) {
-        if (typeof v === 'string') headers[k.toLowerCase()] = v;
-      }
-
-      let event;
-      try {
-        event = await provider.parseWebhook(gw, creds, rawBody, headers);
-      } catch (err) {
-        await recordError(c, err, 400);
-        return jsonError(c, 400, 'WEBHOOK_INVALID', 'Webhook inválido.');
-      }
-      if (!event) {
-        return jsonError(c, 400, 'WEBHOOK_INVALID', 'Não foi possível interpretar o webhook.');
-      }
-
-      // Localiza order pelo externalId
-      const order = await ordersRepo.findByExternalId(event.externalId);
-      if (!order) {
-        // Webhook duplicado / unknown — aceita 200 para não retentar indefinidamente
-        return c.json({ ok: true, ignored: true, reason: 'order-not-found' });
-      }
-
-      // Idempotência: se já paid, não duplica grant
-      if (order.status === 'paid' && event.status === 'paid') {
-        return c.json({ ok: true, ignored: true, reason: 'already-paid' });
-      }
-
-      const updated = await ordersRepo.updateStatus(
-        order.id,
-        event.status,
-        `Webhook do gateway ${gw.provider}`,
+    const product = await productsRepo.findByCourseId(course.id);
+    if (!product || !product.active) {
+      return jsonError(
+        c,
+        409,
+        'NOT_FOR_SALE',
+        'Este curso ainda não está disponível para compra online. Fale com a gente pelo WhatsApp.',
       );
+    }
 
-      // Liberação de acesso quando paga
-      if (event.status === 'paid' && updated) {
-        // Incrementa uso do cupom (se aplicado)
+    // Provisiona / recupera a conta pelo e-mail (role student).
+    const email = v.data.email.toLowerCase().trim();
+    let user = await usersStore.findUserByEmail(email);
+    let isNewAccount = false;
+    if (!user) {
+      const pw = crypto.randomBytes(24).toString('hex');
+      await usersStore.createUser({
+        email,
+        name: v.data.name,
+        role: 'student',
+        password: pw,
+        active: true,
+        document: v.data.document || null,
+      });
+      user = await usersStore.findUserByEmail(email);
+      isNewAccount = true;
+    }
+    if (!user || !user.active) {
+      return jsonError(c, 500, 'PROVISION_FAILED', 'Não foi possível preparar a matrícula.');
+    }
+
+    // Gateway: explícito > primeiro ativo.
+    const gw = v.data.gatewayId
+      ? await gatewaysRepo.findById(v.data.gatewayId)
+      : ((await gatewaysRepo.listActive())[0] ?? null);
+    if (!gw || !gw.active) {
+      return jsonError(c, 400, 'NO_ACTIVE_GATEWAY', 'Pagamento indisponível no momento.');
+    }
+    const provider = getPaymentProvider(gw.provider);
+    if (!provider) return jsonError(c, 501, 'NOT_IMPLEMENTED', 'Provider indisponível.');
+    const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
+    if (!creds) return jsonError(c, 400, 'GATEWAY_MISCONFIGURED', 'Gateway sem credenciais.');
+
+    const order = await ordersRepo.createOrder({
+      userId: user.id,
+      userEmail: user.email,
+      productId: product.id,
+      productSnapshot: {
+        name: product.name,
+        priceCents: product.priceCents,
+        currency: product.currency,
+        kind: product.kind,
+        refId: product.refId,
+      },
+      gatewayId: gw.id,
+      gatewayProvider: gw.provider,
+      amountCents: product.priceCents,
+      currency: product.currency,
+    });
+
+    try {
+      const result = await provider.createPayment(gw, creds, {
+        amountCents: product.priceCents,
+        currency: product.currency,
+        description: product.name,
+        customerEmail: user.email,
+        metadata: { orderId: order.id, userId: user.id, source: 'public' },
+      });
+      const updated = await ordersRepo.attachGatewayResult(order.id, {
+        externalId: result.externalId,
+        checkoutUrl: result.checkoutUrl,
+        qrCode: result.qrCode,
+        status: result.status,
+      });
+      // Conta nova: e-mail para definir senha (best-effort).
+      if (isNewAccount) {
         try {
-          const couponEvent = updated.events.find((e) => e.note?.includes('couponId='));
-          const match = couponEvent?.note?.match(/couponId=(\S+)/);
-          if (match) {
-            await couponsRepo.incrementUsage(match[1]!);
-          }
-        } catch (err) {
-          console.error('[coupon increment]', err);
-        }
-        try {
-          await grantAccessForOrder(updated);
-          await notificationsRepo.createOne({
-            userId: updated.userId,
-            title: '✅ Pagamento confirmado',
-            body: `Sua compra de "${updated.productSnapshot.name}" foi aprovada e o acesso foi liberado.`,
-            category: 'success',
-            link:
-              updated.productSnapshot.kind === 'course'
-                ? `/curso/${updated.productSnapshot.refId ?? ''}`
-                : '/perfil',
-            authorEmail: 'sistema',
+          const token = createResetToken(user.id, user.email);
+          const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+          const resetUrl = `${base}/redefinir-senha?token=${encodeURIComponent(token.token)}`;
+          const tpl = renderPasswordReset({ userName: user.name, resetUrl, expiresInMinutes: 60 });
+          void sendSafe({
+            to: { email: user.email, name: user.name },
+            subject: 'Bem-vindo(a) à PCO — defina sua senha de acesso',
+            html: tpl.html,
+            text: tpl.text,
+            tag: 'welcome_checkout',
           });
         } catch (err) {
-          console.error('[grantAccessForOrder] erro:', err);
+          // eslint-disable-next-line no-console
+          console.error('[public-checkout welcome email]', err);
         }
-        // E-mail de confirmação (best-effort)
-        try {
-          const buyer = await usersStore.findUserById(updated.userId);
-          if (buyer) {
-            const amount = (updated.amountCents / 100).toLocaleString('pt-BR', {
-              style: 'currency',
-              currency: updated.currency || 'BRL',
-            });
-            const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
-            const tpl = renderOrderPaid({
-              userName: buyer.name,
-              productName: updated.productSnapshot.name,
-              amountFormatted: amount,
-              orderUrl: `${base}/pedidos`,
-            });
-            void sendSafe({
-              to: { email: buyer.email, name: buyer.name },
-              subject: tpl.subject,
-              html: tpl.html,
-              text: tpl.text,
-              tag: 'order_paid',
-              metadata: { orderId: updated.id },
-            });
-          }
-        } catch (err) {
-          console.error('[order paid email]', err);
-        }
-        // Webhook outbound — order.paid
-        void webhooksDispatcher.emit('order.paid', {
-          orderId: updated.id,
-          userId: updated.userId,
-          userEmail: updated.userEmail,
-          productId: updated.productId,
-          productName: updated.productSnapshot.name,
-          amountCents: updated.amountCents,
-          currency: updated.currency,
-          paidAt: updated.paidAt,
-        });
-      } else if (event.status === 'canceled' && updated) {
-        void webhooksDispatcher.emit('order.canceled', {
-          orderId: updated.id,
-          userId: updated.userId,
-        });
-      } else if (event.status === 'refunded' && updated) {
-        void webhooksDispatcher.emit('order.refunded', {
-          orderId: updated.id,
-          userId: updated.userId,
-          amountCents: updated.amountCents,
-        });
-      } else if (event.status === 'failed' && updated) {
-        void webhooksDispatcher.emit('payment.failed', {
-          orderId: updated.id,
-          userId: updated.userId,
-          amountCents: updated.amountCents,
-          provider: gw.provider,
-          externalId: updated.externalId,
-          reason: event.metadata?.reason ?? null,
-        });
       }
+      return c.json(
+        {
+          checkoutUrl: updated?.checkoutUrl ?? result.checkoutUrl,
+          orderId: order.id,
+          isNewAccount,
+        },
+        201,
+      );
+    } catch (err) {
+      await ordersRepo.updateStatus(
+        order.id,
+        'failed',
+        err instanceof Error ? err.message : 'Erro do provider',
+      );
+      return jsonError(c, 502, 'GATEWAY_FAILED', 'Falha ao iniciar o pagamento. Tente novamente.');
+    }
+  });
 
-      return c.json({ ok: true });
-    },
-  );
+  // ---------- Webhook (público; cada gateway tem URL própria) ----------
+
+  app.post('/payments/webhook/:gatewayId', rateLimit({ windowMs: 60_000, max: 60 }), async (c) => {
+    const gatewayId = c.req.param('gatewayId') as string;
+    const gw = await gatewaysRepo.findById(gatewayId);
+    if (!gw) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado.');
+
+    const provider = getPaymentProvider(gw.provider);
+    if (!provider) return jsonError(c, 501, 'NOT_IMPLEMENTED', 'Provider não implementado.');
+
+    const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
+    if (!creds) return jsonError(c, 500, 'INTERNAL', 'Falha ao ler credenciais.');
+
+    const rawBody = await c.req.text();
+    const headers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(c.req.header())) {
+      if (typeof v === 'string') headers[k.toLowerCase()] = v;
+    }
+
+    let event;
+    try {
+      event = await provider.parseWebhook(gw, creds, rawBody, headers);
+    } catch (err) {
+      await recordError(c, err, 400);
+      return jsonError(c, 400, 'WEBHOOK_INVALID', 'Webhook inválido.');
+    }
+    if (!event) {
+      return jsonError(c, 400, 'WEBHOOK_INVALID', 'Não foi possível interpretar o webhook.');
+    }
+
+    // Localiza order pelo externalId
+    const order = await ordersRepo.findByExternalId(event.externalId);
+    if (!order) {
+      // Webhook duplicado / unknown — aceita 200 para não retentar indefinidamente
+      return c.json({ ok: true, ignored: true, reason: 'order-not-found' });
+    }
+
+    // Idempotência: se já paid, não duplica grant
+    if (order.status === 'paid' && event.status === 'paid') {
+      return c.json({ ok: true, ignored: true, reason: 'already-paid' });
+    }
+
+    const updated = await ordersRepo.updateStatus(
+      order.id,
+      event.status,
+      `Webhook do gateway ${gw.provider}`,
+    );
+
+    // Liberação de acesso quando paga
+    if (event.status === 'paid' && updated) {
+      // Incrementa uso do cupom (se aplicado)
+      try {
+        const couponEvent = updated.events.find((e) => e.note?.includes('couponId='));
+        const match = couponEvent?.note?.match(/couponId=(\S+)/);
+        if (match) {
+          await couponsRepo.incrementUsage(match[1]!);
+        }
+      } catch (err) {
+        console.error('[coupon increment]', err);
+      }
+      try {
+        await grantAccessForOrder(updated);
+        await notificationsRepo.createOne({
+          userId: updated.userId,
+          title: '✅ Pagamento confirmado',
+          body: `Sua compra de "${updated.productSnapshot.name}" foi aprovada e o acesso foi liberado.`,
+          category: 'success',
+          link:
+            updated.productSnapshot.kind === 'course'
+              ? `/curso/${updated.productSnapshot.refId ?? ''}`
+              : '/perfil',
+          authorEmail: 'sistema',
+        });
+      } catch (err) {
+        console.error('[grantAccessForOrder] erro:', err);
+      }
+      // E-mail de confirmação (best-effort)
+      try {
+        const buyer = await usersStore.findUserById(updated.userId);
+        if (buyer) {
+          const amount = (updated.amountCents / 100).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: updated.currency || 'BRL',
+          });
+          const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+          const tpl = renderOrderPaid({
+            userName: buyer.name,
+            productName: updated.productSnapshot.name,
+            amountFormatted: amount,
+            orderUrl: `${base}/pedidos`,
+          });
+          void sendSafe({
+            to: { email: buyer.email, name: buyer.name },
+            subject: tpl.subject,
+            html: tpl.html,
+            text: tpl.text,
+            tag: 'order_paid',
+            metadata: { orderId: updated.id },
+          });
+        }
+      } catch (err) {
+        console.error('[order paid email]', err);
+      }
+      // Webhook outbound — order.paid
+      void webhooksDispatcher.emit('order.paid', {
+        orderId: updated.id,
+        userId: updated.userId,
+        userEmail: updated.userEmail,
+        productId: updated.productId,
+        productName: updated.productSnapshot.name,
+        amountCents: updated.amountCents,
+        currency: updated.currency,
+        paidAt: updated.paidAt,
+      });
+    } else if (event.status === 'canceled' && updated) {
+      void webhooksDispatcher.emit('order.canceled', {
+        orderId: updated.id,
+        userId: updated.userId,
+      });
+    } else if (event.status === 'refunded' && updated) {
+      void webhooksDispatcher.emit('order.refunded', {
+        orderId: updated.id,
+        userId: updated.userId,
+        amountCents: updated.amountCents,
+      });
+    } else if (event.status === 'failed' && updated) {
+      void webhooksDispatcher.emit('payment.failed', {
+        orderId: updated.id,
+        userId: updated.userId,
+        amountCents: updated.amountCents,
+        provider: gw.provider,
+        externalId: updated.externalId,
+        reason: event.metadata?.reason ?? null,
+      });
+    }
+
+    return c.json({ ok: true });
+  });
 
   // ---------- Stats agregadas (admin) ----------
 
