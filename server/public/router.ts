@@ -19,8 +19,15 @@ import {
   aboutPageJsonLd,
   blogJsonLd,
   blogPostingJsonLd,
+  courseJsonLd,
+  faqJsonLd,
 } from './jsonld';
-import { listPublicPosts, getPublicPostBySlug, listPublicCourses } from './projections';
+import {
+  listPublicPosts,
+  getPublicPostBySlug,
+  listPublicCourses,
+  getPublicCourseBySlug,
+} from './projections';
 import { PUBLIC_JS } from './client';
 
 /** Data pt-BR legível a partir de ISO. */
@@ -458,7 +465,7 @@ publicSite.get('/blog/:slug', async (c) => {
 publicSite.get('/', async (c) => {
   const [courses, posts] = await Promise.all([listPublicCourses(), listPublicPosts()]);
   const courseCard = (co: (typeof courses)[number]): string => `
-    <a class="card" href="/catalogo" style="display:block">
+    <a class="card" href="/formacao/${co.slug}" style="display:block">
       <div aria-hidden="true" style="height:8px;border-radius:6px;background:${esc(co.coverColor || 'var(--accent)')};margin:-6px -6px 16px"></div>
       ${co.badge ? `<span class="tag-chip">${esc(co.badge)}</span>` : ''}
       <h3 style="font-size:19px;margin:10px 0 8px">${esc(co.shortTitle || co.title)}</h3>
@@ -482,7 +489,7 @@ publicSite.get('/', async (c) => {
           certificado digital, ética e o reconhecimento da ${ORG.rntp}.
         </p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px">
-          <a class="btn btn-primary" href="/catalogo">Ver cursos</a>
+          <a class="btn btn-primary" href="/formacoes">Ver cursos</a>
           <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow">Falar no WhatsApp</a>
         </div>
         <p style="color:#cfe0dc;font-size:13.5px;margin-top:22px">
@@ -515,7 +522,7 @@ publicSite.get('/', async (c) => {
             <h2 style="margin:12px 0 24px">Escolha por onde começar</h2>
             <div class="three-col">${raw(courses.slice(0, 3).map(courseCard).join(''))}</div>
             <div style="margin-top:24px">
-              <a class="btn btn-outline" href="/catalogo">Ver todos os cursos</a>
+              <a class="btn btn-outline" href="/formacoes">Ver todos os cursos</a>
             </div>
           </div>
         </section>`
@@ -567,7 +574,7 @@ publicSite.get('/', async (c) => {
         <p class="lead" style="color:#cfe0dc;margin-bottom:24px">
           Comece sua formação em psicanálise clínica hoje.
         </p>
-        <a class="btn btn-primary" href="/catalogo">Ver cursos e matricular-se</a>
+        <a class="btn btn-primary" href="/formacoes">Ver cursos e matricular-se</a>
       </div>
     </section>
   `;
@@ -579,6 +586,203 @@ publicSite.get('/', async (c) => {
       activeNav: 'home',
       bodyHtml: body,
       jsonLd: [orgJsonLd(), websiteJsonLd()],
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
+// ============================ /formacoes (catálogo) ============================
+publicSite.get('/formacoes', async (c) => {
+  const courses = await listPublicCourses();
+  const row = (co: (typeof courses)[number]): string => `
+    <a class="card" href="/formacao/${co.slug}" style="display:flex;gap:18px;align-items:flex-start">
+      <div aria-hidden="true" style="width:76px;height:76px;flex:0 0 auto;border-radius:12px;background:${esc(co.coverColor || 'var(--accent)')}"></div>
+      <div style="flex:1">
+        ${co.badge ? `<span class="tag-chip">${esc(co.badge)}</span>` : ''}
+        <h3 style="font-size:19px;margin:8px 0 6px">${esc(co.title)}</h3>
+        <p style="color:var(--ink-soft);font-size:14.5px">${esc((co.tagline || co.description || '').slice(0, 140))}</p>
+        <div style="display:flex;gap:14px;align-items:center;margin-top:12px;flex-wrap:wrap">
+          ${co.totalHours ? `<span class="tag-chip">${co.totalHours}h</span>` : ''}
+          ${co.priceFormatted ? `<span style="font-weight:800">${esc(co.priceFormatted)}</span>` : ''}
+          ${co.installmentFormatted ? `<span style="color:var(--ink-faint);font-size:13px">ou 12x ${esc(co.installmentFormatted)}</span>` : ''}
+        </div>
+      </div>
+    </a>`;
+  const body = html`
+    <section class="section-tight hero-deep">
+      <div class="wrap">
+        <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
+          <a href="/">Início</a><span>›</span><span>Formações</span>
+        </nav>
+        <span class="eyebrow">Nossas formações</span>
+        <h1 style="margin:14px 0 12px">Cursos de psicanálise clínica e áreas afins</h1>
+        <p class="lead" style="max-width:56ch">
+          Formações livres, estruturadas e no seu ritmo, com certificado digital.
+        </p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="wrap">
+        ${courses.length
+          ? html`<div class="stack">${raw(courses.map(row).join(''))}</div>`
+          : raw('<p style="color:var(--ink-soft)">Em breve novas formações.</p>')}
+      </div>
+    </section>
+  `;
+  return c.html(
+    renderPage({
+      title: `Formações — ${ORG.name}`,
+      description: `Cursos e formações em psicanálise clínica da ${ORG.shortName}: estruturados, no seu ritmo, com certificado. ${ORG.rntp}.`,
+      path: '/formacoes',
+      activeNav: 'cursos',
+      bodyHtml: body,
+      jsonLd: [
+        breadcrumbJsonLd([
+          { name: 'Início', path: '/' },
+          { name: 'Formações', path: '/formacoes' },
+        ]),
+      ],
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
+// ============================ /formacao/:slug ============================
+publicSite.get('/formacao/:slug', async (c) => {
+  const co = await getPublicCourseBySlug(c.req.param('slug'));
+  if (!co) {
+    const nf = html`<section class="section" style="text-align:center">
+      <div class="wrap">
+        <h1>Formação não encontrada</h1>
+        <p class="lead" style="margin:12px 0 24px">Talvez tenha mudado de endereço.</p>
+        <a class="btn btn-primary" href="/formacoes">Ver todas as formações</a>
+      </div>
+    </section>`;
+    return c.html(
+      renderPage({
+        title: `Formação não encontrada — ${ORG.shortName}`,
+        description: 'Formação não encontrada.',
+        path: `/formacao/${c.req.param('slug')}`,
+        noindex: true,
+        bodyHtml: nf,
+      }),
+      404,
+      HTML_HEADERS,
+    );
+  }
+  const chip = (t: string) => `<span class="tag-chip">${esc(t)}</span>`;
+  const chips = [
+    co.totalHours ? `${co.totalHours} horas` : '',
+    co.level || '',
+    co.language || 'pt-BR',
+    co.certificateAvailable ? 'Certificado digital' : '',
+  ]
+    .filter(Boolean)
+    .map(chip)
+    .join('');
+  const outcomesHtml = co.learningOutcomes.length
+    ? `<h2>O que você vai aprender</h2><ul>${co.learningOutcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>`
+    : '';
+  const forWhomHtml = co.forWhom.length
+    ? `<h2>Para quem é</h2><ul>${co.forWhom.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>`
+    : '';
+  const currHtml = co.curriculum.length
+    ? `<h2>Ementa</h2><div class="stack" style="gap:10px">${co.curriculum
+        .map(
+          (m) =>
+            `<div class="card" style="padding:16px"><div style="display:flex;gap:12px"><span style="font-weight:800;color:var(--accent)">${esc(m.n)}</span><div><div style="font-weight:700">${esc(m.title)}</div>${m.desc ? `<div style="color:var(--ink-soft);font-size:14px;margin-top:2px">${esc(m.desc)}</div>` : ''}</div></div></div>`,
+        )
+        .join('')}</div>`
+    : '';
+  const faqHtml = co.faqs.length
+    ? `<h2>Perguntas frequentes</h2><div class="stack" style="gap:8px">${co.faqs
+        .map(
+          (f) =>
+            `<div class="card" style="padding:0"><button data-accordion aria-expanded="false" style="width:100%;text-align:left;background:none;border:0;padding:16px;font-weight:700;font-size:15px;cursor:pointer;color:var(--ink);font-family:inherit">${esc(f.q)}</button><div style="max-height:0;overflow:hidden;transition:max-height .25s"><div style="padding:0 16px 16px;color:var(--ink-soft);font-size:14.5px">${esc(f.a)}</div></div></div>`,
+        )
+        .join('')}</div>`
+    : '';
+  const priceBlock = co.priceFormatted
+    ? `<div style="font-size:30px;font-weight:800">${esc(co.priceFormatted)}</div>${co.installmentFormatted ? `<div style="color:var(--ink-soft);font-size:14px">ou 12x de ${esc(co.installmentFormatted)}</div>` : ''}<div style="color:var(--ink-faint);font-size:12.5px;margin-top:4px">${esc(co.priceNote || '')}</div>`
+    : `<div style="font-size:20px;font-weight:800">Matrículas abertas</div><div style="color:var(--ink-soft);font-size:14px">Fale conosco para condições</div>`;
+  const instructorHtml = co.instructorName
+    ? `<div class="card" style="margin-top:16px"><div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);font-weight:600">Responsável</div><div style="font-weight:700;margin-top:6px">${esc(co.instructorName)}</div>${co.instructorBio ? `<p style="color:var(--ink-soft);font-size:13.5px;margin-top:6px">${esc(co.instructorBio)}</p>` : ''}</div>`
+    : '';
+  const body = html`
+    <section class="section-tight hero-deep">
+      <div class="wrap" style="max-width:820px">
+        <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
+          <a href="/">Início</a><span>›</span><a href="/formacoes">Formações</a><span>›</span
+          ><span>${co.shortTitle}</span>
+        </nav>
+        ${co.badge ? raw(`<span class="eyebrow">${esc(co.badge)}</span>`) : ''}
+        <h1 style="margin:14px 0 12px">${co.title}</h1>
+        ${co.tagline ? html`<p class="lead" style="color:#cfe0dc">${co.tagline}</p>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">${raw(chips)}</div>
+      </div>
+    </section>
+    <section class="section">
+      <div
+        class="wrap"
+        style="display:grid;grid-template-columns:1fr 340px;gap:36px;align-items:start"
+      >
+        <div class="prose">
+          ${co.tldr
+            ? raw(
+                `<div class="disclaimer" style="margin-bottom:20px"><strong>Em resumo:</strong> ${esc(co.tldr)}</div>`,
+              )
+            : ''}
+          ${co.description
+            ? html`<h2>Sobre a formação</h2>
+                <p>${co.description}</p>`
+            : ''}
+          ${raw(forWhomHtml)} ${raw(outcomesHtml)} ${raw(currHtml)} ${raw(faqHtml)}
+          <div class="disclaimer" style="margin-top:24px">${YMYL_DISCLAIMER}</div>
+        </div>
+        <aside style="position:sticky;top:88px">
+          <div class="card">
+            ${raw(priceBlock)}
+            <a class="btn btn-primary" href="/catalogo" style="width:100%;margin-top:16px"
+              >Matricular-se</a
+            >
+            <a
+              class="btn btn-wa"
+              href="${ORG.whatsapp}"
+              rel="noopener nofollow"
+              style="width:100%;margin-top:10px"
+              >Tirar dúvidas</a
+            >
+            <ul
+              style="list-style:none;padding:0;margin:18px 0 0;display:grid;gap:9px;font-size:14px;color:var(--ink-soft)"
+            >
+              <li>✓ Acesso no seu ritmo</li>
+              <li>✓ Certificado digital</li>
+              <li>✓ Suporte por canais oficiais</li>
+            </ul>
+          </div>
+          ${raw(instructorHtml)}
+        </aside>
+      </div>
+    </section>
+  `;
+  return c.html(
+    renderPage({
+      title: `${co.title} — ${ORG.shortName}`,
+      description: (co.tldr || co.description || co.title).slice(0, 155),
+      path: `/formacao/${co.slug}`,
+      activeNav: 'cursos',
+      bodyHtml: body,
+      jsonLd: [
+        courseJsonLd(co),
+        faqJsonLd(co.faqs),
+        breadcrumbJsonLd([
+          { name: 'Início', path: '/' },
+          { name: 'Formações', path: '/formacoes' },
+          { name: co.title },
+        ]),
+      ],
     }),
     200,
     HTML_HEADERS,

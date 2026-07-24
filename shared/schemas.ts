@@ -380,6 +380,38 @@ export const updateCourseSchema = z.object({
     })
     .partial()
     .optional(),
+  // ---- Campos da PÁGINA PÚBLICA de vendas (site público SSR) ----
+  /** Selo curto no hero, ex.: "Curso principal", "Complementar". */
+  badge: z.string().max(40).optional().or(z.literal('')),
+  /** Frase de efeito abaixo do título na página pública. */
+  tagline: z.string().max(200).optional().or(z.literal('')),
+  /** Resumo answer-first (TL;DR) — alimenta GEO/IA e a meta description. */
+  tldr: z.string().max(600).optional().or(z.literal('')),
+  /** Nível exibido, ex.: "Formação profissional". */
+  level: z.string().max(60).optional().or(z.literal('')),
+  /** Idioma do conteúdo (BCP-47), default pt-BR. */
+  language: z.string().max(12).optional().or(z.literal('')),
+  /** Duração mínima/máxima de acesso, em meses (exibido na página). */
+  monthsMin: z.number().int().min(0).max(120).optional(),
+  monthsMax: z.number().int().min(0).max(120).optional(),
+  /** "Para quem é" — bullets exibidos na página pública. */
+  forWhom: z.array(z.string().min(2).max(200)).max(20).optional(),
+  /** FAQ da página pública (alimenta FAQPage JSON-LD). */
+  faqs: z
+    .array(z.object({ q: z.string().min(2).max(300), a: z.string().min(2).max(2000) }))
+    .max(30)
+    .optional(),
+  /** Ementa resumida por módulo (número, título, descrição). */
+  curriculum: z
+    .array(
+      z.object({
+        n: z.string().max(6).optional(),
+        title: z.string().min(1).max(200),
+        desc: z.string().max(500).optional(),
+      }),
+    )
+    .max(60)
+    .optional(),
 });
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
 

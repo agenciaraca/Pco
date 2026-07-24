@@ -169,8 +169,10 @@ export async function listPublicCourses(): Promise<PublicCourseSummary[]> {
         coursesRepo.listCourses(),
         activeCourseProducts(),
       ]);
+      // Gate público = curso ATIVO (flag de publicação). Produto/preço é
+      // opcional: se houver produto ativo vinculado, exibe preço; senão não.
       return (courses as unknown as Row[])
-        .filter((c) => c.active !== false && productMap.has(String(c.id)))
+        .filter((c) => c.active !== false)
         .map((c) => toSummary(c, productMap.get(String(c.id))));
     },
     [],
@@ -187,10 +189,7 @@ export async function getPublicCourseBySlug(slug: string): Promise<PublicCourse 
         activeCourseProducts(),
       ]);
       const match = (courses as unknown as Row[]).find(
-        (c) =>
-          (str(c.slug) ?? String(c.id)) === slug &&
-          c.active !== false &&
-          productMap.has(String(c.id)),
+        (c) => (str(c.slug) ?? String(c.id)) === slug && c.active !== false,
       );
       if (!match) return null;
       return toFull(match, productMap.get(String(match.id)));
