@@ -27,6 +27,7 @@ import {
   getPublicPostBySlug,
   listPublicCourses,
   getPublicCourseBySlug,
+  getPublicCourseSlugById,
 } from './projections';
 import { PUBLIC_JS } from './client';
 
@@ -46,6 +47,12 @@ publicSite.get('/_pub/site.js', (c) => {
   c.header('Content-Type', 'application/javascript; charset=utf-8');
   c.header('Cache-Control', 'public, max-age=3600');
   return c.body(PUBLIC_JS);
+});
+
+// ---- redirect 301 de URLs antigas (id) p/ as amigáveis (slug), p/ SEO ----
+publicSite.get('/curso-preview/:id', async (c) => {
+  const slug = await getPublicCourseSlugById(c.req.param('id'));
+  return c.redirect(slug ? `/formacao/${slug}` : '/formacoes', 301);
 });
 
 // ---- /llms.txt (padrão llmstxt.org) — Markdown c/ H1 + links, p/ GEO/LLM ----

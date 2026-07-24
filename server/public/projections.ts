@@ -198,6 +198,19 @@ export async function getPublicCourseBySlug(slug: string): Promise<PublicCourse 
   );
 }
 
+/** Slug público de um curso ativo pelo id (p/ redirect 301 de URLs antigas). */
+export async function getPublicCourseSlugById(id: string): Promise<string | null> {
+  return safe(
+    `courseSlug:${id}`,
+    async () => {
+      const courses = (await coursesRepo.listCourses()) as unknown as Row[];
+      const match = courses.find((c) => String(c.id) === id && c.active !== false);
+      return match ? (str(match.slug) ?? String(match.id)) : null;
+    },
+    null,
+  );
+}
+
 // ============================ POSTS (blog) ============================
 
 /** Slug estável derivado do título (posts importados não têm slug próprio). */
