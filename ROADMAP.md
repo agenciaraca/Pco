@@ -6,7 +6,7 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado 2026-07-12)
+## Estado atual (atualizado 2026-08-13)
 
 **🟢 EM PRODUÇÃO REAL**: https://ava.psicanaliseclinica.online
 
@@ -20,23 +20,26 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 | 2 — Go-live + migração v1/v2 | 15–18 mai 2026 | ✅ software / ❌ dados importados errados |
 | 3 — Blitz de 13 features + tentativa via dump SQL | 22–26 mai 2026 | ✅ features / ❌ trilha SQL abandonada |
 | 4 — Banco DivZ + recuperação v3 dos dados | 15 jun – jul 2026 | 🔵 ~85% — falta a carga em prod (`--commit`) |
-| 5 — Dívida técnica e qualidade | jul 2026 | 🔵 em andamento |
-| 6 — Área de Publicações (SEO/GEO/E-E-A-T) | a definir | ⚪ não iniciada (blueprints escritos) |
+| 5 — Dívida técnica e qualidade | jul 2026 | ✅ concluída |
+| 6 — Site público / Publicações (SEO/GEO/E-E-A-T) | 21–24 jul 2026 | 🔵 5 de 6 sprints — falta o editor admin dos campos públicos |
 | 7 — App móvel nativo | após 5k alunos ativos | ⚪ congelada |
 
-**Bloqueio único da Onda 4:** a produção segue servindo os dados quebrados da v2 (2 matrículas em vez de ~1.109). O loader `scripts/load_v3_to_divz.ts` está validado em ensaio com rollback; falta rodar com `--commit` (passo irreversível) e rotacionar a senha do DivZ.
+**Bloqueio único da Onda 4:** a produção segue servindo os dados quebrados da v2 (2 matrículas em vez de ~1.120). O loader `scripts/load_v3_to_divz.ts` está validado em ensaio com rollback; falta rodar com `--commit` (passo irreversível) e rotacionar a senha do DivZ. O IP local foi liberado na allowlist do DivZ em 2026-08-13.
 
 | Sistema | Status |
 |---|---|
+| **Servidor** `195.200.0.253` (`srv539124`), PM2 `ava-pco` na 3035 | ✅ No ar — o antigo `177.7.35.13` está morto (ver `docs/deploy.md`) |
 | **Postgres DivZ** (`db.divz.com.br`, PG 16.9) | ✅ `db:connected` — migrado do Neon em 2026-07-03 (custo) |
 | **Email Brevo** + domínio verificado (DKIM+DMARC) | ✅ De `naoresponda@psicanaliseclinica.online` |
 | **Sentry** backend + frontend (org `eixo4`) | ✅ Capturando |
 | **UptimeRobot** | ✅ Monitora `/api/health` |
-| **GitHub Actions** deploy automático em push to main | ✅ 4 secrets cadastrados |
+| **GitHub Actions** deploy automático em push to main | ⚠️ Workflow corrigido em 13/ago, mas os 4 secrets ainda apontam pro host morto |
 | **Pagamentos**: 2 gateways live | ✅ Ativos |
-| **CI** passing | ✅ 0 errors |
-| **Tests** | ✅ 1507 passando |
+| **CI** passing | ✅ 0 errors (voltou ao verde em 13/ago) |
+| **Tests** | ✅ 1552 passando, 25 skipped — 3 arquivos com falha intermitente sob paralelismo |
 | **HTTPS via Cloudflare** | ✅ HSTS + CSP + X-Frame |
+
+> **Deploy:** de 24/jul a 13/ago a produção ficou 3 semanas atrasada sem ninguém notar — o servidor mudou de IP e o deploy falhava em silêncio. `/api/health` responde 200 mesmo com código velho; a validação confiável é comparar o hash do bundle de `/login` com o `dist/` local.
 
 **Login admin**: `psicanaliseclinica.online@gmail.com` / senha trocada em 2026-05-18
 
