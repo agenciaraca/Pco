@@ -42,21 +42,25 @@ jobs:
           set -eu
           sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USER@$HOST" bash -s <<'EOF'
           set -eu
-          export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
-          cd ~/ava-pco
-          git fetch --all
+          # O login do CI é um usuário de acesso (grupo avapco), não o dono da app:
+          # o repo mora no home do avapco e o PM2 é o daemon dele.
+          APP_DIR=/home/avapco/ava-pco
+          export PM2_HOME=/home/avapco/.pm2
+          # node/npm/pm2 vêm do sistema; nvm é opcional
+          [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" || true
+          cd "$APP_DIR"
+          # repo de outro dono: git recusa sem essa exceção
+          git config --global --add safe.directory "$APP_DIR" || true
+          # package-lock modificado no servidor faz o pull abortar
+          git checkout -- package-lock.json 2>/dev/null || true
+          git fetch --all -q
           git reset --hard origin/main
           npm install --legacy-peer-deps --no-audit --no-fund
           npm run build
-          # Restart via pkill + setsid+nohup (mesmo padrão de scripts/update_vps_pwd.py)
-          pkill -f 'tsx server/dev.ts' 2>/dev/null || true
-          pkill -f 'node.*server/dev' 2>/dev/null || true
-          sleep 1
-          set -a && . ./.env && set +a
-          setsid nohup tsx server/dev.ts >> ~/ava-pco/app.log 2>&1 < /dev/null &
-          sleep 4
-          curl -s -m 5 http://127.0.0.1:3035/api/health || (tail -30 ~/ava-pco/app.log && exit 1)
-          echo "✓ Deploy concluído"
+          pm2 restart ava-pco --update-env
+          sleep 5
+          curl -s -m 8 http://127.0.0.1:3035/api/health || (pm2 logs ava-pco --lines 30 --nostream && exit 1)
+          echo "✓ Deploy concluído em $(git log --oneline -1)"
           EOF
 
       - name: Verifica health público
