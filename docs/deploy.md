@@ -119,19 +119,31 @@ A partir do segundo boot, os seeds já existem — `INITIAL_*` viram irrelevante
 
 ## Atualização (deploy contínuo)
 
-Do seu localhost com Python + paramiko:
+> **Servidor atual: `195.200.0.253` (`srv539124`), app sob PM2 como `ava-pco`.**
+> O IP `177.7.35.13` citado adiante nesta página está morto — a app migrou e a
+> porta 22 do host antigo não responde. Os scripts Python de deploy ainda apontam
+> pro endereço antigo; use o caminho por SSH abaixo até serem revisados.
 
 ```bash
 # 1. Local: garante que main está atualizado
 git push origin main
 
-# 2. Deploy completo (git pull + npm install + build + restart)
-HOST=177.7.35.13 \
-USER_NAME=avapco \
-PORT=22 \
-SSH_PASSWORD='senha-vps' \
-python scripts/update_vps_pwd.py
+# 2. Deploy completo (pull + install + build + restart PM2)
+ssh vps 'sudo -u avapco -i bash -c "cd ~/ava-pco \
+  && git checkout -- package-lock.json && git fetch --all -q \
+  && git reset --hard origin/main \
+  && npm install --legacy-peer-deps --no-audit --no-fund \
+  && npm run build && pm2 restart ava-pco --update-env"'
+
+# 3. Verificação
+ssh vps 'sudo -u avapco -i curl -s http://127.0.0.1:3035/api/health'
+curl -s https://ava.psicanaliseclinica.online/login | grep -o 'assets/index-[^"]*\.js'
 ```
+
+O passo 3 importa: `/api/health` devolve 200 mesmo servindo código velho. A única
+confirmação real de que o deploy subiu é o hash do bundle bater com o `dist/` local.
+
+### Caminho histórico (host antigo, mantido como referência)
 
 O script `update_vps_pwd.py`:
 1. Conecta via SSH

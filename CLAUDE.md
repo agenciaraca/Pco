@@ -140,21 +140,41 @@ Suite smoke em `e2e/` rodada com `npm run e2e` (chromium-only). Pré-requisitos:
 
 ## Deploying production (VPS)
 
-The production target is a Node VPS, not Vercel. After `git push origin main`:
+O alvo de produção é um VPS Node, não a Vercel.
+
+**Servidor atual: `195.200.0.253`** (hostname `srv539124`), usuário da app `avapco`,
+app em `/home/avapco/ava-pco`, porta `3035`, **gerenciada por PM2** (`ava-pco`).
+O `~/.ssh/config` local já tem o atalho `vps` (root, chave `enlevo_vps195`), que é
+a via de acesso que funciona — o usuário `avapco` não aceita essa chave, então
+comandos da app vão via `sudo -u avapco -i`.
+
+> **O IP `177.7.35.13` que aparecia aqui e em vários docs/scripts está morto** — a
+> app migrou para o 195 e a porta 22 do host antigo não responde de lugar nenhum.
+> `scripts/update_vps_pwd.py`, `restart_vps.py`, `sync_data_to_vps.py`, `deploy.sh`
+> e `docs/migration-*.md` ainda apontam pro host antigo e precisam de revisão.
+
+Deploy manual completo (após `git push origin main`):
 
 ```bash
-# Full deploy (git pull + npm install + build + restart)
-HOST=177.7.35.13 USER_NAME=avapco PORT=22 SSH_PASSWORD='…' \
-  python scripts/update_vps_pwd.py
+ssh vps 'sudo -u avapco -i bash -c "cd ~/ava-pco \
+  && git checkout -- package-lock.json && git fetch --all -q \
+  && git reset --hard origin/main \
+  && npm install --legacy-peer-deps --no-audit --no-fund \
+  && npm run build && pm2 restart ava-pco --update-env"'
 
-# Restart only (no rebuild)
-HOST=177.7.35.13 USER_NAME=avapco PORT=22 SSH_PASSWORD='…' \
-  python scripts/restart_vps.py
+# Verificação (deve devolver {"ok":true,...,"db":"connected"})
+ssh vps 'sudo -u avapco -i curl -s http://127.0.0.1:3035/api/health'
 ```
 
-The app runs via `tsx` (not a built Node entrypoint) under `nohup` (no systemd unit). Health check: `curl http://127.0.0.1:3035/api/health` should return `{"ok":true}`. Logs in `~/ava-pco/app.log` on the host.
+Só restart, sem rebuild: `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
 
-When the user says "atualize a produção", run `restart_vps.py` (after pushing) — it uses `setsid + nohup` to detach the process, avoiding the `pkill`-kills-ssh-channel hang that `update_vps_pwd.py` historically had.
+**Gotchas:**
+- `git pull` aborta com `package-lock.json` modificado — daí o `git checkout --` antes.
+- `git` como root reclama de `dubious ownership` no repo do `avapco`; sempre use `sudo -u avapco`.
+- Confirme o que subiu comparando o hash do bundle: `curl -s https://ava.psicanaliseclinica.online/login | grep -o 'assets/index-[^"]*\.js'` contra o `dist/index.html` local. `/api/health` responde 200 mesmo com código velho.
+- O deploy automático (`.github/workflows/deploy.yml`) usa os secrets `VPS_HOST`/`VPS_USER`/`VPS_PORT`/`VPS_PASSWORD`; se apontarem pro host antigo, ele falha com `Connection timed out` e o push passa em silêncio.
+
+Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Reference docs
 

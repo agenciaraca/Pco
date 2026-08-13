@@ -78,6 +78,9 @@ const SPAM_PATTERNS = [
   /https?:\/\/[^\s]+\.(ru|ua|by)/i,
   /buy\s+(cheap|online)/i,
   /\b(xrumer|hrumer|GSA)\b/i,
+  // O range 0x00-0x7F é ASCII por definição; a negação detecta sequências longas
+  // não-ASCII (spam SEO em cirílico). Os chars de controle aqui são intencionais.
+  // eslint-disable-next-line no-control-regex
   /[^\x00-\x7F]{10,}/,        // long non-ASCII runs
 ];
 function isSpam(name: string): boolean {

@@ -88,6 +88,9 @@ export function verifySamlSignature(
   }
 
   try {
+    // Carga tardia proposital: xml-crypto é dependência opcional (SAML vem
+    // desligado) e esta função é síncrona — `await import()` mudaria o contrato.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { SignedXml } = require('xml-crypto') as typeof import('xml-crypto');
     const pem = idpCert.includes('BEGIN CERTIFICATE')
       ? idpCert

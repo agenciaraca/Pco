@@ -113,7 +113,8 @@ Worker dispara às 04:00 UTC todo dia.
 
 **Como ativar:**
 1. Em https://github.com/agenciaraca/Pco/settings/secrets/actions, adicionar:
-   - `VPS_HOST` = `177.7.35.13`
+   - `VPS_HOST` = `195.200.0.253` (o antigo `177.7.35.13` está morto — se o secret
+     ainda apontar pra ele, o deploy falha com `Connection timed out` a cada push)
    - `VPS_USER` = `avapco`
    - `VPS_PORT` = `22`
    - `VPS_PASSWORD` = senha do user (a mesma que está na nossa memória)
