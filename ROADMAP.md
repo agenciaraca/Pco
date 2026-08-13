@@ -10,7 +10,7 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 **🟢 EM PRODUÇÃO REAL**: https://ava.psicanaliseclinica.online
 
-**Painel do projeto (ondas, features, migração):** https://claude.ai/code/artifact/3419cff6-beab-4914-a9bb-4cf0566e5df7
+**Painel do projeto (ondas, features, migração):** https://claude.ai/code/artifact/85a22dd5-16c0-4981-89f9-61004ee9a3a1
 
 ### Ondas
 
