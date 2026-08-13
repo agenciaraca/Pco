@@ -7,7 +7,21 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default [
-  { ignores: ['dist', 'node_modules', 'coverage', '.vercel', 'public/sw.js'] },
+  // .agents/.codex são pastas de ferramentas de IA (skills/templates), não código do produto
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'coverage',
+      '.vercel',
+      'public/sw.js',
+      '.agents/**',
+      '.codex/**',
+      '.claude/**',
+      // handoff de design (HTML/JS estático de referência, não entra no build)
+      'design pagina publicas pco/**',
+    ],
+  },
   {
     ...js.configs.recommended,
     files: ['**/*.{ts,tsx,js,jsx}'],

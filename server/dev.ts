@@ -175,9 +175,17 @@ ${allUrls
   // eslint-disable-next-line no-console
   console.log(`[ava-pco] modo full-stack (static + api)  static=${staticRoot}`);
 } else {
-  appToServe = buildApp();
+  // Modo dev: o Vite serve o SPA em :5173 e faz proxy pra cá. Além da API,
+  // montamos o site público SSR para que /formacao/:slug, /blog, /sobre etc.
+  // respondam igual à produção — links <a href> do SPA pro plano público
+  // (src/app/lib/publicUrls.ts) precisam resolver no dev também.
+  const api = buildApp();
+  const root = new Hono();
+  root.all('/api/*', (c) => api.fetch(c.req.raw));
+  root.route('/', publicSite);
+  appToServe = root;
   // eslint-disable-next-line no-console
-  console.log('[ava-pco] modo dev (apenas /api)');
+  console.log('[ava-pco] modo dev (/api + site público SSR)');
 }
 
 serve({ fetch: appToServe.fetch, port, hostname: process.env.HOST ?? '127.0.0.1' }, (info) => {

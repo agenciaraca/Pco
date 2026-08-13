@@ -85,7 +85,6 @@ const AdminUsersImport = lazy(() => import('./pages/admin/AdminUsersImport'));
 const AdminAuditoria = lazy(() => import('./pages/admin/AdminAuditoria'));
 const AdminNotificacoes = lazy(() => import('./pages/admin/AdminNotificacoes'));
 const AdminErros = lazy(() => import('./pages/admin/AdminErros'));
-const AdminSuporte = lazy(() => import('./pages/admin/AdminSuporte'));
 const AdminBackups = lazy(() => import('./pages/admin/AdminBackups'));
 const AdminGateways = lazy(() => import('./pages/admin/AdminGateways'));
 const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
@@ -112,6 +111,9 @@ const AdminEmailTemplates = lazy(() => import('./pages/admin/AdminEmailTemplates
 const AdminMessaging = lazy(() => import('./pages/admin/AdminMessaging'));
 const AdminExperiments = lazy(() => import('./pages/admin/AdminExperiments'));
 const AdminWeeklyReport = lazy(() => import('./pages/admin/AdminWeeklyReport'));
+const AdminStudentProgressEmail = lazy(
+  () => import('./pages/admin/AdminStudentProgressEmail'),
+);
 const AdminWebhooks = lazy(() => import('./pages/admin/AdminWebhooks'));
 const AdminSaude = lazy(() => import('./pages/admin/AdminSaude'));
 const AdminReengagementAuto = lazy(() => import('./pages/admin/AdminReengagementAuto'));
@@ -256,7 +258,6 @@ export const router = createBrowserRouter([
       { path: 'auditoria', element: <S><AdminAuditoria /></S> },
       { path: 'notificacoes', element: <S><AdminNotificacoes /></S> },
       { path: 'erros', element: <S><AdminErros /></S> },
-      { path: 'suporte', element: <S><AdminSuporte /></S> },
       { path: 'backups', element: <S><AdminBackups /></S> },
       { path: 'gateways', element: <S><AdminGateways /></S> },
       { path: 'produtos', element: <S><AdminProducts /></S> },
@@ -271,6 +272,7 @@ export const router = createBrowserRouter([
       { path: 'email', element: <S><AdminEmail /></S> },
       { path: 'email/templates', element: <S><AdminEmailTemplates /></S> },
       { path: 'email/weekly-report', element: <S><AdminWeeklyReport /></S> },
+      { path: 'progresso-aluno', element: <S><AdminStudentProgressEmail /></S> },
       { path: 'mensageria', element: <S><AdminMessaging /></S> },
       { path: 'experiments', element: <S><AdminExperiments /></S> },
       { path: 'webhooks', element: <S><AdminWebhooks /></S> },

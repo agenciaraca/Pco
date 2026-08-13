@@ -161,9 +161,24 @@ Token: scope=`unsubscribe`, sub=userId, TTL 1 ano. Se válido, seta `receiveBroa
 | GET | `/me/notification-prefs` | Aluno lê |
 | PUT | `/me/notification-prefs` | Aluno atualiza |
 | GET | `/api/unsubscribe?token=...` | Página pública de opt-out |
+| GET | `/admin/email/student-progress` | Config do e-mail semanal de progresso |
+| PUT | `/admin/email/student-progress` | Atualiza (enabled, dayOfWeekUtc, hourUtc) |
+| GET | `/admin/email/student-progress/status` | `lastRunAt` + `lastResult` do worker |
+
+## E-mail semanal de progresso do aluno
+
+Worker `notifications/student-progress-email` (tick de 1h, dispara uma vez na
+janela `dayOfWeekUtc`/`hourUtc`). Para cada aluno **ativo** que não optou por sair
+do reengajamento e tem ao menos um curso com progresso, envia um resumo pessoal:
+aulas da semana, total acumulado, streak e % por curso.
+
+Default é `enabled: false`. Config em `data/student-progress-email-config.json`
+(JsonStore). Auditado como `student_progress_email.config`.
 
 ## UI
 
 - `/admin/email` — configs CRUD, templates preview, send test, log
 - `/admin/broadcasts` — editor + histórico
 - `/admin/reengajamento-auto` — config + dry-run + log
+- `/admin/progresso-aluno` — e-mail semanal de progresso: liga/desliga, dia+hora
+  UTC (com equivalente BRT) e última execução

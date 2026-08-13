@@ -20,6 +20,7 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import Logo from '../components/Logo';
+import { publicCourseUrl } from '../lib/publicUrls';
 
 export default function CoursePreview() {
   const { id } = useParams<{ id: string }>();
@@ -134,12 +135,12 @@ export default function CoursePreview() {
                     {s.title ?? s.courseId}
                   </span>
                   {!s.completed && s.slug && (
-                    <Link
-                      to={`/curso-preview/${s.courseId}`}
+                    <a
+                      href={publicCourseUrl({ id: s.courseId, slug: s.slug })}
                       className="text-[11px] text-pco-blue hover:underline ml-auto"
                     >
                       ver curso →
-                    </Link>
+                    </a>
                   )}
                 </li>
               ))}

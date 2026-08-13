@@ -1161,6 +1161,34 @@ export async function runDigestNow(dryRun = false): Promise<DigestRunResultDto> 
   return http.post<DigestRunResultDto>('/admin/digest/run-now', { dryRun });
 }
 
+// ---------- Admin: e-mail semanal de progresso do aluno ----------
+
+export interface StudentProgressEmailConfigDto {
+  enabled: boolean;
+  /** 0 = domingo ... 6 = sábado (UTC) */
+  dayOfWeekUtc: number;
+  hourUtc: number;
+}
+
+export interface StudentProgressEmailStatusDto {
+  lastRunAt: string | null;
+  lastResult: { sent: number; skipped: number } | null;
+}
+
+export async function fetchStudentProgressEmailConfig(): Promise<StudentProgressEmailConfigDto> {
+  return http.get<StudentProgressEmailConfigDto>('/admin/email/student-progress');
+}
+
+export async function updateStudentProgressEmailConfig(
+  patch: Partial<StudentProgressEmailConfigDto>,
+): Promise<StudentProgressEmailConfigDto> {
+  return http.put<StudentProgressEmailConfigDto>('/admin/email/student-progress', patch);
+}
+
+export async function fetchStudentProgressEmailStatus(): Promise<StudentProgressEmailStatusDto> {
+  return http.get<StudentProgressEmailStatusDto>('/admin/email/student-progress/status');
+}
+
 // ---------- Leaderboard ----------
 
 export interface LeaderboardEntryDto {

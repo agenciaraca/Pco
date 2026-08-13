@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState';
 import Logo from '../components/Logo';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { useAuth } from '../auth/AuthContext';
+import { publicCourseUrl } from '../lib/publicUrls';
 
 /**
  * Player público da lesson preview. Aberto a visitantes sem auth.
@@ -56,13 +57,13 @@ export default function LessonPreviewPublic() {
           <Link to="/" className="inline-flex items-center gap-2">
             <Logo />
           </Link>
-          <Link
-            to={`/curso-preview/${course.id}`}
+          <a
+            href={publicCourseUrl(course)}
             className="text-xs text-pco-blue hover:underline inline-flex items-center gap-1"
           >
             <ArrowLeft size={12} strokeWidth={2} />
             Ver curso completo
-          </Link>
+          </a>
         </div>
       </header>
 
@@ -133,12 +134,12 @@ export default function LessonPreviewPublic() {
               certificado de conclusão e suporte do tutor.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link
-                to={`/curso-preview/${course.id}`}
+              <a
+                href={publicCourseUrl(course)}
                 className="bg-white text-pco-deep px-4 py-2 rounded-lg text-sm font-semibold hover:bg-white/90 inline-flex items-center gap-1.5"
               >
                 Ver detalhes do curso →
-              </Link>
+              </a>
               <Link
                 to="/login"
                 className="bg-white/15 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-white/25 inline-flex items-center gap-1.5"

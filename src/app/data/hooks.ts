@@ -1113,6 +1113,38 @@ export function useRunDigestNow() {
   });
 }
 
+const studentProgressEmailKey = ['admin', 'email', 'student-progress'] as const;
+const studentProgressEmailStatusKey = [
+  'admin',
+  'email',
+  'student-progress',
+  'status',
+] as const;
+
+export function useStudentProgressEmailConfig() {
+  return useQuery({
+    queryKey: studentProgressEmailKey,
+    queryFn: () => api.fetchStudentProgressEmailConfig(),
+  });
+}
+
+export function useUpdateStudentProgressEmailConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Partial<api.StudentProgressEmailConfigDto>) =>
+      api.updateStudentProgressEmailConfig(patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: studentProgressEmailKey }),
+  });
+}
+
+export function useStudentProgressEmailStatus() {
+  return useQuery({
+    queryKey: studentProgressEmailStatusKey,
+    queryFn: () => api.fetchStudentProgressEmailStatus(),
+    refetchInterval: 60_000,
+  });
+}
+
 export function useLeaderboard(days = 30, limit = 20) {
   return useQuery({
     queryKey: ['admin', 'leaderboard', days, limit],

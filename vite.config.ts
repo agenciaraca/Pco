@@ -17,6 +17,16 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      // Site público SSR (server/public/router.ts) — em produção é servido
+      // antes do fallback do SPA; no dev o Vite precisa encaminhar essas rotas
+      // pro Hono, senão caem no NotFound do React Router.
+      // Lista explícita: '/checkout/mock' é rota do SPA (gateway mock) e NÃO
+      // pode ser capturada aqui.
+      '^/(formacoes|formacao/.+|blog|blog/.+|sobre|autor|contato|llms\\.txt|curso-preview/.+|checkout|_pub/.+)$':
+        {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+        },
     },
   },
   build: {

@@ -15,6 +15,7 @@ import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import Logo from '../components/Logo';
 import { useT } from '../i18n';
+import { publicCourseUrl } from '../lib/publicUrls';
 
 /**
  * Catálogo público — visualização sem autenticação. Mostra cursos disponíveis
@@ -178,8 +179,8 @@ export default function Catalog() {
                 });
 
               return (
-                <Link
-                  to={`/curso-preview/${course.id}`}
+                <a
+                  href={publicCourseUrl(course)}
                   key={course.id}
                   className="pco-card pco-card-hover overflow-hidden p-0 block"
                 >
@@ -249,7 +250,7 @@ export default function Catalog() {
                       </span>
                     </div>
                   </div>
-                </Link>
+                </a>
               );
             })}
           </div>

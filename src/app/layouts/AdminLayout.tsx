@@ -93,6 +93,7 @@ export default function AdminLayout() {
           { to: '/admin/cursos', label: t('admin.nav.courses'), icon: GraduationCap },
           { to: '/admin/trilhas', label: t('admin.nav.studyPaths'), icon: GraduationCap },
           { to: '/admin/modulos', label: t('admin.nav.modules'), icon: Layers },
+          { to: '/admin/aulas', label: t('course.lessons'), icon: Layers },
           { to: '/admin/transcricoes', label: 'Transcrições', icon: ScrollText },
           { to: '/admin/alunos', label: t('admin.nav.students'), icon: Users },
           { to: '/admin/certificados', label: t('admin.nav.certificates'), icon: Award },
@@ -127,6 +128,7 @@ export default function AdminLayout() {
         title: t('admin.section.communications'),
         items: [
           { to: '/admin/email', label: t('admin.nav.email'), icon: Mail },
+          { to: '/admin/progresso-aluno', label: 'Progresso semanal (aluno)', icon: Mail },
           { to: '/admin/mensageria', label: 'WhatsApp / SMS', icon: MessageSquare },
           { to: '/admin/broadcasts', label: t('admin.nav.broadcasts'), icon: Send },
           { to: '/admin/digest', label: 'Digest diário', icon: Mail },

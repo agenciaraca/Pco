@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import {
   useCourses,
@@ -7,6 +6,7 @@ import {
   useProducts,
 } from '../data/hooks';
 import type { ProductDto } from '../data/api';
+import { publicCourseUrl } from '../lib/publicUrls';
 
 /**
  * Sugere cursos com base em tags compartilhadas com cursos já matriculados.
@@ -67,9 +67,9 @@ export default function SuggestedCourses() {
             currency: product.currency,
           });
           return (
-            <Link
+            <a
               key={course.id}
-              to={`/curso-preview/${course.id}`}
+              href={publicCourseUrl(course)}
               className="pco-card pco-card-hover p-0 overflow-hidden block"
             >
               <div
@@ -100,7 +100,7 @@ export default function SuggestedCourses() {
                   <ArrowRight size={11} className="ml-0.5" strokeWidth={2} />
                 </span>
               </div>
-            </Link>
+            </a>
           );
         })}
       </div>
