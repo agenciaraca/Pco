@@ -19,12 +19,18 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 | 1 — Construção da plataforma | 3–10 mai 2026 (385 commits) | ✅ concluída |
 | 2 — Go-live + migração v1/v2 | 15–18 mai 2026 | ✅ software / ❌ dados importados errados |
 | 3 — Blitz de 13 features + tentativa via dump SQL | 22–26 mai 2026 | ✅ features / ❌ trilha SQL abandonada |
-| 4 — Banco DivZ + recuperação v3 dos dados | 15 jun – jul 2026 | 🔵 ~85% — falta a carga em prod (`--commit`) |
+| 4 — Banco DivZ + recuperação v3 dos dados | 15 jun – 7 jul 2026 | ✅ concluída — carga v3 **já está em produção** (verificado 13/ago) |
 | 5 — Dívida técnica e qualidade | jul 2026 | ✅ concluída |
 | 6 — Site público / Publicações (SEO/GEO/E-E-A-T) | 21–24 jul 2026 | 🔵 5 de 6 sprints — falta o editor admin dos campos públicos |
 | 7 — App móvel nativo | após 5k alunos ativos | ⚪ congelada |
 
-**Bloqueio único da Onda 4:** a produção segue servindo os dados quebrados da v2 (2 matrículas em vez de ~1.120). O loader `scripts/load_v3_to_divz.ts` está validado em ensaio com rollback; falta rodar com `--commit` (passo irreversível) e rotacionar a senha do DivZ. O IP local foi liberado na allowlist do DivZ em 2026-08-13.
+**Onda 4 — encerrada.** Este arquivo (e as anotações de julho) diziam que faltava rodar `load_v3_to_divz.ts --commit` e que a produção tinha só 2 matrículas. **Não é mais verdade:** um dump do DivZ em 13/ago mostrou **1.587 alunos, 601 students e 1.109 matrículas (457 com progresso > 0)**, e nenhum aluno do conjunto v3 local está ausente da produção — ou seja, a carga foi aplicada em 07/jul e o registro nunca foi atualizado. Os timestamps de `enrolled_at`/`last_access_at` param exatamente em `2026-07-07T06:11Z`, a data da coleta v3.
+
+Rodar o `--commit` de novo seria **destrutivo sem ganho**: o script apaga e reinsere alunos e matrículas, o que descartaria qualquer progresso registrado depois de julho. A diferença restante para o conjunto local (14 students, 11 matrículas) é o próprio filtro FK do loader, que só insere aluno com usuário e matrícula com curso existente.
+
+**Pendência real da Onda 4:** rotacionar a senha do DivZ — ela passou por chat em julho.
+
+Dump de segurança: `backups/divz-students-<timestamp>.json` (gitignored, contém PII), gerado por `scripts/backup_divz_students.ts`.
 
 | Sistema | Status |
 |---|---|

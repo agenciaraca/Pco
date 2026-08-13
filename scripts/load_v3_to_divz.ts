@@ -102,6 +102,14 @@ async function count(client: pg.Client, t: string): Promise<number> {
   return r.rows[0].n as number;
 }
 
+function stripSslParams(url: string): string {
+  return url
+    .replace(/([?&])sslmode=[^&]*/gi, '$1')
+    .replace(/([?&])channel_binding=[^&]*/gi, '$1')
+    .replace(/[?&]$/, '')
+    .replace(/\?&/, '?');
+}
+
 async function main(): Promise<void> {
   log(`modo: ${COMMIT ? '*** COMMIT (grava) ***' : 'DRY-RUN (rollback ao final)'}`);
   log(`DATABASE_URL: ${DB_URL.replace(/:[^:@]+@/, ':***@')}`);
@@ -111,7 +119,12 @@ async function main(): Promise<void> {
   const studentUsers = usersJson.filter((u) => u.role === 'student');
   log(`fonte: ${studentUsers.length} users(student) · ${studentsJson.length} admin-students`);
 
-  const client = new pg.Client({ connectionString: DB_URL, ssl: { rejectUnauthorized: false } });
+  // Sem stripSslParams o pg moderno lê `sslmode=require` como `verify-full` e
+  // recusa o cert self-signed do DivZ (mesma correção de server/db/client.ts).
+  const client = new pg.Client({
+    connectionString: stripSslParams(DB_URL),
+    ssl: { rejectUnauthorized: false },
+  });
   await client.connect();
 
   try {
