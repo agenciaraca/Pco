@@ -120,6 +120,15 @@ export const courses = pgTable('courses', {
   certificateAvailable: boolean('certificate_available').notNull().default(false),
   active: boolean('active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  // Campos ricos do curso que não têm coluna própria: tags, learningOutcomes,
+  // instrutor, capa, certificateTemplate, colaboradores, changelog e os campos
+  // da página pública (badge, tagline, tldr, forWhom, faqs, curriculum, ...).
+  // Antes desta coluna eles existiam só no JsonStore: com DATABASE_URL setado o
+  // repositório os descartava em silêncio no update e nunca os devolvia na
+  // leitura, então em produção a edição do admin não persistia e a página
+  // pública saía sem as seções ricas. Mesmo padrão de JSONB polimórfico já
+  // usado em library/news/podcasts.
+  meta: jsonb('meta').$type<Record<string, unknown>>(),
 });
 
 export const modules = pgTable(

@@ -47,9 +47,11 @@ import {
   Video,
   AlertTriangle,
   ShieldAlert,
+  Globe,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Tabs from '../../components/Tabs';
+import CoursePublicPane from './CoursePublicPane';
 import {
   useCourse,
   useCourses,
@@ -86,6 +88,7 @@ import type { Course, Module, Lesson, Assessment } from '../../types/schema';
 
 const tabs = [
   { id: 'geral', label: 'Geral', icon: <FileText size={14} strokeWidth={1.75} /> },
+  { id: 'publica', label: 'Página pública', icon: <Globe size={14} strokeWidth={1.75} /> },
   { id: 'modulos', label: 'Módulos', icon: <Layers size={14} strokeWidth={1.75} /> },
   { id: 'materiais', label: 'Materiais', icon: <BookOpen size={14} strokeWidth={1.75} /> },
   { id: 'avaliacoes', label: 'Avaliações', icon: <ScrollText size={14} strokeWidth={1.75} /> },
@@ -166,6 +169,7 @@ export default function AdminCourseEditor() {
       <Tabs items={tabs} active={active} onChange={setActive} />
 
       {active === 'geral' && <GeralPane course={course} />}
+      {active === 'publica' && <CoursePublicPane course={course} />}
       {active === 'modulos' && <ModulosPane course={course} />}
       {active === 'materiais' && <MateriaisPane />}
       {active === 'avaliacoes' && <AvaliacoesPane course={course} />}

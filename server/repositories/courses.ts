@@ -29,11 +29,60 @@ const store = new JsonStore<Course>('courses.json', () =>
   })),
 );
 
+/**
+ * A coluna `courses.meta` é recente. O banco de produção não tem histórico de
+ * migrations do drizzle (o schema foi criado por push/manual), então ela pode
+ * não existir ainda no ambiente onde este código roda — e o `select()` do
+ * drizzle lista as colunas explicitamente, o que derrubaria toda a listagem de
+ * cursos com 42703. Detectamos uma vez e seguimos sem os campos ricos, em vez
+ * de tornar o deploy dependente da ordem em que o DDL foi aplicado.
+ */
+let metaColumnAvailable = true;
+
+function isMissingMetaColumn(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  return e?.code === '42703' && /\bmeta\b/.test(e?.message ?? '');
+}
+
+const COURSE_BASE_COLUMNS = {
+  id: schema.courses.id,
+  slug: schema.courses.slug,
+  title: schema.courses.title,
+  shortTitle: schema.courses.shortTitle,
+  description: schema.courses.description,
+  coverColor: schema.courses.coverColor,
+  totalHours: schema.courses.totalHours,
+  certificateAvailable: schema.courses.certificateAvailable,
+} as const;
+
+async function selectActiveCourses(
+  db: NonNullable<ReturnType<typeof getDb>>,
+): Promise<Array<Record<string, unknown>>> {
+  if (metaColumnAvailable) {
+    try {
+      return await db.select().from(schema.courses).where(eq(schema.courses.active, true));
+    } catch (err) {
+      if (!isMissingMetaColumn(err)) throw err;
+      metaColumnAvailable = false;
+      console.warn(
+        '[courses] coluna `meta` ausente no banco — campos ricos do curso ' +
+          '(instrutor, tags, página pública) ficam indisponíveis até rodar o DDL da migration 0002.',
+      );
+    }
+  }
+  return await db
+    .select(COURSE_BASE_COLUMNS)
+    .from(schema.courses)
+    .where(eq(schema.courses.active, true));
+}
+
 async function loadFromDb(): Promise<Course[]> {
   const db = getDb();
   if (!db) return [];
 
-  const courses = await db.select().from(schema.courses).where(eq(schema.courses.active, true));
+  const courses = (await selectActiveCourses(db)) as Array<
+    typeof schema.courses.$inferSelect
+  >;
   if (courses.length === 0) return [];
 
   const modules = await db.select().from(schema.modules).orderBy(asc(schema.modules.order));
@@ -80,7 +129,11 @@ async function loadFromDb(): Promise<Course[]> {
         } as Module;
       });
 
+    // `meta` carrega os campos ricos sem coluna própria (tags, instrutor,
+    // learningOutcomes, certificateTemplate, campos da página pública...).
+    // Vem primeiro no spread para que as colunas reais sempre vençam.
     return {
+      ...(c.meta ?? {}),
       id: c.id,
       slug: c.slug,
       title: c.title,
@@ -92,6 +145,54 @@ async function loadFromDb(): Promise<Course[]> {
       certificateAvailable: c.certificateAvailable,
     } as Course;
   });
+}
+
+/**
+ * Campos que têm coluna própria na tabela `courses`. Todo o resto do patch vai
+ * para a coluna JSONB `meta`.
+ */
+export const COURSE_COLUMNS = new Set([
+  'title',
+  'slug',
+  'shortTitle',
+  'description',
+  'totalHours',
+  'certificateAvailable',
+  'coverColor',
+  'active',
+]);
+
+/**
+ * Separa do patch os campos que não têm coluna própria — eles vão para `meta`.
+ * Chaves com `undefined` são ignoradas: em patch parcial, ausência não é apagar.
+ */
+export function pickMetaFields(patch: Record<string, unknown>): Record<string, unknown> {
+  const meta: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (v !== undefined && !COURSE_COLUMNS.has(k)) meta[k] = v;
+  }
+  return meta;
+}
+
+/** Só as chaves definidas do patch — `undefined` nunca sobrescreve o que existe. */
+function definedFields(patch: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
+/** Normaliza os opcionais em que string vazia quer dizer "limpar o campo". */
+function blankToUndefined(
+  patch: Record<string, unknown>,
+  keys: string[],
+): Record<string, undefined> {
+  const out: Record<string, undefined> = {};
+  for (const k of keys) {
+    if (patch[k] !== undefined && !patch[k]) out[k] = undefined;
+  }
+  return out;
 }
 
 /**
@@ -309,44 +410,18 @@ export async function updateCourse(
       (c) => c.id === id,
       (c) => ({
         ...c,
-        ...(patch.title !== undefined ? { title: patch.title } : {}),
-        ...(patch.slug !== undefined ? { slug: patch.slug } : {}),
-        ...(patch.shortTitle !== undefined ? { shortTitle: patch.shortTitle } : {}),
-        ...(patch.description !== undefined ? { description: patch.description } : {}),
-        ...(patch.totalHours !== undefined ? { totalHours: patch.totalHours } : {}),
-        ...(patch.certificateAvailable !== undefined
-          ? { certificateAvailable: patch.certificateAvailable }
-          : {}),
-        ...(patch.coverColor !== undefined ? { coverColor: patch.coverColor } : {}),
-        ...(patch.coverImageUrl !== undefined
-          ? { coverImageUrl: patch.coverImageUrl || undefined }
-          : {}),
-        ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
-        ...(patch.prerequisiteCourseIds !== undefined
-          ? { prerequisiteCourseIds: patch.prerequisiteCourseIds }
-          : {}),
-        ...(patch.learningOutcomes !== undefined
-          ? { learningOutcomes: patch.learningOutcomes }
-          : {}),
-        ...(patch.instructorName !== undefined
-          ? { instructorName: patch.instructorName || undefined }
-          : {}),
-        ...(patch.instructorBio !== undefined
-          ? { instructorBio: patch.instructorBio || undefined }
-          : {}),
-        ...(patch.instructorPhotoUrl !== undefined
-          ? { instructorPhotoUrl: patch.instructorPhotoUrl || undefined }
-          : {}),
-        ...(patch.certificateTemplate !== undefined
-          ? { certificateTemplate: patch.certificateTemplate }
-          : {}),
-        ...(patch.collaborators !== undefined
-          ? { collaborators: patch.collaborators }
-          : {}),
-        ...(patch.changelog !== undefined
-          ? { changelog: patch.changelog }
-          : {}),
-        ...(patch.active !== undefined ? { active: patch.active } : {}),
+        // Aplica todo campo definido do patch. Antes esta lista era enumerada à
+        // mão e ficou para trás quando o schema ganhou os campos da página
+        // pública (badge, tldr, faqs, ...): a validação passava e a gravação
+        // descartava. Enumerar de novo repetiria o mesmo erro no próximo campo.
+        ...definedFields(patch),
+        // String vazia nesses opcionais significa "limpar", não "gravar ''".
+        ...blankToUndefined(patch, [
+          'coverImageUrl',
+          'instructorName',
+          'instructorBio',
+          'instructorPhotoUrl',
+        ]),
       }),
     );
   }
@@ -361,6 +436,24 @@ export async function updateCourse(
     update.certificateAvailable = patch.certificateAvailable;
   if (patch.coverColor !== undefined) update.coverColor = patch.coverColor;
   if (patch.active !== undefined) update.active = patch.active;
+
+  // Campos sem coluna própria vão para `meta`, mesclados com o que já estava lá
+  // (patch parcial não pode apagar o que não veio no corpo).
+  const metaPatch = pickMetaFields(patch as Record<string, unknown>);
+  if (Object.keys(metaPatch).length > 0 && metaColumnAvailable) {
+    try {
+      const current = await db
+        .select({ meta: schema.courses.meta })
+        .from(schema.courses)
+        .where(eq(schema.courses.id, id));
+      if (current.length === 0) return null;
+      update.meta = { ...(current[0].meta ?? {}), ...metaPatch };
+    } catch (err) {
+      if (!isMissingMetaColumn(err)) throw err;
+      metaColumnAvailable = false;
+      console.warn('[courses] update sem `meta`: coluna ausente no banco.');
+    }
+  }
 
   if (Object.keys(update).length === 0) return await findCourse(id);
 

@@ -15,6 +15,13 @@
       "when": 1779570106976,
       "tag": "0001_panoramic_makkari",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786671359604,
+      "tag": "0002_concerned_jackpot",
+      "breakpoints": true
     }
   ]
 }

@@ -147,6 +147,29 @@ export interface Course {
     signatureRole?: string;
     logoUrl?: string;
   };
+
+  // ---- Campos da página pública de vendas (/formacao/:slug, SSR) ----
+  // Editáveis em /admin/cursos/:id → aba "Página pública". Alimentam também o
+  // JSON-LD: `tldr` vira a meta description, `faqs` vira o bloco FAQPage.
+  /** Selo curto no topo da página, ex.: "Curso principal". */
+  badge?: string;
+  /** Frase de efeito abaixo do título. */
+  tagline?: string;
+  /** Resumo answer-first — o primeiro texto que IA e busca leem. */
+  tldr?: string;
+  /** Nível exibido, ex.: "Formação profissional". */
+  level?: string;
+  /** Idioma do conteúdo (BCP-47). Default de exibição: pt-BR. */
+  language?: string;
+  /** Duração de acesso em meses (mínima e máxima). */
+  monthsMin?: number;
+  monthsMax?: number;
+  /** "Para quem é" — bullets da página pública. */
+  forWhom?: string[];
+  /** Perguntas frequentes — vira FAQPage no JSON-LD. */
+  faqs?: Array<{ q: string; a: string }>;
+  /** Ementa resumida por módulo. */
+  curriculum?: Array<{ n?: string; title: string; desc?: string }>;
 }
 
 export interface Certificate {

@@ -2425,6 +2425,17 @@ export interface UpdateCoursePatch {
     signatureRole?: string;
     logoUrl?: string;
   };
+  // Campos da página pública (/formacao/:slug) — editados na aba "Página pública"
+  badge?: string;
+  tagline?: string;
+  tldr?: string;
+  level?: string;
+  language?: string;
+  monthsMin?: number;
+  monthsMax?: number;
+  forWhom?: string[];
+  faqs?: Array<{ q: string; a: string }>;
+  curriculum?: Array<{ n?: string; title: string; desc?: string }>;
 }
 
 export async function updateCourse(id: string, patch: UpdateCoursePatch): Promise<Course> {
