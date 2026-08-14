@@ -39,9 +39,21 @@ const store = new JsonStore<Course>('courses.json', () =>
  */
 let metaColumnAvailable = true;
 
+/**
+ * O drizzle embrulha o erro do pg (DrizzleQueryError), então o `code` 42703 não
+ * está no erro de cima — está em `cause`, possivelmente aninhado. Andar a
+ * cadeia é o que faz a detecção funcionar de verdade: checar só o topo passa
+ * batido e derruba a listagem inteira de cursos.
+ */
 function isMissingMetaColumn(err: unknown): boolean {
-  const e = err as { code?: string; message?: string };
-  return e?.code === '42703' && /\bmeta\b/.test(e?.message ?? '');
+  let cur: unknown = err;
+  for (let depth = 0; cur && depth < 5; depth++) {
+    const e = cur as { code?: string; message?: string; cause?: unknown };
+    const says = `${e.code ?? ''} ${e.message ?? ''}`;
+    if (e.code === '42703' || /column .*\bmeta\b.* does not exist/i.test(says)) return true;
+    cur = e.cause;
+  }
+  return false;
 }
 
 const COURSE_BASE_COLUMNS = {
