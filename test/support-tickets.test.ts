@@ -67,6 +67,9 @@ describe('repositories/support', () => {
       category: 'acesso',
       message: '',
     });
+    // Date tem resolução de 1ms: sem a pausa, criar e atualizar caem no mesmo
+    // timestamp em máquina rápida e a comparação estrita falha (flake na CI).
+    await new Promise((r) => setTimeout(r, 2));
     const u = await support.updateTicketStatus(t.id, 'resolved');
     expect(u!.status).toBe('resolved');
     expect(u!.updatedAt > t.updatedAt).toBe(true);

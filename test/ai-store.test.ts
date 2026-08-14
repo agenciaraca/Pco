@@ -37,12 +37,15 @@ describe('AI store', () => {
     expect(long).toMatch(/•/);
   });
 
-  it('updateConfig persiste mudanças e atualiza updatedAt', () => {
+  it('updateConfig persiste mudanças e atualiza updatedAt', async () => {
     const before = getConfig('ai-tutor');
     expect(before).not.toBeNull();
     const beforeTs = before!.updatedAt;
 
-    // garante 1ms entre snapshots
+    // garante 1ms entre snapshots — Date tem resolução de 1ms, e sem a pausa as
+    // duas escritas caem no mesmo timestamp em máquina rápida (o comentário já
+    // estava aqui, a pausa não)
+    await new Promise((r) => setTimeout(r, 2));
     const updated = updateConfig('ai-tutor', { temperature: 0.7, maxTokens: 800 });
     expect(updated).not.toBeNull();
     expect(updated!.temperature).toBe(0.7);

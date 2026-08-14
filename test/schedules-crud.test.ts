@@ -72,6 +72,10 @@ describe('schedules-store CRUD', () => {
       entities: [],
     });
     const oldNext = s.nextRunAt;
+    // Date tem resolução de 1ms: sem esta pausa, criar e atualizar cabem no mesmo
+    // milissegundo em máquina rápida e `updated.updatedAt > s.updatedAt` fica
+    // falso — falha intermitente na CI, não defeito do store.
+    await new Promise((r) => setTimeout(r, 2));
     const updated = await store.updateSchedule(s.id, { hourUtc: 10 });
     expect(updated!.hourUtc).toBe(10);
     expect(updated!.nextRunAt).toBeDefined();

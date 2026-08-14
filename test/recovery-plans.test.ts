@@ -71,6 +71,11 @@ describe('recovery-plans', () => {
   describe('updateStatus', () => {
     it('transiciona draft → sent', async () => {
       const plan = await store.generateWithAi(baseInput);
+      // Date tem resolução de 1ms: sem esta pausa, criar e atualizar cabem no
+      // mesmo milissegundo em máquina rápida e o updatedAt sai idêntico — o
+      // teste falhava de forma intermitente na CI. Mantemos a comparação
+      // estrita (um store que não tocasse updatedAt continua reprovando).
+      await new Promise((r) => setTimeout(r, 2));
       const updated = await store.updateStatus(plan.id, 'sent');
       expect(updated).not.toBeNull();
       expect(updated!.status).toBe('sent');
