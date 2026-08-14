@@ -117,6 +117,29 @@ curl -s http://127.0.0.1:3035/api/health
 
 A partir do segundo boot, os seeds já existem — `INITIAL_*` viram irrelevantes.
 
+## ⚠️ Banco de produção não tem histórico de migrations
+
+O DivZ **não tem a tabela `__drizzle_migrations`** — o schema foi criado por
+`db:push` ou à mão. Consequência: **nunca rode `npm run db:migrate` contra
+produção**, ele tentaria aplicar a `0000` (CREATE TABLE de tudo). Enquanto o
+histórico não for baselineado, DDL em produção é aplicado à mão.
+
+Além disso o role da aplicação (`pco_lms_app`) **não é dono das tabelas**: DDL
+precisa do role de owner, que só existe no painel do DivZ.
+
+### DDL pendente (migration 0002)
+
+```sql
+ALTER TABLE "courses" ADD COLUMN IF NOT EXISTS "meta" jsonb;
+ALTER TYPE "public"."ai_module" ADD VALUE IF NOT EXISTS 'question_generation';
+```
+
+Até rodar, o repositório de cursos detecta a coluna ausente (42703, embrulhado
+pelo drizzle em `cause`) e segue sem os campos ricos: a aba "Página pública" do
+editor salva sem erro mas **não persiste**, e a página `/formacao/:slug` continua
+sem TL;DR, "Para quem é", ementa e FAQ. Depois do DDL, tudo passa a funcionar sem
+mudança de código.
+
 ## Atualização (deploy contínuo)
 
 > **Servidor atual: `195.200.0.253` (`srv539124`), app sob PM2 como `ava-pco`.**
