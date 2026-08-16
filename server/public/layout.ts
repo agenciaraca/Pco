@@ -8,7 +8,7 @@
  */
 import { html, raw } from 'hono/html';
 import type { HtmlEscapedString } from 'hono/utils/html';
-import { ORG } from './config';
+import { ORG, AUTHOR_IS_PLACEHOLDER } from './config';
 import { PUBLIC_CSS } from './styles';
 
 /** Resultado de um template hono/html (síncrono ou assíncrono). */
@@ -121,7 +121,7 @@ function footer(): Html {
           <h4>Navegar</h4>
           <ul>
             ${raw(NAV.map((n) => `<li><a href="${n.href}">${n.label}</a></li>`).join(''))}
-            <li><a href="/autor">Responsável técnico</a></li>
+            ${raw(AUTHOR_IS_PLACEHOLDER ? '' : '<li><a href="/autor">Responsável técnico</a></li>')}
           </ul>
         </div>
         <div>

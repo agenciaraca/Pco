@@ -6,6 +6,7 @@ import path from 'node:path';
 import { installConsoleCapture } from './monitoring/log-buffer';
 import { buildApp } from './app';
 import { publicSite } from './public/router';
+import { AUTHOR_IS_PLACEHOLDER } from './public/config';
 
 // Captura console.* em ring buffer ANTES de qualquer log do app
 installConsoleCapture();
@@ -93,7 +94,11 @@ if (staticRoot) {
       { path: '/formacoes', priority: '0.9', changefreq: 'weekly' },
       { path: '/blog', priority: '0.8', changefreq: 'weekly' },
       { path: '/sobre', priority: '0.6', changefreq: 'monthly' },
-      { path: '/autor', priority: '0.6', changefreq: 'monthly' },
+      // /autor sai do sitemap enquanto o responsável técnico for placeholder —
+      // a rota devolve 404 nesse caso (ver server/public/config.ts).
+      ...(AUTHOR_IS_PLACEHOLDER
+        ? []
+        : [{ path: '/autor', priority: '0.6', changefreq: 'monthly' }]),
       { path: '/contato', priority: '0.5', changefreq: 'monthly' },
       { path: '/termos', priority: '0.3', changefreq: 'yearly' },
       { path: '/privacidade', priority: '0.3', changefreq: 'yearly' },

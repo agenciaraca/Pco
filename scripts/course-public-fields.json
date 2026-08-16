@@ -1,0 +1,405 @@
+{
+  "_leiame": [
+    "Campos da PÁGINA PÚBLICA de venda por curso (site SSR /formacao/:slug).",
+    "Aplicar com: npx tsx scripts/apply_course_public_fields.ts [--apply]",
+    "Sem --apply o script só mostra o diff (dry-run).",
+    "",
+    "Só entram cursos com conteúdo real. Ficaram DE FORA de propósito:",
+    "  - treinamento-...-cliente-pco : treinamento INTERNO de equipe, não deveria estar no site",
+    "  - neuropsicologia            : 1 módulo, 0 aulas — não há o que vender",
+    "  - terapia-familiar-sistemica : 24 aulas todas 'Aula N — Conceitos fundamentais' (semente)",
+    "",
+    "Regra de redação (conteúdo YMYL — saúde mental):",
+    "  nenhuma promessa terapêutica, nenhum número sem lastro, e o limite legal",
+    "  da formação livre dito de forma explícita, não escondido no rodapé."
+  ],
+
+  "curso-de-psicanalise-clinica-online": {
+    "badge": "Formação principal",
+    "tagline": "A formação completa em psicanálise clínica: de Freud às abordagens contemporâneas, no seu ritmo.",
+    "level": "Formação livre profissionalizante",
+    "language": "pt-BR",
+    "description": "Formação livre em psicanálise clínica, dos fundamentos freudianos às abordagens contemporâneas, com módulos práticos sobre regulamentação, comunicação clínica e organização do atendimento.",
+    "tldr": "Formação livre em psicanálise clínica com 37 horas de conteúdo em 19 módulos e certificado digital ao final. Percorre o que é psicoterapia, a obra de Freud, o desenvolvimento infantil, os pós-freudianos (Jung, Klein, Winnicott, Adler, Horney e Erikson), os mecanismos de defesa do ego e o que a pesquisa mostra sobre a psicanálise no tratamento de ansiedade e depressão. Inclui módulos práticos sobre regulamentação da profissão, noções de direito e organização do próprio atendimento. É curso livre: não substitui graduação em Psicologia ou Medicina.",
+    "forWhom": [
+      "Quem quer migrar de carreira e precisa de uma base teórica organizada antes de pensar em atender",
+      "Profissionais de saúde, educação e recursos humanos que querem levar escuta clínica para o próprio trabalho",
+      "Estudantes de Psicologia que querem aprofundar especificamente a linha psicanalítica",
+      "Quem já leu Freud por conta própria e quer uma sequência estruturada, com avaliações e ordem de leitura",
+      "Quem quer entender, antes de investir, o que uma formação livre em psicanálise permite e o que não permite"
+    ],
+    "faqs": [
+      {
+        "q": "Este curso me torna psicanalista registrado?",
+        "a": "Não existe registro profissional obrigatório de psicanalista no Brasil: a psicanálise não é uma profissão regulamentada por lei nem tem conselho de classe próprio, diferente da Psicologia (CFP) e da Medicina (CFM). O que existe é a Classificação Brasileira de Ocupações (CBO), que reconhece a ocupação, e entidades associativas privadas. Este é um curso livre, previsto no Decreto 5.154/2004 como educação profissional, e o certificado comprova a carga horária cursada — ele não é diploma de graduação nem de pós-graduação, e não confere prerrogativa legal para atos privativos de psicólogo ou médico. O módulo 17 trata exatamente disso."
+      },
+      {
+        "q": "Preciso ter graduação em Psicologia para fazer o curso?",
+        "a": "Não. O curso é aberto e não exige formação prévia — parte do que é psicoterapia antes de entrar na teoria freudiana, justamente para quem chega sem base. Ter graduação na área ajuda no ritmo, mas não é pré-requisito."
+      },
+      {
+        "q": "Quanto tempo leva para concluir?",
+        "a": "São 37 horas de conteúdo distribuídas em 19 módulos, estudadas no seu ritmo — não há turma, data de início nem prazo de aula ao vivo. Quem estuda cerca de 3 horas por semana conclui em torno de três meses."
+      },
+      {
+        "q": "Recebo certificado?",
+        "a": "Sim. O certificado digital é emitido ao concluir os módulos e as avaliações, e traz a carga horária de 37 horas. Certificado impresso e envio pelos Correios são um serviço à parte."
+      },
+      {
+        "q": "Qual é a diferença entre psicanálise e psicologia?",
+        "a": "Psicologia é uma profissão regulamentada, com graduação obrigatória e conselho (CFP), e abrange muitas abordagens. Psicanálise é um corpo teórico e um método clínico criado por Freud, que pode ser estudado por formação livre e não tem conselho próprio no Brasil. Uma pessoa pode ser psicóloga e usar a psicanálise como abordagem, ou estudar psicanálise sem ser psicóloga — mas nesse segundo caso não pode exercer atos privativos da Psicologia, como aplicar testes psicológicos ou emitir laudo psicológico."
+      },
+      {
+        "q": "O curso ensina a montar o próprio atendimento?",
+        "a": "Sim, essa é a parte final. Os módulos 13 a 17 tratam de presença digital, comunicação oral e escrita em contexto clínico, noções de direito aplicadas a serviços de saúde e a regulamentação da ocupação — a parte prática que costuma faltar em cursos só teóricos."
+      }
+    ],
+    "curriculum": [
+      {
+        "n": "1",
+        "title": "Boas-vindas ao curso",
+        "desc": "Como o curso funciona, como estudar online e o formato das avaliações."
+      },
+      {
+        "n": "2",
+        "title": "O que é psicoterapia",
+        "desc": "Elementos comuns às psicoterapias, como funcionam na prática e o que faz um processo dar errado."
+      },
+      {
+        "n": "3",
+        "title": "O que é psicanálise",
+        "desc": "Premissas centrais da psicanálise e exemplos do método em ação."
+      },
+      {
+        "n": "4",
+        "title": "Sigmund Freud e sua teoria",
+        "desc": "Da hipnose à análise dos sonhos; id, ego e superego; as teorias menos conhecidas e o contexto histórico da fuga do nazismo."
+      },
+      {
+        "n": "5",
+        "title": "Psicanálise e desenvolvimento infantil",
+        "desc": "Desenvolvimento psicossexual, fixação e a teoria do apego aplicada às relações adultas."
+      },
+      {
+        "n": "6",
+        "title": "Psicanálise depois de Freud",
+        "desc": "Jung e os arquétipos, Anna Freud, Melanie Klein, Winnicott, Adler, Horney e Erikson."
+      },
+      {
+        "n": "7",
+        "title": "A psicanálise hoje",
+        "desc": "Críticas clássicas e modernas, contra-argumentos, o papel da psiquiatria e a ascensão das terapias breves."
+      },
+      {
+        "n": "8",
+        "title": "Evidências sobre a psicanálise como abordagem terapêutica",
+        "desc": "O que significa dizer que uma terapia \"funciona\", testes usados em pesquisa e o debate de métodos mistos."
+      },
+      {
+        "n": "9",
+        "title": "Psicanálise no tratamento da ansiedade e da depressão",
+        "desc": "Leitura psicanalítica da ansiedade, mecanismos de defesa e a teoria interpessoal da depressão."
+      },
+      {
+        "n": "10",
+        "title": "Formação do psicanalista",
+        "desc": "Por que estudar psicanálise, habilidades práticas envolvidas e caminhos de carreira."
+      },
+      {
+        "n": "11",
+        "title": "Mecanismos de defesa do ego",
+        "desc": "Projeção, negação, isolamento, introjeção, identificação, formação reativa, deslocamento e anulação, um a um."
+      },
+      {
+        "n": "12",
+        "title": "Erik Erikson",
+        "desc": "As oito fases do desenvolvimento psicossocial e sua leitura clínica."
+      },
+      {
+        "n": "13",
+        "title": "Google e redes sociais",
+        "desc": "Ferramentas de presença digital e leitura de resultados para quem atende."
+      },
+      {
+        "n": "14",
+        "title": "Estratégias de marketing digital",
+        "desc": "Como construir presença profissional sem ferir a ética da prática clínica."
+      },
+      {
+        "n": "15",
+        "title": "Comunicação oral e escrita",
+        "desc": "Comunicação em contextos formais, escuta e registro na prática clínica."
+      },
+      {
+        "n": "16",
+        "title": "Noções básicas de direito",
+        "desc": "Conceitos de direito, ato médico e direito do consumidor aplicados a serviços de saúde e terapias."
+      },
+      {
+        "n": "17",
+        "title": "Regulamentação da profissão",
+        "desc": "A CBO, o que a formação livre permite e os limites legais da atuação."
+      },
+      {
+        "n": "18",
+        "title": "Jean Piaget",
+        "desc": "Estágios do desenvolvimento cognitivo na teoria piagetiana."
+      },
+      {
+        "n": "19",
+        "title": "Como pensar antropologicamente",
+        "desc": "Antropologia e saúde mental, cultura sob a perspectiva psicanalítica e o contexto contemporâneo."
+      }
+    ]
+  },
+
+  "hipnoterapia": {
+    "badge": "Formação complementar",
+    "tagline": "Hipnose clínica do fundamento à sessão: indução, aprofundamento, linguagem e condução.",
+    "level": "Formação livre complementar",
+    "language": "pt-BR",
+    "description": "Curso livre de hipnose clínica: histórico, indução, aprofundamento, sugestionabilidade, padrões de linguagem e a estruturação completa de uma sessão, com roteiros comentados.",
+    "tldr": "Curso livre de hipnoterapia com 18 horas em 15 módulos e certificado digital. Cobre o histórico da hipnose, sistemas representacionais e calibração, tipos de indução, testes de sugestionabilidade, aprofundadores, padrões de linguagem hipnótica, uso de metáforas e a estruturação completa de uma sessão — do rapport inicial ao despertar. Inclui roteiros comentados para manejo de estresse, fobias e dor. O conteúdo é formativo e não constitui prescrição, diagnóstico ou promessa de resultado terapêutico.",
+    "forWhom": [
+      "Terapeutas e praticantes que já atendem e querem acrescentar hipnose ao repertório",
+      "Quem estuda psicanálise ou psicoterapia e quer entender a hipnose de onde ela historicamente partiu",
+      "Profissionais de saúde curiosos sobre sugestionabilidade, transe e linguagem terapêutica",
+      "Quem quer roteiros de sessão comentados em vez de apenas teoria sobre hipnose"
+    ],
+    "faqs": [
+      {
+        "q": "Hipnose funciona mesmo ou é coisa de palco?",
+        "a": "O transe hipnótico é um estado mental comum — a maioria das pessoas entra nele espontaneamente, por exemplo ao dirigir um trajeto conhecido sem lembrar do percurso. O que a hipnose clínica faz é induzir e conduzir esse estado de forma deliberada. O curso começa separando o fenômeno do folclore de palco, e trata a hipnose como técnica de condução, não como poder sobre a outra pessoa."
+      },
+      {
+        "q": "Preciso de formação prévia em saúde para fazer?",
+        "a": "Não há pré-requisito para cursar. Mas a aplicação da hipnose em contexto clínico esbarra nos limites da sua própria habilitação profissional: procedimentos privativos de médico ou de psicólogo continuam sendo privativos, independentemente de você ter feito este curso."
+      },
+      {
+        "q": "O curso ensina hipnose para parar de fumar e para emagrecer?",
+        "a": "Sim, esses são temas de dois módulos, com roteiros de sessão comentados. O material é formativo: apresenta como esses protocolos são estruturados, não garante resultado e não substitui acompanhamento médico ou nutricional."
+      },
+      {
+        "q": "Quanto tempo leva e como é a certificação?",
+        "a": "São 18 horas de conteúdo em 15 módulos, no seu ritmo, com certificado digital ao concluir. Não há aula ao vivo nem data de turma."
+      },
+      {
+        "q": "Tem prática ou é só teoria?",
+        "a": "Além da teoria, o curso traz roteiros completos de indução e de sessão — fixação ocular, aprofundadores, técnica de confusão, linha do tempo — pensados para serem lidos e treinados, não apenas estudados."
+      }
+    ],
+    "curriculum": [
+      {
+        "n": "1",
+        "title": "Fundamentos e contexto relacional",
+        "desc": "Terapia de casal e família, o processo de se apaixonar e as partes da mente como porta de entrada."
+      },
+      {
+        "n": "2",
+        "title": "Histórico e processamento de informação",
+        "desc": "Antecedentes históricos da hipnose, calibração e sistemas representacionais."
+      },
+      {
+        "n": "3",
+        "title": "Tipos de hipnose e induções",
+        "desc": "Hipnose clássica, ericksoniana e outras abordagens; teoria dos tipos de indução."
+      },
+      {
+        "n": "4",
+        "title": "Estruturação de uma sessão",
+        "desc": "Da indução ao despertar: como organizar um atendimento de hipnoterapia passo a passo."
+      },
+      {
+        "n": "5",
+        "title": "Testes de sugestionabilidade",
+        "desc": "O que é sugestionabilidade, por que importa e os principais testes na teoria e na prática."
+      },
+      {
+        "n": "6",
+        "title": "Técnicas de indução e aprofundadores",
+        "desc": "Roteiro de fixação ocular, indução \"um lindo dia\" e aprofundadores aplicados após a indução."
+      },
+      {
+        "n": "7",
+        "title": "Manejo do estresse",
+        "desc": "Roteiros para estresse cotidiano, técnica do futuro brilhante e relaxamento com equilíbrio emocional."
+      },
+      {
+        "n": "8",
+        "title": "Medos e fobias",
+        "desc": "Como a hipnose atua sobre fobias e a técnica de cura rápida, com casos comentados."
+      },
+      {
+        "n": "9",
+        "title": "Auto-hipnose e submodalidades",
+        "desc": "Resposta ideomotora, mudança de submodalidades e sessão completa aplicada à perda de peso."
+      },
+      {
+        "n": "10",
+        "title": "Metáforas terapêuticas",
+        "desc": "O caminho simbólico para o inconsciente: como criar e aplicar metáforas em sessão."
+      },
+      {
+        "n": "11",
+        "title": "Cessação do tabagismo",
+        "desc": "Protocolo para parar de fumar, o caminho do não fumante e o manejo da culpa."
+      },
+      {
+        "n": "12",
+        "title": "Padrões de linguagem hipnótica",
+        "desc": "Sim definido, hipnose conversacional e estruturas linguísticas de sugestão eficaz."
+      },
+      {
+        "n": "13",
+        "title": "Confiança e rapport",
+        "desc": "Ancoragem da confiança, círculo de confiança e segurança do terapeuta na sessão."
+      },
+      {
+        "n": "14",
+        "title": "Linha do tempo e manejo da dor",
+        "desc": "Regressão e ressignificação, técnica de confusão e anestesia de luva."
+      },
+      {
+        "n": "15",
+        "title": "Hipnose aplicada a negócios",
+        "desc": "Escrita hipnótica, hipnose em vendas e primeiros passos com clientes."
+      }
+    ]
+  },
+
+  "autismo": {
+    "badge": "Formação complementar",
+    "tagline": "Autismo do diagnóstico à inclusão, com atenção ao que costuma passar despercebido em meninas e adultos.",
+    "level": "Formação livre complementar",
+    "language": "pt-BR",
+    "description": "Curso livre sobre Transtorno do Espectro Autista: tríade de deficiências, sintomatologia sensorial, avaliação diagnóstica, diferenças de apresentação entre meninos e meninas, terapias e inclusão.",
+    "tldr": "Curso livre sobre Transtorno do Espectro Autista com 10 horas em 8 módulos e certificado digital. Parte do que é o autismo e da tríade de deficiências (comunicação, interação social e imaginação), passa pela sintomatologia sensorial e comportamental, pelo processo de avaliação diagnóstica em crianças e adultos, pelas terapias e intervenções disponíveis, e fecha em inclusão escolar e social. Dedica um módulo inteiro às diferenças de apresentação entre meninos e meninas — um dos motivos mais comuns de diagnóstico tardio em mulheres. É curso livre e não habilita a diagnosticar.",
+    "forWhom": [
+      "Professores e coordenadores que recebem alunos autistas e querem entender o que estão vendo",
+      "Pais, mães e cuidadores em busca de informação organizada em vez de fóruns e grupos",
+      "Terapeutas e praticantes que atendem famílias e precisam de vocabulário técnico correto",
+      "Profissionais de saúde e assistência social que fazem o primeiro encaminhamento",
+      "Adultos que suspeitam do próprio diagnóstico e querem entender o processo de avaliação"
+    ],
+    "faqs": [
+      {
+        "q": "O curso habilita a fazer diagnóstico de autismo?",
+        "a": "Não. O diagnóstico de TEA é ato clínico e cabe a profissionais habilitados — em geral médico ou psicólogo, com avaliação multiprofissional. O que o curso faz é explicar como o processo de avaliação funciona, o que costuma constar num relatório e quais sinais motivam um encaminhamento, para que você reconheça e encaminhe, não para que você diagnostique."
+      },
+      {
+        "q": "Por que um módulo inteiro sobre diferenças de gênero?",
+        "a": "Porque a apresentação do autismo em meninas costuma diferir do quadro descrito nos manuais e nos estudos clássicos, que foram construídos majoritariamente com meninos. Padrões de amizade, camuflagem social e diferenças de tom vocal levam a diagnósticos tardios ou equivocados em mulheres. O módulo 4 trata especificamente disso."
+      },
+      {
+        "q": "O curso fala de autismo em adultos?",
+        "a": "Sim, em dois pontos: um módulo próprio sobre a vida adulta e os sintomas mais comuns nessa fase, e a parte do módulo de diagnóstico dedicada aos procedimentos de avaliação para adultos, que seguem um caminho diferente do infantil."
+      },
+      {
+        "q": "Qual é a carga horária e como funciona o certificado?",
+        "a": "São 10 horas em 8 módulos, no seu ritmo, com certificado digital ao concluir. Não há data de turma nem aula ao vivo."
+      },
+      {
+        "q": "Que abordagens de intervenção são apresentadas?",
+        "a": "O módulo 6 apresenta terapias e programas intensivos, tipos de terapia, intervenções não terapêuticas e o papel da intervenção precoce. O curso apresenta o panorama das abordagens existentes; a escolha de intervenção para uma pessoa específica é decisão clínica, tomada com a equipe que a acompanha."
+      }
+    ],
+    "curriculum": [
+      {
+        "n": "1",
+        "title": "O que é autismo",
+        "desc": "Definição, comorbidades, história do conceito e por que se fala em \"epidemia\" de autismo."
+      },
+      {
+        "n": "2",
+        "title": "A tríade de deficiências",
+        "desc": "Comunicação, interação social e imaginação; isolamento, bullying e a vida adulta."
+      },
+      {
+        "n": "3",
+        "title": "Sintomatologia",
+        "desc": "Questões sensoriais e alimentares, comportamentos repetitivos, ansiedade, rituais e manejo de crises."
+      },
+      {
+        "n": "4",
+        "title": "Diferenças de gênero",
+        "desc": "Proporção entre meninos e meninas, padrões de amizade, camuflagem social e diagnóstico tardio em mulheres."
+      },
+      {
+        "n": "5",
+        "title": "Avaliação diagnóstica",
+        "desc": "Como funciona o processo, o que consta no relatório e os procedimentos específicos para adultos."
+      },
+      {
+        "n": "6",
+        "title": "Terapias e intervenções",
+        "desc": "Programas intensivos, tipos de terapia, estratégias não terapêuticas e intervenção precoce."
+      },
+      {
+        "n": "7",
+        "title": "Autismo em adultos",
+        "desc": "A vida adulta no espectro e os sintomas mais frequentes nessa fase."
+      },
+      {
+        "n": "8",
+        "title": "Inclusão",
+        "desc": "Inclusão escolar, modelos médico e social de deficiência e o que o autismo acrescenta à sociedade."
+      }
+    ]
+  },
+
+  "como-ser-um-super-aluno-online": {
+    "badge": "Curso de apoio",
+    "tagline": "Como estudar a distância sem se perder no meio do caminho.",
+    "level": "Curso livre de apoio ao estudo",
+    "language": "pt-BR",
+    "description": "Curso livre sobre método de estudo a distância: técnicas de construção do conhecimento, planejamento de rotina, leitura ativa e os desafios que costumam interromper uma formação online.",
+    "tldr": "Curso livre de 4 horas em 5 módulos sobre método de estudo a distância, com certificado digital. Trata de técnicas de construção do conhecimento, planejamento de rotina, leitura ativa, estratégias específicas de aprendizagem em EaD e os desafios que fazem a maioria dos alunos parar — falta de rotina, isolamento e queda de motivação. É o curso que a PCO recomenda antes de começar uma formação mais longa.",
+    "forWhom": [
+      "Quem vai começar uma formação online longa e quer chegar com método, não só com vontade",
+      "Quem já começou cursos a distância antes e parou no meio",
+      "Quem estuda sozinho e sente falta de uma rotina que se sustente sem cobrança externa",
+      "Quem voltou a estudar depois de anos fora e quer recuperar o ritmo de leitura"
+    ],
+    "faqs": [
+      {
+        "q": "Preciso fazer este curso antes de outra formação?",
+        "a": "Não é obrigatório, mas é a recomendação. São 4 horas, e ele trata justamente do que costuma interromper uma formação longa: rotina que não se sustenta, leitura passiva e queda de motivação no meio do percurso."
+      },
+      {
+        "q": "O conteúdo serve para qualquer curso ou só para os da PCO?",
+        "a": "Serve para qualquer estudo a distância. As técnicas de leitura, planejamento e enfrentamento dos desafios da EaD não são específicas de psicanálise."
+      },
+      {
+        "q": "Quanto tempo leva?",
+        "a": "São 4 horas em 5 módulos, com certificado digital ao concluir. Dá para fazer em um fim de semana."
+      }
+    ],
+    "curriculum": [
+      {
+        "n": "1",
+        "title": "Técnicas de aquisição do conhecimento",
+        "desc": "Três aulas sobre como construir conhecimento em vez de apenas acumular conteúdo."
+      },
+      {
+        "n": "2",
+        "title": "Planejamento",
+        "desc": "Como planejar o estudo de forma que a rotina se sustente sem cobrança externa."
+      },
+      {
+        "n": "3",
+        "title": "Ler e aprender",
+        "desc": "Leitura ativa: como ler para reter, e não apenas para percorrer a página."
+      },
+      {
+        "n": "4",
+        "title": "Estratégias de aprendizagem em EaD",
+        "desc": "O que muda quando o estudo é a distância e como usar isso a favor."
+      },
+      {
+        "n": "5",
+        "title": "Desafios de estudar online",
+        "desc": "Isolamento, queda de motivação e retomada depois de uma pausa."
+      }
+    ]
+  }
+}

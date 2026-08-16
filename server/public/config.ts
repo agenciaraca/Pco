@@ -95,6 +95,20 @@ export const AUTHOR: AuthorConfig = {
   ],
 };
 
+/**
+ * `true` enquanto o AUTHOR acima ainda for o esqueleto de exemplo.
+ *
+ * Existe porque publicar um responsável técnico ANÔNIMO com credenciais
+ * ("Especialização em Saúde Mental", "desde 2018") é pior do que não publicar
+ * autor nenhum: em conteúdo YMYL de saúde mental, atribui formação a uma pessoa
+ * que não tem nome. Enquanto isto for `true`, o site omite a página `/autor` e
+ * não emite o `Person` no structured data — em vez de publicar um molde.
+ *
+ * Para desligar: troque `AUTHOR` por uma pessoa real, com nome, foto e `sameAs`
+ * verificáveis. O detector some sozinho quando o `[...]` sair do nome.
+ */
+export const AUTHOR_IS_PLACEHOLDER = /\[.*\]/.test(AUTHOR.name);
+
 /** Disclaimer YMYL padrão — obrigatório em cursos e artigos (saúde mental). */
 export const YMYL_DISCLAIMER =
   'Formação livre em psicanálise clínica. Não substitui graduação em Psicologia ou Medicina, nem constitui aconselhamento clínico. Em caso de crise, ligue para o CVV: 188.';

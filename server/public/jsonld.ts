@@ -4,7 +4,7 @@
  * construindo um grafo de entidades (sinal central de E-E-A-T) em vez de blobs
  * soltos. Só marcar conteúdo realmente visível na página.
  */
-import { ORG, AUTHOR, type AuthorConfig } from './config';
+import { ORG, AUTHOR, AUTHOR_IS_PLACEHOLDER, type AuthorConfig } from './config';
 import type { PublicCourse, PublicFaq, PublicPost, PublicPostSummary } from './projections';
 
 export const ORG_ID = `${ORG.url}/#org`;
@@ -103,21 +103,37 @@ export function faqJsonLd(faqs: PublicFaq[]): Json | null {
   };
 }
 
+/**
+ * URL canônica pública de um curso.
+ *
+ * ⚠️ NÃO é `/curso/:id` — essa é a rota do SPA para o ALUNO LOGADO (recebe id,
+ * não slug, e manda visitante anônimo para o login). A página pública de venda,
+ * renderizada no servidor, mora em `/formacao/:slug`. Espelha o helper do
+ * frontend em `src/app/lib/publicUrls.ts`.
+ */
+export const publicCourseUrl = (slug: string) => `${ORG.url}/formacao/${slug}`;
+
 export function courseJsonLd(course: PublicCourse): Json {
+  // Sem instrutor no curso, referenciamos o responsável técnico do site por
+  // `@id`. Mas só quando ele existe de verdade E é emitido em algum lugar —
+  // senão o `@id` fica pendurado, apontando para um nó que a página nunca
+  // define, e o parser lê a instância como se não tivesse instrutor nenhum.
   const instructorRef = course.instructorName
     ? {
         '@type': 'Person',
         name: course.instructorName,
         ...(course.instructorPhotoUrl ? { image: course.instructorPhotoUrl } : {}),
       }
-    : { '@id': authorId(AUTHOR.slug) };
+    : AUTHOR_IS_PLACEHOLDER
+      ? undefined
+      : { '@id': authorId(AUTHOR.slug) };
   return {
     '@context': 'https://schema.org',
     '@type': 'Course',
     name: course.title,
     description: course.tldr ?? course.description,
     inLanguage: course.language,
-    url: `${ORG.url}/curso/${course.slug}`,
+    url: publicCourseUrl(course.slug),
     provider: { '@id': ORG_ID },
     ...(course.learningOutcomes.length ? { teaches: course.learningOutcomes } : {}),
     educationalLevel: course.level,
@@ -126,7 +142,7 @@ export function courseJsonLd(course: PublicCourse): Json {
       '@type': 'CourseInstance',
       courseMode: 'online',
       courseWorkload: course.totalHours ? `PT${course.totalHours}H` : undefined,
-      instructor: instructorRef,
+      ...(instructorRef ? { instructor: instructorRef } : {}),
     },
     ...(course.priceCents != null
       ? {
@@ -136,7 +152,7 @@ export function courseJsonLd(course: PublicCourse): Json {
             price: (course.priceCents / 100).toFixed(2),
             priceCurrency: 'BRL',
             availability: 'https://schema.org/InStock',
-            url: `${ORG.url}/curso/${course.slug}`,
+            url: publicCourseUrl(course.slug),
           },
         }
       : {}),
@@ -155,7 +171,13 @@ export function blogPostingJsonLd(post: PublicPost): Json {
     ...(post.publishedAt ? { datePublished: post.publishedAt } : {}),
     ...(post.publishedAt ? { dateModified: post.publishedAt } : {}),
     // Autor: entidade nomeada se houver; senão o responsável técnico por @id.
-    author: named ? { '@type': 'Person', name: post.authorName } : { '@id': authorId(AUTHOR.slug) },
+    // Sem responsável real configurado, a autoria fica na organização — melhor
+    // do que um `@id` apontando para um nó que nenhuma página define.
+    author: named
+      ? { '@type': 'Person', name: post.authorName }
+      : AUTHOR_IS_PLACEHOLDER
+        ? { '@id': ORG_ID }
+        : { '@id': authorId(AUTHOR.slug) },
     publisher: { '@id': ORG_ID },
     mainEntityOfPage: url,
     url,

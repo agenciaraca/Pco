@@ -8,7 +8,7 @@
  */
 import { Hono } from 'hono';
 import { html, raw } from 'hono/html';
-import { ORG, AUTHOR, YMYL_DISCLAIMER } from './config';
+import { ORG, AUTHOR, AUTHOR_IS_PLACEHOLDER, YMYL_DISCLAIMER } from './config';
 import { renderPage } from './layout';
 import {
   orgJsonLd,
@@ -75,7 +75,9 @@ publicSite.get('/llms.txt', async (c) => {
   lines.push(`- [Formações](${u('/formacoes')}): catálogo de cursos de psicanálise clínica.`);
   lines.push(`- [Blog](${u('/blog')}): artigos sobre psicanálise, formação e carreira.`);
   lines.push(`- [Sobre](${u('/sobre')}): missão, método e credibilidade da PCO.`);
-  lines.push(`- [Responsável técnico](${u('/autor')}): perfil, credenciais e autoria (E-E-A-T).`);
+  if (!AUTHOR_IS_PLACEHOLDER) {
+    lines.push(`- [Responsável técnico](${u('/autor')}): perfil, credenciais e autoria (E-E-A-T).`);
+  }
   lines.push(`- [Contato](${u('/contato')}): canais de atendimento.`);
   if (courses.length) {
     lines.push('');
@@ -169,9 +171,11 @@ publicSite.get('/sobre', async (c) => {
             </div>
           </div>
           <div class="disclaimer">${YMYL_DISCLAIMER}</div>
-          <a class="btn btn-primary" href="/autor" style="width:100%"
-            >Conheça o responsável técnico</a
-          >
+          ${raw(
+            AUTHOR_IS_PLACEHOLDER
+              ? ''
+              : '<a class="btn btn-primary" href="/autor" style="width:100%">Conheça o responsável técnico</a>',
+          )}
         </aside>
       </div>
     </section>
@@ -200,6 +204,10 @@ publicSite.get('/sobre', async (c) => {
 
 // ============================ /autor ============================
 publicSite.get('/autor', async (c) => {
+  // Sem responsável técnico real configurado, a página não existe. Publicar o
+  // molde ("Dra. [Nome do Responsável Técnico]") com credenciais anexadas seria
+  // atribuir formação em saúde mental a ninguém. Ver AUTHOR_IS_PLACEHOLDER.
+  if (AUTHOR_IS_PLACEHOLDER) return c.notFound();
   const initials =
     AUTHOR.name
       .replace(/\[.*?\]/g, '')
@@ -446,7 +454,8 @@ publicSite.get('/blog/:slug', async (c) => {
     ? `<div style="margin-top:28px"><h2 style="font-size:20px;margin-bottom:12px">Cursos relacionados</h2>${post.relatedCourseSlugs
         .map(
           (s) =>
-            `<a class="btn btn-outline" href="/curso/${s}" style="margin:0 8px 8px 0">Ver curso</a>`,
+            // /formacao/:slug (SSR público) — /curso/:id é a rota do aluno logado.
+            `<a class="btn btn-outline" href="/formacao/${s}" style="margin:0 8px 8px 0">Ver curso</a>`,
         )
         .join('')}</div>`
     : '';
@@ -462,8 +471,13 @@ publicSite.get('/blog/:slug', async (c) => {
           <h1 style="margin:14px 0 12px">${post.title}</h1>
           <p class="lead">${post.excerpt}</p>
           <p style="color:var(--ink-faint);font-size:13px;margin-top:16px">
-            Por <a href="/autor" style="color:var(--accent)">${post.authorName}</a> ·
-            ${raw(fmtDate(post.publishedAt))} · ${post.readingMinutes} min de leitura
+            Por
+            ${raw(
+              AUTHOR_IS_PLACEHOLDER
+                ? esc(post.authorName)
+                : `<a href="/autor" style="color:var(--accent)">${esc(post.authorName)}</a>`,
+            )}
+            · ${raw(fmtDate(post.publishedAt))} · ${post.readingMinutes} min de leitura
           </p>
         </div>
       </section>
@@ -480,9 +494,11 @@ publicSite.get('/blog/:slug', async (c) => {
             ></div>
             <div>
               <div style="font-weight:700">${esc(post.authorName)}</div>
-              <a href="/autor" style="color:var(--accent);font-size:14px"
-                >Conheça o responsável técnico →</a
-              >
+              ${raw(
+                AUTHOR_IS_PLACEHOLDER
+                  ? ''
+                  : '<a href="/autor" style="color:var(--accent);font-size:14px">Conheça o responsável técnico →</a>',
+              )}
             </div>
           </div>
           <div class="disclaimer" style="margin-top:20px">${YMYL_DISCLAIMER}</div>
