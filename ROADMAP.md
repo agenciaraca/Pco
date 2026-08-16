@@ -6,7 +6,7 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 
 ---
 
-## Estado atual (atualizado 2026-08-13)
+## Estado atual (atualizado 2026-08-16)
 
 **🟢 EM PRODUÇÃO REAL**: https://ava.psicanaliseclinica.online
 
@@ -21,7 +21,7 @@ Histórico de tudo que foi entregue + backlog em aberto. Cada commit mencionado 
 | 3 — Blitz de 13 features + tentativa via dump SQL | 22–26 mai 2026 | ✅ features / ❌ trilha SQL abandonada |
 | 4 — Banco DivZ + recuperação v3 dos dados | 15 jun – 7 jul 2026 | ✅ concluída — carga v3 **já está em produção** (verificado 13/ago) |
 | 5 — Dívida técnica e qualidade | jul 2026 | ✅ concluída |
-| 6 — Site público / Publicações (SEO/GEO/E-E-A-T) | 21–24 jul 2026 | 🔵 5 de 6 sprints — falta o editor admin dos campos públicos |
+| 6 — Site público / Publicações (SEO/GEO/E-E-A-T) | 21 jul – 16 ago 2026 | ✅ concluída — o editor dos campos públicos entrou em 13/ago e passou a **persistir** em 16/ago, com o DDL da 0002 |
 | 7 — App móvel nativo | após 5k alunos ativos | ⚪ congelada |
 
 **Onda 4 — encerrada.** Este arquivo (e as anotações de julho) diziam que faltava rodar `load_v3_to_divz.ts --commit` e que a produção tinha só 2 matrículas. **Não é mais verdade:** um dump do DivZ em 13/ago mostrou **1.587 alunos, 601 students e 1.109 matrículas (457 com progresso > 0)**, e nenhum aluno do conjunto v3 local está ausente da produção — ou seja, a carga foi aplicada em 07/jul e o registro nunca foi atualizado. Os timestamps de `enrolled_at`/`last_access_at` param exatamente em `2026-07-07T06:11Z`, a data da coleta v3.
@@ -42,7 +42,8 @@ Dump de segurança: `backups/divz-students-<timestamp>.json` (gitignored, conté
 | **GitHub Actions** deploy automático em push to main | ⚠️ Workflow corrigido em 13/ago, mas os 4 secrets ainda apontam pro host morto |
 | **Pagamentos**: 2 gateways live | ✅ Ativos |
 | **CI** passing | ✅ 0 errors (voltou ao verde em 13/ago) |
-| **Tests** | ✅ 1552 passando, 25 skipped — 3 arquivos com falha intermitente sob paralelismo |
+| **Tests** | ✅ 1577 passando em 164 arquivos, 0 falhas — a flakiness foi resolvida em 13/ago (timeouts + corrida de timestamp) |
+| **Migrations** (`drizzle.__drizzle_migrations`) | ✅ histórico baselineado em 16/ago; `db:migrate` voltou a ser seguro contra prod |
 | **HTTPS via Cloudflare** | ✅ HSTS + CSP + X-Frame |
 
 > **Deploy:** de 24/jul a 13/ago a produção ficou 3 semanas atrasada sem ninguém notar — o servidor mudou de IP e o deploy falhava em silêncio. `/api/health` responde 200 mesmo com código velho; a validação confiável é comparar o hash do bundle de `/login` com o `dist/` local.
