@@ -460,8 +460,9 @@ Auditoria de 2026-07-12: os três itens acima já tinham teste — o backlog é 
 - ~~**`AI_KEY_ENCRYPTION_SECRET` em prod**~~: ✅ configurado em sprint 555.
 - ~~**Import via API portalpco.online**~~: sprint 555 rodou diagnose. portalpco.com.br: DNS ENOTFOUND (URL precisa correção). psicanaliseclinica.online: LD REST desabilitado (owner habilita no admin WP).
 - ~~**Drift schema.ts↔DB**~~: ✅ auditado em 2026-07-12 com `scripts/audit_schema_drift.ts` contra o DivZ — **0 divergências** (17 tabelas, nenhuma coluna faltando ou sobrando). Rodar esse script depois de qualquer mudança em `schema.ts`; ele só lê `information_schema`.
-- **Carga v3 em produção** (Onda 4): único passo irreversível pendente — `DATABASE_URL=<divz> npx tsx scripts/load_v3_to_divz.ts --commit`. Sem a flag, faz ROLLBACK e apenas conta.
-- **Conexão ao DivZ da máquina local**: `ETIMEDOUT` (allowlist de IP no banco). Scripts de banco devem rodar pelo VPS, que tem acesso.
+- ~~**Carga v3 em produção** (Onda 4)~~: ✅ o dump de 13/ago mostrou que a carga **já havia sido aplicada em 07/jul** (1587 users, 601 students, 1109 enrollments). O registro é que estava defasado. Não rodar `load_v3_to_divz.ts --commit` — apagaria e reinseriria tudo, descartando progresso posterior.
+- **Conexão ao DivZ da máquina local**: `ETIMEDOUT` (allowlist de IP no banco). Scripts de banco devem rodar pelo VPS, que tem acesso — **ou** pelo MCP do DivZ (`run_sql`), que sai por fora da allowlist e já conecta como `pco_lms_owner`.
+- ~~**DDL/migrations em produção**~~: ✅ resolvido em 2026-08-16. A migration `0002` foi aplicada (coluna `courses.meta` + valor `question_generation` no enum `ai_module`) e o histórico `drizzle.__drizzle_migrations` foi baselineado com as três migrations. `db:migrate` voltou a ser seguro. Ver `docs/deploy.md`.
 
 ---
 
@@ -494,7 +495,7 @@ Auditoria de 2026-07-12: os três itens acima já tinham teste — o backlog é 
 | ~~🟡~~ ✅ | ~~Zoom embed~~ (2026-05-23 — Meeting SDK + admin config) | UX aluno | 1 dia |
 | 🟢 BAIXA | Editor visual de e-mail templates | UX admin | 3 dias |
 | ~~🟢~~ ✅ | ~~Quiz com banco de questões~~ (sprints 503+513+514 + 2026-05-23 auto-correção) | feature ampla | entregue |
-| 🟢 BAIXA | Migrações Drizzle aplicadas em prod | unlock Postgres | 1 dia |
+| ~~🟢~~ ✅ | ~~Migrações Drizzle aplicadas em prod~~ (2026-08-16 — 0002 aplicada + histórico baselineado) | unlock Postgres | entregue |
 | 🟢 BAIXA | Multi-tenant | praticamente outro projeto | indefinido |
 
 ## Conquistas deste turno (sprints 398-466)

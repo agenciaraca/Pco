@@ -117,28 +117,47 @@ curl -s http://127.0.0.1:3035/api/health
 
 A partir do segundo boot, os seeds já existem — `INITIAL_*` viram irrelevantes.
 
-## ⚠️ Banco de produção não tem histórico de migrations
+## Migrations em produção (histórico baselineado em 2026-08-16)
 
-O DivZ **não tem a tabela `__drizzle_migrations`** — o schema foi criado por
-`db:push` ou à mão. Consequência: **nunca rode `npm run db:migrate` contra
-produção**, ele tentaria aplicar a `0000` (CREATE TABLE de tudo). Enquanto o
-histórico não for baselineado, DDL em produção é aplicado à mão.
+Até 16/ago/2026 o DivZ **não tinha a tabela `__drizzle_migrations`** — o schema
+havia sido criado por `db:push` ou à mão, e `npm run db:migrate` contra produção
+teria tentado aplicar a `0000` (CREATE TABLE de tudo).
 
-Além disso o role da aplicação (`pco_lms_app`) **não é dono das tabelas**: DDL
-precisa do role de owner, que só existe no painel do DivZ.
+**Isso foi resolvido.** O histórico foi baselineado: `drizzle.__drizzle_migrations`
+existe e tem as três migrations (`0000`, `0001`, `0002`) registradas com o hash
+sha256 do arquivo `.sql` e o `when` do `meta/_journal.json` — os mesmos valores
+que o drizzle calcularia. A partir daqui `db:migrate` é seguro e aplica só o que
+for novo.
 
-### DDL pendente (migration 0002)
+Se você gerar uma migration nova e quiser baselinear outra base do zero, os
+hashes saem de:
+
+```bash
+node -e "const fs=require('fs'),c=require('crypto');
+const j=JSON.parse(fs.readFileSync('server/db/migrations/meta/_journal.json','utf8'));
+for(const e of j.entries){const q=fs.readFileSync('server/db/migrations/'+e.tag+'.sql').toString();
+console.log(c.createHash('sha256').update(q).digest('hex'), e.when, e.tag);}"
+```
+
+### Quem pode rodar DDL
+
+O role da aplicação (`pco_lms_app`) **não é dono das tabelas** — DDL exige
+`pco_lms_owner`. O caminho que funciona é o **MCP do DivZ** (`run_sql` no projeto
+`pco-lms`), que já conecta como owner. A senha de owner que estava em
+`.env.bak.pre-app-role` no servidor não vale mais; não perca tempo com ela.
+
+### Migration 0002 — aplicada em 2026-08-16
 
 ```sql
 ALTER TABLE "courses" ADD COLUMN IF NOT EXISTS "meta" jsonb;
 ALTER TYPE "public"."ai_module" ADD VALUE IF NOT EXISTS 'question_generation';
 ```
 
-Até rodar, o repositório de cursos detecta a coluna ausente (42703, embrulhado
-pelo drizzle em `cause`) e segue sem os campos ricos: a aba "Página pública" do
-editor salva sem erro mas **não persiste**, e a página `/formacao/:slug` continua
-sem TL;DR, "Para quem é", ementa e FAQ. Depois do DDL, tudo passa a funcionar sem
-mudança de código.
+**Exige restart da app depois do DDL.** `server/repositories/courses.ts` guarda a
+detecção da coluna ausente (42703, embrulhado pelo drizzle em `cause`) numa flag
+de módulo `metaColumnAvailable`; uma vez `false`, ela só volta a `true` com um
+processo novo. Sem o restart a aba "Página pública" continua salvando sem
+persistir, mesmo com a coluna já existindo.
 
 ## Atualização (deploy contínuo)
 
