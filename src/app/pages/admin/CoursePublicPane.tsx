@@ -1,15 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Globe,
-  Save,
-  Loader2,
-  Plus,
-  Trash2,
-  ExternalLink,
-  AlertCircle,
-} from 'lucide-react';
+import { Globe, Save, Loader2, Plus, Trash2, ExternalLink, AlertCircle } from 'lucide-react';
 import { updateCourseSchema, type UpdateCourseInput } from '../../../../shared/schemas';
 import { useUpdateCourse } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
@@ -39,7 +31,7 @@ interface CurriculumItem {
 
 type ScalarFields = Pick<
   UpdateCourseInput,
-  'badge' | 'tagline' | 'tldr' | 'level' | 'language' | 'monthsMin' | 'monthsMax'
+  'publicListed' | 'badge' | 'tagline' | 'tldr' | 'level' | 'language' | 'monthsMin' | 'monthsMax'
 >;
 
 export default function CoursePublicPane({ course }: { course: Course }) {
@@ -55,16 +47,21 @@ export default function CoursePublicPane({ course }: { course: Course }) {
     handleSubmit,
     formState: { errors },
   } = useForm<ScalarFields>({
-    resolver: zodResolver(updateCourseSchema.pick({
-      badge: true,
-      tagline: true,
-      tldr: true,
-      level: true,
-      language: true,
-      monthsMin: true,
-      monthsMax: true,
-    })),
+    resolver: zodResolver(
+      updateCourseSchema.pick({
+        publicListed: true,
+        badge: true,
+        tagline: true,
+        tldr: true,
+        level: true,
+        language: true,
+        monthsMin: true,
+        monthsMax: true,
+      }),
+    ),
     defaultValues: {
+      // Ausente vale "sim": curso que nunca tocou no campo segue visível.
+      publicListed: course.publicListed !== false,
       badge: course.badge ?? '',
       tagline: course.tagline ?? '',
       tldr: course.tldr ?? '',
@@ -110,11 +107,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
   const hasErrors = Object.keys(errors).length > 0;
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit, onInvalid)}
-      noValidate
-      className="space-y-5 max-w-3xl"
-    >
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate className="space-y-5 max-w-3xl">
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-lg font-bold text-pco-deep flex items-center gap-2">
@@ -122,8 +115,8 @@ export default function CoursePublicPane({ course }: { course: Course }) {
             Página pública
           </h2>
           <p className="text-sm text-ink-muted mt-1">
-            O que o visitante vê antes de comprar. O resumo e as perguntas frequentes
-            também são lidos por buscadores e assistentes de IA.
+            O que o visitante vê antes de comprar. O resumo e as perguntas frequentes também são
+            lidos por buscadores e assistentes de IA.
           </p>
         </div>
         <a
@@ -150,14 +143,32 @@ export default function CoursePublicPane({ course }: { course: Course }) {
         </div>
       )}
 
+      <section className="pco-card p-4">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            {...register('publicListed')}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-pco-blue"
+          />
+          <span>
+            <span className="text-sm font-semibold text-pco-deep block">
+              Divulgar este curso no site público
+            </span>
+            <span className="text-xs text-ink-muted block mt-0.5">
+              Controla apenas a vitrine: catálogo, página de venda, sitemap e llms.txt. Desmarcar{' '}
+              <strong>não</strong> tira o acesso de quem já está matriculado — para isso existe
+              “Despublicar curso”, na aba Geral.
+            </span>
+          </span>
+        </label>
+      </section>
+
       <section className="pco-card p-4 space-y-4">
         <h3 className="text-sm font-semibold text-pco-deep">Topo da página</h3>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
-              Selo
-            </span>
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">Selo</span>
             <input
               {...register('badge')}
               placeholder="Curso principal"
@@ -188,9 +199,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
         </label>
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
-            Resumo curto
-          </span>
+          <span className="text-[11px] uppercase tracking-wide text-ink-muted">Resumo curto</span>
           <textarea
             {...register('tldr')}
             rows={3}
@@ -199,16 +208,14 @@ export default function CoursePublicPane({ course }: { course: Course }) {
             className="pco-input mt-1 text-sm resize-none"
           />
           <span className="text-[11px] text-ink-subtle">
-            Vira a descrição da página nos resultados de busca e o primeiro trecho
-            que assistentes de IA leem. Responda logo na primeira frase.
+            Vira a descrição da página nos resultados de busca e o primeiro trecho que assistentes
+            de IA leem. Responda logo na primeira frase.
           </span>
         </label>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
-              Idioma
-            </span>
+            <span className="text-[11px] uppercase tracking-wide text-ink-muted">Idioma</span>
             <input
               {...register('language')}
               placeholder="pt-BR"
@@ -251,9 +258,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
         render={(item, i) => (
           <input
             value={item}
-            onChange={(e) =>
-              setForWhom((p) => p.map((v, x) => (x === i ? e.target.value : v)))
-            }
+            onChange={(e) => setForWhom((p) => p.map((v, x) => (x === i ? e.target.value : v)))}
             placeholder="Psicólogos que querem atender pela escuta"
             className="pco-input text-sm"
           />
@@ -305,9 +310,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
             <input
               value={item.n ?? ''}
               onChange={(e) =>
-                setCurriculum((p) =>
-                  p.map((v, x) => (x === i ? { ...v, n: e.target.value } : v)),
-                )
+                setCurriculum((p) => p.map((v, x) => (x === i ? { ...v, n: e.target.value } : v)))
               }
               placeholder="01"
               className="pco-input text-sm font-mono"

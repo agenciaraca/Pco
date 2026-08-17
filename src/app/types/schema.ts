@@ -151,6 +151,11 @@ export interface Course {
   // ---- Campos da página pública de vendas (/formacao/:slug, SSR) ----
   // Editáveis em /admin/cursos/:id → aba "Página pública". Alimentam também o
   // JSON-LD: `tldr` vira a meta description, `faqs` vira o bloco FAQPage.
+  /**
+   * Curso aparece no site público? Separado de `active`, que governa o acesso
+   * do aluno no LMS. Ausente = visível. Ver `isPubliclyListed()` no servidor.
+   */
+  publicListed?: boolean;
   /** Selo curto no topo da página, ex.: "Curso principal". */
   badge?: string;
   /** Frase de efeito abaixo do título. */
@@ -229,13 +234,7 @@ export interface SupportTicket {
   id: ID;
   studentId: ID;
   subject: string;
-  category:
-    | 'duvida_aula'
-    | 'acesso'
-    | 'certificado'
-    | 'tutor'
-    | 'biblioteca'
-    | 'outro';
+  category: 'duvida_aula' | 'acesso' | 'certificado' | 'tutor' | 'biblioteca' | 'outro';
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   createdAt: string;
   updatedAt: string;
@@ -294,13 +293,7 @@ export type AiProvider =
 
 export interface AiConfiguration {
   id: ID;
-  module:
-    | 'tutor'
-    | 'recovery_plan'
-    | 'evasion'
-    | 'recommendations'
-    | 'support'
-    | 'summaries';
+  module: 'tutor' | 'recovery_plan' | 'evasion' | 'recommendations' | 'support' | 'summaries';
   provider: AiProvider;
   model: string;
   apiKeyMasked: string;
@@ -356,13 +349,7 @@ export interface SessionBooking {
   professionalId: ID;
   serviceId: ID;
   scheduledAt: string;
-  status:
-    | 'pending_payment'
-    | 'confirmed'
-    | 'scheduled'
-    | 'done'
-    | 'cancelled'
-    | 'rescheduled';
+  status: 'pending_payment' | 'confirmed' | 'scheduled' | 'done' | 'cancelled' | 'rescheduled';
   meetingLink?: string;
   paymentStatus: 'pending' | 'paid' | 'refunded';
 }

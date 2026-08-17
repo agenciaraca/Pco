@@ -7,9 +7,10 @@
  * público — mesmo que um campo novo apareça no modelo, ele só é exposto se for
  * adicionado de propósito a uma projeção.
  *
- * Gate de visibilidade pública de curso: `active !== false` E existe um produto
- * `kind='course'` ativo apontando para ele. Curso sem produto ativo ou marcado
- * inativo NUNCA aparece no site público (mesma regra do sitemap existente).
+ * Gate de visibilidade pública de curso: ver `isPubliclyListed()` abaixo. O
+ * produto ativo é OPCIONAL e só decide se a página mostra preço — não esconde
+ * o curso. (Este cabeçalho já afirmou que o produto era obrigatório; nunca foi,
+ * e a divergência entre comentário e código custou tempo em 16/ago/2026.)
  */
 
 import * as coursesRepo from '../repositories/courses';
@@ -147,6 +148,26 @@ function toFull(c: Row, product: Product | undefined): PublicCourse {
   };
 }
 
+/**
+ * ÚNICO portão de visibilidade pública de curso. Todo caminho que expõe curso
+ * ao visitante anônimo — catálogo, página de venda, redirect de URL antiga,
+ * cursos relacionados no blog, sitemap, llms.txt — passa por aqui.
+ *
+ * Duas flags, dois significados:
+ *   `active`       → o aluno matriculado consegue acessar o curso no LMS.
+ *   `publicListed` → o curso aparece para quem não está matriculado.
+ *
+ * Curso inativo continua fora do site (não faz sentido vender o que ninguém
+ * pode cursar). Mas `publicListed: false` tira só da vitrine, preservando o
+ * acesso de quem já comprou.
+ *
+ * Ausência de `publicListed` vale `true` — a mudança é aditiva e nenhum curso
+ * existente muda de comportamento sem alguém marcar explicitamente.
+ */
+export function isPubliclyListed(c: Row): boolean {
+  return c.active !== false && c.publicListed !== false;
+}
+
 /** Mapa courseId -> produto 'course' ativo. */
 async function activeCourseProducts(): Promise<Map<string, Product>> {
   const products = await productsRepo.listActive();
@@ -169,10 +190,10 @@ export async function listPublicCourses(): Promise<PublicCourseSummary[]> {
         coursesRepo.listCourses(),
         activeCourseProducts(),
       ]);
-      // Gate público = curso ATIVO (flag de publicação). Produto/preço é
-      // opcional: se houver produto ativo vinculado, exibe preço; senão não.
+      // Produto/preço é opcional: se houver produto ativo vinculado, exibe
+      // preço; senão, o curso aparece sem preço.
       return (courses as unknown as Row[])
-        .filter((c) => c.active !== false)
+        .filter(isPubliclyListed)
         .map((c) => toSummary(c, productMap.get(String(c.id))));
     },
     [],
@@ -189,7 +210,7 @@ export async function getPublicCourseBySlug(slug: string): Promise<PublicCourse 
         activeCourseProducts(),
       ]);
       const match = (courses as unknown as Row[]).find(
-        (c) => (str(c.slug) ?? String(c.id)) === slug && c.active !== false,
+        (c) => (str(c.slug) ?? String(c.id)) === slug && isPubliclyListed(c),
       );
       if (!match) return null;
       return toFull(match, productMap.get(String(match.id)));
@@ -204,7 +225,7 @@ export async function getPublicCourseSlugById(id: string): Promise<string | null
     `courseSlug:${id}`,
     async () => {
       const courses = (await coursesRepo.listCourses()) as unknown as Row[];
-      const match = courses.find((c) => String(c.id) === id && c.active !== false);
+      const match = courses.find((c) => String(c.id) === id && isPubliclyListed(c));
       return match ? (str(match.slug) ?? String(match.id)) : null;
     },
     null,
@@ -307,7 +328,7 @@ export async function getPublicPostBySlug(slug: string): Promise<PublicPost | nu
       if (relatedIds.length) {
         const courses = (await coursesRepo.listCourses()) as unknown as Row[];
         relatedCourseSlugs = courses
-          .filter((c) => relatedIds.includes(String(c.id)) && c.active !== false)
+          .filter((c) => relatedIds.includes(String(c.id)) && isPubliclyListed(c))
           .map((c) => str(c.slug) ?? String(c.id));
       }
       return {

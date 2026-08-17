@@ -392,6 +392,18 @@ export const updateCourseSchema = z.object({
     .partial()
     .optional(),
   // ---- Campos da PÁGINA PÚBLICA de vendas (site público SSR) ----
+  /**
+   * Curso aparece no site público (catálogo, página de venda, sitemap)?
+   *
+   * Separado de `active`, que governa o acesso do ALUNO no LMS. Antes as duas
+   * coisas eram a mesma flag, então tirar um curso da vitrine cortava o acesso
+   * de quem já estava matriculado — o que travava, por exemplo, despublicar o
+   * treinamento interno de equipe sem derrubar as 19 matrículas dele.
+   *
+   * Ausente = `true`: curso que nunca tocou nesse campo continua visível, como
+   * sempre esteve. Só `false` explícito esconde.
+   */
+  publicListed: z.boolean().optional(),
   /** Selo curto no hero, ex.: "Curso principal", "Complementar". */
   badge: z.string().max(40).optional().or(z.literal('')),
   /** Frase de efeito abaixo do título na página pública. */

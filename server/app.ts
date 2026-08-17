@@ -95,6 +95,7 @@ import {
 } from './ai/whisper';
 import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
+import { isPubliclyListed } from './public/projections';
 import * as newsRepo from './repositories/news';
 import * as podcastsRepo from './repositories/podcasts';
 import * as libraryRepo from './repositories/library';
@@ -9047,8 +9048,12 @@ export function buildApp() {
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
 
     const courses = await coursesRepo.listCourses();
+    // Mesmo portão do catálogo: curso fora da vitrine não pode ser comprado por
+    // quem descobriu o slug. Não basta `active` — ver isPubliclyListed().
     const course = courses.find(
-      (co) => (co.slug ?? String(co.id)) === v.data.courseSlug && co.active !== false,
+      (co) =>
+        (co.slug ?? String(co.id)) === v.data.courseSlug &&
+        isPubliclyListed(co as unknown as Record<string, unknown>),
     );
     if (!course) return jsonError(c, 404, 'COURSE_NOT_FOUND', 'Curso não encontrado.');
 
