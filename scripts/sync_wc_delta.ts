@@ -222,6 +222,16 @@ async function main(): Promise<void> {
     if (COMMIT) {
       await client.query('COMMIT');
       log('*** COMMIT feito. ***');
+      if (contasNovas > 0) {
+        // Este script escreve no Postgres; a credencial de login vive em
+        // `data/users.json`, no VPS. Sem o passo abaixo, essas pessoas aparecem
+        // no admin com matrícula e não conseguem entrar nem recuperar a senha.
+        log('');
+        log(`ATENÇÃO: as ${contasNovas} conta(s) criadas ainda NÃO têm credencial de login.`);
+        log('  Rode no VPS, dentro de ~/ava-pco:');
+        log('    npx tsx scripts/provision_missing_logins.ts --apply');
+        log('    pm2 restart ava-pco --update-env');
+      }
     } else {
       await client.query('ROLLBACK');
       log('DRY-RUN → ROLLBACK (nada gravado). Rode com --commit para aplicar.');
