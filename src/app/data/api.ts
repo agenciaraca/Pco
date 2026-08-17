@@ -2539,6 +2539,45 @@ export async function fetchAdminStudentStats(id: string): Promise<AdminStudentSt
   return http.get<AdminStudentStats>(`/admin/students/${encodeURIComponent(id)}/stats`);
 }
 
+/** Prazo de acesso de um aluno, curso por curso. */
+export interface CourseAccessRow {
+  courseId: string;
+  courseTitle: string;
+  enrolledAt: string | null;
+  accessMonths: number | null;
+  state: 'lifetime' | 'active' | 'expiring' | 'expired';
+  expiresAt: string | null;
+  daysLeft: number | null;
+  canStudy: boolean;
+}
+
+export async function fetchStudentCourseAccess(id: string): Promise<CourseAccessRow[]> {
+  const r = await http.get<{ courses: CourseAccessRow[] }>(
+    `/admin/students/${encodeURIComponent(id)}/course-access`,
+  );
+  return r.courses;
+}
+
+/** Extensão de acesso: some meses, crave uma data, ou isente do prazo. */
+export type ExtendAccessGrant = { months: number } | { until: string } | { lifetime: true };
+
+export async function extendStudentCourseAccess(
+  studentId: string,
+  courseId: string,
+  grant: ExtendAccessGrant,
+): Promise<{ ok: true; courseId: string; expiresAt: string | null }> {
+  return http.post(
+    `/admin/students/${encodeURIComponent(studentId)}/courses/${encodeURIComponent(courseId)}/extend`,
+    grant,
+  );
+}
+
+/** O aluno consultando o próprio prazo — alimenta o aviso de vencimento. */
+export async function fetchMyCourseAccess(): Promise<CourseAccessRow[]> {
+  const r = await http.get<{ courses: CourseAccessRow[] }>('/me/course-access');
+  return r.courses;
+}
+
 export async function deleteCourse(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/courses/${encodeURIComponent(id)}`);
 }

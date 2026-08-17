@@ -391,6 +391,19 @@ export const updateCourseSchema = z.object({
     })
     .partial()
     .optional(),
+  /**
+   * Por quantos meses a matrícula dá acesso ao curso. Ex.: 6 na Hipnoterapia,
+   * 16 na Psicanálise Clínica. Expirado, o aluno para de estudar até comprar
+   * extensão — o progresso e o histórico continuam guardados.
+   *
+   * `0`, `null` ou ausente = acesso vitalício. Nenhum curso passa a expirar só
+   * porque o campo existe: é preciso declarar o prazo.
+   *
+   * O prazo vale para matrículas NOVAS. Quem já está matriculado tem a data de
+   * fim gravada na própria matrícula, então mudar a política aqui não encurta
+   * nem estende o acesso de quem já comprou.
+   */
+  accessMonths: z.number().int().min(0).max(600).nullable().optional(),
   // ---- Campos da PÁGINA PÚBLICA de vendas (site público SSR) ----
   /**
    * Curso aparece no site público (catálogo, página de venda, sitemap)?
@@ -602,6 +615,22 @@ export const createStudentSchema = z.object({
   enrolledCourseIds: z.array(z.string().max(40)).max(50).default([]),
 });
 export type CreateStudentInput = z.infer<typeof createStudentSchema>;
+
+/**
+ * Extensão de acesso a um curso. Exatamente uma das três formas:
+ * `months` soma ao prazo, `until` crava a data, `lifetime` isenta do prazo.
+ */
+export const extendCourseAccessSchema = z
+  .object({
+    months: z.number().int().min(1).max(600).optional(),
+    until: z.string().datetime({ offset: true }).optional(),
+    lifetime: z.literal(true).optional(),
+  })
+  .refine(
+    (v) => [v.months !== undefined, v.until !== undefined, v.lifetime === true].filter(Boolean).length === 1,
+    { message: 'Informe exatamente um: months, until ou lifetime.' },
+  );
+export type ExtendCourseAccessInput = z.infer<typeof extendCourseAccessSchema>;
 
 export const updateStudentSchema = z.object({
   name: z.string().min(2).max(120).optional(),

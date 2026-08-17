@@ -392,6 +392,12 @@ export interface AdminStudentRow {
   weeklyGoalMinutes?: number;
   /** Quando o aluno se matriculou em cada curso (ISO 8601). */
   enrollmentDates?: Record<string, string>;
+  /**
+   * Fim do acesso a cada curso (ISO 8601), ou `'lifetime'` para isentar esta
+   * matrícula do prazo do curso. Ausente = ainda não aplicado, o prazo sai do
+   * `accessMonths` do curso. Ver `server/access/course-access.ts`.
+   */
+  accessExpiresByCourse?: Record<string, string>;
 }
 
 export const adminStudents: AdminStudentRow[] = [

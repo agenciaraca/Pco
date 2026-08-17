@@ -3,6 +3,7 @@ import { ArrowRight, CalendarCheck, Clock, ExternalLink, Layers, Lock, PlayCircl
 import { useCourses, useMyProgress, useCurrentStudent, useMyMentoring } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import CourseReviews from '../components/CourseReviews';
+import CourseAccessNotice from '../components/CourseAccessNotice';
 
 export default function LMSCourse() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -29,6 +30,7 @@ export default function LMSCourse() {
 
   return (
     <div className="space-y-6">
+      <CourseAccessNotice courseId={course.id} />
       <header>
         <div className="text-[11px] font-semibold uppercase tracking-wider text-pco-blue">
           Curso

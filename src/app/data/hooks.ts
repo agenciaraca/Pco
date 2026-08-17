@@ -338,6 +338,35 @@ export function useAdminStudentStats(id: string | undefined) {
   });
 }
 
+/** Prazo de acesso do aluno por curso (visão admin). */
+export function useStudentCourseAccess(id: string | undefined) {
+  return useQuery({
+    queryKey: ['student-course-access', id],
+    queryFn: () => api.fetchStudentCourseAccess(id!),
+    enabled: !!id,
+  });
+}
+
+export function useExtendStudentCourseAccess(studentId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { courseId: string; grant: api.ExtendAccessGrant }) =>
+      api.extendStudentCourseAccess(studentId!, vars.courseId, vars.grant),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['student-course-access', studentId] });
+      qc.invalidateQueries({ queryKey: ['admin-students'] });
+    },
+  });
+}
+
+/** O próprio aluno consultando seus prazos. */
+export function useMyCourseAccess() {
+  return useQuery({
+    queryKey: ['my-course-access'],
+    queryFn: () => api.fetchMyCourseAccess(),
+  });
+}
+
 export function useDeleteCourse() {
   const qc = useQueryClient();
   return useMutation({

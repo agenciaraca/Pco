@@ -63,6 +63,7 @@ import {
   updateLessonSchema,
   createStudentSchema,
   updateStudentSchema,
+  extendCourseAccessSchema,
   studentStatusEnum,
   createAssessmentSchema,
   updateAssessmentSchema,
@@ -96,6 +97,8 @@ import {
 import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
 import { isPubliclyListed } from './public/projections';
+import { courseAccessFor, accessDeniedCode, accessDeniedMessage } from './access/guard';
+import { accessFor as accessInfoFor } from './access/course-access';
 import * as newsRepo from './repositories/news';
 import * as podcastsRepo from './repositories/podcasts';
 import * as libraryRepo from './repositories/library';
@@ -1078,6 +1081,40 @@ export function buildApp() {
 
   // ---------- Progresso (usuário logado) ----------
 
+  /**
+   * Prazo de acesso do aluno, curso por curso. A interface usa isto para o
+   * aviso de "seu acesso termina em N dias" e para a tela de renovação — sem
+   * ela, o aluno só descobriria o vencimento ao levar um 403.
+   */
+  app.get('/me/course-access', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const student = await studentsRepo.findAdminStudent(u.sub);
+    if (!student) return c.json({ courses: [] });
+    const allCourses = await coursesRepo.listCourses();
+    const now = new Date();
+    const courses = (student.enrolledCourseIds ?? []).map((courseId) => {
+      const course = allCourses.find((co) => co.id === courseId);
+      const info = accessInfoFor(
+        {
+          enrolledAt: student.enrollmentDates?.[courseId] ?? student.createdAt,
+          storedExpiresAt: student.accessExpiresByCourse?.[courseId] ?? null,
+          accessMonths: (course as unknown as { accessMonths?: number | null } | undefined)
+            ?.accessMonths,
+        },
+        now,
+      );
+      return {
+        courseId,
+        courseTitle: course?.title ?? courseId,
+        enrolledAt: student.enrollmentDates?.[courseId] ?? null,
+        accessMonths:
+          (course as unknown as { accessMonths?: number | null } | undefined)?.accessMonths ?? null,
+        ...info,
+      };
+    });
+    return c.json({ courses });
+  });
+
   app.get('/me/progress', requireAuth(), async (c) => {
     const u = c.get('user')!;
     const list = await progressRepo.listForUser(u.sub);
@@ -1139,6 +1176,16 @@ export function buildApp() {
     const moduleId = typeof body.moduleId === 'string' ? body.moduleId : '';
     if (!courseId || !moduleId) {
       return jsonError(c, 400, 'INVALID_INPUT', 'courseId e moduleId são obrigatórios');
+    }
+    // Prazo de acesso: marcar aula é avançar no curso, então expirado não passa.
+    // Admin escapa para poder testar o conteúdo.
+    if (u.role === 'student') {
+      const acc = await courseAccessFor(u.sub, courseId);
+      if (!acc.canStudy) {
+        return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc), {
+          expiresAt: acc.access?.expiresAt ?? null,
+        });
+      }
     }
     // Drip: bloqueia se o módulo da aula ainda não foi liberado
     // (considera tanto data absoluta quanto relativa à matrícula).
@@ -1812,11 +1859,14 @@ export function buildApp() {
     if (!isPreview) {
       const user = c.get('user');
       if (!user) return jsonError(c, 401, 'UNAUTHORIZED', 'Login necessário.');
-      const student = await studentsRepo.findAdminStudent(user.sub);
-      const enrolled = (student?.enrolledCourseIds ?? []).includes(parentCourse.id);
       const isAdmin = user.role === 'admin' || user.role === 'superadmin';
-      if (!enrolled && !isAdmin) {
-        return jsonError(c, 403, 'FORBIDDEN', 'Acesso negado — não matriculado.');
+      if (!isAdmin) {
+        const acc = await courseAccessFor(user.sub, parentCourse.id);
+        if (!acc.canStudy) {
+          return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc), {
+            expiresAt: acc.access?.expiresAt ?? null,
+          });
+        }
       }
     }
     const transcripts =
@@ -1879,11 +1929,14 @@ export function buildApp() {
     if (!foundLesson.isPreview) {
       const user = c.get('user');
       if (!user) return jsonError(c, 401, 'UNAUTHORIZED', 'Login necessário.');
-      const student = await studentsRepo.findAdminStudent(user.sub);
-      const enrolled = (student?.enrolledCourseIds ?? []).includes(parentCourse.id);
       const isAdmin = user.role === 'admin' || user.role === 'superadmin';
-      if (!enrolled && !isAdmin) {
-        return jsonError(c, 403, 'FORBIDDEN', 'Acesso negado — não matriculado.');
+      if (!isAdmin) {
+        const acc = await courseAccessFor(user.sub, parentCourse.id);
+        if (!acc.canStudy) {
+          return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc), {
+            expiresAt: acc.access?.expiresAt ?? null,
+          });
+        }
       }
     }
     const transcripts =
@@ -5224,6 +5277,17 @@ export function buildApp() {
    */
   app.get('/me/quiz/:courseId/start', requireAuth(), async (c) => {
     const courseId = c.req.param('courseId') as string;
+    // Fazer quiz é estudar: exige matrícula viva. Antes esta rota não checava
+    // nem matrícula, então qualquer logado sorteava questões de qualquer curso.
+    const u = c.get('user')!;
+    if (u.role === 'student') {
+      const acc = await courseAccessFor(u.sub, courseId);
+      if (!acc.canStudy) {
+        return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc), {
+          expiresAt: acc.access?.expiresAt ?? null,
+        });
+      }
+    }
     const moduleId = c.req.query('moduleId') || undefined;
     const max = Math.max(1, Math.min(50, Number(c.req.query('max') ?? '10')));
     const sampled = await questionBank.sampleForQuiz(courseId, max, moduleId);
@@ -5247,6 +5311,15 @@ export function buildApp() {
    */
   app.post('/me/quiz/:courseId/grade', requireAuth(), async (c) => {
     const courseId = c.req.param('courseId') as string;
+    const grader = c.get('user')!;
+    if (grader.role === 'student') {
+      const acc = await courseAccessFor(grader.sub, courseId);
+      if (!acc.canStudy) {
+        return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc), {
+          expiresAt: acc.access?.expiresAt ?? null,
+        });
+      }
+    }
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const answers = Array.isArray(body.answers) ? body.answers : [];
     const results: Array<{
@@ -6093,6 +6166,80 @@ export function buildApp() {
    * Analytics consolidado por aluno: matrículas + watch time + progresso +
    * reviews + última atividade + achievements.
    */
+  /**
+   * Prazo de acesso do aluno por curso, para a ficha no admin.
+   */
+  app.get(
+    '/admin/students/:id/course-access',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const student = await studentsRepo.findAdminStudent(id);
+      if (!student) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+      const allCourses = await coursesRepo.listCourses();
+      const now = new Date();
+      return c.json({
+        courses: (student.enrolledCourseIds ?? []).map((courseId) => {
+          const course = allCourses.find((co) => co.id === courseId);
+          const accessMonths =
+            (course as unknown as { accessMonths?: number | null } | undefined)?.accessMonths ??
+            null;
+          return {
+            courseId,
+            courseTitle: course?.title ?? courseId,
+            enrolledAt: student.enrollmentDates?.[courseId] ?? null,
+            accessMonths,
+            ...accessInfoFor(
+              {
+                enrolledAt: student.enrollmentDates?.[courseId] ?? student.createdAt,
+                storedExpiresAt: student.accessExpiresByCourse?.[courseId] ?? null,
+                accessMonths,
+              },
+              now,
+            ),
+          };
+        }),
+      });
+    },
+  );
+
+  /**
+   * Estende o acesso de um aluno a um curso — renovação comprada por fora,
+   * cortesia, ou correção de importação.
+   *
+   * `{ months: 6 }` soma a partir do fim atual (ou de hoje, se já venceu),
+   * `{ until: '2027-01-31' }` crava a data, `{ lifetime: true }` isenta do prazo.
+   */
+  app.post(
+    '/admin/students/:id/courses/:courseId/extend',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const courseId = c.req.param('courseId') as string;
+      const body = await c.req.json().catch(() => ({}));
+      const v = validate(extendCourseAccessSchema, body);
+      if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+
+      const grant =
+        v.data.lifetime === true
+          ? ({ lifetime: true } as const)
+          : v.data.until
+            ? ({ until: v.data.until } as const)
+            : ({ months: v.data.months! } as const);
+
+      const result = await studentsRepo.extendCourseAccess(id, courseId, grant);
+      if (!result.ok) {
+        return jsonError(
+          c,
+          404,
+          'NOT_ENROLLED',
+          'Este aluno não tem matrícula neste curso — matricule antes de estender.',
+        );
+      }
+      return c.json({ ok: true, courseId, expiresAt: result.expiresAt });
+    },
+  );
+
   app.get('/admin/students/:id/analytics', requireAuth('admin', 'superadmin'), async (c) => {
     const id = c.req.param('id') as string;
     const student = await studentsRepo.findAdminStudent(id);
@@ -6848,11 +6995,13 @@ export function buildApp() {
         return jsonError(c, 400, 'INVALID_INPUT', 'courseId é obrigatório');
       }
 
-      // Aluno comum precisa estar matriculado nesse curso. Admin escapa.
+      // Aluno comum precisa estar matriculado e com acesso no prazo. Admin escapa.
       if (u.role === 'student') {
-        const s = await studentsRepo.findAdminStudent(u.sub);
-        if (!s || !(s.enrolledCourseIds ?? []).includes(courseId)) {
-          return jsonError(c, 403, 'NOT_ENROLLED', 'Apenas matriculados comentam.');
+        const acc = await courseAccessFor(u.sub, courseId);
+        if (!acc.canStudy) {
+          return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc), {
+            expiresAt: acc.access?.expiresAt ?? null,
+          });
         }
       }
 
@@ -6957,7 +7106,9 @@ export function buildApp() {
       if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
         return jsonError(c, 400, 'INVALID_RATING', 'rating deve ser inteiro 1-5');
       }
-      // Verifica matrícula
+      // Só matrícula, de propósito: quem estudou pode avaliar mesmo depois de o
+      // acesso expirar. Bloquear a avaliação de um ex-aluno silenciaria justo
+      // quem já viu o curso inteiro.
       const student = await studentsRepo.findAdminStudent(u.sub);
       if (!student || !(student.enrolledCourseIds ?? []).includes(courseId)) {
         return jsonError(

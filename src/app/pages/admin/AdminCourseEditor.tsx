@@ -412,6 +412,7 @@ function GeralPane({ course }: { course: Course }) {
       shortTitle: course.shortTitle,
       description: course.description,
       totalHours: course.totalHours,
+      accessMonths: course.accessMonths ?? null,
       certificateAvailable: course.certificateAvailable,
       coverColor: course.coverColor,
       instructorName: course.instructorName ?? '',
@@ -565,6 +566,7 @@ function GeralPane({ course }: { course: Course }) {
         shortTitle: updated.shortTitle,
         description: updated.description,
         totalHours: updated.totalHours,
+        accessMonths: updated.accessMonths ?? null,
         certificateAvailable: updated.certificateAvailable,
         coverColor: updated.coverColor,
       });
@@ -1009,6 +1011,25 @@ function GeralPane({ course }: { course: Course }) {
           </Field>
         </div>
 
+        <Field
+          label="Meses de acesso"
+          error={errors.accessMonths?.message}
+          hint="Por quanto tempo a matrícula dá acesso a este curso. Vazio ou 0 = acesso sem prazo. Vale para quem se matricular a partir de agora — quem já comprou mantém o prazo que recebeu."
+        >
+          <input
+            type="number"
+            min={0}
+            max={600}
+            placeholder="ex.: 6"
+            {...register('accessMonths', {
+              // Campo vazio precisa virar null, não NaN: NaN falha a validação
+              // sem mensagem visível e o formulário parece travado.
+              setValueAs: (v) => (v === '' || v === null ? null : Number(v)),
+            })}
+            className="pco-input max-w-[160px]"
+          />
+        </Field>
+
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-gray">
           <button
             type="button"
@@ -1019,6 +1040,7 @@ function GeralPane({ course }: { course: Course }) {
                 shortTitle: course.shortTitle,
                 description: course.description,
                 totalHours: course.totalHours,
+                accessMonths: course.accessMonths ?? null,
                 certificateAvailable: course.certificateAvailable,
                 coverColor: course.coverColor,
               })
@@ -2916,15 +2938,18 @@ function Field({
   label,
   children,
   error,
+  hint,
 }: {
   label: string;
   children: React.ReactNode;
   error?: string;
+  hint?: string;
 }) {
   return (
     <label className="block">
       <div className="text-xs font-medium text-ink-muted mb-1.5">{label}</div>
       {children}
+      {hint && <p className="mt-1 text-xs text-ink-subtle">{hint}</p>}
       {error && <p className="mt-1 text-xs text-status-danger">{error}</p>}
     </label>
   );

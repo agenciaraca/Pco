@@ -148,6 +148,11 @@ export interface Course {
     logoUrl?: string;
   };
 
+  /**
+   * Meses de acesso que a matrícula concede. 0/null/ausente = vitalício.
+   * Ver `server/access/course-access.ts`.
+   */
+  accessMonths?: number | null;
   // ---- Campos da página pública de vendas (/formacao/:slug, SSR) ----
   // Editáveis em /admin/cursos/:id → aba "Página pública". Alimentam também o
   // JSON-LD: `tldr` vira a meta description, `faqs` vira o bloco FAQPage.

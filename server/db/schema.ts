@@ -198,6 +198,13 @@ export const enrollments = pgTable(
       .references(() => courses.id, { onDelete: 'cascade' }),
     progress: integer('progress').notNull().default(0),
     enrolledAt: timestamp('enrolled_at', { withTimezone: true }).defaultNow().notNull(),
+    /**
+     * Fim do acesso desta matrícula. NULL = vitalício (ou prazo ainda não
+     * aplicado). Gravado na matrícula, não derivado na leitura, para que mudar
+     * `accessMonths` do curso não encurte o acesso de quem já comprou — e para
+     * que estender por compra seja um UPDATE nesta linha.
+     */
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
   },
   (t) => ({
     uniq: uniqueIndex('enrollments_student_course_idx').on(t.studentId, t.courseId),

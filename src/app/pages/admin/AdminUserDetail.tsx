@@ -32,7 +32,10 @@ import {
   useIssueCertificate,
   useUserTimeline,
   useAdminStudentStats,
+  useStudentCourseAccess,
+  useExtendStudentCourseAccess,
 } from '../../data/hooks';
+import type { CourseAccessRow, ExtendAccessGrant } from '../../data/api';
 import { useToast } from '../../components/Toast';
 import { Plus, Loader2 } from 'lucide-react';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
@@ -119,6 +122,7 @@ export default function AdminUserDetail() {
       icon: <TrendingUp size={14} strokeWidth={1.75} />,
       badge: enrolled.length,
     },
+    { id: 'acesso', label: 'Acesso', icon: <Calendar size={14} strokeWidth={1.75} /> },
     { id: 'risco', label: 'Risco', icon: <AlertTriangle size={14} strokeWidth={1.75} /> },
     { id: 'certificados', label: 'Certificados', icon: <Award size={14} strokeWidth={1.75} /> },
     { id: 'recursos', label: 'Tutor / POD / Biblioteca', icon: <Bot size={14} strokeWidth={1.75} /> },
@@ -240,6 +244,8 @@ export default function AdminUserDetail() {
           </div>
         </div>
       )}
+
+      {active === 'acesso' && <AccessPane studentId={student.id} />}
 
       {active === 'progresso' && (
         <div className="space-y-4">
@@ -435,6 +441,134 @@ export default function AdminUserDetail() {
       {active === 'notas' && <AdminNotesPanel studentId={student.id} />}
 
       {active === 'analytics' && <StudentAnalyticsPanel studentId={student.id} />}
+    </div>
+  );
+}
+
+/**
+ * Prazo de acesso por curso, e a renovação.
+ *
+ * A renovação é manual de propósito: a compra da extensão ainda não passa pelo
+ * gateway, então hoje o caminho é o admin confirmar o pagamento e somar os meses
+ * aqui. Quando o produto de extensão existir, ele chama o mesmo endpoint.
+ */
+function AccessPane({ studentId }: { studentId: string }) {
+  const toast = useToast();
+  const accessQ = useStudentCourseAccess(studentId);
+  const extend = useExtendStudentCourseAccess(studentId);
+  const [pending, setPending] = useState<string | null>(null);
+
+  async function apply(row: CourseAccessRow, grant: ExtendAccessGrant, descricao: string) {
+    setPending(row.courseId);
+    try {
+      const r = await extend.mutateAsync({ courseId: row.courseId, grant });
+      toast.success(
+        `Acesso atualizado — ${row.courseTitle}`,
+        r.expiresAt
+          ? `${descricao}. Agora vale até ${new Date(r.expiresAt).toLocaleDateString('pt-BR')}.`
+          : `${descricao}. Este curso passou a valer sem prazo para o aluno.`,
+      );
+    } catch (err) {
+      toast.error('Não foi possível atualizar', err instanceof Error ? err.message : 'Erro');
+    } finally {
+      setPending(null);
+    }
+  }
+
+  if (accessQ.isLoading) return <CardListSkeleton count={2} />;
+
+  const rows = accessQ.data ?? [];
+  if (rows.length === 0) {
+    return (
+      <div className="pco-card text-sm text-ink-muted">
+        Este aluno não tem matrícula em nenhum curso.
+      </div>
+    );
+  }
+
+  const rotulo: Record<CourseAccessRow['state'], { texto: string; classe: string }> = {
+    lifetime: { texto: 'Sem prazo', classe: 'bg-pco-blue/10 text-pco-blue' },
+    active: { texto: 'No prazo', classe: 'bg-status-success/10 text-status-success' },
+    expiring: { texto: 'Vence em breve', classe: 'bg-status-warning/10 text-status-warning' },
+    expired: { texto: 'Vencido', classe: 'bg-status-danger/10 text-status-danger' },
+  };
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row) => {
+        const tag = rotulo[row.state];
+        const ocupado = pending === row.courseId;
+        return (
+          <div key={row.courseId} className="pco-card">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-sm font-semibold text-pco-deep">{row.courseTitle}</div>
+                <div className="text-[11px] text-ink-subtle mt-0.5">
+                  {row.enrolledAt
+                    ? `Matriculado em ${new Date(row.enrolledAt).toLocaleDateString('pt-BR')}`
+                    : 'Data de matrícula desconhecida'}
+                  {row.accessMonths
+                    ? ` · curso dá ${row.accessMonths} ${row.accessMonths === 1 ? 'mês' : 'meses'}`
+                    : ' · curso sem prazo definido'}
+                </div>
+              </div>
+              <span className={`pco-badge ${tag.classe}`}>{tag.texto}</span>
+            </div>
+
+            <div className="mt-3 text-sm text-ink-muted">
+              {row.expiresAt ? (
+                <>
+                  Acesso até{' '}
+                  <strong className="text-pco-deep">
+                    {new Date(row.expiresAt).toLocaleDateString('pt-BR')}
+                  </strong>
+                  {row.daysLeft !== null && (
+                    <span className="text-ink-subtle">
+                      {row.daysLeft >= 0
+                        ? ` — faltam ${row.daysLeft} ${row.daysLeft === 1 ? 'dia' : 'dias'}`
+                        : ` — venceu há ${Math.abs(row.daysLeft)} ${
+                            Math.abs(row.daysLeft) === 1 ? 'dia' : 'dias'
+                          }`}
+                    </span>
+                  )}
+                </>
+              ) : (
+                'Acesso sem data de término.'
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 pt-3 border-t border-surface-gray">
+              <span className="text-[11px] uppercase tracking-wide text-ink-subtle mr-1">
+                Renovar
+              </span>
+              {[6, 12].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  disabled={ocupado}
+                  onClick={() => apply(row, { months: m }, `Somados ${m} meses`)}
+                  className="pco-btn-secondary text-xs"
+                >
+                  {ocupado ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}+
+                  {m} meses
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={ocupado}
+                onClick={() => apply(row, { lifetime: true }, 'Prazo removido')}
+                className="pco-btn-ghost text-xs"
+              >
+                Tirar o prazo
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      <p className="text-xs text-ink-subtle">
+        Renovar soma ao prazo que ainda resta. Se já venceu, conta a partir de hoje — o aluno não
+        recebe de volta os dias em que ficou sem acesso.
+      </p>
     </div>
   );
 }

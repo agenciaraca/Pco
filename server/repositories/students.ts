@@ -13,6 +13,8 @@ import type {
   CreateStudentInput,
   UpdateStudentInput,
 } from '../../shared/schemas';
+import * as coursesRepo from './courses';
+import { computeExpiry, addMonths, LIFETIME } from '../access/course-access';
 
 interface AdminStudentDto extends AdminStudentRow {}
 
@@ -151,8 +153,26 @@ export async function setStudentStatus(
 }
 
 /**
+ * Prazo de acesso declarado pelo curso, em meses. Lê `accessMonths` do curso
+ * (vive no JSONB `meta`) para calcular o fim do acesso NO MOMENTO da matrícula
+ * — depois disso, quem manda é a data gravada na matrícula.
+ */
+async function courseAccessMonths(courseId: string): Promise<number | null> {
+  const course = await coursesRepo.findCourse(courseId);
+  const months = (course as unknown as { accessMonths?: number | null } | null)?.accessMonths;
+  return typeof months === 'number' ? months : null;
+}
+
+/**
  * Adiciona courseId ao enrolledCourseIds do aluno se ainda não estiver.
  * Idempotente. Cria entrada mínima para o aluno se ele não existir como adminStudent.
+ *
+ * Grava o fim do acesso a partir do `accessMonths` do curso. Curso sem prazo
+ * declarado gera matrícula vitalícia (`expiresAt` nulo).
+ *
+ * Persiste no Postgres quando há banco — até 17/ago/2026 esta função só escrevia
+ * no JSON, então matrícula vinda de pagamento aprovado sumia em produção, que lê
+ * `enrollments` do banco.
  */
 export async function enrollInCourse(
   userId: string,
@@ -164,7 +184,40 @@ export async function enrollInCourse(
    * matricule-se agora), omita — vira new Date().
    */
   lastAccessAt?: string,
+  /**
+   * Início do acesso, quando diferente de agora — importação histórica que
+   * conhece a data real da compra. O prazo conta a partir daqui.
+   */
+  enrolledAt?: string,
 ): Promise<void> {
+  const startedAt = enrolledAt ?? new Date().toISOString();
+  const months = await courseAccessMonths(courseId);
+  const expiresAt = computeExpiry(startedAt, months);
+
+  const db = getDb();
+  if (db) {
+    // O aluno precisa existir em `students` para a FK aceitar a matrícula.
+    const exists = await db
+      .select({ id: schema.students.id })
+      .from(schema.students)
+      .where(eq(schema.students.id, userId));
+    if (exists.length === 0) return;
+    await db
+      .insert(schema.enrollments)
+      .values({
+        id: `enr-${userId}-${courseId}`,
+        studentId: userId,
+        courseId,
+        progress: 0,
+        enrolledAt: new Date(startedAt),
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      })
+      // Rematrícula não zera progresso nem reinicia prazo: quem já tem acesso
+      // segue com o que tem, e estender é trabalho de extendCourseAccess.
+      .onConflictDoNothing();
+    return;
+  }
+
   // Hidrata nome/email do users-store antes do modify (caso seja stub novo)
   const u = await usersStore.findUserById(userId);
   await adminStore.modify((rows) => {
@@ -191,10 +244,73 @@ export async function enrollInCourse(
       row.progressByCourse = { ...row.progressByCourse, [courseId]: 0 };
       row.enrollmentDates = {
         ...(row.enrollmentDates ?? {}),
-        [courseId]: new Date().toISOString(),
+        [courseId]: startedAt,
       };
+      if (expiresAt) {
+        row.accessExpiresByCourse = {
+          ...(row.accessExpiresByCourse ?? {}),
+          [courseId]: expiresAt,
+        };
+      }
     }
   });
+}
+
+/**
+ * Estende (ou encurta) o acesso de um aluno a um curso.
+ *
+ * `months` conta a partir do fim atual quando ainda há acesso, e a partir de
+ * agora quando já expirou — renovar depois do vencimento não deve devolver dias
+ * que o aluno passou sem estudar. Passe `until` para cravar uma data, ou
+ * `LIFETIME` para isentar esta matrícula do prazo do curso.
+ *
+ * Devolve o novo fim do acesso, ou null se virou vitalício. Null também quando
+ * a matrícula não existe — o chamador checa antes.
+ */
+export async function extendCourseAccess(
+  userId: string,
+  courseId: string,
+  grant: { months: number } | { until: string } | { lifetime: true },
+): Promise<{ ok: boolean; expiresAt: string | null }> {
+  const now = new Date().toISOString();
+  const nextFrom = (current: string | null): string | null => {
+    if ('lifetime' in grant) return null;
+    if ('until' in grant) return new Date(grant.until).toISOString();
+    const base = current && current > now ? current : now;
+    return addMonths(base, grant.months);
+  };
+
+  const db = getDb();
+  if (db) {
+    const rows = await db
+      .select()
+      .from(schema.enrollments)
+      .where(
+        and(eq(schema.enrollments.studentId, userId), eq(schema.enrollments.courseId, courseId)),
+      );
+    const current = rows[0];
+    if (!current) return { ok: false, expiresAt: null };
+    const next = nextFrom(current.expiresAt?.toISOString() ?? null);
+    await db
+      .update(schema.enrollments)
+      .set({ expiresAt: next ? new Date(next) : null })
+      .where(eq(schema.enrollments.id, current.id));
+    return { ok: true, expiresAt: next };
+  }
+
+  let result: { ok: boolean; expiresAt: string | null } = { ok: false, expiresAt: null };
+  await adminStore.modify((rows) => {
+    const row = rows.find((s) => s.id === userId);
+    if (!row || !row.enrolledCourseIds.includes(courseId)) return;
+    const stored = row.accessExpiresByCourse?.[courseId];
+    const next = nextFrom(stored && stored !== LIFETIME ? stored : null);
+    const map = { ...(row.accessExpiresByCourse ?? {}) };
+    if (next) map[courseId] = next;
+    else map[courseId] = LIFETIME;
+    row.accessExpiresByCourse = map;
+    result = { ok: true, expiresAt: next };
+  });
+  return result;
 }
 
 /**
@@ -205,6 +321,16 @@ export async function getEnrollmentDate(
   userId: string,
   courseId: string,
 ): Promise<string | null> {
+  const db = getDb();
+  if (db) {
+    const rows = await db
+      .select({ enrolledAt: schema.enrollments.enrolledAt })
+      .from(schema.enrollments)
+      .where(
+        and(eq(schema.enrollments.studentId, userId), eq(schema.enrollments.courseId, courseId)),
+      );
+    return rows[0]?.enrolledAt?.toISOString() ?? null;
+  }
   const all = await adminStore.getAll();
   const row = all.find((s) => s.id === userId);
   if (!row) return null;
@@ -388,6 +514,16 @@ export async function listAdminStudents(filter: StudentsFilter): Promise<AdminSt
       email: r.email ?? '',
       enrolledCourseIds: myEnrolls.map((e) => e.courseId),
       progressByCourse: Object.fromEntries(myEnrolls.map((e) => [e.courseId, e.progress])),
+      enrollmentDates: Object.fromEntries(
+        myEnrolls.map((e) => [e.courseId, e.enrolledAt.toISOString()]),
+      ),
+      // Só entra o que está gravado. Ausente não é "vitalício": é "prazo sai do
+      // accessMonths do curso" — quem decide isso é resolveExpiry().
+      accessExpiresByCourse: Object.fromEntries(
+        myEnrolls
+          .filter((e) => e.expiresAt)
+          .map((e) => [e.courseId, e.expiresAt!.toISOString()]),
+      ),
       status: r.status,
       riskScore: r.riskScore,
       lastAccessAt: r.lastAccessAt?.toISOString() ?? r.createdAt.toISOString(),
