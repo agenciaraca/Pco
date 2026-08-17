@@ -573,7 +573,18 @@ export async function applyEnrollment(
   if (norm.status === 'active') {
     // dates.startDate vem de resolveEnrollmentDates (proxy de quando o aluno
     // realmente começou) — melhor que "agora" pra lastAccessAt em import histórico.
-    await studentsRepo.enrollInCourse(userId, internalCourseId, dates.startDate);
+    //
+    // Vai também como data DA MATRÍCULA (4º argumento): é dela que sai o prazo
+    // de acesso do curso. Antes só chegava como lastAccessAt, então toda
+    // matrícula importada nascia com a data do import e o prazo contava do dia
+    // errado — em 07/jul/2026 as 1.109 matrículas de produção ficaram todas com
+    // a mesma data.
+    await studentsRepo.enrollInCourse(
+      userId,
+      internalCourseId,
+      dates.startDate,
+      dates.startDate ?? undefined,
+    );
   }
 
   // Para merge, mantém startDate mais antiga e expirationDate mais recente

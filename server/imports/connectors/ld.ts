@@ -683,6 +683,39 @@ export async function fetchLdCoursePrerequisites(
 
 // ---------- Matrículas via /courses/{id}/users ----------
 
+/**
+ * Quando cada matrícula do aluno começou, por curso.
+ *
+ * A data não vem de `/users/{id}/courses`: ali o campo `date` é a data de
+ * publicação do POST do curso (2021 para cursos antigos), não a da matrícula —
+ * confundir as duas daria a todo mundo o mesmo início. Quem tem a data por
+ * matrícula é `course-progress`, no campo `date_started`.
+ */
+async function fetchLdCourseStartDates(
+  c: ImportConnection,
+  userId: string,
+  progressSlug: string,
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    const res = await fetch(
+      `${c.siteUrl}/wp-json/ldlms/v2/users/${userId}/${progressSlug}?per_page=100`,
+      { headers: { Accept: 'application/json', ...basicAuthHeader(c) } },
+    );
+    if (!res.ok) return map;
+    const data = (await res.json()) as LdUserCourseProgress[];
+    for (const p of Array.isArray(data) ? data : []) {
+      const courseId = p.course ?? p.course_id;
+      const started = p.date_started;
+      if (courseId && started) map.set(String(courseId), started);
+    }
+  } catch {
+    // Rede instável não pode zerar a coleta: sem data, o pipeline cai no
+    // registered_date do aluno.
+  }
+  return map;
+}
+
 export async function fetchLdEnrollments(
   c: ImportConnection,
 ): Promise<Array<Record<string, unknown>>> {
@@ -692,14 +725,23 @@ export async function fetchLdEnrollments(
   // gerando enrollments fantasma cruzados (cada aluno em todos os cursos).
   // /users/{id}/courses é estritamente os cursos em que o aluno se matriculou.
   const users = await fetchWpStudents(c, 100);
+  const slugs = await getLdSlugs(c);
   const out: Array<Record<string, unknown>> = [];
   const auth = basicAuthHeader(c);
   let page = 1;
   let processed = 0;
+  let semData = 0;
 
   for (const u of users) {
     const userId = String(u.external_user_id);
     if (!userId) continue;
+    // Data por matrícula. Sem ela, todo aluno importado ficaria com a data da
+    // carga como início — e o prazo de acesso do curso contaria do dia errado.
+    const startDates = await fetchLdCourseStartDates(c, userId, slugs.userCourseProgress);
+    // Cadastro do aluno no WP: no portal o usuário nasce na compra, então serve
+    // de reserva para quem nunca abriu o curso e não tem progresso.
+    const registeredAt =
+      typeof u.registered_date === 'string' && u.registered_date ? u.registered_date : null;
     // Pagina pra cobrir alunos com muitos cursos
     page = 1;
     let totalPages = 1;
@@ -717,12 +759,16 @@ export async function fetchLdEnrollments(
         for (const co of arr) {
           const courseId = co.id;
           if (!courseId) continue;
+          const startedAt = startDates.get(String(courseId)) ?? registeredAt;
+          if (!startedAt) semData++;
           out.push({
             external_enrollment_id: `ld:${courseId}:${userId}`,
             user_external_id: userId,
             course_external_id: String(courseId),
             learndash_course_id: String(courseId),
             status: 'active',
+            // Consumido por `startRule: 'imported'` no enrollment-engine.
+            enrollment_start_date: startedAt ?? '',
           });
         }
       } catch {
@@ -735,6 +781,12 @@ export async function fetchLdEnrollments(
       // eslint-disable-next-line no-console
       console.log(`[ld:enrollments] ${processed}/${users.length} users processados, ${out.length} matrículas até agora`);
     }
+  }
+  if (semData > 0) {
+    // Silenciar isto seria o pior caso: a carga pareceria completa e o prazo de
+    // acesso dessas matrículas contaria do dia do import.
+    // eslint-disable-next-line no-console
+    console.warn(`[ld:enrollments] ${semData} matrícula(s) sem data de início — nem progresso nem registro do aluno`);
   }
   return out;
 }

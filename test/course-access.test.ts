@@ -295,6 +295,29 @@ describe('ponta a ponta: matrícula, prazo e extensão', () => {
     expect(acc.canStudy).toBe(true);
   });
 
+  it('matrícula histórica conta o prazo da data real, não do dia do import', async () => {
+    // É este caminho que o importador usa. Sem ele, aluno que comprou em 2023
+    // ganharia o prazo inteiro a partir do dia da carga — foi o que aconteceu
+    // com as 1.109 matrículas de produção em 07/jul/2026.
+    const cursos = await coursesRepo.listCourses();
+    const jaTem = new Set((await repo.findAdminStudent(ALUNO))?.enrolledCourseIds ?? []);
+    const curso = cursos.find((co) => !jaTem.has(co.id));
+    if (!curso) return; // seed pequeno: nada a provar aqui
+    await coursesRepo.updateCourse(curso.id, { accessMonths: 6 });
+
+    const compraAntiga = '2023-05-10T00:00:00.000Z';
+    await repo.enrollInCourse(ALUNO, curso.id, compraAntiga, compraAntiga);
+
+    const aluno = await repo.findAdminStudent(ALUNO);
+    expect(aluno?.enrollmentDates?.[curso.id]).toBe(compraAntiga);
+    expect(aluno?.accessExpiresByCourse?.[curso.id]).toBe(addMonths(compraAntiga, 6));
+
+    // 6 meses a partir de 2023 já venceu há muito.
+    const acc = await guard.courseAccessFor(ALUNO, curso.id);
+    expect(acc.canStudy).toBe(false);
+    expect(acc.reason).toBe('access_expired');
+  });
+
   it('não matriculado é caso diferente de expirado', async () => {
     const acc = await guard.courseAccessFor(ALUNO, 'curso-que-nao-existe');
     expect(acc.enrolled).toBe(false);

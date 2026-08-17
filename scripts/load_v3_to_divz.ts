@@ -24,6 +24,9 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import pg from 'pg';
+// Mesma soma de meses que o servidor usa — clampando fim de mês. Duplicar a
+// conta aqui daria prazos diferentes dos que a aplicação mostra.
+import { addMonths } from '../server/access/course-access';
 
 const COMMIT = process.argv.includes('--commit');
 const DB_URL = process.env.DATABASE_URL;
@@ -53,6 +56,8 @@ interface JsonStudent {
   createdAt: string;
   weeklyGoalMinutes?: number;
   totalStudyMinutes?: number;
+  /** Data real de matrícula por curso, vinda do import. */
+  enrollmentDates?: Record<string, string>;
 }
 
 async function readJson<T>(file: string): Promise<T[]> {
@@ -135,9 +140,21 @@ async function main(): Promise<void> {
     };
     log(`ANTES  → users=${before.users} students=${before.students} enrollments=${before.enrollments}`);
 
-    // cursos existentes em prod (FK das enrollments)
-    const prodCourses = new Set(
-      (await client.query('select id from courses')).rows.map((r) => String(r.id)),
+    // cursos existentes em prod (FK das enrollments) + prazo de acesso de cada
+    // um, para gravar o vencimento junto da matrícula.
+    const courseRows = (
+      await client.query("select id, (meta->>'accessMonths') as access_months from courses")
+    ).rows as Array<{ id: string; access_months: string | null }>;
+    const prodCourses = new Set(courseRows.map((r) => String(r.id)));
+    const accessMonthsByCourse = new Map<string, number>();
+    for (const r of courseRows) {
+      const m = Number(r.access_months);
+      if (Number.isFinite(m) && m > 0) accessMonthsByCourse.set(String(r.id), m);
+    }
+    log(
+      accessMonthsByCourse.size > 0
+        ? `prazo  → ${accessMonthsByCourse.size} curso(s) com meses de acesso definidos`
+        : 'prazo  → nenhum curso tem meses de acesso definidos; matrículas entram sem vencimento',
     );
 
     await client.query('BEGIN');
@@ -196,6 +213,9 @@ async function main(): Promise<void> {
     const liveStudentIds = new Set(validStudents.map((s) => s.id));
     const eRows: unknown[][] = [];
     let skipNoCourse = 0;
+    let semDataReal = 0;
+    let jaVencidas = 0;
+    const agora = new Date();
     for (const s of validStudents) {
       if (!liveStudentIds.has(s.id)) continue;
       const prog = s.progressByCourse ?? {};
@@ -205,17 +225,33 @@ async function main(): Promise<void> {
           continue;
         }
         const p = Math.max(0, Math.min(100, Math.round(Number(prog[cid] ?? 0))));
-        eRows.push([`enr-${s.id}-${cid}`, s.id, cid, p, toDate(s.createdAt)]);
+        // Data REAL da matrícula, por curso. Na carga de 07/jul/2026 usávamos
+        // `s.createdAt` aqui, que é quando o registro local foi criado — por isso
+        // as 1.109 matrículas de produção ficaram todas com a mesma data e o
+        // prazo de acesso contaria do dia do import.
+        const inicioReal = s.enrollmentDates?.[cid];
+        if (!inicioReal) semDataReal++;
+        const enrolledAt = toDate(inicioReal ?? s.createdAt);
+        const months = accessMonthsByCourse.get(cid);
+        const expiresAt = months
+          ? new Date(addMonths(enrolledAt.toISOString(), months))
+          : null;
+        if (expiresAt && expiresAt <= agora) jaVencidas++;
+        eRows.push([`enr-${s.id}-${cid}`, s.id, cid, p, enrolledAt, expiresAt]);
       }
     }
     const eIns = await batchInsert(
       client,
-      'INSERT INTO enrollments (id, student_id, course_id, progress, enrolled_at)',
-      5,
+      'INSERT INTO enrollments (id, student_id, course_id, progress, enrolled_at, expires_at)',
+      6,
       eRows,
       'ON CONFLICT (id) DO NOTHING',
     );
     log(`enroll → +${eIns} inseridas (${skipNoCourse} puladas: curso ausente em prod)`);
+    log(
+      `datas  → ${eRows.length - semDataReal} com data real de matrícula, ${semDataReal} sem (usaram a data do registro)`,
+    );
+    log(`prazo  → ${jaVencidas} matrícula(s) já entram VENCIDAS com os prazos atuais`);
 
     // conta dentro da transação (antes de decidir commit/rollback)
     const after = {
