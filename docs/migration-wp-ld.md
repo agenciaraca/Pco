@@ -431,36 +431,70 @@ apontam pros users spam.
 8. ⏳ Sync para VPS + restart
 9. ⏳ Importar secundários (112 questões, 77 posts, 1 cupom)
 
-## Como continuar de onde paramos
+## Como continuar de onde paramos (atualizado 17/ago/2026)
 
-Quando voltar nessa sessão:
+> As instruções antigas desta seção mandavam aplicar o import e depois rodar
+> `python scripts/sync_data_to_vps.py`. **Isso não funciona mais**: produção lê
+> do Postgres (DivZ) desde 03/jul/2026, e copiar `data/*.json` para o VPS não
+> muda nada no ar. O script agora aborta sozinho explicando isso.
 
-1. **Conferir se o re-coleta v3 terminou**:
-   ```bash
-   tail -5 Pco/data/migration/collect-v3.log
-   # esperado: "[migration] ==== fim collect-only em ..."
-   ```
+### O que já está feito em produção
 
-2. **Se terminou OK**, re-aplicar:
-   ```bash
-   cd Pco
-   # listar dump v3
-   ls data/migration/
-   # pegar o dir mais recente, ex: 2026-05-15T22-09-57-876Z
-   npx tsx scripts/migrate_wp_to_ava.ts --apply --from-raw=data/migration/<dir>
-   # depois lessons + products:
-   npx tsx scripts/import_lessons_and_map_products.ts
-   # depois sync pro VPS:
-   HOST=177.7.35.13 USER_NAME=avapco PORT=22 SSH_PASSWORD='<senha>' \
-     python scripts/sync_data_to_vps.py
-   ```
+- Carga v3 aplicada (07/jul): 1590 users, 601 students, 1109 matrículas.
+- Datas reais de matrícula (17/ago): de 1 data única para 409 distintas,
+  fev/2021 a jul/2026. Antes, todas carregavam a data do import.
+- Prazo de acesso por curso existe no schema (`courses.meta.accessMonths` +
+  `enrollments.expires_at`), mas **nenhum curso declarou meses**, então nada
+  expira até o dono definir.
 
-3. **Pendências de importação** (tasks #17, #18, #19 no TaskList):
-   - 112 questões LD → `data/question-bank.json`
-   - 77 posts WP → `data/news.json`
-   - 1 cupom WC → `data/coupons.json`
+### A origem encolheu — leia antes de recarregar
 
-4. **Credenciais** (não-rotacionadas até final do projeto):
-   - WP Application Passwords (portal + psi): `Pco/.env.import` (gitignored)
-   - VPS SSH: `avapco@177.7.35.13:22` — senha em ambiente local do owner
-     (mesma senha do AVA superadmin `admin@psicanaliseclinica.online`)
+O WordPress do portal **deletou 160 pessoas** entre julho e agosto (52
+desistentes, 35 inadimplentes, 7 reembolsados, 6 inativos, 14 alunos ativos).
+Elas continuam em produção com 256 matrículas, 97 com progresso real.
+
+Por isso **a fonte de verdade da recarga é o dump de 07/jul**
+(`data/migration/2026-07-07T05-43-54-830Z/`), não a coleta ao vivo — só o dump
+ainda tem essas pessoas. E por isso o loader deixou de fazer wipe-and-reload.
+
+### Sequência atual
+
+```bash
+# 1. (se for re-coletar) o connector já traz a data real da matrícula
+npx tsx scripts/migrate_wp_to_ava.ts --collect-only
+
+# 2. corrigir datas de matrícula a partir de um dump já existente
+npx tsx scripts/backfill_enrollment_dates.ts --from-raw=data/migration/<ts> --apply
+
+# 3. backup de produção ANTES de qualquer escrita
+DATABASE_URL=<divz> npx tsx scripts/backup_divz_students.ts
+
+# 4. ensaio (transação com ROLLBACK, só conta) e depois a aplicação
+DATABASE_URL=<divz> npx tsx scripts/load_v3_to_divz.ts
+DATABASE_URL=<divz> npx tsx scripts/load_v3_to_divz.ts --commit
+
+# 5. vendas novas da loja, que não passam pelo LearnDash
+DATABASE_URL=<divz> npx tsx scripts/sync_wc_delta.ts --commit
+```
+
+O loader casa por **e-mail** (os ids locais mudam a cada import), faz upsert,
+nunca regride progresso, e marca como inativo quem não veio na fonte em vez de
+apagar — `--purge-missing` para o comportamento destrutivo, explicitamente.
+
+### Pendências de importação
+
+- 112 questões LD → não há tabela `question_bank` no Postgres
+- 1 cupom WC → não há tabela `coupons` no Postgres
+- Pedidos/produtos WC → não há tabela `orders` no Postgres
+- 77 posts WP → **já estão** em `news_articles`
+
+Os três primeiros precisam de decisão: criar as tabelas e migrar, ou assumir que
+ficam fora da v1. Importar para JSON hoje é importar para lugar nenhum.
+
+### Credenciais
+
+- WP Application Passwords (portal + psi): `.env.import` (gitignored)
+- Servidor: atalho `vps` (root, chave `enlevo_vps195`) → `195.200.0.253`;
+  comandos da app via `sudo -u avapco -i`. O host `177.7.35.13` está morto.
+- `DATABASE_URL` do DivZ: no `.env` do VPS. **Pendente de rotação** — passou por
+  chat em julho.

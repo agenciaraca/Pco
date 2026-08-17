@@ -3,7 +3,7 @@
 # AVA PCO — script de provisionamento e deploy para VPS Ubuntu/Debian
 # ============================================================================
 # Uso:
-#   1. SSH no VPS:   ssh avapco@177.7.35.13
+#   1. SSH no VPS:   ssh vps   (195.200.0.253 — o host 177.7.35.13 está morto)
 #   2. Rode:         curl -fsSL <url-raw-deste-arquivo> | bash
 #      OU manual:    bash deploy.sh
 #

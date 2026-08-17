@@ -109,20 +109,25 @@ Sempre rodar a partir de `Pco/`. As três fases são separadas:
      (~86 questões com enunciado mas SEM answers — postmeta LD não
      exposto via REST).
 
-  7. SYNC + RESTART VPS (sempre nessa ordem):
-       HOST=177.7.35.13 USER_NAME=avapco PORT=22 SSH_PASSWORD='...' \
-         SKIP_RESTART=1 python scripts/sync_data_to_vps.py
-       HOST=177.7.35.13 USER_NAME=avapco PORT=22 SSH_PASSWORD='...' \
-         python scripts/restart_vps.py
+  7. CARGA EM PRODUÇÃO — via Postgres, NÃO via cópia de JSON.
 
-     Use SKIP_RESTART=1 no sync porque o restart embarcado do sync_data
-     tem hang conhecido (pkill mata o canal SSH). restart_vps.py usa
-     setsid + nohup pra detachar corretamente.
+     Desde 03/jul/2026 produção lê do Postgres (DivZ). sync_data_to_vps.py
+     não afeta mais o que está no ar e hoje aborta sozinho avisando disso.
+
+       DATABASE_URL=<divz> npx tsx scripts/backup_divz_students.ts
+       DATABASE_URL=<divz> npx tsx scripts/load_v3_to_divz.ts           # ensaio
+       DATABASE_URL=<divz> npx tsx scripts/load_v3_to_divz.ts --commit
+       DATABASE_URL=<divz> npx tsx scripts/sync_wc_delta.ts --commit    # vendas da loja
+
+     O loader reconcilia por e-mail: upsert, progresso nunca regride, e quem
+     não veio na fonte é marcado inativo em vez de apagado.
 
   8. Para deploy de mudanças de código (não dados):
        git push origin main
-       HOST=... SSH_PASSWORD='...' python scripts/update_vps_pwd.py
-     (faz git pull + npm install + build + restart no VPS)
+       ssh vps 'sudo -u avapco -i bash -c "cd ~/ava-pco && git fetch --all -q \
+         && git reset --hard origin/main && npm install --legacy-peer-deps \
+         && npm run build && pm2 restart ava-pco --update-env"'
+     (o host antigo 177.7.35.13 está morto; o atual é 195.200.0.253)
 
 ----------------------------------------------------------------------------
 OS 4 BUGS QUE PEGARAM A V2 (NÃO REPITA)

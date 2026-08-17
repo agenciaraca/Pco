@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 """
-Sincroniza data/*.json locais (gerados pela migração WP/LD/WC) para o VPS
-de produção. Faz backup do data/ remoto antes, copia só os arquivos
-relevantes, valida contagens e reinicia o app.
+OBSOLETO desde 2026-07-03 — NÃO use para migrar dados.
 
-Uso:
-  HOST=177.7.35.13 USER_NAME=avapco PORT=22 SSH_PASSWORD='...' \
+Produção passou a ler do Postgres (DivZ) naquela data. Copiar `data/*.json`
+para o VPS deixou de afetar o que o AVA mostra: o app nem abre esses arquivos
+enquanto houver DATABASE_URL. Rodar isto dá a impressão de ter sincronizado
+alunos, matrículas e pedidos, e não sincroniza nada.
+
+O caminho certo para alunos/matrículas é `scripts/load_v3_to_divz.ts`, que
+escreve no Postgres reconciliando por e-mail. Para as vendas novas da loja,
+`scripts/sync_wc_delta.ts`.
+
+O script segue aqui porque o VPS ainda guarda alguns JSONs de runtime, e um dia
+pode ser útil para copiá-los. Para rodar assim mesmo, passe SEI_O_QUE_FACO=1.
+
+Uso (legado):
+  SEI_O_QUE_FACO=1 HOST=195.200.0.253 USER_NAME=avapco PORT=22 SSH_PASSWORD='...' \
     python scripts/sync_data_to_vps.py
 
 Flags opcionais:
@@ -126,6 +136,17 @@ def count_entries(local_path: Path) -> int:
 # ---------- Main ----------
 
 def main() -> None:
+    # Guarda contra o pior caso: alguém rodar isto achando que está migrando
+    # alunos para produção. Desde 2026-07-03 o AVA lê do Postgres, e o efeito
+    # real seria zero — com aparência de sucesso.
+    if not os.environ.get('SEI_O_QUE_FACO'):
+        print('ABORTADO: este script NÃO migra dados para produção desde 2026-07-03.')
+        print('  Produção lê do Postgres (DivZ); copiar data/*.json não muda nada no ar.')
+        print('  Alunos e matrículas  → npx tsx scripts/load_v3_to_divz.ts')
+        print('  Vendas novas da loja → npx tsx scripts/sync_wc_delta.ts')
+        print('  Para copiar JSON assim mesmo, rode com SEI_O_QUE_FACO=1.')
+        sys.exit(2)
+
     print(f'== AVA PCO sync data → {host} ==')
     print(f'  local: {LOCAL_DATA}')
     print(f'  remote: {REMOTE_DATA}')

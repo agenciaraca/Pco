@@ -54,7 +54,7 @@ if 'MISSING' in env_out or not env_out.strip().startswith('DATABASE_URL='):
     print("""
     1. Crie projeto Neon em https://console.neon.tech (free tier basta)
     2. Copie a connection string (formato: postgres://USER:PASS@HOST/db?sslmode=require)
-    3. SSH no servidor: ssh avapco@177.7.35.13
+    3. SSH no servidor: ssh vps  (195.200.0.253; app via sudo -u avapco)
     4. echo 'DATABASE_URL=postgres://...' >> ~/ava-pco/.env
     5. chmod 600 ~/ava-pco/.env
     6. Re-rode este script.
