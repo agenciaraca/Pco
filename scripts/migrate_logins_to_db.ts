@@ -87,7 +87,24 @@ async function main(): Promise<void> {
       await client.query('select id, lower(email) as email, password_hash from users')
     ).rows as Array<{ id: string; email: string; password_hash: string | null }>;
     const idPorEmail = new Map(existentes.map((r) => [r.email, r.id]));
+    const emailPorId = new Map(existentes.map((r) => [r.id, r.email]));
     log(`contas no banco: ${existentes.length} · com senha já preenchida: ${existentes.filter((r) => r.password_hash).length}`);
+
+    // Um id do arquivo pode já pertencer a OUTRA pessoa no banco — as duas
+    // bases nasceram separadas e cada uma gerou id do seu jeito. Inserir por
+    // cima estouraria a chave primária (foi o que aconteceu na primeira
+    // tentativa), e pior: se passasse, misturaria duas contas. Nesses casos a
+    // conta entra com id próprio, prefixado, e o script diz quantas foram.
+    let idsRemapeados = 0;
+    const idParaGravar = (u: LoginUser): string => {
+      const email = u.email.toLowerCase();
+      const doBanco = idPorEmail.get(email);
+      if (doBanco) return doBanco;
+      const dono = emailPorId.get(u.id);
+      if (!dono || dono === email) return u.id;
+      idsRemapeados++;
+      return `auth-${u.id}`;
+    };
 
     await client.query('BEGIN');
 
@@ -95,7 +112,7 @@ async function main(): Promise<void> {
     let inseridas = 0;
     for (const u of logins) {
       const email = u.email.toLowerCase();
-      const id = idPorEmail.get(email) ?? u.id;
+      const id = idParaGravar(u);
       const valores = [
         id,
         email,
@@ -147,6 +164,9 @@ async function main(): Promise<void> {
     ).rows[0].n as number;
 
     log(`credenciais gravadas: ${atualizadas} em conta existente · ${inseridas} conta(s) nova(s)`);
+    if (idsRemapeados > 0) {
+      log(`AVISO: ${idsRemapeados} conta(s) entraram com id prefixado porque o id do arquivo já era de outra pessoa no banco`);
+    }
     log(`estado final: ${comSenha} com senha · ${semSenha} sem senha (entram pelo "esqueci minha senha")`);
 
     if (APPLY) {
