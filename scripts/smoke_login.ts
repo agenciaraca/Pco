@@ -52,7 +52,7 @@ async function main(): Promise<void> {
     });
     log(`conta criada: ${criada.id}`);
     log(`SENHA=${senha}`);
-    log('agora: pm2 restart ava-pco --update-env  →  SENHA=... npx tsx scripts/smoke_login.ts --testar');
+    log('agora: reinicie o app e rode o mesmo script com --testar, passando a senha acima na variável de ambiente');
     return;
   }
 

@@ -46,7 +46,7 @@ async function main(): Promise<void> {
     log(`conta: ${u.id}`);
     log(`TOKEN=${t.token}`);
     log(`vale até: ${new Date(t.expiresAt).toISOString()}`);
-    log('agora: pm2 restart ava-pco --update-env  →  TOKEN=... npx tsx scripts/smoke_reset_senha.ts --testar');
+    log('agora: reinicie o app e rode o mesmo script com --testar, passando o token acima na variável de ambiente');
     return;
   }
 
