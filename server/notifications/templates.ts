@@ -186,6 +186,54 @@ export function renderWelcome(opts: {
   return { subject, html, text };
 }
 
+// ---------- Primeiro acesso (migração de plataforma) ----------
+
+/**
+ * Convite de primeiro acesso para quem já era aluno antes do AVA existir.
+ *
+ * Não é "esqueci minha senha" nem "bem-vindo": a pessoa não pediu nada e não é
+ * nova — ela já estudava, e a plataforma é que mudou. O texto precisa dizer isso
+ * na primeira linha, senão o e-mail parece phishing ou engano e vai para a
+ * lixeira. Por isso o assunto fala do curso, e o corpo diz o que foi preservado.
+ *
+ * Nunca leva senha dentro. O link define a senha que a própria pessoa escolher.
+ */
+export function renderPrimeiroAcesso(opts: {
+  userName?: string;
+  setPasswordUrl: string;
+  expiresInDays: number;
+  courseNames?: string[];
+  override?: { subject?: string } & LayoutOverride;
+}): RenderResult {
+  const subject = opts.override?.subject || 'Seu acesso aos cursos mudou de endereço — ative aqui';
+  const cursos =
+    opts.courseNames && opts.courseNames.length > 0
+      ? `<p>Seus cursos continuam com você:</p><ul>${opts.courseNames
+          .map((c) => `<li>${escapeHtml(c)}</li>`)
+          .join('')}</ul>`
+      : '';
+  const html = layout({
+    heading: 'Ative seu acesso ao novo ambiente',
+    body: `
+      <p>Olá${opts.userName ? `, ${escapeHtml(opts.userName)}` : ''},</p>
+      <p>A Psicanálise Clínica Online passou a usar um ambiente de estudos novo, e a sua conta já está lá — com o seu histórico e o seu progresso.</p>
+      ${cursos}
+      <p>Para entrar a primeira vez, defina sua senha no botão abaixo. Você não precisa da senha antiga.</p>
+      <p style="font-size:13px;color:#666;">O link vale por <strong>${opts.expiresInDays} dias</strong>. Depois disso, use a opção "Esqueci minha senha" na tela de entrada.</p>
+    `,
+    cta: { url: opts.setPasswordUrl, label: 'Definir minha senha' },
+    override: opts.override,
+  });
+  const text = `Olá${opts.userName ? `, ${opts.userName}` : ''}.
+
+A Psicanálise Clínica Online passou a usar um ambiente de estudos novo, e a sua conta já está lá, com seu histórico e progresso.
+
+Defina sua senha para entrar a primeira vez: ${opts.setPasswordUrl}
+
+O link vale por ${opts.expiresInDays} dias. Depois disso, use "Esqueci minha senha" na tela de entrada.`;
+  return { subject, html, text };
+}
+
 // ---------- Generic / preview ----------
 
 export function previewTemplate(
