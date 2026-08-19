@@ -1,21 +1,22 @@
 /**
- * Smoke test do login pela porta da frente: cria uma conta descartável, faz
- * POST /auth/login por HTTP contra o processo que está no ar, confere o token e
- * apaga a conta.
+ * Smoke test do login pela porta da frente, contra o processo que está no ar.
  *
- * O verificador de backend prova que o store autentica; este prova que a
- * aplicação em execução autentica — que é outra coisa, porque o processo tem o
- * store carregado em memória desde o boot e pode estar servindo um estado
- * diferente do que está gravado.
+ * Em duas fases, e o motivo é o próprio desenho do store: a aplicação carrega a
+ * lista de contas para a memória no boot e só relê ao reiniciar. Conta criada
+ * por outro processo — como este script — não existe para quem está servindo até
+ * o restart. Vale para os dois backends; não é peculiaridade do banco.
  *
  * Uso (no VPS, dentro de ~/ava-pco):
- *   DATABASE_URL=... AUTH_STORE=db npx tsx scripts/smoke_login.ts
- *   BASE=http://127.0.0.1:3035 npx tsx scripts/smoke_login.ts
+ *   npx tsx scripts/smoke_login.ts --preparar      # cria a conta, imprime a senha
+ *   pm2 restart ava-pco --update-env              # o processo passa a enxergá-la
+ *   SENHA=<a senha> npx tsx scripts/smoke_login.ts --testar
  */
 
 import * as store from '../server/auth/users-store';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:3035';
+const PREPARAR = process.argv.includes('--preparar');
+const TESTAR = process.argv.includes('--testar');
 const EMAIL = 'smoke.login@pco.local';
 const log = (m: string) => console.log(`[smoke-login] ${m}`);
 
@@ -30,18 +31,43 @@ function checa(cond: boolean, desc: string): void {
 
 async function main(): Promise<void> {
   log(`alvo: ${BASE} · backend: ${process.env.AUTH_STORE === 'db' ? 'banco' : 'arquivo'}`);
-  const senha = store.generatePassword(20);
+
+  if (!PREPARAR && !TESTAR) {
+    log('informe --preparar ou --testar (veja o cabeçalho do arquivo)');
+    process.exitCode = 1;
+    return;
+  }
 
   await store.loadUsers();
-  const antiga = await store.findUserByEmail(EMAIL);
-  if (antiga) await store.deleteUser(antiga.id);
-  const criada = await store.createUser({
-    email: EMAIL,
-    name: 'Smoke de login',
-    role: 'student',
-    password: senha,
-  });
-  log(`conta de teste criada: ${criada.id}`);
+
+  if (PREPARAR) {
+    const senha = store.generatePassword(20);
+    const antiga = await store.findUserByEmail(EMAIL);
+    if (antiga) await store.deleteUser(antiga.id);
+    const criada = await store.createUser({
+      email: EMAIL,
+      name: 'Smoke de login',
+      role: 'student',
+      password: senha,
+    });
+    log(`conta criada: ${criada.id}`);
+    log(`SENHA=${senha}`);
+    log('agora: pm2 restart ava-pco --update-env  →  SENHA=... npx tsx scripts/smoke_login.ts --testar');
+    return;
+  }
+
+  const senha = process.env.SENHA;
+  if (!senha) {
+    log('defina SENHA=<a senha impressa no --preparar>');
+    process.exitCode = 1;
+    return;
+  }
+  const criada = await store.findUserByEmail(EMAIL);
+  if (!criada) {
+    log('conta de teste não existe — rode --preparar primeiro');
+    process.exitCode = 1;
+    return;
+  }
 
   try {
     const r = await fetch(`${BASE}/api/auth/login`, {
