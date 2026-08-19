@@ -1,5 +1,41 @@
 # Segurança
 
+## Onde mora a credencial (AUTH_STORE)
+
+O login tem dois backends com a mesma interface:
+
+| `AUTH_STORE` | Persistência | Quando usar |
+|---|---|---|
+| ausente (padrão) | `data/users.json`, modo 0600 | dev local, e qualquer ambiente sem Postgres |
+| `db` | colunas de credencial da tabela `users` | produção — **ligado em 19/ago/2026** |
+
+Até essa data, credencial e aluno viviam em bases separadas e nada as
+sincronizava: quem entrava por um caminho que escrevia só no banco — a carga da
+migração, o sincronizador da loja — aparecia no admin com matrícula e não
+conseguia fazer login. Foram 63 pessoas assim, 24 delas com progresso real.
+
+Ordem para virar (e para voltar):
+
+```bash
+DATABASE_URL=... npx tsx scripts/migrate_logins_to_db.ts          # ensaio
+DATABASE_URL=... npx tsx scripts/migrate_logins_to_db.ts --apply
+AUTH_STORE=db no .env  →  pm2 restart ava-pco --update-env
+DATABASE_URL=... AUTH_STORE=db npx tsx scripts/verify_auth_backend.ts
+npx tsx scripts/smoke_login.ts --preparar  →  restart  →  SENHA=... --testar
+```
+
+Para reverter: **remova a variável e reinicie**. O `data/users.json` continua
+onde estava, congelado no estado da virada — por isso ele não foi apagado.
+
+Duas coisas que valem saber:
+
+- A aplicação lê a lista de contas para a memória **no boot**. Conta criada por
+  outro processo (script, SQL direto) só existe para quem está servindo depois de
+  um restart. Vale para os dois backends.
+- No modo banco, `scripts/audit_login_vs_db.ts` perde o sentido: ele compara o
+  JSON com a tabela, e a tabela passou a ser a única fonte. O check
+  `alunos-sem-login` do painel de saúde continua valendo.
+
 ## Visão geral
 
 | Recurso | Onde |
