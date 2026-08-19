@@ -904,9 +904,14 @@ export function buildApp() {
     }
     const u = await usersStore.findUserByEmail(v.data.email);
     if (u && u.active) {
-      const token = createResetToken(u.id, u.email);
-      // eslint-disable-next-line no-console
-      console.log(`[forgot-password] reset token para ${u.email}: ${token.token}`);
+      const token = await createResetToken(u.id, u.email);
+      if (process.env.NODE_ENV !== 'production') {
+        // Nunca em produção: o token dá para trocar a senha de qualquer conta
+        // por 30 minutos, e quem lê o log da aplicação passaria a poder fazer
+        // isso com as 1.600 contas de uma vez, no dia do convite em massa.
+        // eslint-disable-next-line no-console
+        console.log(`[forgot-password] reset token para ${u.email}: ${token.token}`);
+      }
       const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
       const resetUrl = `${base}/redefinir-senha?token=${encodeURIComponent(token.token)}`;
       const tpl = renderPasswordReset({
@@ -933,7 +938,7 @@ export function buildApp() {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(resetPasswordSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const tokenEntry = consumeResetToken(v.data.token);
+    const tokenEntry = await consumeResetToken(v.data.token);
     if (!tokenEntry) {
       return jsonError(c, 400, 'INVALID_TOKEN', 'Token inválido ou expirado.');
     }
@@ -9285,7 +9290,7 @@ export function buildApp() {
       // Conta nova: e-mail para definir senha (best-effort).
       if (isNewAccount) {
         try {
-          const token = createResetToken(user.id, user.email);
+          const token = await createResetToken(user.id, user.email);
           const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
           const resetUrl = `${base}/redefinir-senha?token=${encodeURIComponent(token.token)}`;
           const tpl = renderPasswordReset({ userName: user.name, resetUrl, expiresInMinutes: 60 });

@@ -113,6 +113,32 @@ export const users = pgTable(
   }),
 );
 
+// ---------- Tokens de redefinição de senha ----------
+
+/**
+ * Vive no banco porque o convite inicial de 1.600 alunos não pode depender de o
+ * processo não reiniciar: até 19/ago/2026 estes tokens moravam num Map em
+ * memória, e qualquer deploy invalidava todos os links já enviados — o aluno
+ * clicava e via "token inválido", sem ninguém entender por quê.
+ *
+ * `used_at` marca consumo em vez de apagar a linha: um link reutilizado precisa
+ * ser distinguível de um link que nunca existiu quando alguém for investigar.
+ */
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    token: text('token').primaryKey(),
+    userId: text('user_id').notNull(),
+    email: text('email').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+  },
+  (t) => ({
+    userIdx: index('password_reset_tokens_user_idx').on(t.userId),
+  }),
+);
+
 // ---------- Students ----------
 
 export const students = pgTable('students', {
