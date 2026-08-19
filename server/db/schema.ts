@@ -86,6 +86,27 @@ export const users = pgTable(
     avatarUrl: text('avatar_url'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    /**
+     * Credencial e segurança da conta. Até 19/ago/2026 isso vivia só em
+     * `data/users.json`, separado da pessoa — quem entrava por um caminho que
+     * escrevia apenas no banco aparecia no admin com matrícula e não conseguia
+     * fazer login. Estas colunas existem para acabar com as duas fontes.
+     *
+     * `password_hash` é nulo enquanto a conta não tiver senha definida: é o
+     * caso de quem veio da importação e precisa passar pelo "esqueci minha
+     * senha" para entrar a primeira vez.
+     */
+    passwordHash: text('password_hash'),
+    tokenVersion: integer('token_version').notNull().default(0),
+    active: boolean('active').notNull().default(true),
+    customRoleSlug: text('custom_role_slug'),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    document: text('document'),
+    onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true }),
+    totpEnabled: boolean('totp_enabled').notNull().default(false),
+    totpSecretEncrypted: text('totp_secret_encrypted'),
+    /** Hashes sha256 dos códigos de backup do 2FA — nunca os códigos em claro. */
+    totpBackupCodes: jsonb('totp_backup_codes').$type<string[]>(),
   },
   (t) => ({
     emailIdx: uniqueIndex('users_email_idx').on(t.email),

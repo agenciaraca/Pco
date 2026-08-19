@@ -1,10 +1,22 @@
-// Store de usuários do sistema (logins) — persiste em JSON local.
-// Quando plugarmos Postgres, a interface fica idêntica e migramos só o backend.
+// Store de usuários do sistema (logins).
+//
+// Dois backends, mesma interface — como o resto do projeto. Por padrão persiste
+// em `data/users.json`; com AUTH_STORE=db e DATABASE_URL presente, persiste nas
+// colunas de credencial da tabela `users` do Postgres.
+//
+// Por que a flag existe em vez de simplesmente seguir o hasDb(): virar a chave
+// sem os dados migrados deixaria todo mundo sem conseguir entrar. A ordem é
+// migrar (scripts/migrate_logins_to_db.ts), conferir, e só então ligar.
+//
+// A lista vive em memória e `persist()` é o único ponto de escrita — por isso a
+// troca de backend não toca nenhuma das funções de negócio abaixo.
 
 import bcrypt from 'bcryptjs';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { inArray } from 'drizzle-orm';
+import { getDb, schema } from '../db/client';
 
 export type Role = 'student' | 'admin' | 'superadmin';
 
@@ -88,7 +100,94 @@ export function toPublic(u: SystemUser): SystemUserPublic {
   return rest;
 }
 
+/** O backend do Postgres só entra quando pedido E disponível. */
+function usingDb(): boolean {
+  return process.env.AUTH_STORE === 'db' && getDb() !== null;
+}
+
+type UserRow = typeof schema.users.$inferInsert;
+
+function toRow(u: SystemUser): UserRow {
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: u.role,
+    avatarUrl: u.avatarUrl ?? null,
+    createdAt: new Date(u.createdAt),
+    updatedAt: new Date(u.updatedAt),
+    passwordHash: u.passwordHash,
+    tokenVersion: u.tokenVersion,
+    active: u.active,
+    customRoleSlug: u.customRoleSlug ?? null,
+    lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : null,
+    document: u.document ?? null,
+    onboardingCompletedAt: u.onboardingCompletedAt ? new Date(u.onboardingCompletedAt) : null,
+    totpEnabled: u.totpEnabled ?? false,
+    totpSecretEncrypted: u.totpSecretEncrypted ?? null,
+    totpBackupCodes: u.totpBackupCodes ?? null,
+  };
+}
+
+function fromRow(r: typeof schema.users.$inferSelect): SystemUser {
+  return {
+    id: r.id,
+    email: r.email,
+    name: r.name,
+    role: r.role,
+    customRoleSlug: r.customRoleSlug,
+    // Conta sem senha ainda não pode entrar; bcrypt.compare contra string vazia
+    // falha, que é o comportamento correto para quem veio da importação e
+    // precisa passar pelo "esqueci minha senha".
+    passwordHash: r.passwordHash ?? '',
+    tokenVersion: r.tokenVersion,
+    avatarUrl: r.avatarUrl,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+    lastLoginAt: r.lastLoginAt?.toISOString(),
+    active: r.active,
+    document: r.document,
+    onboardingCompletedAt: r.onboardingCompletedAt?.toISOString() ?? null,
+    totpEnabled: r.totpEnabled,
+    totpSecretEncrypted: r.totpSecretEncrypted ?? undefined,
+    totpBackupCodes: r.totpBackupCodes ?? undefined,
+  };
+}
+
+/**
+ * Retrato da última gravação, para saber o que mudou.
+ *
+ * Sem isto, cada operação — inclusive um login, que só carimba lastLoginAt —
+ * reescreveria as 1.600 linhas da tabela. O JSON já se dava ao luxo de
+ * reescrever o arquivo inteiro; o banco não precisa herdar esse hábito.
+ */
+let lastPersisted = new Map<string, string>();
+
+async function persistToDb(): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  const atual = new Map(users.map((u) => [u.id, JSON.stringify(u)]));
+  const mudados = users.filter((u) => lastPersisted.get(u.id) !== atual.get(u.id));
+  const removidos = [...lastPersisted.keys()].filter((id) => !atual.has(id));
+
+  for (const u of mudados) {
+    const row = toRow(u);
+    await db
+      .insert(schema.users)
+      .values(row)
+      .onConflictDoUpdate({ target: schema.users.id, set: row });
+  }
+  if (removidos.length > 0) {
+    await db.delete(schema.users).where(inArray(schema.users.id, removidos));
+  }
+  lastPersisted = atual;
+}
+
 async function persist(): Promise<void> {
+  if (usingDb()) {
+    await persistToDb();
+    return;
+  }
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2) + '\n', { mode: 0o600 });
 }
@@ -103,7 +202,26 @@ function queueWrite(): Promise<void> {
 
 export async function loadUsers(): Promise<void> {
   if (loaded) return;
+
+  if (usingDb()) {
+    const db = getDb()!;
+    const rows = await db.select().from(schema.users);
+    if (rows.length > 0) {
+      users = rows.map(fromRow);
+      lastPersisted = new Map(users.map((u) => [u.id, JSON.stringify(u)]));
+      loaded = true;
+      return;
+    }
+    // Tabela vazia: cai no seed abaixo, que grava pelo persist() — já no banco.
+    // Não lê o JSON de propósito: importar credencial é trabalho do script de
+    // migração, com conferência, e não de um efeito colateral do primeiro boot.
+  }
+  // Backend de arquivo: lê o JSON. No modo banco com a tabela vazia, cai direto
+  // no seed abaixo — ler o JSON aqui importaria credencial pela porta dos
+  // fundos, sem conferência, que é justamente o que o script de migração faz
+  // com cuidado.
   try {
+    if (usingDb()) throw new Error('modo banco: pula o arquivo');
     const raw = await fs.readFile(USERS_FILE, 'utf8');
     const parsed = JSON.parse(raw) as SystemUser[];
     // Normaliza campos novos para registros antigos
