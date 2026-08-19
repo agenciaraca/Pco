@@ -1,6 +1,7 @@
 // Health check agregado para admin. Combina sinais de todos os módulos
 // (gateways, e-mail, webhooks, AI, erros recentes, disco) em um único snapshot.
 
+import { eq } from 'drizzle-orm';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import * as gatewaysRepo from '../payments/gateways-repo';
@@ -10,7 +11,8 @@ import * as webhookEndpoints from '../webhooks/endpoints-store';
 import * as webhookDeliveries from '../webhooks/delivery-store';
 import * as aiConfigs from '../repositories/ai-configs';
 import { listErrors } from '../errors/store';
-import { hasDb } from '../db/client';
+import { hasDb, getDb, schema } from '../db/client';
+import * as usersStore from '../auth/users-store';
 
 export type HealthStatus = 'ok' | 'warn' | 'error' | 'na';
 
@@ -198,7 +200,40 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     // ignora
   }
 
-  // 9) Disk usage (data dir)
+  // 9) Aluno sem credencial de login
+  //
+  // Credencial e aluno moram em lugares diferentes: a senha vive no store de
+  // usuários e a pessoa como aluno vive no Postgres. Quem entra por um caminho
+  // que escreve só no banco — carga da migração, sincronizador da loja — fica
+  // visível no admin, com matrícula, e não consegue entrar. Em 17/ago/2026 eram
+  // 63 pessoas assim, e nada no sistema denunciava. Este check denuncia.
+  try {
+    const db = getDb();
+    if (db) {
+      const alunosDb = await db
+        .select({ email: schema.users.email })
+        .from(schema.users)
+        .where(eq(schema.users.role, 'student'));
+      const comCredencial = new Set(
+        (await usersStore.listUsers()).map((u) => u.email.toLowerCase()),
+      );
+      const semLogin = alunosDb.filter((r) => !comCredencial.has((r.email ?? '').toLowerCase()));
+      checks.push({
+        id: 'alunos-sem-login',
+        label: 'Alunos sem credencial',
+        status: semLogin.length === 0 ? 'ok' : 'error',
+        message:
+          semLogin.length === 0
+            ? 'todo aluno do banco consegue tentar entrar'
+            : `${semLogin.length} aluno(s) aparecem no admin e NÃO conseguem entrar — rode scripts/provision_missing_logins.ts`,
+        metric: semLogin.length,
+      });
+    }
+  } catch {
+    // ignora
+  }
+
+  // 10) Disk usage (data dir)
   try {
     const usage = await diskUsage(DATA_DIR);
     checks.push({
