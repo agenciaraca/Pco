@@ -69,7 +69,9 @@ export default function ResetPassword() {
               <div className="mx-auto h-12 w-12 rounded-2xl bg-status-success/15 grid place-items-center mb-3">
                 <Check className="text-status-success" size={22} strokeWidth={2} />
               </div>
-              <h1 className="text-xl font-bold text-pco-deep">{t('reset.success').split('.')[0]}</h1>
+              <h1 className="text-xl font-bold text-pco-deep">
+                {veioPeloLink ? 'Tudo certo' : t('reset.success').split('.')[0]}
+              </h1>
               <p className="mt-2 text-sm text-ink-muted">
                 {veioPeloLink ? 'Senha criada para ' : 'Senha redefinida para '}
                 <strong className="text-pco-deep">{done.email}</strong>. Levando você para a tela

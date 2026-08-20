@@ -129,16 +129,28 @@ export default function Dashboard() {
     }
   }
 
+  /**
+   * Ninguém concluiu aula alguma ainda. Vale distinguir porque a plataforma
+   * recebeu centenas de alunos vindos da migração: dizer "você está construindo
+   * uma rotina sólida" para quem acabou de entrar e tem 0% soa automático, e é a
+   * primeira impressão que essa pessoa tem do ambiente novo.
+   */
+  const aindaNaoComecou = completedLessons === 0;
+
   return (
     <div className="space-y-8">
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-sm text-ink-muted">{t('dashboard.welcome')}</p>
+          <p className="text-sm text-ink-muted">
+            {aindaNaoComecou ? 'Que bom ter você aqui,' : t('dashboard.welcome')}
+          </p>
           <h1 className="text-3xl font-bold tracking-tight text-pco-deep">
             {student.name.split(' ')[0]}
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
-            {t('dashboard.subtitle')}
+            {aindaNaoComecou
+              ? 'Seus cursos estão logo abaixo. Comece pela primeira aula quando quiser.'
+              : t('dashboard.subtitle')}
           </p>
         </div>
         <Link to="/jornada" className="pco-btn-primary">
@@ -230,7 +242,7 @@ export default function Dashboard() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
-              Continue de onde parou
+              {aindaNaoComecou ? 'Comece por aqui' : 'Continue de onde parou'}
             </div>
             <div className="mt-1 text-base font-semibold text-pco-deep truncate">
               {nextLesson.lessonTitle}
