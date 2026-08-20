@@ -64,6 +64,7 @@ const AdminLessons = lazy(() => import('./pages/admin/AdminLessons'));
 const AdminTranscripts = lazy(() => import('./pages/admin/AdminTranscripts'));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminUserDetail = lazy(() => import('./pages/admin/AdminUserDetail'));
+const AdminConvites = lazy(() => import('./pages/admin/AdminConvites'));
 const AdminEvasion = lazy(() => import('./pages/admin/AdminEvasion'));
 const AdminRecoveryPlan = lazy(() => import('./pages/admin/AdminRecoveryPlan'));
 const AdminRetention = lazy(() => import('./pages/admin/AdminRetention'));
@@ -237,6 +238,7 @@ export const router = createBrowserRouter([
       { path: 'transcricoes', element: <S><AdminTranscripts /></S> },
       { path: 'alunos', element: <S><AdminUsers /></S> },
       { path: 'alunos/:id', element: <S><AdminUserDetail /></S> },
+      { path: 'convites', element: <S><AdminConvites /></S> },
       { path: 'evasao', element: <S><AdminEvasion /></S> },
       { path: 'plano-retomada-ia', element: <S><AdminRecoveryPlan /></S> },
       { path: 'retencao', element: <S><AdminRetention /></S> },

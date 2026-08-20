@@ -2572,6 +2572,57 @@ export async function extendStudentCourseAccess(
   );
 }
 
+/** Convite de primeiro acesso — panorama de quem recebe e quem não recebe. */
+export interface ConviteSegmentos {
+  total: number;
+  elegiveis: number;
+  porMotivo: Record<string, number>;
+  rotulos: Record<string, string>;
+  amostra: Array<{
+    id: string;
+    nome: string;
+    email: string;
+    matriculas: number;
+    papelOrigem: string | null;
+  }>;
+}
+
+export async function fetchConviteSegmentos(): Promise<ConviteSegmentos> {
+  return http.get<ConviteSegmentos>('/admin/convites/segmentos');
+}
+
+export interface ConviteExcluido {
+  id: string;
+  nome: string;
+  email: string;
+  motivo: string;
+  matriculas: number;
+  papelOrigem: string | null;
+}
+
+export async function fetchConviteExcluidos(motivo?: string): Promise<{
+  total: number;
+  mostrando: number;
+  lista: ConviteExcluido[];
+}> {
+  const q = motivo ? `?motivo=${encodeURIComponent(motivo)}` : '';
+  return http.get(`/admin/convites/excluidos${q}`);
+}
+
+export async function enviarConvites(input: {
+  limite?: number;
+  diasValidade?: number;
+  simular?: boolean;
+}): Promise<{
+  enviados: number;
+  restantes: number;
+  simulado?: boolean;
+  falhas?: Array<{ email: string; erro: string }>;
+  destinatarios?: Array<{ nome: string; email: string }>;
+}> {
+  return http.post('/admin/convites/enviar', input);
+}
+
 /** O aluno consultando o próprio prazo — alimenta o aviso de vencimento. */
 export async function fetchMyCourseAccess(): Promise<CourseAccessRow[]> {
   const r = await http.get<{ courses: CourseAccessRow[] }>('/me/course-access');

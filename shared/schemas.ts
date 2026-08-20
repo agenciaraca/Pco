@@ -632,6 +632,21 @@ export const extendCourseAccessSchema = z
   );
 export type ExtendCourseAccessInput = z.infer<typeof extendCourseAccessSchema>;
 
+/**
+ * Disparo de convites de primeiro acesso. `simular` devolve a lista sem enviar
+ * nada — é o que a tela usa para mostrar quem receberia antes de o admin
+ * confirmar.
+ */
+export const enviarConvitesSchema = z.object({
+  /** Quantos por chamada. Baixo de propósito: a tela repete e mostra progresso. */
+  limite: z.number().int().min(1).max(100).default(25),
+  diasValidade: z.number().int().min(1).max(90).default(7),
+  simular: z.boolean().default(false),
+  /** Restringe a pessoas específicas; ausente = todos os elegíveis. */
+  somenteIds: z.array(z.string().min(1)).max(500).optional(),
+});
+export type EnviarConvitesInput = z.infer<typeof enviarConvitesSchema>;
+
 export const updateStudentSchema = z.object({
   name: z.string().min(2).max(120).optional(),
   email: z.string().email().optional(),

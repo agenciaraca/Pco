@@ -152,6 +152,17 @@ export const students = pgTable('students', {
   status: studentStatusEnum('status').notNull().default('ativo'),
   lastAccessAt: timestamp('last_access_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  /**
+   * Papel que a pessoa tinha no WordPress de origem: `aluno`, `desistente`,
+   * `inadimplente`, `reembolsado`, `inativo`, `customer`…
+   *
+   * A migração jogou todo mundo em `status='ativo'` e perdeu essa distinção —
+   * que é justamente a que decide quem deve ser convidado para o ambiente novo e
+   * quem não deve. Fica em coluna própria em vez de virar `status` para não
+   * mudar, de repente, o comportamento de telas e contagens que já existem: aqui
+   * é registro do que a origem dizia, não julgamento sobre o acesso de hoje.
+   */
+  sourceRole: text('source_role'),
 });
 
 // ---------- Courses ----------

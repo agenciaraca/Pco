@@ -64,6 +64,7 @@ import {
   createStudentSchema,
   updateStudentSchema,
   extendCourseAccessSchema,
+  enviarConvitesSchema,
   studentStatusEnum,
   createAssessmentSchema,
   updateAssessmentSchema,
@@ -97,6 +98,12 @@ import {
 import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
 import { isPubliclyListed } from './public/projections';
+import {
+  segmentar as segmentarConvite,
+  ROTULO_MOTIVO as ROTULO_MOTIVO_CONVITE,
+} from './convites/elegibilidade';
+import { montarListaConvite, registrarConvite } from './convites/repo';
+import { renderPrimeiroAcesso } from './notifications/templates';
 import { courseAccessFor, accessDeniedCode, accessDeniedMessage } from './access/guard';
 import { accessFor as accessInfoFor } from './access/course-access';
 import * as newsRepo from './repositories/news';
@@ -6171,6 +6178,117 @@ export function buildApp() {
    * Analytics consolidado por aluno: matrículas + watch time + progresso +
    * reviews + última atividade + achievements.
    */
+  // ---------- Convite de primeiro acesso ----------
+  //
+  // Quem veio da migração tem conta, matrícula e progresso, e nunca definiu
+  // senha aqui. Estas rotas mostram quem deve ser convidado — e, mais
+  // importante, quem NÃO deve: desistente, inadimplente, reembolsado, quem não
+  // tem matrícula e quem já entrou.
+
+  /** Panorama da lista, com a contagem de cada motivo de exclusão. */
+  app.get('/admin/convites/segmentos', requireAuth('admin', 'superadmin'), async (c) => {
+    const alunos = await montarListaConvite();
+    const seg = segmentarConvite(alunos);
+    return c.json({
+      total: alunos.length,
+      elegiveis: seg.elegiveis.length,
+      porMotivo: seg.porMotivo,
+      rotulos: ROTULO_MOTIVO_CONVITE,
+      amostra: seg.elegiveis.slice(0, 25).map((a) => ({
+        id: a.id,
+        nome: a.name,
+        email: a.email,
+        matriculas: a.matriculas,
+        papelOrigem: a.sourceRole ?? null,
+      })),
+    });
+  });
+
+  /** Quem foi excluído e por quê — a tela precisa poder mostrar a conta certa. */
+  app.get('/admin/convites/excluidos', requireAuth('admin', 'superadmin'), async (c) => {
+    const motivo = c.req.query('motivo') ?? '';
+    const alunos = await montarListaConvite();
+    const seg = segmentarConvite(alunos);
+    const lista = seg.excluidos
+      .filter((e) => !motivo || e.motivo === motivo)
+      .slice(0, 200)
+      .map((e) => ({
+        id: e.aluno.id,
+        nome: e.aluno.name,
+        email: e.aluno.email,
+        motivo: e.motivo,
+        matriculas: e.aluno.matriculas,
+        papelOrigem: e.aluno.sourceRole ?? null,
+      }));
+    return c.json({ total: seg.excluidos.length, mostrando: lista.length, lista });
+  });
+
+  /**
+   * Dispara um lote. O limite por chamada é baixo de propósito: a tela chama
+   * várias vezes e mostra o progresso, em vez de uma requisição de dez minutos
+   * que morre no meio sem ninguém saber quantos e-mails saíram.
+   */
+  app.post('/admin/convites/enviar', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(enviarConvitesSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+
+    const alunos = await montarListaConvite();
+    const seg = segmentarConvite(alunos);
+    const fila = seg.elegiveis.filter((a) => !v.data.somenteIds || v.data.somenteIds.includes(a.id));
+    const lote = fila.slice(0, v.data.limite);
+
+    if (v.data.simular) {
+      return c.json({
+        simulado: true,
+        enviados: 0,
+        restantes: fila.length,
+        destinatarios: lote.map((a) => ({ nome: a.name, email: a.email })),
+      });
+    }
+
+    const dias = v.data.diasValidade;
+    let enviados = 0;
+    const falhas: Array<{ email: string; erro: string }> = [];
+    for (const a of lote) {
+      try {
+        const antes = process.env.RESET_TOKEN_TTL_MINUTES;
+        process.env.RESET_TOKEN_TTL_MINUTES = String(dias * 24 * 60);
+        const token = await createResetToken(a.id, a.email);
+        if (antes === undefined) delete process.env.RESET_TOKEN_TTL_MINUTES;
+        else process.env.RESET_TOKEN_TTL_MINUTES = antes;
+
+        const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+        const tpl = renderPrimeiroAcesso({
+          userName: a.name,
+          setPasswordUrl: `${base}/redefinir-senha?token=${encodeURIComponent(token.token)}`,
+          expiresInDays: dias,
+        });
+        const r = await sendSafe({
+          to: { email: a.email, name: a.name },
+          subject: tpl.subject,
+          html: tpl.html,
+          text: tpl.text,
+          tag: 'primeiro_acesso',
+        });
+        if (r.ok) {
+          await registrarConvite(a.id, a.email);
+          enviados++;
+        } else {
+          falhas.push({ email: a.email, erro: r.error ?? 'motivo não informado' });
+        }
+      } catch (err) {
+        falhas.push({ email: a.email, erro: err instanceof Error ? err.message : 'erro' });
+      }
+    }
+
+    return c.json({
+      enviados,
+      falhas,
+      restantes: Math.max(0, fila.length - enviados),
+    });
+  });
+
   /**
    * Prazo de acesso do aluno por curso, para a ficha no admin.
    */

@@ -359,6 +359,34 @@ export function useExtendStudentCourseAccess(studentId: string | undefined) {
   });
 }
 
+/** Convite de primeiro acesso: panorama, excluídos e disparo. */
+export function useConviteSegmentos() {
+  return useQuery({
+    queryKey: ['convite-segmentos'],
+    queryFn: () => api.fetchConviteSegmentos(),
+  });
+}
+
+export function useConviteExcluidos(motivo: string | undefined) {
+  return useQuery({
+    queryKey: ['convite-excluidos', motivo ?? 'todos'],
+    queryFn: () => api.fetchConviteExcluidos(motivo),
+    enabled: !!motivo,
+  });
+}
+
+export function useEnviarConvites() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { limite?: number; diasValidade?: number; simular?: boolean }) =>
+      api.enviarConvites(input),
+    onSuccess: (r) => {
+      // Simulação não muda nada; recarregar aqui só faria a tela piscar à toa.
+      if (!r.simulado) qc.invalidateQueries({ queryKey: ['convite-segmentos'] });
+    },
+  });
+}
+
 /** O próprio aluno consultando seus prazos. */
 export function useMyCourseAccess() {
   return useQuery({

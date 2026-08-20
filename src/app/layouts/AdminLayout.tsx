@@ -96,6 +96,7 @@ export default function AdminLayout() {
           { to: '/admin/aulas', label: t('course.lessons'), icon: Layers },
           { to: '/admin/transcricoes', label: 'Transcrições', icon: ScrollText },
           { to: '/admin/alunos', label: t('admin.nav.students'), icon: Users },
+          { to: '/admin/convites', label: 'Convites de acesso', icon: Mail },
           { to: '/admin/certificados', label: t('admin.nav.certificates'), icon: Award },
           { to: '/admin/conquistas', label: t('admin.nav.achievements'), icon: Trophy },
           { to: '/admin/leaderboard', label: t('admin.nav.leaderboard'), icon: Trophy },

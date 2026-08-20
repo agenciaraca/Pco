@@ -43,6 +43,13 @@
       "when": 1787177151147,
       "tag": "0005_panoramic_skin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787197445934,
+      "tag": "0006_wonderful_senator_kelly",
+      "breakpoints": true
     }
   ]
 }
