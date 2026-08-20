@@ -200,6 +200,34 @@ function queueWrite(): Promise<void> {
   return writeQueue;
 }
 
+/**
+ * Última vez que a lista foi relida do backend, para não transformar cada busca
+ * frustrada numa consulta ao banco.
+ */
+let ultimaRecarga = 0;
+const INTERVALO_MIN_RECARGA_MS = 5_000;
+
+/**
+ * Relê a lista quando alguém procurado não está nela.
+ *
+ * A lista é carregada no boot e vive em memória, então conta criada por outro
+ * processo — um script de migração, o sincronizador da loja, SQL direto — não
+ * existe para quem está servindo. O sintoma é cruel: a pessoa recebe o convite,
+ * clica no link, define a senha e leva "usuário não encontrado", enquanto a
+ * conta está lá no banco, inteira.
+ *
+ * Só relê de fato a cada poucos segundos: quem procurar um e-mail que nunca
+ * existiu não deve conseguir provocar uma consulta por tentativa.
+ */
+async function recarregarSeAusente(): Promise<boolean> {
+  const agora = Date.now();
+  if (agora - ultimaRecarga < INTERVALO_MIN_RECARGA_MS) return false;
+  ultimaRecarga = agora;
+  loaded = false;
+  await loadUsers();
+  return true;
+}
+
 export async function loadUsers(): Promise<void> {
   if (loaded) return;
 
@@ -299,7 +327,12 @@ export async function findUserById(id: string): Promise<SystemUserPublic | null>
 
 export async function findUserByEmail(email: string): Promise<SystemUser | null> {
   await loadUsers();
-  return users.find((u) => u.email.toLowerCase() === email.toLowerCase()) ?? null;
+  const achar = () => users.find((u) => u.email.toLowerCase() === email.toLowerCase()) ?? null;
+  const primeiro = achar();
+  if (primeiro) return primeiro;
+  // Pode ter sido criada por fora depois do boot — ver recarregarSeAusente().
+  if (await recarregarSeAusente()) return achar();
+  return null;
 }
 
 /** Normaliza CPF/RG removendo pontuação. */
@@ -432,7 +465,10 @@ export async function verifyAndChangePassword(
 
 export async function changePassword(id: string, newPassword: string): Promise<boolean> {
   await loadUsers();
-  const i = users.findIndex((u) => u.id === id);
+  let i = users.findIndex((u) => u.id === id);
+  if (i === -1 && (await recarregarSeAusente())) {
+    i = users.findIndex((u) => u.id === id);
+  }
   if (i === -1) return false;
   users[i].passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
   users[i].tokenVersion = (users[i].tokenVersion ?? 0) + 1;

@@ -11,6 +11,12 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const tokenFromUrl = params.get('token') ?? '';
   const [token, setToken] = useState(tokenFromUrl);
+  /**
+   * Chegou pelo link do e-mail? Então o token já está aqui, e pedir para a
+   * pessoa "colar o token" é confundir quem não fez nada além de clicar. Os 507
+   * convidados da migração entram por este caminho.
+   */
+  const veioPeloLink = tokenFromUrl.length >= 10;
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +46,11 @@ export default function ResetPassword() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('INVALID_TOKEN') || msg.toLowerCase().includes('token')) {
-        setError('Token inválido ou expirado. Solicite um novo link.');
+        setError(
+          veioPeloLink
+            ? 'Este link não vale mais. Na tela de entrada, use "Esqueci minha senha" com o seu e-mail para receber um novo.'
+            : 'Token inválido ou expirado. Solicite um novo link.',
+        );
       } else {
         setError('Não foi possível redefinir a senha. Tente novamente.');
       }
@@ -61,30 +71,39 @@ export default function ResetPassword() {
               </div>
               <h1 className="text-xl font-bold text-pco-deep">{t('reset.success').split('.')[0]}</h1>
               <p className="mt-2 text-sm text-ink-muted">
-                Senha redefinida para <strong className="text-pco-deep">{done.email}</strong>.
-                Redirecionando para o login...
+                {veioPeloLink ? 'Senha criada para ' : 'Senha redefinida para '}
+                <strong className="text-pco-deep">{done.email}</strong>. Levando você para a tela
+                de entrada...
               </p>
             </div>
           ) : (
             <>
-              <h1 className="text-xl font-bold text-pco-deep">{t('reset.title')}</h1>
+              <h1 className="text-xl font-bold text-pco-deep">
+                {veioPeloLink ? 'Escolha sua senha' : t('reset.title')}
+              </h1>
               <p className="mt-1 text-sm text-ink-muted">
-                Cole o token recebido e escolha uma nova senha.
+                {veioPeloLink
+                  ? 'É só definir a senha que você vai usar para entrar. Seu histórico e seus cursos continuam onde estavam.'
+                  : 'Cole o token recebido por e-mail e escolha uma nova senha.'}
               </p>
               <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
+                {!veioPeloLink && (
+                  <div>
+                    <label className="text-xs text-ink-muted">Token de redefinição</label>
+                    <input
+                      type="text"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      className="pco-input mt-1"
+                      placeholder="token recebido por e-mail"
+                      autoComplete="off"
+                    />
+                  </div>
+                )}
                 <div>
-                  <label className="text-xs text-ink-muted">Token de redefinição</label>
-                  <input
-                    type="text"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    className="pco-input mt-1"
-                    placeholder="token recebido por e-mail"
-                    autoComplete="off"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-ink-muted">Nova senha</label>
+                  <label className="text-xs text-ink-muted">
+                    {veioPeloLink ? 'Sua senha' : 'Nova senha'}
+                  </label>
                   <input
                     type="password"
                     value={password}
@@ -112,7 +131,11 @@ export default function ResetPassword() {
                 )}
                 <button type="submit" disabled={submitting} className="pco-btn-primary w-full">
                   <Save size={14} strokeWidth={2} />
-                  {submitting ? 'Redefinindo...' : 'Redefinir senha'}
+                  {submitting
+                    ? 'Salvando...'
+                    : veioPeloLink
+                      ? 'Salvar e entrar'
+                      : 'Redefinir senha'}
                 </button>
               </form>
               <Link
