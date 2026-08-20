@@ -33,6 +33,7 @@ if (!DB_URL) {
 }
 
 const RAW_DIR = path.resolve(process.cwd(), fromArg.slice('--from-raw='.length), 'raw');
+const mapArg = process.argv.find((a) => a.startsWith('--from-map='));
 
 function stripSslParams(url: string): string {
   return url
@@ -59,7 +60,20 @@ async function main(): Promise<void> {
   log(`modo: ${APPLY ? '*** APPLY (grava) ***' : 'DRY-RUN (rollback ao final)'}`);
 
   const papelPorEmail = new Map<string, string>();
-  for (const arquivo of ['portal.json', 'psi.json']) {
+
+  // O dump bruto pesa alguns megabytes e é gitignored — no servidor ele não
+  // existe. `--from-map` aceita o mapa e-mail→papel já extraído, que é o que
+  // interessa aqui e cabe em poucos kilobytes.
+  if (mapArg) {
+    const caminho = path.resolve(process.cwd(), mapArg.slice('--from-map='.length));
+    const bruto = JSON.parse(await fs.readFile(caminho, 'utf8')) as Record<string, string>;
+    for (const [email, papel] of Object.entries(bruto)) {
+      papelPorEmail.set(email.toLowerCase(), papel);
+    }
+    log(`mapa lido de ${path.basename(caminho)}`);
+  }
+
+  for (const arquivo of mapArg ? [] : ['portal.json', 'psi.json']) {
     try {
       const dump = JSON.parse(await fs.readFile(path.join(RAW_DIR, arquivo), 'utf8')) as {
         rowsByEntity: Record<string, Array<Record<string, unknown>>>;
