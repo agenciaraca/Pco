@@ -196,12 +196,51 @@ export async function enrollInCourse(
 
   const db = getDb();
   if (db) {
-    // O aluno precisa existir em `students` para a FK aceitar a matrícula.
+    // O aluno precisa existir em `students` para a FK aceitar a matrícula — e,
+    // se não existir, a ficha é criada aqui.
+    //
+    // Antes esta função desistia em silêncio nesse caso, e o silêncio custava
+    // caro: o checkout público cria só a credencial de quem compra sem ter
+    // conta, então todo cliente novo pagava e não recebia acesso. Sem erro no
+    // log, sem falha no webhook, sem nada — o dinheiro entrava e o curso não
+    // aparecia. Quem tem conta merece a ficha; desistir é para quem não existe
+    // em lugar nenhum.
     const exists = await db
       .select({ id: schema.students.id })
       .from(schema.students)
       .where(eq(schema.students.id, userId));
-    if (exists.length === 0) return;
+    if (exists.length === 0) {
+      const conta = await usersStore.findUserById(userId);
+      if (!conta) {
+        // eslint-disable-next-line no-console
+        console.warn(`[enrollInCourse] ${userId} não existe como usuário — matrícula ignorada`);
+        return;
+      }
+      await db
+        .insert(schema.users)
+        .values({
+          id: conta.id,
+          email: conta.email,
+          name: conta.name,
+          role: 'student',
+          createdAt: new Date(conta.createdAt),
+          updatedAt: new Date(),
+        })
+        .onConflictDoNothing();
+      await db
+        .insert(schema.students)
+        .values({
+          id: userId,
+          userId,
+          weeklyGoalMinutes: 180,
+          totalStudyMinutes: 0,
+          riskScore: 0,
+          status: 'ativo',
+          lastAccessAt: lastAccessAt ? new Date(lastAccessAt) : null,
+          createdAt: new Date(startedAt),
+        })
+        .onConflictDoNothing();
+    }
     await db
       .insert(schema.enrollments)
       .values({
@@ -220,14 +259,25 @@ export async function enrollInCourse(
 
   // Hidrata nome/email do users-store antes do modify (caso seja stub novo)
   const u = await usersStore.findUserById(userId);
+  const jaTemFicha = (await adminStore.getAll()).some((s) => s.id === userId);
+  if (!u && !jaTemFicha) {
+    // Matrícula precisa de alguém por trás — conta de login ou ficha de aluno.
+    // Sem isto, qualquer id virava ficha nova com o próprio id no lugar do nome.
+    // As duas condições existem porque os dois cadastros são independentes: há
+    // aluno com ficha e sem credencial (vindo de importação) e há credencial sem
+    // ficha (quem comprou pelo site e ainda não foi matriculado).
+    // eslint-disable-next-line no-console
+    console.warn(`[enrollInCourse] ${userId} não existe como usuário nem como aluno — ignorado`);
+    return;
+  }
   await adminStore.modify((rows) => {
     let row = rows.find((s) => s.id === userId);
     if (!row) {
       const now = new Date().toISOString();
       const fresh: AdminStudentDto = {
         id: userId,
-        name: u?.name || userId,
-        email: u?.email || '',
+        name: u?.name ?? userId,
+        email: u?.email ?? '',
         status: 'ativo',
         riskScore: 0,
         enrolledCourseIds: [],
@@ -378,8 +428,8 @@ export async function setCourseProgress(
       const now = new Date().toISOString();
       const fresh: AdminStudentDto = {
         id: userId,
-        name: u?.name || userId,
-        email: u?.email || '',
+        name: u?.name ?? userId,
+        email: u?.email ?? '',
         status: 'ativo',
         riskScore: 0,
         enrolledCourseIds: [],
