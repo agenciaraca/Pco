@@ -16,20 +16,44 @@ import {
   Menu,
   X,
 } from 'lucide-react';
-import { courses } from '../data/seed';
+import { useCourses, useMyProgress } from '../data/hooks';
 
 export default function LearningLayout() {
   const { courseId } = useParams<{ courseId: string }>();
   const [focusMode, setFocusMode] = useState(false);
   const [trackOpen, setTrackOpen] = useState(false);
-  const course = courses.find((c) => c.id === courseId) ?? courses[0];
+
+  // Antes de 20/ago/2026 esta barra lateral vinha do seed importado no bundle:
+  // a trilha, os módulos e os checks de "concluída" eram os do curso de exemplo,
+  // iguais para todo mundo e sem relação com o curso aberto nem com o aluno.
+  const coursesQ = useCourses();
+  const progressQ = useMyProgress();
+  const course =
+    (coursesQ.data ?? []).find((c) => c.id === courseId) ?? (coursesQ.data ?? [])[0];
+
+  const doneIds = new Set(progressQ.data?.completedLessonIds ?? []);
+
+  if (!course) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-surface-off text-sm text-ink-muted">
+        Carregando curso...
+      </div>
+    );
+  }
 
   const totalLessons = course.modules.reduce((sum, m) => sum + m.lessons.length, 0);
   const completed = course.modules.reduce(
-    (sum, m) => sum + m.lessons.filter((l) => l.status === 'completed').length,
+    (sum, m) => sum + m.lessons.filter((l) => doneIds.has(l.id)).length,
     0,
   );
-  const progress = Math.round((completed / totalLessons) * 100);
+  const progress = totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0;
+
+  /** Um módulo está concluído quando TODAS as aulas dele estão. */
+  const moduloConcluido = (m: (typeof course.modules)[number]) =>
+    m.lessons.length > 0 && m.lessons.every((l) => doneIds.has(l.id));
+  /** Começado, mas não terminado. */
+  const moduloEmAndamento = (m: (typeof course.modules)[number]) =>
+    !moduloConcluido(m) && m.lessons.some((l) => doneIds.has(l.id));
 
   return (
     <div className="flex min-h-screen bg-surface-off">
@@ -64,21 +88,18 @@ export default function LearningLayout() {
             {course.modules.map((module, mi) => (
               <details
                 key={module.id}
-                open={module.status === 'in_progress' || module.status === 'available'}
+                open={!moduloConcluido(module)}
                 className="mb-1 rounded-xl"
               >
                 <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer rounded-xl hover:bg-surface-gray text-sm font-medium text-pco-deep">
-                  {module.status === 'completed' && (
+                  {moduloConcluido(module) ? (
                     <CheckCircle2 size={16} className="text-status-success" strokeWidth={2} />
-                  )}
-                  {module.status === 'in_progress' && (
+                  ) : moduloEmAndamento(module) ? (
                     <PlayCircle size={16} className="text-pco-blue" strokeWidth={2} />
-                  )}
-                  {module.status === 'available' && (
-                    <Circle size={16} className="text-ink-subtle" strokeWidth={2} />
-                  )}
-                  {module.status === 'locked' && (
+                  ) : module.status === 'locked' ? (
                     <Lock size={14} className="text-ink-subtle" strokeWidth={2} />
+                  ) : (
+                    <Circle size={16} className="text-ink-subtle" strokeWidth={2} />
                   )}
                   <span className="truncate flex-1">
                     {mi + 1}. {module.title}
@@ -98,10 +119,8 @@ export default function LearningLayout() {
                           )
                         }
                       >
-                        {lesson.status === 'completed' ? (
+                        {doneIds.has(lesson.id) ? (
                           <CheckCircle2 size={12} className="text-status-success" strokeWidth={2} />
-                        ) : lesson.status === 'in_progress' ? (
-                          <PlayCircle size={12} className="text-pco-blue" strokeWidth={2} />
                         ) : (
                           <Circle size={12} className="text-ink-subtle" strokeWidth={2} />
                         )}

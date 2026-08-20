@@ -29,7 +29,7 @@ export default function LMSModule() {
 
   const doneIds = new Set(progress.data?.completedLessonIds ?? []);
   const completed = module.lessons.filter(
-    (l) => doneIds.has(l.id) || l.status === 'completed',
+    (l) => doneIds.has(l.id),
   ).length;
   const pct = Math.round((completed / module.lessons.length) * 100);
 
@@ -81,7 +81,7 @@ export default function LMSModule() {
         <h2 className="text-lg font-semibold text-pco-deep mb-3">Aulas</h2>
         <div className="space-y-2">
           {module.lessons.map((lesson) => {
-            const isCompleted = doneIds.has(lesson.id) || lesson.status === 'completed';
+            const isCompleted = doneIds.has(lesson.id);
             const isInProgress = !isCompleted && lesson.status === 'in_progress';
             return (
               <Link

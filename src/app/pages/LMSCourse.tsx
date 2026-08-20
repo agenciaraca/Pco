@@ -20,7 +20,7 @@ export default function LMSCourse() {
   const totalLessons = course.modules.reduce((s, m) => s + m.lessons.length, 0);
   const done = course.modules.reduce(
     (s, m) =>
-      s + m.lessons.filter((l) => doneIds.has(l.id) || l.status === 'completed').length,
+      s + m.lessons.filter((l) => doneIds.has(l.id)).length,
     0,
   );
   const pct = totalLessons > 0 ? Math.round((done / totalLessons) * 100) : 0;
@@ -117,7 +117,7 @@ export default function LMSCourse() {
         <div className="space-y-3">
           {course.modules.map((module, i) => {
             const moduleDone = module.lessons.filter(
-              (l) => doneIds.has(l.id) || l.status === 'completed',
+              (l) => doneIds.has(l.id),
             ).length;
             const moduleTotal = module.lessons.length;
             const modulePct =
