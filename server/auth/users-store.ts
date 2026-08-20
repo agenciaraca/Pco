@@ -321,7 +321,11 @@ export async function listUsers(): Promise<SystemUserPublic[]> {
 
 export async function findUserById(id: string): Promise<SystemUserPublic | null> {
   await loadUsers();
-  const u = users.find((x) => x.id === id);
+  const achar = () => users.find((x) => x.id === id) ?? null;
+  let u = achar();
+  // Conta criada por outro processo depois do boot — ver recarregarSeAusente().
+  // Sem isto, o certificado saía com "Aluno" no lugar do nome de quem concluiu.
+  if (!u && (await recarregarSeAusente())) u = achar();
   return u ? toPublic(u) : null;
 }
 
@@ -481,7 +485,11 @@ export async function changePassword(id: string, newPassword: string): Promise<b
 
 export async function findRawById(id: string): Promise<SystemUser | null> {
   await loadUsers();
-  return users.find((u) => u.id === id) ?? null;
+  const achar = () => users.find((u) => u.id === id) ?? null;
+  const primeiro = achar();
+  if (primeiro) return primeiro;
+  if (await recarregarSeAusente()) return achar();
+  return null;
 }
 
 export async function setTotpSecret(
