@@ -103,7 +103,9 @@ async function main(): Promise<void> {
       headers: h,
       body: JSON.stringify({ courseId: CURSO, moduleId: a.moduleId }),
     });
-    if (r.status === 200) concluidas++;
+    // 201 é o sucesso desta rota (cria o registro de progresso); 200 também
+    // vale, para o caso de a aula já estar concluída.
+    if (r.status === 200 || r.status === 201) concluidas++;
     else if (r.status === 423) travadas++;
     else if (concluidas + travadas < 3) {
       log(`  aula ${a.titulo}: HTTP ${r.status} — ${(await r.text()).slice(0, 120)}`);
