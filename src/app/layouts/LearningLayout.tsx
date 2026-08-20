@@ -18,6 +18,14 @@ import {
 } from 'lucide-react';
 import { useCourses, useMyProgress } from '../data/hooks';
 
+/** 45 → "45min"; 120 → "2h"; 135 → "2h15". */
+function formatarDuracao(minutos: number): string {
+  if (minutos < 60) return `${minutos}min`;
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  return resto === 0 ? `${horas}h` : `${horas}h${String(resto).padStart(2, '0')}`;
+}
+
 export default function LearningLayout() {
   const { courseId } = useParams<{ courseId: string }>();
   const [focusMode, setFocusMode] = useState(false);
@@ -47,6 +55,13 @@ export default function LearningLayout() {
     0,
   );
   const progress = totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0;
+
+  // A meta semanal estava escrita à mão — "2h / 3h" com a barra fixa em dois
+  // terços — e aparecia igual para quem nunca estudou e para quem bateu a meta.
+  const minutosNaSemana = progressQ.data?.weekMinutes ?? 0;
+  const metaSemanal = progressQ.data?.weeklyGoalMinutes ?? 180;
+  const percentualDaMeta =
+    metaSemanal > 0 ? Math.min(100, Math.round((minutosNaSemana / metaSemanal) * 100)) : 0;
 
   /** Um módulo está concluído quando TODAS as aulas dele estão. */
   const moduloConcluido = (m: (typeof course.modules)[number]) =>
@@ -263,10 +278,16 @@ export default function LearningLayout() {
                     Meta semanal
                   </div>
                   <div className="text-2xl font-bold text-pco-deep">
-                    2h <span className="text-sm font-normal text-ink-muted">/ 3h</span>
+                    {formatarDuracao(minutosNaSemana)}{' '}
+                    <span className="text-sm font-normal text-ink-muted">
+                      / {formatarDuracao(metaSemanal)}
+                    </span>
                   </div>
                   <div className="mt-2 h-1.5 rounded-full bg-surface-gray overflow-hidden">
-                    <div className="h-full w-2/3 rounded-full bg-pco-orange" />
+                    <div
+                      className="h-full rounded-full bg-pco-orange transition-all"
+                      style={{ width: `${percentualDaMeta}%` }}
+                    />
                   </div>
                 </div>
               </div>
