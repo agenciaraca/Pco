@@ -885,10 +885,19 @@ export function buildApp() {
     const u = await usersStore.findUserById(jwt.sub);
     if (!u) return jsonError(c, 401, 'UNAUTHORIZED', 'Usuário não existe mais.');
     if (u.role === 'student') {
-      // Para aluno, devolve o perfil acadêmico ligado, mas com nome/email/avatar do user
-      const s = await studentsRepo.getCurrentStudent();
+      // O perfil é DESTE aluno. Antes de 20/ago/2026 aqui vinha
+      // `getCurrentStudent()` — sempre o aluno do seed — com nome e e-mail
+      // trocados por cima: todo mundo via as matrículas e o progresso de outra
+      // pessoa, e não via os próprios cursos.
+      const s = await studentsRepo.getStudentProfile(u.id);
       return c.json({
-        ...s,
+        ...(s ?? {
+          enrolledCourseIds: [],
+          weeklyGoalMinutes: 180,
+          totalStudyMinutes: 0,
+          riskScore: 0,
+          createdAt: u.createdAt,
+        }),
         id: u.id,
         name: u.name,
         email: u.email,
@@ -2128,9 +2137,13 @@ export function buildApp() {
 
   // ---------- Certificates ----------
 
-  app.get('/certificates', async (c) =>
-    c.json(await certsRepo.listCertificatesForStudent(currentStudent.id)),
-  );
+  // Certificados de quem está logado. Sem auth aqui, esta rota devolvia os
+  // certificados do aluno do seed para qualquer visitante — dado de uma pessoa
+  // aparecendo para outra.
+  app.get('/certificates', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    return c.json(await certsRepo.listCertificatesForStudent(u.sub));
+  });
 
   // Renderiza HTML do certificado para impressão. Aluno dono ou admin.
   app.get('/certificates/:id/render', requireAuth(), async (c) => {
@@ -2363,7 +2376,11 @@ export function buildApp() {
       });
     }
 
-    const studentId = currentStudent.id;
+    // A cota é por aluno, então precisa ser o aluno que está perguntando. Com o
+    // id do seed fixo aqui, os 1.601 alunos dividiam uma cota só: bastava um
+    // usar o mês inteiro para bloquear todos os outros.
+    const quemPergunta = c.get('user');
+    const studentId = quemPergunta?.sub ?? currentStudent.id;
     const monthlyUse = await aiConfigRepo.countUsageInWindow(
       config.id,
       studentId,
@@ -2457,17 +2474,18 @@ export function buildApp() {
 
   // ---------- Support ----------
 
-  app.get('/support/tickets', async (c) => {
-    const u = c.get('user');
-    const id = u?.sub ?? currentStudent.id;
-    return c.json(await supportRepo.listTicketsForStudent(id));
+  // Ticket é conversa entre uma pessoa e o suporte: sem login não há de quem
+  // mostrar. Antes, quem chegasse sem token recebia os tickets do aluno do seed.
+  app.get('/support/tickets', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    return c.json(await supportRepo.listTicketsForStudent(u.sub));
   });
-  app.post('/support/tickets', async (c) => {
+  app.post('/support/tickets', requireAuth(), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(createSupportTicketSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
-    const u = c.get('user');
-    const id = u?.sub ?? currentStudent.id;
+    const u = c.get('user')!;
+    const id = u.sub;
     const ticket = await supportRepo.createTicket({
       studentId: id,
       subject: v.data.subject,

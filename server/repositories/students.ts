@@ -417,6 +417,86 @@ export async function deleteAdminStudent(id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+/**
+ * Perfil acadêmico de UM aluno — o que `/auth/me` devolve para quem está logado.
+ *
+ * Existe porque `getCurrentStudent()` sempre devolveu o aluno do seed, e o
+ * endpoint só trocava nome e e-mail por cima. Na prática, todo aluno enxergava
+ * as matrículas e o progresso de outra pessoa: quem entrasse pelo convite veria
+ * cursos que nunca comprou e não veria os seus.
+ *
+ * Aluno sem ficha (veio da loja e nunca foi matriculado) recebe um perfil vazio,
+ * não um erro: ele existe, só não tem curso.
+ */
+export async function getStudentProfile(userId: string): Promise<Student | null> {
+  const db = getDb();
+  if (!db) {
+    const row = (await adminStore.getAll()).find((s) => s.id === userId);
+    if (!row) return null;
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: 'student',
+      enrolledCourseIds: row.enrolledCourseIds ?? [],
+      lastAccessAt: row.lastAccessAt,
+      weeklyGoalMinutes: row.weeklyGoalMinutes ?? 180,
+      totalStudyMinutes: 0,
+      riskScore: row.riskScore ?? 0,
+      createdAt: row.createdAt,
+    };
+  }
+
+  const linhas = await db
+    .select({ s: schema.students, u: schema.users })
+    .from(schema.students)
+    .leftJoin(schema.users, eq(schema.users.id, schema.students.userId))
+    .where(eq(schema.students.id, userId));
+  const achado = linhas[0];
+
+  const matriculas = await db
+    .select({ courseId: schema.enrollments.courseId })
+    .from(schema.enrollments)
+    .where(eq(schema.enrollments.studentId, userId));
+
+  if (!achado) {
+    // Sem ficha: devolve o mínimo para a interface não quebrar, com a lista de
+    // cursos vazia em vez de herdar a de outra pessoa.
+    const usuario = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, userId));
+    const u = usuario[0];
+    if (!u) return null;
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: 'student',
+      enrolledCourseIds: matriculas.map((m) => m.courseId),
+      lastAccessAt: undefined,
+      weeklyGoalMinutes: 180,
+      totalStudyMinutes: 0,
+      riskScore: 0,
+      createdAt: u.createdAt.toISOString(),
+    };
+  }
+
+  return {
+    id: achado.s.id,
+    name: achado.u?.name ?? achado.s.id,
+    email: achado.u?.email ?? '',
+    role: 'student',
+    avatarUrl: achado.u?.avatarUrl ?? undefined,
+    enrolledCourseIds: matriculas.map((m) => m.courseId),
+    lastAccessAt: achado.s.lastAccessAt?.toISOString(),
+    weeklyGoalMinutes: achado.s.weeklyGoalMinutes,
+    totalStudyMinutes: achado.s.totalStudyMinutes,
+    riskScore: achado.s.riskScore,
+    createdAt: achado.s.createdAt.toISOString(),
+  };
+}
+
 export async function getCurrentStudent(): Promise<Student> {
   const db = getDb();
   if (!db) return currentStudent;
