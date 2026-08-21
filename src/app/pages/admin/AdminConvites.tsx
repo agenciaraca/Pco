@@ -156,6 +156,36 @@ export default function AdminConvites() {
           Disparo
         </h2>
 
+        {/* Quanto o provedor deixa enviar hoje. Sem esta linha o disparo é às
+            cegas: envio de e-mail é best-effort, então uma cota estourada não
+            derruba nada — simplesmente ninguém recebe. */}
+        {seg.cota && (
+          <div
+            className={`rounded-lg p-3 text-sm ${
+              seg.cota.aviso || (seg.cota.restantes !== null && seg.cota.restantes < seg.elegiveis)
+                ? 'bg-status-warning/10 text-status-warning'
+                : 'bg-surface-off text-ink-muted'
+            }`}
+          >
+            {seg.cota.aviso ? (
+              <strong>{seg.cota.aviso}</strong>
+            ) : seg.cota.restantes === null ? (
+              <>Não foi possível consultar a cota do provedor ({seg.cota.provider}).</>
+            ) : seg.cota.restantes < seg.elegiveis ? (
+              <>
+                O provedor permite mais <strong>{seg.cota.restantes}</strong> envio(s) hoje, e a
+                lista tem {seg.elegiveis}. Mande o que couber e continue amanhã — quem já recebeu
+                sai da fila sozinho.
+              </>
+            ) : (
+              <>
+                Provedor {seg.cota.provider}: {seg.cota.restantes} envio(s) disponíveis — suficiente
+                para os {seg.elegiveis}.
+              </>
+            )}
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2 max-w-lg">
           <label className="block">
             <span className="text-[11px] uppercase tracking-wide text-ink-muted">

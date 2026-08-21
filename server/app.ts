@@ -103,6 +103,7 @@ import {
   ROTULO_MOTIVO as ROTULO_MOTIVO_CONVITE,
 } from './convites/elegibilidade';
 import { montarListaConvite, registrarConvite } from './convites/repo';
+import { consultarCota as consultarCotaEmail } from './notifications/cota';
 import { renderPrimeiroAcesso } from './notifications/templates';
 import { courseAccessFor, accessDeniedCode, accessDeniedMessage } from './access/guard';
 import { accessFor as accessInfoFor } from './access/course-access';
@@ -6207,9 +6208,13 @@ export function buildApp() {
   app.get('/admin/convites/segmentos', requireAuth('admin', 'superadmin'), async (c) => {
     const alunos = await montarListaConvite();
     const seg = segmentarConvite(alunos);
+    // Quanto o provedor deixa enviar hoje. Sem isso o disparo é às cegas: no
+    // plano gratuito são 300 por dia, e a lista tem mais que isso.
+    const cota = await consultarCotaEmail();
     return c.json({
       total: alunos.length,
       elegiveis: seg.elegiveis.length,
+      cota,
       porMotivo: seg.porMotivo,
       rotulos: ROTULO_MOTIVO_CONVITE,
       amostra: seg.elegiveis.slice(0, 25).map((a) => ({

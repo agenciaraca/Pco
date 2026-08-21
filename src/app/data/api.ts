@@ -2573,9 +2573,16 @@ export async function extendStudentCourseAccess(
 }
 
 /** Convite de primeiro acesso — panorama de quem recebe e quem não recebe. */
+export interface CotaEmail {
+  provider: string;
+  restantes: number | null;
+  aviso: string | null;
+}
+
 export interface ConviteSegmentos {
   total: number;
   elegiveis: number;
+  cota?: CotaEmail | null;
   porMotivo: Record<string, number>;
   rotulos: Record<string, string>;
   amostra: Array<{
