@@ -165,6 +165,12 @@ persistir, mesmo com a coluna já existindo.
 > O IP `177.7.35.13` citado adiante nesta página está morto — a app migrou e a
 > porta 22 do host antigo não responde. Os scripts Python de deploy ainda apontam
 > pro endereço antigo; use o caminho por SSH abaixo até serem revisados.
+>
+> **O deploy automático não chega aqui.** Medido em 21/ago/2026: o workflow
+> conecta em `srv1621737`, que tem uma cópia do repo e nenhum processo PM2 —
+> por isso o `git pull` e o `npm run build` passavam e só o `pm2 restart`
+> falhava. Até que `VPS_HOST` e `VPS_PASSWORD` sejam trocados (juntos: a senha
+> guardada é a do host errado), **todo deploy é manual, pelo comando abaixo**.
 
 ```bash
 # 1. Local: garante que main está atualizado

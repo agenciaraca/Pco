@@ -176,14 +176,47 @@ Só restart, sem rebuild: `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
 - `git pull` aborta com `package-lock.json` modificado — daí o `git checkout --` antes.
 - `git` como root reclama de `dubious ownership` no repo do `avapco`; sempre use `sudo -u avapco`.
 - Confirme o que subiu comparando o hash do bundle: `curl -s https://ava.psicanaliseclinica.online/login | grep -o 'assets/index-[^"]*\.js'` contra o `dist/index.html` local. `/api/health` responde 200 mesmo com código velho.
-- O deploy automático (`.github/workflows/deploy.yml`) usa os secrets `VPS_HOST`/`VPS_USER`/`VPS_PORT`/`VPS_PASSWORD`; se apontarem pro host antigo, ele falha com `Connection timed out` e o push passa em silêncio.
+- **O deploy automático vai para o servidor ERRADO** (medido em 21/ago/2026).
+  `.github/workflows/deploy.yml` conecta em `srv1621737`, não em produção
+  (`srv539124` = 195.200.0.253). Lá existe uma cópia do repo e **nenhum processo
+  PM2** — daí o sintoma enganoso: `git pull` e `npm run build` passavam, e só o
+  `pm2 restart ava-pco` falhava com "Process or Namespace not found".
+  Prova: o deploy automático "puxou" `ed524f8` e produção continuou em `7440f2a`
+  até o deploy manual.
+  **Correção (só o dono pode):** trocar os secrets `VPS_HOST` **e**
+  `VPS_PASSWORD` juntos — a senha guardada é do host errado. Produção aceita
+  senha (`50-cloud-init.conf` traz `PasswordAuthentication yes` e vence o
+  `60-cloudimg-settings.conf`; no sshd a primeira ocorrência manda).
+  Enquanto isso, o workflow checa `pm2 describe ava-pco` **antes** de qualquer
+  pull e falha dizendo o hostname, em vez de trabalhar à toa.
 
 Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Reference docs
 
 `docs/` has deeper notes per subsystem when you need them:
-`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `webhooks-cookbook.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `admin-user-guide.md`, `api-public.md`, `deploy.md`, `production-checklist.md`, `migration-wp-ld.md`.
+`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `webhooks-cookbook.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `admin-user-guide.md`, `api-public.md`, `deploy.md`, `production-checklist.md`, `migration-wp-ld.md`, `prazo-de-acesso.md`.
+
+## Prazo de acesso — declarar os meses é RETROATIVO
+
+Cada curso define por quantos meses a matrícula dá acesso (`accessMonths`, sem
+coluna própria: vive em `courses.meta` jsonb). Portão único:
+`courseAccessFor()` em `server/access/guard.ts`, no mesmo espírito de
+`isPubliclyListed()`.
+
+**A armadilha:** `resolveExpiry` só respeita o prazo **gravado na matrícula**.
+Matrícula sem prazo gravado — todas as que vieram da importação — passa a valer
+`enrolledAt + accessMonths` no instante em que o curso declara o prazo. Com
+datas reais de 2021 a 2026, declarar "6 meses" tranca centenas de uma vez.
+Isso é o comportamento desejado; o que não pode é ser descoberto depois.
+
+Duas ferramentas para isso, ambas em `server/access/impacto.ts`:
+`GET /admin/courses/:id/impacto-acesso?meses=N` (simula, só lê, aparece ao vivo
+ao lado do campo) e `POST /admin/courses/:id/carencia` (grava um prazo comum em
+todos os que ficariam vencidos, sem tocar em quem tem prazo próprio).
+
+Em 21/ago/2026 **nenhum dos 6 cursos declarava prazo** — ninguém está vencido.
+Detalhes, números por curso e os smokes em `docs/prazo-de-acesso.md`.
 
 ## Migração WP/LD/WC — alunos, cursos e progressões NÃO migraram direito
 
