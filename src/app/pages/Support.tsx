@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LifeBuoy, MessageSquare, Send } from 'lucide-react';
@@ -20,11 +21,25 @@ const categories: { id: CreateSupportTicketInput['category']; label: string }[] 
   { id: 'outro', label: 'Outro' },
 ];
 
+/**
+ * Categorias que podem vir prontas na URL. Quem chega aqui de um aviso — "seu
+ * acesso terminou", por exemplo — já sabe do que quer falar; obrigá-lo a
+ * escolher de novo num select é fazer o aluno repetir o que a tela já sabia.
+ */
+const CATEGORIAS_VALIDAS = new Set(categories.map((c) => c.id as string));
+
 export default function Support() {
   const t = useT();
   const ticketsQ = useSupportTickets();
   const createTicket = useCreateSupportTicket();
   const toast = useToast();
+  const [params] = useSearchParams();
+
+  const assunto = params.get('assunto');
+  const categoriaInicial = (
+    assunto && CATEGORIAS_VALIDAS.has(assunto) ? assunto : 'duvida_aula'
+  ) as CreateSupportTicketInput['category'];
+  const tituloInicial = params.get('titulo') ?? '';
 
   const {
     register,
@@ -33,7 +48,7 @@ export default function Support() {
     formState: { errors, isSubmitting },
   } = useForm<CreateSupportTicketInput>({
     resolver: zodResolver(createSupportTicketSchema),
-    defaultValues: { category: 'duvida_aula', subject: '', message: '' },
+    defaultValues: { category: categoriaInicial, subject: tituloInicial, message: '' },
   });
 
   const onSubmit = async (data: CreateSupportTicketInput) => {

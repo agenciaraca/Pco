@@ -1,4 +1,5 @@
 import { CalendarClock, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useMyCourseAccess } from '../data/hooks';
 
 /**
@@ -35,10 +36,17 @@ export default function CourseAccessNotice({ courseId }: { courseId: string }) {
               As aulas ficam indisponíveis até você renovar. Seu progresso, suas anotações e seu
               certificado continuam guardados — quando renovar, você volta de onde parou.
             </p>
-            <p className="mt-2 text-sm text-ink-muted">
-              Para renovar, fale com a secretaria pelo WhatsApp ou responda o e-mail de aviso de
-              vencimento.
-            </p>
+            {/* O texto anterior mandava "responder o e-mail de aviso de
+                vencimento" — e-mail que nenhuma parte do sistema envia. Mandar
+                o aluno atrás de algo inexistente, na hora em que ele já está
+                barrado, é a pior hora possível. Aqui vai para um canal que
+                existe, com o assunto já escolhido. */}
+            <Link
+              to={`/suporte?assunto=acesso&titulo=${encodeURIComponent('Renovação de acesso ao curso')}`}
+              className="pco-btn-primary text-xs mt-3"
+            >
+              Pedir renovação
+            </Link>
           </div>
         </div>
       </div>

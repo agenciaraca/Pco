@@ -10,6 +10,7 @@ import {
   useMyWishlist,
   useAddToWishlist,
   useRemoveFromWishlist,
+  useMyCourseAccess,
 } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
@@ -24,6 +25,7 @@ export default function Courses() {
   useDocumentMeta({ title: `${t('courses.title')} — AVA PCO` });
   const { data: courses, isLoading, isError } = useCourses();
   const { data: progress } = useMyProgress();
+  const { data: acessos } = useMyCourseAccess();
   const { data: products = [] } = useProducts();
   const { data: student } = useCurrentStudent();
   const checkout = useStartCheckout();
@@ -50,6 +52,12 @@ export default function Courses() {
     }
   }
   const doneIds = new Set(progress?.completedLessonIds ?? []);
+  // Prazo por curso, para o cartão dizer de longe o que só a página do curso
+  // dizia de perto. Quem tem três cursos e um vencido não deveria descobrir
+  // isso clicando.
+  const prazoPorCurso = new Map(
+    (acessos ?? []).map((a) => [a.courseId, a.state] as const),
+  );
   const enrolledIds = new Set(
     (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds ?? [],
   );
@@ -166,9 +174,21 @@ export default function Courses() {
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.2),transparent_60%)]" />
                   <div className="relative flex flex-col justify-between h-full text-white">
                     <div className="flex items-start justify-between gap-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold uppercase tracking-wider">
-                        {course.shortTitle}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold uppercase tracking-wider">
+                          {course.shortTitle}
+                        </span>
+                        {prazoPorCurso.get(course.id) === 'expired' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-danger text-white text-[10px] font-semibold uppercase tracking-wider">
+                            Acesso vencido
+                          </span>
+                        )}
+                        {prazoPorCurso.get(course.id) === 'expiring' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-warning text-white text-[10px] font-semibold uppercase tracking-wider">
+                            Vence em breve
+                          </span>
+                        )}
+                      </div>
                       <PlayCircle size={28} strokeWidth={1.5} />
                     </div>
                     <h3 className="text-xl font-bold leading-tight max-w-xs">{course.title}</h3>
