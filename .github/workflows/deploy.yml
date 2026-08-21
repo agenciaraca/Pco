@@ -48,6 +48,21 @@ jobs:
           export PM2_HOME=/home/avapco/.pm2
           # node/npm/pm2 vêm do sistema; nvm é opcional
           [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" || true
+          echo "conectado em $(hostname) como $(whoami)"
+          # Esta é a máquina de produção mesmo?
+          #
+          # Vale a pergunta porque a falha silenciosa já aconteceu: durante três
+          # semanas o deploy "passou", fazendo pull e build numa máquina que tem
+          # uma cópia do repositório e nenhum processo da app. Produção ficava
+          # parada e o push seguia verde. Perguntar antes de mexer transforma
+          # isso num erro que diz o que fazer.
+          if ! pm2 describe ava-pco > /dev/null 2>&1; then
+            echo "✗ Não existe processo PM2 'ava-pco' nesta máquina ($(hostname))."
+            echo "  O deploy está indo para o servidor errado — confira o secret VPS_HOST."
+            echo "  PM2 encontrado aqui:"
+            pm2 list || true
+            exit 1
+          fi
           cd "$APP_DIR"
           # repo de outro dono: git recusa sem essa exceção
           git config --global --add safe.directory "$APP_DIR" || true
@@ -60,7 +75,7 @@ jobs:
           pm2 restart ava-pco --update-env
           sleep 5
           curl -s -m 8 http://127.0.0.1:3035/api/health || (pm2 logs ava-pco --lines 30 --nostream && exit 1)
-          echo "✓ Deploy concluído em $(git log --oneline -1)"
+          echo "✓ Deploy concluído em $(hostname): $(git log --oneline -1)"
           EOF
 
       - name: Verifica health público
