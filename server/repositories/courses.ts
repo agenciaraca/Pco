@@ -115,6 +115,7 @@ async function loadFromDb(): Promise<Course[]> {
             durationMinutes: l.durationMinutes,
             videoUrl: l.videoUrl ?? undefined,
             description: l.description ?? undefined,
+            content: l.content ?? undefined,
             isMandatory: l.isMandatory,
             order: l.order,
           }));
@@ -660,6 +661,7 @@ export async function createLesson(
     durationMinutes: input.durationMinutes,
     videoUrl: input.videoUrl || null,
     description: input.description ?? null,
+    content: input.content ?? null,
     isMandatory: input.isMandatory,
     order: input.order,
   });
@@ -702,6 +704,7 @@ export async function updateLesson(
   if (patch.durationMinutes !== undefined) update.durationMinutes = patch.durationMinutes;
   if (patch.videoUrl !== undefined) update.videoUrl = patch.videoUrl || null;
   if (patch.description !== undefined) update.description = patch.description ?? null;
+  if (patch.content !== undefined) update.content = patch.content ?? null;
   if (patch.isMandatory !== undefined) update.isMandatory = patch.isMandatory;
   if (patch.order !== undefined) update.order = patch.order;
 
@@ -751,6 +754,7 @@ function rowToLesson(r: typeof schema.lessons.$inferSelect): Lesson {
     durationMinutes: r.durationMinutes,
     videoUrl: r.videoUrl ?? undefined,
     description: r.description ?? undefined,
+    content: r.content ?? undefined,
     isMandatory: r.isMandatory,
     order: r.order,
   };

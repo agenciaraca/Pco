@@ -220,6 +220,17 @@ export const lessons = pgTable(
     durationMinutes: integer('duration_minutes').notNull().default(0),
     videoUrl: text('video_url'),
     description: text('description'),
+    /**
+     * Conteúdo HTML completo da aula.
+     *
+     * Faltava esta coluna, e a falta tinha consequência visível: a importação
+     * capturou o conteúdo inteiro de 522 aulas, mas só a `description` — cortada
+     * em 500 caracteres — tinha onde pousar. Produção lê do Postgres, então o
+     * aluno lia meia frase enquanto o texto completo dormia num arquivo no
+     * servidor. `LMSLesson` já sabe renderizar isto; era só o banco que não
+     * sabia guardar.
+     */
+    content: text('content'),
     isMandatory: boolean('is_mandatory').notNull().default(true),
     order: integer('order').notNull(),
   },

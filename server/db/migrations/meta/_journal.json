@@ -57,6 +57,13 @@
       "when": 1787325151237,
       "tag": "0007_sessoes_titulacao_precos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787344898516,
+      "tag": "0008_lesson_content",
+      "breakpoints": true
     }
   ]
 }
