@@ -1,9 +1,9 @@
 import { Link, useParams, Navigate } from 'react-router-dom';
+import SiteHeader from '../components/SiteHeader';
 import { ArrowLeft, BookOpen, Clock, PlayCircle, Sparkles } from 'lucide-react';
 import { useLessonPreview } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
-import Logo from '../components/Logo';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { useAuth } from '../auth/AuthContext';
 import { publicCourseUrl } from '../lib/publicUrls';
@@ -52,20 +52,7 @@ export default function LessonPreviewPublic() {
 
   return (
     <div className="min-h-screen bg-surface-off">
-      <header className="bg-white border-b border-pco-border">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
-          <Link to="/" className="inline-flex items-center gap-2">
-            <Logo />
-          </Link>
-          <a
-            href={publicCourseUrl(course)}
-            className="text-xs text-pco-blue hover:underline inline-flex items-center gap-1"
-          >
-            <ArrowLeft size={12} strokeWidth={2} />
-            Ver curso completo
-          </a>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-6">
         <section>

@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import {
@@ -19,7 +19,6 @@ import {
   ChevronsRight,
   type LucideIcon,
 } from 'lucide-react';
-import Logo from './Logo';
 import { useT } from '../i18n';
 
 interface NavItem {
@@ -164,18 +163,30 @@ export default function Sidebar({ variant = 'student', groups }: SidebarProps) {
       )}
       aria-label="Navegação principal"
     >
+      {/* Mesma marca do topo do site: gradiente da casa e a logomarca em
+          branco. Antes o painel abria com um cabeçalho branco e um logotipo
+          diferente do que o visitante tinha acabado de ver — a passagem do site
+          para o AVA parecia troca de produto. */}
       <div
         className={clsx(
-          'flex items-center border-b border-surface-gray',
-          collapsed ? 'px-2 py-3 justify-center' : 'px-5 py-5 justify-between',
+          'flex items-center bg-gradient-to-r from-pco-deep via-pco-blue to-pco-cyan',
+          collapsed ? 'px-2 py-3 justify-center' : 'px-5 py-4 justify-between',
         )}
       >
-        {!collapsed && <Logo />}
+        {!collapsed && (
+          <Link to="/dashboard" aria-label="AVA PCO — início">
+            <img
+              src="/logo-pco-dark.png"
+              alt="PCO — Psicanálise Clínica Online"
+              className="h-8 w-auto object-contain"
+            />
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
           className={clsx(
-            'inline-flex items-center justify-center rounded-lg text-ink-subtle hover:bg-surface-gray hover:text-pco-deep transition-colors',
+            'inline-flex items-center justify-center rounded-lg text-white/80 hover:bg-white/15 hover:text-white transition-colors',
             collapsed ? 'h-9 w-9' : 'h-7 w-7',
           )}
           aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}

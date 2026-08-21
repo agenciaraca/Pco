@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import SiteHeader from '../components/SiteHeader';
 import { Link, useParams } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
-import Logo from '../components/Logo';
 import { validateCertificate } from '../data/api';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import type { Certificate } from '../types/schema';
@@ -40,18 +40,7 @@ export default function VerifyCertificate() {
 
   return (
     <div className="min-h-screen bg-surface-off">
-      <header className="border-b border-surface-gray bg-white">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Logo />
-          <Link
-            to="/"
-            className="text-xs text-pco-blue hover:underline inline-flex items-center gap-1"
-          >
-            <ArrowLeft size={12} strokeWidth={2} />
-            Voltar ao site
-          </Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="max-w-2xl mx-auto px-6 py-12">
         <div className="pco-card p-8">

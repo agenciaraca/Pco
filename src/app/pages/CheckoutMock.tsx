@@ -1,7 +1,7 @@
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import SiteHeader from '../components/SiteHeader';
 import { useState } from 'react';
 import { CheckCircle2, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
-import Logo from '../components/Logo';
 
 export default function CheckoutMock() {
   const [params] = useSearchParams();
@@ -68,16 +68,7 @@ export default function CheckoutMock() {
   return (
     <div className="min-h-screen bg-surface-off px-6 py-10">
       <div className="max-w-md mx-auto">
-        <header className="mb-8 flex items-center justify-between">
-          <Logo />
-          <Link
-            to="/cursos"
-            className="text-xs text-pco-blue hover:underline inline-flex items-center gap-1"
-          >
-            <ArrowLeft size={12} strokeWidth={2} />
-            Cancelar
-          </Link>
-        </header>
+        <SiteHeader />
 
         <div className="pco-card p-6 space-y-5">
           <div>

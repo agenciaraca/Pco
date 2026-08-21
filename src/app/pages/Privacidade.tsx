@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
+import SiteHeader from '../components/SiteHeader';
 import { ArrowLeft } from 'lucide-react';
-import Logo from '../components/Logo';
 import { useSettings } from '../data/hooks';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { useT } from '../i18n';
@@ -18,16 +18,7 @@ export default function Privacidade() {
   return (
     <div className="min-h-screen bg-surface-off px-6 py-10">
       <div className="max-w-3xl mx-auto">
-        <header className="mb-8 flex items-center justify-between">
-          <Logo />
-          <Link
-            to="/login"
-            className="text-xs text-pco-blue hover:underline inline-flex items-center gap-1"
-          >
-            <ArrowLeft size={12} strokeWidth={2} />
-            Voltar ao login
-          </Link>
-        </header>
+        <SiteHeader />
 
         <article className="pco-card p-8 text-sm text-ink-muted leading-relaxed space-y-6">
           <header>

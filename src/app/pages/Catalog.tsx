@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import SiteHeader from '../components/SiteHeader';
 import { useMemo, useState } from 'react';
 import {
   ArrowRight,
@@ -13,7 +14,6 @@ import { useCourses, useProducts } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
-import Logo from '../components/Logo';
 import { useT } from '../i18n';
 import { publicCourseUrl } from '../lib/publicUrls';
 
@@ -69,21 +69,7 @@ export default function Catalog() {
 
   return (
     <div className="min-h-screen bg-surface-off">
-      <header className="bg-white border-b border-pco-border">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
-          <Link to="/" aria-label="Início">
-            <Logo />
-          </Link>
-          <nav className="flex items-center gap-2">
-            <Link to="/login" className="pco-btn-ghost text-sm">
-              Entrar
-            </Link>
-            <Link to="/login" className="pco-btn-primary text-sm">
-              Começar
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="max-w-6xl mx-auto px-6 py-10 space-y-8">
         <div className="text-center space-y-3 max-w-2xl mx-auto">

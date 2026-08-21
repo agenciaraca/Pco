@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import SiteHeader from '../components/SiteHeader';
 import {
   ArrowLeft,
   ArrowRight,
@@ -19,7 +20,6 @@ import { useAuth } from '../auth/AuthContext';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
-import Logo from '../components/Logo';
 import { publicCourseUrl } from '../lib/publicUrls';
 
 export default function CoursePreview() {
@@ -68,25 +68,7 @@ export default function CoursePreview() {
 
   return (
     <div className="min-h-screen bg-surface-off">
-      <header className="bg-white border-b border-pco-border">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
-          <Link to="/catalogo" className="flex items-center gap-2">
-            <Logo />
-          </Link>
-          <nav className="flex items-center gap-2">
-            <Link to="/catalogo" className="pco-btn-ghost text-xs hidden sm:inline-flex">
-              <ArrowLeft size={11} strokeWidth={2} />
-              Catálogo
-            </Link>
-            <Link to="/login" className="pco-btn-ghost text-sm">
-              Entrar
-            </Link>
-            <Link to="/login" className="pco-btn-primary text-sm">
-              Começar
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {!user && (course.prerequisiteCourseIds?.length ?? 0) > 0 && (

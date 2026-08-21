@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import SiteHeader from '../components/SiteHeader';
 import {
   ArrowRight,
   Compass,
@@ -20,7 +21,6 @@ import {
   Layers,
   Activity,
 } from 'lucide-react';
-import Logo from '../components/Logo';
 
 const recursos = [
   { icon: GraduationCap, label: 'Aulas', desc: 'Vídeo, texto e materiais.' },
@@ -60,23 +60,7 @@ const cursos = [
 export default function Landing() {
   return (
     <div className="min-h-screen bg-surface-off">
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-surface-gray">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Logo />
-          <div className="flex items-center gap-3">
-            <Link to="/catalogo" className="pco-btn-ghost hidden sm:inline-flex">
-              Catálogo
-            </Link>
-            <Link to="/login" className="pco-btn-ghost">
-              Entrar
-            </Link>
-            <Link to="/onboarding" className="pco-btn-primary">
-              Conhecer o AVA
-              <ArrowRight size={14} strokeWidth={2} />
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* 1. Hero */}
       <section className="relative overflow-hidden">
