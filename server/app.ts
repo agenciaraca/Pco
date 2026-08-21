@@ -107,6 +107,7 @@ import { consultarCota as consultarCotaEmail } from './notifications/cota';
 import { renderPrimeiroAcesso } from './notifications/templates';
 import { courseAccessFor, accessDeniedCode, accessDeniedMessage } from './access/guard';
 import { accessFor as accessInfoFor } from './access/course-access';
+import { simularPrazoDoCurso } from './access/impacto';
 import * as newsRepo from './repositories/news';
 import * as podcastsRepo from './repositories/podcasts';
 import * as libraryRepo from './repositories/library';
@@ -3016,6 +3017,28 @@ export function buildApp() {
   );
 
   /** Lista alunos matriculados num curso com progresso individual. */
+  /**
+   * Quantas pessoas este prazo tranca, se eu salvar?
+   *
+   * Declarar meses de acesso não age só daqui para frente: matrícula sem prazo
+   * gravado passa a valer `enrolledAt + meses`, e as datas reais começam em
+   * 2021. Sem esta conta, salvar o campo é uma ação de efeito silencioso e
+   * amplo. Só lê.
+   */
+  app.get('/admin/courses/:id/impacto-acesso', requireAuth('admin', 'superadmin'), async (c) => {
+    const courseId = c.req.param('id') as string;
+    const course = await coursesRepo.findCourse(courseId);
+    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+
+    const bruto = c.req.query('meses');
+    const meses = bruto === undefined || bruto === '' ? null : Number(bruto);
+    if (meses !== null && (!Number.isFinite(meses) || meses < 0 || meses > 600)) {
+      return jsonError(c, 400, 'VALIDATION', 'Meses precisa ser um número entre 0 e 600.');
+    }
+
+    return c.json(await simularPrazoDoCurso(courseId, meses));
+  });
+
   app.get('/admin/courses/:id/students', requireAuth('admin', 'superadmin'), async (c) => {
     const courseId = c.req.param('id') as string;
     const course = await coursesRepo.findCourse(courseId);

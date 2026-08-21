@@ -56,6 +56,7 @@ import {
   useCourse,
   useCourses,
   useUpdateCourse,
+  useImpactoAcesso,
   useDeleteCourse,
   useReorderCourse,
   useCreateModule,
@@ -402,6 +403,7 @@ function GeralPane({ course }: { course: Course }) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isDirty },
     reset,
   } = useForm<UpdateCourseInput>({
@@ -1014,7 +1016,7 @@ function GeralPane({ course }: { course: Course }) {
         <Field
           label="Meses de acesso"
           error={errors.accessMonths?.message}
-          hint="Por quanto tempo a matrícula dá acesso a este curso. Vazio ou 0 = acesso sem prazo. Vale para quem se matricular a partir de agora — quem já comprou mantém o prazo que recebeu."
+          hint="Por quanto tempo a matrícula dá acesso a este curso, contados da data em que o aluno entrou. Vazio ou 0 = acesso sem prazo. Vale também para quem já está matriculado, exceto quem tem prazo próprio gravado — a conta abaixo mostra quem."
         >
           <input
             type="number"
@@ -1028,6 +1030,7 @@ function GeralPane({ course }: { course: Course }) {
             })}
             className="pco-input max-w-[160px]"
           />
+          <PrevisaoDePrazo courseId={course.id} meses={watch('accessMonths') ?? null} />
         </Field>
 
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-gray">
@@ -1083,6 +1086,99 @@ function GeralPane({ course }: { course: Course }) {
         <CoursePublishChecklist course={course} />
       </div>
     </form>
+  );
+}
+
+/**
+ * O que este prazo faz com quem já está matriculado.
+ *
+ * Declarar meses de acesso não vale só daqui para frente: matrícula sem prazo
+ * próprio gravado passa a valer `entrou + meses`, e as datas de entrada reais
+ * começam em 2021. Um "6" digitado sem esta conta ao lado pode trancar
+ * centenas de pessoas no instante em que o formulário é salvo — sem erro,
+ * sem aviso, sem jeito de perceber antes do primeiro e-mail de reclamação.
+ */
+function PrevisaoDePrazo({ courseId, meses }: { courseId: string; meses: number | null }) {
+  // Espera a digitação parar: a conta varre todas as matrículas do curso, e
+  // "16" passa por "1" no caminho.
+  const [estavel, setEstavel] = useState<number | null>(meses);
+  useEffect(() => {
+    const t = setTimeout(() => setEstavel(meses), 500);
+    return () => clearTimeout(t);
+  }, [meses]);
+
+  const { data, isFetching } = useImpactoAcesso(courseId, estavel);
+
+  if (!estavel || estavel <= 0) {
+    return (
+      <p className="text-xs text-ink-subtle mt-2">
+        Sem prazo: ninguém perde acesso a este curso.
+      </p>
+    );
+  }
+  if (!data) {
+    return (
+      <p className="text-xs text-ink-subtle mt-2">
+        {isFetching ? 'Calculando quem seria afetado…' : ' '}
+      </p>
+    );
+  }
+  if (data.total === 0) {
+    return (
+      <p className="text-xs text-ink-subtle mt-2">
+        Ninguém está matriculado neste curso — o prazo só vale para quem entrar depois.
+      </p>
+    );
+  }
+
+  const grave = data.expirados > 0;
+  return (
+    <div
+      className={`mt-3 rounded-lg p-3 text-sm ${
+        grave ? 'bg-status-warning/10 text-status-warning' : 'bg-surface-off text-ink-muted'
+      }`}
+    >
+      {grave ? (
+        <p>
+          Salvando com {estavel} {estavel === 1 ? 'mês' : 'meses'},{' '}
+          <strong>
+            {data.expirados} de {data.total}
+          </strong>{' '}
+          {data.expirados === 1 ? 'aluno perde' : 'alunos perdem'} o acesso imediatamente.
+          {data.vencendo > 0 && <> Outros {data.vencendo} vencem em até 30 dias.</>}
+        </p>
+      ) : (
+        <p>
+          Com {estavel} {estavel === 1 ? 'mês' : 'meses'}, os {data.total} matriculados seguem com
+          acesso.
+          {data.vencendo > 0 && <> {data.vencendo} vencem em até 30 dias.</>}
+        </p>
+      )}
+      {data.comPrazoProprio > 0 && (
+        <p className="text-xs mt-1 opacity-80">
+          {data.comPrazoProprio}{' '}
+          {data.comPrazoProprio === 1 ? 'matrícula tem prazo próprio' : 'matrículas têm prazo próprio'}{' '}
+          gravado e não {data.comPrazoProprio === 1 ? 'muda' : 'mudam'}.
+        </p>
+      )}
+      {data.exemplos.length > 0 && (
+        <details className="mt-2">
+          <summary className="text-xs cursor-pointer">
+            Ver quem sai primeiro (matrículas mais antigas)
+          </summary>
+          <ul className="mt-2 space-y-1 text-xs">
+            {data.exemplos.map((e) => (
+              <li key={e.email + e.desde} className="flex justify-between gap-3">
+                <span className="truncate">{e.nome}</span>
+                <span className="opacity-70 whitespace-nowrap">
+                  entrou em {new Date(e.desde).toLocaleDateString('pt-BR')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
   );
 }
 

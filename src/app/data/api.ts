@@ -2442,6 +2442,27 @@ export async function updateCourse(id: string, patch: UpdateCoursePatch): Promis
   return http.put<Course>(`/admin/courses/${encodeURIComponent(id)}`, patch);
 }
 
+export interface ImpactoAcesso {
+  meses: number | null;
+  total: number;
+  expirados: number;
+  vencendo: number;
+  ativos: number;
+  comPrazoProprio: number;
+  exemplos: Array<{ nome: string; email: string; desde: string; ate: string | null }>;
+}
+
+/** Simula um prazo de acesso sem salvá-lo. Ver `server/access/impacto.ts`. */
+export async function simularPrazoDoCurso(
+  courseId: string,
+  meses: number | null,
+): Promise<ImpactoAcesso> {
+  const q = meses === null ? '' : `?meses=${encodeURIComponent(String(meses))}`;
+  return http.get<ImpactoAcesso>(
+    `/admin/courses/${encodeURIComponent(courseId)}/impacto-acesso${q}`,
+  );
+}
+
 export interface CreateCourseInput {
   title: string;
   slug: string;

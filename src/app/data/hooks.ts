@@ -288,6 +288,19 @@ export function useUpdateCourse() {
   });
 }
 
+/**
+ * Simulação do prazo de acesso enquanto o admin digita. `enabled` fica a cargo
+ * de quem chama, porque a conta varre todas as matrículas do curso.
+ */
+export function useImpactoAcesso(courseId: string | undefined, meses: number | null) {
+  return useQuery({
+    queryKey: ['impacto-acesso', courseId, meses],
+    queryFn: () => api.simularPrazoDoCurso(courseId!, meses),
+    enabled: !!courseId,
+    staleTime: 60_000,
+  });
+}
+
 export function useCreateCourse() {
   const qc = useQueryClient();
   return useMutation({

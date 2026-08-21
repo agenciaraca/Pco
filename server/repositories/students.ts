@@ -668,8 +668,61 @@ export async function listAdminStudents(filter: StudentsFilter): Promise<AdminSt
 }
 
 export async function findAdminStudent(id: string): Promise<AdminStudentDto | null> {
-  const list = await listAdminStudents({});
-  return list.find((s) => s.id === id) ?? null;
+  const db = getDb();
+  // Este caminho é quente: o portão de acesso (`courseAccessFor`) passa por aqui
+  // a cada aula concluída, cada transcrição aberta, cada comentário. A versão
+  // anterior chamava `listAdminStudents({})` e montava a base inteira — 1.600
+  // alunos e ~10.000 matrículas — para depois jogar fora tudo menos uma linha.
+  if (!db) {
+    const list = await listAdminStudents({});
+    return list.find((s) => s.id === id) ?? null;
+  }
+
+  const linhas = await db
+    .select({
+      id: schema.students.id,
+      name: schema.users.name,
+      email: schema.users.email,
+      status: schema.students.status,
+      riskScore: schema.students.riskScore,
+      lastAccessAt: schema.students.lastAccessAt,
+      createdAt: schema.students.createdAt,
+    })
+    .from(schema.students)
+    .leftJoin(schema.users, eq(schema.users.id, schema.students.userId))
+    .where(eq(schema.students.id, id))
+    .limit(1);
+
+  const r = linhas[0];
+  // Sem ficha no banco ainda pode haver ficha no seed/JSON — quem veio de
+  // importação antiga vive lá, e negar acesso aqui o trancaria para fora.
+  if (!r) {
+    const list = await listAdminStudents({});
+    return list.find((s) => s.id === id) ?? null;
+  }
+
+  const matriculas = await db
+    .select()
+    .from(schema.enrollments)
+    .where(eq(schema.enrollments.studentId, id));
+
+  return {
+    id: r.id,
+    name: r.name ?? r.id,
+    email: r.email ?? '',
+    enrolledCourseIds: matriculas.map((e) => e.courseId),
+    progressByCourse: Object.fromEntries(matriculas.map((e) => [e.courseId, e.progress])),
+    enrollmentDates: Object.fromEntries(
+      matriculas.map((e) => [e.courseId, e.enrolledAt.toISOString()]),
+    ),
+    accessExpiresByCourse: Object.fromEntries(
+      matriculas.filter((e) => e.expiresAt).map((e) => [e.courseId, e.expiresAt!.toISOString()]),
+    ),
+    status: r.status,
+    riskScore: r.riskScore,
+    lastAccessAt: r.lastAccessAt?.toISOString() ?? r.createdAt.toISOString(),
+    createdAt: r.createdAt.toISOString(),
+  };
 }
 
 async function filterSeed(filter: StudentsFilter): Promise<AdminStudentDto[]> {
