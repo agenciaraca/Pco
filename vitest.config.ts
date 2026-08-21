@@ -22,7 +22,21 @@ export default defineConfig({
     // Prazos maiores não escondem defeito: um teste travado de verdade continua
     // falhando, só que mais tarde.
     testTimeout: 20_000,
-    hookTimeout: 30_000,
+    // O gargalo destes hooks é um só: `await import('../server/app')` puxa um
+    // módulo de ~9.700 linhas, e oito arquivos de teste fazem isso. Sob 22
+    // workers disputando CPU, o import passava dos 30s e o arquivo era
+    // reprovado inteiro — sempre por timeout, nunca por asserção, e a cada
+    // execução num arquivo diferente. Rodando isolados, os mesmos testes passam
+    // em segundos.
+    hookTimeout: 60_000,
+    // Menos workers deixa cada import respirar. O ganho de paralelismo acima
+    // disso é ilusório: os arquivos pesados passam a competir entre si e o tempo
+    // total piora junto com a estabilidade.
+    //
+    // No nível de `test` de propósito: o Vitest 4 removeu `poolOptions`, e a
+    // primeira tentativa de ajuste aqui foi silenciosamente ignorada — só um
+    // aviso de deprecação no meio da saída denunciava.
+    maxWorkers: 8,
     coverage: {
       reporter: ['text', 'html', 'json-summary'],
       exclude: ['node_modules', 'dist', 'test', '**/*.config.*'],
