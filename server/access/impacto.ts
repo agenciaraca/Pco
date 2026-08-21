@@ -14,7 +14,7 @@
  */
 
 import { getDb, schema } from '../db/client';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { accessFor, type AccessState } from './course-access';
 import * as studentsRepo from '../repositories/students';
 
@@ -139,4 +139,56 @@ export function contarImpacto(
       ate: a.ate,
     })),
   };
+}
+
+/**
+ * Dá um prazo comum a quem ficaria vencido pela política do curso.
+ *
+ * Existe porque a extensão individual, que já havia, é o instrumento errado na
+ * escala em questão: declarar seis meses no curso maior deixa 471 pessoas
+ * vencidas de uma vez, e renovar uma a uma não é trabalho que alguém faça. Sem
+ * isto, a política que o dono pediu só existe na forma de um muro.
+ *
+ * Grava `expiresAt` na matrícula — o valor gravado tem precedência sobre a
+ * política do curso, então esta carência sobrevive a mudanças posteriores em
+ * `accessMonths`. Não toca em quem já tem prazo próprio.
+ */
+export async function darCarencia(
+  courseId: string,
+  meses: number,
+  ate: string,
+  agora: Date = new Date(),
+): Promise<{ afetados: number }> {
+  const alvo = new Date(ate);
+  if (Number.isNaN(alvo.getTime())) throw new RangeError(`data inválida: ${ate}`);
+
+  const linhas = await linhasDoCurso(courseId);
+  const vencidos = linhas.filter((l) => {
+    if (l.expiresAt) return false; // prazo próprio manda; não mexemos
+    return !accessFor(
+      { enrolledAt: l.enrolledAt, storedExpiresAt: null, accessMonths: meses },
+      agora,
+    ).canStudy;
+  });
+
+  const db = getDb();
+  if (db) {
+    for (const l of vencidos) {
+      await db
+        .update(schema.enrollments)
+        .set({ expiresAt: alvo })
+        .where(
+          and(
+            eq(schema.enrollments.studentId, l.studentId),
+            eq(schema.enrollments.courseId, courseId),
+          ),
+        );
+    }
+    return { afetados: vencidos.length };
+  }
+
+  for (const l of vencidos) {
+    await studentsRepo.extendCourseAccess(l.studentId, courseId, { until: alvo.toISOString() });
+  }
+  return { afetados: vencidos.length };
 }

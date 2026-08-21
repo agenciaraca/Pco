@@ -107,7 +107,7 @@ import { consultarCota as consultarCotaEmail } from './notifications/cota';
 import { renderPrimeiroAcesso } from './notifications/templates';
 import { courseAccessFor, accessDeniedCode, accessDeniedMessage } from './access/guard';
 import { accessFor as accessInfoFor } from './access/course-access';
-import { simularPrazoDoCurso } from './access/impacto';
+import { simularPrazoDoCurso, darCarencia } from './access/impacto';
 import * as newsRepo from './repositories/news';
 import * as podcastsRepo from './repositories/podcasts';
 import * as libraryRepo from './repositories/library';
@@ -3037,6 +3037,39 @@ export function buildApp() {
     }
 
     return c.json(await simularPrazoDoCurso(courseId, meses));
+  });
+
+  /**
+   * Dá um prazo comum a quem a política do curso deixaria vencido.
+   *
+   * O contrapeso da rota acima: se a simulação diz "471 pessoas perdem acesso
+   * hoje", esta é a forma de transformar o muro em rampa sem renovar 471 vezes
+   * à mão. Escreve `expiresAt` na matrícula, que tem precedência sobre a
+   * política do curso — a carência sobrevive a mudanças posteriores.
+   */
+  app.post('/admin/courses/:id/carencia', requireAuth('admin', 'superadmin'), async (c) => {
+    const courseId = c.req.param('id') as string;
+    const course = await coursesRepo.findCourse(courseId);
+    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+
+    const body = (await c.req.json().catch(() => ({}))) as { meses?: number; ate?: string };
+    const meses = Number(body.meses);
+    if (!Number.isFinite(meses) || meses <= 0 || meses > 600) {
+      return jsonError(c, 400, 'VALIDATION', 'Informe a política em meses (1 a 600).');
+    }
+    const ate = typeof body.ate === 'string' ? body.ate : '';
+    const alvo = new Date(ate);
+    if (!ate || Number.isNaN(alvo.getTime())) {
+      return jsonError(c, 400, 'VALIDATION', 'Informe até quando vale a carência.');
+    }
+    if (alvo.getTime() <= Date.now()) {
+      // Carência para o passado não é carência: seria um jeito silencioso de
+      // trancar todo mundo de uma vez, com cara de gentileza.
+      return jsonError(c, 400, 'VALIDATION', 'A carência precisa terminar no futuro.');
+    }
+
+    const r = await darCarencia(courseId, meses, alvo.toISOString());
+    return c.json({ ok: true, ...r, ate: alvo.toISOString() });
   });
 
   app.get('/admin/courses/:id/students', requireAuth('admin', 'superadmin'), async (c) => {

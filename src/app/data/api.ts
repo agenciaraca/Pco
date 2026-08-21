@@ -2452,6 +2452,15 @@ export interface ImpactoAcesso {
   exemplos: Array<{ nome: string; email: string; desde: string; ate: string | null }>;
 }
 
+/** Dá prazo comum a quem a política deixaria vencido. Ver `darCarencia`. */
+export async function darCarenciaNoCurso(
+  courseId: string,
+  meses: number,
+  ate: string,
+): Promise<{ ok: true; afetados: number; ate: string }> {
+  return http.post(`/admin/courses/${encodeURIComponent(courseId)}/carencia`, { meses, ate });
+}
+
 /** Simula um prazo de acesso sem salvá-lo. Ver `server/access/impacto.ts`. */
 export async function simularPrazoDoCurso(
   courseId: string,

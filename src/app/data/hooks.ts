@@ -301,6 +301,15 @@ export function useImpactoAcesso(courseId: string | undefined, meses: number | n
   });
 }
 
+export function useDarCarencia() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, meses, ate }: { courseId: string; meses: number; ate: string }) =>
+      api.darCarenciaNoCurso(courseId, meses, ate),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['impacto-acesso'] }),
+  });
+}
+
 export function useCreateCourse() {
   const qc = useQueryClient();
   return useMutation({

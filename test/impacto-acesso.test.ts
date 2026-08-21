@@ -112,3 +112,10 @@ describe('contarImpacto — o que o prazo faz com quem já entrou', () => {
     expect(r.exemplos).toEqual([]);
   });
 });
+
+describe('darCarencia — o contrapeso do muro', () => {
+  it('recusa data inválida em vez de gravar lixo em centenas de linhas', async () => {
+    const { darCarencia } = await import('../server/access/impacto');
+    await expect(darCarencia('c1', 6, 'não é data')).rejects.toThrow(RangeError);
+  });
+});

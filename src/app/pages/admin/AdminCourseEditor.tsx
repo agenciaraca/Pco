@@ -57,6 +57,7 @@ import {
   useCourses,
   useUpdateCourse,
   useImpactoAcesso,
+  useDarCarencia,
   useDeleteCourse,
   useReorderCourse,
   useCreateModule,
@@ -1178,6 +1179,94 @@ function PrevisaoDePrazo({ courseId, meses }: { courseId: string; meses: number 
           </ul>
         </details>
       )}
+      {grave && <Carencia courseId={courseId} meses={estavel} quantos={data.expirados} />}
+    </div>
+  );
+}
+
+/**
+ * Transformar o muro em rampa: dar a todos os que ficariam vencidos um prazo
+ * comum, em vez de renovar um a um.
+ *
+ * A extensão individual já existia e é o instrumento errado nesta escala —
+ * ninguém renova 471 matrículas à mão. Sem isto, a política de prazo que o dono
+ * pediu chega ao aluno só na forma de porta fechada.
+ */
+function Carencia({
+  courseId,
+  meses,
+  quantos,
+}: {
+  courseId: string;
+  meses: number;
+  quantos: number;
+}) {
+  const toast = useToast();
+  const dar = useDarCarencia();
+  const [ate, setAte] = useState('');
+  const [confirmando, setConfirmando] = useState(false);
+
+  async function aplicar() {
+    try {
+      const r = await dar.mutateAsync({ courseId, meses, ate });
+      toast.success(
+        `${r.afetados} matrícula(s) com prazo até ${new Date(r.ate).toLocaleDateString('pt-BR')}`,
+        'O prazo gravado na matrícula vale mesmo se a política do curso mudar depois.',
+      );
+      setConfirmando(false);
+    } catch (err) {
+      toast.error('Não foi possível dar a carência', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-current/20">
+      <p className="text-xs">
+        Em vez de trancar os {quantos} de uma vez, dê a todos eles um prazo comum:
+      </p>
+      <div className="flex flex-wrap items-center gap-2 mt-2">
+        <input
+          type="date"
+          value={ate}
+          onChange={(e) => {
+            setAte(e.target.value);
+            setConfirmando(false);
+          }}
+          className="pco-input text-xs max-w-[170px]"
+        />
+        {!confirmando ? (
+          <button
+            type="button"
+            disabled={!ate || dar.isPending}
+            onClick={() => setConfirmando(true)}
+            className="pco-btn-secondary text-xs"
+          >
+            Dar prazo aos {quantos}
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={dar.isPending}
+              onClick={aplicar}
+              className="pco-btn-primary text-xs"
+            >
+              {dar.isPending ? 'Aplicando…' : `Confirmar: ${quantos} matrículas`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmando(false)}
+              className="pco-btn-ghost text-xs"
+            >
+              Cancelar
+            </button>
+          </>
+        )}
+      </div>
+      <p className="text-[11px] mt-1 opacity-80">
+        Grava o prazo em cada matrícula. Não mexe em quem já tem prazo próprio, e não desfaz
+        sozinho — para encurtar depois, use a ficha do aluno.
+      </p>
     </div>
   );
 }
