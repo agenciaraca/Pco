@@ -195,7 +195,32 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 ## Reference docs
 
 `docs/` has deeper notes per subsystem when you need them:
-`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `webhooks-cookbook.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `admin-user-guide.md`, `api-public.md`, `deploy.md`, `production-checklist.md`, `migration-wp-ld.md`, `prazo-de-acesso.md`.
+`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `webhooks-cookbook.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `admin-user-guide.md`, `api-public.md`, `deploy.md`, `production-checklist.md`, `migration-wp-ld.md`, `prazo-de-acesso.md`, `sessoes.md`.
+
+## Sessões: opcionais por LEI, e o preço vem da titulação
+
+Análise, supervisão e orientação são contratadas à parte e **nunca** podem ser
+requisito de curso: condicionar a venda é **venda casada**, vedada pelo art. 39,
+I, do CDC. Por isso a regra é código, não parágrafo — `server/sessions/regra-opcional.ts`,
+exposta em `GET /sessions/policy`, com testes que cobram a citação da lei.
+
+O preço vem de **quem atende**, não do serviço: `session_price_tiers` (escola
+R$ 80 / mestrado R$ 140 / doutorado R$ 450). E `professionals.available` ≠
+`active` — agenda cheia é estado do dia, e é `available` que decide quem aparece
+para o aluno. Detalhes em `docs/sessoes.md`.
+
+**Falta o lado do aluno:** não existe rota de agendamento no servidor.
+
+## Aulas: `description` é resumo, `content` é o corpo
+
+Dois campos, e confundi-los já custou caro. A importação grava `description`
+cortada em `slice(0,500)` e `content` com o HTML completo. Até 21/ago/2026 a
+tabela `lessons` não tinha coluna para o conteúdo, então 309 aulas em produção
+terminavam no meio da frase. Corrigido pela migration 0008 +
+`scripts/restaurar_conteudo_aulas.ts` (522 aulas, 2,93 mi de caracteres).
+
+O `slice(0,500)` continua nos scripts de importação — reimportar cortaria de
+novo. Ver `docs/migration-wp-ld.md`.
 
 ## Prazo de acesso — declarar os meses é RETROATIVO
 
