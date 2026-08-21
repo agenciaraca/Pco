@@ -15,8 +15,29 @@ import {
   Check,
 } from 'lucide-react';
 import Tabs from '../../components/Tabs';
-import { useSessionServices, useProfessionals } from '../../data/hooks';
+import {
+  useSessionServices,
+  useProfessionals,
+  usePriceTiers,
+  useSessionPolicy,
+  useCreateSessionService,
+  useUpdateSessionService,
+  useDeleteSessionService,
+  useCreateProfessional,
+  useUpdateProfessional,
+  useDeleteProfessional,
+  useUpsertPriceTier,
+  useSeedPriceTiers,
+} from '../../data/hooks';
+import { useToast } from '../../components/Toast';
+import type { ProfessionalRow, PriceTier } from '../../data/api';
+import type { SessionService } from '../../types/schema';
 import { useT } from '../../i18n';
+
+/** Centavos para real, do jeito que o brasileiro lê. */
+function reais(centavos: number): string {
+  return (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
 
 const tabs = [
   { id: 'servicos', label: 'Serviços', icon: <Stethoscope size={14} strokeWidth={1.75} /> },
@@ -41,14 +62,7 @@ export default function AdminAnaliseSupervisao() {
         </p>
       </header>
 
-      <div className="pco-card border-pco-orange/30 bg-pco-orange/5 p-4 flex gap-3">
-        <AlertCircle className="text-pco-orange shrink-0" size={18} strokeWidth={1.75} />
-        <p className="text-xs text-ink-muted">
-          Análise, supervisão e orientação formativa são serviços opcionais, contratados
-          separadamente, e não são requisitos obrigatórios para conclusão dos cursos da PCO ou
-          emissão de certificado.
-        </p>
-      </div>
+      <AvisoVendaCasada />
 
       <Tabs items={tabs} active={active} onChange={setActive} />
 
@@ -63,74 +77,300 @@ export default function AdminAnaliseSupervisao() {
   );
 }
 
+/**
+ * O aviso não é zelo de redação: é a regra que impede a venda casada.
+ * Condicionar a venda do curso à contratação de análise ou supervisão é vedado
+ * pelo art. 39, I, do CDC. O texto e a base legal vêm do servidor
+ * (`server/sessions/regra-opcional.ts`) para que exista uma fonte só.
+ */
+function AvisoVendaCasada() {
+  const { data } = useSessionPolicy();
+  return (
+    <div className="pco-card border-pco-orange/30 bg-pco-orange/5 p-4 flex gap-3">
+      <AlertCircle className="text-pco-orange shrink-0" size={18} strokeWidth={1.75} />
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold text-pco-deep">
+          {data?.aviso ??
+            'Análise, supervisão e orientação são opcionais e não são requisito para nenhum curso.'}
+        </p>
+        {data?.baseLegal && <p className="text-[11px] text-ink-muted">{data.baseLegal}</p>}
+      </div>
+    </div>
+  );
+}
+
 function ServicosPane() {
+  const toast = useToast();
   const { data: sessionServices = [] } = useSessionServices();
+  const criar = useCreateSessionService();
+  const atualizar = useUpdateSessionService();
+  const remover = useDeleteSessionService();
+  const [editando, setEditando] = useState<Partial<SessionService> | null>(null);
+  const [confirmarExclusao, setConfirmarExclusao] = useState<string | null>(null);
+
+  async function salvar() {
+    if (!editando) return;
+    try {
+      if (editando.id) {
+        await atualizar.mutateAsync({ id: editando.id, patch: editando });
+        toast.success('Serviço atualizado', editando.name ?? '');
+      } else {
+        await criar.mutateAsync(editando);
+        toast.success('Serviço criado', editando.name ?? '');
+      }
+      setEditando(null);
+    } catch (err) {
+      toast.error('Não foi possível salvar', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
+  async function excluir(id: string) {
+    try {
+      await remover.mutateAsync(id);
+      toast.success('Serviço removido', '');
+      setConfirmarExclusao(null);
+    } catch (err) {
+      toast.error('Não foi possível remover', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-pco-deep">Serviços oferecidos</h3>
-        <button className="pco-btn-primary text-xs">
+        <div>
+          <h3 className="text-base font-semibold text-pco-deep">Serviços oferecidos</h3>
+          <p className="text-xs text-ink-muted mt-0.5">
+            O serviço define o que é e quanto dura. Quanto custa vem da titulação de quem atende —
+            na aba Valores.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            setEditando({
+              name: '',
+              type: 'analise',
+              description: '',
+              durationMinutes: 50,
+              price: 0,
+              active: true,
+              paymentBeforeConfirmation: true,
+            })
+          }
+          className="pco-btn-primary text-xs"
+        >
           <Plus size={12} strokeWidth={2} />
           Novo serviço
         </button>
       </div>
 
+      {sessionServices.length === 0 && (
+        <div className="pco-card text-sm text-ink-muted">
+          Nenhum serviço cadastrado ainda. Comece por "Análise pessoal" e "Supervisão clínica".
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3">
         {sessionServices.map((s) => (
           <div key={s.id} className="pco-card">
             <div className="flex items-start justify-between">
-              <span className="pco-badge bg-pco-blue/10 text-pco-blue capitalize">
-                {s.type}
-              </span>
-              <span
-                className={`pco-badge ${
+              <span className="pco-badge bg-pco-blue/10 text-pco-blue capitalize">{s.type}</span>
+              <button
+                type="button"
+                onClick={() => atualizar.mutate({ id: s.id, patch: { active: !s.active } })}
+                className={`pco-badge cursor-pointer ${
                   s.active
                     ? 'bg-status-success/10 text-status-success'
                     : 'bg-surface-gray text-ink-muted'
                 }`}
               >
                 {s.active ? 'Ativo' : 'Inativo'}
-              </span>
+              </button>
             </div>
             <h4 className="mt-3 text-base font-semibold text-pco-deep">{s.name}</h4>
             <p className="mt-1 text-xs text-ink-muted line-clamp-2">{s.description}</p>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
               <Tile label="Duração" value={`${s.durationMinutes} min`} />
-              <Tile label="Valor" value={`R$ ${s.price}`} />
-            </div>
-            <div className="mt-3 text-[11px] text-ink-muted space-y-0.5">
-              <div className="flex items-center gap-1">
-                <Check size={10} className="text-status-success" />
-                {s.paymentBeforeConfirmation ? 'Pagamento antes da confirmação' : 'Confirmação manual'}
-              </div>
+              <Tile
+                label="Pagamento"
+                value={s.paymentBeforeConfirmation ? 'Antecipado' : 'Manual'}
+              />
             </div>
             <div className="mt-3 flex gap-2">
-              <button className="pco-btn-secondary text-xs flex-1 justify-center">
+              <button
+                type="button"
+                onClick={() => setEditando({ ...s })}
+                className="pco-btn-secondary text-xs flex-1 justify-center"
+              >
                 <Edit3 size={12} strokeWidth={1.75} />
                 Editar
               </button>
-              <button className="pco-btn-ghost text-xs px-3 text-status-danger">
-                <Trash2 size={12} strokeWidth={1.75} />
-              </button>
+              {confirmarExclusao === s.id ? (
+                <button
+                  type="button"
+                  onClick={() => excluir(s.id)}
+                  className="pco-btn-primary text-xs bg-status-danger"
+                >
+                  Confirmar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmarExclusao(s.id)}
+                  className="pco-btn-ghost text-xs px-3 text-status-danger"
+                >
+                  <Trash2 size={12} strokeWidth={1.75} />
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      {editando && (
+        <div className="pco-card space-y-3 border-pco-blue/40">
+          <h4 className="text-sm font-semibold text-pco-deep">
+            {editando.id ? 'Editar serviço' : 'Novo serviço'}
+          </h4>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Nome">
+              <input
+                value={editando.name ?? ''}
+                onChange={(e) => setEditando({ ...editando, name: e.target.value })}
+                className="pco-input"
+                placeholder="Análise pessoal"
+              />
+            </Field>
+            <Field label="Tipo">
+              <select
+                value={editando.type ?? 'analise'}
+                onChange={(e) =>
+                  setEditando({ ...editando, type: e.target.value as SessionService['type'] })
+                }
+                className="pco-input"
+              >
+                <option value="analise">Análise</option>
+                <option value="supervisao">Supervisão</option>
+                <option value="orientacao">Orientação</option>
+              </select>
+            </Field>
+            <Field label="Duração (min)">
+              <input
+                type="number"
+                min={10}
+                max={240}
+                value={editando.durationMinutes ?? 50}
+                onChange={(e) =>
+                  setEditando({ ...editando, durationMinutes: Number(e.target.value) })
+                }
+                className="pco-input"
+              />
+            </Field>
+            <Field label="Pagamento antes da confirmação">
+              <label className="inline-flex items-center gap-2 mt-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editando.paymentBeforeConfirmation ?? true}
+                  onChange={(e) =>
+                    setEditando({ ...editando, paymentBeforeConfirmation: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded"
+                />
+                <span className="text-sm text-pco-deep">Sim</span>
+              </label>
+            </Field>
+          </div>
+          <Field label="Descrição">
+            <textarea
+              value={editando.description ?? ''}
+              onChange={(e) => setEditando({ ...editando, description: e.target.value })}
+              rows={2}
+              className="pco-input"
+            />
+          </Field>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditando(null)} className="pco-btn-ghost text-xs">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={salvar}
+              disabled={!editando.name || criar.isPending || atualizar.isPending}
+              className="pco-btn-primary text-xs"
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function ProfissionaisPane() {
+  const toast = useToast();
   const { data: professionals = [] } = useProfessionals();
+  const { data: faixas = [] } = usePriceTiers();
+  const criar = useCreateProfessional();
+  const atualizar = useUpdateProfessional();
+  const remover = useDeleteProfessional();
+  const [editando, setEditando] = useState<Partial<ProfessionalRow> | null>(null);
+  const [confirmarExclusao, setConfirmarExclusao] = useState<string | null>(null);
+
+  async function salvar() {
+    if (!editando) return;
+    try {
+      if (editando.id) {
+        await atualizar.mutateAsync({ id: editando.id, patch: editando });
+        toast.success('Profissional atualizado', editando.name ?? '');
+      } else {
+        await criar.mutateAsync(editando);
+        toast.success('Profissional cadastrado', editando.name ?? '');
+      }
+      setEditando(null);
+    } catch (err) {
+      toast.error('Não foi possível salvar', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-pco-deep">Profissionais</h3>
-        <button className="pco-btn-primary text-xs">
+        <div>
+          <h3 className="text-base font-semibold text-pco-deep">Profissionais</h3>
+          <p className="text-xs text-ink-muted mt-0.5">
+            A titulação define o valor da sessão. "Disponível" é o que decide quem aparece para o
+            aluno agendar agora.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            setEditando({
+              name: '',
+              email: '',
+              bio: '',
+              credentials: '',
+              level: faixas[0]?.id ?? 'escola',
+              avatarColor: 'from-pco-blue to-pco-cyan',
+              specialties: [],
+              serviceIds: [],
+              active: true,
+              available: true,
+            })
+          }
+          className="pco-btn-primary text-xs"
+        >
           <Plus size={12} strokeWidth={2} />
           Novo profissional
         </button>
       </div>
+
+      {professionals.length === 0 && (
+        <div className="pco-card text-sm text-ink-muted">
+          Nenhum profissional cadastrado. Sem ninguém disponível, o aluno não consegue agendar.
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         {professionals.map((p) => (
@@ -146,8 +386,24 @@ function ProfissionaisPane() {
                   .join('')}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-pco-deep">{p.name}</h4>
-                <p className="text-xs text-ink-muted line-clamp-2 mt-0.5">{p.bio}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="text-sm font-semibold text-pco-deep">{p.name}</h4>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      atualizar.mutate({ id: p.id, patch: { available: !p.available } })
+                    }
+                    className={`pco-badge cursor-pointer shrink-0 ${
+                      p.available
+                        ? 'bg-status-success/10 text-status-success'
+                        : 'bg-surface-gray text-ink-muted'
+                    }`}
+                  >
+                    {p.available ? 'Disponível' : 'Sem agenda'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-ink-subtle mt-0.5">{p.credentials}</p>
+                <p className="text-xs text-ink-muted line-clamp-2 mt-1">{p.bio}</p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {p.specialties.map((sp) => (
                     <span key={sp} className="pco-badge bg-pco-blue/10 text-pco-blue">
@@ -155,22 +411,154 @@ function ProfissionaisPane() {
                     </span>
                   ))}
                 </div>
-                <div className="mt-3 flex items-center gap-3 text-[11px] text-ink-subtle">
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-ink-subtle">
                   <span className="inline-flex items-center gap-1">
                     <Mail size={11} />
                     {p.email}
                   </span>
-                  <span>· R$ {p.hourlyRate}/h</span>
+                  <span className="font-semibold text-pco-deep">
+                    {faixas.find((f) => f.id === p.level)?.label ?? p.level} ·{' '}
+                    {reais(p.priceCents)}
+                  </span>
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <button className="pco-btn-secondary text-xs">Editar</button>
-                  <button className="pco-btn-ghost text-xs">Ver agenda</button>
+                  <button
+                    type="button"
+                    onClick={() => setEditando({ ...p })}
+                    className="pco-btn-secondary text-xs"
+                  >
+                    Editar
+                  </button>
+                  {confirmarExclusao === p.id ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await remover.mutateAsync(p.id);
+                        setConfirmarExclusao(null);
+                      }}
+                      className="pco-btn-primary text-xs bg-status-danger"
+                    >
+                      Confirmar exclusão
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmarExclusao(p.id)}
+                      className="pco-btn-ghost text-xs text-status-danger"
+                    >
+                      Excluir
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {editando && (
+        <div className="pco-card space-y-3 border-pco-blue/40">
+          <h4 className="text-sm font-semibold text-pco-deep">
+            {editando.id ? 'Editar profissional' : 'Novo profissional'}
+          </h4>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Nome">
+              <input
+                value={editando.name ?? ''}
+                onChange={(e) => setEditando({ ...editando, name: e.target.value })}
+                className="pco-input"
+              />
+            </Field>
+            <Field label="E-mail">
+              <input
+                type="email"
+                value={editando.email ?? ''}
+                onChange={(e) => setEditando({ ...editando, email: e.target.value })}
+                className="pco-input"
+              />
+            </Field>
+            <Field label="Titulação (define o valor)">
+              <select
+                value={editando.level ?? 'escola'}
+                onChange={(e) => setEditando({ ...editando, level: e.target.value })}
+                className="pco-input"
+              >
+                {faixas.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label} — {reais(f.priceCents)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Credenciais (texto exibido)">
+              <input
+                value={editando.credentials ?? ''}
+                onChange={(e) => setEditando({ ...editando, credentials: e.target.value })}
+                placeholder="Doutora em Psicologia Clínica — USP"
+                className="pco-input"
+              />
+            </Field>
+            <Field label="Especialidades (separadas por vírgula)">
+              <input
+                value={(editando.specialties ?? []).join(', ')}
+                onChange={(e) =>
+                  setEditando({
+                    ...editando,
+                    specialties: e.target.value
+                      .split(',')
+                      .map((x) => x.trim())
+                      .filter(Boolean),
+                  })
+                }
+                className="pco-input"
+              />
+            </Field>
+            <Field label="Estado">
+              <div className="flex gap-4 mt-2">
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editando.active ?? true}
+                    onChange={(e) => setEditando({ ...editando, active: e.target.checked })}
+                    className="h-4 w-4 rounded"
+                  />
+                  <span className="text-sm text-pco-deep">Ativo</span>
+                </label>
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editando.available ?? true}
+                    onChange={(e) => setEditando({ ...editando, available: e.target.checked })}
+                    className="h-4 w-4 rounded"
+                  />
+                  <span className="text-sm text-pco-deep">Disponível agora</span>
+                </label>
+              </div>
+            </Field>
+          </div>
+          <Field label="Bio">
+            <textarea
+              value={editando.bio ?? ''}
+              onChange={(e) => setEditando({ ...editando, bio: e.target.value })}
+              rows={2}
+              className="pco-input"
+            />
+          </Field>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditando(null)} className="pco-btn-ghost text-xs">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={salvar}
+              disabled={!editando.name || !editando.email || criar.isPending || atualizar.isPending}
+              className="pco-btn-primary text-xs"
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -257,37 +645,115 @@ function AgendaPane() {
 }
 
 function ValoresPane() {
-  const { data: sessionServices = [] } = useSessionServices();
+  const toast = useToast();
+  const { data: faixas = [] } = usePriceTiers();
+  const { data: professionals = [] } = useProfessionals();
+  const salvarFaixa = useUpsertPriceTier();
+  const semear = useSeedPriceTiers();
+  const [rascunho, setRascunho] = useState<Record<string, string>>({});
+
+  async function salvar(f: PriceTier) {
+    const bruto = rascunho[f.id];
+    if (bruto === undefined) return;
+    // Aceita "80", "80,00" e "R$ 80,00": quem digita preço não deveria ter que
+    // pensar em centavos.
+    const limpo = bruto.replace(/[^\d,.]/g, '').replace(',', '.');
+    const valor = Number(limpo);
+    if (!Number.isFinite(valor) || valor < 0) {
+      toast.error('Valor inválido', 'Use algo como 80 ou 80,00.');
+      return;
+    }
+    try {
+      await salvarFaixa.mutateAsync({
+        id: f.id,
+        patch: { ...f, priceCents: Math.round(valor * 100) },
+      });
+      setRascunho((r) => {
+        const { [f.id]: _, ...resto } = r;
+        return resto;
+      });
+      toast.success(`${f.label}: ${reais(Math.round(valor * 100))}`, 'Vale para toda sessão nesta faixa.');
+    } catch (err) {
+      toast.error('Não foi possível salvar', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <div className="space-y-5">
       <div className="pco-card">
-        <h3 className="text-base font-semibold text-pco-deep mb-4">Valores por serviço</h3>
-        <ul className="space-y-2">
-          {sessionServices.map((s) => (
-            <li
-              key={s.id}
-              className="flex items-center justify-between rounded-xl bg-surface-off p-3"
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-semibold text-pco-deep">Valor da sessão por titulação</h3>
+            <p className="text-xs text-ink-muted mt-1 max-w-xl">
+              É a titulação de quem atende que define o preço, não o serviço: a mesma análise custa
+              um valor com profissional da escola e outro com doutor. Mudar aqui muda o valor de
+              todos os profissionais daquela faixa.
+            </p>
+          </div>
+          {faixas.length === 0 && (
+            <button
+              type="button"
+              onClick={() => semear.mutate(undefined)}
+              className="pco-btn-secondary text-xs shrink-0"
             >
-              <span className="text-sm text-pco-deep font-medium">{s.name}</span>
-              <span className="text-sm font-semibold text-pco-deep">R$ {s.price}</span>
-            </li>
-          ))}
+              Criar as três faixas
+            </button>
+          )}
+        </div>
+
+        <ul className="mt-4 space-y-2">
+          {faixas.map((f) => {
+            const quantos = professionals.filter((p) => p.level === f.id).length;
+            const editado = rascunho[f.id] !== undefined;
+            return (
+              <li
+                key={f.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-off p-3"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-pco-deep">{f.label}</div>
+                  <div className="text-[11px] text-ink-muted">
+                    {f.description}
+                    {quantos > 0 && (
+                      <>
+                        {' '}
+                        · {quantos} {quantos === 1 ? 'profissional' : 'profissionais'}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-ink-subtle">R$</span>
+                  <input
+                    value={editado ? rascunho[f.id] : (f.priceCents / 100).toFixed(2).replace('.', ',')}
+                    onChange={(e) => setRascunho((r) => ({ ...r, [f.id]: e.target.value }))}
+                    className="pco-input w-28 text-right tabular-nums"
+                    inputMode="decimal"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => salvar(f)}
+                    disabled={!editado || salvarFaixa.isPending}
+                    className="pco-btn-primary text-xs"
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
-      <div className="pco-card space-y-4">
+      <div className="pco-card space-y-3">
         <h3 className="text-base font-semibold text-pco-deep">Pacotes de sessões</h3>
         <p className="text-sm text-ink-muted">
-          Crie pacotes (ex.: 4 sessões com desconto) como produto do tipo
-          <span className="font-semibold"> pacote de sessões </span>
-          no catálogo. Eles aparecem aqui automaticamente após a primeira venda.
+          Pacotes com desconto entram como produto no catálogo. Um pacote continua sendo compra
+          avulsa: não pode virar condição para nada.
         </p>
-        <Link
-          to="/admin/produtos"
-          className="pco-btn-secondary text-xs w-full justify-center"
-        >
+        <Link to="/admin/produtos" className="pco-btn-secondary text-xs w-fit">
           <Plus size={12} strokeWidth={2} />
-          Gerenciar pacotes no catálogo
+          Abrir catálogo de produtos
         </Link>
       </div>
     </div>
@@ -441,20 +907,27 @@ function AgendamentosPane() {
 }
 
 function PoliticasPane() {
-  const obrigatorio =
-    'Análise, supervisão e orientação formativa são serviços opcionais, contratados separadamente, e não são requisitos obrigatórios para conclusão dos cursos da PCO ou emissão de certificado.';
+  const { data } = useSessionPolicy();
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <div className="pco-card space-y-4">
-        <h3 className="text-base font-semibold text-pco-deep">Texto obrigatório</h3>
-        <textarea
-          className="pco-input resize-none text-sm"
-          rows={5}
-          defaultValue={obrigatorio}
-        />
+        <h3 className="text-base font-semibold text-pco-deep">
+          Por que estes serviços não podem ser obrigatórios
+        </h3>
+        {/* Não é campo editável de propósito. O texto que impede a venda casada
+            não deveria depender de alguém lembrar de mantê-lo — ele vem do
+            servidor, de um módulo só, e os testes cobram a citação da lei. */}
+        <div className="rounded-xl bg-surface-off p-4 space-y-3">
+          <p className="text-sm text-pco-deep font-medium">{data?.aviso}</p>
+          <p className="text-xs text-ink-muted leading-relaxed">{data?.baseLegal}</p>
+        </div>
+        <ul className="text-xs text-ink-muted space-y-1.5 list-disc pl-4">
+          <li>Nenhuma sessão pode ser requisito para acesso, progresso ou conclusão de curso.</li>
+          <li>O certificado sai igual para quem contrata e para quem não contrata.</li>
+          <li>Pacote com desconto continua sendo compra avulsa — nunca condição.</li>
+        </ul>
         <p className="text-[11px] text-ink-subtle">
-          Este aviso aparece nas telas do aluno em "Análise e Supervisão" e antes de qualquer
-          agendamento.
+          Este aviso aparece nas telas do aluno e antes de qualquer agendamento.
         </p>
       </div>
 

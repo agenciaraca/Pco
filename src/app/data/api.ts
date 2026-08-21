@@ -2219,12 +2219,87 @@ export async function fetchRetentionRisks(level?: string): Promise<RetentionRisk
 
 // ---------- Sessions ----------
 
-export async function fetchProfessionals(): Promise<Professional[]> {
-  return http.get<Professional[]>('/sessions/professionals');
+export async function fetchProfessionals(): Promise<ProfessionalRow[]> {
+  return http.get<ProfessionalRow[]>('/sessions/professionals');
 }
 
 export async function fetchSessionServices(): Promise<SessionService[]> {
   return http.get<SessionService[]>('/sessions/services');
+}
+
+/** Profissional como a gestão precisa dele: com titulação, estado e preço. */
+export interface ProfessionalRow extends Professional {
+  level: string;
+  active: boolean;
+  available: boolean;
+  credentials: string;
+  /** Preço da sessão em centavos, derivado da faixa de titulação. */
+  priceCents: number;
+}
+
+export interface PriceTier {
+  id: string;
+  label: string;
+  description: string;
+  priceCents: number;
+  active: boolean;
+  order: number;
+}
+
+/** Reexporta o tipo do serviço para quem consome só a camada de dados. */
+export type SessionServiceDto = SessionService;
+
+export async function fetchPriceTiers(): Promise<PriceTier[]> {
+  return http.get<PriceTier[]>('/sessions/price-tiers');
+}
+
+export async function fetchSessionPolicy(): Promise<{ aviso: string; baseLegal: string }> {
+  return http.get('/sessions/policy');
+}
+
+export async function createSessionService(
+  input: Partial<SessionService>,
+): Promise<SessionService> {
+  return http.post<SessionService>('/admin/sessions/services', input);
+}
+
+export async function updateSessionService(
+  id: string,
+  patch: Partial<SessionService>,
+): Promise<SessionService> {
+  return http.put<SessionService>(`/admin/sessions/services/${encodeURIComponent(id)}`, patch);
+}
+
+export async function deleteSessionService(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/sessions/services/${encodeURIComponent(id)}`);
+}
+
+export async function createProfessional(
+  input: Partial<ProfessionalRow>,
+): Promise<ProfessionalRow> {
+  return http.post<ProfessionalRow>('/admin/sessions/professionals', input);
+}
+
+export async function updateProfessional(
+  id: string,
+  patch: Partial<ProfessionalRow>,
+): Promise<ProfessionalRow> {
+  return http.put<ProfessionalRow>(
+    `/admin/sessions/professionals/${encodeURIComponent(id)}`,
+    patch,
+  );
+}
+
+export async function deleteProfessional(id: string): Promise<{ ok: true }> {
+  return http.delete(`/admin/sessions/professionals/${encodeURIComponent(id)}`);
+}
+
+export async function upsertPriceTier(id: string, patch: Partial<PriceTier>): Promise<PriceTier> {
+  return http.put<PriceTier>(`/admin/sessions/price-tiers/${encodeURIComponent(id)}`, patch);
+}
+
+export async function seedPriceTiers(): Promise<{ criadas: number }> {
+  return http.post('/admin/sessions/price-tiers/seed', {});
 }
 
 // ---------- SEO / Metrics ----------

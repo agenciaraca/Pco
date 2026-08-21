@@ -84,6 +84,11 @@ import {
   publicCheckoutSchema,
   createCouponSchema,
   updateCouponSchema,
+  createSessionServiceSchema,
+  updateSessionServiceSchema,
+  createProfessionalSchema,
+  updateProfessionalSchema,
+  upsertPriceTierSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import * as rateLimitTelemetry from './rate-limit';
@@ -108,6 +113,7 @@ import { renderPrimeiroAcesso } from './notifications/templates';
 import { courseAccessFor, accessDeniedCode, accessDeniedMessage } from './access/guard';
 import { accessFor as accessInfoFor } from './access/course-access';
 import { simularPrazoDoCurso, darCarencia } from './access/impacto';
+import { AVISO_OPCIONAL, BASE_LEGAL } from './sessions/regra-opcional';
 import * as newsRepo from './repositories/news';
 import * as podcastsRepo from './repositories/podcasts';
 import * as libraryRepo from './repositories/library';
@@ -2271,6 +2277,86 @@ export function buildApp() {
 
   app.get('/sessions/services', async (c) => c.json(await sessionsRepo.listSessionServices()));
   app.get('/sessions/professionals', async (c) => c.json(await sessionsRepo.listProfessionals()));
+  app.get('/sessions/price-tiers', async (c) => c.json(await sessionsRepo.listPriceTiers()));
+
+  /**
+   * Quem pode atender agora. O aluno agenda com o profissional disponível no
+   * momento — não escolhe uma pessoa e fica esperando ela abrir agenda.
+   */
+  app.get('/sessions/available', async (c) => {
+    const serviceId = c.req.query('serviceId') || undefined;
+    return c.json({
+      aviso: AVISO_OPCIONAL,
+      profissionais: await sessionsRepo.listAvailableProfessionals(serviceId),
+    });
+  });
+
+  /**
+   * A regra em forma de dado, para que a tela não a reescreva por conta.
+   * Análise e supervisão são opcionais por exigência legal: condicioná-las à
+   * venda do curso é venda casada (CDC, art. 39, I).
+   */
+  app.get('/sessions/policy', async (c) =>
+    c.json({ aviso: AVISO_OPCIONAL, baseLegal: BASE_LEGAL }),
+  );
+
+  // ---- Admin: gestão de serviços, profissionais e faixas de preço ----
+
+  app.post('/admin/sessions/services', requireAuth('admin', 'superadmin'), async (c) => {
+    const v = validate(createSessionServiceSchema, await c.req.json().catch(() => ({})));
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+    return c.json(await sessionsRepo.createSessionService(v.data), 201);
+  });
+
+  app.put('/admin/sessions/services/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const v = validate(updateSessionServiceSchema, await c.req.json().catch(() => ({})));
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+    const r = await sessionsRepo.updateSessionService(c.req.param('id') as string, v.data);
+    if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Serviço não encontrado.');
+    return c.json(r);
+  });
+
+  app.delete('/admin/sessions/services/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await sessionsRepo.deleteSessionService(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Serviço não encontrado.');
+    return c.json({ ok: true });
+  });
+
+  app.post('/admin/sessions/professionals', requireAuth('admin', 'superadmin'), async (c) => {
+    const v = validate(createProfessionalSchema, await c.req.json().catch(() => ({})));
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+    return c.json(await sessionsRepo.createProfessional(v.data), 201);
+  });
+
+  app.put('/admin/sessions/professionals/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const v = validate(updateProfessionalSchema, await c.req.json().catch(() => ({})));
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+    const r = await sessionsRepo.updateProfessional(c.req.param('id') as string, v.data);
+    if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Profissional não encontrado.');
+    return c.json(r);
+  });
+
+  app.delete(
+    '/admin/sessions/professionals/:id',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      const ok = await sessionsRepo.deleteProfessional(c.req.param('id') as string);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Profissional não encontrado.');
+      return c.json({ ok: true });
+    },
+  );
+
+  app.put('/admin/sessions/price-tiers/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const v = validate(upsertPriceTierSchema, { ...body, id: c.req.param('id') });
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+    return c.json(await sessionsRepo.upsertPriceTier(v.data));
+  });
+
+  /** Cria as três faixas iniciais. Idempotente: não sobrescreve o que existe. */
+  app.post('/admin/sessions/price-tiers/seed', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json({ criadas: await sessionsRepo.seedPriceTiers() }),
+  );
 
   // ---------- SEO / Metrics ----------
 

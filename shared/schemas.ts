@@ -713,3 +713,49 @@ export const studentsFilterSchema = z.object({
   sortBy: z.enum(['name', 'risk', 'lastAccess']).optional(),
 });
 export type StudentsFilter = z.infer<typeof studentsFilterSchema>;
+
+// ---------- Sessões: análise, supervisão e orientação ----------
+//
+// Serviços OPCIONAIS, contratados à parte. Torná-los obrigatórios seria venda
+// casada — vedada pelo art. 39, I, do CDC. Ver `server/sessions/regra-opcional.ts`.
+
+export const sessionServiceTypeSchema = z.enum(['analise', 'supervisao', 'orientacao']);
+
+export const createSessionServiceSchema = z.object({
+  name: z.string().min(3, 'Nome muito curto').max(120),
+  type: sessionServiceTypeSchema,
+  description: z.string().max(600).default(''),
+  durationMinutes: z.number().int().min(10).max(240).default(50),
+  price: z.number().int().min(0).max(1_000_000).default(0),
+  active: z.boolean().default(true),
+  paymentBeforeConfirmation: z.boolean().default(true),
+});
+export const updateSessionServiceSchema = createSessionServiceSchema.partial();
+export type CreateSessionServiceInput = z.infer<typeof createSessionServiceSchema>;
+
+export const createProfessionalSchema = z.object({
+  name: z.string().min(3, 'Nome muito curto').max(120),
+  email: z.string().email('E-mail inválido'),
+  bio: z.string().max(1200).default(''),
+  credentials: z.string().max(300).default(''),
+  // A titulação define o preço da sessão — ver `session_price_tiers`.
+  level: z.string().min(1).max(40).default('escola'),
+  avatarColor: z.string().max(120).default('from-pco-blue to-pco-cyan'),
+  hourlyRate: z.number().int().min(0).max(1_000_000).default(0),
+  specialties: z.array(z.string().max(60)).max(20).default([]),
+  serviceIds: z.array(z.string().max(80)).max(20).default([]),
+  active: z.boolean().default(true),
+  available: z.boolean().default(true),
+});
+export const updateProfessionalSchema = createProfessionalSchema.partial();
+export type CreateProfessionalInput = z.infer<typeof createProfessionalSchema>;
+
+export const upsertPriceTierSchema = z.object({
+  id: z.string().min(1).max(40),
+  label: z.string().min(2).max(80),
+  description: z.string().max(300).default(''),
+  priceCents: z.number().int().min(0).max(10_000_000),
+  active: z.boolean().default(true),
+  order: z.number().int().min(0).max(99).default(0),
+});
+export type UpsertPriceTierInput = z.infer<typeof upsertPriceTierSchema>;

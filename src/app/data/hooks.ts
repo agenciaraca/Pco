@@ -145,6 +145,74 @@ export function useSessionServices() {
   });
 }
 
+export function usePriceTiers() {
+  return useQuery({ queryKey: ['session-price-tiers'], queryFn: api.fetchPriceTiers });
+}
+
+export function useSessionPolicy() {
+  return useQuery({
+    queryKey: ['session-policy'],
+    queryFn: api.fetchSessionPolicy,
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * Mutações da gestão de sessões. Todas invalidam as mesmas três listas porque
+ * o preço mostrado num profissional vem da faixa: mexer na faixa muda o cartão
+ * de todo mundo.
+ */
+function useSessionMutation<TArgs, TOut>(fn: (a: TArgs) => Promise<TOut>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.sessionServices });
+      qc.invalidateQueries({ queryKey: queryKeys.professionals });
+      qc.invalidateQueries({ queryKey: ['session-price-tiers'] });
+    },
+  });
+}
+
+export function useCreateSessionService() {
+  return useSessionMutation(api.createSessionService);
+}
+
+export function useUpdateSessionService() {
+  return useSessionMutation(({ id, patch }: { id: string; patch: Partial<api.SessionServiceDto> }) =>
+    api.updateSessionService(id, patch),
+  );
+}
+
+export function useDeleteSessionService() {
+  return useSessionMutation(api.deleteSessionService);
+}
+
+export function useCreateProfessional() {
+  return useSessionMutation(api.createProfessional);
+}
+
+export function useUpdateProfessional() {
+  return useSessionMutation(
+    ({ id, patch }: { id: string; patch: Partial<api.ProfessionalRow> }) =>
+      api.updateProfessional(id, patch),
+  );
+}
+
+export function useDeleteProfessional() {
+  return useSessionMutation(api.deleteProfessional);
+}
+
+export function useUpsertPriceTier() {
+  return useSessionMutation(({ id, patch }: { id: string; patch: Partial<api.PriceTier> }) =>
+    api.upsertPriceTier(id, patch),
+  );
+}
+
+export function useSeedPriceTiers() {
+  return useSessionMutation(() => api.seedPriceTiers());
+}
+
 export function useSeoTimeseries(range = '30d') {
   return useQuery({
     queryKey: queryKeys.seoTimeseries(range),

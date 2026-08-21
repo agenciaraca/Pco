@@ -384,6 +384,40 @@ export const professionals = pgTable('professionals', {
   hourlyRate: integer('hourly_rate').notNull().default(0),
   specialties: jsonb('specialties').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   serviceIds: jsonb('service_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  /**
+   * Faixa de titulação. É ela que define o preço da sessão — não o serviço:
+   * a mesma análise custa diferente conforme quem atende. Ver
+   * `sessionPriceTiers`.
+   */
+  level: text('level').notNull().default('escola'),
+  /** Fora do ar sem apagar: profissional que saiu não some do histórico. */
+  active: boolean('active').notNull().default(true),
+  /**
+   * Aceitando agendamento agora. Separado de `active` porque agenda cheia é
+   * estado do dia, não desligamento — e o aluno agenda com quem estiver
+   * disponível no momento.
+   */
+  available: boolean('available').notNull().default(true),
+  /** Titulação por extenso, para exibir ao aluno. */
+  credentials: text('credentials').notNull().default(''),
+});
+
+/**
+ * Preço da sessão por faixa de titulação.
+ *
+ * Tabela própria, e não uma coluna em `session_services`, porque o preço varia
+ * com quem atende e não com o que é atendido: análise com profissional da
+ * escola e análise com doutor são a mesma sessão a preços diferentes. Três
+ * linhas que o admin edita num lugar só.
+ */
+export const sessionPriceTiers = pgTable('session_price_tiers', {
+  /** Igual ao `professionals.level`. */
+  id: text('id').primaryKey(),
+  label: text('label').notNull(),
+  description: text('description').notNull().default(''),
+  priceCents: integer('price_cents').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+  order: integer('order').notNull().default(0),
 });
 
 export const sessionServices = pgTable('session_services', {

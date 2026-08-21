@@ -50,6 +50,13 @@
       "when": 1787197445934,
       "tag": "0006_wonderful_senator_kelly",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787325151237,
+      "tag": "0007_sessoes_titulacao_precos",
+      "breakpoints": true
     }
   ]
 }
