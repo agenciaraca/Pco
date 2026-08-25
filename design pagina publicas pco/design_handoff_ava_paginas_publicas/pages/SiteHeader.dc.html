@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  :root{
+    --paper:#f3f4f1; --surface:#fbfcfa; --surface-2:#eaece6; --raise:#ffffff;
+    --ink:#1b1e22; --ink-soft:#575c62; --ink-faint:#868c92;
+    --line:#dcdfd8; --line-soft:#e8eae4;
+    --accent:#0f6e66; --accent-ink:#0c5651; --accent-soft:#dcebe8; --on-accent:#ffffff;
+    --brand-deep:#0b3b37; --on-deep:#eef3f1;
+    --good:#2f7d4f; --good-bg:#e0efe4; --good-line:#bcdcc6;
+    --warn:#9a6a12; --warn-bg:#f5ead1; --warn-line:#e5d09a;
+    --crit:#b0422f; --crit-bg:#f6e2dc; --crit-line:#e8bfb3;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(20,25,30,.04), 0 4px 16px rgba(20,25,30,.05);
+    color-scheme:light;
+  }
+  :root[data-theme="dark"]{
+  --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
+  --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
+  --line:#2b2f36; --line-soft:#242830;
+  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
+  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
+  --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
+  --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+  color-scheme:dark;}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
+  --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
+  --line:#2b2f36; --line-soft:#242830;
+  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
+  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
+  --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
+  --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+  color-scheme:dark;} }
+  @media (max-width: 900px) {
+    [data-navdesktop], [data-ctadesktop] { display: none !important; }
+    [data-hamburger] { display: flex !important; }
+  }
+</style>
+</helmet>
+<header ref="{{ setRoot }}" style="position: fixed; top: 0; left: 0; right: 0; z-index: 100; transition: background .25s ease, box-shadow .25s ease, border-color .25s ease;">
+  <div ref="{{ setInner }}" style="max-width: 1280px; margin: 0 auto; padding: 16px 28px; display: flex; align-items: center; gap: 24px;">
+    <a href="Home.dc.html" style="display: flex; align-items: center; flex-shrink: 0;"><img ref="{{ setLogo }}" src="../assets/logo-pco.png" alt="PCO — Psicanálise Clínica Online" style="height: 42px; width: auto; display: block;"></a>
+    <nav style="display: flex; gap: 28px; margin-left: 14px; flex: 1;" data-navdesktop>
+      <sc-for list="{{ links }}" as="l" hint-placeholder-count="5">
+        <a href="{{ l.href }}" data-navlink style="font-weight: 600; font-size: 15px; padding-bottom: 3px; border-bottom: 2px solid {{ l.underline }};">{{ l.label }}</a>
+      </sc-for>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 14px;" data-ctadesktop>
+      <a href="Carrinho.dc.html" data-cartlink aria-label="Carrinho" style="position: relative; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; border: 1.5px solid var(--line);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <sc-if value="{{ hasItems }}" hint-placeholder-val="{{ false }}">
+          <span style="position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">{{ count }}</span>
+        </sc-if>
+      </a>
+      <a href="Cursos.dc.html" style="display: inline-flex; align-items: center; padding: 12px 22px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 14px; box-shadow: 0 6px 18px rgba(15,110,102,.3);">Matricular-se</a>
+    </div>
+    <button onClick="{{ toggleMenu }}" aria-label="Menu" style="display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px;" data-hamburger>
+      <div data-bar style="width: 26px; height: 2.5px; border-radius: 2px;"></div>
+      <div data-bar style="width: 26px; height: 2.5px; border-radius: 2px;"></div>
+      <div data-bar style="width: 26px; height: 2.5px; border-radius: 2px;"></div>
+    </button>
+  </div>
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="background: var(--raise); border-top: 1px solid var(--line-soft); padding: 8px 28px 20px; display: flex; flex-direction: column; gap: 2px;">
+      <sc-for list="{{ links }}" as="l" hint-placeholder-count="5">
+        <a href="{{ l.href }}" style="color: var(--ink); font-weight: 600; padding: 13px 0; border-bottom: 1px solid var(--line-soft);">{{ l.label }}</a>
+      </sc-for>
+      <a href="Carrinho.dc.html" style="color: var(--ink); font-weight: 600; padding: 13px 0; border-bottom: 1px solid var(--line-soft);">Carrinho ({{ count }})</a>
+      <a href="Cursos.dc.html" style="margin-top: 12px; text-align: center; padding: 14px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 700;">Matricular-se</a>
+    </div>
+  </sc-if>
+</header>
+<div ref="{{ setSpacer }}"></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:90},&quot;active&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;solid&quot;,&quot;onhero&quot;],&quot;default&quot;:&quot;solid&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { menuOpen: false, count: 0 };
+
+  links = [
+    { label: 'Início', href: 'Home.dc.html', key: 'home' },
+    { label: 'Cursos', href: 'Cursos.dc.html', key: 'cursos' },
+    { label: 'Blog', href: 'Blog.dc.html', key: 'blog' },
+    { label: 'Sobre', href: 'Sobre.dc.html', key: 'sobre' },
+    { label: 'Contato', href: 'Contato.dc.html', key: 'contato' },
+  ];
+
+  setRoot = (el) => { this.root = el; };
+  setInner = (el) => { this.inner = el; };
+  setLogo = (el) => { this.logo = el; };
+  setSpacer = (el) => { this.spacer = el; };
+
+  async componentDidMount() {
+    const mod = await import('./data/cart.js');
+    this.cart = mod;
+    this.setState({ count: mod.cartCount() });
+    this._unsub = mod.subscribe(() => this.setState({ count: mod.cartCount() }));
+
+    this.variant = this.props.variant || 'solid';
+    this.apply();
+    if (this.variant === 'onhero') {
+      this._onScroll = () => this.apply();
+      window.addEventListener('scroll', this._onScroll, { passive: true });
+    }
+    // reserva o espaço do header fixo (exceto quando sobreposto ao hero)
+    if (this.variant !== 'onhero') {
+      this._reserve = () => {
+        if (this.spacer && this.root) {
+          const h = this.root.offsetHeight || 74;
+          this.spacer.style.height = h + 'px';
+        }
+      };
+      this._reserve();
+      requestAnimationFrame(this._reserve);
+      setTimeout(this._reserve, 200);
+      window.addEventListener('resize', this._reserve);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this._unsub) this._unsub();
+    if (this._onScroll) window.removeEventListener('scroll', this._onScroll);
+    if (this._reserve) window.removeEventListener('resize', this._reserve);
+  }
+
+  apply() {
+    if (!this.root) return;
+    const onhero = this.variant === 'onhero';
+    const solid = !onhero || window.scrollY > 60;
+    const r = this.root;
+    r.style.background = solid ? 'var(--surface)' : 'transparent';
+    r.style.backdropFilter = solid ? 'blur(12px)' : 'none';
+    r.style.webkitBackdropFilter = solid ? 'blur(12px)' : 'none';
+    r.style.boxShadow = solid ? '0 4px 20px rgba(15,76,92,0.08)' : 'none';
+    r.style.borderBottom = solid ? '1px solid var(--line-soft)' : '1px solid transparent';
+    const dark = solid ? 'var(--ink)' : '#fff';
+    r.querySelectorAll('[data-navlink]').forEach(a => { a.style.color = dark; });
+    r.querySelectorAll('[data-bar]').forEach(b => { b.style.background = solid ? 'var(--ink)' : '#fff'; });
+    const cl = r.querySelector('[data-cartlink]');
+    if (cl) { cl.style.color = solid ? 'var(--ink)' : '#fff'; cl.style.borderColor = solid ? 'rgba(15,76,92,0.16)' : 'rgba(255,255,255,0.5)'; }
+    if (this.logo) this.logo.style.filter = solid ? 'none' : 'brightness(0) invert(1)';
+  }
+
+  toggleMenu = () => this.setState(s => ({ menuOpen: !s.menuOpen }));
+
+  renderVals() {
+    const active = this.props.active || '';
+    const solidStart = (this.props.variant || 'solid') !== 'onhero';
+    const links = this.links.map(l => ({
+      ...l,
+      underline: l.key === active ? 'var(--accent)' : 'transparent',
+    }));
+    return {
+      links,
+      count: this.state.count,
+      hasItems: this.state.count > 0,
+      menuOpen: this.state.menuOpen,
+      toggleMenu: this.toggleMenu,
+      setRoot: this.setRoot, setInner: this.setInner, setLogo: this.setLogo, setSpacer: this.setSpacer,
+    };
+  }
+}
+</script>
+</body>
+</html>

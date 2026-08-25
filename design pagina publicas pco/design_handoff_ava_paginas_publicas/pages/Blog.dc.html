@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Blog — Psicanálise Clínica na prática | PCO</title>
+<meta name="description" content="Artigos sobre psicanálise clínica, carreira e formação: o que é psicanálise, como começar, ensino online e mais. Conteúdo educativo pela equipe da PCO.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://www.psicanaliseclinicaonline.com.br/blog">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Blog da PCO — Psicanálise Clínica">
+<meta property="og:description" content="Artigos sobre psicanálise clínica, carreira e formação.">
+<meta property="og:locale" content="pt_BR">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f3f4f1; --surface:#fbfcfa; --surface-2:#eaece6; --raise:#ffffff;
+    --ink:#1b1e22; --ink-soft:#575c62; --ink-faint:#868c92;
+    --line:#dcdfd8; --line-soft:#e8eae4;
+    --accent:#0f6e66; --accent-ink:#0c5651; --accent-soft:#dcebe8; --on-accent:#ffffff;
+    --brand-deep:#0b3b37; --on-deep:#eef3f1;
+    --good:#2f7d4f; --good-bg:#e0efe4; --good-line:#bcdcc6;
+    --warn:#9a6a12; --warn-bg:#f5ead1; --warn-line:#e5d09a;
+    --crit:#b0422f; --crit-bg:#f6e2dc; --crit-line:#e8bfb3;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(20,25,30,.04), 0 4px 16px rgba(20,25,30,.05);
+    color-scheme:light;
+  }
+  :root[data-theme="dark"]{
+  --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
+  --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
+  --line:#2b2f36; --line-soft:#242830;
+  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
+  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
+  --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
+  --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+  color-scheme:dark;}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
+  --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
+  --line:#2b2f36; --line-soft:#242830;
+  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
+  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
+  --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
+  --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+  color-scheme:dark;} }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+  a { color: #2C7DA0; text-decoration: none; } a:hover { color: var(--ink); }
+  h1,h2,h3 { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+  .ph { background-color: #12414d; background-image: linear-gradient(135deg, rgba(15,110,102,0.55), rgba(15,76,92,0.9)), repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
+  @media (max-width: 860px) { [data-feat] { grid-template-columns: 1fr !important; } [data-grid] { grid-template-columns: 1fr !important; } }
+</style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Blog","name":"Blog da PCO — Psicanálise Clínica Online","url":"https://www.psicanaliseclinicaonline.com.br/blog","inLanguage":"pt-BR","publisher":{"@type":"Organization","name":"Psicanálise Clínica Online (PCO)"}}
+</script>
+</helmet>
+
+<div style="overflow-x: hidden;">
+<dc-import name="SiteHeader" active="blog" variant="solid" hint-size="100%,80px"></dc-import>
+
+<section style="max-width: 1160px; margin: 0 auto; padding: 60px 28px 30px;">
+  <nav style="font-size: 13px; color: var(--ink-soft); margin-bottom: 20px;"><a href="Home.dc.html" style="color:var(--ink-soft);">Início</a> / <span style="color:var(--ink);">Blog</span></nav>
+  <div style="display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); background: var(--surface-2); border: 1px solid var(--line); padding: 6px 13px; border-radius: 999px;">Blog</div>
+  <h1 style="font-size: clamp(34px,4.6vw,56px); color: var(--ink); margin: 14px 0 14px; line-height: 1.08; letter-spacing: -0.8px; max-width: 16ch; text-wrap: balance;">Psicanálise clínica, na prática</h1>
+  <p style="font-size: 18px; color: var(--ink-soft); line-height: 1.6; max-width: 620px;">Conteúdo educativo sobre a teoria, a formação e a carreira em psicanálise — escrito e revisado pela equipe da PCO.</p>
+</section>
+
+<!-- FEATURED -->
+<section style="max-width: 1160px; margin: 0 auto; padding: 20px 28px 0;">
+  <a href="{{ featured.href }}" style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 0; background: var(--raise); border: 1px solid var(--line-soft); border-radius: 24px; overflow: hidden; box-shadow: 0 12px 40px rgba(15,76,92,0.07);" data-feat>
+    <div class="ph" style="min-height: 300px;"></div>
+    <div style="padding: 42px; display: flex; flex-direction: column; justify-content: center;">
+      <div style="font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px;">Destaque · {{ featured.category }} · {{ featured.readingTime }} min</div>
+      <h2 style="font-size: clamp(24px,2.6vw,32px); color: var(--ink); margin: 14px 0 12px; line-height: 1.2;">{{ featured.title }}</h2>
+      <p style="font-size: 16px; color: var(--ink-soft); line-height: 1.6;">{{ featured.dek }}</p>
+      <span style="margin-top: 20px; font-weight: 700; color: var(--accent); font-size: 15px;">Ler artigo →</span>
+    </div>
+  </a>
+</section>
+
+<!-- GRID -->
+<section style="max-width: 1160px; margin: 0 auto; padding: 40px 28px 90px;">
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;" data-grid>
+    <sc-for list="{{ rest }}" as="p" hint-placeholder-count="2">
+      <a href="{{ p.href }}" style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 20px; overflow: hidden; box-shadow: 0 6px 24px rgba(15,76,92,0.05); display: flex; flex-direction: column;">
+        <div class="ph" style="height: 170px;"></div>
+        <div style="padding: 26px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .5px;">{{ p.category }} · {{ p.readingTime }} min</div>
+          <div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; color: var(--ink); font-size: 20px; margin: 10px 0 8px; line-height: 1.25;">{{ p.title }}</div>
+          <div style="font-size: 14.5px; color: var(--ink-soft); line-height: 1.55;">{{ p.dek }}</div>
+        </div>
+      </a>
+    </sc-for>
+  </div>
+</section>
+
+<section class="ph" style="position: relative; padding: 80px 28px;">
+  <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(15,110,102,0.9), rgba(11,45,54,0.9));"></div>
+  <div style="position: relative; max-width: 760px; margin: 0 auto; text-align: center; color: #fff;">
+    <h2 style="font-size: clamp(28px,3.6vw,40px); margin-bottom: 16px; letter-spacing: -0.5px;">Pronto para dar o próximo passo?</h2>
+    <p style="font-size: 17px; color: rgba(255,255,255,0.9); margin-bottom: 26px;">Transforme o interesse pela psicanálise em uma formação estruturada.</p>
+    <a href="Cursos.dc.html" style="display: inline-flex; padding: 15px 32px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 16px;">Conhecer os cursos</a>
+  </div>
+</section>
+
+<dc-import name="SiteFooter" hint-size="100%,420px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:800}}">
+class Component extends DCLogic {
+  async componentDidMount() {
+    const site = await import('./data/site.js');
+    this.site = site; this.forceUpdate();
+  }
+  renderVals() {
+    const posts = (this.site ? this.site.POSTS : []).map(p => ({
+      title: p.title, dek: p.dek, category: p.category, readingTime: p.readingTime,
+      href: 'Post.dc.html?slug=' + p.slug,
+    }));
+    return {
+      featured: posts[0] || { href: '#', title: '', dek: '', category: '', readingTime: 0 },
+      rest: posts.slice(1),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>AVA PCO — Ambiente Virtual de Aprendizagem | Psicanálise Clínica Online</title>
+<meta name="description" content="AVA PCO: sua formação organizada numa experiência de aprendizagem moderna. Cursos, aulas, jornada de estudos, biblioteca, PCO News, PCO POD, Tutor Virtual, certificados e acompanhamento em um só ambiente.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://www.psicanaliseclinicaonline.com.br/ava">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AVA PCO — Ambiente Virtual de Aprendizagem">
+<meta property="og:description" content="Uma experiência de aprendizagem moderna: cursos, trilha visual, tutor virtual e acompanhamento em um só ambiente.">
+<meta property="og:locale" content="pt_BR">
+<style>
+  :root{
+    --paper:#f3f4f1; --surface:#fbfcfa; --surface-2:#eaece6; --raise:#ffffff;
+    --ink:#1b1e22; --ink-soft:#575c62; --ink-faint:#868c92;
+    --line:#dcdfd8; --line-soft:#e8eae4;
+    --accent:#0f6e66; --accent-ink:#0c5651; --accent-soft:#dcebe8; --on-accent:#ffffff;
+    --brand-deep:#0b3b37; --on-deep:#eef3f1;
+    --orange:#e6852f; --orange-soft:#f6ede1;
+    --good:#2f7d4f; --good-bg:#e0efe4; --good-line:#bcdcc6;
+    --warn:#9a6a12; --warn-bg:#f5ead1; --warn-line:#e5d09a;
+    --crit:#b0422f; --crit-bg:#f6e2dc; --crit-line:#e8bfb3;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(20,25,30,.04), 0 4px 16px rgba(20,25,30,.05);
+    color-scheme:light;
+  }
+  :root[data-theme="dark"], :root:not([data-theme="light"]){}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
+    --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
+    --line:#2b2f36; --line-soft:#242830;
+    --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
+    --brand-deep:#0a2f2c; --on-deep:#eef3f1; --orange:#e2954a; --orange-soft:#2a2113;
+    --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+    color-scheme:dark;
+  }}
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; scroll-padding-top:84px; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; -webkit-font-smoothing:antialiased; font-variant-numeric:tabular-nums; }
+  a{ color:var(--accent); text-decoration:none; }
+  h1,h2,h3{ margin:0; font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; font-weight:800; letter-spacing:-0.02em; }
+  .wrap{ max-width:1120px; margin:0 auto; padding:0 24px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--line); padding:6px 13px; border-radius:999px; }
+  .sec-title{ font-size:clamp(24px,3vw,34px); color:var(--ink); line-height:1.15; }
+  .card{ background:var(--raise); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
+  ::selection{ background:var(--accent-soft); }
+  @media (max-width:900px){
+    [data-two]{ grid-template-columns:1fr !important; }
+    [data-cards4]{ grid-template-columns:repeat(2,1fr) !important; }
+    [data-cards3]{ grid-template-columns:repeat(2,1fr) !important; }
+  }
+  @media (max-width:560px){
+    [data-cards4],[data-cards3]{ grid-template-columns:1fr !important; }
+  }
+</style>
+</helmet>
+
+<div style="overflow-x:hidden;">
+
+<!-- HEADER -->
+<header ref="{{ setHeader }}" style="position:fixed; top:0; left:0; right:0; z-index:100; transition:background .25s, box-shadow .25s, border-color .25s;">
+  <div class="wrap" style="display:flex; align-items:center; gap:20px; padding-top:16px; padding-bottom:16px;">
+    <a href="#top" style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+      <span style="width:34px; height:34px; border-radius:9px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); display:flex; align-items:center; justify-content:center;" data-logomark>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-logosvg><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      </span>
+      <span style="line-height:1;">
+        <span style="display:block; font-weight:800; font-size:15px; letter-spacing:-0.01em;" data-brand>AVA PCO</span>
+        <span style="display:block; font-size:9.5px; font-weight:600; letter-spacing:2px; opacity:.7;" data-brand2>APRENDIZAGEM</span>
+      </span>
+    </a>
+    <nav style="display:flex; gap:26px; margin-left:auto; align-items:center;">
+      <a href="Cursos.dc.html" data-navlink style="font-weight:600; font-size:14.5px;">Catálogo</a>
+      <a href="#" data-navlink style="font-weight:600; font-size:14.5px;">Entrar</a>
+      <a href="#começar" data-headcta style="display:inline-flex; align-items:center; gap:7px; padding:10px 18px; border-radius:999px; background:var(--accent); color:var(--on-accent); font-weight:700; font-size:14px;">Conhecer o AVA <span>→</span></a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section id="top" style="position:relative; padding:132px 0 74px; background:linear-gradient(118deg,#0a3f3a 0%, #0f6e66 52%, #1f9e93 100%); overflow:hidden;">
+  <div style="position:absolute; inset:0; background:radial-gradient(1100px 380px at 78% -10%, rgba(255,255,255,.16), transparent 60%);"></div>
+  <div class="wrap" style="position:relative;">
+    <span style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:#fff; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.26); padding:7px 15px; border-radius:999px;">✦ Nova plataforma de aprendizagem</span>
+    <h1 style="color:#fff; font-size:clamp(34px,5vw,54px); line-height:1.06; margin:22px 0 0; max-width:16ch;">AVA PCO: sua formação organizada em uma experiência de aprendizagem moderna.</h1>
+    <p style="color:rgba(255,255,255,.86); font-size:clamp(15px,1.5vw,18px); line-height:1.55; margin:20px 0 0; max-width:52ch;">Cursos, aulas, jornada de estudos, biblioteca, PCO News, PCO POD, Tutor Virtual, certificados e acompanhamento em um só ambiente.</p>
+    <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:30px;">
+      <a href="#começar" style="display:inline-flex; align-items:center; gap:8px; padding:14px 26px; border-radius:999px; background:var(--orange); color:#fff; font-weight:700; font-size:15px; box-shadow:0 10px 24px rgba(230,133,47,.32);">Conhecer o AVA POD <span>→</span></a>
+      <a href="#recursos" style="display:inline-flex; align-items:center; padding:14px 24px; border-radius:999px; background:rgba(255,255,255,.1); border:1.5px solid rgba(255,255,255,.5); color:#fff; font-weight:600; font-size:15px;">Ver recursos</a>
+    </div>
+  </div>
+</section>
+
+<!-- INTRO -->
+<section style="padding:70px 0 10px; background:var(--surface);">
+  <div class="wrap" style="text-align:center;">
+    <h2 class="sec-title" style="max-width:20ch; margin:0 auto;">Mais do que uma área de aulas. Uma jornada de formação.</h2>
+    <p style="color:var(--ink-soft); font-size:16px; line-height:1.6; max-width:60ch; margin:16px auto 0;">Estude no seu ritmo, com acompanhamento, retomada e múltiplos formatos de conteúdo.</p>
+  </div>
+</section>
+
+<!-- TRILHA VISUAL -->
+<section style="padding:64px 0; background:var(--surface);">
+  <div class="wrap" style="display:grid; grid-template-columns:1fr 1fr; gap:52px; align-items:center;" data-two>
+    <div>
+      <span class="eyebrow">✦ Jornada PCO</span>
+      <h2 class="sec-title" style="margin:16px 0 12px;">Trilha visual de aprendizagem</h2>
+      <p style="color:var(--ink-soft); font-size:15.5px; line-height:1.6;">Acompanhe módulos, aulas, avaliações, microvitórias e desbloqueios em uma trilha adulta — sem mascotes, sem ranking infantil. Foco em progresso real.</p>
+      <ul style="list-style:none; padding:0; margin:20px 0 0; display:flex; flex-direction:column; gap:12px;">
+        <sc-for list="{{ trilha }}" as="t" hint-placeholder-count="4">
+          <li style="display:flex; gap:11px; align-items:center; font-size:15px; color:var(--ink-soft);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5 11 15l4.5-5"/></svg> {{ t }}</li>
+        </sc-for>
+      </ul>
+    </div>
+    <div class="card" style="padding:22px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <sc-for list="{{ modulos }}" as="m" hint-placeholder-count="4">
+          <div style="display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:12px; background:{{ m.rowBg }}; border:1px solid var(--line-soft);">
+            <span style="width:30px; height:30px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; background:{{ m.numBg }}; color:{{ m.numColor }};">{{ m.n }}</span>
+            <span style="flex:1; font-weight:600; font-size:15px; color:{{ m.labelColor }};">{{ m.label }}</span>
+            <span style="font-size:12.5px; font-weight:600; color:{{ m.statusColor }};">{{ m.status }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODO FOCO -->
+<section style="padding:64px 0; background:var(--paper);">
+  <div class="wrap" style="display:grid; grid-template-columns:1fr 1fr; gap:52px; align-items:center;" data-two>
+    <div style="position:relative; border-radius:16px; aspect-ratio:16/10; background:linear-gradient(150deg,#0b2f2c,#123f3a); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow); overflow:hidden;">
+      <span style="width:56px; height:56px; border-radius:50%; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></span>
+      <span style="position:absolute; left:18px; bottom:16px; font-size:12px; color:rgba(255,255,255,.6);">Modo Foco · Player de aula</span>
+    </div>
+    <div>
+      <span class="eyebrow">✦ Modo de estudo imersivo</span>
+      <h2 class="sec-title" style="margin:16px 0 12px;">Concentre-se no que importa</h2>
+      <p style="color:var(--ink-soft); font-size:15.5px; line-height:1.6;">Quando você entra em curso, módulo, aula ou avaliação, o AVA muda para um layout de estudo dedicado. Sidebar contextual com a trilha, painel de apoio e Modo Foco para maximizar vídeo e conteúdo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- MULTI-CURSOS -->
+<section style="padding:64px 0; background:var(--surface);">
+  <div class="wrap" style="text-align:center;">
+    <span class="eyebrow">✦ Multi-cursos</span>
+    <h2 class="sec-title" style="margin:16px 0 40px;">Várias formações, um único AVA</h2>
+  </div>
+  <div class="wrap" style="display:grid; grid-template-columns:repeat(4,1fr); gap:18px;" data-cards4>
+    <sc-for list="{{ cursos }}" as="c" hint-placeholder-count="4">
+      <div class="card" style="overflow:hidden; text-align:left;">
+        <div style="height:96px; background:{{ c.grad }};"></div>
+        <div style="padding:18px 18px 22px;">
+          <div style="font-weight:700; font-size:16px; color:var(--ink);">{{ c.title }}</div>
+          <div style="font-size:13px; color:var(--ink-soft); margin-top:6px; line-height:1.45;">{{ c.desc }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- RECURSOS -->
+<section id="recursos" style="padding:70px 0; background:var(--paper);">
+  <div class="wrap" style="text-align:center;">
+    <span class="eyebrow">✦ Recursos do AVA</span>
+    <h2 class="sec-title" style="margin:16px 0 40px;">Tudo que você precisa para estudar</h2>
+  </div>
+  <div class="wrap" style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px;" data-cards3>
+    <sc-for list="{{ recursos }}" as="r" hint-placeholder-count="9">
+      <div class="card" style="padding:24px;">
+        <span style="width:42px; height:42px; border-radius:11px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; color:var(--accent-ink);" data-om-raster>
+          <span style="font-size:19px;">{{ r.icon }}</span>
+        </span>
+        <div style="font-weight:700; font-size:16px; color:var(--ink); margin:16px 0 5px;">{{ r.title }}</div>
+        <div style="font-size:13.5px; color:var(--ink-soft); line-height:1.5;">{{ r.desc }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- TUTOR IA -->
+<section style="padding:64px 0; background:var(--surface);">
+  <div class="wrap" style="display:grid; grid-template-columns:1fr 1fr; gap:52px; align-items:center;" data-two>
+    <div>
+      <span class="eyebrow">✦ Tutor Virtual IA</span>
+      <h2 class="sec-title" style="margin:16px 0 12px;">Apoio pedagógico, no ritmo do aluno</h2>
+      <p style="color:var(--ink-soft); font-size:15.5px; line-height:1.6;">IA treinada para responder dúvidas dos cursos da PCO. Limites configuráveis, pacotes adicionais externos e escopo claramente delimitado — sempre com aviso de que não substitui supervisão clínica no atendimento profissional.</p>
+    </div>
+    <div class="card" style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <span style="width:28px; height:28px; border-radius:8px; background:var(--accent); color:var(--on-accent); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">IA</span>
+        <div style="background:var(--surface-2); border-radius:12px; padding:12px 14px; font-size:13.5px; color:var(--ink); line-height:1.45;">Posso te ajudar com dúvidas dos seus cursos. Como posso te apoiar?</div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; justify-content:flex-end;">
+        <div style="background:var(--accent); color:var(--on-accent); border-radius:12px; padding:12px 14px; font-size:13.5px; line-height:1.45; max-width:78%;">Qual a diferença entre escuta e técnica em psicanálise?</div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:2px;">
+        <span style="flex:1; font-size:13.5px; color:var(--ink-faint);">Sua pergunta. A escuta é a primeira etapa…</span>
+        <span style="width:30px; height:30px; border-radius:8px; background:var(--accent); color:var(--on-accent); display:flex; align-items:center; justify-content:center;">↑</span>
+      </div>
+      <div style="font-size:11px; color:var(--ink-faint); text-align:center;">Uso educativo · escopo configurável em /admin/tutor</div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTEÚDO CURADO -->
+<section style="padding:64px 0; background:var(--paper);">
+  <div class="wrap" style="text-align:center;">
+    <span class="eyebrow">✦ Conteúdo curado</span>
+    <h2 class="sec-title" style="margin:16px 0 8px;">PCO POD, News e Biblioteca</h2>
+    <p style="color:var(--ink-soft); font-size:15px; max-width:56ch; margin:0 auto 40px;">Áudio, artigos comentados e materiais selecionados — diretamente conectados aos seus cursos.</p>
+  </div>
+  <div class="wrap" style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px;" data-cards3>
+    <sc-for list="{{ conteudo }}" as="c" hint-placeholder-count="3">
+      <div class="card" style="padding:24px;">
+        <span style="width:42px; height:42px; border-radius:11px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; color:var(--accent-ink); font-size:19px;">{{ c.icon }}</span>
+        <div style="font-weight:700; font-size:16px; color:var(--ink); margin:16px 0 5px;">{{ c.title }}</div>
+        <div style="font-size:13.5px; color:var(--ink-soft); line-height:1.5;">{{ c.desc }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- RETENÇÃO -->
+<section style="padding:64px 0; background:var(--surface);">
+  <div class="wrap" style="display:grid; grid-template-columns:1fr 1fr; gap:52px; align-items:center;" data-two>
+    <div>
+      <span class="eyebrow">✦ Retenção</span>
+      <h2 class="sec-title" style="margin:16px 0 12px;">Acompanhamento que evita evasão</h2>
+      <p style="color:var(--ink-soft); font-size:15.5px; line-height:1.6;">Score de risco por aluno, ações recomendadas, plano de retomada com IA e revisão humana. A IA sugere — a equipe pedagógica decide.</p>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+        <div class="card" style="padding:20px;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-faint);">{{ k.label }}</div>
+          <div style="font-size:32px; font-weight:800; color:var(--ink); margin-top:8px; line-height:1;">{{ k.value }}</div>
+          <div style="font-size:12.5px; font-weight:700; color:var(--good); margin-top:6px;">{{ k.delta }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<!-- CERTIFICAÇÃO -->
+<section style="padding:64px 0; background:var(--paper);">
+  <div class="wrap" style="display:grid; grid-template-columns:1fr 1fr; gap:52px; align-items:center;" data-two>
+    <div class="card" style="padding:30px; background:var(--surface-2);">
+      <div style="border:1px solid var(--line); border-radius:12px; padding:26px 24px; background:var(--raise); text-align:center;">
+        <div style="font-size:10.5px; font-weight:700; letter-spacing:3px; color:var(--ink-faint); text-transform:uppercase;">Certificado de conclusão</div>
+        <div style="font-weight:800; font-size:19px; color:var(--ink); margin:12px 0 18px;">Psicanálise Clínica</div>
+        <div style="font-size:12px; color:var(--ink-faint);">Concedido a</div>
+        <div style="font-weight:700; font-size:16px; color:var(--ink); margin-top:2px;">[Nome do Aluno]</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:26px;">
+          <span style="width:46px; height:46px; border-radius:8px; background:repeating-linear-gradient(45deg,var(--ink) 0 3px, transparent 3px 6px);"></span>
+          <span style="font-size:11px; color:var(--ink-faint);">Nº 0000-YYYY</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="eyebrow">✦ Certificados</span>
+      <h2 class="sec-title" style="margin:16px 0 12px;">Certificação digital com validação</h2>
+      <p style="color:var(--ink-soft); font-size:15.5px; line-height:1.6;">QR Code, código de validação único e checklist de requisitos. Reemissão controlada e validação aberta para terceiros.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ANÁLISE/SUPERVISÃO -->
+<section style="padding:34px 0 64px; background:var(--paper);">
+  <div class="wrap">
+    <div style="background:var(--surface-2); border:1px solid var(--line); border-radius:18px; padding:44px; text-align:center;">
+      <span style="width:48px; height:48px; border-radius:12px; background:var(--raise); border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; color:var(--accent-ink); font-size:20px;">☖</span>
+      <h2 class="sec-title" style="margin:18px 0 10px; font-size:clamp(22px,2.6vw,28px);">Análise e Supervisão (opcional)</h2>
+      <p style="color:var(--ink-soft); font-size:15px; line-height:1.6; max-width:64ch; margin:0 auto;">Análise pessoal, supervisão clínica e orientação formativa são serviços opcionais, contratados separadamente. Não são obrigatórios para conclusão dos cursos ou emissão de certificado.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ADMIN -->
+<section style="padding:64px 0; background:var(--surface);">
+  <div class="wrap" style="text-align:center;">
+    <span class="eyebrow">✦ Admin PCO</span>
+    <h2 class="sec-title" style="margin:16px 0 40px;">Controle pedagógico de ponta a ponta</h2>
+  </div>
+  <div class="wrap" style="display:grid; grid-template-columns:repeat(4,1fr); gap:18px;" data-cards4>
+    <sc-for list="{{ admin }}" as="a" hint-placeholder-count="4">
+      <div class="card" style="padding:22px;">
+        <span style="width:38px; height:38px; border-radius:10px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; color:var(--accent-ink); font-size:17px;">{{ a.icon }}</span>
+        <div style="font-weight:700; font-size:15px; color:var(--ink); margin:14px 0 5px;">{{ a.title }}</div>
+        <div style="font-size:13px; color:var(--ink-soft); line-height:1.5;">{{ a.desc }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- ONBOARDING -->
+<section style="padding:64px 0; background:var(--paper);">
+  <div class="wrap" style="text-align:center;">
+    <span class="eyebrow">✦ Primeiro acesso</span>
+    <h2 class="sec-title" style="margin:16px 0 40px;">Onboarding humano, termos transparentes</h2>
+  </div>
+  <div class="wrap" style="display:grid; grid-template-columns:repeat(4,1fr); gap:18px;" data-cards4>
+    <sc-for list="{{ passos }}" as="p" hint-placeholder-count="4">
+      <div style="display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:22px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface);">
+        <span style="width:34px; height:34px; border-radius:50%; background:var(--accent); color:var(--on-accent); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;">{{ p.n }}</span>
+        <div style="font-weight:700; font-size:15px; color:var(--ink);">{{ p.title }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="começar" style="padding:80px 0 90px; background:var(--surface); text-align:center;">
+  <div class="wrap">
+    <h2 class="sec-title" style="font-size:clamp(26px,3.2vw,38px);">Pronto para começar?</h2>
+    <p style="color:var(--ink-soft); font-size:16px; margin:14px 0 26px;">Acesse o AVA PCO e comece sua jornada de aprendizagem hoje.</p>
+    <div style="display:flex; gap:14px; justify-content:center; align-items:center; flex-wrap:wrap;">
+      <a href="#" style="display:inline-flex; align-items:center; padding:15px 32px; border-radius:999px; background:var(--accent); color:var(--on-accent); font-weight:700; font-size:16px;">Entrar no AVA</a>
+      <a href="#" style="font-weight:600; color:var(--ink-soft); font-size:15px;">→ Primeiro acesso</a>
+    </div>
+  </div>
+</section>
+
+<footer style="padding:26px 0; background:var(--brand-deep); color:rgba(255,255,255,.7); text-align:center;">
+  <div class="wrap" style="font-size:12.5px;">© AVA PCO — Ambiente Virtual de Aprendizagem da Psicanálise Clínica Online</div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  setHeader = (el) => { this.header = el; };
+
+  componentDidMount() {
+    this._onScroll = () => {
+      if (!this.header) return;
+      const s = window.scrollY > 40;
+      const h = this.header;
+      h.style.background = s ? 'var(--surface)' : 'transparent';
+      h.style.boxShadow = s ? '0 3px 16px rgba(20,25,30,.08)' : 'none';
+      h.style.borderBottom = s ? '1px solid var(--line)' : '1px solid transparent';
+      h.querySelectorAll('[data-navlink]').forEach(a => a.style.color = s ? 'var(--ink)' : '#fff');
+      const b = h.querySelector('[data-brand]'); if (b) b.style.color = s ? 'var(--ink)' : '#fff';
+      const b2 = h.querySelector('[data-brand2]'); if (b2) b2.style.color = s ? 'var(--ink-soft)' : '#fff';
+      const lm = h.querySelector('[data-logomark]'); if (lm) { lm.style.background = s ? 'var(--accent-soft)' : 'rgba(255,255,255,.16)'; lm.style.borderColor = s ? 'var(--line)' : 'rgba(255,255,255,.3)'; }
+      const ls = h.querySelector('[data-logosvg]'); if (ls) ls.style.stroke = s ? 'var(--accent-ink)' : '#fff';
+      const cta = h.querySelector('[data-headcta]'); if (cta) { cta.style.background = 'var(--accent)'; cta.style.color = 'var(--on-accent)'; }
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+    this._onScroll();
+  }
+  componentWillUnmount() { window.removeEventListener('scroll', this._onScroll); }
+
+  trilha = [
+    'Bloqueios e desbloqueios por progresso',
+    'Próxima ação recomendada sempre visível',
+    'Plano de retomada por inatividade',
+    'Certificado disponível ao final',
+  ];
+
+  modulos = [
+    { n: '1', label: 'Módulo 1', status: 'Concluído', numBg: 'var(--good)', numColor: '#fff', statusColor: 'var(--good)', rowBg: 'var(--surface)', labelColor: 'var(--ink)' },
+    { n: '2', label: 'Módulo 2', status: 'Em andamento', numBg: 'var(--accent)', numColor: 'var(--on-accent)', statusColor: 'var(--accent-ink)', rowBg: 'var(--surface)', labelColor: 'var(--ink)' },
+    { n: '3', label: 'Módulo 3', status: 'Disponível', numBg: 'var(--surface-2)', numColor: 'var(--ink)', statusColor: 'var(--ink-soft)', rowBg: 'var(--surface)', labelColor: 'var(--ink)' },
+    { n: '4', label: 'Módulo 4', status: 'Bloqueado', numBg: 'var(--surface-2)', numColor: 'var(--ink-faint)', statusColor: 'var(--ink-faint)', rowBg: 'var(--surface-2)', labelColor: 'var(--ink-faint)' },
+  ];
+
+  cursos = [
+    { title: 'Psicanálise Clínica', desc: 'Formação completa em psicanálise e comportamentos.', grad: 'linear-gradient(160deg,#2aa89b,#0f6e66)' },
+    { title: 'Terapia Familiar Sistêmica', desc: 'Abordagem sistêmica para famílias e relações.', grad: 'linear-gradient(160deg,#5cc7bd,#2aa89b)' },
+    { title: 'Hipnoterapia', desc: 'Hipnose terapêutica com base científica.', grad: 'linear-gradient(160deg,#f2a851,#e6852f)' },
+    { title: 'Novos cursos PCO', desc: 'Mais formações em breve.', grad: 'linear-gradient(160deg,#0f6e66,#0a3330)' },
+  ];
+
+  recursos = [
+    { icon: '▷', title: 'Aulas', desc: 'Vídeo, texto e materiais.' },
+    { icon: '✓', title: 'Avaliações', desc: 'Por módulo, com feedback.' },
+    { icon: '❏', title: 'Biblioteca', desc: 'Materiais curados.' },
+    { icon: '✦', title: 'PCO News', desc: 'Estudos, notícias.' },
+    { icon: '♪', title: 'PCO POD', desc: 'Conteúdo em áudio.' },
+    { icon: '✧', title: 'Tutor Virtual', desc: 'IA pedagógica.' },
+    { icon: '❋', title: 'Certificados', desc: 'Validação digital.' },
+    { icon: '☏', title: 'Suporte', desc: 'Acompanhamento humano.' },
+    { icon: '↺', title: 'Plano de retomada', desc: 'Para alunos inativos.' },
+  ];
+
+  conteudo = [
+    { icon: '♪', title: 'PCO POD', desc: 'Episódios pedagógicos com favoritos, recomendações e episódios por módulo.' },
+    { icon: '✦', title: 'PCO News', desc: 'Estudos, notícias da escola e curadoria de leitura por curso e tema.' },
+    { icon: '❏', title: 'Biblioteca PCO', desc: 'Apostilas, leituras obrigatórias e complementares com filtros por tema.' },
+  ];
+
+  kpis = [
+    { label: 'Retenção 90d', value: '64%', delta: '+4pp' },
+    { label: 'Concluído', value: '58%', delta: '+2pp' },
+    { label: 'Reengajados', value: '48%', delta: '+9pp' },
+    { label: 'Ritmo desejado', value: '2,4', delta: '+0,3' },
+  ];
+
+  admin = [
+    { icon: '⚠', title: 'Previsão de evasão', desc: 'Score por aluno, motivos e ação recomendada.' },
+    { icon: '↺', title: 'Plano de retomada IA', desc: 'Mensagem personalizada, revisão humana, histórico.' },
+    { icon: '⚙', title: 'Gestão de IAs', desc: 'Provedores, modelos, escopo, custo, auditoria.' },
+    { icon: '↗', title: 'Métricas & SEO', desc: 'Tráfego, indexação, palavras-chave, dispositivos.' },
+  ];
+
+  passos = [
+    { n: '1', title: 'Login' },
+    { n: '2', title: 'Onboarding' },
+    { n: '3', title: 'Termos e privacidade' },
+    { n: '4', title: 'Plano de estudo' },
+  ];
+
+  renderVals() {
+    return {
+      setHeader: this.setHeader,
+      trilha: this.trilha, modulos: this.modulos, cursos: this.cursos,
+      recursos: this.recursos, conteudo: this.conteudo, kpis: this.kpis,
+      admin: this.admin, passos: this.passos,
+    };
+  }
+}
+</script>
+</body>
+</html>
