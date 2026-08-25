@@ -80,14 +80,17 @@ placeholders (`<your-...>`), nada real. Os ~9 MB vêm quase todos das fontes
 
 ## Pendências abertas — começar por aqui
 
-1. **Hash do bundle mudou e não foi explicado.** Depois de mexer no
-   `vite.config.ts`, o build passou a gerar `assets/index-VKqtwYFV.js` em vez
-   de `index-IJB2AaMU.js`. A mudança é só de configuração de dev (portas e
-   alvo do proxy) e não deveria tocar o bundle — a hipótese é o `.env`, que
-   agora existe e é lido pelo Vite (tem `NODE_ENV=development` dentro).
-   **Verificar antes do próximo deploy:** buildar com o `.env` fora do lugar e
-   comparar o hash. Se o `.env` estiver vazando para o build de produção, tirar
-   `NODE_ENV` de lá.
+1. ~~Hash do bundle mudou e não foi explicado.~~ **Resolvido no mesmo dia.**
+   A causa era o próprio `.env` recém-criado: o Vite lê esse arquivo também no
+   build, e o `NODE_ENV=development` que estava lá fazia `npm run build` gerar
+   um **bundle de desenvolvimento**, em silêncio. Não era o `vite.config.ts`:
+   com o config antigo o hash errado se repetia, e sem o `.env` também. O que
+   fechou o caso foi `NODE_ENV=production npx vite build`, que devolveu
+   `index-IJB2AaMU.js` **idêntico ao de produção, 205.429 bytes**.
+   Correção: `NODE_ENV` fora do `.env` (o modo já sai certo sozinho, e todo uso
+   no servidor trata ausente como development), mais um aviso no
+   `.env.example` para ninguém repetir. `npm run build` volta a bater com
+   produção.
 2. **Sem acesso SSH à produção desta máquina.** O `~/.ssh/config` não tem o
    host `vps` e a chave `enlevo_vps195` não está em `~/.ssh/`. Deploy manual e
    qualquer inspeção no servidor estão bloqueados até a chave chegar aqui.
