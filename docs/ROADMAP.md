@@ -2,6 +2,12 @@
 
 Produção em `13f2549`. 180 arquivos de teste, 1.714 testes, zero falhas.
 
+> **25/ago/2026** — o projeto passou para outra máquina. Ambiente reconferido:
+> typecheck, os 1.714 testes e o hash do bundle de produção batem; prod está no
+> `main`, sem deploy pendente. O que mudou de ambiente, e as três pendências
+> que a troca abriu, estão em `docs/SESSAO-2026-08-25-troca-de-maquina.md`.
+> A frente de dev segue a mesma: Sprint 2, agendamento de sessão.
+
 Painel visual (Artifact, mesma URL sempre):
 https://claude.ai/code/artifact/f548e6f4-0775-4965-acb9-cefea684412c
 
