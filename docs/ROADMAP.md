@@ -23,16 +23,19 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
 
 - ✅ Coluna `lessons.content` + carga de 522 aulas (2,93 mi de caracteres).
   Ver `docs/migration-wp-ld.md` e o comentário em `scripts/restaurar_conteudo_aulas.ts`.
-- ○ **Durações reais das aulas.** Todas gravadas como 15 min — placeholder do
+- ◐ **Durações reais das aulas.** Todas gravadas como 15 min — placeholder do
   import. Não afeta a carga horária declarada do curso, mas distorce as métricas
   de estudo que o aluno vê.
-- ✅ **E-mail de aviso de vencimento** (26/ago/2026).
-  `server/access/expiry-worker.ts`, worker diário, visível em `/admin/jobs` como
-  `access-expiry`. Faixas de 30, 7 e 1 dia, mais o aviso de vencido; um aviso
-  por faixa, nunca repetido. Hoje varre 1.120 matrículas e não acha nenhuma com
-  prazo — estreia calado, como deve. **Rode
-  `POST /admin/jobs/access-expiry/run?dryRun=true` antes de declarar qualquer
-  `accessMonths`:** ele mostra quem receberia aviso sem enviar nada.
+  **Ferramenta pronta** (26/ago/2026): `scripts/resolver_duracoes_aulas.ts` lê o
+  `videoUrl` que o scraper já grava e busca a duração no provedor — Vimeo pelo
+  oEmbed público, sem chave; YouTube só com `YOUTUBE_API_KEY`, e sem ela as
+  aulas do YouTube são contadas como não resolvidas em vez de fingir que
+  terminou. **Nunca inventa duração**: aula sem vídeo, ou com vídeo que o
+  provedor não responde, fica como está.
+  **Falta rodar onde os dados existem.** Na base local nenhuma aula tem
+  `videoUrl` (são 190 aulas de semente, não as 522 importadas), então o script
+  foi testado nas partes puras e roda relatando zero — o problema mora em
+  produção.
 
 ## Onda 8 — Sessões: da gestão ao agendamento
 
