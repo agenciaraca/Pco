@@ -182,6 +182,14 @@ comportamento de todo mundo) e `sessionStorage` quando não. Trocar de uma para
 a outra limpa os dois lados, senão a sessão antiga sobreviveria justamente no
 caso que o recurso existe para evitar.
 
+A mesma passada achou mais três: o seletor de curso da **Jornada**, que listava
+os cursos do aluno e não trocava nada — a página mostrava sempre o primeiro; e
+dois formulários de configuração que aceitavam valor e não guardavam. O das
+sessões era o pior dos dois, porque descrevia regras que o sistema não aplica
+("prazo mínimo para cancelamento") — a coordenação escolhia 48 horas e o aluno
+seguia podendo cancelar até a hora da sessão. Os dois agora dizem que não estão
+ligados, e apontam onde a configuração de verdade mora.
+
 Duas pré-visualizações **não** foram mexidas, e é deliberado: os botões dentro
 de `/admin/login-customizar` e `/admin/login-modelos` são desenhos do login,
 não controles — botão numa maquete de tela é a maquete, não uma promessa.

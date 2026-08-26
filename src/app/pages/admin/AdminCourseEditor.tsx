@@ -3098,22 +3098,37 @@ function CertificatePreview({
   );
 }
 
+/**
+ * Regras de retenção — três campos que nunca salvaram nada.
+ *
+ * Não é que o assunto não exista no sistema: liberação gradual mora em
+ * `server/repositories/drip.ts` e a janela de inatividade é configurada no
+ * worker de reengajamento, em `/admin/reengajamento`. O que não existe é a
+ * ligação com ESTES campos — e um formulário que aceita valor, não reclama e
+ * não guarda faz o admin acreditar que configurou o curso.
+ */
 function RetencaoPane() {
   return (
     <div className="pco-card space-y-5">
       <h3 className="text-base font-semibold text-pco-deep">Regras de retenção</h3>
+      <p className="rounded-lg bg-pco-orange/10 px-3 py-2 text-xs text-pco-orange">
+        Estes campos ainda não estão ligados a nada. Enquanto isso: a liberação gradual de
+        módulos se configura no drip do curso, e a janela de inatividade em{' '}
+        <Link to="/admin/reengajamento" className="underline">
+          Reengajamento
+        </Link>
+        .
+      </p>
       <Field label="Liberação de módulos">
-        <select className="pco-input">
+        <select className="pco-input" disabled>
           <option>Liberar todos imediatamente</option>
-          <option>Liberar semanalmente</option>
-          <option>Liberar conforme conclusão do anterior</option>
         </select>
       </Field>
       <Field label="Janela de inatividade para alerta (dias)">
-        <input type="number" className="pco-input" defaultValue={7} />
+        <input type="number" className="pco-input" value={7} disabled readOnly />
       </Field>
       <Field label="Janela para plano de retomada (dias)">
-        <input type="number" className="pco-input" defaultValue={14} />
+        <input type="number" className="pco-input" value={14} disabled readOnly />
       </Field>
     </div>
   );

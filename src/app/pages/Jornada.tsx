@@ -9,6 +9,7 @@ import {
   Sparkles,
   Flag,
 } from 'lucide-react';
+import { useState } from 'react';
 import { useCourses, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
@@ -20,7 +21,10 @@ export default function Jornada() {
   const t = useT();
   const { data: courses = [], isLoading } = useCourses();
   const { data: progress } = useMyProgress();
-  const course = courses[0];
+  // A página mostrava sempre `courses[0]` e o seletor ao lado era decorativo:
+  // o aluno com mais de um curso escolhia outro e a jornada não mudava.
+  const [cursoSelecionado, setCursoSelecionado] = useState<string | null>(null);
+  const course = courses.find((c) => c.id === cursoSelecionado) ?? courses[0];
   useDocumentMeta({ title: `${t('journey.title')} — AVA PCO` });
   const doneIds = new Set(progress?.completedLessonIds ?? []);
 
@@ -53,7 +57,11 @@ export default function Jornada() {
 
       <div className="pco-card p-5">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <CourseSelector />
+          <CourseSelector
+            courses={courses}
+            valor={course?.id ?? ''}
+            onChange={setCursoSelecionado}
+          />
           <div className="flex-1 min-w-[200px]">
             <div className="flex justify-between text-xs text-ink-muted mb-1">
               <span>Progresso geral</span>
@@ -257,12 +265,25 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CourseSelector() {
-  const { data: courses = [] } = useCourses();
+function CourseSelector({
+  courses,
+  valor,
+  onChange,
+}: {
+  courses: Array<{ id: string; title: string }>;
+  valor: string;
+  onChange: (id: string) => void;
+}) {
+  // Com um curso só, um seletor de uma opção é ruído.
+  if (courses.length <= 1) return null;
   return (
     <div className="flex items-center gap-2 text-xs">
       <span className="text-ink-muted">Curso:</span>
-      <select className="pco-input py-1.5 text-xs w-auto">
+      <select
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+        className="pco-input py-1.5 text-xs w-auto"
+      >
         {courses.map((c) => (
           <option key={c.id} value={c.id}>
             {c.title}

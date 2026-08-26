@@ -1145,20 +1145,27 @@ function PoliticasPane() {
         </p>
       </div>
 
+      {/*
+        Estes dois campos não guardavam nada e, pior, descreviam regras que o
+        sistema não aplica: hoje cancelar e remarcar valem até a hora da sessão,
+        sem prazo mínimo. Deixá-los editáveis fazia a coordenação acreditar que
+        tinha configurado uma política que nunca existiu.
+      */}
       <div className="pco-card space-y-3">
         <h3 className="text-base font-semibold text-pco-deep">Políticas adicionais</h3>
+        <p className="rounded-lg bg-pco-orange/10 px-3 py-2 text-[11px] text-pco-orange">
+          Ainda não implementadas. Hoje o aluno pode cancelar ou remarcar até a hora da
+          sessão, sem prazo mínimo — e é isso que o sistema faz, independentemente do que
+          for escolhido aqui.
+        </p>
         <Field label="Prazo mínimo para cancelamento">
-          <select className="pco-input">
-            <option>24 horas antes</option>
-            <option>48 horas antes</option>
-            <option>72 horas antes</option>
+          <select className="pco-input" disabled>
+            <option>Sem prazo mínimo</option>
           </select>
         </Field>
         <Field label="Permite remarcação?">
-          <select className="pco-input">
-            <option>Sim, até 24h antes</option>
-            <option>Sim, até 48h antes</option>
-            <option>Não permite</option>
+          <select className="pco-input" disabled>
+            <option>Sim, até a hora da sessão</option>
           </select>
         </Field>
       </div>
