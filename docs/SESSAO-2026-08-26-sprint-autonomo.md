@@ -134,6 +134,46 @@ real só ela mude.
 Dois controles decorativos (`Toggle` e `Check`) ficaram órfãos e foram removidos:
 caixas que não guardam nada convidam a reuso.
 
+## A suíte E2E estava verde porque metade nunca rodou
+
+O job de E2E sempre rodou com `continue-on-error: true`. Isso escondeu quatro
+defeitos que se sustentavam uns aos outros:
+
+1. **O helper de login gravava o token cru** no localStorage. `AuthContext` e o
+   wrapper de fetch fazem `JSON.parse(raw).token` — string que não é JSON cai no
+   catch e o token vira `null`. Todo teste de página autenticada media a tela de
+   `/login`.
+2. **Um teste não tinha como passar:** `length ?? 0 > 100` é lido como
+   `length ?? (0 > 100)` — devolvia o número de caracteres e comparava com
+   `true`.
+3. **A suíte estourava o próprio limite de login** (5/minuto). Pior: o Playwright
+   reinicia o worker a cada falha, então o cache em memória morria junto e uma
+   única falha genuína virava cascata de 429 que mascarava todas as outras
+   causas.
+4. **Um teste navegava para `/aprender/:id`**, rota que não existe: media a
+   página de 404 achando que cobria o conteúdo do curso.
+
+Mais dois de fidelidade: o catálogo mostra só o que está publicamente listado, e
+o teste exigia o primeiro curso de `/api/courses` — falhava por estar certo o
+produto; e todo teste administrativo media a tela de onboarding, porque ambiente
+novo manda o admin para lá.
+
+**De 16 passando com 10 falhas silenciosas para 26/26**, e o job passa a
+bloquear o merge. Verde por não ser olhado é pior do que vermelho.
+
+### E um bug de produto que só apareceu por causa disso
+
+Perseguindo uma dessas falhas, apareceu `enroll-bulk` respondendo "aluno não
+encontrado" para conta que existe e ainda não tem ficha de aluno. Não é caso
+raro: **são 989 contas assim na base**, e o disparo dos 507 convites cria mais.
+Era beco sem saída — `createAdminStudent` gera id próprio, então nem pela tela
+dava para ligar a ficha à conta.
+
+`enrollInCourse` já sabia criar a ficha nesse caso, nos dois backends; o
+comentário lá conta que isso custou caro uma vez, quando cliente do checkout
+público pagava e não recebia acesso. Faltava `enroll-bulk` chegar até ele em vez
+de desistir antes. Corrigido, com três testes.
+
 ## O que ficou por fazer, e por quê
 
 **Só depende do dono:** cadastrar profissionais reais, a grade do curso, trocar
