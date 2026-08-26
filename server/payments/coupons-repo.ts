@@ -1,6 +1,17 @@
-// Cupons de desconto — data/payment-coupons.json.
+/**
+ * Cupons de desconto.
+ *
+ * Dois backends, como o resto da casa: tabela `payment_coupons` com
+ * `DATABASE_URL`, `data/payment-coupons.json` sem ela. Mesmo molde de
+ * `courses.ts` — lê do banco e cai no JSON quando a tabela está vazia.
+ *
+ * `validateCoupon` continua sendo função pura sobre um cupom já carregado: a
+ * regra de validade não muda com o backend, e é ela que decide dinheiro.
+ */
 
 import crypto from 'node:crypto';
+import { eq, sql } from 'drizzle-orm';
+import { getDb, schema } from '../db/client';
 import { JsonStore } from '../db/json-store';
 
 export type CouponDiscount =
@@ -25,19 +36,58 @@ export interface Coupon {
 
 const store = new JsonStore<Coupon>('payment-coupons.json', () => []);
 
+function daLinha(r: typeof schema.paymentCoupons.$inferSelect): Coupon {
+  return {
+    id: r.id,
+    code: r.code,
+    description: r.description,
+    discount: r.discount as CouponDiscount,
+    appliesToProductIds: r.appliesToProductIds ?? [],
+    maxUses: r.maxUses ?? null,
+    usedCount: r.usedCount,
+    validFrom: r.validFrom ?? null,
+    validUntil: r.validUntil ?? null,
+    active: r.active,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
+}
+
 function newId(): string {
   return `coup-${Date.now().toString(36)}${crypto.randomBytes(3).toString('hex')}`;
 }
 
 export async function listAll(): Promise<Coupon[]> {
+  const db = getDb();
+  if (db) {
+    const rows = await db.select().from(schema.paymentCoupons);
+    if (rows.length > 0) return rows.map(daLinha);
+  }
   return await store.getAll();
 }
 
 export async function findByCode(code: string): Promise<Coupon | null> {
-  return await store.findOne((c) => c.code === code.trim().toUpperCase());
+  const alvo = code.trim().toUpperCase();
+  const db = getDb();
+  if (db) {
+    const rows = await db
+      .select()
+      .from(schema.paymentCoupons)
+      .where(eq(schema.paymentCoupons.code, alvo));
+    if (rows[0]) return daLinha(rows[0]);
+  }
+  return await store.findOne((c) => c.code === alvo);
 }
 
 export async function findById(id: string): Promise<Coupon | null> {
+  const db = getDb();
+  if (db) {
+    const rows = await db
+      .select()
+      .from(schema.paymentCoupons)
+      .where(eq(schema.paymentCoupons.id, id));
+    if (rows[0]) return daLinha(rows[0]);
+  }
   return await store.findOne((c) => c.id === id);
 }
 
@@ -74,11 +124,38 @@ export async function createCoupon(input: CreateInput): Promise<Coupon> {
     createdAt: now,
     updatedAt: now,
   };
+  const db = getDb();
+  if (db) {
+    await db.insert(schema.paymentCoupons).values({
+      ...c,
+      description: c.description ?? '',
+      discount: c.discount,
+    });
+    return c;
+  }
   await store.unshift(c);
   return c;
 }
 
 export async function updateCoupon(id: string, patch: Partial<CreateInput>): Promise<Coupon | null> {
+  const db = getDb();
+  if (db) {
+    const campos: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+    if (patch.description !== undefined) campos.description = patch.description;
+    if (patch.discount !== undefined) campos.discount = patch.discount;
+    if (patch.appliesToProductIds !== undefined)
+      campos.appliesToProductIds = patch.appliesToProductIds;
+    if (patch.maxUses !== undefined) campos.maxUses = patch.maxUses;
+    if (patch.validFrom !== undefined) campos.validFrom = patch.validFrom;
+    if (patch.validUntil !== undefined) campos.validUntil = patch.validUntil;
+    if (patch.active !== undefined) campos.active = patch.active;
+    const rows = await db
+      .update(schema.paymentCoupons)
+      .set(campos)
+      .where(eq(schema.paymentCoupons.id, id))
+      .returning();
+    return rows[0] ? daLinha(rows[0]) : null;
+  }
   return await store.update(
     (c) => c.id === id,
     (c) => ({
@@ -98,6 +175,14 @@ export async function updateCoupon(id: string, patch: Partial<CreateInput>): Pro
 }
 
 export async function deleteCoupon(id: string): Promise<boolean> {
+  const db = getDb();
+  if (db) {
+    const rows = await db
+      .delete(schema.paymentCoupons)
+      .where(eq(schema.paymentCoupons.id, id))
+      .returning();
+    return rows.length > 0;
+  }
   return await store.remove((c) => c.id === id);
 }
 
@@ -138,6 +223,20 @@ export function validateCoupon(
 }
 
 export async function incrementUsage(id: string): Promise<void> {
+  const db = getDb();
+  if (db) {
+    // Incremento no próprio SQL, e não ler-somar-gravar: duas compras
+    // simultâneas com o mesmo cupom perderiam um uso na segunda forma, e o
+    // limite de usos existe justamente para ser respeitado sob concorrência.
+    await db
+      .update(schema.paymentCoupons)
+      .set({
+        usedCount: sql`${schema.paymentCoupons.usedCount} + 1`,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(schema.paymentCoupons.id, id));
+    return;
+  }
   await store.update(
     (c) => c.id === id,
     (c) => ({ ...c, usedCount: c.usedCount + 1, updatedAt: new Date().toISOString() }),

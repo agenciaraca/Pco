@@ -85,6 +85,13 @@
       "when": 1787752011612,
       "tag": "0011_pedidos_no_banco",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787752585335,
+      "tag": "0012_cupons_e_questoes",
+      "breakpoints": true
     }
   ]
 }

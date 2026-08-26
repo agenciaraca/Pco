@@ -3,6 +3,8 @@
 // (ex: banco de 50, prova sorteia 10).
 
 import crypto from 'node:crypto';
+import { eq } from 'drizzle-orm';
+import { getDb, schema } from '../db/client';
 import { JsonStore } from '../db/json-store';
 import { getActiveByModule } from '../ai/store';
 import { getProvider } from '../ai/providers';
@@ -41,6 +43,47 @@ export interface Question {
 }
 
 const store = new JsonStore<Question>('question-bank.json', () => []);
+
+/**
+ * Dois backends, como o resto da casa: tabela `question_bank` com
+ * `DATABASE_URL`, `data/question-bank.json` sem ela. As regras — validação,
+ * sorteio, correção — continuam acima disso e não sabem de onde a questão veio.
+ */
+function daLinha(r: typeof schema.questionBank.$inferSelect): Question {
+  return {
+    id: r.id,
+    courseId: r.courseId,
+    moduleId: r.moduleId ?? undefined,
+    type: r.type as QuestionType,
+    prompt: r.prompt,
+    options: (r.options ?? []) as QuestionOption[],
+    expectedAnswer: r.expectedAnswer ?? undefined,
+    explanation: r.explanation ?? undefined,
+    tags: r.tags ?? [],
+    difficulty: r.difficulty,
+    active: r.active,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
+}
+
+function paraLinha(q: Question) {
+  return {
+    id: q.id,
+    courseId: q.courseId,
+    moduleId: q.moduleId ?? null,
+    type: q.type,
+    prompt: q.prompt,
+    options: q.options,
+    expectedAnswer: q.expectedAnswer ?? null,
+    explanation: q.explanation ?? null,
+    tags: q.tags,
+    difficulty: q.difficulty,
+    active: q.active,
+    createdAt: q.createdAt,
+    updatedAt: q.updatedAt,
+  };
+}
 
 function newId(): string {
   return `q-${Date.now().toString(36)}${crypto.randomBytes(3).toString('hex')}`;
@@ -154,6 +197,11 @@ export async function createQuestion(input: CreateQuestionInput): Promise<Questi
     createdAt: now,
     updatedAt: now,
   };
+  const db = getDb();
+  if (db) {
+    await db.insert(schema.questionBank).values(paraLinha(q));
+    return q;
+  }
   await store.unshift(q);
   return q;
 }
@@ -164,14 +212,37 @@ function clampDifficulty(n: number): number {
 }
 
 export async function listAll(): Promise<Question[]> {
+  const db = getDb();
+  if (db) {
+    const rows = await db.select().from(schema.questionBank);
+    // Tabela vazia é banco novo, não "sem questões": cair no JSON preserva o
+    // que ainda não migrou.
+    if (rows.length > 0) return rows.map(daLinha);
+  }
   return await store.getAll();
 }
 
 export async function listByCourse(courseId: string): Promise<Question[]> {
+  const db = getDb();
+  if (db) {
+    const rows = await db
+      .select()
+      .from(schema.questionBank)
+      .where(eq(schema.questionBank.courseId, courseId));
+    if (rows.length > 0) return rows.map(daLinha);
+  }
   return await store.filter((q) => q.courseId === courseId);
 }
 
 export async function findById(id: string): Promise<Question | null> {
+  const db = getDb();
+  if (db) {
+    const rows = await db
+      .select()
+      .from(schema.questionBank)
+      .where(eq(schema.questionBank.id, id));
+    if (rows[0]) return daLinha(rows[0]);
+  }
   const all = await store.getAll();
   return all.find((q) => q.id === id) ?? null;
 }
@@ -226,6 +297,14 @@ export async function updateQuestion(
     updates.moduleId = patch.moduleId ?? undefined;
   }
   updates.updatedAt = new Date().toISOString();
+  const db = getDb();
+  if (db) {
+    await db
+      .update(schema.questionBank)
+      .set(paraLinha({ ...q, ...updates } as Question))
+      .where(eq(schema.questionBank.id, id));
+    return (await findById(id))!;
+  }
   await store.update((x) => x.id === id, (x) => Object.assign(x, updates));
   return (await findById(id))!;
 }
@@ -233,6 +312,14 @@ export async function updateQuestion(
 export async function deleteQuestion(id: string): Promise<boolean> {
   const q = await findById(id);
   if (!q) return false;
+  const db = getDb();
+  if (db) {
+    const rows = await db
+      .delete(schema.questionBank)
+      .where(eq(schema.questionBank.id, id))
+      .returning();
+    if (rows.length > 0) return true;
+  }
   await store.modify((arr) => {
     const idx = arr.findIndex((x) => x.id === id);
     if (idx >= 0) arr.splice(idx, 1);

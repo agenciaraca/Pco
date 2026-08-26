@@ -83,7 +83,12 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
   vazia, caminho JSON preservado. `POST /admin/payments/orders/migrar`
   (superadmin, idempotente, não apaga a origem) leva o que está no JSON para a
   tabela — existe como rota porque quem precisa disso não tem shell.
-- ○ Banco de questões e cupons ainda vivem em `data/*.json`, sem tabela.
+- ✅ **Cupons e banco de questões no banco** (26/ago/2026). Tabelas
+  `payment_coupons` e `question_bank` (migration 0012), mesmo molde: lê do
+  banco, cai no JSON com a tabela vazia. O incremento de uso do cupom passou a
+  ser feito no próprio SQL — ler-somar-gravar perderia um uso quando duas
+  compras acontecessem juntas, e o limite de usos existe para ser respeitado
+  exatamente aí.
 
 ## Onda 10 — PCO 2.0 (página de vendas)
 

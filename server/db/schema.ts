@@ -560,6 +560,53 @@ export const paymentOrders = pgTable('payment_orders', {
   paidAt: text('paid_at'),
 });
 
+/**
+ * Cupom de desconto.
+ *
+ * `code` é único e vive em maiúsculas — quem digita não deve ser punido pelo
+ * caps lock. O desconto vai em jsonb porque é uma união (`percent` ou
+ * `amount`), e achatá-la em duas colunas nuláveis deixaria representável o
+ * estado sem sentido de ter as duas ou nenhuma.
+ */
+export const paymentCoupons = pgTable('payment_coupons', {
+  id: text('id').primaryKey(),
+  code: text('code').notNull().unique(),
+  description: text('description').notNull().default(''),
+  discount: jsonb('discount').$type<{ kind: string; value: number }>().notNull(),
+  appliesToProductIds: jsonb('applies_to_product_ids')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  /** null = ilimitado. */
+  maxUses: integer('max_uses'),
+  usedCount: integer('used_count').notNull().default(0),
+  validFrom: text('valid_from'),
+  validUntil: text('valid_until'),
+  active: boolean('active').notNull().default(true),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+/** Banco de questões. `options` em jsonb: a alternativa só existe dentro da questão. */
+export const questionBank = pgTable('question_bank', {
+  id: text('id').primaryKey(),
+  courseId: text('course_id').notNull(),
+  moduleId: text('module_id'),
+  type: text('type').notNull(),
+  prompt: text('prompt').notNull(),
+  options: jsonb('options')
+    .$type<Array<{ id: string; text: string; correct: boolean }>>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  expectedAnswer: text('expected_answer'),
+  explanation: text('explanation'),
+  tags: jsonb('tags').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  difficulty: integer('difficulty').notNull().default(3),
+  active: boolean('active').notNull().default(true),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
 // ---------- AI Configurations ----------
 
 export const aiConfigurations = pgTable('ai_configurations', {
