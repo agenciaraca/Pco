@@ -1,11 +1,11 @@
 # Sessão 26/ago/2026 — o dia em que o backlog desbloqueado acabou
 
-Handoff de uma jornada longa em modo autônomo. Dezoito commits, todos no
+Handoff de uma jornada longa em modo autônomo. Vinte e cinco commits, todos no
 `origin/main`. Nada foi para produção: **o deploy continua bloqueado** por falta
 da chave SSH nesta máquina (ver `SESSAO-2026-08-25-troca-de-maquina.md`).
 
-Estado ao fim: **188 arquivos de teste, 1.784 testes, zero falhas.** Typecheck e
-lint limpos. Produção segue em `67547b9` — tudo daqui espera deploy.
+Estado ao fim: **190 arquivos de teste, 1.795 testes, zero falhas**, mais **26/26
+no E2E** — que voltou a rodar de verdade. Typecheck e lint limpos. Produção segue em `67547b9` — tudo daqui espera deploy.
 
 ## O fio condutor
 
@@ -227,6 +227,10 @@ novo manda o admin para lá.
 **De 16 passando com 10 falhas silenciosas para 26/26**, e o job passa a
 bloquear o merge. Verde por não ser olhado é pior do que vermelho.
 
+Antes de tornar o job bloqueante, a suíte foi rodada num ambiente que imita o
+CI — `DATA_DIR` só com os cinco arquivos que o repositório versiona e `CI=true`,
+que desliga os pulos condicionais. 26/26 também ali.
+
 ### E um bug de produto que só apareceu por causa disso
 
 Perseguindo uma dessas falhas, apareceu `enroll-bulk` respondendo "aluno não
@@ -249,7 +253,7 @@ de desistir antes. Corrigido, com três testes.
 tem `videoUrl`), fechar a auditoria das contas com uma base que tenha progresso,
 e aplicar o delta da loja.
 
-**Falta deploy.** Dezoito commits esperando. O caminho está em `docs/deploy.md` e
+**Falta deploy.** Vinte e cinco commits esperando. O caminho está em `docs/deploy.md` e
 a trava é a chave SSH.
 
 ## Uma coisa que apaguei sem querer

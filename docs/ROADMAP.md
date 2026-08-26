@@ -15,7 +15,14 @@ Produção em `13f2549`. 180 arquivos de teste, 1.714 testes, zero falhas.
 > falhas.** O que sobrou depende do dono ou de acesso a produção — o relato
 > está em `docs/SESSAO-2026-08-26-sprint-autonomo.md`.
 >
-> ⚠️ **Nada disso foi para produção.** 15 commits esperando deploy, travado pela
+> Na segunda metade do dia o trabalho virou outra coisa: três varreduras atrás
+> de interface que afirma o que o sistema não faz. Cinco telas com dados
+> inventados, vinte e cinco botões sem ação e alguns campos que não guardavam a
+> escolha — incluindo o "lembrar de mim" do login, que nunca lembrou de nada. E
+> a suíte E2E, que estava verde porque metade nunca rodou: 26/26 agora, e o job
+> passa a bloquear o merge.
+>
+> ⚠️ **Nada disso foi para produção.** 25 commits esperando deploy, travado pela
 > falta da chave SSH nesta máquina.
 
 Painel visual (Artifact, mesma URL sempre):
