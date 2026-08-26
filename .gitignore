@@ -62,6 +62,8 @@ data/session-price-tiers.json
 data/session-bookings.json
 # Ledger de quem já foi avisado de vencimento — e-mail de aluno, um por linha.
 data/access-expiry-notices.json
+# Ledger de lembretes de sessão já enviados.
+data/session-reminders.json
 data/news.json
 data/library.json
 data/podcasts.json

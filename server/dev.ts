@@ -231,5 +231,9 @@ import('./services/retention-worker').then((m) => m.startWorker(6 * 60 * 60 * 10
 // pela porta fechada. Ver docs/prazo-de-acesso.md.
 import('./access/expiry-worker').then((m) => m.startWorker(24 * 60 * 60_000));
 
+// Lembrete de sessão — tick de 15 min, e não diário: a faixa de 1 hora antes
+// precisa de resolução melhor que um dia para existir de verdade.
+import('./sessions/lembrete-worker').then((m) => m.startWorker(15 * 60_000));
+
 // Rotaciona app.log quando passa de 10MB (verifica a cada 1h)
 import('./services/log-rotator').then((m) => m.startWorker(60 * 60_000));

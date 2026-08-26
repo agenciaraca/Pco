@@ -177,11 +177,23 @@ Dois cuidados que os testes seguram:
   um provedor de e-mail fora do ar não pode fazer o admin receber 500 ao
   confirmar uma sessão que já está confirmada no banco.
 
+**Lembrete antes da hora** — `server/sessions/lembrete-worker.ts`, tick de 15
+minutos (e não diário: a faixa de 1 hora precisa dessa resolução para existir).
+Duas faixas, 24h e 1h antes, uma vez cada.
+
+A sutileza que um teste pegou: faltando meia hora, **as duas faixas estão
+alcançadas**. Quem agenda em cima da hora não pode receber "sua sessão é
+amanhã" — então o worker manda a mais urgente que ainda não saiu e **queima as
+demais**, para que a de 24h nunca dispare depois da de 1h.
+
+Só lembra sessão de pé (`confirmed` ou `scheduled`). Sessão aguardando
+pagamento não recebe convocação para uma hora que ainda não está garantida;
+cancelada, muito menos.
+
 O aviso de confirmação sai também pelo caminho do pagamento — quando o webhook
 do gateway aprova, o aluno é avisado na hora. É o pior momento para ficar sem
 resposta.
 
 ## O que ainda não existe
-- **Lembrete antes da hora.** Existe aviso quando algo muda, mas nada avisa "sua
-  sessão é amanhã".
+
 - Nenhum profissional cadastrado. Sem cadastro, não há com quem agendar.

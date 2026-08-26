@@ -57,7 +57,9 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
   remarcada: notificação no ambiente **e** e-mail. O texto só promete o que
   existe — confirmação sem link não inventa endereço. Falha de envio não
   derruba a operação. `server/sessions/avisos.ts`.
-- ○ Lembrete "sua sessão é amanhã" — o único aviso que ainda falta.
+- ✅ Lembrete "sua sessão é amanhã" (26/ago/2026). Worker de 15 min, faixas de
+  24h e 1h, uma vez cada. Quem agenda em cima da hora recebe só o de 1h — a
+  faixa folgada é queimada junto. `session-reminders` em `/admin/jobs`.
 
 ## Onda 9 — O que a migração deixou para trás
 
