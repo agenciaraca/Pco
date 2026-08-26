@@ -265,3 +265,38 @@ recriam vazios no próximo boot — `payment-gateways.json` estava
 comprovadamente vazio (a API devolveu `[]` antes de eu criar o gateway mock).
 Produção não foi tocada. Ainda assim: apagar arquivo que existia antes é erro,
 e fica registrado.
+
+## Como retomar
+
+O repositório está limpo e sincronizado com o GitHub. Nada em curso, nada pela
+metade — cada commit fecha o que abriu.
+
+```bash
+cd C:\ia\dev\pco
+git log --oneline -5          # confere onde parou
+npm run dev                   # web em :5183, API em :3011 (portas no .env)
+```
+
+O `.env` desta máquina já existe e é gitignored. Onde estiver `PREENCHER`,
+espera credencial sua — nada além disso é necessário para o dev local rodar.
+
+**A primeira decisão é sua, e é a mesma de ontem: o deploy.** São 25 commits
+esperando, e a trava é a chave SSH que não existe nesta máquina. Ver a seção
+"Sem acesso SSH à produção" em `SESSAO-2026-08-25-troca-de-maquina.md`.
+
+**Se quiser continuar codando em vez de fazer deploy**, o que sobrou está
+listado acima em "O que ficou por fazer". O único item que não depende de você
+nem de produção é a integração de analytics — hoje `/admin/metricas` mostra
+números de demonstração e diz isso em cima, e `GET /metrics/seo/status` é o
+único ponto que muda quando a fonte real chegar.
+
+**Antes de declarar `accessMonths` em qualquer curso**, rode o ensaio — ele
+mostra quem receberia aviso de vencimento sem enviar nada:
+
+```
+POST /admin/jobs/access-expiry/run?dryRun=true
+```
+
+**Duas armadilhas desta máquina**, ambas já registradas: não rode
+`npm run format` (reescreve 600+ arquivos), e não apague arquivos de `data/`
+achando que são resíduo — vários já existiam e são gitignored, então não voltam.
