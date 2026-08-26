@@ -8,11 +8,15 @@ Produção em `13f2549`. 180 arquivos de teste, 1.714 testes, zero falhas.
 > que a troca abriu, estão em `docs/SESSAO-2026-08-25-troca-de-maquina.md`.
 > A frente de dev segue a mesma: Sprint 2, agendamento de sessão.
 >
-> **26/ago/2026** — Sprint 2 entregue no essencial: agendamento persiste,
-> cancelamento existe, e as sete correções da revisão de código do módulo de
-> sessões foram aplicadas. 181 arquivos de teste, 1.725 testes, zero falhas.
-> O pagamento entrou no mesmo dia: a onda 8 fecha no essencial, restando
-> remarcação, agenda com janelas e o aviso por e-mail.
+> **26/ago/2026** — jornada longa em modo autônomo, 15 commits. Ondas 7 e 8
+> fechadas no essencial: agendamento, pagamento, remarcação, avisos e lembretes
+> de sessão; aviso de vencimento de acesso; pedidos, cupons e banco de questões
+> no banco; autoria institucional. **188 arquivos de teste, 1.784 testes, zero
+> falhas.** O que sobrou depende do dono ou de acesso a produção — o relato
+> está em `docs/SESSAO-2026-08-26-sprint-autonomo.md`.
+>
+> ⚠️ **Nada disso foi para produção.** 15 commits esperando deploy, travado pela
+> falta da chave SSH nesta máquina.
 
 Painel visual (Artifact, mesma URL sempre):
 https://claude.ai/code/artifact/f548e6f4-0775-4965-acb9-cefea684412c
