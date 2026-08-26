@@ -91,6 +91,7 @@ import {
   upsertPriceTierSchema,
   createBookingSchema,
   cancelBookingSchema,
+  rescheduleBookingSchema,
   updateBookingSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
@@ -2398,8 +2399,11 @@ export function buildApp() {
       return jsonError(c, 400, 'VALIDATION', 'A data escolhida já passou.');
     }
     const iso = quando.toISOString();
-    if (await bookingsRepo.horarioOcupado(prof.id, iso)) {
-      return jsonError(c, 409, 'HORARIO_OCUPADO', 'Este horário acabou de ser preenchido.');
+    // A duração entra na conta: sem ela, 14:00 e 14:10 passariam como horários
+    // distintos numa sessão de 50 minutos, e dois alunos marcariam em cima um
+    // do outro com a mesma pessoa.
+    if (await bookingsRepo.horarioOcupado(prof.id, iso, servico.durationMinutes)) {
+      return jsonError(c, 409, 'HORARIO_OCUPADO', 'Este horário conflita com outra sessão.');
     }
 
     const booking = await bookingsRepo.create({
@@ -2440,6 +2444,56 @@ export function buildApp() {
   app.get('/sessions/bookings', requireAuth(), async (c) => {
     const user = c.get('user')!;
     return c.json(await bookingsRepo.listForUser(user.sub));
+  });
+
+  /**
+   * Remarca. Só a data muda — trocar de profissional é agendar outra coisa, e
+   * o preço foi congelado com base em quem atende.
+   *
+   * Sessão já paga continua paga: remarcar não devolve para pending_payment,
+   * senão o aluno pagaria duas vezes pela mesma hora.
+   */
+  app.post('/sessions/bookings/:id/reschedule', requireAuth(), async (c) => {
+    const user = c.get('user')!;
+    const v = validate(rescheduleBookingSchema, await c.req.json().catch(() => ({})));
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+
+    const booking = await bookingsRepo.findById(c.req.param('id') as string);
+    if (!booking) return jsonError(c, 404, 'NOT_FOUND', 'Agendamento não encontrado.');
+    const ehDono = booking.userId === user.sub;
+    const ehAdmin = user.role === 'admin' || user.role === 'superadmin';
+    if (!ehDono && !ehAdmin) {
+      return jsonError(c, 403, 'FORBIDDEN', 'Este agendamento não é seu.');
+    }
+    if (booking.status === 'cancelled' || booking.status === 'done') {
+      return jsonError(c, 409, 'NAO_REMARCAVEL', 'Sessão cancelada ou já realizada não remarca.');
+    }
+
+    const quando = new Date(v.data.scheduledFor);
+    if (quando.getTime() <= Date.now()) {
+      return jsonError(c, 400, 'VALIDATION', 'A data escolhida já passou.');
+    }
+    const iso = quando.toISOString();
+    // ignorarId: ao mover, a sessão não pode conflitar consigo mesma.
+    if (
+      await bookingsRepo.horarioOcupado(
+        booking.professionalId,
+        iso,
+        booking.durationMinutes,
+        booking.id,
+      )
+    ) {
+      return jsonError(c, 409, 'HORARIO_OCUPADO', 'Este horário conflita com outra sessão.');
+    }
+
+    const out = await bookingsRepo.update(booking.id, { scheduledFor: iso });
+    await recordAudit(c, {
+      action: 'session.booking.reschedule',
+      targetType: 'session_booking',
+      targetId: booking.id,
+      meta: { de: booking.scheduledFor, para: iso, porDono: ehDono },
+    });
+    return c.json(out);
   });
 
   app.post('/sessions/bookings/:id/cancel', requireAuth(), async (c) => {

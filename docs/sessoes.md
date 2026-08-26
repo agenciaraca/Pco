@@ -115,6 +115,19 @@ O que a rota recusa, e por quê:
 Cancelar não apaga: vira `cancelled` com data e motivo, e o horário volta a
 ficar livre. Histórico de quem atendeu quem é registro, não rascunho.
 
+**Conflito é por intervalo, não por instante.** A primeira versão comparava só
+o início, e o buraco era grande: sessão dura 50 minutos, então 14:00 e 14:10
+passavam como horários distintos e dois alunos marcavam em cima um do outro com
+a mesma pessoa — quem descobriria seria o profissional, na hora. A sobreposição
+é meio-aberta `[início, fim)`, então 14:00–14:50 e 14:50–15:40 são vizinhas e
+não conflito: encostar não é sobrepor.
+
+**Remarcar** (`POST /sessions/bookings/:id/reschedule`) muda só a data. Trocar
+de profissional seria outra sessão, porque o preço foi congelado com base em
+quem atende. Sessão já paga continua paga — remarcar não devolve para
+`pending_payment`, senão o aluno pagaria duas vezes pela mesma hora. Ao mover,
+a sessão não conflita consigo mesma.
+
 Coberto por `test/sessoes-agendamento.test.ts` (11 testes).
 
 ## Pagamento
@@ -144,9 +157,6 @@ Coberto por `test/sessoes-pagamento.test.ts` (6 testes) e conferido ponta a
 ponta contra o gateway mock: agendar → checkout → webhook `paid` → `confirmed`.
 
 ## O que ainda não existe
-- **Remarcação.** Hoje o caminho é cancelar e agendar de novo.
-- **Agenda com janelas.** O bloqueio atual é por início exato: duas sessões de
-  50 min começando com 10 min de diferença não colidem, e deveriam.
 - **Aviso por e-mail.** O agendamento diz que o link chega por e-mail; quem
   envia hoje é o admin, à mão, pelo campo de link da reunião.
 - Nenhum profissional cadastrado. Sem cadastro, não há com quem agendar.

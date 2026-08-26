@@ -20,6 +20,7 @@ import {
   useCreateBooking,
   useCancelBooking,
   useCheckoutBooking,
+  useRescheduleBooking,
 } from '../data/hooks';
 import type { SessionService } from '../types/schema';
 // O tipo público — sem e-mail nem hourlyRate, que a rota aberta não devolve.
@@ -63,13 +64,16 @@ export default function AnaliseSupervisao() {
   const criar = useCreateBooking();
   const cancelar = useCancelBooking();
   const pagar = useCheckoutBooking();
+  const remarcar = useRescheduleBooking();
+  const [remarcando, setRemarcando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [erroPagamento, setErroPagamento] = useState<string | null>(null);
+  // Um só lugar para o erro das ações da lista: pagar e remarcar.
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
 
   // Leva o aluno ao gateway. Se o pagamento já estava aberto, o servidor
   // devolve o mesmo pedido em vez de criar outro.
   const irPagar = async (id: string) => {
-    setErroPagamento(null);
+    setErroAcao(null);
     try {
       const pedido = await pagar.mutateAsync(id);
       if (pedido.checkoutUrl) {
@@ -78,9 +82,9 @@ export default function AnaliseSupervisao() {
         window.location.assign(pedido.checkoutUrl);
         return;
       }
-      setErroPagamento('O gateway não devolveu link de pagamento. Fale com a coordenação.');
+      setErroAcao('O gateway não devolveu link de pagamento. Fale com a coordenação.');
     } catch (e) {
-      setErroPagamento(
+      setErroAcao(
         e instanceof Error ? e.message : 'Não foi possível abrir o pagamento agora.',
       );
     }
@@ -237,9 +241,9 @@ export default function AnaliseSupervisao() {
 
       <section>
         <h2 className="text-lg font-semibold text-pco-deep mb-4">Minhas sessões</h2>
-        {erroPagamento && (
+        {erroAcao && (
           <p className="mb-3 rounded-lg bg-status-danger/10 p-2.5 text-xs text-status-danger">
-            {erroPagamento}
+            {erroAcao}
           </p>
         )}
         {carregandoSessoes ? (
@@ -307,12 +311,41 @@ export default function AnaliseSupervisao() {
                 )}
                 {s.status !== 'cancelled' && s.status !== 'done' && (
                   <button
+                    onClick={() => setRemarcando(remarcando === s.id ? null : s.id)}
+                    className="pco-btn-secondary text-xs"
+                  >
+                    {remarcando === s.id ? 'Fechar' : 'Remarcar'}
+                  </button>
+                )}
+                {s.status !== 'cancelled' && s.status !== 'done' && (
+                  <button
                     onClick={() => cancelar.mutate({ id: s.id })}
                     disabled={cancelar.isPending}
                     className="pco-btn-ghost text-xs disabled:opacity-60"
                   >
                     Cancelar
                   </button>
+                )}
+                {remarcando === s.id && (
+                  <div className="w-full border-t border-surface-gray pt-3 mt-1">
+                    <DateTimeStep
+                      onSelect={async (date, time) => {
+                        setErroAcao(null);
+                        try {
+                          await remarcar.mutateAsync({
+                            id: s.id,
+                            scheduledFor: new Date(`${date}T${time}:00`).toISOString(),
+                          });
+                          setRemarcando(null);
+                        } catch (e) {
+                          setErroAcao(
+                            e instanceof Error ? e.message : 'Não foi possível remarcar.',
+                          );
+                        }
+                      }}
+                      onBack={() => setRemarcando(null)}
+                    />
+                  </div>
                 )}
               </li>
             ))}

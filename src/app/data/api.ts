@@ -2199,6 +2199,17 @@ export async function fetchMyBookings(): Promise<SessionBooking[]> {
   return http.get<SessionBooking[]>('/sessions/bookings');
 }
 
+/** Remarca. Só a data muda — trocar de profissional é agendar outra coisa. */
+export async function rescheduleBooking(
+  id: string,
+  scheduledFor: string,
+): Promise<SessionBooking> {
+  return http.post<SessionBooking>(
+    `/sessions/bookings/${encodeURIComponent(id)}/reschedule`,
+    { scheduledFor },
+  );
+}
+
 export async function cancelBooking(id: string, reason = ''): Promise<SessionBooking> {
   return http.post<SessionBooking>(`/sessions/bookings/${encodeURIComponent(id)}/cancel`, {
     reason,

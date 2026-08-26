@@ -49,8 +49,10 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
   reusa gateways, provider e pedidos dos cursos, mas tira o preço do
   agendamento — sessão não tem preço por serviço, tem por titulação de quem
   atende. Webhook `paid` confirma; estorno volta para `pending_payment`.
-- ○ Remarcação (hoje: cancelar e agendar de novo) e agenda com janelas — o
-  bloqueio atual é por início exato, então 14:00 e 14:10 não colidem.
+- ✅ Remarcação e conflito por intervalo (26/ago/2026). O bloqueio era por
+  início exato — 14:00 e 14:10 não colidiam numa sessão de 50 min, e dois
+  alunos marcavam em cima um do outro. Agora é sobreposição de intervalo, com
+  `[início, fim)`: encostar não é sobrepor.
 - ○ Aviso por e-mail. A tela promete o link da reunião por e-mail; hoje quem
   manda é o admin, à mão.
 

@@ -172,6 +172,18 @@ export function useCreateBooking() {
   });
 }
 
+export function useRescheduleBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, scheduledFor }: { id: string; scheduledFor: string }) =>
+      api.rescheduleBooking(id, scheduledFor),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: myBookingsKey });
+      qc.invalidateQueries({ queryKey: adminBookingsKey });
+    },
+  });
+}
+
 export function useCancelBooking() {
   const qc = useQueryClient();
   return useMutation({

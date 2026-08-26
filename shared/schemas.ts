@@ -786,6 +786,15 @@ export const createBookingSchema = z.object({
 });
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 
+/** Remarcação: só a data muda. Trocar de profissional é agendar outra coisa. */
+export const rescheduleBookingSchema = z.object({
+  scheduledFor: z
+    .string()
+    .min(10)
+    .max(40)
+    .refine((v) => !Number.isNaN(Date.parse(v)), 'Data/hora inválida'),
+});
+
 export const cancelBookingSchema = z.object({
   reason: z.string().max(400).default(''),
 });

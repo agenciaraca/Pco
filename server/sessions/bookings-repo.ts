@@ -144,21 +144,40 @@ export async function findById(id: string): Promise<SessionBooking | null> {
 }
 
 /**
- * O mesmo profissional no mesmo horário, ainda de pé. Bloqueio simples e
- * suficiente enquanto não existe agenda com janelas: dois alunos não marcam o
- * mesmo início com a mesma pessoa.
+ * O mesmo profissional com a agenda tomada, ainda de pé.
+ *
+ * Compara **intervalos**, não instantes de início. A primeira versão disto
+ * comparava só o início, e o buraco era grande: sessão dura 50 minutos, então
+ * 14:00 e 14:10 passavam como horários distintos e dois alunos marcavam em
+ * cima um do outro com a mesma pessoa. Quem descobriria seria o profissional,
+ * na hora.
+ *
+ * A sobreposição é meio-aberta — `[início, fim)` — para que 14:00–14:50 e
+ * 14:50–15:40 sejam vizinhas e não conflito. Encostar não é sobrepor.
+ *
+ * `ignorarId` existe para remarcação: ao mover uma sessão, ela não pode
+ * conflitar consigo mesma.
  */
 export async function horarioOcupado(
   professionalId: string,
   scheduledFor: string,
+  durationMinutes = 50,
+  ignorarId?: string,
 ): Promise<boolean> {
+  const inicio = new Date(scheduledFor).getTime();
+  if (Number.isNaN(inicio)) return false;
+  const fim = inicio + durationMinutes * 60_000;
+
   const todos = await listAll();
-  return todos.some(
-    (b) =>
-      b.professionalId === professionalId &&
-      b.scheduledFor === scheduledFor &&
-      STATUS_ATIVOS.includes(b.status),
-  );
+  return todos.some((b) => {
+    if (b.professionalId !== professionalId) return false;
+    if (!STATUS_ATIVOS.includes(b.status)) return false;
+    if (ignorarId && b.id === ignorarId) return false;
+    const bInicio = new Date(b.scheduledFor).getTime();
+    if (Number.isNaN(bInicio)) return false;
+    const bFim = bInicio + (b.durationMinutes || 50) * 60_000;
+    return inicio < bFim && bInicio < fim;
+  });
 }
 
 /** O agendamento que um pedido paga. Usado quando o gateway confirma. */

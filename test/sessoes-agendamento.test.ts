@@ -83,8 +83,39 @@ describe('agendamento de sessão', () => {
     expect(await bookings.horarioOcupado('pro-1', base.scheduledFor)).toBe(true);
     // Outro profissional no mesmo horário, livre.
     expect(await bookings.horarioOcupado('pro-2', base.scheduledFor)).toBe(false);
-    // Mesmo profissional, outro horário, livre.
-    expect(await bookings.horarioOcupado('pro-1', '2027-03-01T15:00:00.000Z')).toBe(false);
+    // Mesmo profissional, bem depois, livre.
+    expect(await bookings.horarioOcupado('pro-1', '2027-03-01T18:00:00.000Z')).toBe(false);
+  });
+
+  it('sobreposição é por intervalo, não por instante de início', async () => {
+    // 14:00–14:50 ocupado. Este teste existe porque a primeira versão comparava
+    // só o início: 14:10 passava como horário distinto e dois alunos marcavam
+    // em cima um do outro com a mesma pessoa.
+    await bookings.create(base); // 14:00, 50 min
+    expect(await bookings.horarioOcupado('pro-1', '2027-03-01T14:10:00.000Z', 50)).toBe(true);
+    expect(await bookings.horarioOcupado('pro-1', '2027-03-01T14:49:00.000Z', 50)).toBe(true);
+    // Quem começa antes e invade também conflita.
+    expect(await bookings.horarioOcupado('pro-1', '2027-03-01T13:30:00.000Z', 50)).toBe(true);
+  });
+
+  it('encostar não é sobrepor: 14:50 logo após 14:00–14:50 é livre', async () => {
+    await bookings.create(base);
+    expect(await bookings.horarioOcupado('pro-1', '2027-03-01T14:50:00.000Z', 50)).toBe(false);
+    // E o inverso: terminar exatamente onde a outra começa.
+    expect(await bookings.horarioOcupado('pro-1', '2027-03-01T13:10:00.000Z', 50)).toBe(false);
+  });
+
+  it('remarcar não conflita com a própria sessão', async () => {
+    const b = await bookings.create(base);
+    // Sem ignorarId, mover para o mesmo horário conflitaria consigo mesma.
+    expect(await bookings.horarioOcupado('pro-1', base.scheduledFor, 50)).toBe(true);
+    expect(await bookings.horarioOcupado('pro-1', base.scheduledFor, 50, b.id)).toBe(false);
+  });
+
+  it('sessão cancelada não ocupa a agenda nem por sobreposição', async () => {
+    const b = await bookings.create(base);
+    await bookings.cancel(b.id, 'desistiu');
+    expect(await bookings.horarioOcupado('pro-1', '2027-03-01T14:10:00.000Z', 50)).toBe(false);
   });
 
   it('cancelar libera o horário e preserva o registro', async () => {
