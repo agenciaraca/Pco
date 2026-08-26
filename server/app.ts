@@ -277,6 +277,16 @@ async function grantAccessForOrder(order: import('./payments/types').Order): Pro
       await studentsRepo.enrollInCourse(order.userId, courseId);
     }
   }
+  // Sessão paga: confirma o agendamento que o pedido estava segurando.
+  if (order.productSnapshot.kind === 'session_pack' && order.productSnapshot.refId) {
+    const booking = await bookingsRepo.findById(order.productSnapshot.refId);
+    // Só sai de pending_payment. Sessão já cancelada não ressuscita porque o
+    // pagamento entrou depois — isso vira caso de estorno, não de confirmação.
+    if (booking && booking.status === 'pending_payment') {
+      await bookingsRepo.update(booking.id, { status: 'confirmed' });
+    }
+    return;
+  }
   // Demais kinds: por ora apenas registrado na order (events). Sprint futuro implementa.
 }
 
@@ -292,6 +302,14 @@ async function revokeAccessForOrder(order: import('./payments/types').Order): Pr
     const ids = await getBundleCourseIds(order.productId);
     for (const courseId of ids) {
       await studentsRepo.unenrollFromCourse(order.userId, courseId);
+    }
+  }
+  // Estorno de sessão: volta a aguardar pagamento em vez de seguir confirmada.
+  // Cancelar de vez é decisão de gente, não consequência automática do estorno.
+  if (order.productSnapshot.kind === 'session_pack' && order.productSnapshot.refId) {
+    const booking = await bookingsRepo.findById(order.productSnapshot.refId);
+    if (booking && booking.status === 'confirmed') {
+      await bookingsRepo.update(booking.id, { status: 'pending_payment' });
     }
   }
 }
@@ -2450,6 +2468,129 @@ export function buildApp() {
     });
     return c.json(out);
   });
+
+  /**
+   * Paga a sessão.
+   *
+   * Reusa inteiro o maquinário de checkout dos cursos — mesmos gateways, mesmo
+   * provider, mesma tabela de pedidos — com uma diferença que importa: o preço
+   * **não** vem de uma linha de produto, vem do agendamento. Sessão não tem
+   * preço fixo por serviço; tem preço por titulação de quem atende, congelado
+   * no instante em que o aluno agendou. Criar um produto para cada combinação
+   * de serviço × faixa seria inventar catálogo para descrever o que o
+   * agendamento já sabe.
+   *
+   * O pedido nasce com `kind: 'session_pack'` e `refId` apontando para o
+   * agendamento; quando o gateway confirma, `grantAccessForOrder` acha o
+   * agendamento por aí e o move para `confirmed`.
+   */
+  app.post(
+    '/sessions/bookings/:id/checkout',
+    requireAuth(),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const u = c.get('user')!;
+      const booking = await bookingsRepo.findById(c.req.param('id') as string);
+      if (!booking) return jsonError(c, 404, 'NOT_FOUND', 'Agendamento não encontrado.');
+      if (booking.userId !== u.sub) {
+        return jsonError(c, 403, 'FORBIDDEN', 'Este agendamento não é seu.');
+      }
+      if (booking.status === 'cancelled') {
+        return jsonError(c, 409, 'CANCELADA', 'Esta sessão foi cancelada.');
+      }
+      if (booking.status !== 'pending_payment') {
+        return jsonError(c, 409, 'NADA_A_PAGAR', 'Esta sessão não está aguardando pagamento.');
+      }
+      if (booking.priceCents <= 0) {
+        // O mesmo cuidado da criação: 0 aqui seria cobrar nada por engano.
+        return jsonError(c, 409, 'PRECO_INDEFINIDO', 'Sessão sem preço definido.');
+      }
+
+      // Pagamento já iniciado e ainda de pé: devolve o mesmo, não cria outro.
+      if (booking.orderId) {
+        const anterior = await ordersRepo.findById(booking.orderId);
+        if (anterior && (anterior.status === 'pending' || anterior.status === 'processing')) {
+          return c.json(anterior);
+        }
+      }
+
+      const gw = (await gatewaysRepo.listActive())[0] ?? null;
+      if (!gw) {
+        return jsonError(
+          c,
+          400,
+          'NO_ACTIVE_GATEWAY',
+          'Nenhum gateway de pagamento ativo configurado.',
+        );
+      }
+      const provider = getPaymentProvider(gw.provider);
+      if (!provider) {
+        return jsonError(
+          c,
+          501,
+          'PROVIDER_NOT_IMPLEMENTED',
+          `Provider ${gw.provider} ainda não tem implementação.`,
+        );
+      }
+      const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
+      if (!creds) return jsonError(c, 500, 'INTERNAL', 'Falha ao ler credenciais do gateway.');
+
+      const nome = `${booking.serviceName} com ${booking.professionalName}`;
+      const order = await ordersRepo.createOrder({
+        userId: u.sub,
+        userEmail: u.email,
+        // Não existe linha de produto para isto — ver o comentário acima.
+        productId: `session:${booking.id}`,
+        productSnapshot: {
+          name: nome,
+          priceCents: booking.priceCents,
+          currency: 'BRL',
+          kind: 'session_pack',
+          refId: booking.id,
+        },
+        gatewayId: gw.id,
+        gatewayProvider: gw.provider,
+        amountCents: booking.priceCents,
+        currency: 'BRL',
+      });
+      await bookingsRepo.update(booking.id, { orderId: order.id });
+
+      try {
+        const result = await provider.createPayment(gw, creds, {
+          amountCents: booking.priceCents,
+          currency: 'BRL',
+          description: nome,
+          customerEmail: u.email,
+          metadata: { orderId: order.id, userId: u.sub, bookingId: booking.id },
+        });
+        const updated = await ordersRepo.attachGatewayResult(order.id, {
+          externalId: result.externalId,
+          checkoutUrl: result.checkoutUrl,
+          qrCode: result.qrCode,
+          status: result.status,
+        });
+        await recordAudit(c, {
+          action: 'session.booking.checkout',
+          targetType: 'session_booking',
+          targetId: booking.id,
+          meta: { orderId: order.id, amountCents: booking.priceCents },
+        });
+        return c.json(updated, 201);
+      } catch (err) {
+        await ordersRepo.updateStatus(
+          order.id,
+          'failed',
+          err instanceof Error ? err.message : 'Erro do provider',
+        );
+        return jsonError(
+          c,
+          502,
+          'GATEWAY_FAILED',
+          err instanceof Error ? err.message : 'Falha ao criar checkout no gateway.',
+        );
+      }
+    },
+  );
 
   // ---- Admin: gestão de serviços, profissionais e faixas de preço ----
 
@@ -9860,7 +10001,9 @@ export function buildApp() {
           link:
             updated.productSnapshot.kind === 'course'
               ? `/curso/${updated.productSnapshot.refId ?? ''}`
-              : '/perfil',
+              : updated.productSnapshot.kind === 'session_pack'
+                ? '/analise-supervisao'
+                : '/perfil',
           authorEmail: 'sistema',
         });
       } catch (err) {

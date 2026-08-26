@@ -508,6 +508,12 @@ export const sessionBookings = pgTable('session_bookings', {
   updatedAt: text('updated_at').notNull(),
   cancelledAt: text('cancelled_at'),
   cancelReason: text('cancel_reason').notNull().default(''),
+  /**
+   * Pedido que paga esta sessão, quando o serviço exige pagamento antes.
+   * Guardado aqui para que o aluno possa retomar um pagamento pendente sem
+   * gerar pedido novo a cada visita à tela.
+   */
+  orderId: text('order_id'),
 });
 
 // ---------- AI Configurations ----------

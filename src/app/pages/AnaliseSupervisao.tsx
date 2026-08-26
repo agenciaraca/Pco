@@ -19,6 +19,7 @@ import {
   useMyBookings,
   useCreateBooking,
   useCancelBooking,
+  useCheckoutBooking,
 } from '../data/hooks';
 import type { SessionService } from '../types/schema';
 // O tipo público — sem e-mail nem hourlyRate, que a rota aberta não devolve.
@@ -61,7 +62,29 @@ export default function AnaliseSupervisao() {
   const { data: bookings = [], isLoading: carregandoSessoes } = useMyBookings();
   const criar = useCreateBooking();
   const cancelar = useCancelBooking();
+  const pagar = useCheckoutBooking();
   const [erro, setErro] = useState<string | null>(null);
+  const [erroPagamento, setErroPagamento] = useState<string | null>(null);
+
+  // Leva o aluno ao gateway. Se o pagamento já estava aberto, o servidor
+  // devolve o mesmo pedido em vez de criar outro.
+  const irPagar = async (id: string) => {
+    setErroPagamento(null);
+    try {
+      const pedido = await pagar.mutateAsync(id);
+      if (pedido.checkoutUrl) {
+        // assign e não href: é o que Courses.tsx e Bundles.tsx já usam para
+        // mandar o aluno ao gateway, e o lint recusa a atribuição direta.
+        window.location.assign(pedido.checkoutUrl);
+        return;
+      }
+      setErroPagamento('O gateway não devolveu link de pagamento. Fale com a coordenação.');
+    } catch (e) {
+      setErroPagamento(
+        e instanceof Error ? e.message : 'Não foi possível abrir o pagamento agora.',
+      );
+    }
+  };
 
   const selectedService = sessionServices.find((s) => s.id === booking.serviceId);
   const selectedPro = professionals.find((p) => p.id === booking.professionalId);
@@ -214,6 +237,11 @@ export default function AnaliseSupervisao() {
 
       <section>
         <h2 className="text-lg font-semibold text-pco-deep mb-4">Minhas sessões</h2>
+        {erroPagamento && (
+          <p className="mb-3 rounded-lg bg-status-danger/10 p-2.5 text-xs text-status-danger">
+            {erroPagamento}
+          </p>
+        )}
         {carregandoSessoes ? (
           <div className="pco-card text-sm text-ink-muted">Carregando suas sessões…</div>
         ) : mySessions.length === 0 ? (
@@ -267,6 +295,15 @@ export default function AnaliseSupervisao() {
                     <Video size={12} strokeWidth={2} />
                     Entrar na reunião
                   </a>
+                )}
+                {s.status === 'pending_payment' && (
+                  <button
+                    onClick={() => irPagar(s.id)}
+                    disabled={pagar.isPending}
+                    className="pco-btn-primary text-xs disabled:opacity-60"
+                  >
+                    {pagar.isPending ? 'Abrindo…' : 'Pagar'}
+                  </button>
                 )}
                 {s.status !== 'cancelled' && s.status !== 'done' && (
                   <button
@@ -341,6 +378,7 @@ export default function AnaliseSupervisao() {
               <DoneStep
                 serviceName={selectedService?.name ?? ''}
                 proName={selectedPro?.name ?? ''}
+                aguardandoPagamento={selectedService?.paymentBeforeConfirmation ?? false}
                 onClose={reset}
               />
             )}
@@ -598,8 +636,8 @@ function ConfirmStep({
       </div>
       <p className="mt-3 text-[11px] text-ink-subtle">
         {service.paymentBeforeConfirmation
-          ? 'O pagamento é processado externamente antes da confirmação. Após o pagamento, você receberá o link da reunião por e-mail.'
-          : 'A confirmação é manual. Você receberá um e-mail com instruções e o link da reunião.'}
+          ? 'A sessão fica reservada e você paga em seguida, pelo gateway. A confirmação entra assim que o pagamento é aprovado.'
+          : 'A confirmação é manual: a coordenação valida a sessão e envia o link da reunião.'}
       </p>
       {erro && (
         <p className="mt-3 rounded-lg bg-status-danger/10 p-2.5 text-[11px] text-status-danger">
@@ -618,13 +656,25 @@ function ConfirmStep({
   );
 }
 
+/**
+ * O texto daqui diz só o que de fato acontece a seguir.
+ *
+ * A versão anterior prometia link da reunião por e-mail para todo mundo — e
+ * como nada era gravado, o e-mail nunca ia sair. Agora o agendamento existe, e
+ * o próximo passo depende do serviço: ou pagar, ou esperar a confirmação
+ * manual. O link da reunião continua sendo colocado à mão pela coordenação,
+ * então ele é mencionado como algo que chega depois da confirmação, não como
+ * consequência automática de ter clicado aqui.
+ */
 function DoneStep({
   serviceName,
   proName,
+  aguardandoPagamento,
   onClose,
 }: {
   serviceName: string;
   proName: string;
+  aguardandoPagamento: boolean;
   onClose: () => void;
 }) {
   return (
@@ -632,10 +682,15 @@ function DoneStep({
       <div className="mx-auto h-14 w-14 rounded-2xl bg-status-success/15 grid place-items-center mb-4">
         <Check className="text-status-success" size={28} strokeWidth={2} />
       </div>
-      <h2 className="text-lg font-semibold text-pco-deep">Agendamento solicitado</h2>
+      <h2 className="text-lg font-semibold text-pco-deep">
+        {aguardandoPagamento ? 'Sessão reservada' : 'Agendamento registrado'}
+      </h2>
       <p className="mt-2 text-sm text-ink-muted">
-        Sua solicitação para <strong>{serviceName}</strong> com <strong>{proName}</strong> foi
-        registrada. Você receberá o link da reunião e as próximas instruções por e-mail.
+        Sua sessão de <strong>{serviceName}</strong> com <strong>{proName}</strong> está gravada e
+        aparece em <strong>Minhas sessões</strong>.{' '}
+        {aguardandoPagamento
+          ? 'Ela fica reservada aguardando o pagamento — o botão Pagar está na lista.'
+          : 'A coordenação confirma e envia o link da reunião.'}
       </p>
       <button onClick={onClose} className="mt-6 pco-btn-primary">
         Concluir

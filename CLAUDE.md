@@ -216,8 +216,15 @@ são **copiados** para o agendamento, para que reajuste de faixa não mude o que
 já foi combinado; profissional sem serviço marcado ou sem faixa de preço ativa
 **não é oferecido** (falha fechada — antes, sem serviço marcado ele era
 oferecido para todos); e as rotas públicas de profissional omitem `email` e
-`hourlyRate`, que só saem em `/admin/sessions/professionals`. Falta o pagamento
-— o status já nasce `pending_payment` esperando o checkout.
+`hourlyRate`, que só saem em `/admin/sessions/professionals`.
+
+**O pagamento reusa o checkout dos cursos, menos o preço.**
+`POST /sessions/bookings/:id/checkout` usa os mesmos gateways e a mesma tabela
+de pedidos, mas o valor vem do agendamento, não de uma linha de produto —
+sessão custa conforme a titulação de quem atende, então não há produto que a
+descreva. O pedido leva `kind: 'session_pack'` e `refId` do agendamento; o
+webhook `paid` confirma, o estorno devolve para `pending_payment` (cancelar de
+vez é decisão de gente). Ver `docs/sessoes.md`.
 
 ## Aulas: `description` é resumo, `content` é o corpo
 

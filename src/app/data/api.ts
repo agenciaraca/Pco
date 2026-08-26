@@ -2178,6 +2178,7 @@ export interface SessionBooking {
   updatedAt: string;
   cancelledAt: string | null;
   cancelReason: string;
+  orderId: string | null;
 }
 
 export interface CreateBookingInput {
@@ -2202,6 +2203,20 @@ export async function cancelBooking(id: string, reason = ''): Promise<SessionBoo
   return http.post<SessionBooking>(`/sessions/bookings/${encodeURIComponent(id)}/cancel`, {
     reason,
   });
+}
+
+/**
+ * Abre o pagamento da sessão. Devolve o pedido com `checkoutUrl` do gateway —
+ * o preço vem do agendamento, não de uma linha de produto.
+ */
+export async function checkoutBooking(id: string): Promise<{
+  id: string;
+  status: string;
+  amountCents: number;
+  checkoutUrl?: string | null;
+  qrCode?: string | null;
+}> {
+  return http.post(`/sessions/bookings/${encodeURIComponent(id)}/checkout`, {});
 }
 
 export async function fetchAllBookings(): Promise<SessionBooking[]> {

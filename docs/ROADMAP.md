@@ -11,7 +11,8 @@ Produção em `13f2549`. 180 arquivos de teste, 1.714 testes, zero falhas.
 > **26/ago/2026** — Sprint 2 entregue no essencial: agendamento persiste,
 > cancelamento existe, e as sete correções da revisão de código do módulo de
 > sessões foram aplicadas. 181 arquivos de teste, 1.725 testes, zero falhas.
-> Falta o pagamento para fechar a onda.
+> O pagamento entrou no mesmo dia: a onda 8 fecha no essencial, restando
+> remarcação, agenda com janelas e o aviso por e-mail.
 
 Painel visual (Artifact, mesma URL sempre):
 https://claude.ai/code/artifact/f548e6f4-0775-4965-acb9-cefea684412c
@@ -41,8 +42,10 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
   serviço ou sem faixa não é oferecido; rota pública não devolve mais e-mail.
   11 testes em `test/sessoes-agendamento.test.ts`. Ver `docs/sessoes.md`.
 - ✅ Cancelamento — pelo dono ou pelo admin, com motivo, liberando o horário.
-- ○ Pagamento da sessão (reaproveita o checkout de cursos). O seam está pronto:
-  o agendamento já nasce `pending_payment` esperando o gateway.
+- ✅ **Pagamento da sessão** (26/ago/2026). `POST /sessions/bookings/:id/checkout`
+  reusa gateways, provider e pedidos dos cursos, mas tira o preço do
+  agendamento — sessão não tem preço por serviço, tem por titulação de quem
+  atende. Webhook `paid` confirma; estorno volta para `pending_payment`.
 - ○ Remarcação (hoje: cancelar e agendar de novo) e agenda com janelas — o
   bloqueio atual é por início exato, então 14:00 e 14:10 não colidem.
 - ○ Aviso por e-mail. A tela promete o link da reunião por e-mail; hoje quem

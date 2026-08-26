@@ -184,6 +184,15 @@ export function useCancelBooking() {
   });
 }
 
+/** Abre o checkout da sessão e devolve o pedido com a URL do gateway. */
+export function useCheckoutBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.checkoutBooking(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: myBookingsKey }),
+  });
+}
+
 export function useAllBookings() {
   return useQuery({ queryKey: adminBookingsKey, queryFn: api.fetchAllBookings });
 }

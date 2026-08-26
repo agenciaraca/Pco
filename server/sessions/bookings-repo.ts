@@ -56,6 +56,8 @@ export interface SessionBooking {
   updatedAt: string;
   cancelledAt: string | null;
   cancelReason: string;
+  /** Pedido que paga esta sessão, quando há pagamento antes da confirmação. */
+  orderId: string | null;
 }
 
 const store = new JsonStore<SessionBooking>('session-bookings.json', () => []);
@@ -84,6 +86,7 @@ function daLinha(r: typeof schema.sessionBookings.$inferSelect): SessionBooking 
     updatedAt: r.updatedAt,
     cancelledAt: r.cancelledAt ?? null,
     cancelReason: r.cancelReason,
+    orderId: r.orderId ?? null,
   };
 }
 
@@ -93,7 +96,7 @@ function porDataDesc(a: SessionBooking, b: SessionBooking): number {
 
 export type NovoAgendamento = Omit<
   SessionBooking,
-  'id' | 'createdAt' | 'updatedAt' | 'cancelledAt' | 'cancelReason'
+  'id' | 'createdAt' | 'updatedAt' | 'cancelledAt' | 'cancelReason' | 'orderId'
 >;
 
 export async function create(input: NovoAgendamento): Promise<SessionBooking> {
@@ -105,6 +108,7 @@ export async function create(input: NovoAgendamento): Promise<SessionBooking> {
     updatedAt: ts,
     cancelledAt: null,
     cancelReason: '',
+    orderId: null,
   };
   const db = getDb();
   if (db) {
@@ -155,6 +159,11 @@ export async function horarioOcupado(
       b.scheduledFor === scheduledFor &&
       STATUS_ATIVOS.includes(b.status),
   );
+}
+
+/** O agendamento que um pedido paga. Usado quando o gateway confirma. */
+export async function findByOrderId(orderId: string): Promise<SessionBooking | null> {
+  return (await listAll()).find((b) => b.orderId === orderId) ?? null;
 }
 
 export async function update(

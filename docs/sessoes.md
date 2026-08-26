@@ -117,11 +117,33 @@ ficar livre. Histórico de quem atendeu quem é registro, não rascunho.
 
 Coberto por `test/sessoes-agendamento.test.ts` (11 testes).
 
-## O que ainda não existe
+## Pagamento
 
-- **Pagamento da sessão** — reaproveitar o checkout que já existe para cursos.
-  O seam está pronto: basta mover o status de `pending_payment` para
-  `confirmed` quando o gateway responder.
+`POST /sessions/bookings/:id/checkout` reusa inteiro o maquinário dos cursos —
+mesmos gateways, mesmo provider, mesma tabela de pedidos — com uma diferença
+que importa: **o preço não vem de uma linha de produto, vem do agendamento**.
+Sessão não tem preço fixo por serviço; tem preço por titulação de quem atende,
+congelado quando o aluno marcou. Criar um produto para cada combinação de
+serviço × faixa seria inventar catálogo para descrever o que o agendamento já
+sabe.
+
+O pedido nasce com `kind: 'session_pack'` e `refId` apontando para o
+agendamento. Quando o gateway confirma, o webhook chama `grantAccessForOrder`,
+que acha o agendamento por esse `refId` e o move para `confirmed`. Estorno faz o
+caminho inverso e devolve para `pending_payment` — **não** para cancelada:
+desmarcar de vez é decisão de gente, não consequência automática de um estorno.
+
+Duas travas que os testes seguram:
+
+- Chamar o checkout duas vezes devolve **o mesmo pedido** enquanto ele estiver
+  `pending` ou `processing`, em vez de empilhar pedidos órfãos.
+- Pagamento que chega depois de a sessão ser cancelada **não a ressuscita** —
+  só sai de `pending_payment` quem ainda está lá. Isso vira caso de estorno.
+
+Coberto por `test/sessoes-pagamento.test.ts` (6 testes) e conferido ponta a
+ponta contra o gateway mock: agendar → checkout → webhook `paid` → `confirmed`.
+
+## O que ainda não existe
 - **Remarcação.** Hoje o caminho é cancelar e agendar de novo.
 - **Agenda com janelas.** O bloqueio atual é por início exato: duas sessões de
   50 min começando com 10 min de diferença não colidem, e deveriam.

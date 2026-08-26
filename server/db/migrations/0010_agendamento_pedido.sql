@@ -1,0 +1,1 @@
+ALTER TABLE "session_bookings" ADD COLUMN "order_id" text;
