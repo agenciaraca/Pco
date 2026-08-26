@@ -67,13 +67,13 @@ When changing app behavior, edit `server/app.ts`. The two entrypoints stay thin.
 
 Started in `server/dev.ts` via dynamic imports after `serve()` returns:
 
-| Module | Tick |
-|---|---|
-| `webhooks/dispatcher.startWorker` | 30s |
-| `reengagement/worker.startWorker` | 24h |
-| `imports/schedules-worker.startWorker` | 60s |
+| Module                                   | Tick                             |
+| ---------------------------------------- | -------------------------------- |
+| `webhooks/dispatcher.startWorker`        | 30s                              |
+| `reengagement/worker.startWorker`        | 24h                              |
+| `imports/schedules-worker.startWorker`   | 60s                              |
 | `notifications/admin-digest.startWorker` | 30min (fires at configured hour) |
-| `db/backup-worker.startWorker` | 1h tick (snapshot at 04:00 UTC) |
+| `db/backup-worker.startWorker`           | 1h tick (snapshot at 04:00 UTC)  |
 
 Workers expose `getStatus()` surfaced under `/admin/jobs` / `/admin/saude`. **Vercel Functions don't run these** — long-lived workers are VPS-only.
 
@@ -103,12 +103,12 @@ A lista de contas é lida para a memória **no boot**: conta criada por outro pr
 
 ### Outras abstrações multi-provider (mesmo padrão)
 
-| Domínio | Providers | Localização |
-|---|---|---|
-| Pagamentos | 6 (Mock, Stripe, Asaas, Pagar.me, MercadoPago, PayPal) | `server/payments/providers/` |
-| E-mail | 8 (Mock, Resend, SendGrid, Postmark, Mailgun, Brevo, AWS SES, SMTP nativo) | `server/notifications/email/` |
-| Webhooks outbound | 7 tipos (Generic, Slack, Discord, Telegram, Teams, Mattermost, Pushover) | `server/webhooks/` |
-| Imports | 3 connectors (WP, LearnDash, WooCommerce) + CSV | `server/imports/connectors/` |
+| Domínio           | Providers                                                                  | Localização                   |
+| ----------------- | -------------------------------------------------------------------------- | ----------------------------- |
+| Pagamentos        | 6 (Mock, Stripe, Asaas, Pagar.me, MercadoPago, PayPal)                     | `server/payments/providers/`  |
+| E-mail            | 8 (Mock, Resend, SendGrid, Postmark, Mailgun, Brevo, AWS SES, SMTP nativo) | `server/notifications/email/` |
+| Webhooks outbound | 7 tipos (Generic, Slack, Discord, Telegram, Teams, Mattermost, Pushover)   | `server/webhooks/`            |
+| Imports           | 3 connectors (WP, LearnDash, WooCommerce) + CSV                            | `server/imports/connectors/`  |
 
 Padrão idêntico ao de IA: interface comum, factory, credenciais AES-GCM, switch sem redeploy.
 
@@ -173,6 +173,7 @@ ssh vps 'sudo -u avapco -i curl -s http://127.0.0.1:3035/api/health'
 Só restart, sem rebuild: `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
 
 **Gotchas:**
+
 - `git pull` aborta com `package-lock.json` modificado — daí o `git checkout --` antes.
 - `git` como root reclama de `dubious ownership` no repo do `avapco`; sempre use `sudo -u avapco`.
 - Confirme o que subiu comparando o hash do bundle: `curl -s https://ava.psicanaliseclinica.online/login | grep -o 'assets/index-[^"]*\.js'` contra o `dist/index.html` local. `/api/health` responde 200 mesmo com código velho.
@@ -209,7 +210,14 @@ R$ 80 / mestrado R$ 140 / doutorado R$ 450). E `professionals.available` ≠
 `active` — agenda cheia é estado do dia, e é `available` que decide quem aparece
 para o aluno. Detalhes em `docs/sessoes.md`.
 
-**Falta o lado do aluno:** não existe rota de agendamento no servidor.
+**O agendamento existe desde 26/ago/2026** (`server/sessions/bookings-repo.ts`,
+`POST /sessions/bookings`). Três coisas que não são óbvias: o preço e os nomes
+são **copiados** para o agendamento, para que reajuste de faixa não mude o que
+já foi combinado; profissional sem serviço marcado ou sem faixa de preço ativa
+**não é oferecido** (falha fechada — antes, sem serviço marcado ele era
+oferecido para todos); e as rotas públicas de profissional omitem `email` e
+`hourlyRate`, que só saem em `/admin/sessions/professionals`. Falta o pagamento
+— o status já nasce `pending_payment` esperando o checkout.
 
 ## Aulas: `description` é resumo, `content` é o corpo
 
@@ -249,13 +257,13 @@ Migração dos dois sites WP (`portalpco.online` LMS + `psicanaliseclinica.onlin
 
 **O que está quebrado em produção hoje:**
 
-| Entidade | Estado em prod (v2) | Estado esperado |
-|---|---|---|
-| Alunos (`users.json`) | 1641 importados, **333 faltando**, **~436 com nomes spam SEO** (Russian blogspot etc.) | ~1972 únicos limpos |
-| Cursos (`courses.json`) | 13 LD + 3 seed, mas 7 estão como `draft` no portal e foram importados como ativos | 6 publicados ou flag `published` por curso |
-| Matrículas (`admin-students.progressByCourse`) | **10.205 enrollments fantasma** — cada um dos 785 alunos aparece em todos os 13 cursos | ~1500 reais |
-| Progressões | 679 registros não-zero, média 39.7% — **amarrados aos enrollments errados**, então quase todos apontam pro curso errado | progresso só nos cursos realmente cursados |
-| `external-references.json` | 14.049 entries com colisões portal↔psi (mesmo WP user ID em ambos os sites era fundido num só) | refs prefixadas `portal:` / `psi:` |
+| Entidade                                       | Estado em prod (v2)                                                                                                     | Estado esperado                            |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Alunos (`users.json`)                          | 1641 importados, **333 faltando**, **~436 com nomes spam SEO** (Russian blogspot etc.)                                  | ~1972 únicos limpos                        |
+| Cursos (`courses.json`)                        | 13 LD + 3 seed, mas 7 estão como `draft` no portal e foram importados como ativos                                       | 6 publicados ou flag `published` por curso |
+| Matrículas (`admin-students.progressByCourse`) | **10.205 enrollments fantasma** — cada um dos 785 alunos aparece em todos os 13 cursos                                  | ~1500 reais                                |
+| Progressões                                    | 679 registros não-zero, média 39.7% — **amarrados aos enrollments errados**, então quase todos apontam pro curso errado | progresso só nos cursos realmente cursados |
+| `external-references.json`                     | 14.049 entries com colisões portal↔psi (mesmo WP user ID em ambos os sites era fundido num só)                          | refs prefixadas `portal:` / `psi:`         |
 
 **Por que quebrou (raiz):**
 
@@ -266,6 +274,7 @@ Migração dos dois sites WP (`portalpco.online` LMS + `psicanaliseclinica.onlin
 **Status da recuperação v3 (= re-migrar tudo do zero com os fixes):** o pipeline é o mesmo dos scripts de import — re-coleta busca **alunos + cursos + aulas + tópicos + matrículas + progressões + produtos + pedidos** dos dois WP via REST com os connectors corrigidos; re-aplica persiste em `data/*.json` substituindo o estado v2 quebrado.
 
 Estado:
+
 1. ✅ Código corrigido (`server/imports/connectors/ld.ts`, `scripts/migrate_wp_to_ava.ts`)
 2. ✅ Reset local executado (`scripts/reset_imported_data.ts` — mantém só seeds + superadmin)
 3. ⏳ **Re-coleta v3 rodando em background** (~30 min) — gera novo dump em `data/migration/<ts>/raw/{portal,psi}.json`

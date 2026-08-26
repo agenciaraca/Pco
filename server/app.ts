@@ -89,6 +89,9 @@ import {
   createProfessionalSchema,
   updateProfessionalSchema,
   upsertPriceTierSchema,
+  createBookingSchema,
+  cancelBookingSchema,
+  updateBookingSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
 import * as rateLimitTelemetry from './rate-limit';
@@ -121,6 +124,7 @@ import * as certsRepo from './repositories/certificates';
 import * as retentionRepo from './repositories/retention';
 import * as recoveryPlans from './repositories/recovery-plans';
 import * as sessionsRepo from './repositories/sessions';
+import * as bookingsRepo from './sessions/bookings-repo';
 import * as studentsRepo from './repositories/students';
 import * as metricsRepo from './repositories/metrics';
 import * as notificationsRepo from './repositories/notifications';
@@ -2275,8 +2279,24 @@ export function buildApp() {
 
   // ---------- Sessions / Professionals ----------
 
+  /**
+   * Projeção pública de um profissional.
+   *
+   * `email` e `hourlyRate` ficam de fora porque estas rotas não pedem token:
+   * qualquer um na internet lê. Enquanto havia só dado de semente ninguém se
+   * importava, mas o próximo passo do projeto é cadastrar profissionais de
+   * verdade — e aí seriam e-mails reais servidos abertos, prontos para
+   * raspagem. O admin continua vendo tudo em `/admin/sessions/professionals`.
+   */
+  function profissionalPublico(p: sessionsRepo.ProfessionalRow) {
+    const { email: _email, hourlyRate: _hourlyRate, ...publico } = p;
+    return publico;
+  }
+
   app.get('/sessions/services', async (c) => c.json(await sessionsRepo.listSessionServices()));
-  app.get('/sessions/professionals', async (c) => c.json(await sessionsRepo.listProfessionals()));
+  app.get('/sessions/professionals', async (c) =>
+    c.json((await sessionsRepo.listProfessionals()).map(profissionalPublico)),
+  );
   app.get('/sessions/price-tiers', async (c) => c.json(await sessionsRepo.listPriceTiers()));
 
   /**
@@ -2287,7 +2307,9 @@ export function buildApp() {
     const serviceId = c.req.query('serviceId') || undefined;
     return c.json({
       aviso: AVISO_OPCIONAL,
-      profissionais: await sessionsRepo.listAvailableProfessionals(serviceId),
+      profissionais: (await sessionsRepo.listAvailableProfessionals(serviceId)).map(
+        profissionalPublico,
+      ),
     });
   });
 
@@ -2300,7 +2322,154 @@ export function buildApp() {
     c.json({ aviso: AVISO_OPCIONAL, baseLegal: BASE_LEGAL }),
   );
 
+  // ---- Agendamento (aluno) ----
+
+  /**
+   * Agenda uma sessão de verdade.
+   *
+   * Até 25/ago/2026 a tela do aluno tinha um botão "Confirmar agendamento" que
+   * só avançava um passo local: nada era gravado, e mesmo assim a tela
+   * prometia que o link da reunião chegaria por e-mail. Esta rota existe para
+   * que a promessa passe a ser verdade.
+   *
+   * O que é recusado, e por quê:
+   *
+   * - profissional inativo, indisponível, ou que não atende aquele serviço —
+   *   a lista pública já filtra, mas quem chama a API direto não passa;
+   * - profissional sem faixa de preço válida — cobrar R$ 0,00 por engano é
+   *   pior do que recusar e avisar;
+   * - mesmo profissional, mesmo horário, agendamento ainda de pé.
+   */
+  app.post('/sessions/bookings', requireAuth(), async (c) => {
+    const user = c.get('user')!;
+    const v = validate(createBookingSchema, await c.req.json().catch(() => ({})));
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+
+    const servicos = await sessionsRepo.listSessionServices();
+    const servico = servicos.find((sv) => sv.id === v.data.serviceId);
+    if (!servico || !servico.active) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Serviço não encontrado ou fora do ar.');
+    }
+
+    const profissionais = await sessionsRepo.listProfessionals();
+    const prof = profissionais.find((pr) => pr.id === v.data.professionalId);
+    if (!prof) return jsonError(c, 404, 'NOT_FOUND', 'Profissional não encontrado.');
+    if (!prof.active || !prof.available) {
+      return jsonError(
+        c,
+        409,
+        'INDISPONIVEL',
+        'Este profissional não está aceitando agendamentos.',
+      );
+    }
+    if (!prof.serviceIds.includes(servico.id)) {
+      return jsonError(c, 409, 'NAO_ATENDE', 'Este profissional não atende este serviço.');
+    }
+    if (prof.precoIndefinido) {
+      return jsonError(
+        c,
+        409,
+        'PRECO_INDEFINIDO',
+        'A faixa de preço deste profissional não está configurada. Escolha outro profissional ou fale com a coordenação.',
+      );
+    }
+
+    const quando = new Date(v.data.scheduledFor);
+    if (quando.getTime() <= Date.now()) {
+      return jsonError(c, 400, 'VALIDATION', 'A data escolhida já passou.');
+    }
+    const iso = quando.toISOString();
+    if (await bookingsRepo.horarioOcupado(prof.id, iso)) {
+      return jsonError(c, 409, 'HORARIO_OCUPADO', 'Este horário acabou de ser preenchido.');
+    }
+
+    const booking = await bookingsRepo.create({
+      userId: user.sub,
+      userEmail: user.email,
+      serviceId: servico.id,
+      serviceName: servico.name,
+      professionalId: prof.id,
+      professionalName: prof.name,
+      scheduledFor: iso,
+      durationMinutes: servico.durationMinutes,
+      priceCents: prof.priceCents,
+      tierId: prof.level,
+      // Agendar não é pagar: quando o serviço exige pagamento antes, nasce
+      // pendente e o checkout muda o status. Sem isso, nasce agendado e a
+      // confirmação é manual.
+      status: servico.paymentBeforeConfirmation ? 'pending_payment' : 'scheduled',
+      meetingLink: '',
+      notes: v.data.notes,
+    });
+
+    // Explícito porque o auditMiddleware só cobre /admin/* — e agendar é
+    // compromisso de dinheiro feito pelo próprio aluno.
+    await recordAudit(c, {
+      action: 'session.booking.create',
+      targetType: 'session_booking',
+      targetId: booking.id,
+      meta: {
+        serviceId: servico.id,
+        professionalId: prof.id,
+        priceCents: booking.priceCents,
+      },
+    });
+    return c.json({ aviso: AVISO_OPCIONAL, agendamento: booking }, 201);
+  });
+
+  /** As sessões do próprio aluno. Ninguém vê as dos outros por aqui. */
+  app.get('/sessions/bookings', requireAuth(), async (c) => {
+    const user = c.get('user')!;
+    return c.json(await bookingsRepo.listForUser(user.sub));
+  });
+
+  app.post('/sessions/bookings/:id/cancel', requireAuth(), async (c) => {
+    const user = c.get('user')!;
+    const v = validate(cancelBookingSchema, await c.req.json().catch(() => ({})));
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+
+    const booking = await bookingsRepo.findById(c.req.param('id') as string);
+    if (!booking) return jsonError(c, 404, 'NOT_FOUND', 'Agendamento não encontrado.');
+    // Dono ou admin. Sem isto, o id de outro aluno cancelaria a sessão dele.
+    const ehDono = booking.userId === user.sub;
+    const ehAdmin = user.role === 'admin' || user.role === 'superadmin';
+    if (!ehDono && !ehAdmin) {
+      return jsonError(c, 403, 'FORBIDDEN', 'Este agendamento não é seu.');
+    }
+    if (booking.status === 'cancelled') return c.json(booking);
+    if (booking.status === 'done') {
+      return jsonError(c, 409, 'JA_REALIZADA', 'Sessão já realizada não pode ser cancelada.');
+    }
+
+    const out = await bookingsRepo.cancel(booking.id, v.data.reason);
+    await recordAudit(c, {
+      action: 'session.booking.cancel',
+      targetType: 'session_booking',
+      targetId: booking.id,
+      meta: { porDono: ehDono },
+    });
+    return c.json(out);
+  });
+
   // ---- Admin: gestão de serviços, profissionais e faixas de preço ----
+
+  /** Lista completa, com e-mail — o que a projeção pública omite de propósito. */
+  app.get('/admin/sessions/professionals', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await sessionsRepo.listProfessionals()),
+  );
+
+  app.get('/admin/sessions/bookings', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await bookingsRepo.listAll()),
+  );
+
+  app.put('/admin/sessions/bookings/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const v = validate(updateBookingSchema, await c.req.json().catch(() => ({})));
+    if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+    const out = await bookingsRepo.update(c.req.param('id') as string, v.data);
+    if (!out) return jsonError(c, 404, 'NOT_FOUND', 'Agendamento não encontrado.');
+    // Sem recordAudit aqui: auditMiddleware já grava toda mutação em /admin/*.
+    return c.json(out);
+  });
 
   app.post('/admin/sessions/services', requireAuth('admin', 'superadmin'), async (c) => {
     const v = validate(createSessionServiceSchema, await c.req.json().catch(() => ({})));
@@ -2325,26 +2494,32 @@ export function buildApp() {
   app.post('/admin/sessions/professionals', requireAuth('admin', 'superadmin'), async (c) => {
     const v = validate(createProfessionalSchema, await c.req.json().catch(() => ({})));
     if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+    // `level` é string livre no schema porque as faixas são editáveis pelo
+    // admin — a lista válida é dado, não tipo. A conferência tem que ser aqui:
+    // titulação que não casa com faixa ativa deixava o profissional valendo
+    // R$ 0,00 sem ninguém decidir isso.
+    if (!(await sessionsRepo.faixaValida(v.data.level))) {
+      return jsonError(c, 400, 'FAIXA_INVALIDA', 'Titulação sem faixa de preço ativa.');
+    }
     return c.json(await sessionsRepo.createProfessional(v.data), 201);
   });
 
   app.put('/admin/sessions/professionals/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const v = validate(updateProfessionalSchema, await c.req.json().catch(() => ({})));
     if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+    if (v.data.level !== undefined && !(await sessionsRepo.faixaValida(v.data.level))) {
+      return jsonError(c, 400, 'FAIXA_INVALIDA', 'Titulação sem faixa de preço ativa.');
+    }
     const r = await sessionsRepo.updateProfessional(c.req.param('id') as string, v.data);
     if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Profissional não encontrado.');
     return c.json(r);
   });
 
-  app.delete(
-    '/admin/sessions/professionals/:id',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const ok = await sessionsRepo.deleteProfessional(c.req.param('id') as string);
-      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Profissional não encontrado.');
-      return c.json({ ok: true });
-    },
-  );
+  app.delete('/admin/sessions/professionals/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const ok = await sessionsRepo.deleteProfessional(c.req.param('id') as string);
+    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Profissional não encontrado.');
+    return c.json({ ok: true });
+  });
 
   app.put('/admin/sessions/price-tiers/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
@@ -2352,6 +2527,17 @@ export function buildApp() {
     if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
     return c.json(await sessionsRepo.upsertPriceTier(v.data));
   });
+
+  /**
+   * Materializa o catálogo de serviços no banco. Idempotente.
+   *
+   * Enquanto a tabela está vazia, a listagem devolve a semente e as escritas
+   * vão para o banco — então editar um serviço da semente responde 404. Esta
+   * rota encerra esse descompasso.
+   */
+  app.post('/admin/sessions/services/seed', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json({ criados: await sessionsRepo.seedSessionServices() }),
+  );
 
   /** Cria as três faixas iniciais. Idempotente: não sobrescreve o que existe. */
   app.post('/admin/sessions/price-tiers/seed', requireAuth('admin', 'superadmin'), async (c) =>
@@ -6400,7 +6586,9 @@ export function buildApp() {
 
     const alunos = await montarListaConvite();
     const seg = segmentarConvite(alunos);
-    const fila = seg.elegiveis.filter((a) => !v.data.somenteIds || v.data.somenteIds.includes(a.id));
+    const fila = seg.elegiveis.filter(
+      (a) => !v.data.somenteIds || v.data.somenteIds.includes(a.id),
+    );
     const lote = fila.slice(0, v.data.limite);
 
     if (v.data.simular) {
@@ -6457,39 +6645,34 @@ export function buildApp() {
   /**
    * Prazo de acesso do aluno por curso, para a ficha no admin.
    */
-  app.get(
-    '/admin/students/:id/course-access',
-    requireAuth('admin', 'superadmin'),
-    async (c) => {
-      const id = c.req.param('id') as string;
-      const student = await studentsRepo.findAdminStudent(id);
-      if (!student) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
-      const allCourses = await coursesRepo.listCourses();
-      const now = new Date();
-      return c.json({
-        courses: (student.enrolledCourseIds ?? []).map((courseId) => {
-          const course = allCourses.find((co) => co.id === courseId);
-          const accessMonths =
-            (course as unknown as { accessMonths?: number | null } | undefined)?.accessMonths ??
-            null;
-          return {
-            courseId,
-            courseTitle: course?.title ?? courseId,
-            enrolledAt: student.enrollmentDates?.[courseId] ?? null,
-            accessMonths,
-            ...accessInfoFor(
-              {
-                enrolledAt: student.enrollmentDates?.[courseId] ?? student.createdAt,
-                storedExpiresAt: student.accessExpiresByCourse?.[courseId] ?? null,
-                accessMonths,
-              },
-              now,
-            ),
-          };
-        }),
-      });
-    },
-  );
+  app.get('/admin/students/:id/course-access', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const student = await studentsRepo.findAdminStudent(id);
+    if (!student) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+    const allCourses = await coursesRepo.listCourses();
+    const now = new Date();
+    return c.json({
+      courses: (student.enrolledCourseIds ?? []).map((courseId) => {
+        const course = allCourses.find((co) => co.id === courseId);
+        const accessMonths =
+          (course as unknown as { accessMonths?: number | null } | undefined)?.accessMonths ?? null;
+        return {
+          courseId,
+          courseTitle: course?.title ?? courseId,
+          enrolledAt: student.enrollmentDates?.[courseId] ?? null,
+          accessMonths,
+          ...accessInfoFor(
+            {
+              enrolledAt: student.enrollmentDates?.[courseId] ?? student.createdAt,
+              storedExpiresAt: student.accessExpiresByCourse?.[courseId] ?? null,
+              accessMonths,
+            },
+            now,
+          ),
+        };
+      }),
+    });
+  });
 
   /**
    * Estende o acesso de um aluno a um curso — renovação comprada por fora,

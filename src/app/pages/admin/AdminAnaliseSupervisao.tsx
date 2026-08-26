@@ -17,7 +17,10 @@ import {
 import Tabs from '../../components/Tabs';
 import {
   useSessionServices,
-  useProfessionals,
+  useAdminProfessionals,
+  useAllBookings,
+  useUpdateBooking,
+  useCancelBooking,
   usePriceTiers,
   useSessionPolicy,
   useCreateSessionService,
@@ -30,7 +33,7 @@ import {
   useSeedPriceTiers,
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
-import type { ProfessionalRow, PriceTier } from '../../data/api';
+import type { AdminProfessionalRow, PriceTier } from '../../data/api';
 import type { SessionService } from '../../types/schema';
 import { useT } from '../../i18n';
 
@@ -45,8 +48,16 @@ const tabs = [
   { id: 'agenda', label: 'Agenda', icon: <Calendar size={14} strokeWidth={1.75} /> },
   { id: 'valores', label: 'Valores', icon: <DollarSign size={14} strokeWidth={1.75} /> },
   { id: 'integracoes', label: 'Integrações', icon: <Plug size={14} strokeWidth={1.75} /> },
-  { id: 'agendamentos', label: 'Agendamentos', icon: <ClipboardList size={14} strokeWidth={1.75} /> },
-  { id: 'politicas', label: 'Políticas e Avisos', icon: <AlertCircle size={14} strokeWidth={1.75} /> },
+  {
+    id: 'agendamentos',
+    label: 'Agendamentos',
+    icon: <ClipboardList size={14} strokeWidth={1.75} />,
+  },
+  {
+    id: 'politicas',
+    label: 'Políticas e Avisos',
+    icon: <AlertCircle size={14} strokeWidth={1.75} />,
+  },
 ];
 
 export default function AdminAnaliseSupervisao() {
@@ -289,7 +300,11 @@ function ServicosPane() {
             />
           </Field>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setEditando(null)} className="pco-btn-ghost text-xs">
+            <button
+              type="button"
+              onClick={() => setEditando(null)}
+              className="pco-btn-ghost text-xs"
+            >
               Cancelar
             </button>
             <button
@@ -309,12 +324,12 @@ function ServicosPane() {
 
 function ProfissionaisPane() {
   const toast = useToast();
-  const { data: professionals = [] } = useProfessionals();
+  const { data: professionals = [] } = useAdminProfessionals();
   const { data: faixas = [] } = usePriceTiers();
   const criar = useCreateProfessional();
   const atualizar = useUpdateProfessional();
   const remover = useDeleteProfessional();
-  const [editando, setEditando] = useState<Partial<ProfessionalRow> | null>(null);
+  const [editando, setEditando] = useState<Partial<AdminProfessionalRow> | null>(null);
   const [confirmarExclusao, setConfirmarExclusao] = useState<string | null>(null);
 
   async function salvar() {
@@ -418,9 +433,24 @@ function ProfissionaisPane() {
                   </span>
                   <span className="font-semibold text-pco-deep">
                     {faixas.find((f) => f.id === p.level)?.label ?? p.level} ·{' '}
-                    {reais(p.priceCents)}
+                    {p.precoIndefinido ? 'sem faixa ativa' : reais(p.priceCents)}
                   </span>
                 </div>
+                {/*
+                  Os dois motivos silenciosos de um profissional cadastrado não
+                  aparecer para o aluno. Antes, o primeiro fazia o contrário —
+                  sem serviço marcado, ele era oferecido para todos — e o
+                  segundo o deixava valendo R$ 0,00.
+                */}
+                {(p.serviceIds.length === 0 || p.precoIndefinido) && (
+                  <div className="mt-2 rounded-lg bg-pco-orange/10 px-2.5 py-2 text-[11px] text-pco-orange">
+                    Não aparece para o aluno:{' '}
+                    {p.serviceIds.length === 0
+                      ? 'nenhum serviço marcado'
+                      : 'titulação sem faixa de preço ativa'}
+                    .
+                  </div>
+                )}
                 <div className="mt-3 flex gap-2">
                   <button
                     type="button"
@@ -545,7 +575,11 @@ function ProfissionaisPane() {
             />
           </Field>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setEditando(null)} className="pco-btn-ghost text-xs">
+            <button
+              type="button"
+              onClick={() => setEditando(null)}
+              className="pco-btn-ghost text-xs"
+            >
               Cancelar
             </button>
             <button
@@ -564,7 +598,7 @@ function ProfissionaisPane() {
 }
 
 function AgendaPane() {
-  const { data: professionals = [] } = useProfessionals();
+  const { data: professionals = [] } = useAdminProfessionals();
   const days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
   const today = new Date();
   const month = today.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -647,7 +681,7 @@ function AgendaPane() {
 function ValoresPane() {
   const toast = useToast();
   const { data: faixas = [] } = usePriceTiers();
-  const { data: professionals = [] } = useProfessionals();
+  const { data: professionals = [] } = useAdminProfessionals();
   const salvarFaixa = useUpsertPriceTier();
   const semear = useSeedPriceTiers();
   const [rascunho, setRascunho] = useState<Record<string, string>>({});
@@ -672,7 +706,10 @@ function ValoresPane() {
         const { [f.id]: _, ...resto } = r;
         return resto;
       });
-      toast.success(`${f.label}: ${reais(Math.round(valor * 100))}`, 'Vale para toda sessão nesta faixa.');
+      toast.success(
+        `${f.label}: ${reais(Math.round(valor * 100))}`,
+        'Vale para toda sessão nesta faixa.',
+      );
     } catch (err) {
       toast.error('Não foi possível salvar', err instanceof Error ? err.message : 'Erro');
     }
@@ -725,7 +762,9 @@ function ValoresPane() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-ink-subtle">R$</span>
                   <input
-                    value={editado ? rascunho[f.id] : (f.priceCents / 100).toFixed(2).replace('.', ',')}
+                    value={
+                      editado ? rascunho[f.id] : (f.priceCents / 100).toFixed(2).replace('.', ',')
+                    }
                     onChange={(e) => setRascunho((r) => ({ ...r, [f.id]: e.target.value }))}
                     className="pco-input w-28 text-right tabular-nums"
                     inputMode="decimal"
@@ -810,36 +849,21 @@ function IntegracoesPane() {
   );
 }
 
+/**
+ * Agendamentos reais.
+ *
+ * Esta tela mostrava três agendamentos escritos à mão — com nomes de alunos
+ * inventados e um botão "Detalhes" que não abria nada. Enquanto não havia rota
+ * de agendamento isso era maquete; depois que passou a haver, virou risco de
+ * alguém acreditar. Agora vem do banco, e o que está aqui pode ser mexido.
+ */
 function AgendamentosPane() {
-  const bookings = [
-    {
-      student: 'Carla Mendes',
-      service: 'Análise Pessoal',
-      pro: 'Dra. Helena Vieira',
-      date: '2026-05-04 14:00',
-      payment: 'paid',
-      status: 'confirmed',
-      platform: 'Google Meet',
-    },
-    {
-      student: 'Diego R.',
-      service: 'Supervisão Clínica',
-      pro: 'Dr. Marco Aurélio',
-      date: '2026-05-05 16:00',
-      payment: 'pending',
-      status: 'pending_payment',
-      platform: 'Zoom',
-    },
-    {
-      student: 'Renata B.',
-      service: 'Orientação Formativa',
-      pro: 'Dr. Marco Aurélio',
-      date: '2026-05-09 09:00',
-      payment: 'paid',
-      status: 'scheduled',
-      platform: 'Google Meet',
-    },
-  ];
+  const { data: bookings = [], isLoading } = useAllBookings();
+  const atualizar = useUpdateBooking();
+  const cancelar = useCancelBooking();
+  const [linkAberto, setLinkAberto] = useState<string | null>(null);
+  const [rascunhoLink, setRascunhoLink] = useState('');
+
   const statusLabel: Record<string, string> = {
     pending_payment: 'Pgto. pendente',
     confirmed: 'Confirmada',
@@ -854,6 +878,20 @@ function AgendamentosPane() {
     done: 'bg-surface-gray text-ink-muted',
     cancelled: 'bg-status-danger/15 text-status-danger',
   };
+
+  if (isLoading) {
+    return <div className="pco-card text-sm text-ink-muted">Carregando agendamentos…</div>;
+  }
+
+  if (bookings.length === 0) {
+    return (
+      <div className="pco-card text-sm text-ink-muted">
+        Nenhum agendamento ainda. Assim que um aluno marcar em{' '}
+        <span className="font-medium text-pco-deep">/analise-supervisao</span>, ele aparece aqui.
+      </div>
+    );
+  }
+
   return (
     <div className="pco-card p-0 overflow-hidden">
       <div className="overflow-x-auto">
@@ -864,38 +902,85 @@ function AgendamentosPane() {
               <th className="px-4 py-3 text-left font-medium">Serviço</th>
               <th className="px-4 py-3 text-left font-medium">Profissional</th>
               <th className="px-4 py-3 text-left font-medium">Data</th>
-              <th className="px-4 py-3 text-left font-medium">Pagamento</th>
+              <th className="px-4 py-3 text-left font-medium">Valor</th>
               <th className="px-4 py-3 text-left font-medium">Status</th>
-              <th className="px-4 py-3 text-left font-medium">Plataforma</th>
+              <th className="px-4 py-3 text-left font-medium">Reunião</th>
               <th className="px-4 py-3 text-right font-medium">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {bookings.map((b, i) => (
-              <tr key={i} className="border-t border-surface-gray hover:bg-surface-off">
-                <td className="px-4 py-3 font-semibold text-pco-deep">{b.student}</td>
-                <td className="px-4 py-3 text-ink-muted">{b.service}</td>
-                <td className="px-4 py-3 text-ink-muted">{b.pro}</td>
-                <td className="px-4 py-3 text-ink-muted">{b.date}</td>
+            {bookings.map((b) => (
+              <tr key={b.id} className="border-t border-surface-gray hover:bg-surface-off">
+                <td className="px-4 py-3 font-semibold text-pco-deep">{b.userEmail}</td>
+                <td className="px-4 py-3 text-ink-muted">{b.serviceName}</td>
+                <td className="px-4 py-3 text-ink-muted">{b.professionalName}</td>
+                <td className="px-4 py-3 text-ink-muted">
+                  {new Date(b.scheduledFor).toLocaleString('pt-BR', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })}
+                </td>
+                <td className="px-4 py-3 text-ink-muted">{reais(b.priceCents)}</td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`pco-badge ${
-                      b.payment === 'paid'
-                        ? 'bg-status-success/10 text-status-success'
-                        : 'bg-pco-orange/15 text-pco-orange'
-                    }`}
+                  <select
+                    value={b.status}
+                    disabled={atualizar.isPending}
+                    onChange={(e) =>
+                      atualizar.mutate({
+                        id: b.id,
+                        patch: { status: e.target.value as typeof b.status },
+                      })
+                    }
+                    className={`pco-badge border-0 ${statusStyle[b.status]}`}
                   >
-                    {b.payment === 'paid' ? 'Pago' : 'Pendente'}
-                  </span>
+                    {Object.entries(statusLabel).map(([v, label]) => (
+                      <option key={v} value={v}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
                 </td>
-                <td className="px-4 py-3">
-                  <span className={`pco-badge ${statusStyle[b.status]}`}>
-                    {statusLabel[b.status]}
-                  </span>
+                <td className="px-4 py-3 text-ink-muted">
+                  {linkAberto === b.id ? (
+                    <div className="flex gap-1">
+                      <input
+                        value={rascunhoLink}
+                        onChange={(e) => setRascunhoLink(e.target.value)}
+                        placeholder="https://meet…"
+                        className="pco-input text-xs w-44"
+                      />
+                      <button
+                        className="pco-btn-primary text-xs"
+                        onClick={() => {
+                          atualizar.mutate({ id: b.id, patch: { meetingLink: rascunhoLink } });
+                          setLinkAberto(null);
+                        }}
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="pco-btn-ghost text-xs"
+                      onClick={() => {
+                        setLinkAberto(b.id);
+                        setRascunhoLink(b.meetingLink);
+                      }}
+                    >
+                      {b.meetingLink ? 'Editar link' : 'Definir link'}
+                    </button>
+                  )}
                 </td>
-                <td className="px-4 py-3 text-ink-muted">{b.platform}</td>
                 <td className="px-4 py-3 text-right">
-                  <button className="pco-btn-ghost text-xs">Detalhes</button>
+                  {b.status !== 'cancelled' && b.status !== 'done' && (
+                    <button
+                      className="pco-btn-ghost text-xs text-status-danger"
+                      disabled={cancelar.isPending}
+                      onClick={() => cancelar.mutate({ id: b.id, reason: 'Cancelado pela gestão' })}
+                    >
+                      Cancelar
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import { getDb, schema } from '../db/client';
 import { JsonStore } from '../db/json-store';
 import {
@@ -73,7 +74,10 @@ const tierStore = new JsonStore<PriceTier>('session-price-tiers.json', () =>
 );
 
 function novoId(prefixo: string): string {
-  return `${prefixo}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  // randomUUID e não Date.now()+Math.random(): id de profissional e de serviço
+  // aparece em URL de admin e em referência cruzada. Adivinhável é convite, e
+  // criação em lote com o mesmo milissegundo colidia em 4 caracteres.
+  return `${prefixo}-${randomUUID()}`;
 }
 
 // ---------- Faixas de preço ----------
@@ -136,8 +140,35 @@ export async function seedPriceTiers(): Promise<number> {
   return FAIXAS_PADRAO.length;
 }
 
+/**
+ * A titulação informada corresponde a uma faixa **ativa**?
+ *
+ * Existe porque `level` é string livre no schema (`z.string().max(40)`) e não
+ * enum: as faixas são editáveis pelo admin, então a lista válida é dado, não
+ * tipo. Sem esta checagem, um `level` com typo entrava, não casava com faixa
+ * nenhuma e o profissional ficava valendo R$ 0,00.
+ */
+export async function faixaValida(level: string): Promise<boolean> {
+  const faixas = await listPriceTiers();
+  return faixas.some((f) => f.id === level && f.active);
+}
+
 // ---------- Serviços ----------
 
+/**
+ * Catálogo de serviços.
+ *
+ * Com banco configurado e tabela vazia, cai na semente — o padrão da casa
+ * (ver `repositories/courses.ts`). Mas repare na assimetria com
+ * `listProfessionals`, logo abaixo, que devolve `[]` no mesmo caso: ali a
+ * semente é gente fictícia e mostrá-la seria pior do que mostrar nada.
+ *
+ * O preço dessa assimetria: enquanto a tabela estiver vazia, esta lista devolve
+ * ids que não existem no banco, e editar ou apagar um deles responde 404 —
+ * porque `createSessionService` e as demais escritas vão direto para o banco.
+ * `seedSessionServices()` existe para encerrar esse limbo: materializa a
+ * semente no banco de uma vez, e a partir daí leitura e escrita concordam.
+ */
 export async function listSessionServices(): Promise<SessionService[]> {
   const db = getDb();
   if (!db) return await svcStore.getAll();
@@ -153,6 +184,21 @@ export async function listSessionServices(): Promise<SessionService[]> {
     active: r.active,
     paymentBeforeConfirmation: r.paymentBeforeConfirmation,
   }));
+}
+
+/**
+ * Grava a semente de serviços no banco quando a tabela está vazia. Idempotente:
+ * com qualquer linha já existente, não faz nada. Espelha `seedPriceTiers`.
+ */
+export async function seedSessionServices(): Promise<number> {
+  const db = getDb();
+  if (!db) return 0;
+  const rows = await db.select().from(schema.sessionServices);
+  if (rows.length > 0) return 0;
+  const semente = await svcStore.getAll();
+  if (semente.length === 0) return 0;
+  await db.insert(schema.sessionServices).values(semente);
+  return semente.length;
 }
 
 export async function createSessionService(
@@ -233,14 +279,36 @@ export interface ProfessionalRow extends Professional {
   credentials: string;
   /** Preço da sessão com este profissional, em centavos. Vem da faixa. */
   priceCents: number;
+  /**
+   * `true` quando nenhuma faixa ativa corresponde ao `level`. Nesse caso
+   * `priceCents` vale 0 por falta de resposta, não por gratuidade — agendar
+   * com este profissional deve ser recusado até o admin arrumar a faixa.
+   */
+  precoIndefinido: boolean;
 }
 
+/**
+ * Aplica o preço da faixa de titulação.
+ *
+ * Duas coisas que este trecho já errou e agora não erra mais:
+ *
+ * - **Faixa inativa não precifica.** Antes, desmarcar `active` no admin não
+ *   fazia nada: a faixa continuava sendo encontrada e cobrando.
+ * - **Sem faixa não é de graça.** Antes o preço caía para 0 em silêncio, e
+ *   `0` é um valor perfeitamente válido para um checkout — sessão grátis sem
+ *   ninguém decidir isso. Agora o profissional sai marcado com
+ *   `precoIndefinido`, e quem for cobrar recusa em vez de cobrar zero.
+ */
 function comPreco(
-  p: Omit<ProfessionalRow, 'priceCents'>,
+  p: Omit<ProfessionalRow, 'priceCents' | 'precoIndefinido'>,
   faixas: PriceTier[],
 ): ProfessionalRow {
-  const faixa = faixas.find((f) => f.id === p.level);
-  return { ...p, priceCents: faixa?.priceCents ?? 0 };
+  const faixa = faixas.find((f) => f.id === p.level && f.active);
+  return {
+    ...p,
+    priceCents: faixa?.priceCents ?? 0,
+    precoIndefinido: faixa === undefined,
+  };
 }
 
 export async function listProfessionals(): Promise<ProfessionalRow[]> {
@@ -288,24 +356,29 @@ export async function listProfessionals(): Promise<ProfessionalRow[]> {
 /**
  * Quem pode atender agora. É o que a tela do aluno mostra: ele agenda com o
  * profissional disponível no momento, não escolhe uma pessoa e espera.
+ *
+ * Falha fechada, de propósito. Lista vazia de serviços **não** é curinga —
+ * era, e o efeito era o oposto do esperado: como o formulário do admin cria
+ * todo profissional com `serviceIds: []`, cada cadastro novo passava a ser
+ * oferecido para análise, supervisão e orientação ao mesmo tempo. Melhor não
+ * aparecer e o admin perceber do que aparecer onde não devia. Pelo mesmo
+ * motivo, quem está sem faixa de preço válida também não é oferecido.
  */
-export async function listAvailableProfessionals(
-  serviceId?: string,
-): Promise<ProfessionalRow[]> {
+export async function listAvailableProfessionals(serviceId?: string): Promise<ProfessionalRow[]> {
   const todos = await listProfessionals();
   return todos.filter(
     (p) =>
       p.active &&
       p.available &&
-      (!serviceId || p.serviceIds.length === 0 || p.serviceIds.includes(serviceId)),
+      !p.precoIndefinido &&
+      p.serviceIds.length > 0 &&
+      (!serviceId || p.serviceIds.includes(serviceId)),
   );
 }
 
-type NovoProfissional = Omit<ProfessionalRow, 'id' | 'priceCents'>;
+type NovoProfissional = Omit<ProfessionalRow, 'id' | 'priceCents' | 'precoIndefinido'>;
 
-export async function createProfessional(
-  input: NovoProfissional,
-): Promise<ProfessionalRow> {
+export async function createProfessional(input: NovoProfissional): Promise<ProfessionalRow> {
   const faixas = await listPriceTiers();
   const row = { ...input, id: novoId('prof') };
   const db = getDb();

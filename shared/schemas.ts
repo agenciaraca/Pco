@@ -627,7 +627,9 @@ export const extendCourseAccessSchema = z
     lifetime: z.literal(true).optional(),
   })
   .refine(
-    (v) => [v.months !== undefined, v.until !== undefined, v.lifetime === true].filter(Boolean).length === 1,
+    (v) =>
+      [v.months !== undefined, v.until !== undefined, v.lifetime === true].filter(Boolean)
+        .length === 1,
     { message: 'Informe exatamente um: months, until ou lifetime.' },
   );
 export type ExtendCourseAccessInput = z.infer<typeof extendCourseAccessSchema>;
@@ -759,3 +761,39 @@ export const upsertPriceTierSchema = z.object({
   order: z.number().int().min(0).max(99).default(0),
 });
 export type UpsertPriceTierInput = z.infer<typeof upsertPriceTierSchema>;
+
+// Agendamento de sessão. Continua valendo o de sempre: serviço opcional,
+// contratado à parte, nunca requisito de curso.
+
+export const bookingStatusSchema = z.enum([
+  'pending_payment',
+  'confirmed',
+  'scheduled',
+  'done',
+  'cancelled',
+]);
+
+export const createBookingSchema = z.object({
+  serviceId: z.string().min(1).max(80),
+  professionalId: z.string().min(1).max(80),
+  /** Início da sessão, ISO-8601. Validado como data real, não como string. */
+  scheduledFor: z
+    .string()
+    .min(10)
+    .max(40)
+    .refine((v) => !Number.isNaN(Date.parse(v)), 'Data/hora inválida'),
+  notes: z.string().max(600).default(''),
+});
+export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+
+export const cancelBookingSchema = z.object({
+  reason: z.string().max(400).default(''),
+});
+
+/** O que o admin pode mexer depois: status, link da reunião e observações. */
+export const updateBookingSchema = z.object({
+  status: bookingStatusSchema.optional(),
+  meetingLink: z.string().max(500).optional(),
+  notes: z.string().max(600).optional(),
+});
+export type UpdateBookingInput = z.infer<typeof updateBookingSchema>;

@@ -288,12 +288,18 @@ export const newsArticles = pgTable('news_articles', {
   excerpt: text('excerpt').notNull(),
   body: text('body'),
   category: text('category').notNull(),
-  tags: jsonb('tags').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  tags: jsonb('tags')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   coverColor: text('cover_color').notNull(),
   authorName: text('author_name').notNull(),
   publishedAt: text('published_at').notNull(),
   featured: boolean('featured').notNull().default(false),
-  relatedCourseIds: jsonb('related_course_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  relatedCourseIds: jsonb('related_course_ids')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
 });
 
 export const podcasts = pgTable('podcasts', {
@@ -304,9 +310,18 @@ export const podcasts = pgTable('podcasts', {
   publishedAt: text('published_at').notNull(),
   coverColor: text('cover_color').notNull(),
   audioUrl: text('audio_url'),
-  tags: jsonb('tags').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-  relatedCourseIds: jsonb('related_course_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-  relatedModuleIds: jsonb('related_module_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  tags: jsonb('tags')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  relatedCourseIds: jsonb('related_course_ids')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  relatedModuleIds: jsonb('related_module_ids')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
 });
 
 export const libraryItems = pgTable('library_items', {
@@ -316,9 +331,18 @@ export const libraryItems = pgTable('library_items', {
   type: text('type').notNull(), // 'pdf' | 'apostila' | 'leitura' | 'artigo'
   mandatory: boolean('mandatory').notNull().default(false),
   fileMockUrl: text('file_url').notNull(),
-  tags: jsonb('tags').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-  relatedCourseIds: jsonb('related_course_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-  relatedModuleIds: jsonb('related_module_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  tags: jsonb('tags')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  relatedCourseIds: jsonb('related_course_ids')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  relatedModuleIds: jsonb('related_module_ids')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   theme: text('theme'),
 });
 
@@ -373,7 +397,10 @@ export const retentionRisks = pgTable('retention_risks', {
     .references(() => students.id, { onDelete: 'cascade' }),
   score: integer('score').notNull().default(0),
   level: text('level').notNull(), // baixo|medio|alto|critico
-  reasons: jsonb('reasons').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  reasons: jsonb('reasons')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   expectedProgress: integer('expected_progress').notNull().default(0),
   realProgress: integer('real_progress').notNull().default(0),
   pendingAssessments: integer('pending_assessments').notNull().default(0),
@@ -393,8 +420,14 @@ export const professionals = pgTable('professionals', {
   bio: text('bio').notNull(),
   email: text('email').notNull(),
   hourlyRate: integer('hourly_rate').notNull().default(0),
-  specialties: jsonb('specialties').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-  serviceIds: jsonb('service_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  specialties: jsonb('specialties')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  serviceIds: jsonb('service_ids')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   /**
    * Faixa de titulação. É ela que define o preço da sessão — não o serviço:
    * a mesma análise custa diferente conforme quem atende. Ver
@@ -442,6 +475,41 @@ export const sessionServices = pgTable('session_services', {
   paymentBeforeConfirmation: boolean('payment_before_confirmation').notNull().default(true),
 });
 
+/**
+ * Agendamento de sessão.
+ *
+ * Guarda **cópia** do nome do serviço, do nome de quem atende e do preço no
+ * instante do agendamento. Não é desnormalização por descuido: o admin edita
+ * faixas de preço e serviços a qualquer momento, e o que foi combinado com o
+ * aluno não pode mudar de valor depois. O `id` continua apontando para a
+ * origem, para quem quiser navegar.
+ */
+export const sessionBookings = pgTable('session_bookings', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  /** Cópia: o aluno pode trocar de e-mail sem reescrever o histórico. */
+  userEmail: text('user_email').notNull().default(''),
+  serviceId: text('service_id').notNull(),
+  serviceName: text('service_name').notNull().default(''),
+  professionalId: text('professional_id').notNull(),
+  professionalName: text('professional_name').notNull().default(''),
+  /** Início da sessão, ISO-8601 com fuso. */
+  scheduledFor: text('scheduled_for').notNull(),
+  durationMinutes: integer('duration_minutes').notNull().default(50),
+  /** Preço travado no ato, em centavos. Ver o comentário da tabela. */
+  priceCents: integer('price_cents').notNull().default(0),
+  /** Faixa de titulação que produziu o preço. */
+  tierId: text('tier_id').notNull().default(''),
+  /** pending_payment | confirmed | scheduled | done | cancelled */
+  status: text('status').notNull().default('pending_payment'),
+  meetingLink: text('meeting_link').notNull().default(''),
+  notes: text('notes').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  cancelledAt: text('cancelled_at'),
+  cancelReason: text('cancel_reason').notNull().default(''),
+});
+
 // ---------- AI Configurations ----------
 
 export const aiConfigurations = pgTable('ai_configurations', {
@@ -461,8 +529,14 @@ export const aiConfigurations = pgTable('ai_configurations', {
   perMonthLimit: integer('per_month_limit').notNull().default(120000),
   monthlyCostCap: doublePrecision('monthly_cost_cap').notNull().default(800),
   systemMessage: text('system_message').notNull().default(''),
-  allowedScopes: jsonb('allowed_scopes').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-  blockedTopics: jsonb('blocked_topics').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  allowedScopes: jsonb('allowed_scopes')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  blockedTopics: jsonb('blocked_topics')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   fallbackResponse: text('fallback_response').notNull().default(''),
   active: boolean('active').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

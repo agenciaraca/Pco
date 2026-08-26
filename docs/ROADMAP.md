@@ -7,6 +7,11 @@ Produção em `13f2549`. 180 arquivos de teste, 1.714 testes, zero falhas.
 > `main`, sem deploy pendente. O que mudou de ambiente, e as três pendências
 > que a troca abriu, estão em `docs/SESSAO-2026-08-25-troca-de-maquina.md`.
 > A frente de dev segue a mesma: Sprint 2, agendamento de sessão.
+>
+> **26/ago/2026** — Sprint 2 entregue no essencial: agendamento persiste,
+> cancelamento existe, e as sete correções da revisão de código do módulo de
+> sessões foram aplicadas. 181 arquivos de teste, 1.725 testes, zero falhas.
+> Falta o pagamento para fechar a onda.
 
 Painel visual (Artifact, mesma URL sempre):
 https://claude.ai/code/artifact/f548e6f4-0775-4965-acb9-cefea684412c
@@ -30,10 +35,18 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
 - ✅ Serviços, profissionais e valores por titulação. Ver `docs/sessoes.md`.
 - ✅ Regra de venda casada no código, com testes.
 - ◆ Cadastrar os profissionais reais (zero hoje).
-- ○ **Agendamento que persiste** — não há rota no servidor; a tela do aluno é
-  estado local. Maior lacuna desta onda.
-- ○ Pagamento da sessão (reaproveita o checkout de cursos).
-- ○ Confirmação, remarcação e cancelamento.
+- ✅ **Agendamento que persiste** (26/ago/2026). `POST /sessions/bookings` grava,
+  a tela do aluno deixou de encenar e o painel do admin deixou de mostrar três
+  agendamentos fictícios. Preço e nomes são copiados no ato; profissional sem
+  serviço ou sem faixa não é oferecido; rota pública não devolve mais e-mail.
+  11 testes em `test/sessoes-agendamento.test.ts`. Ver `docs/sessoes.md`.
+- ✅ Cancelamento — pelo dono ou pelo admin, com motivo, liberando o horário.
+- ○ Pagamento da sessão (reaproveita o checkout de cursos). O seam está pronto:
+  o agendamento já nasce `pending_payment` esperando o gateway.
+- ○ Remarcação (hoje: cancelar e agendar de novo) e agenda com janelas — o
+  bloqueio atual é por início exato, então 14:00 e 14:10 não colidem.
+- ○ Aviso por e-mail. A tela promete o link da reunião por e-mail; hoje quem
+  manda é o admin, à mão.
 
 ## Onda 9 — O que a migração deixou para trás
 
@@ -71,12 +84,12 @@ Travada em dois pontos, ambos do dono:
 
 ## Sprints propostos
 
-| Sprint | Frente | Trava |
-|---|---|---|
-| 1 | Conteúdo de volta | — (✅ concluído) |
-| 2 | Agendar e pagar sessão | — |
-| 3 | Prazos e convites | decisão do dono |
-| 4 | PCO 2.0 no ar | a grade real |
+| Sprint | Frente                 | Trava                |
+| ------ | ---------------------- | -------------------- |
+| 1      | Conteúdo de volta      | — (✅ concluído)     |
+| 2      | Agendar e pagar sessão | agendar ✅ · pagar ○ |
+| 3      | Prazos e convites      | decisão do dono      |
+| 4      | PCO 2.0 no ar          | a grade real         |
 
 ## O que só o dono destrava
 

@@ -53,6 +53,13 @@ backups/
 data/certificates.json
 data/students.json
 data/courses.json
+# Sessões: os três primeiros são a semente materializada em disco no primeiro
+# boot (mesma natureza de courses.json). O último guarda agendamento de aluno
+# de verdade — nome, e-mail e horário — e não pode entrar no repositório.
+data/professionals.json
+data/session-services.json
+data/session-price-tiers.json
+data/session-bookings.json
 data/news.json
 data/library.json
 data/podcasts.json

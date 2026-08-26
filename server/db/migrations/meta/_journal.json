@@ -64,6 +64,13 @@
       "when": 1787344898516,
       "tag": "0008_lesson_content",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787747105696,
+      "tag": "0009_agendamento_sessoes",
+      "breakpoints": true
     }
   ]
 }

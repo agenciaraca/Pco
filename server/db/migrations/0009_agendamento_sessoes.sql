@@ -1,0 +1,20 @@
+CREATE TABLE "session_bookings" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"user_email" text DEFAULT '' NOT NULL,
+	"service_id" text NOT NULL,
+	"service_name" text DEFAULT '' NOT NULL,
+	"professional_id" text NOT NULL,
+	"professional_name" text DEFAULT '' NOT NULL,
+	"scheduled_for" text NOT NULL,
+	"duration_minutes" integer DEFAULT 50 NOT NULL,
+	"price_cents" integer DEFAULT 0 NOT NULL,
+	"tier_id" text DEFAULT '' NOT NULL,
+	"status" text DEFAULT 'pending_payment' NOT NULL,
+	"meeting_link" text DEFAULT '' NOT NULL,
+	"notes" text DEFAULT '' NOT NULL,
+	"created_at" text NOT NULL,
+	"updated_at" text NOT NULL,
+	"cancelled_at" text,
+	"cancel_reason" text DEFAULT '' NOT NULL
+);

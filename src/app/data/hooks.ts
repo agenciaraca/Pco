@@ -145,6 +145,66 @@ export function useSessionServices() {
   });
 }
 
+const myBookingsKey = ['me', 'session-bookings'] as const;
+const adminBookingsKey = ['admin', 'session-bookings'] as const;
+
+/** Lista completa, com e-mail. Só a gestão enxerga. */
+export function useAdminProfessionals() {
+  return useQuery({
+    queryKey: ['admin', 'professionals'] as const,
+    queryFn: api.fetchAdminProfessionals,
+  });
+}
+
+export function useMyBookings() {
+  return useQuery({ queryKey: myBookingsKey, queryFn: api.fetchMyBookings });
+}
+
+export function useCreateBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: api.CreateBookingInput) => api.createBooking(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: myBookingsKey });
+      // O horário deixou de estar livre para todo mundo, não só para quem marcou.
+      qc.invalidateQueries({ queryKey: queryKeys.professionals });
+    },
+  });
+}
+
+export function useCancelBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      api.cancelBooking(id, reason ?? ''),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: myBookingsKey });
+      qc.invalidateQueries({ queryKey: adminBookingsKey });
+    },
+  });
+}
+
+export function useAllBookings() {
+  return useQuery({ queryKey: adminBookingsKey, queryFn: api.fetchAllBookings });
+}
+
+export function useUpdateBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: { status?: api.BookingStatus; meetingLink?: string; notes?: string };
+    }) => api.updateBooking(id, patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: adminBookingsKey });
+      qc.invalidateQueries({ queryKey: myBookingsKey });
+    },
+  });
+}
+
 export function usePriceTiers() {
   return useQuery({ queryKey: ['session-price-tiers'], queryFn: api.fetchPriceTiers });
 }
@@ -179,8 +239,9 @@ export function useCreateSessionService() {
 }
 
 export function useUpdateSessionService() {
-  return useSessionMutation(({ id, patch }: { id: string; patch: Partial<api.SessionServiceDto> }) =>
-    api.updateSessionService(id, patch),
+  return useSessionMutation(
+    ({ id, patch }: { id: string; patch: Partial<api.SessionServiceDto> }) =>
+      api.updateSessionService(id, patch),
   );
 }
 
@@ -193,9 +254,8 @@ export function useCreateProfessional() {
 }
 
 export function useUpdateProfessional() {
-  return useSessionMutation(
-    ({ id, patch }: { id: string; patch: Partial<api.ProfessionalRow> }) =>
-      api.updateProfessional(id, patch),
+  return useSessionMutation(({ id, patch }: { id: string; patch: Partial<api.ProfessionalRow> }) =>
+    api.updateProfessional(id, patch),
   );
 }
 
@@ -250,8 +310,13 @@ export function useAiProviders() {
 export function useUpdateAiConfiguration() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof api.updateAiConfiguration>[1] }) =>
-      api.updateAiConfiguration(id, patch),
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: Parameters<typeof api.updateAiConfiguration>[1];
+    }) => api.updateAiConfiguration(id, patch),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: queryKeys.aiConfigurations });
       qc.invalidateQueries({ queryKey: queryKeys.aiConfiguration(variables.id) });
@@ -499,13 +564,8 @@ export function useDeleteCourse() {
 export function useReorderCourse() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: string;
-      payload: api.ReorderCourseInput;
-    }) => api.reorderCourse(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: api.ReorderCourseInput }) =>
+      api.reorderCourse(id, payload),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.courses });
       qc.invalidateQueries({ queryKey: queryKeys.course(vars.id) });
@@ -1241,8 +1301,7 @@ export function useDigestConfig() {
 export function useUpdateDigestConfig() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (patch: Partial<api.DigestConfigDto>) =>
-      api.updateDigestConfig(patch),
+    mutationFn: (patch: Partial<api.DigestConfigDto>) => api.updateDigestConfig(patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: digestConfigKey }),
   });
 }
@@ -1261,12 +1320,7 @@ export function useRunDigestNow() {
 }
 
 const studentProgressEmailKey = ['admin', 'email', 'student-progress'] as const;
-const studentProgressEmailStatusKey = [
-  'admin',
-  'email',
-  'student-progress',
-  'status',
-] as const;
+const studentProgressEmailStatusKey = ['admin', 'email', 'student-progress', 'status'] as const;
 
 export function useStudentProgressEmailConfig() {
   return useQuery({
@@ -1510,8 +1564,7 @@ export function useImportSchedules() {
 export function useCreateImportSchedule() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: api.ImportScheduleInputDto) =>
-      api.createImportSchedule(input),
+    mutationFn: (input: api.ImportScheduleInputDto) => api.createImportSchedule(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: importSchedulesKey }),
   });
 }
@@ -1519,13 +1572,8 @@ export function useCreateImportSchedule() {
 export function useUpdateImportSchedule() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      input,
-    }: {
-      id: string;
-      input: Partial<api.ImportScheduleInputDto>;
-    }) => api.updateImportSchedule(id, input),
+    mutationFn: ({ id, input }: { id: string; input: Partial<api.ImportScheduleInputDto> }) =>
+      api.updateImportSchedule(id, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: importSchedulesKey }),
   });
 }
@@ -1749,8 +1797,7 @@ export function useTestEmailConfig() {
 export function useSendTestEmail() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (args: { id: string; to: string }) =>
-      api.sendTestEmail(args.id, args.to),
+    mutationFn: (args: { id: string; to: string }) => api.sendTestEmail(args.id, args.to),
     onSuccess: () => qc.invalidateQueries({ queryKey: emailLogsKey }),
   });
 }
@@ -2041,8 +2088,7 @@ export function useCourseQuestions(courseId: string | undefined) {
 export function useCreateQuestion(courseId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: api.CreateQuestionInput) =>
-      api.createQuestion(courseId, input),
+    mutationFn: (input: api.CreateQuestionInput) => api.createQuestion(courseId, input),
     onSuccess: () =>
       qc.invalidateQueries({
         queryKey: ['admin', 'course-questions', courseId],
@@ -2081,8 +2127,7 @@ export function useDeleteQuestion(courseId: string) {
 export function useGenerateQuestions(courseId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: api.GenerateQuestionsInput) =>
-      api.generateQuestions(courseId, input),
+    mutationFn: (input: api.GenerateQuestionsInput) => api.generateQuestions(courseId, input),
     onSuccess: () =>
       qc.invalidateQueries({
         queryKey: ['admin', 'course-questions', courseId],
@@ -2206,9 +2251,7 @@ export function useDeleteRole() {
   });
 }
 
-export function useActivityFeed(
-  filter: Parameters<typeof api.fetchActivityFeed>[0] = {},
-) {
+export function useActivityFeed(filter: Parameters<typeof api.fetchActivityFeed>[0] = {}) {
   return useQuery({
     queryKey: ['admin', 'activity', filter] as const,
     queryFn: () => api.fetchActivityFeed(filter),
@@ -2229,8 +2272,7 @@ export function useCreateAdminNote() {
   return useMutation({
     mutationFn: (args: { studentId: string; body: string; pinned?: boolean }) =>
       api.createAdminNote(args.studentId, args.body, args.pinned),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['admin', 'notes', vars.studentId] }),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'notes', vars.studentId] }),
   });
 }
 
@@ -2242,8 +2284,7 @@ export function useUpdateAdminNote() {
       noteId: string;
       patch: { body?: string; pinned?: boolean };
     }) => api.updateAdminNote(args.studentId, args.noteId, args.patch),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['admin', 'notes', vars.studentId] }),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'notes', vars.studentId] }),
   });
 }
 
@@ -2252,8 +2293,7 @@ export function useDeleteAdminNote() {
   return useMutation({
     mutationFn: (args: { studentId: string; noteId: string }) =>
       api.deleteAdminNote(args.studentId, args.noteId),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['admin', 'notes', vars.studentId] }),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['admin', 'notes', vars.studentId] }),
   });
 }
 
@@ -2497,7 +2537,6 @@ export function useAdminAbout() {
   });
 }
 
-
 const myAchievementsKey = ['me', 'achievements'] as const;
 
 export function useMyAchievements() {
@@ -2523,8 +2562,7 @@ export function useStudentAchievements(studentId: string | undefined) {
   });
 }
 
-const lessonCommentsKey = (lessonId: string) =>
-  ['lessons', lessonId, 'comments'] as const;
+const lessonCommentsKey = (lessonId: string) => ['lessons', lessonId, 'comments'] as const;
 
 export function useLessonComments(lessonId: string | undefined) {
   return useQuery({
@@ -2538,8 +2576,7 @@ export function useCreateLessonComment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: api.createLessonComment,
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: lessonCommentsKey(vars.lessonId) }),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: lessonCommentsKey(vars.lessonId) }),
   });
 }
 
@@ -2551,8 +2588,7 @@ export function useUpdateLessonComment() {
       commentId: string;
       patch: { body?: string; pinned?: boolean; hidden?: boolean };
     }) => api.updateLessonComment(args.lessonId, args.commentId, args.patch),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: lessonCommentsKey(vars.lessonId) }),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: lessonCommentsKey(vars.lessonId) }),
   });
 }
 
@@ -2561,8 +2597,7 @@ export function useDeleteLessonComment() {
   return useMutation({
     mutationFn: (args: { lessonId: string; commentId: string }) =>
       api.deleteLessonComment(args.lessonId, args.commentId),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: lessonCommentsKey(vars.lessonId) }),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: lessonCommentsKey(vars.lessonId) }),
   });
 }
 
@@ -2668,8 +2703,7 @@ export function useDeleteSavedSearch() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: api.deleteSavedSearch,
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ['admin', 'saved-searches'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'saved-searches'] }),
   });
 }
 

@@ -66,26 +66,16 @@ export async function totpSetup(): Promise<TotpSetupResponse> {
   return http.post<TotpSetupResponse>('/auth/me/totp/setup', {});
 }
 
-export async function totpEnable(
-  code: string,
-): Promise<{ enabled: true; backupCodes: string[] }> {
-  return http.post<{ enabled: true; backupCodes: string[] }>(
-    '/auth/me/totp/enable',
-    { code },
-  );
+export async function totpEnable(code: string): Promise<{ enabled: true; backupCodes: string[] }> {
+  return http.post<{ enabled: true; backupCodes: string[] }>('/auth/me/totp/enable', { code });
 }
 
 export async function totpDisable(code: string): Promise<{ enabled: false }> {
   return http.post<{ enabled: false }>('/auth/me/totp/disable', { code });
 }
 
-export async function totpRegenBackupCodes(
-  code: string,
-): Promise<{ backupCodes: string[] }> {
-  return http.post<{ backupCodes: string[] }>(
-    '/auth/me/totp/backup-codes/regenerate',
-    { code },
-  );
+export async function totpRegenBackupCodes(code: string): Promise<{ backupCodes: string[] }> {
+  return http.post<{ backupCodes: string[] }>('/auth/me/totp/backup-codes/regenerate', { code });
 }
 
 export async function fetchCurrentStudent(): Promise<Student> {
@@ -110,9 +100,7 @@ export interface ImpersonationStartResult {
   expiresInSeconds: number;
 }
 
-export async function startImpersonation(
-  targetUserId: string,
-): Promise<ImpersonationStartResult> {
+export async function startImpersonation(targetUserId: string): Promise<ImpersonationStartResult> {
   return http.post<ImpersonationStartResult>(
     `/admin/impersonate/${encodeURIComponent(targetUserId)}`,
     {},
@@ -149,7 +137,10 @@ export async function updateMyProfile(body: UpdateProfileBody): Promise<MyProfil
   return http.put<MyProfile>('/auth/me', body);
 }
 
-export async function changeMyPassword(currentPassword: string, newPassword: string): Promise<{ ok: true }> {
+export async function changeMyPassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ ok: true }> {
   return http.post<{ ok: true }>('/auth/me/password', { currentPassword, newPassword });
 }
 
@@ -180,9 +171,7 @@ export interface CoursePrereqCheckDto {
   required: string[];
 }
 
-export async function fetchCoursePrereqCheck(
-  courseId: string,
-): Promise<CoursePrereqCheckDto> {
+export async function fetchCoursePrereqCheck(courseId: string): Promise<CoursePrereqCheckDto> {
   return http.get(`/me/courses/${encodeURIComponent(courseId)}/prereq`);
 }
 
@@ -204,9 +193,7 @@ export interface LessonPreviewDto {
   };
 }
 
-export async function fetchLessonPreview(
-  lessonId: string,
-): Promise<LessonPreviewDto> {
+export async function fetchLessonPreview(lessonId: string): Promise<LessonPreviewDto> {
   return http.get(`/lessons/${encodeURIComponent(lessonId)}/preview`);
 }
 
@@ -247,7 +234,10 @@ export async function requestPasswordReset(email: string): Promise<ForgotPasswor
   return http.post<ForgotPasswordResponse>('/auth/forgot-password', { email });
 }
 
-export async function resetPassword(token: string, password: string): Promise<{ ok: true; email: string }> {
+export async function resetPassword(
+  token: string,
+  password: string,
+): Promise<{ ok: true; email: string }> {
   return http.post<{ ok: true; email: string }>('/auth/reset-password', {
     token,
     password,
@@ -324,17 +314,15 @@ export async function updateSupportTicketStatus(
   id: string,
   status: 'open' | 'in_progress' | 'resolved',
 ): Promise<SupportTicket> {
-  return http.put<SupportTicket>(
-    `/admin/support/tickets/${encodeURIComponent(id)}/status`,
-    { status },
-  );
+  return http.put<SupportTicket>(`/admin/support/tickets/${encodeURIComponent(id)}/status`, {
+    status,
+  });
 }
 
 export async function respondSupportTicket(id: string, message: string): Promise<{ ok: true }> {
-  return http.post<{ ok: true }>(
-    `/admin/support/tickets/${encodeURIComponent(id)}/respond`,
-    { message },
-  );
+  return http.post<{ ok: true }>(`/admin/support/tickets/${encodeURIComponent(id)}/respond`, {
+    message,
+  });
 }
 
 // ---------- Podcast engagement ----------
@@ -425,9 +413,7 @@ export async function fetchLessonTranscript(
   lang?: string,
 ): Promise<LessonTranscriptDto> {
   const qs = lang ? `?lang=${encodeURIComponent(lang)}` : '';
-  return http.get<LessonTranscriptDto>(
-    `/lessons/${encodeURIComponent(lessonId)}/transcript${qs}`,
-  );
+  return http.get<LessonTranscriptDto>(`/lessons/${encodeURIComponent(lessonId)}/transcript${qs}`);
 }
 
 export interface TranscriptCoverageDto {
@@ -487,10 +473,7 @@ export interface TranslateWithAiResult {
 export async function translateTranscriptWithAi(
   input: TranslateWithAiInput,
 ): Promise<TranslateWithAiResult> {
-  return http.post<TranslateWithAiResult>(
-    '/admin/transcripts/translate-with-ai',
-    input,
-  );
+  return http.post<TranslateWithAiResult>('/admin/transcripts/translate-with-ai', input);
 }
 
 export interface GenerateFromVideoInput {
@@ -509,10 +492,7 @@ export interface GenerateFromVideoResult {
 export async function generateTranscriptFromVideo(
   input: GenerateFromVideoInput,
 ): Promise<GenerateFromVideoResult> {
-  return http.post<GenerateFromVideoResult>(
-    '/admin/transcripts/generate-from-video',
-    input,
-  );
+  return http.post<GenerateFromVideoResult>('/admin/transcripts/generate-from-video', input);
 }
 
 export interface BulkTranslateInput {
@@ -536,13 +516,8 @@ export interface BulkTranslateResult {
   }>;
 }
 
-export async function bulkTranslateCourse(
-  input: BulkTranslateInput,
-): Promise<BulkTranslateResult> {
-  return http.post<BulkTranslateResult>(
-    '/admin/transcripts/bulk-translate',
-    input,
-  );
+export async function bulkTranslateCourse(input: BulkTranslateInput): Promise<BulkTranslateResult> {
+  return http.post<BulkTranslateResult>('/admin/transcripts/bulk-translate', input);
 }
 
 // ---------- Tutor usage ----------
@@ -622,9 +597,7 @@ export async function fetchLoginConfig(): Promise<LoginConfigDto> {
   return http.get<LoginConfigDto>('/login-config');
 }
 
-export async function updateLoginConfig(
-  patch: Partial<LoginConfigDto>,
-): Promise<LoginConfigDto> {
+export async function updateLoginConfig(patch: Partial<LoginConfigDto>): Promise<LoginConfigDto> {
   return http.put<LoginConfigDto>('/admin/login-config', patch);
 }
 
@@ -709,13 +682,7 @@ export async function studentSearch(q: string): Promise<StudentSearchHitDto[]> {
 
 // ---------- Payment gateways (admin) ----------
 
-export type PaymentProviderId =
-  | 'mock'
-  | 'stripe'
-  | 'asaas'
-  | 'pagarme'
-  | 'paypal'
-  | 'mercadopago';
+export type PaymentProviderId = 'mock' | 'stripe' | 'asaas' | 'pagarme' | 'paypal' | 'mercadopago';
 
 export interface PaymentProviderInfoDto {
   id: PaymentProviderId;
@@ -767,9 +734,7 @@ export async function fetchPaymentGateways(): Promise<PaymentGatewayDto[]> {
   return http.get<PaymentGatewayDto[]>('/admin/payments/gateways');
 }
 
-export async function createPaymentGateway(
-  input: CreateGatewayInput,
-): Promise<PaymentGatewayDto> {
+export async function createPaymentGateway(input: CreateGatewayInput): Promise<PaymentGatewayDto> {
   return http.post<PaymentGatewayDto>('/admin/payments/gateways', input);
 }
 
@@ -777,16 +742,11 @@ export async function updatePaymentGateway(
   id: string,
   patch: UpdateGatewayInput,
 ): Promise<PaymentGatewayDto> {
-  return http.put<PaymentGatewayDto>(
-    `/admin/payments/gateways/${encodeURIComponent(id)}`,
-    patch,
-  );
+  return http.put<PaymentGatewayDto>(`/admin/payments/gateways/${encodeURIComponent(id)}`, patch);
 }
 
 export async function deletePaymentGateway(id: string): Promise<{ ok: true }> {
-  return http.delete<{ ok: true }>(
-    `/admin/payments/gateways/${encodeURIComponent(id)}`,
-  );
+  return http.delete<{ ok: true }>(`/admin/payments/gateways/${encodeURIComponent(id)}`);
 }
 
 // Products
@@ -836,23 +796,14 @@ export async function updateProduct(
   return http.put<ProductDto>(`/admin/products/${encodeURIComponent(id)}`, patch);
 }
 
-export async function deleteProduct(
-  id: string,
-  confirmName: string,
-): Promise<{ ok: true }> {
+export async function deleteProduct(id: string, confirmName: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/products/${encodeURIComponent(id)}`, {
     headers: { 'X-Confirm-Name': confirmName },
   });
 }
 
 // Orders
-export type OrderStatus =
-  | 'pending'
-  | 'processing'
-  | 'paid'
-  | 'failed'
-  | 'canceled'
-  | 'refunded';
+export type OrderStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'canceled' | 'refunded';
 
 export interface OrderDto {
   id: string;
@@ -947,10 +898,7 @@ export async function createCoupon(input: CouponInputDto): Promise<CouponDto> {
   return http.post<CouponDto>('/admin/coupons', input);
 }
 
-export async function updateCoupon(
-  id: string,
-  input: Partial<CouponInputDto>,
-): Promise<CouponDto> {
+export async function updateCoupon(id: string, input: Partial<CouponInputDto>): Promise<CouponDto> {
   return http.put<CouponDto>(`/admin/coupons/${encodeURIComponent(id)}`, input);
 }
 
@@ -958,10 +906,7 @@ export async function deleteCoupon(id: string): Promise<void> {
   await http.delete<{ ok: true }>(`/admin/coupons/${encodeURIComponent(id)}`);
 }
 
-export async function checkCoupon(
-  code: string,
-  productId: string,
-): Promise<CouponCheckResultDto> {
+export async function checkCoupon(code: string, productId: string): Promise<CouponCheckResultDto> {
   const qs = new URLSearchParams({ code, productId }).toString();
   return http.get<CouponCheckResultDto>(`/coupons/check?${qs}`);
 }
@@ -979,9 +924,7 @@ export interface BulkCouponInputDto {
   validUntil?: string | null;
 }
 
-export async function createCouponsBulk(
-  input: BulkCouponInputDto,
-): Promise<{
+export async function createCouponsBulk(input: BulkCouponInputDto): Promise<{
   createdCount: number;
   skippedCount: number;
   created: CouponDto[];
@@ -1059,9 +1002,7 @@ export interface ListReviewsFilter {
   maxRating?: number;
 }
 
-export async function fetchAdminReviews(
-  filter: ListReviewsFilter = {},
-): Promise<AdminReviewDto[]> {
+export async function fetchAdminReviews(filter: ListReviewsFilter = {}): Promise<AdminReviewDto[]> {
   const qs = new URLSearchParams();
   if (filter.search) qs.set('search', filter.search);
   if (filter.courseId) qs.set('courseId', filter.courseId);
@@ -1071,10 +1012,7 @@ export async function fetchAdminReviews(
   return http.get<AdminReviewDto[]>(path);
 }
 
-export async function deleteAdminReview(
-  courseId: string,
-  reviewId: string,
-): Promise<void> {
+export async function deleteAdminReview(courseId: string, reviewId: string): Promise<void> {
   await http.delete<{ ok: true }>(
     `/admin/courses/${encodeURIComponent(courseId)}/reviews/${encodeURIComponent(reviewId)}`,
   );
@@ -1214,13 +1152,8 @@ export interface MyRankDto {
   entry?: LeaderboardEntryDto;
 }
 
-export async function fetchLeaderboard(
-  days = 30,
-  limit = 20,
-): Promise<LeaderboardResultDto> {
-  return http.get<LeaderboardResultDto>(
-    `/admin/leaderboard?days=${days}&limit=${limit}`,
-  );
+export async function fetchLeaderboard(days = 30, limit = 20): Promise<LeaderboardResultDto> {
+  return http.get<LeaderboardResultDto>(`/admin/leaderboard?days=${days}&limit=${limit}`);
 }
 
 export async function fetchMyRank(days = 30): Promise<MyRankDto> {
@@ -1243,13 +1176,8 @@ export interface PublicLeaderboardDto {
   entries: PublicLeaderboardEntryDto[];
 }
 
-export async function fetchPublicLeaderboard(
-  days = 30,
-  limit = 5,
-): Promise<PublicLeaderboardDto> {
-  return http.get<PublicLeaderboardDto>(
-    `/leaderboard/top?days=${days}&limit=${limit}`,
-  );
+export async function fetchPublicLeaderboard(days = 30, limit = 5): Promise<PublicLeaderboardDto> {
+  return http.get<PublicLeaderboardDto>(`/leaderboard/top?days=${days}&limit=${limit}`);
 }
 
 // ---------- Bulk import users ----------
@@ -1296,19 +1224,12 @@ export async function fetchMyWishlist(): Promise<WishlistEntryDto[]> {
   return http.get<WishlistEntryDto[]>('/me/wishlist');
 }
 
-export async function addToWishlist(
-  courseId: string,
-): Promise<WishlistEntryDto> {
-  return http.post<WishlistEntryDto>(
-    `/me/wishlist/${encodeURIComponent(courseId)}`,
-    {},
-  );
+export async function addToWishlist(courseId: string): Promise<WishlistEntryDto> {
+  return http.post<WishlistEntryDto>(`/me/wishlist/${encodeURIComponent(courseId)}`, {});
 }
 
 export async function removeFromWishlist(courseId: string): Promise<void> {
-  await http.delete<{ ok: true }>(
-    `/me/wishlist/${encodeURIComponent(courseId)}`,
-  );
+  await http.delete<{ ok: true }>(`/me/wishlist/${encodeURIComponent(courseId)}`);
 }
 
 export async function fetchWishlistAggregate(): Promise<CourseWishCountDto[]> {
@@ -1442,10 +1363,9 @@ export async function fetchImportTemplates(): Promise<ImportTemplateDto[]> {
 export async function downloadImportTemplate(entity: ImportEntityTypeDto): Promise<void> {
   const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
   const token = session?.token;
-  const res = await fetch(
-    `/api/admin/imports/templates/${encodeURIComponent(entity)}`,
-    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
-  );
+  const res = await fetch(`/api/admin/imports/templates/${encodeURIComponent(entity)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -1471,9 +1391,7 @@ export interface ImportJobsFilterDto {
   limit?: number;
 }
 
-export async function fetchImportJobs(
-  filter: ImportJobsFilterDto = {},
-): Promise<ImportJobDto[]> {
+export async function fetchImportJobs(filter: ImportJobsFilterDto = {}): Promise<ImportJobDto[]> {
   const qs = new URLSearchParams();
   if (filter.status) qs.set('status', filter.status);
   if (filter.source) qs.set('source', filter.source);
@@ -1491,10 +1409,7 @@ export async function fetchImportJob(id: string): Promise<ImportJobDto> {
   return http.get<ImportJobDto>(`/admin/imports/jobs/${encodeURIComponent(id)}`);
 }
 
-export async function downloadImportJob(
-  id: string,
-  format: 'csv' | 'json',
-): Promise<void> {
+export async function downloadImportJob(id: string, format: 'csv' | 'json'): Promise<void> {
   const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
   const token = session?.token;
   const res = await fetch(
@@ -1544,10 +1459,7 @@ export interface RollbackResultDto {
 }
 
 export async function rollbackImportJob(id: string): Promise<RollbackResultDto> {
-  return http.post<RollbackResultDto>(
-    `/admin/imports/jobs/${encodeURIComponent(id)}/rollback`,
-    {},
-  );
+  return http.post<RollbackResultDto>(`/admin/imports/jobs/${encodeURIComponent(id)}/rollback`, {});
 }
 
 export async function cancelImportJob(id: string): Promise<{ ok: true; jobId: string }> {
@@ -1594,8 +1506,7 @@ export async function startCsvRunReal(
     if (file instanceof File) form.set(`file_${entity}`, file);
   }
   if (options.startRule) form.set('enrollment_start_rule', options.startRule);
-  if (options.expirationRule)
-    form.set('enrollment_expiration_rule', options.expirationRule);
+  if (options.expirationRule) form.set('enrollment_expiration_rule', options.expirationRule);
   if (options.defaultAccessDurationDays !== undefined)
     form.set('default_access_duration_days', String(options.defaultAccessDurationDays));
   const res = await fetch('/api/admin/imports/run/csv', {
@@ -1662,9 +1573,7 @@ export async function updateImportConnection(
 }
 
 export async function deleteImportConnection(id: string): Promise<void> {
-  await http.delete<{ ok: true }>(
-    `/admin/imports/connections/${encodeURIComponent(id)}`,
-  );
+  await http.delete<{ ok: true }>(`/admin/imports/connections/${encodeURIComponent(id)}`);
 }
 
 export interface ConnectionTestResult {
@@ -1695,9 +1604,7 @@ export interface ConnectionDiagnoseResult {
   usersFirstEmail: string | null;
 }
 
-export async function diagnoseImportConnection(
-  id: string,
-): Promise<ConnectionDiagnoseResult> {
+export async function diagnoseImportConnection(id: string): Promise<ConnectionDiagnoseResult> {
   return http.post<ConnectionDiagnoseResult>(
     `/admin/imports/connections/${encodeURIComponent(id)}/diagnose`,
     {},
@@ -1725,9 +1632,7 @@ export interface ConnectionDiagnoseLdResult {
   hint: string;
 }
 
-export async function diagnoseImportConnectionLd(
-  id: string,
-): Promise<ConnectionDiagnoseLdResult> {
+export async function diagnoseImportConnectionLd(id: string): Promise<ConnectionDiagnoseLdResult> {
   return http.post<ConnectionDiagnoseLdResult>(
     `/admin/imports/connections/${encodeURIComponent(id)}/diagnose-ld`,
     {},
@@ -1735,12 +1640,7 @@ export async function diagnoseImportConnectionLd(
 }
 
 export type UserMatchKeyDto = 'email' | 'document' | 'external_id' | 'wp_user_id';
-export type ConflictStrategyDto =
-  | 'ignore'
-  | 'update'
-  | 'merge'
-  | 'create_duplicate'
-  | 'error';
+export type ConflictStrategyDto = 'ignore' | 'update' | 'merge' | 'create_duplicate' | 'error';
 
 export interface RunApiInputDto {
   connectionId: string;
@@ -1751,11 +1651,7 @@ export interface RunApiInputDto {
     expirationRule?: EnrollmentExpirationRuleDto;
     defaultAccessDurationDays?: number;
     userMatchKeys?: UserMatchKeyDto[];
-    userMatchStrategy?:
-      | 'email_first'
-      | 'external_id_first'
-      | 'email_only'
-      | 'external_id_only';
+    userMatchStrategy?: 'email_first' | 'external_id_first' | 'email_only' | 'external_id_only';
     unmatchedUserPolicy?: 'skip' | 'create_stub' | 'error';
     conflictStrategy?: ConflictStrategyDto;
     /** Importa rows com erros de validacao mesmo assim (logs como warning). */
@@ -1830,16 +1726,11 @@ export async function updateImportSchedule(
   id: string,
   input: Partial<ImportScheduleInputDto>,
 ): Promise<ImportScheduleDto> {
-  return http.put<ImportScheduleDto>(
-    `/admin/imports/schedules/${encodeURIComponent(id)}`,
-    input,
-  );
+  return http.put<ImportScheduleDto>(`/admin/imports/schedules/${encodeURIComponent(id)}`, input);
 }
 
 export async function deleteImportSchedule(id: string): Promise<void> {
-  await http.delete<{ ok: true }>(
-    `/admin/imports/schedules/${encodeURIComponent(id)}`,
-  );
+  await http.delete<{ ok: true }>(`/admin/imports/schedules/${encodeURIComponent(id)}`);
 }
 
 export async function runImportScheduleNow(
@@ -1860,10 +1751,7 @@ export interface CsvPreviewDto {
   suggestedMapping: Array<{ source: string; target: string | null }>;
 }
 
-export async function previewCsv(
-  entity: ImportEntityTypeDto,
-  file: File,
-): Promise<CsvPreviewDto> {
+export async function previewCsv(entity: ImportEntityTypeDto, file: File): Promise<CsvPreviewDto> {
   const session = JSON.parse(localStorage.getItem('ava-pco-auth') ?? 'null');
   const token = session?.token;
   const form = new FormData();
@@ -2133,9 +2021,7 @@ export async function fetchPodcasts(): Promise<PodcastEpisode[]> {
 }
 
 export async function fetchPodcastEpisode(id: string): Promise<PodcastEpisode | null> {
-  return http
-    .get<PodcastEpisode>(`/podcasts/${encodeURIComponent(id)}`)
-    .catch(() => null);
+  return http.get<PodcastEpisode>(`/podcasts/${encodeURIComponent(id)}`).catch(() => null);
 }
 
 // ---------- Library ----------
@@ -2227,14 +2113,32 @@ export async function fetchSessionServices(): Promise<SessionService[]> {
   return http.get<SessionService[]>('/sessions/services');
 }
 
-/** Profissional como a gestão precisa dele: com titulação, estado e preço. */
-export interface ProfessionalRow extends Professional {
+/**
+ * Profissional como a tela do aluno o recebe.
+ *
+ * Sem `email` e sem `hourlyRate`: `/sessions/professionals` é rota aberta, e
+ * dado de contato de gente real não fica servido para a internet inteira. Quem
+ * gerencia usa `fetchAdminProfessionals`, que devolve tudo.
+ */
+export interface ProfessionalRow extends Omit<Professional, 'email' | 'hourlyRate'> {
   level: string;
   active: boolean;
   available: boolean;
   credentials: string;
   /** Preço da sessão em centavos, derivado da faixa de titulação. */
   priceCents: number;
+  /** Sem faixa ativa correspondente: `priceCents` é 0 por falta, não de graça. */
+  precoIndefinido: boolean;
+}
+
+/** O mesmo profissional com os campos que só a gestão vê. */
+export interface AdminProfessionalRow extends ProfessionalRow {
+  email: string;
+  hourlyRate: number;
+}
+
+export async function fetchAdminProfessionals(): Promise<AdminProfessionalRow[]> {
+  return http.get<AdminProfessionalRow[]>('/admin/sessions/professionals');
 }
 
 export interface PriceTier {
@@ -2251,6 +2155,68 @@ export type SessionServiceDto = SessionService;
 
 export async function fetchPriceTiers(): Promise<PriceTier[]> {
   return http.get<PriceTier[]>('/sessions/price-tiers');
+}
+
+export type BookingStatus = 'pending_payment' | 'confirmed' | 'scheduled' | 'done' | 'cancelled';
+
+export interface SessionBooking {
+  id: string;
+  userId: string;
+  userEmail: string;
+  serviceId: string;
+  serviceName: string;
+  professionalId: string;
+  professionalName: string;
+  scheduledFor: string;
+  durationMinutes: number;
+  priceCents: number;
+  tierId: string;
+  status: BookingStatus;
+  meetingLink: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  cancelledAt: string | null;
+  cancelReason: string;
+}
+
+export interface CreateBookingInput {
+  serviceId: string;
+  professionalId: string;
+  /** ISO-8601. */
+  scheduledFor: string;
+  notes?: string;
+}
+
+export async function createBooking(
+  input: CreateBookingInput,
+): Promise<{ aviso: string; agendamento: SessionBooking }> {
+  return http.post('/sessions/bookings', input);
+}
+
+export async function fetchMyBookings(): Promise<SessionBooking[]> {
+  return http.get<SessionBooking[]>('/sessions/bookings');
+}
+
+export async function cancelBooking(id: string, reason = ''): Promise<SessionBooking> {
+  return http.post<SessionBooking>(`/sessions/bookings/${encodeURIComponent(id)}/cancel`, {
+    reason,
+  });
+}
+
+export async function fetchAllBookings(): Promise<SessionBooking[]> {
+  return http.get<SessionBooking[]>('/admin/sessions/bookings');
+}
+
+export async function updateBooking(
+  id: string,
+  patch: { status?: BookingStatus; meetingLink?: string; notes?: string },
+): Promise<SessionBooking> {
+  return http.put<SessionBooking>(`/admin/sessions/bookings/${encodeURIComponent(id)}`, patch);
+}
+
+export async function seedSessionServices(): Promise<{ criados: number }> {
+  return http.post('/admin/sessions/services/seed', {});
 }
 
 export async function fetchSessionPolicy(): Promise<{ aviso: string; baseLegal: string }> {
@@ -2380,7 +2346,18 @@ export async function deleteAiConfiguration(id: string): Promise<{ ok: true }> {
 
 export async function fetchAiConfiguration(
   id: string,
-): Promise<AiConfigPublic & { usage: { inputTokens: number; outputTokens: number; costUsd: number; total: number; successCount: number; successRate: number } }> {
+): Promise<
+  AiConfigPublic & {
+    usage: {
+      inputTokens: number;
+      outputTokens: number;
+      costUsd: number;
+      total: number;
+      successCount: number;
+      successRate: number;
+    };
+  }
+> {
   return http.get(`/admin/ai/configurations/${encodeURIComponent(id)}`);
 }
 
@@ -2433,9 +2410,7 @@ export async function fetchSupportTickets(): Promise<SupportTicket[]> {
   return http.get<SupportTicket[]>('/support/tickets');
 }
 
-export async function createSupportTicket(
-  input: CreateSupportTicketInput,
-): Promise<SupportTicket> {
+export async function createSupportTicket(input: CreateSupportTicketInput): Promise<SupportTicket> {
   return http.post<SupportTicket>('/support/tickets', input);
 }
 
@@ -2443,9 +2418,7 @@ export async function createSupportTicket(
 
 export type { StudentsFilter };
 
-export async function fetchAdminStudents(
-  filters: StudentsFilter = {},
-): Promise<AdminStudentRow[]> {
+export async function fetchAdminStudents(filters: StudentsFilter = {}): Promise<AdminStudentRow[]> {
   return http.get<AdminStudentRow[]>('/admin/students', {
     query: {
       search: filters.search,
@@ -2604,16 +2577,11 @@ export async function updateMessagingConfig(
   id: string,
   patch: Partial<MessagingConfigInput>,
 ): Promise<MessagingConfigView> {
-  return http.put<MessagingConfigView>(
-    `/admin/messaging-configs/${encodeURIComponent(id)}`,
-    patch,
-  );
+  return http.put<MessagingConfigView>(`/admin/messaging-configs/${encodeURIComponent(id)}`, patch);
 }
 
 export async function deleteMessagingConfig(id: string): Promise<{ ok: true }> {
-  return http.delete<{ ok: true }>(
-    `/admin/messaging-configs/${encodeURIComponent(id)}`,
-  );
+  return http.delete<{ ok: true }>(`/admin/messaging-configs/${encodeURIComponent(id)}`);
 }
 
 export async function pingMessagingConfig(id: string): Promise<{ ok: boolean; message: string }> {
@@ -2749,14 +2717,8 @@ export interface ReorderCourseInput {
   modules: Array<{ id: string; lessonIds: string[] }>;
 }
 
-export async function reorderCourse(
-  id: string,
-  payload: ReorderCourseInput,
-): Promise<Course> {
-  return http.post<Course>(
-    `/admin/courses/${encodeURIComponent(id)}/reorder`,
-    payload,
-  );
+export async function reorderCourse(id: string, payload: ReorderCourseInput): Promise<Course> {
+  return http.post<Course>(`/admin/courses/${encodeURIComponent(id)}/reorder`, payload);
 }
 
 // ---------- Admin: News writes ----------
@@ -2854,10 +2816,7 @@ export interface CreateModulePayload {
   releaseAt?: string;
 }
 
-export async function createModule(
-  courseId: string,
-  input: CreateModulePayload,
-): Promise<Module> {
+export async function createModule(courseId: string, input: CreateModulePayload): Promise<Module> {
   return http.post<Module>(`/admin/courses/${encodeURIComponent(courseId)}/modules`, input);
 }
 
@@ -2883,10 +2842,7 @@ export interface CreateLessonPayload {
   order: number;
 }
 
-export async function createLesson(
-  moduleId: string,
-  input: CreateLessonPayload,
-): Promise<Lesson> {
+export async function createLesson(moduleId: string, input: CreateLessonPayload): Promise<Lesson> {
   return http.post<Lesson>(`/admin/modules/${encodeURIComponent(moduleId)}/lessons`, input);
 }
 
@@ -2947,10 +2903,7 @@ export async function upsertAssessment(
   moduleId: string,
   input: AssessmentPayload,
 ): Promise<Assessment> {
-  return http.post<Assessment>(
-    `/admin/modules/${encodeURIComponent(moduleId)}/assessment`,
-    input,
-  );
+  return http.post<Assessment>(`/admin/modules/${encodeURIComponent(moduleId)}/assessment`, input);
 }
 
 export async function updateAssessment(
@@ -3012,10 +2965,7 @@ export async function changeSystemUserPassword(
   return http.put<{ ok: true }>(`/admin/users/${encodeURIComponent(id)}/password`, { password });
 }
 
-export async function deleteSystemUser(
-  id: string,
-  confirmEmail: string,
-): Promise<{ ok: true }> {
+export async function deleteSystemUser(id: string, confirmEmail: string): Promise<{ ok: true }> {
   return http.delete(`/admin/users/${encodeURIComponent(id)}`, {
     headers: { 'X-Confirm-Name': confirmEmail },
   });
@@ -3135,16 +3085,11 @@ export async function deleteEmailConfig(id: string): Promise<void> {
   await http.delete<{ ok: true }>(`/admin/email/configs/${encodeURIComponent(id)}`);
 }
 
-export async function testEmailConfig(
-  id: string,
-): Promise<{ ok: boolean; message: string }> {
+export async function testEmailConfig(id: string): Promise<{ ok: boolean; message: string }> {
   return http.post(`/admin/email/configs/${encodeURIComponent(id)}/test`, {});
 }
 
-export async function sendTestEmail(
-  id: string,
-  to: string,
-): Promise<{ ok: boolean }> {
+export async function sendTestEmail(id: string, to: string): Promise<{ ok: boolean }> {
   return http.post(`/admin/email/configs/${encodeURIComponent(id)}/send-test`, { to });
 }
 
@@ -3248,9 +3193,7 @@ export async function testWebhookEndpoint(
   return http.post(`/admin/webhooks/endpoints/${encodeURIComponent(id)}/test`, {});
 }
 
-export async function fetchWebhookDeliveries(
-  endpointId?: string,
-): Promise<WebhookDeliveryDto[]> {
+export async function fetchWebhookDeliveries(endpointId?: string): Promise<WebhookDeliveryDto[]> {
   const qs = endpointId ? `?endpointId=${encodeURIComponent(endpointId)}` : '';
   return http.get(`/admin/webhooks/deliveries${qs}`);
 }
@@ -3476,9 +3419,7 @@ export async function fetchApiTokens(): Promise<{
   return http.get('/admin/api-tokens');
 }
 
-export async function createApiToken(
-  input: CreateApiTokenInput,
-): Promise<CreateApiTokenResult> {
+export async function createApiToken(input: CreateApiTokenInput): Promise<CreateApiTokenResult> {
   return http.post('/admin/api-tokens', input);
 }
 
@@ -3538,10 +3479,7 @@ export async function createQuestion(
   courseId: string,
   input: CreateQuestionInput,
 ): Promise<QuestionDto> {
-  return http.post(
-    `/admin/courses/${encodeURIComponent(courseId)}/questions`,
-    input,
-  );
+  return http.post(`/admin/courses/${encodeURIComponent(courseId)}/questions`, input);
 }
 
 export async function updateQuestion(
@@ -3571,10 +3509,7 @@ export async function generateQuestions(
   courseId: string,
   input: GenerateQuestionsInput,
 ): Promise<GenerateQuestionsResult> {
-  return http.post(
-    `/admin/courses/${encodeURIComponent(courseId)}/questions/generate`,
-    input,
-  );
+  return http.post(`/admin/courses/${encodeURIComponent(courseId)}/questions/generate`, input);
 }
 
 export interface QuizQuestionPublicDto {
@@ -3676,28 +3611,18 @@ export async function saveTemplateOverride(
   name: string,
   patch: Omit<EmailTemplateOverrideDto, 'name'>,
 ): Promise<EmailTemplateOverrideDto> {
-  return http.put(
-    `/admin/email/template-overrides/${encodeURIComponent(name)}`,
-    patch,
-  );
+  return http.put(`/admin/email/template-overrides/${encodeURIComponent(name)}`, patch);
 }
 
-export async function deleteTemplateOverride(
-  name: string,
-): Promise<{ ok: true }> {
-  return http.delete<{ ok: true }>(
-    `/admin/email/template-overrides/${encodeURIComponent(name)}`,
-  );
+export async function deleteTemplateOverride(name: string): Promise<{ ok: true }> {
+  return http.delete<{ ok: true }>(`/admin/email/template-overrides/${encodeURIComponent(name)}`);
 }
 
 export async function previewTemplateLive(
   name: string,
   override: Omit<EmailTemplateOverrideDto, 'name'>,
 ): Promise<{ subject: string; html: string; text: string }> {
-  return http.post(
-    `/admin/email/templates/${encodeURIComponent(name)}/preview`,
-    override,
-  );
+  return http.post(`/admin/email/templates/${encodeURIComponent(name)}/preview`, override);
 }
 
 // ---------- Weekly report config ----------
@@ -3804,9 +3729,7 @@ export interface CreateStudyPathInput {
   publicVisible?: boolean;
 }
 
-export async function createStudyPath(
-  input: CreateStudyPathInput,
-): Promise<StudyPathDto> {
+export async function createStudyPath(input: CreateStudyPathInput): Promise<StudyPathDto> {
   return http.post('/admin/study-paths', input);
 }
 
@@ -3830,9 +3753,7 @@ export interface StudyPathProgressDto {
   status: { courseId: string; completed: boolean }[];
 }
 
-export async function fetchStudyPathProgress(
-  id: string,
-): Promise<StudyPathProgressDto> {
+export async function fetchStudyPathProgress(id: string): Promise<StudyPathProgressDto> {
   return http.get(`/me/study-paths/${encodeURIComponent(id)}/progress`);
 }
 
@@ -4050,10 +3971,7 @@ export async function updateAdminNote(
   );
 }
 
-export async function deleteAdminNote(
-  studentId: string,
-  noteId: string,
-): Promise<{ ok: true }> {
+export async function deleteAdminNote(studentId: string, noteId: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(
     `/admin/students/${encodeURIComponent(studentId)}/notes/${encodeURIComponent(noteId)}`,
   );
@@ -4092,9 +4010,7 @@ export async function fetchCourseReviews(courseId: string): Promise<CourseReview
   return http.get(`/courses/${encodeURIComponent(courseId)}/reviews`);
 }
 
-export async function fetchMyCourseReview(
-  courseId: string,
-): Promise<MyCourseReviewDto | null> {
+export async function fetchMyCourseReview(courseId: string): Promise<MyCourseReviewDto | null> {
   return http.get(`/me/courses/${encodeURIComponent(courseId)}/review`);
 }
 
@@ -4125,18 +4041,13 @@ export async function fetchMyNotificationPrefs(): Promise<NotificationPrefsDto> 
 
 export async function updateMyNotificationPrefs(
   patch: Partial<
-    Pick<
-      NotificationPrefsDto,
-      'receiveBroadcasts' | 'receiveReengagement' | 'snoozedUntil'
-    >
+    Pick<NotificationPrefsDto, 'receiveBroadcasts' | 'receiveReengagement' | 'snoozedUntil'>
   >,
 ): Promise<NotificationPrefsDto> {
   return http.put('/me/notification-prefs', patch);
 }
 
-export async function snoozeNotifications(
-  days: number,
-): Promise<NotificationPrefsDto> {
+export async function snoozeNotifications(days: number): Promise<NotificationPrefsDto> {
   return http.post('/me/notification-prefs/snooze', { days });
 }
 
@@ -4250,12 +4161,8 @@ export interface CourseStudentsDto {
   students: CourseStudentDto[];
 }
 
-export async function fetchCourseStudents(
-  courseId: string,
-): Promise<CourseStudentsDto> {
-  return http.get<CourseStudentsDto>(
-    `/admin/courses/${encodeURIComponent(courseId)}/students`,
-  );
+export async function fetchCourseStudents(courseId: string): Promise<CourseStudentsDto> {
+  return http.get<CourseStudentsDto>(`/admin/courses/${encodeURIComponent(courseId)}/students`);
 }
 
 export interface BulkEnrollResultDto {
@@ -4285,9 +4192,7 @@ export interface BulkIssueCertsResultDto {
   notCompleted: number;
 }
 
-export async function bulkIssueCertsForCourse(
-  courseId: string,
-): Promise<BulkIssueCertsResultDto> {
+export async function bulkIssueCertsForCourse(courseId: string): Promise<BulkIssueCertsResultDto> {
   return http.post<BulkIssueCertsResultDto>(
     `/admin/courses/${encodeURIComponent(courseId)}/issue-certs-bulk`,
     {},
@@ -4314,16 +4219,12 @@ export async function fetchMyDeletionRequest(): Promise<DeletionRequestDto | nul
   return http.get<DeletionRequestDto | null>('/me/account/deletion');
 }
 
-export async function requestAccountDeletion(
-  reason?: string,
-): Promise<DeletionRequestDto> {
+export async function requestAccountDeletion(reason?: string): Promise<DeletionRequestDto> {
   return http.post<DeletionRequestDto>('/me/account/deletion', { reason });
 }
 
 export async function cancelDeletionRequest(id: string): Promise<void> {
-  await http.delete<{ ok: true }>(
-    `/me/account/deletion/${encodeURIComponent(id)}`,
-  );
+  await http.delete<{ ok: true }>(`/me/account/deletion/${encodeURIComponent(id)}`);
 }
 
 export async function downloadMyDataExport(): Promise<void> {
@@ -4353,10 +4254,10 @@ export async function adminUpdateDeletionRequest(
   status: 'approved' | 'rejected' | 'completed',
   note?: string,
 ): Promise<DeletionRequestDto> {
-  return http.put<DeletionRequestDto>(
-    `/admin/deletion-requests/${encodeURIComponent(id)}`,
-    { status, note },
-  );
+  return http.put<DeletionRequestDto>(`/admin/deletion-requests/${encodeURIComponent(id)}`, {
+    status,
+    note,
+  });
 }
 
 // ---------- Admin: courses summary ----------
@@ -4500,10 +4401,7 @@ export async function fetchAdminAbout(): Promise<AdminAboutDto> {
   return http.get<AdminAboutDto>('/admin/about');
 }
 
-export async function downloadLeaderboardCsv(
-  days = 30,
-  limit = 100,
-): Promise<void> {
+export async function downloadLeaderboardCsv(days = 30, limit = 100): Promise<void> {
   return downloadCsv(
     `/admin/leaderboard/export.csv?days=${days}&limit=${limit}`,
     `leaderboard-${days}d-${new Date().toISOString().slice(0, 10)}.csv`,
@@ -4615,9 +4513,7 @@ export interface SavedSearchDto {
   updatedAt: string;
 }
 
-export async function fetchSavedSearches(
-  scope?: SavedSearchScopeDto,
-): Promise<SavedSearchDto[]> {
+export async function fetchSavedSearches(scope?: SavedSearchScopeDto): Promise<SavedSearchDto[]> {
   const qs = scope ? `?scope=${scope}` : '';
   return http.get(`/admin/saved-searches${qs}`);
 }
@@ -4638,9 +4534,7 @@ export async function updateSavedSearch(
 }
 
 export async function deleteSavedSearch(id: string): Promise<{ ok: true }> {
-  return http.delete<{ ok: true }>(
-    `/admin/saved-searches/${encodeURIComponent(id)}`,
-  );
+  return http.delete<{ ok: true }>(`/admin/saved-searches/${encodeURIComponent(id)}`);
 }
 
 // ---------- Live sessions ----------
@@ -4688,9 +4582,7 @@ export async function fetchAdminLiveSessions(): Promise<LiveSessionDto[]> {
   return http.get('/admin/live-sessions');
 }
 
-export async function createLiveSession(
-  input: LiveSessionInputDto,
-): Promise<LiveSessionDto> {
+export async function createLiveSession(input: LiveSessionInputDto): Promise<LiveSessionDto> {
   return http.post('/admin/live-sessions', input);
 }
 
@@ -4702,9 +4594,7 @@ export async function updateLiveSession(
 }
 
 export async function deleteLiveSession(id: string): Promise<{ ok: true }> {
-  return http.delete<{ ok: true }>(
-    `/admin/live-sessions/${encodeURIComponent(id)}`,
-  );
+  return http.delete<{ ok: true }>(`/admin/live-sessions/${encodeURIComponent(id)}`);
 }
 
 export interface ZoomConfigDto {
@@ -4756,9 +4646,7 @@ export interface SessionTranscriptDto {
   createdAt: string;
 }
 
-export async function fetchSessionTranscript(
-  sessionId: string,
-): Promise<SessionTranscriptDto> {
+export async function fetchSessionTranscript(sessionId: string): Promise<SessionTranscriptDto> {
   return http.get(`/session/${encodeURIComponent(sessionId)}/transcript`);
 }
 
@@ -4766,7 +4654,9 @@ export async function startTranscription(
   sessionId: string,
   audioUrl: string,
 ): Promise<{ transcript: SessionTranscriptDto; message: string }> {
-  return http.post(`/admin/transcription/transcribe/${encodeURIComponent(sessionId)}`, { audioUrl });
+  return http.post(`/admin/transcription/transcribe/${encodeURIComponent(sessionId)}`, {
+    audioUrl,
+  });
 }
 
 // ---------- Mentoring ----------
@@ -4838,9 +4728,7 @@ export interface LessonCommentDto {
   updatedAt: string;
 }
 
-export async function fetchLessonComments(
-  lessonId: string,
-): Promise<LessonCommentDto[]> {
+export async function fetchLessonComments(lessonId: string): Promise<LessonCommentDto[]> {
   return http.get(`/lessons/${encodeURIComponent(lessonId)}/comments`);
 }
 
@@ -4920,9 +4808,7 @@ export interface RateLimitSummaryDto {
   recentBlocks: Array<{ ts: number; ip: string; path: string; method: string }>;
 }
 
-export async function fetchRateLimitSummary(
-  windowMs?: number,
-): Promise<RateLimitSummaryDto> {
+export async function fetchRateLimitSummary(windowMs?: number): Promise<RateLimitSummaryDto> {
   const qs = windowMs ? `?windowMs=${windowMs}` : '';
   return http.get(`/admin/rate-limits${qs}`);
 }
@@ -4973,9 +4859,7 @@ export interface LessonWatchStatsDto {
   avgSecondsPerViewer: number;
 }
 
-export async function fetchLessonWatchStats(
-  lessonId: string,
-): Promise<LessonWatchStatsDto> {
+export async function fetchLessonWatchStats(lessonId: string): Promise<LessonWatchStatsDto> {
   return http.get(`/admin/lessons/${encodeURIComponent(lessonId)}/watch-stats`);
 }
 
@@ -4986,9 +4870,7 @@ export interface CourseWatchStatsDto {
   byLesson: Array<{ lessonId: string; totalSeconds: number; viewers: number }>;
 }
 
-export async function fetchCourseWatchStats(
-  courseId: string,
-): Promise<CourseWatchStatsDto> {
+export async function fetchCourseWatchStats(courseId: string): Promise<CourseWatchStatsDto> {
   return http.get(`/admin/courses/${encodeURIComponent(courseId)}/watch-stats`);
 }
 
@@ -5015,9 +4897,7 @@ export interface CourseAnalyticsDto {
   };
 }
 
-export async function fetchCourseAnalytics(
-  courseId: string,
-): Promise<CourseAnalyticsDto> {
+export async function fetchCourseAnalytics(courseId: string): Promise<CourseAnalyticsDto> {
   return http.get(`/admin/courses/${encodeURIComponent(courseId)}/analytics`);
 }
 
@@ -5053,9 +4933,7 @@ export interface StudentAnalyticsDto {
   };
 }
 
-export async function fetchStudentAnalytics(
-  studentId: string,
-): Promise<StudentAnalyticsDto> {
+export async function fetchStudentAnalytics(studentId: string): Promise<StudentAnalyticsDto> {
   return http.get(`/admin/students/${encodeURIComponent(studentId)}/analytics`);
 }
 
@@ -5071,11 +4949,13 @@ export async function fetchMyStreak(): Promise<StreakDto> {
   return http.get('/me/streak');
 }
 
-export async function fetchLogs(query: {
-  level?: LogLevelDto;
-  q?: string;
-  limit?: number;
-} = {}): Promise<LogsResponseDto> {
+export async function fetchLogs(
+  query: {
+    level?: LogLevelDto;
+    q?: string;
+    limit?: number;
+  } = {},
+): Promise<LogsResponseDto> {
   const qs = new URLSearchParams();
   if (query.level) qs.set('level', query.level);
   if (query.q) qs.set('q', query.q);
@@ -5084,13 +4964,15 @@ export async function fetchLogs(query: {
   return http.get(path);
 }
 
-export async function fetchActivityFeed(filter: {
-  kinds?: ActivityKindDto[];
-  since?: string;
-  until?: string;
-  q?: string;
-  limit?: number;
-} = {}): Promise<ActivityItemDto[]> {
+export async function fetchActivityFeed(
+  filter: {
+    kinds?: ActivityKindDto[];
+    since?: string;
+    until?: string;
+    q?: string;
+    limit?: number;
+  } = {},
+): Promise<ActivityItemDto[]> {
   const qs = new URLSearchParams();
   if (filter.kinds && filter.kinds.length > 0) qs.set('kinds', filter.kinds.join(','));
   if (filter.since) qs.set('since', filter.since);

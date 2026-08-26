@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Stethoscope,
   Users,
@@ -13,8 +13,16 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
-import { useSessionServices, useProfessionals } from '../data/hooks';
-import type { SessionService, Professional } from '../types/schema';
+import {
+  useSessionServices,
+  useProfessionals,
+  useMyBookings,
+  useCreateBooking,
+  useCancelBooking,
+} from '../data/hooks';
+import type { SessionService } from '../types/schema';
+// O tipo público — sem e-mail nem hourlyRate, que a rota aberta não devolve.
+import type { ProfessionalRow } from '../data/api';
 import { useT } from '../i18n';
 
 type Step = 'service' | 'professional' | 'datetime' | 'confirm' | 'done';
@@ -27,18 +35,6 @@ interface Booking {
 }
 
 const slots = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
-
-// Sessões agendadas do aluno virão do backend em sprint futura
-// (integração com calendar/booking system). Por enquanto sempre vazio.
-const mySessions: Array<{
-  id: string;
-  service: string;
-  professional: string;
-  date: string;
-  time: string;
-  status: 'confirmed' | 'done' | 'pending_payment' | 'scheduled' | 'cancelled';
-  meetingLink?: string;
-}> = [];
 
 const statusStyles: Record<string, string> = {
   pending_payment: 'bg-pco-orange/15 text-pco-orange',
@@ -62,9 +58,47 @@ export default function AnaliseSupervisao() {
   const [bookerOpen, setBookerOpen] = useState(false);
   const { data: sessionServices = [] } = useSessionServices();
   const { data: professionals = [] } = useProfessionals();
+  const { data: bookings = [], isLoading: carregandoSessoes } = useMyBookings();
+  const criar = useCreateBooking();
+  const cancelar = useCancelBooking();
+  const [erro, setErro] = useState<string | null>(null);
 
   const selectedService = sessionServices.find((s) => s.id === booking.serviceId);
   const selectedPro = professionals.find((p) => p.id === booking.professionalId);
+
+  // O que o aluno vê na lista: agendado primeiro, cancelado por último.
+  const mySessions = useMemo(() => {
+    const peso: Record<string, number> = {
+      pending_payment: 0,
+      confirmed: 1,
+      scheduled: 1,
+      done: 2,
+      cancelled: 3,
+    };
+    return [...bookings].sort(
+      (a, b) =>
+        (peso[a.status] ?? 9) - (peso[b.status] ?? 9) ||
+        a.scheduledFor.localeCompare(b.scheduledFor),
+    );
+  }, [bookings]);
+
+  const confirmar = async () => {
+    if (!selectedService || !selectedPro || !booking.date || !booking.time) return;
+    setErro(null);
+    try {
+      // Data e hora chegam separadas da tela; o servidor quer um instante só.
+      await criar.mutateAsync({
+        serviceId: selectedService.id,
+        professionalId: selectedPro.id,
+        scheduledFor: new Date(`${booking.date}T${booking.time}:00`).toISOString(),
+      });
+      setStep('done');
+    } catch (e) {
+      // Sem isto o botão ficava mudo no erro — foi exatamente assim que a tela
+      // passou a prometer sessões que não existiam.
+      setErro(e instanceof Error ? e.message : 'Não foi possível agendar. Tente de novo.');
+    }
+  };
 
   const startBooking = (serviceId?: string) => {
     setBooking({ serviceId });
@@ -134,10 +168,7 @@ export default function AnaliseSupervisao() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-pco-deep">Profissionais</h2>
-          <button
-            onClick={() => startBooking()}
-            className="pco-btn-secondary text-xs"
-          >
+          <button onClick={() => startBooking()} className="pco-btn-secondary text-xs">
             Iniciar agendamento
           </button>
         </div>
@@ -183,7 +214,9 @@ export default function AnaliseSupervisao() {
 
       <section>
         <h2 className="text-lg font-semibold text-pco-deep mb-4">Minhas sessões</h2>
-        {mySessions.length === 0 ? (
+        {carregandoSessoes ? (
+          <div className="pco-card text-sm text-ink-muted">Carregando suas sessões…</div>
+        ) : mySessions.length === 0 ? (
           <div className="pco-card">
             <EmptyState
               icon={<CalendarDays size={26} className="text-pco-blue" strokeWidth={1.5} />}
@@ -199,16 +232,25 @@ export default function AnaliseSupervisao() {
                   <Stethoscope size={20} className="text-pco-blue" strokeWidth={1.5} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-pco-deep">{s.service}</div>
-                  <div className="text-xs text-ink-muted">com {s.professional}</div>
+                  <div className="text-sm font-semibold text-pco-deep">{s.serviceName}</div>
+                  <div className="text-xs text-ink-muted">com {s.professionalName}</div>
                   <div className="mt-1 flex items-center gap-3 text-[11px] text-ink-subtle">
                     <span className="inline-flex items-center gap-1">
                       <Calendar size={11} />
-                      {new Date(s.date).toLocaleDateString('pt-BR')}
+                      {new Date(s.scheduledFor).toLocaleDateString('pt-BR')}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Clock size={11} />
-                      {s.time}
+                      {new Date(s.scheduledFor).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    <span>
+                      R${' '}
+                      {(s.priceCents / 100).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                      })}
                     </span>
                   </div>
                 </div>
@@ -225,6 +267,15 @@ export default function AnaliseSupervisao() {
                     <Video size={12} strokeWidth={2} />
                     Entrar na reunião
                   </a>
+                )}
+                {s.status !== 'cancelled' && s.status !== 'done' && (
+                  <button
+                    onClick={() => cancelar.mutate({ id: s.id })}
+                    disabled={cancelar.isPending}
+                    className="pco-btn-ghost text-xs disabled:opacity-60"
+                  >
+                    Cancelar
+                  </button>
                 )}
               </li>
             ))}
@@ -270,16 +321,22 @@ export default function AnaliseSupervisao() {
                 onBack={() => setStep('professional')}
               />
             )}
-            {step === 'confirm' && selectedService && selectedPro && booking.date && booking.time && (
-              <ConfirmStep
-                service={selectedService}
-                professional={selectedPro}
-                date={booking.date}
-                time={booking.time}
-                onConfirm={() => setStep('done')}
-                onBack={() => setStep('datetime')}
-              />
-            )}
+            {step === 'confirm' &&
+              selectedService &&
+              selectedPro &&
+              booking.date &&
+              booking.time && (
+                <ConfirmStep
+                  service={selectedService}
+                  professional={selectedPro}
+                  date={booking.date}
+                  time={booking.time}
+                  onConfirm={confirmar}
+                  enviando={criar.isPending}
+                  erro={erro}
+                  onBack={() => setStep('datetime')}
+                />
+              )}
             {step === 'done' && (
               <DoneStep
                 serviceName={selectedService?.name ?? ''}
@@ -311,9 +368,7 @@ function StepHeader({
         {Array.from({ length: total }).map((_, i) => (
           <span
             key={i}
-            className={`h-1.5 flex-1 rounded-full ${
-              i < step ? 'bg-pco-blue' : 'bg-surface-gray'
-            }`}
+            className={`h-1.5 flex-1 rounded-full ${i < step ? 'bg-pco-blue' : 'bg-surface-gray'}`}
           />
         ))}
       </div>
@@ -380,19 +435,14 @@ function ProfessionalStep({
 }: {
   service: SessionService;
   preselected?: string;
-  onSelect: (p: Professional) => void;
+  onSelect: (p: ProfessionalRow) => void;
   onBack: () => void;
 }) {
   const { data: professionals = [] } = useProfessionals();
   const available = professionals.filter((p) => p.serviceIds.includes(service.id));
   return (
     <>
-      <StepHeader
-        step={2}
-        total={4}
-        title={`Profissionais para ${service.name}`}
-        onBack={onBack}
-      />
+      <StepHeader step={2} total={4} title={`Profissionais para ${service.name}`} onBack={onBack} />
       <ul className="space-y-2">
         {available.map((p) => (
           <li key={p.id}>
@@ -415,7 +465,9 @@ function ProfessionalStep({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-pco-deep">{p.name}</div>
-                <div className="text-[11px] text-ink-muted line-clamp-1">{p.specialties.join(', ')}</div>
+                <div className="text-[11px] text-ink-muted line-clamp-1">
+                  {p.specialties.join(', ')}
+                </div>
               </div>
             </button>
           </li>
@@ -516,13 +568,17 @@ function ConfirmStep({
   time,
   onConfirm,
   onBack,
+  enviando,
+  erro,
 }: {
   service: SessionService;
-  professional: Professional;
+  professional: ProfessionalRow;
   date: string;
   time: string;
   onConfirm: () => void;
   onBack: () => void;
+  enviando: boolean;
+  erro: string | null;
 }) {
   return (
     <>
@@ -533,16 +589,30 @@ function ConfirmStep({
         <Row label="Data" value={new Date(date).toLocaleDateString('pt-BR')} />
         <Row label="Horário" value={time} />
         <Row label="Duração" value={`${service.durationMinutes} min`} />
-        <Row label="Valor" value={`R$ ${service.price.toLocaleString('pt-BR')}`} />
+        <Row
+          label="Valor"
+          value={`R$ ${(professional.priceCents / 100).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+          })}`}
+        />
       </div>
       <p className="mt-3 text-[11px] text-ink-subtle">
         {service.paymentBeforeConfirmation
           ? 'O pagamento é processado externamente antes da confirmação. Após o pagamento, você receberá o link da reunião por e-mail.'
           : 'A confirmação é manual. Você receberá um e-mail com instruções e o link da reunião.'}
       </p>
-      <button onClick={onConfirm} className="pco-btn-primary w-full justify-center mt-5">
+      {erro && (
+        <p className="mt-3 rounded-lg bg-status-danger/10 p-2.5 text-[11px] text-status-danger">
+          {erro}
+        </p>
+      )}
+      <button
+        onClick={onConfirm}
+        disabled={enviando}
+        className="pco-btn-primary w-full justify-center mt-5 disabled:opacity-60"
+      >
         <Check size={14} strokeWidth={2} />
-        Confirmar agendamento
+        {enviando ? 'Agendando…' : 'Confirmar agendamento'}
       </button>
     </>
   );
