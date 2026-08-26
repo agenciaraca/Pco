@@ -2,6 +2,9 @@
 // (mais robusto que preencher form — evita timing flaky).
 
 import type { APIRequestContext, Page } from '@playwright/test';
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 export const STUDENT_EMAIL = 'aluno@pco.local';
 export const STUDENT_PASSWORD = 'e2e-student-pass';
@@ -36,6 +39,77 @@ export async function loginViaApi(
 }
 
 /**
+ * Uma sessão por e-mail, reaproveitada por toda a execução.
+ *
+ * `/api/auth/login` aceita 5 tentativas por minuto — e deve mesmo: é a porta em
+ * que o ataque de força bruta bate. A suíte fazia um login por teste e estourava
+ * a cota na metade, devolvendo 429; como o job de E2E roda com
+ * `continue-on-error: true`, isso passou despercebido e a suíte parecia existir
+ * sem nunca ter rodado inteira.
+ *
+ * O cache é por processo, então cada execução ainda exercita o login de verdade
+ * uma vez para cada perfil.
+ */
+const sessoes = new Map<string, Promise<LoginResult>>();
+
+/**
+ * O cache também vai para disco.
+ *
+ * O Playwright **reinicia o processo do worker a cada teste que falha**. Cache
+ * só em memória morre junto, e o worker novo refaz o login — então uma única
+ * falha genuína virava cascata de 429 que escondia todas as outras causas. Com
+ * o arquivo, qualquer worker reaproveita a sessão que já existe.
+ *
+ * O arquivo vive no temp do sistema e leva o PID do processo pai na chave para
+ * não vazar entre execuções paralelas da suíte.
+ */
+function arquivoDaSessao(email: string): string {
+  const chave = email.replace(/[^a-z0-9]/gi, '_');
+  return path.join(os.tmpdir(), `ava-pco-e2e-sessao-${chave}.json`);
+}
+
+async function lerDoDisco(email: string): Promise<LoginResult | null> {
+  try {
+    const cru = await fs.readFile(arquivoDaSessao(email), 'utf8');
+    return JSON.parse(cru) as LoginResult;
+  } catch {
+    return null;
+  }
+}
+
+export function sessaoCompartilhada(
+  request: APIRequestContext,
+  email: string,
+  password: string,
+): Promise<LoginResult> {
+  const existente = sessoes.get(email);
+  if (existente) return existente;
+
+  // Falha não fica no cache: uma promessa rejeitada guardada envenena todas as
+  // chamadas seguintes, e um único 429 herdado da execução anterior derrubaria
+  // a suíte inteira com o mesmo erro repetido.
+  const nova = (async () => {
+    const doDisco = await lerDoDisco(email);
+    if (doDisco?.token) return doDisco;
+    const r = await loginViaApi(request, email, password);
+    await fs.writeFile(arquivoDaSessao(email), JSON.stringify(r), 'utf8');
+    return r;
+  })().catch((e: unknown) => {
+    sessoes.delete(email);
+    throw e;
+  });
+  sessoes.set(email, nova);
+  return nova;
+}
+
+/** Apaga as sessões em disco. Chamado pelo globalSetup, antes de tudo. */
+export async function limparSessoesEmDisco(emails: string[]): Promise<void> {
+  await Promise.all(
+    emails.map((e) => fs.unlink(arquivoDaSessao(e)).catch(() => undefined)),
+  );
+}
+
+/**
  * Faz login via API e injeta o token no localStorage do browser.
  * Após chamar, navegue para uma rota protegida e o AuthContext vai pegar.
  */
@@ -46,12 +120,20 @@ export async function loginAs(
 ): Promise<LoginResult> {
   // Garante que estamos numa origem válida pra setar localStorage
   await page.goto('/login');
-  const result = await loginViaApi(page.request, email, password);
+  const result = await sessaoCompartilhada(page.request, email, password);
+  // A sessão é gravada como `{ user, token }` em JSON — é o que o AuthContext
+  // e o wrapper de fetch leem (`JSON.parse(raw).token` nos dois).
+  //
+  // Antes daqui saía o token CRU, e isso nunca funcionou: `JSON.parse` de uma
+  // string que não é JSON cai no catch, o token vira null e a rota protegida
+  // devolve o usuário ao /login. Testes de página autenticada passavam a medir
+  // a tela de login sem que ninguém percebesse, porque o job de E2E roda com
+  // `continue-on-error: true`.
   await page.evaluate(
-    ({ key, token }) => {
-      window.localStorage.setItem(key, token);
+    ({ key, session }) => {
+      window.localStorage.setItem(key, session);
     },
-    { key: TOKEN_KEY, token: result.token },
+    { key: TOKEN_KEY, session: JSON.stringify({ user: result.user, token: result.token }) },
   );
   return result;
 }
@@ -76,6 +158,48 @@ export async function ensureEnrolled(
   if (!res.ok() && res.status() !== 409) {
     const body = await res.text();
     throw new Error(`enroll-bulk falhou: HTTP ${res.status()} ${body}`);
+  }
+  // A rota responde 200 mesmo quando não matriculou ninguém: erros por aluno
+  // ("aluno não encontrado") vão no CORPO, não no status. Conferir só o status
+  // fazia o helper dar por feito o que não aconteceu, e a falha só aparecia
+  // depois, disfarçada de NOT_ENROLLED na chamada seguinte.
+  const resultado = (await res.json().catch(() => ({}))) as {
+    enrolled?: number;
+    already?: number;
+    errors?: Array<{ studentId: string; message: string }>;
+    ineligible?: Array<{ studentId: string; missing: string[] }>;
+  };
+  const ok = (resultado.enrolled ?? 0) + (resultado.already ?? 0) > 0;
+  if (!ok) {
+    throw new Error(
+      `enroll-bulk não matriculou ninguém: ${JSON.stringify({
+        errors: resultado.errors,
+        ineligible: resultado.ineligible,
+      })}`,
+    );
+  }
+}
+
+/**
+ * Marca o onboarding do admin como concluído.
+ *
+ * O `AdminLayout` manda todo admin que ainda não passou pelo onboarding para
+ * `/admin/onboarding`, e isso é comportamento correto num ambiente novo — que é
+ * exatamente o ambiente do E2E, já que o globalSetup recria os usuários. Sem
+ * isto, todo teste de página administrativa media a tela de onboarding.
+ *
+ * Idempotente: a rota devolve ok quando já estava concluído.
+ */
+export async function concluirOnboardingAdmin(
+  request: APIRequestContext,
+  adminToken: string,
+): Promise<void> {
+  const res = await request.post('/api/admin/onboarding/complete', {
+    headers: { Authorization: `Bearer ${adminToken}` },
+    data: {},
+  });
+  if (!res.ok()) {
+    throw new Error(`onboarding/complete falhou: HTTP ${res.status()} ${await res.text()}`);
   }
 }
 

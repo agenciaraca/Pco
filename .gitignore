@@ -62,6 +62,14 @@ data/session-price-tiers.json
 data/session-bookings.json
 # Ledger de quem já foi avisado de vencimento — e-mail de aluno, um por linha.
 data/access-expiry-notices.json
+# Semente materializada em disco no primeiro boot — mesma natureza de
+# courses.json. Aparecem sozinhos quando o servidor ou o E2E sobem.
+data/achievements.json
+data/live-sessions.json
+data/mentoring-configs.json
+data/question-bank.json
+data/watch-time.json
+data/zoom-config.json
 # Ledger de lembretes de sessão já enviados.
 data/session-reminders.json
 data/news.json

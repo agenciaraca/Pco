@@ -32,9 +32,14 @@ test.describe('Mobile smoke', () => {
     await page.waitForLoadState('networkidle');
     // Catálogo público — sem auth requerido
     await expect(page).toHaveURL(/catalogo/);
-    // Espera ver pelo menos algum cartão ou empty state — tolerante
+    // Espera ver pelo menos algum cartão ou empty state — tolerante.
+    //
+    // Os parênteses importam: `length ?? 0 > 100` é lido como
+    // `length ?? (0 > 100)` — `??` tem precedência menor que `>` — e devolvia
+    // o NÚMERO de caracteres, que nunca é `true`. O teste não tinha como passar
+    // desde que foi escrito, e o `continue-on-error: true` do CI escondia.
     const hasContent = await page.evaluate(() => {
-      return document.body.textContent?.trim().length ?? 0 > 100;
+      return (document.body.textContent?.trim().length ?? 0) > 100;
     });
     expect(hasContent).toBe(true);
   });

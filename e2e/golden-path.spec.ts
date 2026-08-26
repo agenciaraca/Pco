@@ -8,7 +8,8 @@
 import { test, expect } from '@playwright/test';
 import {
   loginAs,
-  loginViaApi,
+  concluirOnboardingAdmin,
+  sessaoCompartilhada,
   ensureEnrolled,
   fetchCourses,
   STUDENT_EMAIL,
@@ -32,7 +33,17 @@ test.describe('AVA PCO golden path — student journey', () => {
     await page.goto('/catalogo');
     await page.waitForLoadState('networkidle');
     expect(page.url()).toContain('/catalogo');
-    await expect(page.locator('body')).toContainText(courses[0].title.slice(0, 20));
+
+    // O catálogo mostra só o que está publicamente listado — `/api/courses`
+    // devolve mais do que isso. Cobrar o PRIMEIRO da lista era cobrar que um
+    // curso não publicado aparecesse: o teste falhava por estar certo o
+    // produto. Basta que ALGUM dos cursos conhecidos esteja na página.
+    const corpo = (await page.locator('body').textContent()) ?? '';
+    const algumVisivel = courses.some((c) => corpo.includes(c.title.slice(0, 20)));
+    expect(
+      algumVisivel,
+      `nenhum dos ${courses.length} cursos apareceu no catálogo público`,
+    ).toBe(true);
   });
 
   test('login student via API + dashboard renderiza', async ({ page }) => {
@@ -54,7 +65,7 @@ test.describe('AVA PCO golden path — student journey', () => {
   }) => {
     test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     // 1) Login admin pra preparar matrícula
-    const admin = await loginViaApi(request, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    const admin = await sessaoCompartilhada(request, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
 
     // 2) Pega curso com pelo menos 1 módulo + 1 lesson
     const courses = await fetchCourses(request);
@@ -79,7 +90,7 @@ test.describe('AVA PCO golden path — student journey', () => {
     const firstLesson = firstModule.lessons[0];
 
     // 3) Login como student via API
-    const student = await loginViaApi(request, STUDENT_EMAIL, STUDENT_PASSWORD);
+    const student = await sessaoCompartilhada(request, STUDENT_EMAIL, STUDENT_PASSWORD);
 
     // 4) Garante matrícula via admin endpoint (idempotente)
     await ensureEnrolled(
@@ -130,9 +141,11 @@ test.describe('AVA PCO golden path — student journey', () => {
     const course = courses[0];
     expect(course).toBeDefined();
 
-    await page.goto(`/aprender/${course.id}`);
+    // A rota é `/curso/:courseId` — `/aprender/...` não existe e caía no 404,
+    // então este teste media a página de erro em vez do conteúdo do curso.
+    await page.goto(`/curso/${course.id}`);
     await page.waitForLoadState('networkidle');
-    expect(page.url()).toContain(`/aprender/${course.id}`);
+    expect(page.url()).toContain(`/curso/${course.id}`);
     await expect(page.locator('body')).toContainText(/módulo|aula|lição|conteúdo/i);
   });
 
@@ -165,9 +178,10 @@ test.describe('AVA PCO golden path — student journey', () => {
 });
 
 test.describe('AVA PCO golden path — admin journey', () => {
-  test('login admin + dashboard renderiza KPIs', async ({ page }) => {
+  test('login admin + dashboard renderiza KPIs', async ({ page, request }) => {
     test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
-    await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    const admin = await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    await concluirOnboardingAdmin(request, admin.token);
     await page.goto('/admin/dashboard');
     await page.waitForLoadState('networkidle');
 
@@ -175,9 +189,10 @@ test.describe('AVA PCO golden path — admin journey', () => {
     await expect(page.locator('body')).toContainText(/dashboard|receita|alunos|certificados/i);
   });
 
-  test('admin acessa health check', async ({ page }) => {
+  test('admin acessa health check', async ({ page, request }) => {
     test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
-    await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    const admin = await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    await concluirOnboardingAdmin(request, admin.token);
     await page.goto('/admin/saude');
     await page.waitForLoadState('networkidle');
 
@@ -185,9 +200,10 @@ test.describe('AVA PCO golden path — admin journey', () => {
     await expect(page.locator('body')).toContainText(/saúde|uptime|memória|health/i);
   });
 
-  test('admin acessa gestão de cursos', async ({ page }) => {
+  test('admin acessa gestão de cursos', async ({ page, request }) => {
     test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
-    await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    const admin = await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    await concluirOnboardingAdmin(request, admin.token);
     await page.goto('/admin/cursos');
     await page.waitForLoadState('networkidle');
 
@@ -195,9 +211,10 @@ test.describe('AVA PCO golden path — admin journey', () => {
     await expect(page.locator('body')).toContainText(/cursos|psican|terapia/i);
   });
 
-  test('admin acessa configuração de Zoom SDK', async ({ page }) => {
+  test('admin acessa configuração de Zoom SDK', async ({ page, request }) => {
     test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
-    await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    const admin = await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+    await concluirOnboardingAdmin(request, admin.token);
     await page.goto('/admin/zoom');
     await page.waitForLoadState('networkidle');
 

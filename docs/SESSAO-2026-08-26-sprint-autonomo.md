@@ -1,6 +1,6 @@
 # Sessão 26/ago/2026 — o dia em que o backlog desbloqueado acabou
 
-Handoff de uma jornada longa em modo autônomo. Quinze commits, todos no
+Handoff de uma jornada longa em modo autônomo. Dezoito commits, todos no
 `origin/main`. Nada foi para produção: **o deploy continua bloqueado** por falta
 da chave SSH nesta máquina (ver `SESSAO-2026-08-25-troca-de-maquina.md`).
 
@@ -143,7 +143,7 @@ caixas que não guardam nada convidam a reuso.
 tem `videoUrl`), fechar a auditoria das contas com uma base que tenha progresso,
 e aplicar o delta da loja.
 
-**Falta deploy.** Quinze commits esperando. O caminho está em `docs/deploy.md` e
+**Falta deploy.** Dezoito commits esperando. O caminho está em `docs/deploy.md` e
 a trava é a chave SSH.
 
 ## Uma coisa que apaguei sem querer

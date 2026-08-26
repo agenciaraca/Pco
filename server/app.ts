@@ -3461,10 +3461,20 @@ export function buildApp() {
         try {
           const s = await studentsRepo.findAdminStudent(studentId);
           if (!s) {
-            errors.push({ studentId, message: 'aluno não encontrado' });
-            continue;
-          }
-          if ((s.enrolledCourseIds ?? []).includes(courseId)) {
+            // Sem ficha, mas com conta de login? Matricular é exatamente o ato
+            // que transforma uma conta em aluno — e `enrollInCourse` já sabe
+            // criar a ficha nesse caso, nos dois backends. Desistir aqui era um
+            // beco sem saída: `createAdminStudent` gera id próprio, então nem
+            // pela tela dava para ligar a ficha à conta existente.
+            //
+            // Não é hipótese: na base de produção há centenas de contas com
+            // login e sem ficha, e o disparo de convites cria mais.
+            const conta = await usersStore.findUserById(studentId);
+            if (!conta) {
+              errors.push({ studentId, message: 'nem conta nem ficha de aluno' });
+              continue;
+            }
+          } else if ((s.enrolledCourseIds ?? []).includes(courseId)) {
             already++;
             continue;
           }

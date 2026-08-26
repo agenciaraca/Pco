@@ -17,8 +17,15 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   // Falha rápido em CI; reruns 1x localmente.
   retries: process.env.CI ? 2 : 0,
-  // Single worker por padrão — webServer compartilhado é mais rápido que paralelo.
-  workers: process.env.CI ? 1 : undefined,
+  // Single worker SEMPRE, e não só em CI.
+  //
+  // O comentário aqui já dizia "single worker por padrão", mas o código deixava
+  // o Playwright abrir um processo por núcleo fora do CI. Cada worker tem o
+  // próprio registro de módulos, logo o próprio cache de sessão — e cada um
+  // fazia o próprio login. Com `/api/auth/login` limitado a 5 por minuto, a
+  // suíte estourava a cota sozinha e metade dos testes falhava com 429. Como o
+  // job de E2E roda com `continue-on-error: true`, ninguém via.
+  workers: 1,
   reporter: process.env.CI ? [['github'], ['list']] : [['list']],
 
   use: {

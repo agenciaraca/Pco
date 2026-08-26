@@ -74,8 +74,17 @@ jobs:
     name: E2E (Playwright smoke)
     runs-on: ubuntu-latest
     needs: build
-    # Não bloqueia o merge — smoke E2E é informativo enquanto cresce a suite.
-    continue-on-error: true
+    # Passa a bloquear o merge (26/ago/2026).
+    #
+    # Enquanto foi informativo, escondeu que metade da suíte NUNCA rodou: um
+    # teste comparava número com `true` e não tinha como passar; o helper de
+    # login gravava o token cru, que nenhuma tela sabe ler; a suíte estourava o
+    # limite de 5 logins/minuto sozinha; e um teste navegava para uma rota
+    # inexistente, medindo a página de 404. Verde por não ser olhado é pior do
+    # que vermelho.
+    #
+    # Se voltar a falhar por flakiness e não por regressão, o certo é consertar
+    # o teste — não devolver o cobertor.
     steps:
       - uses: actions/checkout@v4
 
