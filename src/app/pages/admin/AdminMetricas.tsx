@@ -28,10 +28,14 @@ import {
   Cell,
 } from 'recharts';
 import { useState } from 'react';
-import { useSeoTimeseries, useKeywords } from '../../data/hooks';
+import { useSeoTimeseries, useKeywords, useMetricsStatus } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useT } from '../../i18n';
 
+// Os três blocos abaixo são de DEMONSTRAÇÃO: nunca vieram de medição nenhuma.
+// Ficam para que o layout já exista quando a integração real chegar, e a tela
+// avisa em cima que os números são fictícios — antes ela não avisava, e número
+// com cara de medição é o pior lugar para esconder que não se mediu nada.
 const trafficSources = [
   { name: 'Orgânico', value: 52, color: '#0097B2' },
   { name: 'Direto', value: 22, color: '#0CC0DF' },
@@ -61,6 +65,7 @@ export default function AdminMetricas() {
   const t = useT();
   const [range, setRange] = useState('30d');
   const seriesQ = useSeoTimeseries(range);
+  const statusQ = useMetricsStatus();
   const keywordsQ = useKeywords();
   const seoTimeseries = seriesQ.data ?? [];
   const keywords = keywordsQ.data ?? [];
@@ -77,6 +82,13 @@ export default function AdminMetricas() {
 
   return (
     <div className="space-y-6">
+      {statusQ.data && !statusQ.data.conectado && (
+        <div className="pco-card border-pco-orange/40 bg-pco-orange/5 p-4">
+          <p className="text-sm font-semibold text-pco-orange">Números de demonstração</p>
+          <p className="mt-1 text-xs text-ink-muted">{statusQ.data.observacao}</p>
+        </div>
+      )}
+
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="pco-section-title">{t('admin.nav.metrics')}</h1>

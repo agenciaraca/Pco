@@ -2762,6 +2762,15 @@ export function buildApp() {
 
   // ---------- SEO / Metrics ----------
 
+  /**
+   * De onde vêm os números da tela de métricas.
+   *
+   * Existe porque a tela não tinha como saber, e por isso apresentava dado de
+   * semente como se fosse medição. Aditivo: as rotas antigas não mudaram de
+   * forma.
+   */
+  app.get('/metrics/seo/status', (c) => c.json(metricsRepo.fonteDasMetricas()));
+
   app.get('/metrics/seo/timeseries', async (c) =>
     c.json(await metricsRepo.listSeoTimeseries(c.req.query('range'))),
   );

@@ -2245,6 +2245,17 @@ export async function seedSessionServices(): Promise<{ criados: number }> {
   return http.post('/admin/sessions/services/seed', {});
 }
 
+export interface StatusMetricas {
+  fonte: 'demo' | 'google-analytics' | 'search-console';
+  conectado: boolean;
+  observacao: string;
+}
+
+/** De onde vêm os números da tela de métricas. Ver server/repositories/metrics.ts. */
+export async function fetchMetricsStatus(): Promise<StatusMetricas> {
+  return http.get<StatusMetricas>('/metrics/seo/status');
+}
+
 export async function fetchSessionPolicy(): Promise<{ aviso: string; baseLegal: string }> {
   return http.get('/sessions/policy');
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Stethoscope,
@@ -21,6 +21,8 @@ import {
   useAllBookings,
   useUpdateBooking,
   useCancelBooking,
+  useZoomConfig,
+  useJobs,
   usePriceTiers,
   useSessionPolicy,
   useCreateSessionService,
@@ -597,82 +599,171 @@ function ProfissionaisPane() {
   );
 }
 
+/**
+ * Agenda real.
+ *
+ * O calendário marcava sessões nos dias 4, 9, 12, 15, 21 e 28 — uma lista
+ * escrita à mão, igual em todo mês, para sempre. E "Próximas sessões" listava
+ * Carla, Diego e Renata, que não existem. Enquanto não havia agendamento no
+ * sistema isso era maquete; depois que passou a haver, virou desinformação
+ * apresentada como agenda.
+ */
 function AgendaPane() {
   const { data: professionals = [] } = useAdminProfessionals();
-  const days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-  const today = new Date();
-  const month = today.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
+  const { data: bookings = [], isLoading } = useAllBookings();
+  const [profFiltro, setProfFiltro] = useState<string>('');
+  const [mesOffset, setMesOffset] = useState(0);
+
+  const hoje = new Date();
+  const base = new Date(hoje.getFullYear(), hoje.getMonth() + mesOffset, 1);
+  const ano = base.getFullYear();
+  const mes = base.getMonth();
+  const rotuloMes = base.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+  const diasSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+
+  // Só sessões de pé ocupam a agenda: cancelada não é compromisso de ninguém.
+  const dePe = useMemo(
+    () =>
+      bookings.filter(
+        (b) =>
+          b.status !== 'cancelled' && (!profFiltro || b.professionalId === profFiltro),
+      ),
+    [bookings, profFiltro],
+  );
+
+  /** Quantas sessões em cada dia do mês exibido. */
+  const porDia = useMemo(() => {
+    const mapa = new Map<number, number>();
+    for (const b of dePe) {
+      const d = new Date(b.scheduledFor);
+      if (d.getFullYear() !== ano || d.getMonth() !== mes) continue;
+      mapa.set(d.getDate(), (mapa.get(d.getDate()) ?? 0) + 1);
+    }
+    return mapa;
+  }, [dePe, ano, mes]);
+
+  const proximas = useMemo(() => {
+    const agora = Date.now();
+    return dePe
+      .filter((b) => new Date(b.scheduledFor).getTime() >= agora)
+      .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))
+      .slice(0, 8);
+  }, [dePe]);
 
   return (
     <div className="grid gap-5 lg:grid-cols-3">
       <div className="lg:col-span-2 pco-card">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-pco-deep capitalize">{month}</h3>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <button className="pco-btn-ghost text-xs">Semana</button>
-            <button className="pco-btn-ghost text-xs">Mês</button>
-            <select className="pco-input w-auto text-xs">
-              <option>Todos os profissionais</option>
-              {professionals.map((p) => (
-                <option key={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <button
+              onClick={() => setMesOffset((m) => m - 1)}
+              className="pco-btn-ghost text-xs"
+              aria-label="Mês anterior"
+            >
+              ‹
+            </button>
+            <h3 className="text-base font-semibold text-pco-deep capitalize">{rotuloMes}</h3>
+            <button
+              onClick={() => setMesOffset((m) => m + 1)}
+              className="pco-btn-ghost text-xs"
+              aria-label="Próximo mês"
+            >
+              ›
+            </button>
+            {mesOffset !== 0 && (
+              <button onClick={() => setMesOffset(0)} className="pco-btn-ghost text-xs">
+                Hoje
+              </button>
+            )}
           </div>
+          <select
+            value={profFiltro}
+            onChange={(e) => setProfFiltro(e.target.value)}
+            className="pco-input w-auto text-xs"
+          >
+            <option value="">Todos os profissionais</option>
+            {professionals.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
         </div>
+
         <div className="grid grid-cols-7 gap-1">
-          {days.map((d) => (
+          {diasSemana.map((d, i) => (
             <div
-              key={d}
+              key={`${d}-${i}`}
               className="text-[11px] uppercase tracking-wider text-ink-subtle text-center py-1"
             >
               {d}
             </div>
           ))}
-          {Array.from({ length: firstDay }).map((_, i) => (
-            <div key={`empty-${i}`} />
+          {Array.from({ length: primeiroDia }).map((_, i) => (
+            <div key={`vazio-${i}`} />
           ))}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const isToday = day === today.getDate();
-            const hasSession = [4, 9, 12, 15, 21, 28].includes(day);
+          {Array.from({ length: diasNoMes }).map((_, i) => {
+            const dia = i + 1;
+            const ehHoje =
+              mesOffset === 0 && dia === hoje.getDate() && mes === hoje.getMonth();
+            const quantas = porDia.get(dia) ?? 0;
             return (
-              <button
-                key={day}
-                className={`aspect-square rounded-lg border text-xs font-medium transition-colors ${
-                  isToday
+              <div
+                key={dia}
+                title={quantas ? `${quantas} sessão(ões)` : undefined}
+                className={`aspect-square rounded-lg border text-xs font-medium ${
+                  ehHoje
                     ? 'border-pco-blue bg-pco-blue/10 text-pco-blue'
-                    : 'border-surface-gray text-ink-muted hover:bg-surface-off hover:text-pco-deep'
+                    : 'border-surface-gray text-ink-muted'
                 }`}
               >
                 <div className="relative h-full grid place-items-center">
-                  {day}
-                  {hasSession && (
-                    <span className="absolute bottom-1 h-1 w-1 rounded-full bg-pco-orange" />
+                  {dia}
+                  {quantas > 0 && (
+                    <span className="absolute bottom-1 text-[9px] font-semibold text-pco-orange">
+                      {quantas}
+                    </span>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
+        {!isLoading && dePe.length === 0 && (
+          <p className="mt-4 text-xs text-ink-muted">
+            Nenhuma sessão agendada ainda — os pontos aparecem quando houver.
+          </p>
+        )}
       </div>
 
       <div className="pco-card">
         <h3 className="text-base font-semibold text-pco-deep mb-3">Próximas sessões</h3>
-        <ul className="space-y-2">
-          {[
-            { time: '14:00', name: 'Carla Mendes', svc: 'Análise Pessoal' },
-            { time: '16:00', name: 'Diego R.', svc: 'Supervisão Clínica' },
-            { time: '09:00', name: 'Renata B.', svc: 'Orientação Formativa' },
-          ].map((s, i) => (
-            <li key={i} className="rounded-xl bg-surface-off p-3">
-              <div className="text-[11px] font-semibold text-pco-blue">{s.time}</div>
-              <div className="text-sm font-semibold text-pco-deep">{s.name}</div>
-              <div className="text-[11px] text-ink-subtle">{s.svc}</div>
-            </li>
-          ))}
-        </ul>
+        {isLoading ? (
+          <p className="text-xs text-ink-muted">Carregando…</p>
+        ) : proximas.length === 0 ? (
+          <p className="text-xs text-ink-muted">Nada marcado daqui para frente.</p>
+        ) : (
+          <ul className="space-y-2">
+            {proximas.map((b) => (
+              <li key={b.id} className="rounded-xl bg-surface-off p-3">
+                <div className="text-[11px] font-semibold text-pco-blue">
+                  {new Date(b.scheduledFor).toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </div>
+                <div className="text-sm font-semibold text-pco-deep">{b.userEmail}</div>
+                <div className="text-[11px] text-ink-subtle">
+                  {b.serviceName} · {b.professionalName}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
@@ -799,51 +890,89 @@ function ValoresPane() {
   );
 }
 
+/**
+ * Integrações — o que existe, e o que não existe.
+ *
+ * Esta aba dizia "Google Calendar: Conectado" e "Google Meet: Conectado". Nem
+ * uma nem outra existem no sistema. Um admin lia isso e concluía que a sessão
+ * agendada apareceria na agenda dele — não aparece, e ele descobriria faltando
+ * ao atendimento. Havia também interruptores de lembrete marcados que não
+ * ligavam em coisa nenhuma.
+ *
+ * Agora a aba mostra estado real: o Zoom, que de fato existe, aparece com a
+ * configuração dele; o resto aparece como não implementado, sem botão de
+ * "Conectar" que não conecta. E os lembretes, que passaram a existir de
+ * verdade, mostram o estado do worker em vez de um toggle decorativo.
+ */
 function IntegracoesPane() {
-  const integrations = [
-    { name: 'Google Calendar', status: 'Conectado', ok: true },
-    { name: 'Google Meet', status: 'Conectado', ok: true },
-    { name: 'Zoom', status: 'Não conectado', ok: false },
-    { name: 'Microsoft Teams', status: 'Não conectado', ok: false },
-    { name: 'Whereby', status: 'Não conectado', ok: false },
-  ];
+  const { data: zoom } = useZoomConfig();
+  const { data: jobsData } = useJobs();
+
+  const lembretes = jobsData?.jobs?.find((j) => j.name === 'session-reminders');
+  const zoomConfigurado = Boolean(
+    (zoom as { accountId?: string; clientId?: string } | undefined)?.clientId,
+  );
+
+  const naoImplementadas = ['Google Calendar', 'Google Meet', 'Microsoft Teams', 'Whereby'];
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-2">
-        {integrations.map((i) => (
-          <div key={i.name} className="pco-card flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold text-pco-deep">{i.name}</div>
-              <div className="text-[11px] text-ink-subtle">{i.status}</div>
+      <div className="pco-card">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="text-sm font-semibold text-pco-deep">Zoom</div>
+            <div className="text-[11px] text-ink-subtle">
+              {zoomConfigurado
+                ? 'Configurado — sessões ao vivo podem usar o SDK do Zoom.'
+                : 'Não configurado.'}
             </div>
-            <button className={i.ok ? 'pco-btn-secondary text-xs' : 'pco-btn-primary text-xs'}>
-              {i.ok ? 'Configurar' : 'Conectar'}
-            </button>
           </div>
-        ))}
+          <Link to="/admin/zoom" className="pco-btn-secondary text-xs">
+            {zoomConfigurado ? 'Configurar' : 'Conectar'}
+          </Link>
+        </div>
       </div>
 
-      <div className="pco-card space-y-4">
-        <h3 className="text-base font-semibold text-pco-deep">Configurações gerais</h3>
-        <Field label="Provedor padrão de reunião">
-          <select className="pco-input">
-            <option>Google Meet</option>
-            <option>Zoom</option>
-            <option>Microsoft Teams</option>
-            <option>Whereby</option>
-            <option>Link manual</option>
-          </select>
-        </Field>
-        <Field label="Fuso horário">
-          <select className="pco-input">
-            <option>America/Sao_Paulo (UTC-03)</option>
-          </select>
-        </Field>
-        <div className="space-y-2 text-sm">
-          <Toggle label="Criar link de reunião automaticamente" defaultChecked />
-          <Toggle label="Enviar lembrete 24h antes" defaultChecked />
-          <Toggle label="Enviar lembrete 1h antes" defaultChecked />
+      <div className="pco-card">
+        <h3 className="text-base font-semibold text-pco-deep">Lembretes automáticos</h3>
+        <p className="mt-1 text-xs text-ink-muted">
+          O aluno recebe aviso 24h e 1h antes da sessão, por notificação e e-mail. Um lembrete
+          por faixa, nunca repetido.
+        </p>
+        <div className="mt-3 flex items-center gap-2 text-xs">
+          <span
+            className={`pco-badge ${
+              lembretes?.enabled
+                ? 'bg-status-success/10 text-status-success'
+                : 'bg-surface-gray text-ink-muted'
+            }`}
+          >
+            {lembretes?.enabled ? 'Ativo' : 'Parado'}
+          </span>
+          {lembretes?.lastRunAt && (
+            <span className="text-ink-subtle">
+              última varredura: {new Date(lembretes.lastRunAt).toLocaleString('pt-BR')}
+            </span>
+          )}
+          <Link to="/admin/jobs" className="text-pco-blue underline">
+            ver em Jobs
+          </Link>
         </div>
+      </div>
+
+      <div className="pco-card">
+        <h3 className="text-base font-semibold text-pco-deep">Ainda não implementadas</h3>
+        <p className="mt-1 text-xs text-ink-muted">
+          O link da reunião é colocado à mão pela coordenação, na aba Agendamentos. Enquanto
+          nenhuma destas existir, é assim que ele chega ao aluno.
+        </p>
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {naoImplementadas.map((nome) => (
+            <li key={nome} className="pco-badge bg-surface-gray text-ink-muted">
+              {nome}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
@@ -1055,15 +1184,3 @@ function Tile({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Toggle({ label, defaultChecked }: { label: string; defaultChecked?: boolean }) {
-  return (
-    <label className="flex items-center gap-2 cursor-pointer">
-      <input
-        type="checkbox"
-        defaultChecked={defaultChecked}
-        className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
-      />
-      <span>{label}</span>
-    </label>
-  );
-}

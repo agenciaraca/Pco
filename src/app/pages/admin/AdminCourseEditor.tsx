@@ -3149,15 +3149,3 @@ function Row({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function Check({ label, defaultChecked }: { label: string; defaultChecked?: boolean }) {
-  return (
-    <label className="flex items-center gap-2 cursor-pointer">
-      <input
-        type="checkbox"
-        defaultChecked={defaultChecked}
-        className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
-      />
-      <span>{label}</span>
-    </label>
-  );
-}

@@ -105,6 +105,35 @@ perde um uso quando duas compras acontecem juntas.
 Ferramenta de duração real das aulas — que **nunca inventa duração**; e a
 autoria passou a ser institucional, com o molde de pessoa saindo do repositório.
 
+## Varredura: outras telas que mentiam
+
+Depois de achar duas por acaso, fiz a busca que faltava. Encontrei mais três, e
+todas no mesmo padrão — interface afirmando o que o sistema não faz:
+
+| tela | o que afirmava | o que era verdade |
+|---|---|---|
+| `AgendaPane` (admin sessões) | calendário com sessões nos dias 4, 9, 12, 15, 21 e 28 | lista escrita à mão, igual em todo mês, para sempre |
+| `AgendaPane` → "Próximas sessões" | Carla, Diego e Renata | não existem |
+| `IntegracoesPane` | "Google Calendar: **Conectado**", "Google Meet: **Conectado**" | nenhuma das duas existe no sistema |
+| `IntegracoesPane` | interruptores de lembrete marcados | não ligavam em nada |
+| `/admin/metricas` | 52% tráfego orgânico, 4.820 views em `/cursos/...`, "Erros 404: 7" | semente de demonstração, desde sempre |
+
+A das métricas é a mais perigosa das cinco. Uma lista de agendamentos vazia é
+obviamente vazia; um número tem cara de medição. Um admin podia olhar "52% de
+tráfego orgânico" e decidir investir em SEO com base em ficção — e o servidor
+já sabia que era demo, só não contava a ninguém.
+
+**As correções:** agenda e próximas sessões passaram a ler agendamentos reais,
+com contador por dia e filtro por profissional; a aba de integrações mostra o
+Zoom (que existe) com o estado real, os lembretes com o status do worker, e o
+resto numa lista honesta de "ainda não implementadas"; a tela de métricas ganhou
+faixa de aviso alimentada por `GET /metrics/seo/status`, uma rota nova cujo
+único trabalho é dizer de onde vêm os números — para que no dia da integração
+real só ela mude.
+
+Dois controles decorativos (`Toggle` e `Check`) ficaram órfãos e foram removidos:
+caixas que não guardam nada convidam a reuso.
+
 ## O que ficou por fazer, e por quê
 
 **Só depende do dono:** cadastrar profissionais reais, a grade do curso, trocar

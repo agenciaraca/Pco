@@ -226,6 +226,10 @@ export function useUpdateBooking() {
   });
 }
 
+export function useMetricsStatus() {
+  return useQuery({ queryKey: ['metrics', 'status'] as const, queryFn: api.fetchMetricsStatus });
+}
+
 export function usePriceTiers() {
   return useQuery({ queryKey: ['session-price-tiers'], queryFn: api.fetchPriceTiers });
 }
