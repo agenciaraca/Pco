@@ -7,7 +7,6 @@ import {
   Edit3,
   Trash2,
   Star,
-  Eye,
   Calendar,
   X,
   Save,
@@ -242,12 +241,13 @@ export default function AdminNews() {
                         >
                           <Edit3 size={12} strokeWidth={1.75} />
                         </button>
-                        <button
-                          className="pco-btn-ghost text-xs px-2.5"
-                          title="Pré-visualizar"
-                        >
-                          <Eye size={12} strokeWidth={1.75} />
-                        </button>
+                        {/*
+                          Havia aqui um botão de pré-visualizar sem ação, e sem
+                          para onde ir: `NewsArticle` não tem slug e a notícia
+                          não tem página própria — a lista em /news mostra
+                          resumo, não corpo. Botão que não pode existir some;
+                          quando houver página da notícia, ele volta.
+                        */}
                         <button
                           onClick={() => setConfirmDelete(a)}
                           className="pco-btn-ghost text-xs px-2.5 text-status-danger hover:bg-status-danger/10"

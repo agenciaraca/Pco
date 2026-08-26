@@ -167,6 +167,15 @@ repassar o parâmetro e o botão levar até lá. Conferido contra o servidor: co
 duas questões em módulos diferentes, sem filtro vêm as duas e com
 `moduleId=mod-A` vem só a de A.
 
+No podcast, "Favoritar" tinha backend inteiro — o campo `favorite` e a rota
+`PUT /podcasts/:id/engagement` —, e o hook até já estava importado na página.
+Faltava ligar. "Compartilhar" não precisava de backend nenhum: copiar o endereço
+resolve, e o rótulo confirma que copiou.
+
+Duas pré-visualizações **não** foram mexidas, e é deliberado: os botões dentro
+de `/admin/login-customizar` e `/admin/login-modelos` são desenhos do login,
+não controles — botão numa maquete de tela é a maquete, não uma promessa.
+
 O resto virou o que podia ser verdade: "Atualizar" recarrega de fato; "Exportar
 relatório" fica desabilitado dizendo por quê (exportar número de demonstração
 seria pior do que não ter o botão — viraria planilha com cara de medição

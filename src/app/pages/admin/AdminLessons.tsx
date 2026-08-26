@@ -83,10 +83,18 @@ export default function AdminLessons() {
             Cadastro e gestão de aulas em todos os cursos.
           </p>
         </div>
-        <button className="pco-btn-primary text-xs">
+        {/*
+          Aula se cria dentro do curso, no editor — esta tela lista e edita.
+          O botão não tinha ação; agora leva para onde a criação existe.
+        */}
+        <Link
+          to="/admin/cursos"
+          title="Aulas são criadas dentro do curso, no editor"
+          className="pco-btn-primary text-xs"
+        >
           <Plus size={12} strokeWidth={2} />
           Nova aula
-        </button>
+        </Link>
       </header>
 
       <div className="pco-card p-4 flex flex-wrap items-center gap-3">

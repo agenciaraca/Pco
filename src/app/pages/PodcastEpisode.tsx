@@ -18,6 +18,7 @@ import {
   useCourses,
   useLibrary,
   useSetPodcastEngagement,
+  useMyPodcastEngagement,
 } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 
@@ -31,6 +32,9 @@ export default function PodcastEpisode() {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [markedListened, setMarkedListened] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+  const { data: engajamento = [] } = useMyPodcastEngagement();
+  const favorito = engajamento.some((e) => e.episodeId === id && e.favorite);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -168,13 +172,45 @@ export default function PodcastEpisode() {
           </div>
 
           <div className="flex items-center justify-center gap-2 text-xs text-ink-muted">
-            <button className="pco-btn-ghost text-xs">
-              <Heart size={12} strokeWidth={1.75} />
-              Favoritar
+            {/*
+              Os dois botões não faziam nada. Favoritar tinha backend inteiro
+              (`PUT /podcasts/:id/engagement` com o campo `favorite`) e o hook
+              já estava importado nesta página — faltava ligar. Compartilhar não
+              precisa de backend nenhum: copiar o endereço resolve.
+            */}
+            <button
+              type="button"
+              onClick={() =>
+                setEng.mutate({ episodeId: episode.id, patch: { favorite: !favorito } })
+              }
+              disabled={setEng.isPending}
+              className="pco-btn-ghost text-xs disabled:opacity-60"
+              aria-pressed={favorito}
+            >
+              <Heart
+                size={12}
+                strokeWidth={1.75}
+                className={favorito ? 'fill-pco-orange text-pco-orange' : undefined}
+              />
+              {favorito ? 'Favoritado' : 'Favoritar'}
             </button>
-            <button className="pco-btn-ghost text-xs">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  setCopiado(true);
+                  window.setTimeout(() => setCopiado(false), 2000);
+                } catch {
+                  // Navegador sem permissão de área de transferência: melhor não
+                  // fingir que copiou.
+                  setCopiado(false);
+                }
+              }}
+              className="pco-btn-ghost text-xs"
+            >
               <Share2 size={12} strokeWidth={1.75} />
-              Compartilhar
+              {copiado ? 'Link copiado' : 'Compartilhar'}
             </button>
           </div>
         </div>
