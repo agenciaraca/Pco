@@ -516,6 +516,50 @@ export const sessionBookings = pgTable('session_bookings', {
   orderId: text('order_id'),
 });
 
+/**
+ * Pedido de compra.
+ *
+ * Viveu só em `data/payment-orders.json` até 26/ago/2026 — registro de dinheiro
+ * fora do banco, sem backup transacional e sem consulta. A migração segue o
+ * molde de `repositories/courses.ts`: lê do banco primeiro, cai no JSON quando
+ * a tabela está vazia, e o caminho JSON não é apagado.
+ *
+ * `productSnapshot` e `events` são jsonb porque são exatamente isso — uma cópia
+ * congelada e um log cronológico. Normalizá-los daria três tabelas para
+ * responder à mesma pergunta.
+ */
+export const paymentOrders = pgTable('payment_orders', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  userEmail: text('user_email').notNull().default(''),
+  productId: text('product_id').notNull(),
+  productSnapshot: jsonb('product_snapshot')
+    .$type<{
+      name: string;
+      priceCents: number;
+      currency: string;
+      kind: string;
+      refId: string | null;
+    }>()
+    .notNull(),
+  gatewayId: text('gateway_id').notNull(),
+  gatewayProvider: text('gateway_provider').notNull(),
+  /** ID do pagamento no gateway. */
+  externalId: text('external_id'),
+  status: text('status').notNull().default('pending'),
+  amountCents: integer('amount_cents').notNull().default(0),
+  currency: text('currency').notNull().default('BRL'),
+  events: jsonb('events')
+    .$type<Array<{ ts: string; status: string; note?: string }>>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  checkoutUrl: text('checkout_url'),
+  qrCode: text('qr_code'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  paidAt: text('paid_at'),
+});
+
 // ---------- AI Configurations ----------
 
 export const aiConfigurations = pgTable('ai_configurations', {

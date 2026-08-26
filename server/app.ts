@@ -4693,6 +4693,15 @@ export function buildApp() {
   );
 
   // Admin: muda status manualmente (cancelar/refund)
+  /**
+   * Leva os pedidos do JSON para a tabela. Idempotente, não apaga a origem.
+   *
+   * Existe como rota porque quem precisa disso é o dono, e ele não tem shell.
+   */
+  app.post('/admin/payments/orders/migrar', requireAuth('superadmin'), async (c) =>
+    c.json(await ordersRepo.migrarJsonParaBanco()),
+  );
+
   app.put('/admin/orders/:id/status', requireAuth('admin', 'superadmin'), async (c) => {
     const id = c.req.param('id') as string;
     const body = await c.req.json().catch(() => ({}));

@@ -75,7 +75,12 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
   Progresso sem ficha é a evidência definitiva, e o script já a procura.
 - ◐ Delta da loja: 16 pedidos, 15 pessoas sem conta.
   `scripts/sync_wc_delta.ts` pronto e ensaiado contra produção; falta aplicar.
-- ○ Pedidos, banco de questões e cupons vivem em `data/*.json`, sem tabela.
+- ✅ **Pedidos no banco** (26/ago/2026). Tabela `payment_orders` + migration
+  0011, no molde de `courses.ts`: lê do banco, cai no JSON quando a tabela está
+  vazia, caminho JSON preservado. `POST /admin/payments/orders/migrar`
+  (superadmin, idempotente, não apaga a origem) leva o que está no JSON para a
+  tabela — existe como rota porque quem precisa disso não tem shell.
+- ○ Banco de questões e cupons ainda vivem em `data/*.json`, sem tabela.
 
 ## Onda 10 — PCO 2.0 (página de vendas)
 

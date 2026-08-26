@@ -78,6 +78,13 @@
       "when": 1787748949782,
       "tag": "0010_agendamento_pedido",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787752011612,
+      "tag": "0011_pedidos_no_banco",
+      "breakpoints": true
     }
   ]
 }

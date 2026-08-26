@@ -129,3 +129,26 @@ Cupom aplicado entra em `order.events[].note` como `couponId=xxx`. Quando a orde
 |---|---|
 | `AI_KEY_ENCRYPTION_SECRET` | Master key AES-GCM (obrigatório em prod) |
 | `PUBLIC_ORIGIN` | URL pública para success_url/cancel_url dos providers |
+
+## Onde o pedido mora
+
+Desde 26/ago/2026, na tabela `payment_orders` (migration 0011) quando há
+`DATABASE_URL`; em `data/payment-orders.json` quando não há. O molde é o de
+`repositories/courses.ts`: **lê do banco primeiro e cai no JSON se a tabela
+estiver vazia**, porque tabela vazia é banco novo, não "sem pedidos" — cair no
+JSON preserva o histórico de quem ainda não migrou.
+
+Por que valia migrar: pedido é registro de dinheiro. Enquanto viveu só em
+arquivo, ficou fora do backup transacional, fora de qualquer consulta e sujeito
+a se perder junto com o arquivo. O agendamento de sessão, que passou a gerar
+pedidos no mesmo dia, herdaria o mesmo risco.
+
+`POST /admin/payments/orders/migrar` (só superadmin) leva o que está no JSON
+para a tabela. É idempotente — compara por id e pula o que já existe — e **não
+apaga a origem**: se der errado no meio, o JSON continua inteiro e a chamada
+pode ser repetida. Existe como rota, e não só como script, porque quem precisa
+dela não tem shell.
+
+Um detalhe que o teste crava: **`paidAt` é gravado uma vez só**. Gateways
+reenviam webhook, e a data em que o dinheiro entrou não pode andar a cada
+reenvio.
