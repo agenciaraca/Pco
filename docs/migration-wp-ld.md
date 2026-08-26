@@ -498,3 +498,36 @@ ficam fora da v1. Importar para JSON hoje é importar para lugar nenhum.
   comandos da app via `sudo -u avapco -i`. O host `177.7.35.13` está morto.
 - `DATABASE_URL` do DivZ: no `.env` do VPS. **Pendente de rotação** — passou por
   chat em julho.
+
+## Contas com login e sem ficha de aluno — de onde vieram
+
+`scripts/auditar_contas_sem_ficha.ts` (só lê) responde a pergunta que trava o
+disparo dos convites. A distinção importa dos dois lados: cliente da loja
+convidado para o AVA recebe acesso a um ambiente onde não tem nada; aluno com
+matrícula perdida convidado sem a matrícula de volta conclui que perdeu o que
+pagou.
+
+O método usa a origem prefixada que a correção v3 introduziu (`psi:` = loja,
+`portal:` = LMS) e cruza com três perguntas: de onde a conta veio, existe
+referência de matrícula sem ficha, e existe progresso de aula sem ficha.
+
+Medido na base local em 26/ago/2026:
+
+| | contas | |
+|---|---|---|
+| com login | 1.590 | |
+| com ficha de aluno | 615 | |
+| **sem ficha** | **989** | |
+| — só da loja (`psi:`) | 763 (77,1%) | nunca foram alunas |
+| — com presença no portal (`portal:`) | 222 (22,4%) | é aqui que mora a dúvida |
+| — matrículas órfãs | **0** | nenhuma matrícula perdeu a ficha |
+
+Zero matrículas órfãs é o achado que mais pesa: **nenhuma referência de
+matrícula aponta para conta sem ficha**, o que afasta a hipótese de a migração
+ter perdido matrícula dessas pessoas.
+
+**O que ainda falta, e por que não dá para fechar aqui:** a evidência
+definitiva seria progresso de aula sem ficha — quem estudou e ficou sem
+matrícula. A base local não tem nenhum registro de progresso, então o script
+responde `INCONCLUSIVO` em vez de "ninguém estudou". Rodar contra produção, ou
+sobre um dump com progresso, fecha a questão.

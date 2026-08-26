@@ -58,9 +58,16 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
 
 ## Onda 9 — O que a migração deixou para trás
 
-- ◐ **990 de 1.605 contas têm login e nenhuma matrícula.** Podem ser clientes só
-  da loja ou matrículas perdidas na migração. Ninguém foi convidado ainda, então
-  não há dano — mas é preciso saber qual dos dois é antes do disparo.
+- ◐ **~990 contas com login e nenhuma matrícula: em boa parte respondido**
+  (26/ago/2026). `scripts/auditar_contas_sem_ficha.ts` responde pela origem, que
+  a correção v3 passou a prefixar. Na base local: 989 sem ficha, das quais
+  **763 (77%) só existem na loja** — nunca foram alunas, explicação benigna — e
+  **222 (22%) têm presença no portal/LMS**, que é onde mora a dúvida.
+  **Zero matrículas órfãs**: nenhuma referência de matrícula aponta para conta
+  sem ficha, o que afasta a hipótese de a migração ter perdido matrícula.
+  Falta rodar contra produção e sobre uma base **com progresso carregado** — na
+  local não há progresso, então "ninguém estudou" seria conclusão sem prova.
+  Progresso sem ficha é a evidência definitiva, e o script já a procura.
 - ◐ Delta da loja: 16 pedidos, 15 pessoas sem conta.
   `scripts/sync_wc_delta.ts` pronto e ensaiado contra produção; falta aplicar.
 - ○ Pedidos, banco de questões e cupons vivem em `data/*.json`, sem tabela.
