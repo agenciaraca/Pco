@@ -17,14 +17,19 @@ const BASE_URL = (import.meta.env.VITE_API_URL ?? '/api').replace(/\/$/, '');
 const STORAGE_KEY = 'ava-pco-auth';
 
 function getToken(): string | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.token ?? null;
-  } catch {
-    return null;
+  // Os dois armazenamentos, na mesma ordem do AuthContext: sessão temporária
+  // ("lembrar de mim" desmarcado) vive no sessionStorage e tem precedência.
+  for (const store of [sessionStorage, localStorage]) {
+    try {
+      const raw = store.getItem(STORAGE_KEY);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      if (parsed?.token) return parsed.token as string;
+    } catch {
+      // Armazenamento bloqueado ou conteúdo corrompido: tenta o próximo.
+    }
   }
+  return null;
 }
 
 interface RequestOptions extends RequestInit {

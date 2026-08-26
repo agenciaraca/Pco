@@ -21,6 +21,9 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
+  // Marcado por padrão: é o comportamento que todo mundo já tinha, e mudá-lo
+  // em silêncio deslogaria a base inteira no próximo fechamento de navegador.
+  const [lembrar, setLembrar] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totpTicket, setTotpTicket] = useState<string | null>(null);
@@ -54,7 +57,7 @@ export default function Login() {
     }
     setSubmitting(true);
     try {
-      const result = await login(cleanEmail, password);
+      const result = await login(cleanEmail, password, lembrar);
       if ('totpRequired' in result) {
         setTotpTicket(result.ticket);
         setSubmitting(false);
@@ -82,7 +85,7 @@ export default function Login() {
     }
     setSubmitting(true);
     try {
-      const u = await completeTotpLogin(totpTicket, totpCode.trim());
+      const u = await completeTotpLogin(totpTicket, totpCode.trim(), lembrar);
       const target = u.role === 'admin' || u.role === 'superadmin' ? '/admin/dashboard' : from;
       navigate(target, { replace: true });
     } catch (err) {
@@ -272,8 +275,17 @@ export default function Login() {
 
             <div className="flex items-center justify-between text-xs">
               <label className="inline-flex items-center gap-2 text-ink-muted">
+                {/*
+                  A caixa não tinha estado nem onChange: marcada ou não, a
+                  sessão ia para o localStorage e sobrevivia a fechar o
+                  navegador. Quem usa computador compartilhado desmarcava e
+                  continuava logado. Agora ela decide de fato onde a sessão
+                  mora — ver `writeSession` no AuthContext.
+                */}
                 <input
                   type="checkbox"
+                  checked={lembrar}
+                  onChange={(e) => setLembrar(e.target.checked)}
                   className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
                 />
                 {t('auth.rememberMe')}

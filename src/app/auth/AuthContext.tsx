@@ -30,11 +30,13 @@ interface AuthContextValue {
   loading: boolean;
   /** null se sessão atual não é impersonation. */
   impersonation: ImpersonationState | null;
+  /** `lembrar` decide onde a sessão mora — ver `writeSession`. Default: true. */
   login: (
     email: string,
     password: string,
+    lembrar?: boolean,
   ) => Promise<AuthUser | { totpRequired: true; ticket: string }>;
-  completeTotpLogin: (ticket: string, code: string) => Promise<AuthUser>;
+  completeTotpLogin: (ticket: string, code: string, lembrar?: boolean) => Promise<AuthUser>;
   logout: () => void;
   logoutAllDevices: () => Promise<void>;
   patchUser: (patch: Partial<AuthUser>) => void;
@@ -56,19 +58,53 @@ interface StoredSession {
   token: string;
 }
 
+/**
+ * "Lembrar de mim" passa a significar alguma coisa.
+ *
+ * A caixa existia na tela de login desde sempre, sem estado e sem `onChange`:
+ * marcada ou não, a sessão ia para o `localStorage` e sobrevivia a fechar o
+ * navegador. Quem usa computador compartilhado desmarcava e continuava logado
+ * — a promessa mais fácil de quebrar sem ninguém notar.
+ *
+ * Agora a escolha decide onde a sessão mora:
+ *
+ * - **marcada** (padrão): `localStorage` — sobrevive a fechar o navegador;
+ * - **desmarcada**: `sessionStorage` — some quando a aba fecha.
+ *
+ * A leitura olha os dois, começando pelo `sessionStorage`: se alguém tem sessão
+ * temporária, é ela que vale, mesmo que sobre um resto de sessão antiga no
+ * `localStorage`.
+ */
 function readSession(): StoredSession | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as StoredSession;
-  } catch {
-    return null;
+  for (const store of [sessionStorage, localStorage]) {
+    try {
+      const raw = store.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw) as StoredSession;
+    } catch {
+      // Armazenamento bloqueado ou conteúdo corrompido: tenta o próximo.
+    }
   }
+  return null;
 }
 
-function writeSession(session: StoredSession | null) {
-  if (session) localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  else localStorage.removeItem(STORAGE_KEY);
+function writeSession(session: StoredSession | null, lembrar = true) {
+  // Sempre limpa os dois antes de gravar: sem isto, trocar de "lembrar" para
+  // "não lembrar" deixaria a sessão antiga no localStorage sobrevivendo ao
+  // fechamento do navegador — exatamente o que o usuário pediu para não
+  // acontecer.
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Sem armazenamento disponível: nada a limpar.
+  }
+  if (!session) return;
+  try {
+    const destino = lembrar ? localStorage : sessionStorage;
+    destino.setItem(STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // Modo privado com cota zerada: a sessão vive só em memória, nesta aba.
+  }
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -134,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (
       email: string,
       password: string,
+      lembrar = true,
     ): Promise<AuthUser | { totpRequired: true; ticket: string }> => {
       const res = await api.login(email, password);
       if (res.totpRequired && res.ticket) {
@@ -143,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Resposta de login inválida.');
       }
       const stored: StoredSession = { user: res.user as AuthUser, token: res.token };
-      writeSession(stored);
+      writeSession(stored, lembrar);
       setUser(res.user as AuthUser);
       return res.user as AuthUser;
     },
@@ -151,10 +188,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const completeTotpLogin = useCallback(
-    async (ticket: string, code: string): Promise<AuthUser> => {
+    async (ticket: string, code: string, lembrar = true): Promise<AuthUser> => {
       const { user: u, token } = await api.loginVerifyTotp(ticket, code);
       const stored: StoredSession = { user: u as AuthUser, token };
-      writeSession(stored);
+      writeSession(stored, lembrar);
       setUser(u as AuthUser);
       return u as AuthUser;
     },

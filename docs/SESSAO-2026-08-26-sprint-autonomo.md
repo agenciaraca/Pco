@@ -172,6 +172,16 @@ No podcast, "Favoritar" tinha backend inteiro — o campo `favorite` e a rota
 Faltava ligar. "Compartilhar" não precisava de backend nenhum: copiar o endereço
 resolve, e o rótulo confirma que copiou.
 
+**E a caixa mais visitada do sistema.** Uma terceira passada, agora atrás de
+campos que não guardam o que você escolhe, achou o "lembrar de mim" da tela de
+login: sem estado, sem `onChange`, sem `name`. Marcada ou não, a sessão ia para
+o `localStorage` e sobrevivia a fechar o navegador — quem usa computador
+compartilhado desmarcava e continuava logado. Agora a escolha decide onde a
+sessão mora: `localStorage` quando marcada (o padrão, que preserva o
+comportamento de todo mundo) e `sessionStorage` quando não. Trocar de uma para
+a outra limpa os dois lados, senão a sessão antiga sobreviveria justamente no
+caso que o recurso existe para evitar.
+
 Duas pré-visualizações **não** foram mexidas, e é deliberado: os botões dentro
 de `/admin/login-customizar` e `/admin/login-modelos` são desenhos do login,
 não controles — botão numa maquete de tela é a maquete, não uma promessa.
