@@ -214,10 +214,19 @@ export default function AdminModules() {
             Visão cruzada dos módulos em todos os cursos.
           </p>
         </div>
-        <button className="pco-btn-primary text-xs">
+        {/*
+          Módulo se cria dentro do curso, no editor — esta tela só lista, edita
+          e exclui. O botão não tinha ação nenhuma; agora leva para onde a ação
+          existe, em vez de fingir que existe aqui.
+        */}
+        <Link
+          to="/admin/cursos"
+          title="Módulos são criados dentro do curso, no editor"
+          className="pco-btn-primary text-xs"
+        >
           <Plus size={12} strokeWidth={2} />
           Novo módulo
-        </button>
+        </Link>
       </header>
 
       {/* Filtros avançados recolhíveis */}

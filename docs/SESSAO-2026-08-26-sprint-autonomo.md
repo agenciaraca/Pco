@@ -134,6 +134,36 @@ real só ela mude.
 Dois controles decorativos (`Toggle` e `Check`) ficaram órfãos e foram removidos:
 caixas que não guardam nada convidam a reuso.
 
+## Segunda varredura: botões que não fazem nada
+
+Depois das telas, o outro sinal do mesmo problema — controle que parece
+funcionar e não funciona. Vinte e cinco botões sem ação em doze arquivos. Os que
+importavam:
+
+| onde | botão | o que era |
+|---|---|---|
+| `/admin/reengajamento` | seis, a tela inteira | maquete: campanhas com "38 enviados, 14 respostas" que nunca aconteceram |
+| `/admin/usuarios/:id` | **Bloquear / Desbloquear** | o admin clicava e saía achando que trancou o acesso de alguém |
+| `/admin/usuarios/:id` | Enviar e-mail | sem ação |
+| `/admin/metricas` | Atualizar, Exportar relatório | sem ação |
+| `/admin/modulos` | Novo módulo | módulo se cria no editor do curso, não ali |
+| `/admin/biblioteca` | favoritar, baixar | favoritar é do aluno; o arquivo mora em `fileMockUrl`, que vale `'#'` |
+
+**O caso do reengajamento merece nota.** Havia duas telas para a mesma coisa:
+`/admin/reengajamento`, maquete completa, e `/admin/reengajamento-auto`, a real
+— com worker, configuração e histórico de envio. As duas no menu, lado a lado, e
+o admin naturalmente clica na primeira. A maquete foi removida e a rota antiga
+passa a redirecionar para a que funciona.
+
+**Bloquear/desbloquear era o pior**, porque é ação de acesso: os hooks já
+existiam, o botão só nunca foi ligado. Agora liga, com confirmação por toast.
+
+O resto virou o que podia ser verdade: "Atualizar" recarrega de fato; "Exportar
+relatório" fica desabilitado dizendo por quê (exportar número de demonstração
+seria pior do que não ter o botão — viraria planilha com cara de medição
+circulando por aí); "Novo módulo" leva para onde a criação existe; e os dois
+ícones decorativos da biblioteca saíram.
+
 ## A suíte E2E estava verde porque metade nunca rodou
 
 O job de E2E sempre rodou com `continue-on-error: true`. Isso escondeu quatro

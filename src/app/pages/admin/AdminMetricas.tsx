@@ -107,11 +107,35 @@ export default function AdminMetricas() {
             <option value="90d">Últimos 90 dias</option>
             <option value="365d">Este ano</option>
           </select>
-          <button className="pco-btn-secondary text-xs">
+          {/* Recarregar é o que "Atualizar" sempre prometeu e nunca fez. */}
+          <button
+            type="button"
+            onClick={() => {
+              void seriesQ.refetch();
+              void keywordsQ.refetch();
+            }}
+            disabled={seriesQ.isFetching || keywordsQ.isFetching}
+            className="pco-btn-secondary text-xs disabled:opacity-60"
+          >
             <RefreshCcw size={12} strokeWidth={2} />
-            Atualizar
+            {seriesQ.isFetching || keywordsQ.isFetching ? 'Atualizando…' : 'Atualizar'}
           </button>
-          <button className="pco-btn-primary text-xs">
+          {/*
+            Exportar relatório não existe, e enquanto os números forem de
+            demonstração exportá-los seria pior do que não ter o botão: viraria
+            planilha com cara de medição circulando por aí. Desabilitado e
+            dizendo por quê, em vez de clicar e nada acontecer.
+          */}
+          <button
+            type="button"
+            disabled
+            title={
+              statusQ.data?.conectado
+                ? 'Exportação ainda não implementada.'
+                : 'Sem fonte de analytics conectada — não há o que exportar.'
+            }
+            className="pco-btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Download size={12} strokeWidth={2} />
             Exportar relatório
           </button>

@@ -76,7 +76,6 @@ const AdminTutor = lazy(() => import('./pages/admin/AdminTutor'));
 const AdminIAs = lazy(() => import('./pages/admin/AdminIAs'));
 const AdminCertificates = lazy(() => import('./pages/admin/AdminCertificates'));
 const AdminAnaliseSupervisao = lazy(() => import('./pages/admin/AdminAnaliseSupervisao'));
-const AdminReengajamento = lazy(() => import('./pages/admin/AdminReengajamento'));
 const AdminLoginModels = lazy(() => import('./pages/admin/AdminLoginModels'));
 const AdminLoginCustomize = lazy(() => import('./pages/admin/AdminLoginCustomize'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
@@ -250,7 +249,12 @@ export const router = createBrowserRouter([
       { path: 'ias', element: <S><AdminIAs /></S> },
       { path: 'certificados', element: <S><AdminCertificates /></S> },
       { path: 'analise-supervisao', element: <S><AdminAnaliseSupervisao /></S> },
-      { path: 'reengajamento', element: <S><AdminReengajamento /></S> },
+      // /admin/reengajamento era uma maquete completa: campanhas com métricas
+      // que nunca aconteceram ("38 enviados, 14 respostas") e seis botões que
+      // não faziam nada. O reengajamento de verdade sempre esteve ao lado, em
+      // /admin/reengajamento-auto — e o admin ia naturalmente na primeira.
+      // Uma tela só, e é a que funciona.
+      { path: 'reengajamento', element: <Navigate to="/admin/reengajamento-auto" replace /> },
       { path: 'login-modelos', element: <S><AdminLoginModels /></S> },
       { path: 'login-customizacao', element: <S><AdminLoginCustomize /></S> },
       { path: 'configuracoes', element: <S><AdminSettings /></S> },

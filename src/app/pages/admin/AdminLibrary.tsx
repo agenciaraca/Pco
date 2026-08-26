@@ -7,8 +7,6 @@ import {
   BookOpen,
   Edit3,
   Trash2,
-  Star,
-  Download,
   X,
   Save,
   Loader2,
@@ -224,12 +222,12 @@ export default function AdminLibrary() {
                   <Edit3 size={12} strokeWidth={1.75} />
                   Editar
                 </button>
-                <button className="pco-btn-ghost text-xs px-2.5">
-                  <Star size={12} strokeWidth={1.75} />
-                </button>
-                <button className="pco-btn-ghost text-xs px-2.5">
-                  <Download size={12} strokeWidth={1.75} />
-                </button>
+                {/*
+                  Havia aqui dois botões sem ação: favoritar e baixar.
+                  Favoritar é recurso do aluno, não da gestão; e o arquivo mora
+                  em `fileMockUrl`, que vale literalmente '#' — não há para onde
+                  baixar. Ícone que não faz nada é promessa quebrada em silêncio.
+                */}
                 <button
                   onClick={() => setConfirmDelete(item)}
                   className="pco-btn-ghost text-xs px-2.5 text-status-danger hover:bg-status-danger/10"

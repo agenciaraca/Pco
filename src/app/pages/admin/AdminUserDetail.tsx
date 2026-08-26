@@ -34,6 +34,8 @@ import {
   useAdminStudentStats,
   useStudentCourseAccess,
   useExtendStudentCourseAccess,
+  useBlockStudent,
+  useUnblockStudent,
 } from '../../data/hooks';
 import type { CourseAccessRow, ExtendAccessGrant } from '../../data/api';
 import { useToast } from '../../components/Toast';
@@ -70,6 +72,9 @@ export default function AdminUserDetail() {
     setSearchParams(nextParams, { replace: true });
   };
   const [impersonating, setImpersonating] = useState(false);
+  const bloquear = useBlockStudent();
+  const desbloquear = useUnblockStudent();
+  const toast = useToast();
   const [impersonateError, setImpersonateError] = useState<string | null>(null);
   const auth = useAuth();
   const studentsQ = useAdminStudents({ status: 'todos', sortBy: 'name' });
@@ -162,11 +167,43 @@ export default function AdminUserDetail() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button className="pco-btn-secondary text-xs">
+          {/*
+            "Enviar e-mail" nunca teve ação. Em vez de um botão que não faz
+            nada, um link que faz o que promete — abrir o cliente de e-mail com
+            o endereço do aluno.
+          */}
+          <a href={`mailto:${student.email}`} className="pco-btn-secondary text-xs">
             <Mail size={12} strokeWidth={2} />
             Enviar e-mail
-          </button>
-          <button className="pco-btn-secondary text-xs">
+          </a>
+          {/*
+            Bloquear/desbloquear também não fazia nada — e este é o pior tipo de
+            botão morto: o admin clica, o rótulo troca de ideia nenhuma, e ele
+            sai achando que trancou o acesso de alguém. Os hooks já existiam.
+          */}
+          <button
+            type="button"
+            disabled={bloquear.isPending || desbloquear.isPending}
+            onClick={async () => {
+              const bloqueado = student.status === 'bloqueado';
+              try {
+                if (bloqueado) await desbloquear.mutateAsync(student.id);
+                else await bloquear.mutateAsync(student.id);
+                toast.success(
+                  bloqueado ? 'Acesso liberado' : 'Acesso bloqueado',
+                  bloqueado
+                    ? `${student.name} volta a entrar normalmente.`
+                    : `${student.name} não consegue mais entrar.`,
+                );
+              } catch (err) {
+                toast.error(
+                  'Não foi possível concluir',
+                  err instanceof Error ? err.message : 'Erro',
+                );
+              }
+            }}
+            className="pco-btn-secondary text-xs disabled:opacity-50"
+          >
             {student.status === 'bloqueado' ? (
               <>
                 <Unlock size={12} strokeWidth={2} />

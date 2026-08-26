@@ -135,8 +135,8 @@ export default function AdminLayout() {
           { to: '/admin/digest', label: 'Digest diário', icon: Mail },
           { to: '/admin/notificacoes', label: t('notifications.title'), icon: BellIcon },
           { to: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
-          { to: '/admin/reengajamento', label: 'Reengajamento', icon: Send },
-          { to: '/admin/reengajamento-auto', label: 'Reengajamento auto.', icon: Sparkles },
+          // Um item só: a rota antiga redireciona para esta. Ver routes.tsx.
+          { to: '/admin/reengajamento-auto', label: 'Reengajamento', icon: Send },
         ],
       },
       {
