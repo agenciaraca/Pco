@@ -101,11 +101,31 @@ placeholders (`<your-...>`), nada real. Os ~9 MB vêm quase todos das fontes
    coincidência é temporal e não dá para afirmar inocência. Basta reiniciar nas
    pastas `C:\ia\dev\tarot` e `C:\ia\dev\Sandra`.
 
+## `npm run format` reformata o repositório inteiro — não rode
+
+Medido em 26/ago/2026: um `npm run format` tocou **mais de 600 arquivos**, quase
+nenhum deles relacionado ao que estava sendo editado. Não é fim de linha: o
+`.prettierrc` pede `printWidth: 100` e o código versionado foi escrito com uma
+largura menor, então o Prettier reescreve praticamente tudo que encontra.
+
+O risco não é estético. Um commit de feature com 600 arquivos de reformatação
+junto é impossível de revisar, e o `git diff` deixa de mostrar o que importa.
+
+**Se rodar por engano:** liste o que foi modificado, subtraia os arquivos que
+você realmente editou e devolva o resto com `git checkout --`. Foi o que se fez
+aqui, e o commit voltou de 600 para 17 arquivos.
+
+Formatar de verdade o repositório é uma decisão à parte, que merece commit
+próprio e sozinho — não carona.
+
 ## Onde o dev retoma
 
-A higiene está feita. A frente seguinte continua sendo a do ROADMAP: **Sprint 2
-— agendar e pagar sessão** (Onda 8), o único sprint sem trava do dono.
-Confirmado no código: existe o catálogo (`GET /sessions/services`,
-`/professionals`, `/price-tiers`, `/policy`) e o CRUD admin inteiro, mas **não
-existe nenhuma rota de agendamento** — `server/sessions/` só tem
-`regra-opcional.ts` e a tela do aluno é estado local que evapora ao recarregar.
+A higiene está feita, e o Sprint 2 saiu junto (26/ago/2026): o agendamento de
+sessão persiste, o cancelamento existe e as sete correções da revisão de código
+do módulo de sessões foram aplicadas — ver `docs/sessoes.md` e o commit
+`feat(sessões)`.
+
+O que sobrou da onda 8 é o **pagamento da sessão**, e o encaixe já está pronto:
+o agendamento nasce `pending_payment` esperando o checkout que os cursos já
+usam. Depois dele, remarcação e agenda com janelas (hoje o bloqueio é por
+início exato, então 14:00 e 14:10 não colidem).
