@@ -126,6 +126,7 @@ import * as retentionRepo from './repositories/retention';
 import * as recoveryPlans from './repositories/recovery-plans';
 import * as sessionsRepo from './repositories/sessions';
 import * as bookingsRepo from './sessions/bookings-repo';
+import * as sessionAvisos from './sessions/avisos';
 import * as studentsRepo from './repositories/students';
 import * as metricsRepo from './repositories/metrics';
 import * as notificationsRepo from './repositories/notifications';
@@ -285,7 +286,9 @@ async function grantAccessForOrder(order: import('./payments/types').Order): Pro
     // Só sai de pending_payment. Sessão já cancelada não ressuscita porque o
     // pagamento entrou depois — isso vira caso de estorno, não de confirmação.
     if (booking && booking.status === 'pending_payment') {
-      await bookingsRepo.update(booking.id, { status: 'confirmed' });
+      const confirmada = await bookingsRepo.update(booking.id, { status: 'confirmed' });
+      // O aluno acabou de pagar: é o pior momento para ficar sem resposta.
+      if (confirmada) await sessionAvisos.avisar('confirmada', confirmada);
     }
     return;
   }
@@ -2437,6 +2440,7 @@ export function buildApp() {
         priceCents: booking.priceCents,
       },
     });
+    await sessionAvisos.avisar('criada', booking);
     return c.json({ aviso: AVISO_OPCIONAL, agendamento: booking }, 201);
   });
 
@@ -2487,6 +2491,7 @@ export function buildApp() {
     }
 
     const out = await bookingsRepo.update(booking.id, { scheduledFor: iso });
+    if (out) await sessionAvisos.avisar('remarcada', out);
     await recordAudit(c, {
       action: 'session.booking.reschedule',
       targetType: 'session_booking',
@@ -2515,6 +2520,7 @@ export function buildApp() {
     }
 
     const out = await bookingsRepo.cancel(booking.id, v.data.reason);
+    if (out) await sessionAvisos.avisar('cancelada', out);
     await recordAudit(c, {
       action: 'session.booking.cancel',
       targetType: 'session_booking',
@@ -2661,8 +2667,21 @@ export function buildApp() {
   app.put('/admin/sessions/bookings/:id', requireAuth('admin', 'superadmin'), async (c) => {
     const v = validate(updateBookingSchema, await c.req.json().catch(() => ({})));
     if (!v.ok) return jsonError(c, 400, 'VALIDATION', 'Dados inválidos', v.error.flatten());
+    // O estado ANTES, para avisar só quando algo de fato mudou para o aluno.
+    const antes = await bookingsRepo.findById(c.req.param('id') as string);
     const out = await bookingsRepo.update(c.req.param('id') as string, v.data);
     if (!out) return jsonError(c, 404, 'NOT_FOUND', 'Agendamento não encontrado.');
+
+    // É aqui que a promessa da tela vira verdade: "a coordenação confirma e
+    // envia o link". Antes, o admin marcava confirmed, colava o link, e nada
+    // saía — o aviso dependia de alguém lembrar de escrever à mão.
+    if (antes) {
+      const virouConfirmada = antes.status !== 'confirmed' && out.status === 'confirmed';
+      const ganhouLink = !antes.meetingLink && !!out.meetingLink && out.status === 'confirmed';
+      const virouCancelada = antes.status !== 'cancelled' && out.status === 'cancelled';
+      if (virouConfirmada || ganhouLink) await sessionAvisos.avisar('confirmada', out);
+      else if (virouCancelada) await sessionAvisos.avisar('cancelada', out);
+    }
     // Sem recordAudit aqui: auditMiddleware já grava toda mutação em /admin/*.
     return c.json(out);
   });

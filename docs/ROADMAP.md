@@ -53,8 +53,11 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
   início exato — 14:00 e 14:10 não colidiam numa sessão de 50 min, e dois
   alunos marcavam em cima um do outro. Agora é sobreposição de intervalo, com
   `[início, fim)`: encostar não é sobrepor.
-- ○ Aviso por e-mail. A tela promete o link da reunião por e-mail; hoje quem
-  manda é o admin, à mão.
+- ✅ Avisos ao aluno (26/ago/2026). Reservada, confirmada, cancelada e
+  remarcada: notificação no ambiente **e** e-mail. O texto só promete o que
+  existe — confirmação sem link não inventa endereço. Falha de envio não
+  derruba a operação. `server/sessions/avisos.ts`.
+- ○ Lembrete "sua sessão é amanhã" — o único aviso que ainda falta.
 
 ## Onda 9 — O que a migração deixou para trás
 

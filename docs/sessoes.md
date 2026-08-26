@@ -156,7 +156,32 @@ Duas travas que os testes seguram:
 Coberto por `test/sessoes-pagamento.test.ts` (6 testes) e conferido ponta a
 ponta contra o gateway mock: agendar → checkout → webhook `paid` → `confirmed`.
 
+## Avisos ao aluno
+
+`server/sessions/avisos.ts`. A tela diz, desde sempre, que "a coordenação
+confirma e envia o link da reunião" — e até 26/ago/2026 isso dependia de alguém
+lembrar de escrever o e-mail à mão: o admin marcava `confirmed`, colava o link,
+e nada saía.
+
+Quatro momentos avisam: **reservada**, **confirmada**, **cancelada** e
+**remarcada**. Cada um manda **notificação no ambiente e e-mail** — as duas
+coisas, porque e-mail pode não chegar e a notificação fica lá para quem entrar.
+
+Dois cuidados que os testes seguram:
+
+- **O texto só promete o que existe.** Confirmação com link entrega o link;
+  sem link, diz que ele chega antes do horário, em vez de prometer um endereço
+  que ninguém definiu. Reserva com pagamento pendente fala do valor; reserva de
+  confirmação manual não menciona pagamento nenhum.
+- **Avisar nunca derruba a operação.** Falha de envio é registrada e engolida:
+  um provedor de e-mail fora do ar não pode fazer o admin receber 500 ao
+  confirmar uma sessão que já está confirmada no banco.
+
+O aviso de confirmação sai também pelo caminho do pagamento — quando o webhook
+do gateway aprova, o aluno é avisado na hora. É o pior momento para ficar sem
+resposta.
+
 ## O que ainda não existe
-- **Aviso por e-mail.** O agendamento diz que o link chega por e-mail; quem
-  envia hoje é o admin, à mão, pelo campo de link da reunião.
+- **Lembrete antes da hora.** Existe aviso quando algo muda, mas nada avisa "sua
+  sessão é amanhã".
 - Nenhum profissional cadastrado. Sem cadastro, não há com quem agendar.
