@@ -72,42 +72,45 @@ export interface AuthorConfig {
 }
 
 /**
- * Responsável técnico — sinal central de E-E-A-T (conteúdo YMYL: saúde mental).
- * ⚠️ PLACEHOLDER: substituir por dados reais (nome, foto, credenciais, LinkedIn/Lattes).
+ * Quem assina o conteúdo: a **organização**, não uma pessoa.
+ *
+ * A PCO constrói curso com equipe — pedagogos, psicanalistas, redatores e
+ * editores — e não com um docente de vitrine. Autoria institucional é o que
+ * descreve isso com honestidade, e o schema.org tem entidade própria para ela
+ * (`Organization`), que já é emitida como `publisher` em toda página.
+ *
+ * O que havia aqui antes era um molde de pessoa: "Dra. [Nome do Responsável
+ * Técnico]", com credenciais inventadas ("Especialização em Saúde Mental",
+ * "Coordenação pedagógica da PCO desde 2018") esperando alguém trocar só o
+ * nome. Em conteúdo YMYL de saúde mental, esse é o tipo de arquivo que vira
+ * publicação acidental de formação atribuída a quem não a tem. O molde saiu.
+ *
+ * **Se um dia houver responsável técnico nomeado**, preencha `AUTHOR` com uma
+ * pessoa real — nome, foto e `sameAs` verificáveis — e a autoria por pessoa
+ * volta a valer sozinha, sem mudar mais nada. Enquanto for `null`, o site omite
+ * `/autor`, não emite nó `Person` e atribui a autoria à organização.
  */
-export const AUTHOR: AuthorConfig = {
-  slug: 'coordenacao-pedagogica',
-  name: 'Dra. [Nome do Responsável Técnico]',
-  honorific: 'Psicanalista · Coordenação Pedagógica',
-  photo: '',
-  credentials: [
-    'Formação em Psicanálise Clínica',
-    'Especialização em Saúde Mental',
-    'Coordenação pedagógica da PCO desde 2018',
-  ],
-  jobTitle: 'Coordenadora Pedagógica e Responsável Técnica',
-  bio: 'Responsável técnica e coordenadora pedagógica da PCO, com atuação na formação de psicanalistas clínicos. Estrutura o conteúdo dos cursos com base em referências consolidadas — de Freud às abordagens contemporâneas — e é responsável pela curadoria dos materiais e pela revisão ética das aulas.',
-  experience:
-    'Mais de uma década dedicada ao ensino e à prática da psicanálise clínica, com centenas de alunos formados pela plataforma.',
-  sameAs: [
-    'https://instagram.com/cursopsicanaliseclinica',
-    'https://facebook.com/psicanalise.online.curso',
-  ],
-};
+export const AUTHOR: AuthorConfig | null = null;
 
 /**
- * `true` enquanto o AUTHOR acima ainda for o esqueleto de exemplo.
+ * `true` enquanto não houver pessoa nomeada assinando o conteúdo.
  *
- * Existe porque publicar um responsável técnico ANÔNIMO com credenciais
- * ("Especialização em Saúde Mental", "desde 2018") é pior do que não publicar
- * autor nenhum: em conteúdo YMYL de saúde mental, atribui formação a uma pessoa
- * que não tem nome. Enquanto isto for `true`, o site omite a página `/autor` e
- * não emite o `Person` no structured data — em vez de publicar um molde.
+ * O nome ficou por compatibilidade: metade do site público já pergunta por ele
+ * para decidir se emite `Person` ou cai na organização, e renomear seria trocar
+ * um contrato público por gosto. O que ele significa hoje é "a autoria é
+ * institucional".
  *
- * Para desligar: troque `AUTHOR` por uma pessoa real, com nome, foto e `sameAs`
- * verificáveis. O detector some sozinho quando o `[...]` sair do nome.
+ * Também continua verdadeiro se alguém repuser um molde com `[colchetes]` no
+ * nome — o detector antigo segue de pé para esse caso.
  */
-export const AUTHOR_IS_PLACEHOLDER = /\[.*\]/.test(AUTHOR.name);
+// O cast existe porque, com `AUTHOR` literalmente `null`, o TypeScript estreita
+// o outro lado do `||` para `never`. A expressão continua correta no dia em que
+// alguém puser uma pessoa aqui — e é justamente esse dia que ela precisa cobrir.
+export const AUTHOR_IS_PLACEHOLDER: boolean =
+  AUTHOR === null || /\[.*\]/.test((AUTHOR as AuthorConfig).name);
+
+/** Atalho legível: a autoria do site é da organização? */
+export const AUTORIA_INSTITUCIONAL = AUTHOR_IS_PLACEHOLDER;
 
 /** Disclaimer YMYL padrão — obrigatório em cursos e artigos (saúde mental). */
 export const YMYL_DISCLAIMER =

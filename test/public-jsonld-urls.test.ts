@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { courseJsonLd, blogPostingJsonLd, publicCourseUrl } from '../server/public/jsonld';
-import { ORG, AUTHOR, AUTHOR_IS_PLACEHOLDER } from '../server/public/config';
+import {
+  ORG,
+  AUTHOR,
+  AUTHOR_IS_PLACEHOLDER,
+  AUTORIA_INSTITUCIONAL,
+} from '../server/public/config';
 import type { PublicCourse, PublicPost } from '../server/public/projections';
 
 // Três defeitos encontrados em produção em 16/ago/2026, todos no structured
@@ -80,14 +85,26 @@ describe('instrutor do CourseInstance', () => {
       // Preferimos ausência a uma referência para um nó que ninguém define.
       expect(instance.instructor).toBeUndefined();
     } else {
-      expect(instance.instructor).toMatchObject({ '@id': `${ORG.url}/autor#${AUTHOR.slug}` });
+      expect(instance.instructor).toMatchObject({ '@id': `${ORG.url}/autor#${AUTHOR!.slug}` });
     }
   });
 });
 
-describe('detector de responsável técnico placeholder', () => {
-  it('reconhece o molde pelo colchete no nome', () => {
-    expect(AUTHOR_IS_PLACEHOLDER).toBe(/\[.*\]/.test(AUTHOR.name));
+describe('autoria institucional', () => {
+  it('a PCO assina como organização: não há pessoa nomeada configurada', () => {
+    // A escola constrói curso com equipe — pedagogos, psicanalistas, redatores
+    // e editores —, não com um docente de vitrine. `AUTHOR === null` é como
+    // isso fica dito no código, e o que impede o molde de pessoa de voltar.
+    expect(AUTHOR).toBeNull();
+    expect(AUTORIA_INSTITUCIONAL).toBe(true);
+    expect(AUTHOR_IS_PLACEHOLDER).toBe(true);
+  });
+
+  it('o detector de molde continua de pé para quem repuser colchetes', () => {
+    // Se alguém voltar a pôr "Dra. [Nome]" aqui, o site tem que seguir omitindo
+    // /autor em vez de publicar credencial sem dono.
+    const molde = { name: 'Dra. [Nome do Responsável Técnico]' };
+    expect(/\[.*\]/.test(molde.name)).toBe(true);
   });
 
   it('post sem autor nomeado atribui à organização enquanto não houver pessoa real', () => {
@@ -95,7 +112,7 @@ describe('detector de responsável técnico placeholder', () => {
       slug: 'p',
       title: 'T',
       excerpt: 'E',
-      authorName: AUTHOR.name,
+      authorName: AUTHOR?.name,
       tags: [],
       readingMinutes: 3,
       relatedCourseSlugs: [],
@@ -103,7 +120,7 @@ describe('detector de responsável técnico placeholder', () => {
     const ld = blogPostingJsonLd(post) as Record<string, unknown>;
     const author = ld.author as Record<string, unknown>;
     expect(author['@id']).toBe(
-      AUTHOR_IS_PLACEHOLDER ? `${ORG.url}/#org` : `${ORG.url}/autor#${AUTHOR.slug}`,
+      AUTHOR_IS_PLACEHOLDER ? `${ORG.url}/#org` : `${ORG.url}/autor#${AUTHOR!.slug}`,
     );
   });
 });

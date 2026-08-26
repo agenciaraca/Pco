@@ -111,9 +111,13 @@ Travada em dois pontos, ambos do dono:
   Psicanalista e Terapeuta" enquanto o FAQ afirma que classificação na CBO não é
   regulamentação; e a natureza e os limites da RNTP precisam de conferência
   documental.
-- ○ Autoria institucional nos dados estruturados — com autoria por equipe, o
-  autor passa a ser a organização e o `AUTHOR` de molde some pela raiz. Ver
-  `server/public/config.ts`.
+- ✅ **Autoria institucional nos dados estruturados** (26/ago/2026). `AUTHOR`
+  agora é `null` por padrão: a PCO assina como organização, e o molde de pessoa
+  — "Dra. [Nome do Responsável Técnico]" com credenciais inventadas anexadas —
+  saiu do arquivo. O tipo virou `AuthorConfig | null`, então o compilador cobra
+  o tratamento em cada uso, e não só a nossa memória. Se um dia houver
+  responsável técnico nomeado, preencher `AUTHOR` com pessoa real faz a autoria
+  por pessoa voltar sozinha.
 
 ## Sprints propostos
 

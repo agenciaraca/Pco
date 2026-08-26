@@ -204,12 +204,14 @@ publicSite.get('/sobre', async (c) => {
 
 // ============================ /autor ============================
 publicSite.get('/autor', async (c) => {
-  // Sem responsável técnico real configurado, a página não existe. Publicar o
-  // molde ("Dra. [Nome do Responsável Técnico]") com credenciais anexadas seria
-  // atribuir formação em saúde mental a ninguém. Ver AUTHOR_IS_PLACEHOLDER.
-  if (AUTHOR_IS_PLACEHOLDER) return c.notFound();
+  // Sem pessoa nomeada assinando o conteúdo, a página não existe: a autoria da
+  // PCO é institucional, e publicar um responsável técnico anônimo com
+  // credenciais anexadas atribuiria formação em saúde mental a ninguém. O
+  // `AUTHOR === null` é o que garante isso ao compilador, não só a nós.
+  const autor = AUTHOR;
+  if (AUTHOR_IS_PLACEHOLDER || autor === null) return c.notFound();
   const initials =
-    AUTHOR.name
+    autor.name
       .replace(/\[.*?\]/g, '')
       .trim()
       .slice(0, 1)
@@ -226,20 +228,20 @@ publicSite.get('/autor', async (c) => {
       <div class="wrap two-col" style="align-items:start">
         <div class="stack">
           <div class="card" style="text-align:center">
-            ${AUTHOR.photo
+            ${autor.photo
               ? raw(
-                  `<img src="${AUTHOR.photo}" alt="${AUTHOR.name}" width="140" height="140" style="width:140px;height:140px;border-radius:50%;object-fit:cover;margin:0 auto 14px">`,
+                  `<img src="${autor.photo}" alt="${autor.name}" width="140" height="140" style="width:140px;height:140px;border-radius:50%;object-fit:cover;margin:0 auto 14px">`,
                 )
               : raw(
                   `<div aria-hidden="true" style="width:140px;height:140px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-size:52px;font-weight:800;color:#fff;background:linear-gradient(135deg,#0a3f3a,#1f9e93)">${initials}</div>`,
                 )}
-            <h1 style="font-size:24px">${AUTHOR.name}</h1>
-            <p style="color:var(--ink-soft);font-size:14.5px;margin-top:4px">${AUTHOR.honorific}</p>
+            <h1 style="font-size:24px">${autor.name}</h1>
+            <p style="color:var(--ink-soft);font-size:14.5px;margin-top:4px">${autor.honorific}</p>
             <div
               style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap"
             >
               ${raw(
-                AUTHOR.sameAs
+                autor.sameAs
                   .map(
                     (u) =>
                       `<a class="tag-chip" href="${u}" rel="noopener nofollow me">${new URL(u).hostname.replace('www.', '')}</a>`,
@@ -254,7 +256,7 @@ publicSite.get('/autor', async (c) => {
               style="list-style:none;padding:0;margin:0;display:grid;gap:9px;font-size:14px;color:var(--ink-soft)"
             >
               ${raw(
-                AUTHOR.credentials
+                autor.credentials
                   .map(
                     (cr) =>
                       `<li style="display:flex;gap:9px"><span style="color:var(--accent)">✓</span><span>${cr}</span></li>`,
@@ -267,8 +269,8 @@ publicSite.get('/autor', async (c) => {
         <div class="prose">
           <span class="eyebrow">Experiência &amp; expertise</span>
           <h2 style="margin:14px 0 16px">Quem assina a curadoria dos cursos</h2>
-          <p>${AUTHOR.bio}</p>
-          <p>${AUTHOR.experience}</p>
+          <p>${autor.bio}</p>
+          <p>${autor.experience}</p>
           <div class="disclaimer" style="margin-top:20px">${YMYL_DISCLAIMER}</div>
         </div>
       </div>
@@ -276,13 +278,13 @@ publicSite.get('/autor', async (c) => {
   `;
   return c.html(
     renderPage({
-      title: `${AUTHOR.name} — Responsável técnico | ${ORG.shortName}`,
-      description: `${AUTHOR.name}, ${AUTHOR.jobTitle} da ${ORG.shortName}. ${AUTHOR.bio.slice(0, 120)}`,
+      title: `${autor.name} — Responsável técnico | ${ORG.shortName}`,
+      description: `${autor.name}, ${autor.jobTitle} da ${ORG.shortName}. ${autor.bio.slice(0, 120)}`,
       path: '/autor',
       ogType: 'profile',
       bodyHtml: body,
       jsonLd: [
-        personJsonLd(),
+        personJsonLd(autor),
         breadcrumbJsonLd([
           { name: 'Início', path: '/' },
           { name: 'Responsável técnico', path: '/autor' },

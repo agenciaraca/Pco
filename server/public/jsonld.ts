@@ -57,7 +57,14 @@ export function websiteJsonLd(): Json {
   };
 }
 
-export function personJsonLd(author: AuthorConfig = AUTHOR): Json {
+/**
+ * Nó `Person` do responsável técnico.
+ *
+ * Só faz sentido chamar com uma pessoa real: a autoria padrão da PCO é
+ * institucional (`AUTHOR === null`), e por isso não há mais default aqui — quem
+ * chama tem que ter uma pessoa em mãos.
+ */
+export function personJsonLd(author: AuthorConfig): Json {
   return {
     '@context': 'https://schema.org',
     '@type': 'Person',
@@ -126,7 +133,7 @@ export function courseJsonLd(course: PublicCourse): Json {
       }
     : AUTHOR_IS_PLACEHOLDER
       ? undefined
-      : { '@id': authorId(AUTHOR.slug) };
+      : { '@id': authorId(AUTHOR!.slug) };
   return {
     '@context': 'https://schema.org',
     '@type': 'Course',
@@ -161,7 +168,7 @@ export function courseJsonLd(course: PublicCourse): Json {
 
 export function blogPostingJsonLd(post: PublicPost): Json {
   const url = `${ORG.url}/blog/${post.slug}`;
-  const named = post.authorName && post.authorName !== AUTHOR.name;
+  const named = post.authorName && post.authorName !== AUTHOR?.name;
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -177,7 +184,7 @@ export function blogPostingJsonLd(post: PublicPost): Json {
       ? { '@type': 'Person', name: post.authorName }
       : AUTHOR_IS_PLACEHOLDER
         ? { '@id': ORG_ID }
-        : { '@id': authorId(AUTHOR.slug) },
+        : { '@id': authorId(AUTHOR!.slug) },
     publisher: { '@id': ORG_ID },
     mainEntityOfPage: url,
     url,
