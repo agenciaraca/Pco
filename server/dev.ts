@@ -225,5 +225,11 @@ import('./db/backup-worker').then((m) => m.startWorker());
 // Worker de recompute de risco de evasão — a cada 6h
 import('./services/retention-worker').then((m) => m.startWorker(6 * 60 * 60 * 1000));
 
+// Aviso de vencimento de acesso — varre uma vez por dia.
+// Precisa estar no ar ANTES de qualquer curso declarar accessMonths: declarar
+// meses é retroativo, e sem este worker a primeira leva de vencidos descobriria
+// pela porta fechada. Ver docs/prazo-de-acesso.md.
+import('./access/expiry-worker').then((m) => m.startWorker(24 * 60 * 60_000));
+
 // Rotaciona app.log quando passa de 10MB (verifica a cada 1h)
 import('./services/log-rotator').then((m) => m.startWorker(60 * 60_000));

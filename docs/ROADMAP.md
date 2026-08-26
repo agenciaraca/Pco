@@ -26,10 +26,13 @@ Legenda: ✅ feito · ◐ em aberto · ○ não iniciada · ◆ depende do dono
 - ○ **Durações reais das aulas.** Todas gravadas como 15 min — placeholder do
   import. Não afeta a carga horária declarada do curso, mas distorce as métricas
   de estudo que o aluno vê.
-- ○ **E-mail de aviso de vencimento.** Não existe. Padrão da casa é um worker
-  (`startWorker` + `getStatus()`), não cron externo. Precisa estar pronto **antes**
-  de os prazos serem declarados, ou a primeira leva de vencidos descobre pela
-  porta fechada.
+- ✅ **E-mail de aviso de vencimento** (26/ago/2026).
+  `server/access/expiry-worker.ts`, worker diário, visível em `/admin/jobs` como
+  `access-expiry`. Faixas de 30, 7 e 1 dia, mais o aviso de vencido; um aviso
+  por faixa, nunca repetido. Hoje varre 1.120 matrículas e não acha nenhuma com
+  prazo — estreia calado, como deve. **Rode
+  `POST /admin/jobs/access-expiry/run?dryRun=true` antes de declarar qualquer
+  `accessMonths`:** ele mostra quem receberia aviso sem enviar nada.
 
 ## Onda 8 — Sessões: da gestão ao agendamento
 

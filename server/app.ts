@@ -196,6 +196,7 @@ import * as achievementsStore from './achievements/store';
 import * as achievementsEngine from './achievements/engine';
 import * as settingsBackup from './settings/backup';
 import * as reengagementWorker from './reengagement/worker';
+import * as expiryWorker from './access/expiry-worker';
 import * as webhookDeliveries from './webhooks/delivery-store';
 import * as webhooksDispatcher from './webhooks/dispatcher';
 import { ALL_WEBHOOK_EVENTS, type WebhookEventType } from './webhooks/types';
@@ -6615,6 +6616,7 @@ export function buildApp() {
           ...reengagementWorker.getStatus(),
           recentEmails24h: recentEmails,
         },
+        expiryWorker.getStatus(),
       ],
     });
   });
@@ -6632,6 +6634,13 @@ export function buildApp() {
       if (name === 'reengagement') {
         const dryRun = c.req.query('dryRun') === 'true';
         const r = await reengagementWorker.tickWorker({ dryRun });
+        return c.json({ name, ok: true, ...r, dryRun });
+      }
+      // Vale a pena rodar com ?dryRun=true antes de declarar accessMonths em
+      // qualquer curso: mostra exatamente quem receberia aviso, sem enviar.
+      if (name === 'access-expiry') {
+        const dryRun = c.req.query('dryRun') === 'true';
+        const r = await expiryWorker.tickWorker({ dryRun });
         return c.json({ name, ok: true, ...r, dryRun });
       }
       return jsonError(c, 404, 'NOT_FOUND', `Job desconhecido: ${name}`);

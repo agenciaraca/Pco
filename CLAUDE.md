@@ -255,6 +255,13 @@ Duas ferramentas para isso, ambas em `server/access/impacto.ts`:
 ao lado do campo) e `POST /admin/courses/:id/carencia` (grava um prazo comum em
 todos os que ficariam vencidos, sem tocar em quem tem prazo próprio).
 
+**O aviso de vencimento existe desde 26/ago/2026**
+(`server/access/expiry-worker.ts`, diário, `access-expiry` em `/admin/jobs`):
+faixas de 30, 7 e 1 dia mais o aviso de vencido, um por faixa. Antes de declarar
+`accessMonths` em qualquer curso, rode
+`POST /admin/jobs/access-expiry/run?dryRun=true` — ele lista quem receberia
+aviso sem enviar nada.
+
 Em 21/ago/2026 **nenhum dos 6 cursos declarava prazo** — ninguém está vencido.
 Detalhes, números por curso e os smokes em `docs/prazo-de-acesso.md`.
 

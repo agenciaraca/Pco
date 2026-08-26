@@ -76,9 +76,36 @@ ignorar o aviso quando ele importar.
 Vencido, o aviso leva a `/suporte?assunto=acesso&titulo=…`, com a categoria e o
 assunto já preenchidos. Os cartões em `/cursos` também mostram o selo.
 
-**Não existe e-mail de aviso de vencimento.** Nenhuma parte do sistema envia um.
-Se for criado, o padrão da casa é um worker (`startWorker` + `getStatus()`), não
-cron externo.
+## E-mail de aviso de vencimento
+
+Existe desde 26/ago/2026, em `server/access/expiry-worker.ts` — worker diário,
+padrão da casa (`startWorker` + `getStatus()`), registrado em `server/dev.ts` e
+visível em `/admin/jobs` sob o nome `access-expiry`.
+
+**Três faixas, um aviso cada:** 30 dias, 7 dias e 1 dia antes; mais um aviso de
+"venceu", depois do fato. O aluno cai sempre na faixa **mais apertada** que
+ainda o contém — com 5 dias restantes ele recebe o aviso de 7, não o de 30. Um
+ledger em `data/access-expiry-notices.json` guarda (aluno, curso, faixa) para
+que ninguém receba trinta e-mails iguais.
+
+Avisar não muda acesso: nada no worker escreve em matrícula. Quem decide quem
+estuda continua sendo `courseAccessFor`.
+
+**Antes de declarar `accessMonths` em qualquer curso, rode o ensaio:**
+
+```bash
+POST /admin/jobs/access-expiry/run?dryRun=true
+```
+
+Ele varre tudo e **não envia nada**, listando quem receberia o quê. Medido em
+26/ago/2026 com o curso 14839 declarando 6 meses em caráter de teste: 1.120
+matrículas varridas, 422 com prazo, **336 elegíveis a aviso** — número que bate
+exatamente com o que `GET /admin/courses/14839/impacto-acesso?meses=6` prevê
+(306 vencidos + 30 vencendo). Duas contas independentes chegando ao mesmo lugar.
+
+Com o estado real de hoje — nenhum curso declarando prazo — a varredura acha
+1.120 matrículas e **zero** com prazo. É o estado correto de estreia: o worker
+entra no ar calado e só passa a falar quando houver prazo para avisar.
 
 ## Verificação em produção
 
