@@ -56,13 +56,25 @@ export default function LMSAssessment() {
         </div>
         <h2 className="text-lg font-semibold text-pco-deep">Pronto para começar?</h2>
         <p className="mt-2 text-sm text-ink-muted max-w-md mx-auto">
-          A avaliação ficará disponível assim que o sistema de avaliações for plugado. Por
-          enquanto, este é o layout final preparado para integração.
+          As questões são sorteadas do banco do módulo. Você pode refazer quantas vezes
+          quiser — o que vale é entender, não acertar de primeira.
         </p>
-        <button className="mt-6 pco-btn-primary">
+        {/*
+          O texto daqui dizia que a avaliação "ficará disponível assim que o
+          sistema for plugado", e ainda assim mostrava um botão habilitado que
+          não fazia nada — o aluno lia "pronto para começar?", clicava, e não
+          acontecia nada.
+          O sistema já existia: `/me/quiz/:courseId/start` aceita `moduleId`
+          desde sempre. O que faltava era a tela do quiz repassar o parâmetro e
+          este botão levar até lá.
+        */}
+        <Link
+          to={`/curso/${course.id}/quiz?moduleId=${encodeURIComponent(module.id)}`}
+          className="mt-6 pco-btn-primary inline-flex"
+        >
           Iniciar avaliação
           <ArrowRight size={14} strokeWidth={2} />
-        </button>
+        </Link>
       </div>
     </div>
   );

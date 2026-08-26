@@ -158,6 +158,15 @@ passa a redirecionar para a que funciona.
 **Bloquear/desbloquear era o pior**, porque é ação de acesso: os hooks já
 existiam, o botão só nunca foi ligado. Agora liga, com confirmação por toast.
 
+**E um caso em que o recurso já existia inteiro, faltando só o fio.** A tela de
+avaliação do módulo dizia que "a avaliação ficará disponível assim que o sistema
+for plugado" — e ainda assim mostrava um botão habilitado que não fazia nada. O
+sistema estava plugado desde sempre: `/me/quiz/:courseId/start` aceita
+`moduleId`, e `fetchQuiz` no cliente também. O que faltava era a página do quiz
+repassar o parâmetro e o botão levar até lá. Conferido contra o servidor: com
+duas questões em módulos diferentes, sem filtro vêm as duas e com
+`moduleId=mod-A` vem só a de A.
+
 O resto virou o que podia ser verdade: "Atualizar" recarrega de fato; "Exportar
 relatório" fica desabilitado dizendo por quê (exportar número de demonstração
 seria pior do que não ter o botão — viraria planilha com cara de medição

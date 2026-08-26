@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, useSearchParams, Link, Navigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,6 +21,11 @@ type Phase = 'loading' | 'taking' | 'submitting' | 'result' | 'empty' | 'error';
 
 export default function Quiz() {
   const { courseId } = useParams<{ courseId: string }>();
+  // `?moduleId=` restringe o sorteio às questões daquele módulo. A API já
+  // aceitava desde sempre; era a tela que não repassava, e por isso a avaliação
+  // de módulo não tinha para onde levar.
+  const [searchParams] = useSearchParams();
+  const moduleId = searchParams.get('moduleId') ?? undefined;
   useDocumentMeta({ title: 'Quiz — AVA PCO' });
   const courseQ = useCourse(courseId);
   const toast = useToast();
@@ -36,7 +41,7 @@ export default function Quiz() {
     if (!courseId) return;
     let cancelled = false;
     api
-      .fetchQuiz(courseId, { max: 10 })
+      .fetchQuiz(courseId, { max: 10, moduleId })
       .then((r) => {
         if (cancelled) return;
         if (r.questions.length === 0) {
@@ -57,7 +62,7 @@ export default function Quiz() {
     return () => {
       cancelled = true;
     };
-  }, [courseId]);
+  }, [courseId, moduleId]);
 
   if (!courseId) return <Navigate to="/cursos" replace />;
   if (courseQ.isLoading || phase === 'loading') {
