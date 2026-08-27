@@ -216,6 +216,17 @@ export async function deleteThread(id: string): Promise<boolean> {
   return ok;
 }
 
+/**
+ * Uma resposta pelo id. Existe porque `DELETE /forum/replies/:id` precisava
+ * saber de quem era antes de apagar — e não sabia: até 27/ago/2026 qualquer
+ * aluno autenticado apagava a resposta de qualquer pessoa, em qualquer curso.
+ * As duas rotas vizinhas (excluir e resolver thread) sempre checaram autor ou
+ * admin; esta ficou de fora.
+ */
+export async function getReply(id: string): Promise<ForumReply | null> {
+  return await repliesStore.findOne((r) => r.id === id);
+}
+
 export async function deleteReply(id: string): Promise<boolean> {
   const reply = await repliesStore.findOne((r) => r.id === id);
   if (!reply) return false;

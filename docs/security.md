@@ -319,3 +319,29 @@ aluno **matriculado receba** o conteúdo — matricula pelo `enroll-bulk` e
 verifica o corpo completo. Sem esse caso, fechar o vazamento fechando junto o
 produto deixaria a suíte verde com nenhum aluno conseguindo ler a aula que
 pagou.
+
+
+## Autorização: três brechas de "escrever guardado, ler aberto" (27/ago/2026)
+
+Depois de fechar as rotas sem autenticação, a varredura seguinte foi por rotas
+**autenticadas** que não checam de quem é a coisa.
+
+**`DELETE /forum/replies/:id` não checava nada.** Qualquer aluno com token
+apagava a resposta de qualquer pessoa, em qualquer curso. As duas rotas
+vizinhas — excluir thread e marcar resolvido — sempre checaram autor ou admin.
+Foi a inconsistência entre vizinhas que deixou passar: quem leu o bloco viu
+duas verificações e presumiu a terceira.
+
+**`GET /lessons/:id/comments` não checava matrícula**, enquanto o `POST` logo
+abaixo sempre checou matrícula e prazo. Comentário de aula carrega nome de
+aluno e discussão de curso pago. A aula sem curso resolvível agora falha
+fechada (404), não aberta.
+
+**`GET /session/:sessionId/transcript` bastava estar logado.** Transcrição de
+sessão ao vivo é aula gravada em texto; um aluno de outro curso lia a de
+qualquer encontro. Sessão sem curso associado continua liberada a quem tem
+conta, porque não há a que amarrar o direito.
+
+O padrão a procurar da próxima vez é esse: **par de rotas onde a de escrita tem
+guarda e a de leitura não.** Foi a forma de três dos casos desta varredura, e
+também do vazamento do material pago.

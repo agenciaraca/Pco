@@ -7732,10 +7732,29 @@ export function buildApp() {
     return c.json({ transcripts: await transcriptionStore.listAll() });
   });
 
+  /**
+   * Transcrição de sessão ao vivo. É aula gravada em texto — mesmo direito.
+   *
+   * Antes bastava estar logado: um aluno de outro curso lia a transcrição de
+   * qualquer encontro. Sessão sem curso associado continua liberada a quem tem
+   * conta, porque não há a que amarrar o direito.
+   */
   app.get('/session/:sessionId/transcript', requireAuth(), async (c) => {
     const sessionId = c.req.param('sessionId') as string;
     const transcript = await transcriptionStore.findBySessionId(sessionId);
     if (!transcript) return jsonError(c, 404, 'NOT_FOUND', 'Transcrição não encontrada.');
+
+    const u = c.get('user')!;
+    const isAdmin = u.role === 'admin' || u.role === 'superadmin';
+    if (!isAdmin) {
+      const sessao = await liveSessions.findById(sessionId);
+      if (sessao?.courseId) {
+        const acc = await courseAccessFor(u.sub, sessao.courseId);
+        if (!acc.canStudy) {
+          return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc));
+        }
+      }
+    }
     return c.json(transcript);
   });
 
@@ -7863,12 +7882,46 @@ export function buildApp() {
 
   // ---------- Lesson discussions ----------
 
+  /**
+   * Comentários da aula. Ler exige o mesmo direito que escrever.
+   *
+   * O POST logo abaixo sempre verificou matrícula e prazo; o GET não verificava
+   * nada, e comentário de aula carrega nome de aluno e discussão de curso pago.
+   * Escrever guardado e ler aberto foi o padrão de vários pontos desta base.
+   */
+  /**
+   * O curso a que uma aula pertence. Percorre o catálogo porque não existe
+   * índice por aula — o custo é aceitável para uma leitura por requisição, e
+   * inventar um índice aqui esconderia a ausência dele.
+   */
+  async function cursoDeAula(lessonId: string): Promise<string | null> {
+    const cursos = await coursesRepo.listCourses();
+    for (const co of cursos) {
+      for (const m of co.modules ?? []) {
+        if ((m.lessons ?? []).some((l) => l.id === lessonId)) return co.id;
+      }
+    }
+    return null;
+  }
+
   app.get('/lessons/:id/comments', requireAuth(), async (c) => {
     const u = c.get('user')!;
     const isAdmin = u.role === 'admin' || u.role === 'superadmin';
-    const list = await discussions.listForLesson(c.req.param('id') as string, {
-      includeHidden: isAdmin,
-    });
+    const lessonId = c.req.param('id') as string;
+
+    if (!isAdmin) {
+      const cursoDaAula = await cursoDeAula(lessonId);
+      // Aula órfã (sem curso resolvível) não libera nada: falha fechada.
+      if (!cursoDaAula) {
+        return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+      }
+      const acc = await courseAccessFor(u.sub, cursoDaAula);
+      if (!acc.canStudy) {
+        return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc));
+      }
+    }
+
+    const list = await discussions.listForLesson(lessonId, { includeHidden: isAdmin });
     return c.json(list);
   });
 
@@ -9496,10 +9549,23 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
+  /**
+   * Excluir resposta: autor ou admin, a mesma regra das duas rotas acima.
+   *
+   * Esta ficou sem regra nenhuma até 27/ago/2026 — qualquer aluno autenticado
+   * apagava a resposta de qualquer pessoa, em qualquer curso, e nada registrava
+   * quem foi. Excluir thread e marcar resolvido sempre checaram autor ou admin;
+   * a inconsistência entre vizinhas é o que deixou passar.
+   */
   app.delete('/forum/replies/:id', requireAuth(), async (c) => {
-    const { deleteReply } = await import('./forum/store');
-    const ok = await deleteReply(c.req.param('id') as string);
-    if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Reply não encontrada');
+    const { getReply, deleteReply } = await import('./forum/store');
+    const r = await getReply(c.req.param('id') as string);
+    if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Reply não encontrada');
+    const u = c.get('user')!;
+    if (r.authorId !== u.sub && u.role !== 'admin' && u.role !== 'superadmin') {
+      return jsonError(c, 403, 'FORBIDDEN', 'Só o autor ou admin pode excluir');
+    }
+    await deleteReply(r.id);
     return c.json({ ok: true });
   });
 
