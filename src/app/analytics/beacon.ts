@@ -59,6 +59,8 @@ interface Sinal {
   utmMedium: string;
   notFound: boolean;
   lcpMs?: number;
+  /** Sinal só de desempenho — não conta página vista. */
+  apenasVitals?: boolean;
 }
 
 function envia(sinal: Sinal): void {
@@ -67,12 +69,17 @@ function envia(sinal: Sinal): void {
     if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
       // sendBeacon sobrevive ao fechamento da aba — é o que faz a última
       // página de uma visita ser contada.
-      const ok = navigator.sendBeacon(ENDPOINT, new Blob([corpo], { type: 'application/json' }));
+      // `text/plain` de propósito: é um dos tipos que o CORS dispensa de
+      // preflight, e `sendBeacon` não tem como responder a um preflight que
+      // falhe. Com `application/json` o sinal morria em silêncio sempre que o
+      // front e a API estivessem em portas diferentes — o caso do dev local.
+      // O servidor lê o corpo como JSON independentemente do cabeçalho.
+      const ok = navigator.sendBeacon(ENDPOINT, new Blob([corpo], { type: 'text/plain' }));
       if (ok) return;
     }
     void fetch(ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: corpo,
       keepalive: true,
     }).catch(() => undefined);
@@ -81,23 +88,64 @@ function envia(sinal: Sinal): void {
   }
 }
 
-/** LCP da carga inicial. Chega uma vez só, e pode não chegar nunca. */
-let lcpMedido: number | undefined;
+/**
+ * LCP da carga inicial, mandado **separado** da página vista.
+ *
+ * A primeira versão esperava 2 segundos para mandar a página junto com o LCP.
+ * O efeito foi medido no próprio E2E: de ~20 navegações, duas foram contadas.
+ * E o viés era o pior possível — quem sai em menos de dois segundos é
+ * exatamente quem rejeita, então a taxa de rejeição sairia mais baixa do que
+ * a verdade, fazendo o site parecer melhor do que é.
+ *
+ * Agora a página é contada na hora e o desempenho chega depois, num sinal que
+ * o servidor soma ao histograma sem contar visita.
+ */
 let lcpJaEnviado = false;
 
 function observaLcp(): void {
   if (typeof PerformanceObserver === 'undefined') return;
+  let ultimo: number | undefined;
+
+  const despacha = () => {
+    if (lcpJaEnviado || typeof ultimo !== 'number') return;
+    lcpJaEnviado = true;
+    envia({
+      sessionId: idDaSessao(),
+      path: window.location.pathname,
+      referrer: '',
+      utmMedium: '',
+      notFound: false,
+      lcpMs: ultimo,
+      apenasVitals: true,
+    });
+  };
+
   try {
     const obs = new PerformanceObserver((lista) => {
       for (const entrada of lista.getEntries()) {
         // O último LCP reportado é o válido — o navegador pode revisá-lo.
-        lcpMedido = Math.round(entrada.startTime);
+        ultimo = Math.round(entrada.startTime);
       }
     });
     obs.observe({ type: 'largest-contentful-paint', buffered: true });
   } catch {
     /* navegador sem suporte: o p75 fica sem amostra, e a tela diz isso */
+    return;
   }
+
+  // O LCP é definitivo quando o usuário interage ou a aba sai de cena; é
+  // nesses dois momentos que o valor vai embora.
+  window.addEventListener('pagehide', despacha, { once: true });
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (document.visibilityState === 'hidden') despacha();
+    },
+    { once: true },
+  );
+  // Rede de segurança para quem fica: 10s é bem depois de qualquer LCP.
+  const t = window.setTimeout(despacha, 10_000);
+  window.addEventListener('pagehide', () => window.clearTimeout(t), { once: true });
 }
 
 function mediumDaUrl(busca: string): string {
@@ -117,18 +165,13 @@ function marca(pathname: string, busca: string, notFound: boolean, primeira: boo
   if (chave === ultimoCaminho) return;
   ultimoCaminho = chave;
 
-  const sinal: Sinal = {
+  envia({
     sessionId: idDaSessao(),
     path: pathname,
     referrer: primeira ? document.referrer : '',
     utmMedium: mediumDaUrl(busca),
     notFound,
-  };
-  if (!lcpJaEnviado && typeof lcpMedido === 'number') {
-    sinal.lcpMs = lcpMedido;
-    lcpJaEnviado = true;
-  }
-  envia(sinal);
+  });
 }
 
 function ehNotFound(matches: ReadonlyArray<{ route: { id?: string } }>): boolean {
@@ -144,21 +187,10 @@ export function initAnalytics(router: Router): void {
   if (typeof window === 'undefined') return;
   observaLcp();
 
-  const primeira = () => {
-    const { pathname, search } = window.location;
-    marca(pathname, search, ehNotFound(router.state.matches ?? []), true);
-  };
-  // 2s é o suficiente para o LCP típico e curto o bastante para não perder
-  // quem sai rápido — e quem sai antes disso ainda é contado pelo unload.
-  const timer = window.setTimeout(primeira, 2000);
-  window.addEventListener(
-    'pagehide',
-    () => {
-      window.clearTimeout(timer);
-      primeira();
-    },
-    { once: true },
-  );
+  // A primeira página é contada agora, sem esperar por nada. Esperar pelo LCP
+  // custava as visitas curtas — que são as rejeições.
+  const { pathname, search } = window.location;
+  marca(pathname, search, ehNotFound(router.state.matches ?? []), true);
 
   router.subscribe((state) => {
     if (state.navigation.state !== 'idle') return;

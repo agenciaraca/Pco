@@ -826,5 +826,14 @@ export const analyticsHitSchema = z.object({
   notFound: z.boolean().default(false),
   /** Largest Contentful Paint em ms, medido pelo navegador. Só na 1ª página. */
   lcpMs: z.number().int().min(0).max(120_000).optional(),
+  /**
+   * Sinal só de desempenho: registra o LCP e **não** conta página vista.
+   *
+   * Existe porque o LCP só é conhecido um tempo depois do carregamento, e
+   * esperar por ele para contar a visita perdia justamente quem sai rápido —
+   * ou seja, as rejeições. Contar a página na hora e o desempenho depois é o
+   * que mantém a taxa de rejeição honesta.
+   */
+  apenasVitals: z.boolean().default(false),
 });
 export type AnalyticsHitInput = z.infer<typeof analyticsHitSchema>;

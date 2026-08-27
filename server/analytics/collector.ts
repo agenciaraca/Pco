@@ -232,12 +232,15 @@ export interface HitInput {
   notFound?: boolean;
   /** LCP em ms, medido pelo próprio navegador. Só vem na primeira página. */
   lcpMs?: number;
+  /** Só desempenho: soma o LCP e não conta página vista. Ver o schema. */
+  apenasVitals?: boolean;
   userAgent?: string;
   host?: string;
 }
 
 export type ResultadoHit =
   | { registrado: true; sessaoNova: boolean }
+  | { registrado: true; sessaoNova: false; apenasVitals: true }
   | { registrado: false; motivo: 'bot' | 'admin' };
 
 export async function registraHit(input: HitInput, agoraMs = Date.now()): Promise<ResultadoHit> {
@@ -246,12 +249,27 @@ export async function registraHit(input: HitInput, agoraMs = Date.now()): Promis
   const caminho = normalizaCaminho(input.path);
   if (ehAdmin(caminho)) return { registrado: false, motivo: 'admin' };
 
+  const data = hoje(new Date(agoraMs));
+
+  // Sinal só de desempenho: entra no histograma e sai. Não abre sessão, não
+  // conta página, não mexe em rejeição — se mexesse, o LCP que chega depois
+  // transformaria toda visita de uma página só em visita de duas.
+  if (input.apenasVitals) {
+    if (typeof input.lcpMs === 'number' && Number.isFinite(input.lcpMs) && input.lcpMs > 0) {
+      const dia = await diaEmMemoria(data);
+      const idx = Math.min(Math.floor(input.lcpMs / LCP_BUCKET_MS), LCP_BUCKETS - 1);
+      dia.lcpBuckets[idx] = (dia.lcpBuckets[idx] ?? 0) + 1;
+      dia.lcpCount += 1;
+      agendaFlush();
+    }
+    return { registrado: true, sessaoNova: false, apenasVitals: true };
+  }
+
   expurgaSessoes(agoraMs);
 
   const chave = input.sessionId.slice(0, 64);
   const anterior = sessoes.get(chave);
   const expirada = !anterior || agoraMs - anterior.ultimoEm > SESSAO_TTL_MS;
-  const data = hoje(new Date(agoraMs));
   const dia = await diaEmMemoria(data);
 
   dia.pageviews += 1;

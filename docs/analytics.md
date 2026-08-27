@@ -38,7 +38,9 @@ página), `utm_medium`, se caiu no 404, e o LCP que o navegador mediu. O
   Referrer do próprio domínio não é origem nova.
 - **Dispositivo**: user-agent, no servidor. O UA não é gravado.
 - **LCP**: histograma de 25 faixas de 250 ms, o que permite p75 sem guardar
-  amostra. `null` — não zero — quando não houve amostra.
+  amostra. `null` — não zero — quando não houve amostra. Chega num **sinal
+  separado** (`apenasVitals: true`), que soma ao histograma e não conta página
+  vista — ver "O erro que o próprio E2E pegou", abaixo.
 - **404**: rotas em que o SPA caiu no `NotFound` (rota com `id: 'not-found'`).
 
 ### O que NÃO é medido, e por quê
@@ -63,6 +65,36 @@ rastreado *entre sites*; aqui o dado nasce e morre no domínio, é contador
 agregado e nada aponta para uma pessoa. Honrar o cabeçalho devolveria ao admin
 uma subcontagem silenciosa. Se algo aqui um dia identificar visitante, essa
 decisão cai junto.
+
+### O erro que o próprio E2E pegou
+
+A primeira versão esperava **2 segundos** antes de mandar a primeira página,
+para dar tempo de o LCP existir. O E2E mostrou o estrago no mesmo dia: de ~20
+navegações, **duas** foram contadas.
+
+E o buraco era menos grave que o viés. Quem sai em menos de dois segundos é
+exatamente quem rejeita — então a taxa de rejeição sairia **mais baixa que a
+verdade**, fazendo o site parecer melhor do que é. Uma medição que erra para o
+lado agradável é pior do que nenhuma.
+
+Agora a página é contada na hora e o desempenho chega depois, num sinal com
+`apenasVitals: true` que o servidor soma ao histograma sem abrir sessão nem
+contar visita. Mesmo E2E, mesma suíte: **20 páginas em vez de 2**.
+
+O `sendBeacon` também passou a mandar `text/plain` em vez de
+`application/json`: é um dos tipos que o CORS dispensa de preflight, e
+`sendBeacon` não tem como reagir a um preflight que falhe. Com JSON o sinal
+morria em silêncio sempre que front e API estivessem em portas diferentes — o
+caso do dev local. O servidor lê o corpo como JSON de qualquer jeito.
+
+### E um defeito de produto que ela encontrou
+
+No primeiro E2E com a medição ligada, apareceu um 404 em `/aprender/:id`. A
+rota não existe — a de verdade é `/curso/:courseId`. O teste que a visitava
+tinha como única asserção `expect(page.url()).toContain(...)` logo depois do
+`goto` para essa mesma URL: não tem como falhar, nem no 404, nem com a página
+em branco. Corrigido, com asserção sobre o conteúdo. Depois disso, zero 404 na
+suíte.
 
 ### Limites conhecidos
 

@@ -213,6 +213,52 @@ describe('sessão, rejeição e tempo', () => {
     expect(medido?.lcpBuckets[7]).toBe(1);
   });
 
+  it('sinal só de desempenho soma LCP e NÃO conta página vista', async () => {
+    // Regressão de 27/ago/2026. A primeira versão esperava 2 segundos para
+    // mandar a página junto com o LCP, e o próprio E2E mostrou o estrago: de
+    // ~20 navegações, duas foram contadas. Pior que o buraco era o viés —
+    // quem sai em menos de dois segundos é exatamente quem rejeita, então a
+    // taxa de rejeição sairia mais baixa que a verdade.
+    const t0 = dia(6);
+    await collector.registraHit(
+      { sessionId: 'ss-vitals-001', path: '/', userAgent: CHROME },
+      t0,
+    );
+    const r = await collector.registraHit(
+      {
+        sessionId: 'ss-vitals-001',
+        path: '/',
+        userAgent: CHROME,
+        lcpMs: 1200,
+        apenasVitals: true,
+      },
+      t0 + 3_000,
+    );
+    expect(r).toEqual({ registrado: true, sessaoNova: false, apenasVitals: true });
+    await collector.flush();
+
+    const medido = await store.lerDia(hojeISO(new Date(t0)));
+    // Uma página, uma sessão, e a rejeição continua de pé: o sinal de
+    // desempenho não pode transformar visita de uma página em visita de duas.
+    expect(medido?.pageviews).toBe(1);
+    expect(medido?.sessions).toBe(1);
+    expect(medido?.bounces).toBe(1);
+    // E o LCP entrou: 1200 / 250 = faixa 4.
+    expect(medido?.lcpCount).toBe(1);
+    expect(medido?.lcpBuckets[4]).toBe(1);
+  });
+
+  it('sinal de desempenho de bot continua descartado', async () => {
+    const r = await collector.registraHit({
+      sessionId: 'ss-vitals-bot1',
+      path: '/',
+      userAgent: 'Googlebot/2.1',
+      lcpMs: 900,
+      apenasVitals: true,
+    });
+    expect(r).toEqual({ registrado: false, motivo: 'bot' });
+  });
+
   it('404 é contado por rota', async () => {
     const t0 = dia(5);
     await collector.registraHit(

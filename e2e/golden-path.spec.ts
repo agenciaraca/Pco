@@ -122,12 +122,21 @@ test.describe('AVA PCO golden path — student journey', () => {
     };
     expect(progress.completedLessonIds).toContain(firstLesson.id);
 
-    // 7) UI sanity check — visita o LMS player e confirma que renderiza
+    // 7) UI sanity check — visita o curso e confirma que renderiza conteúdo.
+    //
+    // Aqui havia duas falhas somadas, e uma escondia a outra. A rota era
+    // `/aprender/:id`, que não existe — o teste media a tela de 404. E a
+    // asserção era `expect(page.url()).toContain(...)` logo depois de um
+    // `goto` para essa mesma URL: não tem como falhar, nem no 404, nem se a
+    // página vier em branco. Verde por não poder ficar vermelho.
+    //
+    // Quem encontrou foi a medição de tráfego, que passou a registrar as
+    // rotas em que o SPA cai no 404 — este apareceu lá no primeiro E2E.
     await loginAs(page, STUDENT_EMAIL, STUDENT_PASSWORD);
-    await page.goto(`/aprender/${courseWithLesson!.id}`);
+    await page.goto(`/curso/${courseWithLesson!.id}`);
     await page.waitForLoadState('networkidle');
-    // Player ou listagem de módulos deve estar visível
-    expect(page.url()).toContain(`/aprender/${courseWithLesson!.id}`);
+    await expect(page.locator('body')).toContainText(/módulo|aula|lição|conteúdo/i);
+    await expect(page.locator('body')).not.toContainText(/página não encontrada|404/i);
   });
 
   test('student navega conteúdo do curso (módulos + lições)', async ({
