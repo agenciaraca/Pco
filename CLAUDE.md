@@ -79,6 +79,25 @@ Workers expose `getStatus()` surfaced under `/admin/jobs` / `/admin/saude`. **Ve
 
 ### Auth model
 
+**`attachUser` NÃO autentica.** Ele roda em `app.use('*')` e coloca o usuário
+no contexto **quando há token** — quem exige é `requireAuth`, rota a rota. Ler
+o código rápido dá a impressão de um middleware global de autenticação onde
+existe só um de conveniência. Em 27/ago/2026 isso custou caro: `GET
+/admin/students` devolvia nome, e-mail, progresso e risco de todos os alunos
+sem token nenhum, e mais sete rotas estavam na mesma situação.
+
+Duas suítes vigiam isso e devem ser mantidas:
+
+- `test/admin-rotas-sem-auth.test.ts` — percorre `app.routes` e cobra 401 em
+  **toda** rota `/admin/*`. Amostra não serve: foi uma amostra que deixou
+  passar as cinco.
+- `test/rotas-publicas-inventario.test.ts` — mantém a lista do que é público
+  **com o motivo escrito**. Tornar uma rota pública exige acrescentá-la ali.
+
+**O padrão a procurar:** par de rotas em que a de escrita tem guarda e a de
+leitura não. Foi a forma de quatro dos oito problemas encontrados naquele dia,
+inclusive o vazamento do material pago.
+
 JWT HS256 with payload `{ sub, email, role, tv, iat, exp }`. The `tv` field is the user's `tokenVersion` — bumping it (change-password, logout-all-devices, force-rotate) invalidates all outstanding tokens at the middleware layer (`server/auth/middleware.ts`). 2FA TOTP is gated by issuing an intermediate ticket token with `totp: 'pending'` and a 10-minute exp.
 
 Public read-only API uses a parallel mechanism: `pcok_*` tokens hashed SHA-256, scopes enforced by `requireApiToken(scope?)`. See `docs/api-public.md`.
@@ -225,6 +244,33 @@ sessão custa conforme a titulação de quem atende, então não há produto que
 descreva. O pedido leva `kind: 'session_pack'` e `refId` do agendamento; o
 webhook `paid` confirma, o estorno devolve para `pending_payment` (cancelar de
 vez é decisão de gente). Ver `docs/sessoes.md`.
+
+## `/api/courses` é público — e não pode levar `content`
+
+O catálogo é aberto de propósito (ementa vende), mas `listCourses()` inclui
+`lesson.content`. Até 27/ago/2026 um `curl` sem token baixava o material pago
+de todos os cursos — os 2,93 mi de caracteres restaurados pela migration 0008.
+
+`server/access/conteudo-aula.ts` tira o corpo nas rotas públicas; o aluno pega
+por `GET /me/courses/:courseId/lessons/:lessonId/content`, que passa por
+`courseAccessFor` (matrícula **e** prazo). A chave é removida, não esvaziada:
+`content: ''` faria a tela mostrar a descrição como se fosse a aula.
+
+## Analytics: a medição é própria, sem cookie e sem IP
+
+`server/analytics/` mede o tráfego do site desde 27/ago/2026 — antes disso
+`/admin/metricas` e `/admin/retencao` eram quase inteiramente números
+inventados dentro do `.tsx`. O beacon manda um sinal por página; o que persiste
+é contador por dia (`analytics_daily` ou `data/analytics-daily.json`).
+
+Duas regras que valem para qualquer tela de número deste projeto:
+
+- **`null` não vira zero.** Zero diz "medi e não houve"; travessão diz "não
+  medi".
+- **Percentual anda com a base.** "58%" não deixa ninguém desconfiar; "58% de
+  10.205 matrículas" num sistema com 785 alunos denuncia o problema sozinho.
+
+Detalhes em `docs/analytics.md`.
 
 ## Aulas: `description` é resumo, `content` é o corpo
 
