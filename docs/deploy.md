@@ -139,12 +139,62 @@ for(const e of j.entries){const q=fs.readFileSync('server/db/migrations/'+e.tag+
 console.log(c.createHash('sha256').update(q).digest('hex'), e.when, e.tag);}"
 ```
 
+### Acesso SSH — resolvido em 27/ago/2026
+
+A chave pública do desenvolvedor foi instalada **no usuário `avapco`**, pelo
+painel da Hostinger (Site User Settings → SSH Keys). Isso é melhor que a chave
+de root que a documentação antiga assumia: como o `avapco` é o dono da
+aplicação, os comandos deixam de precisar de `sudo -u avapco -i`.
+
+```
+Host vps
+    HostName 195.200.0.253
+    User avapco
+    IdentityFile ~/.ssh/pco_deploy
+    IdentitiesOnly yes
+```
+
+O deploy inteiro virou `bash scripts/deploy_producao.sh`, que confere estar no
+servidor certo antes de tocar em qualquer coisa (o deploy automático apontava
+para outro host e ninguém percebia), guarda o hash do bundle antes e depois — é
+ele, e não `/api/health`, que prova que o código novo subiu —, faz backup do
+`data/` e falha se a app não responder saudável.
+
 ### Quem pode rodar DDL
 
 O role da aplicação (`pco_lms_app`) **não é dono das tabelas** — DDL exige
 `pco_lms_owner`. O caminho que funciona é o **MCP do DivZ** (`run_sql` no projeto
 `pco-lms`), que já conecta como owner. A senha de owner que estava em
 `.env.bak.pre-app-role` no servidor não vale mais; não perca tempo com ela.
+
+### O journal do drizzle pode divergir dos arquivos — e trava tudo
+
+Em 27/ago/2026 o `npm run db:migrate` falhou tentando recriar
+`session_price_tiers`, que já existia. A causa não era o hash: **os nove hashes
+batiam com os arquivos locais**. Divergiam os `created_at` das duas últimas
+linhas — 0007 e 0008 tinham sido aplicadas à mão pelo MCP, com carimbos
+redondos (`1787200000000`, `1787210000000`) em vez dos valores do
+`_journal.json`.
+
+**O drizzle decide o que aplicar pelo carimbo, não pelo hash.** Com o carimbo
+menor, ele considerava 0007 pendente e tentava recriá-la — e parava ali, sem
+aplicar nenhuma das cinco que faltavam de verdade.
+
+Diagnóstico: comparar o hash calculado dos arquivos (snippet acima) com
+`select left(hash,16), created_at from drizzle.__drizzle_migrations`. Hash
+igual e carimbo diferente significa aplicação manual mal registrada — corrija o
+`created_at` da linha **casando pelo hash**, que é o que prova ser a mesma
+migration, e rode a migração normalmente.
+
+Quem aplicar DDL fora do `db:migrate` precisa gravar o `created_at` **exato**
+do `_journal.json`. Carimbo inventado quebra a próxima migração de quem vier.
+
+### Permissões nas tabelas novas
+
+Não é preciso conceder nada à mão: o banco tem `DEFAULT PRIVILEGES` para o
+role da aplicação, e as cinco tabelas criadas em 27/ago já nasceram com
+`SELECT, INSERT, UPDATE, DELETE` para `pco_lms_app` — verificado depois de
+aplicá-las.
 
 ### Migration 0002 — aplicada em 2026-08-16
 

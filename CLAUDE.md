@@ -176,6 +176,21 @@ comandos da app vão via `sudo -u avapco -i`.
 > `scripts/update_vps_pwd.py`, `restart_vps.py`, `sync_data_to_vps.py`, `deploy.sh`
 > e `docs/migration-*.md` ainda apontam pro host antigo e precisam de revisão.
 
+**Acesso SSH resolvido em 27/ago/2026:** a chave está instalada no usuário
+`avapco` (pelo painel da Hostinger), e o atalho `vps` aponta para ele. Como o
+`avapco` é o dono da app, **não é mais preciso `sudo -u avapco -i`**.
+
+O caminho recomendado é `bash scripts/deploy_producao.sh`, que confere estar no
+servidor certo antes de tocar em nada, faz backup do `data/` e compara o hash
+do bundle antes e depois — `/api/health` responde 200 com código velho, então é
+o bundle que prova que o deploy subiu.
+
+**Migração é passo separado, e vem antes.** `pco_lms_app` não faz DDL; use
+`DATABASE_URL=<owner> npx tsx server/db/migrate.ts` a partir da máquina local
+(o banco DivZ aceita conexão de fora, então a credencial de owner não precisa
+tocar o disco do servidor). Se o `db:migrate` tentar recriar tabela que já
+existe, o problema é carimbo divergente no journal — ver `docs/deploy.md`.
+
 Deploy manual completo (após `git push origin main`):
 
 ```bash

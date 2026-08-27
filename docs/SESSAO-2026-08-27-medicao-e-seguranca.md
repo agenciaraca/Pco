@@ -267,6 +267,48 @@ isso, a verificação real é local: `npm run typecheck`, `npm run lint`,
 `npm run test`, `npm run build` e `CI=true npm run e2e`, que foi o que rodei em
 cada um dos doze commits deste dia.
 
+## O deploy saiu — e as correções estão no ar
+
+Feito no fim do dia, depois que o dono instalou a chave pública no usuário
+`avapco` pelo painel da Hostinger e forneceu a credencial de owner do banco.
+
+**Verificado em produção, pela internet, sem token:**
+
+| Rota | Antes | Depois |
+| --- | --- | --- |
+| `GET /api/admin/students` | 200 com ~2000 alunos | **401** |
+| `GET /api/retention/risks` | 200 com nomes e scores | **401** |
+| `GET /api/admin/ai/configurations` | 200 | **401** |
+| `GET /api/courses` | corpo de todas as aulas | **352 aulas, zero com conteúdo** |
+
+O catálogo público caiu para 182 KB e a chave `content` não aparece mais na
+resposta. Bundle mudou de `index-IJB2AaMU.js` para `index-BnDrte2A.js` — é ele,
+e não `/api/health`, que prova que o código novo subiu.
+
+Zero erros novos no log depois do restart (os 457 do arquivo são históricos, de
+antes). `/`, `/login`, `/formacoes` respondem 200, e `/formacoes` mostra os 7
+cursos publicados.
+
+### Duas coisas que quase quebraram o deploy
+
+**Cinco tabelas pendentes.** Produção estava 43 commits atrás, e o usuário da
+aplicação não tem permissão de DDL. Subir o código novo faria cupom, pedido,
+agendamento, banco de questões e medição estourarem na primeira leitura —
+porque o molde de todos os repositórios decide pela presença de `DATABASE_URL`,
+não pela existência da tabela. Corrigido com `bancoSeTabelaExiste`, que devolve
+`null` como se não houvesse banco e deixa o JSON assumir. As migrações foram
+aplicadas depois, então o contorno virou rede de proteção em vez de modo de
+operação — mas ele precisa existir: a ordem entre migrar e publicar não pode
+decidir se o site fica no ar.
+
+**O journal do drizzle divergia dos arquivos.** `db:migrate` falhou tentando
+recriar `session_price_tiers`. Os nove hashes batiam; o que divergia eram os
+`created_at` de 0007 e 0008, aplicadas à mão com carimbos redondos. O drizzle
+decide pelo carimbo, não pelo hash — então ele achava 0007 pendente e parava
+ali, sem chegar nas cinco que faltavam de verdade. Corrigido casando pelo hash,
+que é o que prova ser a mesma migration. Documentado em `docs/deploy.md`,
+porque vai acontecer de novo com quem aplicar DDL fora do `db:migrate`.
+
 ## O que ficou por fazer
 
 **Só depende do dono:** cadastrar profissionais reais, a grade do curso, trocar
