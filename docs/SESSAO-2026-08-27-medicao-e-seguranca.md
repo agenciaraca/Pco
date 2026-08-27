@@ -208,6 +208,27 @@ inclusive o vazamento do material pago.
 - 8 problemas de segurança fechados, todos verificados com requisição real
   antes e depois
 
+## O CI não roda desde 26 de agosto — e isso é pior que não ter CI
+
+Ao subir os commits, o CI falhou em 5 segundos. Não foi o código:
+
+> The job was not started because your account is locked due to a billing issue.
+
+Verificado no histórico: **todos** os runs desde 26/ago terminam assim, com
+4 a 6 segundos de duração. Nenhum deles executou typecheck, lint, teste ou
+build. A sessão de 26/ago tornou o job de E2E bloqueante para que a suíte
+parasse de ficar "verde por não ser olhada" — mas com a conta travada nada é
+executado, e o efeito é o oposto do pretendido.
+
+**Um X vermelho permanente por motivo alheio ao código é pior do que nenhum
+CI**: treina todo mundo a ignorar o vermelho, e o dia em que o vermelho for de
+verdade ninguém vai olhar.
+
+Só o dono resolve — é uma questão de cobrança na conta do GitHub. Enquanto
+isso, a verificação real é local: `npm run typecheck`, `npm run lint`,
+`npm run test`, `npm run build` e `CI=true npm run e2e`, que foi o que rodei em
+cada um dos doze commits deste dia.
+
 ## O que ficou por fazer
 
 **Só depende do dono:** cadastrar profissionais reais, a grade do curso, trocar
