@@ -2281,7 +2281,16 @@ export function buildApp() {
 
   // ---------- Retention ----------
 
-  app.get('/retention/risks', async (c) =>
+  /**
+   * Lista de alunos em risco de evasão — **nome, score, motivos e último
+   * acesso de cada pessoa**. Respondia sem token nenhum até 27/ago/2026.
+   *
+   * É pior que a lista de matrícula: não é só quem estuda aqui, é um juízo
+   * sobre pessoas nomeadas ("Fulana, risco crítico, não acessa há 60 dias").
+   * Só quem coordena tem o que fazer com isso — e é a esses que as quatro
+   * telas que consomem a rota pertencem.
+   */
+  app.get('/retention/risks', requireAuth('admin', 'superadmin'), async (c) =>
     c.json(await retentionRepo.listRetentionRisks(c.req.query('level'))),
   );
 
@@ -2947,7 +2956,15 @@ export function buildApp() {
 
   // ---------- AI: Tutor ----------
 
-  app.post('/ai/tutor', async (c) => {
+  /**
+   * O Tutor Virtual. Exige login desde 27/ago/2026.
+   *
+   * Antes respondia a qualquer um, e o efeito não era só "recurso pago de
+   * graça": sem usuário no contexto, a cota caía no id do aluno-semente. Ou
+   * seja, visitante anônimo gastava a cota mensal de uma conta real, e o
+   * primeiro a descobrir a rota podia zerá-la para essa pessoa.
+   */
+  app.post('/ai/tutor', requireAuth(), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(tutorAskSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
@@ -9327,12 +9344,19 @@ export function buildApp() {
 
   // ---------- Forum por curso ----------
 
-  app.get('/courses/:courseId/forum/threads', async (c) => {
+  /**
+   * Fórum do curso — leitura também exige login desde 27/ago/2026.
+   *
+   * As threads carregam nome de aluno e a discussão de um curso pago. Escrever
+   * já exigia token; ler não exigia nada, e quem soubesse o id do curso lia
+   * tudo. A tela que consome já manda token, então nada muda para quem usa.
+   */
+  app.get('/courses/:courseId/forum/threads', requireAuth(), async (c) => {
     const { listThreads } = await import('./forum/store');
     return c.json(await listThreads(c.req.param('courseId') as string));
   });
 
-  app.get('/forum/threads/:id', async (c) => {
+  app.get('/forum/threads/:id', requireAuth(), async (c) => {
     const { getThread, listReplies } = await import('./forum/store');
     const t = await getThread(c.req.param('id') as string);
     if (!t) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');

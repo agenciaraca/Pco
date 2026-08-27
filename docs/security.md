@@ -254,3 +254,29 @@ virar decoração:
   fica vermelha.
 
 Rota nova sem `requireAuth` agora cai na suíte, não em produção.
+
+
+## Mais três rotas que respondiam a qualquer um (27/ago/2026)
+
+Fora de `/admin/`, na mesma varredura:
+
+| Rota | O que saía | Por que importa |
+| --- | --- | --- |
+| `GET /retention/risks` | nome, score, motivos e último acesso de cada aluno | pior que a lista de matrícula: é um **juízo sobre pessoas nomeadas** |
+| `POST /ai/tutor` | resposta do Tutor Virtual | recurso pago; e sem usuário no contexto a cota caía no id do aluno-**semente**, então um anônimo gastava a cota mensal de uma conta real |
+| `GET /courses/:id/forum/threads` e `GET /forum/threads/:id` | discussão do curso, com nome de aluno | escrever já exigia token; **ler não exigia nada** |
+
+Nenhuma tela mudou de comportamento: as quatro que consomem `retention/risks`
+são de coordenação, e o fórum e o tutor já mandavam token.
+
+## O inventário de rotas públicas
+
+`test/rotas-publicas-inventario.test.ts` guarda a lista do que responde sem
+token **como decisão escrita**, cada item com o motivo. O teste percorre as
+rotas registradas e falha se alguma fora da lista responder algo diferente de
+401.
+
+O efeito prático: tornar uma rota pública passa a exigir escrevê-la ali com uma
+justificativa — que é exatamente o momento em que alguém pergunta "isso pode
+mesmo sair sem login?". Um segundo caso cobra que o motivo não seja uma palavra
+solta.
