@@ -186,3 +186,34 @@ UI: componente `LessonComments` inline na `LMSLesson`.
 `server/admin/notes-store.ts` — notas privadas (não-visíveis ao aluno) com pin/edit/delete. Endpoints `GET/POST/PUT/DELETE /admin/students/:id/notes[/:noteId]`.
 
 UI: aba "Notas" em `/admin/alunos/:id`.
+
+
+## Integrações — `GET /admin/integracoes`
+
+**Desde 27/ago/2026.** A aba "Integrações" de `/admin/configuracoes` mostrava
+cinco nomes com o selo "não conectado" escrito à mão no `.tsx`, mais a frase
+"Atualmente nenhum provedor terceiro está conectado".
+
+Mentia nos dois sentidos: dizia "Stripe: não conectado" com um gateway Stripe
+ativo processando pagamento, e "Mailgun/SES: não conectado" com provedor de
+e-mail configurado e testado. E listava Google Calendar, que não existe no
+código.
+
+`server/health/integracoes.ts` apura cada linha a partir de registro. **Três
+estados**, e a diferença entre os dois últimos é o que a lista antiga não sabia
+dizer:
+
+| Estado | Significa |
+| --- | --- |
+| `conectado` | Há configuração ativa e utilizável |
+| `disponivel` | O código existe, falta configurar (com link para onde) |
+| `inexistente` | Não há integração no sistema — não adianta procurar |
+
+Duas regras de classificação que evitam repetir o defeito:
+
+- **Gateway `mock` ativo não é "conectado".** Ele existe para testar sem
+  cobrar; marcá-lo como integração ativa esconderia que nenhum dinheiro entra.
+  O mesmo vale para o provedor de e-mail `mock`.
+- **Configuração de IA ativa sem chave não é "conectado".** A semente cria
+  configurações marcadas como ativas sem credencial; contá-las diria que a IA
+  está no ar quando a primeira chamada falharia.

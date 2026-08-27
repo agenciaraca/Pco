@@ -2414,6 +2414,20 @@ export interface AgendaDoDia {
   observacao: string;
 }
 
+/** O que está conectado ao AVA — apurado, não escrito à mão na tela. */
+export interface Integracao {
+  id: string;
+  nome: string;
+  categoria: string;
+  estado: 'conectado' | 'disponivel' | 'inexistente';
+  detalhe: string;
+  ondeConfigurar?: string;
+}
+
+export async function fetchIntegracoes(): Promise<Integracao[]> {
+  return http.get<Integracao[]>('/admin/integracoes');
+}
+
 export async function fetchAgendaDoDia(
   professionalId: string,
   data: string,

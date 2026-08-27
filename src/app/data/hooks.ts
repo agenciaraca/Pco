@@ -316,6 +316,10 @@ export function useTrafego(range = '30d') {
   });
 }
 
+export function useIntegracoes() {
+  return useQuery({ queryKey: ['admin-integracoes'] as const, queryFn: api.fetchIntegracoes });
+}
+
 export function useRetencao() {
   return useQuery({ queryKey: ['analytics-retencao'] as const, queryFn: api.fetchRetencao });
 }

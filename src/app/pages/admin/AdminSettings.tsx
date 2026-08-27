@@ -9,7 +9,8 @@ import {
   Save,
 } from 'lucide-react';
 import Tabs from '../../components/Tabs';
-import { useSettings, useUpdateSettings } from '../../data/hooks';
+import { Link } from 'react-router-dom';
+import { useSettings, useUpdateSettings, useIntegracoes } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 
@@ -26,17 +27,11 @@ const tabs = [
   },
 ];
 
-const integrationsList = [
-  { name: 'Google Analytics', category: 'Métricas', status: 'disconnected' },
-  { name: 'Google Search Console', category: 'Métricas', status: 'disconnected' },
-  { name: 'Google Calendar', category: 'Agenda', status: 'disconnected' },
-  { name: 'Stripe', category: 'Pagamentos externos', status: 'disconnected' },
-  { name: 'Mailgun / SES', category: 'E-mail transacional', status: 'disconnected' },
-];
 
 export default function AdminSettings() {
   const [active, setActive] = useState('instituicao');
   const settingsQ = useSettings();
+  const integracoesQ = useIntegracoes();
   const updateMut = useUpdateSettings();
   const toast = useToast();
 
@@ -192,24 +187,63 @@ export default function AdminSettings() {
         </div>
       )}
 
+      {/*
+        Esta aba mostrava cinco nomes com o selo "não conectado" escrito à mão
+        no arquivo, e a frase "Atualmente nenhum provedor terceiro está
+        conectado". Mentia nos dois sentidos: dizia isso com gateway Stripe
+        ativo processando pagamento e com provedor de e-mail configurado e
+        testado. E listava Google Calendar, que não existe no código.
+
+        Agora vem de `/admin/integracoes`. Três estados, e a diferença entre os
+        dois últimos importa: "disponível" é falta configurar; "não existe" é
+        não há o que configurar.
+      */}
       {active === 'integracoes' && (
         <div className="pco-card p-6 space-y-3">
           <h3 className="text-base font-semibold text-pco-deep">Integrações</h3>
           <p className="text-xs text-ink-muted">
-            Integrações externas serão habilitadas conforme demanda. Atualmente nenhum provedor
-            terceiro está conectado.
+            Apurado agora, a partir das configurações existentes.
           </p>
+          {integracoesQ.isLoading && <p className="text-xs text-ink-subtle">Consultando…</p>}
+          {integracoesQ.isError && (
+            <p className="text-xs text-status-danger">
+              Não foi possível apurar. A tela prefere não dizer nada a repetir um estado antigo.
+            </p>
+          )}
           <ul className="grid gap-2 sm:grid-cols-2">
-            {integrationsList.map((i) => (
+            {(integracoesQ.data ?? []).map((i) => (
               <li
-                key={i.name}
-                className="flex items-center justify-between rounded-lg bg-surface-mute/40 p-3"
+                key={i.id}
+                className="flex items-start justify-between gap-3 rounded-lg bg-surface-mute/40 p-3"
               >
-                <div>
-                  <div className="text-sm font-semibold text-pco-deep">{i.name}</div>
-                  <div className="text-[10px] text-ink-subtle">{i.category}</div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-pco-deep">{i.nome}</div>
+                  <div className="text-[10px] text-ink-subtle">{i.categoria}</div>
+                  <p className="mt-1 text-[11px] leading-snug text-ink-muted">{i.detalhe}</p>
+                  {i.ondeConfigurar && i.estado !== 'conectado' && (
+                    <Link
+                      to={i.ondeConfigurar}
+                      className="mt-1 inline-block text-[11px] font-medium text-pco-blue underline"
+                    >
+                      Configurar
+                    </Link>
+                  )}
                 </div>
-                <span className="pco-badge bg-surface-gray text-ink-muted">não conectado</span>
+                <span
+                  className={`pco-badge shrink-0 ${
+                    i.estado === 'conectado'
+                      ? 'bg-status-success/10 text-status-success'
+                      : i.estado === 'disponivel'
+                        ? 'bg-pco-orange/10 text-pco-orange'
+                        : 'bg-surface-gray text-ink-subtle'
+                  }`}
+                >
+                  {i.estado === 'conectado'
+                    ? 'conectado'
+                    : i.estado === 'disponivel'
+                      ? 'falta configurar'
+                      : 'não existe'}
+                </span>
               </li>
             ))}
           </ul>

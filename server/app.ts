@@ -100,6 +100,7 @@ import { registraHit } from './analytics/collector';
 import { montaRelatorio, normalizaRange, seoTecnico } from './analytics/relatorio';
 import { montaRetencao } from './analytics/retencao';
 import { agendaDoDia } from './sessions/horarios';
+import { listarIntegracoes } from './health/integracoes';
 import * as rateLimitTelemetry from './rate-limit';
 import { jsonError, validate } from './http';
 import { getProvider, listProviders, calculateCost } from './ai/providers';
@@ -2841,6 +2842,15 @@ export function buildApp() {
    */
   app.get('/admin/analytics/retencao', requireAuth('admin', 'superadmin'), async (c) =>
     c.json(await montaRetencao()),
+  );
+
+  /**
+   * O que está conectado ao AVA. A aba "Integrações" das configurações
+   * mostrava cinco nomes com o selo "não conectado" escrito à mão — dizia isso
+   * inclusive com gateway Stripe ativo processando pagamento.
+   */
+  app.get('/admin/integracoes', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await listarIntegracoes()),
   );
 
   app.get('/admin/analytics/trafego', requireAuth('admin', 'superadmin'), async (c) => {
