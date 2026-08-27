@@ -316,6 +316,24 @@ export function useTrafego(range = '30d') {
   });
 }
 
+/**
+ * Busca o corpo da aula. Só dispara com curso e aula definidos — e `enabled`
+ * carrega a matrícula: pedir o conteúdo de curso não matriculado devolve 403,
+ * e o 403 não deve virar erro na tela de quem só está de passagem.
+ */
+export function useConteudoDaAula(
+  courseId: string | undefined,
+  lessonId: string | undefined,
+  matriculado: boolean,
+) {
+  return useQuery({
+    queryKey: ['conteudo-aula', courseId, lessonId] as const,
+    queryFn: () => api.fetchConteudoDaAula(courseId!, lessonId!),
+    enabled: Boolean(courseId && lessonId && matriculado),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useIntegracoes() {
   return useQuery({ queryKey: ['admin-integracoes'] as const, queryFn: api.fetchIntegracoes });
 }

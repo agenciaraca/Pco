@@ -20,6 +20,7 @@ import {
   useSaveLessonNote,
   useCurrentStudent,
   useLessonTranscript,
+  useConteudoDaAula,
 } from '../data/hooks';
 import { TRANSCRIPT_LOCALE_LABELS } from '../../../shared/schemas';
 import { useT } from '../i18n';
@@ -58,6 +59,11 @@ export default function LMSLesson() {
     (student as { enrolledCourseIds?: string[] })?.enrolledCourseIds?.includes(
       courseId ?? '',
     ) ?? false;
+
+  // O conteúdo é buscado à parte, por rota autenticada. `lesson.content` não
+  // existe mais na resposta do catálogo — ver server/access/conteudo-aula.ts.
+  const conteudoQ = useConteudoDaAula(courseId, lessonId, isEnrolled);
+  const corpoDaAula = conteudoQ.data?.content ?? null;
   useLessonWatchHeartbeat({
     lessonId,
     courseId,
@@ -197,11 +203,20 @@ export default function LMSLesson() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-5">
-          {lesson.content ? (
+          {/*
+            O corpo da aula vinha de `useCourses()`, que consome o catálogo
+            público — e por isso o material pago saía num `curl` sem token.
+            Agora vem de uma rota que verifica matrícula e prazo de acesso.
+          */}
+          {conteudoQ.isLoading ? (
+            <div className="pco-card">
+              <p className="text-sm text-ink-subtle">Carregando o conteúdo da aula…</p>
+            </div>
+          ) : corpoDaAula ? (
             <div className="pco-card">
               <div
                 className="pco-prose text-sm text-pco-deep leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(lesson.content) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(corpoDaAula) }}
               />
             </div>
           ) : lesson.description ? (

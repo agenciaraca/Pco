@@ -121,6 +121,7 @@ import { montarListaConvite, registrarConvite } from './convites/repo';
 import { consultarCota as consultarCotaEmail } from './notifications/cota';
 import { renderPrimeiroAcesso } from './notifications/templates';
 import { courseAccessFor, accessDeniedCode, accessDeniedMessage } from './access/guard';
+import { semConteudoDeAula, listaSemConteudoDeAula } from './access/conteudo-aula';
 import { accessFor as accessInfoFor } from './access/course-access';
 import { simularPrazoDoCurso, darCarencia } from './access/impacto';
 import { AVISO_OPCIONAL, BASE_LEGAL } from './sessions/regra-opcional';
@@ -1887,7 +1888,17 @@ export function buildApp() {
 
   // ---------- Courses ----------
 
-  app.get('/courses', async (c) => c.json(await coursesRepo.listCourses()));
+  /**
+   * O catálogo. Público, e por isso **sem o corpo das aulas**.
+   *
+   * Até 27/ago/2026 devolvia o curso inteiro, e `listCourses()` inclui
+   * `lesson.content`: um `curl` sem token baixava o material pago de todos os
+   * cursos. Ementa (título, descrição, duração, ordem) continua saindo — é
+   * ela que vende. Ver `server/access/conteudo-aula.ts`.
+   */
+  app.get('/courses', async (c) =>
+    c.json(listaSemConteudoDeAula(await coursesRepo.listCourses())),
+  );
   /**
    * Endpoint público: retorna o conteúdo de uma lesson SE ela estiver marcada
    * como isPreview=true. Caso contrário 403. Usado pra player aberto a
@@ -2111,8 +2122,47 @@ export function buildApp() {
           : { ...m, locked: false };
       }),
     };
-    return c.json(enriched);
+    // Mesmo motivo da lista: esta rota é pública. O corpo da aula sai por
+    // `/me/courses/:courseId/lessons/:lessonId/content`, que exige matrícula.
+    return c.json(semConteudoDeAula(enriched));
   });
+
+  /**
+   * O corpo de uma aula, para quem tem direito a ele.
+   *
+   * Passa por `courseAccessFor`, que é matrícula **e** prazo: matrícula
+   * vencida não estuda, e é a mesma regra que o resto do LMS aplica. Admin não
+   * escapa por aqui — quem precisa ver conteúdo para editar usa as rotas de
+   * `/admin/`, que têm o próprio controle.
+   */
+  app.get(
+    '/me/courses/:courseId/lessons/:lessonId/content',
+    requireAuth(),
+    async (c) => {
+      const u = c.get('user')!;
+      const courseId = c.req.param('courseId') as string;
+      const lessonId = c.req.param('lessonId') as string;
+
+      const acc = await courseAccessFor(u.sub, courseId);
+      if (!acc.canStudy) {
+        return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc));
+      }
+
+      const course = await coursesRepo.findCourse(courseId);
+      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+
+      const lesson = course.modules
+        .flatMap((m) => m.lessons ?? [])
+        .find((l) => l.id === lessonId);
+      if (!lesson) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada neste curso.');
+
+      return c.json({
+        lessonId,
+        courseId,
+        content: (lesson as unknown as { content?: string }).content ?? null,
+      });
+    },
+  );
 
   /**
    * Verifica se o aluno logado completou os pré-requisitos do curso.

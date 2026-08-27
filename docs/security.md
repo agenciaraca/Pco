@@ -280,3 +280,42 @@ O efeito prático: tornar uma rota pública passa a exigir escrevê-la ali com u
 justificativa — que é exatamente o momento em que alguém pergunta "isso pode
 mesmo sair sem login?". Um segundo caso cobra que o motivo não seja uma palavra
 solta.
+
+
+## O material pago saía no catálogo público (27/ago/2026)
+
+O achado mais grave da varredura. `GET /api/courses` é público — é o catálogo,
+e precisa ser. Só que devolvia o curso **inteiro**, e `listCourses()` inclui
+`lesson.content`.
+
+Um `curl` sem token nenhum baixava o HTML completo de todas as aulas de todos
+os cursos. Em produção são os **2,93 milhões de caracteres** que a migration
+0008 e o `restaurar_conteudo_aulas.ts` recuperaram: a apostila pela qual o
+aluno paga, aberta para quem soubesse a URL. Verificado com requisição real
+antes e depois.
+
+### O que ficou público, e por quê
+
+Título, descrição, duração, ordem e obrigatoriedade de cada aula continuam
+saindo. Isso é a **ementa**, e ementa vende: sem ela o visitante não sabe o que
+está comprando. O que sai é `content`, e só ele —
+`server/access/conteudo-aula.ts`.
+
+A chave é **removida**, não esvaziada. `content: ''` faria a tela do aluno cair
+no ramo "sem conteúdo" e mostrar a descrição como se fosse a aula; a ausência é
+o mesmo estado de uma aula que nunca teve corpo.
+
+### Onde o aluno pega
+
+`GET /me/courses/:courseId/lessons/:lessonId/content`, que passa por
+`courseAccessFor` — matrícula **e** prazo de acesso, a mesma regra do resto do
+LMS. Aula marcada como preview continua livre por `/lessons/:id/preview`: esse
+teaser é deliberado.
+
+### O teste que mais importa
+
+Além dos casos de vazamento, `test/conteudo-aula-pago.test.ts` cobra que o
+aluno **matriculado receba** o conteúdo — matricula pelo `enroll-bulk` e
+verifica o corpo completo. Sem esse caso, fechar o vazamento fechando junto o
+produto deixaria a suíte verde com nenhum aluno conseguindo ler a aula que
+pagou.

@@ -2424,6 +2424,26 @@ export interface Integracao {
   ondeConfigurar?: string;
 }
 
+/**
+ * O corpo de uma aula. Rota separada e autenticada desde 27/ago/2026: o
+ * catálogo é público e devolvia `lesson.content` junto, então o material pago
+ * saía num `curl` sem token. Ver `server/access/conteudo-aula.ts`.
+ */
+export interface ConteudoDaAula {
+  lessonId: string;
+  courseId: string;
+  content: string | null;
+}
+
+export async function fetchConteudoDaAula(
+  courseId: string,
+  lessonId: string,
+): Promise<ConteudoDaAula> {
+  return http.get<ConteudoDaAula>(
+    `/me/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/content`,
+  );
+}
+
 export async function fetchIntegracoes(): Promise<Integracao[]> {
   return http.get<Integracao[]>('/admin/integracoes');
 }
