@@ -11,6 +11,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useCourses, useProducts } from '../data/hooks';
+import { isPubliclyListed } from '../../../shared/visibilidade';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
@@ -30,7 +31,17 @@ export default function Catalog() {
   const [activeTag, setActiveTag] = useState<string>('');
 
   const visibleCourses = useMemo(() => {
+    // Duas condições, e até 27/ago/2026 só a segunda existia aqui.
+    //
+    // `isPubliclyListed` é a regra que o site público e o checkout já
+    // aplicavam. Sem ela, curso marcado `publicListed: false` sumia de lá e
+    // continuava nesta prateleira: quem clicasse ia para um checkout que
+    // responde 404, e a escola pensaria ter tirado o curso de venda.
+    //
+    // A regra mora em `shared/visibilidade.ts` justamente para que servidor e
+    // navegador não escrevam duas versões dela.
     let list = (courses ?? []).filter((c) => {
+      if (!isPubliclyListed(c)) return false;
       const product = products.find(
         (p) => p.kind === 'course' && p.refId === c.id && p.active,
       );

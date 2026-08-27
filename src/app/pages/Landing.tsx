@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import SiteHeader from '../components/SiteHeader';
+import { useCourses } from '../data/hooks';
+import { isPubliclyListed } from '../../../shared/visibilidade';
 import {
   ArrowRight,
   Compass,
@@ -34,30 +36,26 @@ const recursos = [
   { icon: TrendingUp, label: 'Plano de retomada', desc: 'Para alunos inativos.' },
 ];
 
-const cursos = [
-  {
-    short: 'Psicanálise Clínica',
-    full: 'Formação completa em psicanálise contemporânea',
-    color: 'from-pco-blue to-pco-cyan',
-  },
-  {
-    short: 'Terapia Familiar Sistêmica',
-    full: 'Abordagem sistêmica para famílias e relações',
-    color: 'from-pco-cyan to-pco-cyan-light',
-  },
-  {
-    short: 'Hipnoterapia',
-    full: 'Hipnose terapêutica com base científica',
-    color: 'from-pco-orange to-[#FFB347]',
-  },
-  {
-    short: 'Novos cursos PCO',
-    full: 'Mais formações em breve',
-    color: 'from-pco-deep to-pco-blue',
-  },
+/**
+ * A grade de cores das capas. É a única coisa desta seção que continua fixa —
+ * é decoração, não afirmação.
+ */
+const CAPAS = [
+  'from-pco-blue to-pco-cyan',
+  'from-pco-cyan to-pco-cyan-light',
+  'from-pco-orange to-[#FFB347]',
+  'from-pco-deep to-pco-blue',
 ];
 
+/** Quantos cursos a seção mostra antes de mandar para o catálogo. */
+const CURSOS_NA_VITRINE = 8;
+
+
 export default function Landing() {
+  const cursosQ = useCourses();
+  // Mesmo portão do site público e do checkout — ver shared/visibilidade.ts.
+  const vitrine = (cursosQ.data ?? []).filter(isPubliclyListed).slice(0, CURSOS_NA_VITRINE);
+
   return (
     <div className="min-h-screen bg-surface-off">
       <SiteHeader />
@@ -206,23 +204,48 @@ export default function Landing() {
       </Section>
 
       {/* 5. Multi-cursos */}
+      {vitrine.length > 0 && (
       <Section bg="off">
         <div className="text-center mb-10">
           <Tag>Multi-cursos</Tag>
           <h2 className="mt-3 text-3xl font-bold text-pco-deep">Várias formações, um único AVA</h2>
         </div>
+        {/*
+          Esta grade listava três cursos escritos à mão — "Psicanálise
+          Clínica", "Terapia Familiar Sistêmica", "Hipnoterapia" — e um quarto
+          card dizendo "Novos cursos PCO / Mais formações em breve". O catálogo
+          real tem treze, entre eles Autismo, Neuropsicologia, Psicanálise
+          Forense e Prevenção ao Suicídio. Não eram cursos "em breve": já
+          existiam, e a página de venda não os vendia.
+
+          Agora vem do catálogo, pelo mesmo portão do site público
+          (`isPubliclyListed`). Se a lista não carregar, a seção some — anunciar
+          um cardápio antigo é pior do que não anunciar.
+        */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {cursos.map((c) => (
-            <div key={c.short} className="pco-card pco-card-hover p-0 overflow-hidden">
-              <div className={`h-24 bg-gradient-to-br ${c.color}`} />
+          {vitrine.map((c, i) => (
+            <Link
+              key={c.id}
+              to={`/curso-preview/${c.id}`}
+              className="pco-card pco-card-hover p-0 overflow-hidden block"
+            >
+              <div className={`h-24 bg-gradient-to-br ${c.coverColor || CAPAS[i % CAPAS.length]}`} />
               <div className="p-5">
-                <div className="font-semibold text-pco-deep">{c.short}</div>
-                <p className="mt-1 text-xs text-ink-muted">{c.full}</p>
+                <div className="font-semibold text-pco-deep">{c.shortTitle || c.title}</div>
+                <p className="mt-1 text-xs text-ink-muted line-clamp-2">{c.description}</p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
+        {cursosQ.data && cursosQ.data.length > CURSOS_NA_VITRINE && (
+          <div className="mt-6 text-center">
+            <Link to="/catalogo" className="pco-btn-secondary">
+              Ver as {cursosQ.data.length} formações
+            </Link>
+          </div>
+        )}
       </Section>
+      )}
 
       {/* 6. Recursos */}
       <Section id="recursos">

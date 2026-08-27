@@ -121,3 +121,29 @@ Campos editáveis novos do curso (extensão **aditiva** do `updateCourseSchema`)
 `badge, tagline, tldr, forWhom, faqs, curriculum, level, language, monthsMin/Max`.
 Já existem e são reusados: `learningOutcomes, instructorName/Bio/PhotoUrl,
 description, slug, coverImageUrl, totalHours, certificateAvailable, tags`.
+
+
+## O portão da vitrine agora é um só — `shared/visibilidade.ts`
+
+`isPubliclyListed()` nasceu em `server/public/projections.ts` com um comentário
+dizendo ser o "ÚNICO portão de visibilidade pública de curso", por onde todo
+caminho que expõe curso a visitante anônimo passaria. Valia para o site SSR
+(`/formacoes`, `/formacao/:slug`, sitemap, llms.txt, cursos relacionados) e para
+`/public/checkout`.
+
+**Não valia para o SPA.** `/catalogo` filtrava por outro critério — "existe
+produto ativo apontando para este curso" — e `/comparar` resolvia qualquer id
+que viesse na URL. Um curso marcado `publicListed: false` sumia do site
+público, tinha a compra barrada no checkout, e continuava na prateleira do
+`/catalogo`: quem clicasse era mandado para um checkout que responde 404, e a
+escola pensaria ter tirado o curso de venda.
+
+A função mudou de casa para `shared/visibilidade.ts`, onde servidor e navegador
+leem o mesmo código. `projections.ts` reexporta — import antigo segue
+funcionando. `test/visibilidade-curso.test.ts` compara as duas referências para
+que ninguém reescreva a regra em vez de importá-la.
+
+**`/api/courses` continua devolvendo tudo, e deve.** É a fonte crua que serve
+também o aluno matriculado — e `publicListed: false` existe justamente para
+tirar da vitrine **preservando** o acesso de quem já comprou. Quem filtra é
+cada prateleira.

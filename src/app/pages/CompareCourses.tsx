@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useCourses, useAdminCoursesSummary } from '../data/hooks';
+import { isPubliclyListed } from '../../../shared/visibilidade';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
@@ -42,7 +43,11 @@ export default function CompareCourses() {
     if (!allCourses) return [];
     return ids
       .map((id) => allCourses.find((c) => c.id === id))
-      .filter((c): c is NonNullable<typeof c> => !!c);
+      .filter((c): c is NonNullable<typeof c> => !!c)
+      // Esta rota é pública e resolve qualquer id que venha na URL. Sem o
+      // portão, quem soubesse o id de um curso tirado da vitrine via a página
+      // de comparação dele — o mesmo furo que o catálogo tinha.
+      .filter(isPubliclyListed);
   }, [allCourses, ids]);
 
   function removeId(id: string) {

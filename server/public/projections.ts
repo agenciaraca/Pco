@@ -13,6 +13,7 @@
  * e a divergência entre comentário e código custou tempo em 16/ago/2026.)
  */
 
+import { isPubliclyListed } from '../../shared/visibilidade';
 import * as coursesRepo from '../repositories/courses';
 import * as productsRepo from '../payments/products-repo';
 import * as newsRepo from '../repositories/news';
@@ -149,24 +150,17 @@ function toFull(c: Row, product: Product | undefined): PublicCourse {
 }
 
 /**
- * ÚNICO portão de visibilidade pública de curso. Todo caminho que expõe curso
- * ao visitante anônimo — catálogo, página de venda, redirect de URL antiga,
- * cursos relacionados no blog, sitemap, llms.txt — passa por aqui.
+ * Reexportado de `shared/visibilidade.ts`, que passou a ser a casa da regra.
  *
- * Duas flags, dois significados:
- *   `active`       → o aluno matriculado consegue acessar o curso no LMS.
- *   `publicListed` → o curso aparece para quem não está matriculado.
+ * Ela vivia aqui, e o comentário dizia ser o portão único — mas o catálogo do
+ * SPA nunca passou por ele: filtrava por "tem produto ativo", então curso
+ * marcado `publicListed: false` sumia do site público e continuava na
+ * prateleira do `/catalogo`. Movida para `shared/` para que servidor e
+ * navegador leiam o mesmo código, em vez de duas regras que discordam.
  *
- * Curso inativo continua fora do site (não faz sentido vender o que ninguém
- * pode cursar). Mas `publicListed: false` tira só da vitrine, preservando o
- * acesso de quem já comprou.
- *
- * Ausência de `publicListed` vale `true` — a mudança é aditiva e nenhum curso
- * existente muda de comportamento sem alguém marcar explicitamente.
+ * O reexport mantém o import antigo funcionando — aditivo, não destrutivo.
  */
-export function isPubliclyListed(c: Row): boolean {
-  return c.active !== false && c.publicListed !== false;
-}
+export { isPubliclyListed };
 
 /** Mapa courseId -> produto 'course' ativo. */
 async function activeCourseProducts(): Promise<Map<string, Product>> {
