@@ -10313,6 +10313,34 @@ export function buildApp() {
     const provider = getPaymentProvider(gw.provider);
     if (!provider) return jsonError(c, 501, 'NOT_IMPLEMENTED', 'Provider não implementado.');
 
+    /**
+     * O gateway de teste aceita qualquer corpo — é para isso que ele existe.
+     * Ativo em produção, isso vira curso liberado de graça: basta descobrir o
+     * id do gateway e um `externalId` de pedido pendente, e ambos aparecem no
+     * fluxo de `/checkout/mock`, que é rota pública.
+     *
+     * Recusar aqui, e não no provider, porque o problema não é o mock: é o
+     * mock **em produção**. `PERMITIR_GATEWAY_MOCK_EM_PRODUCAO=true` existe
+     * para quem tiver um motivo — e obriga a escrevê-lo em algum lugar.
+     */
+    if (
+      gw.provider === 'mock' &&
+      process.env.NODE_ENV === 'production' &&
+      process.env.PERMITIR_GATEWAY_MOCK_EM_PRODUCAO !== 'true'
+    ) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pagamentos] webhook do gateway de teste recusado em produção (gateway ${gw.id}). ` +
+          'Se isto era esperado, o gateway mock não deveria estar ativo.',
+      );
+      return jsonError(
+        c,
+        403,
+        'MOCK_EM_PRODUCAO',
+        'Gateway de teste não processa webhook em produção.',
+      );
+    }
+
     const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
     if (!creds) return jsonError(c, 500, 'INTERNAL', 'Falha ao ler credenciais.');
 

@@ -8,12 +8,26 @@ import type {
   WebhookEvent,
   RefundResult,
 } from './types';
+import crypto from 'node:crypto';
 import { PaymentProviderError } from './types';
 
 const API_BASE = 'https://api.pagar.me/core/v5';
 
 function basicAuth(secretKey: string): string {
   return `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`;
+}
+
+/** Comparação de tempo constante — `!==` em credencial vaza o prefixo certo. */
+function comparaSegura(a: string, b: string): boolean {
+  const ba = Buffer.from(a, 'utf8');
+  const bb = Buffer.from(b, 'utf8');
+  if (ba.length !== bb.length) {
+    // `timingSafeEqual` exige mesmo tamanho; compara contra si mesmo para
+    // gastar o mesmo tempo e devolve false.
+    crypto.timingSafeEqual(ba, ba);
+    return false;
+  }
+  return crypto.timingSafeEqual(ba, bb);
 }
 
 export const pagarmeProvider: PaymentProviderImpl = {
@@ -72,9 +86,42 @@ export const pagarmeProvider: PaymentProviderImpl = {
     };
   },
 
-  async parseWebhook(_gateway, _creds, rawBody): Promise<WebhookEvent | null> {
-    // Pagar.me autentica via Basic auth no header — feito pelo nginx upstream em prod.
-    // Aqui só parseamos o body.
+  /**
+   * Webhook do Pagar.me, com o Basic auth conferido **aqui**.
+   *
+   * Até 27/ago/2026 este método só fazia `JSON.parse`, com um comentário
+   * dizendo que a autenticação era "feita pelo nginx upstream em prod". Duas
+   * coisas erradas nisso: não há nginx na frente da app no VPS atual (o
+   * processo PM2 responde direto na 3035), e mesmo que houvesse, uma
+   * verificação que vive fora do repositório é uma verificação que ninguém vê
+   * sumir.
+   *
+   * O efeito era um bypass de pagamento: quem soubesse o `externalId` de um
+   * pedido pendente — o próprio comprador, por exemplo — mandava um
+   * `order.paid` forjado e recebia o curso sem pagar.
+   *
+   * O Pagar.me manda as credenciais que você cadastrou no painel dele como
+   * Basic auth. Guarde-as em `webhookSecret` no formato `usuario:senha`.
+   *
+   * **Falha fechada:** sem `webhookSecret` configurado, ou com credencial que
+   * não bate, devolve `null` e o pedido não muda de status.
+   */
+  async parseWebhook(_gateway, creds, rawBody, headers): Promise<WebhookEvent | null> {
+    const esperado = creds.webhookSecret?.trim();
+    if (!esperado) return null;
+
+    const auth = headers['authorization'] ?? '';
+    if (!auth.toLowerCase().startsWith('basic ')) return null;
+    let recebido: string;
+    try {
+      recebido = Buffer.from(auth.slice(6).trim(), 'base64').toString('utf8');
+    } catch {
+      return null;
+    }
+    // Comparação de tempo constante: comparar credencial com `!==` vaza,
+    // byte a byte, quanto do prefixo está certo.
+    if (!comparaSegura(recebido, esperado)) return null;
+
     try {
       const evt = JSON.parse(rawBody) as {
         type: string;

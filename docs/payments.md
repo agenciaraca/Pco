@@ -152,3 +152,50 @@ dela não tem shell.
 Um detalhe que o teste crava: **`paidAt` é gravado uma vez só**. Gateways
 reenviam webhook, e a data em que o dinheiro entrou não pode andar a cada
 reenvio.
+
+
+## Verificação de webhook: falha fechada (27/ago/2026)
+
+Dois provedores aceitavam **qualquer corpo** como evento de pagamento:
+
+- **Pagar.me** só fazia `JSON.parse`, com um comentário dizendo que a
+  autenticação era "feita pelo nginx upstream em prod". Não há nginx na frente
+  da app no VPS atual — o processo PM2 responde direto na 3035 — e mesmo que
+  houvesse, verificação que vive fora do repositório é verificação que ninguém
+  vê sumir.
+- **PayPal** idem, com um comentário dizendo que a verificação real "entra em
+  sprint dedicado".
+
+O efeito era um **bypass de pagamento**: quem soubesse o `externalId` de um
+pedido pendente — o próprio comprador, que o vê no fluxo de checkout — mandava
+um `order.paid` forjado e recebia o curso sem pagar.
+
+### Como configurar cada um
+
+| Provider | O que guardar em `webhookSecret` | Como é verificado |
+| --- | --- | --- |
+| Stripe | signing secret (`whsec_…`) | HMAC do corpo, já existia |
+| Asaas | access token do webhook | comparação com o header, já existia |
+| Pagar.me | `usuario:senha` do painel | Basic auth do header, em tempo constante |
+| PayPal | **Webhook ID** (não é segredo HMAC) | `/v1/notifications/verify-webhook-signature` |
+| MercadoPago | — | reconsulta a API do MP pelo id; o próprio MP diz o status |
+| Mock | — | aceita qualquer coisa, e **é recusado em produção** |
+
+**Falha fechada em todos:** sem credencial configurada, o evento não é aceito e
+o pedido não muda de status. Antes, a ausência de configuração era o caminho
+feliz — o pior padrão possível numa verificação de segurança.
+
+> **Ao ligar Pagar.me ou PayPal, configure o `webhookSecret` antes.** Sem ele
+> os webhooks passam a ser ignorados em silêncio (respondem, mas não confirmam
+> pedido), e o sintoma é "paguei e não recebi acesso".
+
+### O gateway de teste em produção
+
+`mock` aceita qualquer corpo — é para isso que existe. Ativo em produção, isso
+vira curso liberado de graça: bastam o id do gateway e um `externalId` de
+pedido pendente, ambos visíveis no fluxo de `/checkout/mock`, que é rota
+pública.
+
+A rota de webhook recusa `mock` quando `NODE_ENV=production`, com log. Existe
+`PERMITIR_GATEWAY_MOCK_EM_PRODUCAO=true` para quem tiver um motivo — e a
+variável obriga a escrevê-lo em algum lugar.
