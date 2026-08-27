@@ -75,6 +75,55 @@ decisão cai junto.
   em `(outras)`. Ids viram `:id`, mas slug com hífen é preservado — a regra
   exige dígito no sufixo justamente para não engolir `/pagina-inexistente`.
 
+## Retenção pedagógica — `/admin/retencao`
+
+**Desde 27/ago/2026.** Antes disso a tela era *inteiramente* fabricada: quatro
+KPIs em string fixa, uma curva de coorte com três cursos que nem são os do
+catálogo, e — o pior — um gráfico que pegava o **nome real** do curso e colava
+em cima um número de uma lista `[64, 52, 71]`. Rótulo verdadeiro com valor
+inventado passa por conferência; é mais perigoso do que ficção assumida.
+
+`GET /admin/analytics/retencao` (`server/analytics/retencao.ts`) calcula sobre
+registros que já existiam: `admin-students`, `watch-time` e o histórico de
+envios do reengajamento (`reengagement-sent.json`, que já era persistido).
+
+### A regra do denominador
+
+**Nenhum percentual sai sem a base que o gerou** — o tipo `Medida` é
+`{ pct: number | null; base: number }`, e a tela mostra os dois. Um "58%"
+sozinho não deixa ninguém desconfiar; "58% de 10.205 matrículas" num sistema
+com 785 alunos denuncia sozinho o problema de dados da migração
+(`docs/migration-wp-ld.md`) em vez de escondê-lo atrás de uma porcentagem
+redonda.
+
+### Curva de coorte: censura à direita
+
+Na semana N só entram matrículas com **pelo menos N semanas de idade**. Sem
+isso, quem entrou ontem apareceria como "abandonou na semana 12" e a curva
+despencaria por artefato de cálculo. `basePorCurso` acompanha cada ponto, e
+curso sem ninguém elegível devolve `null` — a linha some do gráfico em vez de
+virar uma reta em zero.
+
+As janelas (idade × sobrevivência) são resolvidas **uma vez**, fora do laço de
+semanas: 13 cursos × ~2000 alunos × 9 semanas com `includes` e `Date.parse`
+dentro seria timeout.
+
+### Impacto do reengajamento
+
+Um envio só ganha o crédito do retorno se o acesso caiu na janela **entre ele e
+o envio seguinte** ao mesmo aluno. Sem essa regra, quem recebeu três e-mails e
+voltou depois do terceiro daria crédito aos três, e a taxa viraria 100% por
+construção.
+
+### O que continua sem medição
+
+- **Ritmo em horas/semana**: `watch-time` guarda só o total acumulado por aula,
+  sem série temporal — não há como recortar por semana.
+- **Coorte com precisão por curso**: `lastAccessAt` é do aluno, não por curso;
+  quem estuda dois aparece ativo nos dois.
+
+Ambos aparecem na tela, na seção "O que esta tela não mede", com o motivo.
+
 ## Watch time (heartbeat)
 
 `server/repositories/watch-time.ts` agrega segundos por `(userId, lessonId)`.

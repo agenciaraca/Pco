@@ -2366,6 +2366,42 @@ export async function fetchTrafego(range = '30d'): Promise<RelatorioTrafego> {
   return http.get<RelatorioTrafego>('/admin/analytics/trafego', { query: { range } });
 }
 
+/** Percentual com a base que o gerou — número solto engana. */
+export interface Medida {
+  pct: number | null;
+  base: number;
+}
+
+export interface RelatorioRetencao {
+  geradoEm: string;
+  base: { alunos: number; matriculas: number; cursos: number };
+  kpis: {
+    ativosRecentes: Medida;
+    conclusaoGeral: Medida;
+    horasAssistidas: { horas: number; alunos: number };
+    impactoReengajamento: Medida;
+  };
+  cursos: Array<{
+    id: string;
+    nome: string;
+    matriculados: number;
+    conclusao: Medida;
+    emRisco: Medida;
+    progressoMedio: number | null;
+  }>;
+  coorte: Array<{
+    semana: number;
+    porCurso: Record<string, number | null>;
+    basePorCurso: Record<string, number>;
+  }>;
+  reengajamento: Array<{ semana: string; enviados: number; retomados: number }>;
+  naoMedido: Array<{ o_que: string; depende_de: string }>;
+}
+
+export async function fetchRetencao(): Promise<RelatorioRetencao> {
+  return http.get<RelatorioRetencao>('/admin/analytics/retencao');
+}
+
 // ---------- AI ----------
 
 export interface AiProviderInfo {

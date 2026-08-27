@@ -316,6 +316,10 @@ export function useTrafego(range = '30d') {
   });
 }
 
+export function useRetencao() {
+  return useQuery({ queryKey: ['analytics-retencao'] as const, queryFn: api.fetchRetencao });
+}
+
 export function useAiConfigurations() {
   return useQuery({
     queryKey: queryKeys.aiConfigurations,

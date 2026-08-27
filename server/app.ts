@@ -98,6 +98,7 @@ import {
 import { rateLimit } from './rate-limit';
 import { registraHit } from './analytics/collector';
 import { montaRelatorio, normalizaRange, seoTecnico } from './analytics/relatorio';
+import { montaRetencao } from './analytics/retencao';
 import * as rateLimitTelemetry from './rate-limit';
 import { jsonError, validate } from './http';
 import { getProvider, listProviders, calculateCost } from './ai/providers';
@@ -2809,6 +2810,15 @@ export function buildApp() {
    * O relatório de tráfego. Admin, porque é medição do negócio — e porque
    * `/metrics/seo/*` já é público por herança e não vai deixar de ser.
    */
+  /**
+   * Retenção pedagógica. Antes daqui, `/admin/retencao` era inteiramente
+   * fabricada — inclusive um gráfico que punha o nome real do curso em cima de
+   * um número de uma lista escrita à mão.
+   */
+  app.get('/admin/analytics/retencao', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await montaRetencao()),
+  );
+
   app.get('/admin/analytics/trafego', requireAuth('admin', 'superadmin'), async (c) => {
     const relatorio = await montaRelatorio(normalizaRange(c.req.query('range')));
     const [tecnico, status] = await Promise.all([
