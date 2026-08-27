@@ -237,3 +237,15 @@ import('./sessions/lembrete-worker').then((m) => m.startWorker(15 * 60_000));
 
 // Rotaciona app.log quando passa de 10MB (verifica a cada 1h)
 import('./services/log-rotator').then((m) => m.startWorker(60 * 60_000));
+
+// Medição de tráfego: descarrega o que está em memória antes de o processo
+// morrer. Sem isto, todo `pm2 restart` joga fora até 5 segundos de contagem —
+// pouco, mas é exatamente o tipo de perda silenciosa que faz um número não
+// fechar com o outro e ninguém saber por quê.
+for (const sinal of ['SIGTERM', 'SIGINT'] as const) {
+  process.once(sinal, () => {
+    void import('./analytics/collector')
+      .then((m) => m.flush())
+      .finally(() => process.exit(0));
+  });
+}

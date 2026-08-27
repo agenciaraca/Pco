@@ -92,6 +92,13 @@
       "when": 1787752585335,
       "tag": "0012_cupons_e_questoes",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1787850000000,
+      "tag": "0013_analytics_proprio",
+      "breakpoints": true
     }
   ]
 }

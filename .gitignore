@@ -95,5 +95,6 @@ data/admin-students.json
 data/lesson-progress.json
 data/migration/
 data/question-bank-stubs.json
+data/analytics-daily.json
 data/backup-*/
 data/*.bak*

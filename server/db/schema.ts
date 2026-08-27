@@ -659,3 +659,38 @@ export const aiUsageLogs = pgTable(
     timeIdx: index('ai_usage_logs_time_idx').on(t.occurredAt),
   }),
 );
+
+// ---------- Analytics próprio (medição de tráfego) ----------
+
+/**
+ * Um dia de medição de tráfego. Só contadores: nenhuma coluna aqui identifica
+ * pessoa — sem IP, sem cookie, sem user-agent, sem id de sessão. A chave é a
+ * data, e a escrita é upsert (`onConflictDoUpdate`), porque o dia corrente é
+ * reescrito a cada descarga do coletor.
+ */
+export const analyticsDaily = pgTable('analytics_daily', {
+  date: text('date').primaryKey(), // YYYY-MM-DD
+  pageviews: integer('pageviews').notNull().default(0),
+  sessions: integer('sessions').notNull().default(0),
+  bounces: integer('bounces').notNull().default(0),
+  totalSessionSeconds: integer('total_session_seconds').notNull().default(0),
+  byPath: jsonb('by_path')
+    .$type<Record<string, { views: number; entries: number; bounces: number; totalSeconds: number }>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  bySource: jsonb('by_source')
+    .$type<Record<string, number>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  byDevice: jsonb('by_device')
+    .$type<Record<string, number>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  lcpBuckets: jsonb('lcp_buckets').$type<number[]>().notNull().default(sql`'[]'::jsonb`),
+  lcpCount: integer('lcp_count').notNull().default(0),
+  notFound: jsonb('not_found')
+    .$type<Record<string, number>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  updatedAt: text('updated_at').notNull(),
+});

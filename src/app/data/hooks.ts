@@ -309,6 +309,13 @@ export function useKeywords() {
   return useQuery({ queryKey: queryKeys.keywords, queryFn: api.fetchKeywords });
 }
 
+export function useTrafego(range = '30d') {
+  return useQuery({
+    queryKey: ['analytics-trafego', range] as const,
+    queryFn: () => api.fetchTrafego(range),
+  });
+}
+
 export function useAiConfigurations() {
   return useQuery({
     queryKey: queryKeys.aiConfigurations,

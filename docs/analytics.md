@@ -2,6 +2,79 @@
 
 Métricas operacionais e de aprendizagem do AVA. Tudo on-demand, sem warehouse externo.
 
+## Tráfego do site — medição própria
+
+**Desde 27/ago/2026.** Antes disso, `/admin/metricas` era três quartos ficção:
+origem do tráfego, páginas mais acessadas, dispositivos, SEO técnico e as
+"recomendações" eram constantes escritas à mão dentro do `.tsx`, e a série vinha
+da semente. Um admin podia olhar "52% de tráfego orgânico" e decidir investir em
+SEO com base em nada.
+
+Agora o próprio servidor mede. Não há Google Analytics, não há cookie e não há
+IP guardado.
+
+### Como funciona
+
+| Peça | Onde | O quê |
+| --- | --- | --- |
+| Beacon | `src/app/analytics/beacon.ts` | `POST /analytics/hit` a cada página aberta, via `sendBeacon` |
+| Coletor | `server/analytics/collector.ts` | Sessões em memória (TTL 30 min) + agregação por dia |
+| Persistência | `server/analytics/traffic-store.ts` | `analytics_daily` (DB) ou `data/analytics-daily.json` |
+| Relatório | `server/analytics/relatorio.ts` | `GET /admin/analytics/trafego?range=` |
+
+O sinal carrega **cinco campos e nada mais**: caminho, referrer (só na primeira
+página), `utm_medium`, se caiu no 404, e o LCP que o navegador mediu. O
+`sessionId` é gerado no `sessionStorage` da aba, vive na memória do processo e
+**nunca é gravado** — o que vai ao disco é contador por dia.
+
+### O que é medido, e como
+
+- **Visitantes** = sessões iniciadas. **Pageviews** = páginas abertas.
+- **Rejeição**: toda sessão nasce como rejeição; a segunda página desfaz —
+  no total do dia e na página de entrada.
+- **Tempo**: soma dos intervalos entre páginas da mesma sessão. Quem vê uma
+  página só contribui com zero, o que é honesto: não há como saber.
+- **Origem**: classificada na primeira página. `utm_medium` vence o referrer.
+  Referrer do próprio domínio não é origem nova.
+- **Dispositivo**: user-agent, no servidor. O UA não é gravado.
+- **LCP**: histograma de 25 faixas de 250 ms, o que permite p75 sem guardar
+  amostra. `null` — não zero — quando não houve amostra.
+- **404**: rotas em que o SPA caiu no `NotFound` (rota com `id: 'not-found'`).
+
+### O que NÃO é medido, e por quê
+
+Posição em busca, volume de pesquisa, CTR, páginas indexadas e score de SEO
+dependem do **Google Search Console**, que depende de credencial do dono.
+`GET /metrics/seo/keywords` devolve `[]` e a tela lista essas lacunas em vez de
+estimá-las. `fonteDasMetricas()` continua sendo o ponto único que muda no dia em
+que a credencial chegar.
+
+### Três decisões que parecem detalhe e não são
+
+1. **`/admin/*` não é contado.** Medir a navegação de quem administra inflaria
+   justamente o número que o administrador olha.
+2. **Bot conhecido é descartado**, e requisição sem user-agent também. Sem isso,
+   o primeiro rastreador devolveria a tela ao mesmo lugar de antes.
+3. **`null` nunca vira zero.** Zero diz "medi e não houve"; travessão diz "não
+   medi". Confundir os dois foi o defeito original desta tela.
+
+**Do Not Track não é respeitado, deliberadamente.** DNT pede para não ser
+rastreado *entre sites*; aqui o dado nasce e morre no domínio, é contador
+agregado e nada aponta para uma pessoa. Honrar o cabeçalho devolveria ao admin
+uma subcontagem silenciosa. Se algo aqui um dia identificar visitante, essa
+decisão cai junto.
+
+### Limites conhecidos
+
+- **Vercel**: a tabela de sessões vive na memória do processo. No VPS é exata;
+  em Functions, pageviews continuam certas e sessão/rejeição/tempo viram
+  subestimativa — a mesma nota que já vale para os workers.
+- **Escrita agrupada** a cada 5 s. `SIGTERM`/`SIGINT` fazem `flush()` antes de
+  sair (`server/dev.ts`), então restart não perde contagem.
+- **Cardinalidade**: no máximo 400 caminhos distintos por dia; o excedente cai
+  em `(outras)`. Ids viram `:id`, mas slug com hífen é preservado — a regra
+  exige dígito no sufixo justamente para não engolir `/pagina-inexistente`.
+
 ## Watch time (heartbeat)
 
 `server/repositories/watch-time.ts` agrega segundos por `(userId, lessonId)`.

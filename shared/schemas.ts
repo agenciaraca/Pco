@@ -806,3 +806,25 @@ export const updateBookingSchema = z.object({
   notes: z.string().max(600).optional(),
 });
 export type UpdateBookingInput = z.infer<typeof updateBookingSchema>;
+
+// ---------- Analytics próprio ----------
+
+/**
+ * O sinal que o navegador manda a cada página aberta.
+ *
+ * `sessionId` é gerado no `sessionStorage` da aba e nunca é persistido pelo
+ * servidor — serve só para o processo saber que duas páginas são a mesma
+ * visita. Não há campo para IP, e não deve haver: o dia em que este schema
+ * aceitar identificador de pessoa, a medição deixa de dispensar consentimento.
+ */
+export const analyticsHitSchema = z.object({
+  sessionId: z.string().min(8).max(64),
+  path: z.string().min(1).max(300),
+  referrer: z.string().max(500).default(''),
+  utmMedium: z.string().max(80).default(''),
+  /** A rota caiu no 404 do SPA. */
+  notFound: z.boolean().default(false),
+  /** Largest Contentful Paint em ms, medido pelo navegador. Só na 1ª página. */
+  lcpMs: z.number().int().min(0).max(120_000).optional(),
+});
+export type AnalyticsHitInput = z.infer<typeof analyticsHitSchema>;

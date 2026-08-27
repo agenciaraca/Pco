@@ -11,6 +11,7 @@ import { initMonitoring } from './app/monitoring/sentry';
 import { initThemeEarly } from './app/hooks/useTheme';
 import { installChunkErrorRecovery } from './app/monitoring/chunk-error-recovery';
 import { router } from './app/routes';
+import { initAnalytics } from './app/analytics/beacon';
 import './styles/theme.css';
 
 initThemeEarly();
@@ -18,6 +19,10 @@ initMonitoring();
 
 // Auto-reload quando lazy chunk falha (deploy novo invalidou os hashes).
 installChunkErrorRecovery();
+
+// Medição própria de tráfego — sem cookie, sem IP, sem Google Analytics.
+// É a fonte de /admin/metricas; antes daqui aquela tela mostrava ficção.
+initAnalytics(router);
 
 // PWA: registra service worker em produção (skip em dev pra não interferir no HMR).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

@@ -2317,6 +2317,55 @@ export async function fetchKeywords(): Promise<KeywordMetric[]> {
   return http.get<KeywordMetric[]>('/metrics/seo/keywords');
 }
 
+/**
+ * O relatório de tráfego medido pelo próprio servidor. Substitui os blocos que
+ * até 27/ago/2026 eram constantes escritas à mão dentro da tela.
+ */
+export interface RelatorioTrafego {
+  range: string;
+  de: string;
+  ate: string;
+  medindoDesde: string | null;
+  diasComDados: number;
+  resumo: {
+    visitors: number;
+    pageviews: number;
+    bounceRate: number | null;
+    avgSessionMinutes: number | null;
+    lcpP75Ms: number | null;
+    lcpAmostras: number;
+    deltaVisitors: number | null;
+    deltaPageviews: number | null;
+  };
+  serie: SeoMetric[];
+  topPages: Array<{
+    path: string;
+    views: number;
+    avgSeconds: number | null;
+    bounceRate: number | null;
+  }>;
+  sources: Array<{ name: string; sessions: number; pct: number }>;
+  devices: Array<{ name: string; sessions: number; pct: number }>;
+  notFound: Array<{ path: string; hits: number }>;
+  tecnico: Array<{
+    label: string;
+    value: string;
+    status: 'ok' | 'warn' | 'desconhecido';
+    fonte: string;
+  }>;
+  status: {
+    fonte: string;
+    conectado: boolean;
+    medindoDesde: string | null;
+    semFonte: Array<{ o_que: string; depende_de: string }>;
+    observacao: string;
+  };
+}
+
+export async function fetchTrafego(range = '30d'): Promise<RelatorioTrafego> {
+  return http.get<RelatorioTrafego>('/admin/analytics/trafego', { query: { range } });
+}
+
 // ---------- AI ----------
 
 export interface AiProviderInfo {

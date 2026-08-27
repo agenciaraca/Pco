@@ -93,8 +93,11 @@ import {
   cancelBookingSchema,
   rescheduleBookingSchema,
   updateBookingSchema,
+  analyticsHitSchema,
 } from '../shared/schemas';
 import { rateLimit } from './rate-limit';
+import { registraHit } from './analytics/collector';
+import { montaRelatorio, normalizaRange, seoTecnico } from './analytics/relatorio';
 import * as rateLimitTelemetry from './rate-limit';
 import { jsonError, validate } from './http';
 import { getProvider, listProviders, calculateCost } from './ai/providers';
@@ -2769,12 +2772,51 @@ export function buildApp() {
    * semente como se fosse medição. Aditivo: as rotas antigas não mudaram de
    * forma.
    */
-  app.get('/metrics/seo/status', (c) => c.json(metricsRepo.fonteDasMetricas()));
+  app.get('/metrics/seo/status', async (c) => c.json(await metricsRepo.fonteDasMetricas()));
 
   app.get('/metrics/seo/timeseries', async (c) =>
     c.json(await metricsRepo.listSeoTimeseries(c.req.query('range'))),
   );
   app.get('/metrics/seo/keywords', async (c) => c.json(await metricsRepo.listKeywords()));
+
+  /**
+   * O sinal de página aberta — a base de toda a medição própria.
+   *
+   * Público de propósito: quem visita o site não está autenticado, e é
+   * justamente essa visita que precisa ser contada. O que protege daqui é o
+   * que o coletor descarta (bot, `/admin/*`) e o teto de requisições — não
+   * uma credencial que o visitante não tem.
+   *
+   * Responde 204 sempre que o corpo for válido, inclusive quando o hit é
+   * descartado: o navegador não tem o que fazer com a diferença, e devolver
+   * erro só encheria o console de quem visita.
+   */
+  app.post('/analytics/hit', rateLimit({ windowMs: 60_000, max: 120 }), async (c) => {
+    const body = await c.req.json().catch(() => null);
+    const parsed = validate(analyticsHitSchema, body);
+    if (!parsed.ok) {
+      return jsonError(c, 400, 'VALIDATION', 'Sinal inválido.', parsed.error.flatten());
+    }
+    await registraHit({
+      ...parsed.data,
+      userAgent: c.req.header('user-agent'),
+      host: new URL(c.req.url).hostname,
+    });
+    return c.body(null, 204);
+  });
+
+  /**
+   * O relatório de tráfego. Admin, porque é medição do negócio — e porque
+   * `/metrics/seo/*` já é público por herança e não vai deixar de ser.
+   */
+  app.get('/admin/analytics/trafego', requireAuth('admin', 'superadmin'), async (c) => {
+    const relatorio = await montaRelatorio(normalizaRange(c.req.query('range')));
+    const [tecnico, status] = await Promise.all([
+      seoTecnico(relatorio),
+      metricsRepo.fonteDasMetricas(),
+    ]);
+    return c.json({ ...relatorio, tecnico, status });
+  });
 
   // ---------- AI: providers catalog ----------
 

@@ -11,6 +11,7 @@ import { PageLoadingSkeleton } from './components/LoadingSkeleton';
 import Login from './pages/Login';
 const OAuthFinish = lazy(() => import('./pages/OAuthFinish'));
 import NotFound from './pages/NotFound';
+import { ID_ROTA_404 } from './analytics/beacon';
 
 // Public — lazy
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -317,5 +318,7 @@ export const router = createBrowserRouter([
     ],
   },
 
-  { path: '*', element: <NotFound />, errorElement: <RootError /> },
+  // `id` fixo porque a medição de tráfego precisa reconhecer o 404 sem
+  // depender do id gerado pelo router (ver src/app/analytics/beacon.ts).
+  { id: ID_ROTA_404, path: '*', element: <NotFound />, errorElement: <RootError /> },
 ]);

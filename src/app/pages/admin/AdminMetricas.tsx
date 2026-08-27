@@ -3,17 +3,17 @@ import {
   Eye,
   Activity,
   Clock,
-  Search,
   Gauge,
   Download,
   RefreshCcw,
-  TrendingUp,
   Smartphone,
   Tablet,
   Monitor,
   ArrowUpRight,
   ArrowDownRight,
   Minus,
+  ShieldCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -28,64 +28,85 @@ import {
   Cell,
 } from 'recharts';
 import { useState } from 'react';
-import { useSeoTimeseries, useKeywords, useMetricsStatus } from '../../data/hooks';
+import { useTrafego } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useT } from '../../i18n';
 
-// Os três blocos abaixo são de DEMONSTRAÇÃO: nunca vieram de medição nenhuma.
-// Ficam para que o layout já exista quando a integração real chegar, e a tela
-// avisa em cima que os números são fictícios — antes ela não avisava, e número
-// com cara de medição é o pior lugar para esconder que não se mediu nada.
-const trafficSources = [
-  { name: 'Orgânico', value: 52, color: '#0097B2' },
-  { name: 'Direto', value: 22, color: '#0CC0DF' },
-  { name: 'Social', value: 14, color: '#FE9002' },
-  { name: 'Referral', value: 8, color: '#5CE1E6' },
-  { name: 'E-mail', value: 4, color: '#063B49' },
-];
+/**
+ * Até 27/ago/2026 esta tela era três quartos ficção: origem do tráfego,
+ * páginas mais acessadas, dispositivos, SEO técnico e as recomendações eram
+ * constantes escritas à mão neste arquivo, e a série vinha da semente. Agora
+ * cada número aqui saiu de `server/analytics/` — e onde não há medição a tela
+ * diz que não há, em vez de preencher com algo plausível.
+ *
+ * A regra que sobrou desse conserto: **campo `null` não vira zero**. Zero diz
+ * "medi e não houve"; travessão diz "não medi". São coisas diferentes para
+ * quem decide investimento olhando esta página.
+ */
 
-const topPages = [
-  { path: '/cursos/psicanalise-clinica', views: 4820, avg: '3:42', bounce: '38%' },
-  { path: '/jornada', views: 3210, avg: '4:21', bounce: '29%' },
-  { path: '/news', views: 2105, avg: '2:18', bounce: '47%' },
-  { path: '/podcasts', views: 1845, avg: '5:02', bounce: '24%' },
-  { path: '/biblioteca', views: 1392, avg: '3:09', bounce: '40%' },
-];
+/** Paleta fixa por origem — cor estável entre recarregamentos. */
+const COR_DA_ORIGEM: Record<string, string> = {
+  'Orgânico': '#0097B2',
+  Direto: '#0CC0DF',
+  Social: '#FE9002',
+  Referral: '#5CE1E6',
+  'E-mail': '#063B49',
+};
 
-const techSeo = [
-  { label: 'Velocidade média', value: '2.1s', status: 'ok' },
-  { label: 'Mobile friendly', value: '100%', status: 'ok' },
-  { label: 'HTTPS', value: 'Ativo', status: 'ok' },
-  { label: 'Erros 404', value: '7', status: 'warn' },
-  { label: 'Sitemap', value: 'OK', status: 'ok' },
-  { label: 'robots.txt', value: 'OK', status: 'ok' },
-];
+const ICONE_DO_DEVICE: Record<string, React.ReactNode> = {
+  Desktop: <Monitor size={16} />,
+  Mobile: <Smartphone size={16} />,
+  Tablet: <Tablet size={16} />,
+};
+
+function fmtNumero(n: number): string {
+  return n.toLocaleString('pt-BR');
+}
+
+function fmtDuracao(segundos: number | null): string {
+  if (segundos === null) return '—';
+  const m = Math.floor(segundos / 60);
+  const s = segundos % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function fmtData(iso: string | null): string {
+  if (!iso) return '—';
+  const [a, m, d] = iso.split('-');
+  return `${d}/${m}/${a}`;
+}
 
 export default function AdminMetricas() {
   const t = useT();
   const [range, setRange] = useState('30d');
-  const seriesQ = useSeoTimeseries(range);
-  const statusQ = useMetricsStatus();
-  const keywordsQ = useKeywords();
-  const seoTimeseries = seriesQ.data ?? [];
-  const keywords = keywordsQ.data ?? [];
-  const totalVisitors = seoTimeseries.reduce((s, d) => s + d.visitors, 0);
-  const totalPageviews = seoTimeseries.reduce((s, d) => s + d.pageviews, 0);
-  const avgBounce =
-    seoTimeseries.length > 0
-      ? seoTimeseries.reduce((s, d) => s + d.bounceRate, 0) / seoTimeseries.length
-      : 0;
-  const avgSession =
-    seoTimeseries.length > 0
-      ? seoTimeseries.reduce((s, d) => s + d.avgSessionMinutes, 0) / seoTimeseries.length
-      : 0;
+  const q = useTrafego(range);
+  const rel = q.data;
 
   return (
     <div className="space-y-6">
-      {statusQ.data && !statusQ.data.conectado && (
-        <div className="pco-card border-pco-orange/40 bg-pco-orange/5 p-4">
-          <p className="text-sm font-semibold text-pco-orange">Números de demonstração</p>
-          <p className="mt-1 text-xs text-ink-muted">{statusQ.data.observacao}</p>
+      {rel && (
+        <div
+          className={`pco-card p-4 ${
+            rel.medindoDesde ? 'border-status-success/40 bg-status-success/5' : 'border-pco-orange/40 bg-pco-orange/5'
+          }`}
+        >
+          <p
+            className={`flex items-center gap-2 text-sm font-semibold ${
+              rel.medindoDesde ? 'text-status-success' : 'text-pco-orange'
+            }`}
+          >
+            <ShieldCheck size={14} strokeWidth={2} />
+            {rel.medindoDesde
+              ? `Medição própria — desde ${fmtData(rel.medindoDesde)}`
+              : 'Medição própria ligada, ainda sem visita registrada'}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">{rel.status.observacao}</p>
+          {rel.diasComDados < 7 && rel.medindoDesde && (
+            <p className="mt-1 text-xs text-ink-subtle">
+              Só {rel.diasComDados} {rel.diasComDados === 1 ? 'dia tem' : 'dias têm'} medição neste
+              período — comparações com o período anterior ainda não significam muito.
+            </p>
+          )}
         </div>
       )}
 
@@ -93,7 +114,8 @@ export default function AdminMetricas() {
         <div>
           <h1 className="pco-section-title">{t('admin.nav.metrics')}</h1>
           <p className="pco-section-subtitle mt-1">
-            Dashboard de desempenho do site e análise SEO.
+            Tráfego do site, medido pelo próprio servidor — sem cookie, sem IP e sem Google
+            Analytics. Navegação em /admin não é contada.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -107,33 +129,23 @@ export default function AdminMetricas() {
             <option value="90d">Últimos 90 dias</option>
             <option value="365d">Este ano</option>
           </select>
-          {/* Recarregar é o que "Atualizar" sempre prometeu e nunca fez. */}
           <button
             type="button"
-            onClick={() => {
-              void seriesQ.refetch();
-              void keywordsQ.refetch();
-            }}
-            disabled={seriesQ.isFetching || keywordsQ.isFetching}
+            onClick={() => void q.refetch()}
+            disabled={q.isFetching}
             className="pco-btn-secondary text-xs disabled:opacity-60"
           >
             <RefreshCcw size={12} strokeWidth={2} />
-            {seriesQ.isFetching || keywordsQ.isFetching ? 'Atualizando…' : 'Atualizar'}
+            {q.isFetching ? 'Atualizando…' : 'Atualizar'}
           </button>
           {/*
-            Exportar relatório não existe, e enquanto os números forem de
-            demonstração exportá-los seria pior do que não ter o botão: viraria
-            planilha com cara de medição circulando por aí. Desabilitado e
-            dizendo por quê, em vez de clicar e nada acontecer.
+            Exportar continua não existindo. A diferença é que agora o motivo
+            mudou: não é mais "não há o que exportar", é "ainda não foi feito".
           */}
           <button
             type="button"
             disabled
-            title={
-              statusQ.data?.conectado
-                ? 'Exportação ainda não implementada.'
-                : 'Sem fonte de analytics conectada — não há o que exportar.'
-            }
+            title="Exportação ainda não implementada."
             className="pco-btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={12} strokeWidth={2} />
@@ -142,290 +154,333 @@ export default function AdminMetricas() {
         </div>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Metric
-          icon={<Users size={16} />}
-          label="Visitantes"
-          value={totalVisitors.toLocaleString('pt-BR')}
-          delta="+12%"
-          trend="up"
-          color="blue"
-        />
-        <Metric
-          icon={<Eye size={16} />}
-          label="Pageviews"
-          value={totalPageviews.toLocaleString('pt-BR')}
-          delta="+8%"
-          trend="up"
-          color="cyan"
-        />
-        <Metric
-          icon={<Activity size={16} />}
-          label="Taxa de rejeição"
-          value={`${avgBounce.toFixed(1)}%`}
-          delta="-1.4pp"
-          trend="up"
-          color="green"
-        />
-        <Metric
-          icon={<Clock size={16} />}
-          label="Tempo médio"
-          value={`${avgSession.toFixed(1)} min`}
-          delta="+0.3"
-          trend="up"
-          color="cyan"
-        />
-        <Metric
-          icon={<Search size={16} />}
-          label="Páginas indexadas"
-          value="148"
-          delta="+12"
-          trend="up"
-          color="orange"
-        />
-        <Metric
-          icon={<Gauge size={16} />}
-          label="Score SEO"
-          value="86"
-          delta="+4"
-          trend="up"
-          color="gold"
-        />
-      </section>
+      {q.isLoading && <CardListSkeleton />}
 
-      <section className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 pco-card">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-base font-semibold text-pco-deep">Evolução de acessos</h3>
-              <p className="text-xs text-ink-muted">Visitantes e pageviews — últimos 30 dias</p>
-            </div>
-          </div>
-          <div className="h-72 -mx-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={seoTimeseries}>
-                <defs>
-                  <linearGradient id="visGrad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#0097B2" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#0097B2" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="pvGrad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#0CC0DF" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#0CC0DF" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#EEF5F7" />
-                <XAxis
-                  dataKey="date"
-                  stroke="#98A2B3"
-                  fontSize={10}
-                  tickFormatter={(v) => v.slice(5)}
-                />
-                <YAxis stroke="#98A2B3" fontSize={10} width={40} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: '1px solid #EEF5F7',
-                    fontSize: 12,
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="pageviews"
-                  stroke="#0CC0DF"
-                  strokeWidth={2}
-                  fill="url(#pvGrad)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="visitors"
-                  stroke="#0097B2"
-                  strokeWidth={2}
-                  fill="url(#visGrad)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+      {q.isError && (
+        <div className="pco-card border-status-danger/40 bg-status-danger/5 p-4">
+          <p className="text-sm font-semibold text-status-danger">
+            Não foi possível carregar a medição.
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            A tela prefere não mostrar nada a mostrar número velho como se fosse de agora.
+          </p>
         </div>
+      )}
 
-        <div className="pco-card">
-          <h3 className="text-base font-semibold text-pco-deep mb-1">Origem do tráfego</h3>
-          <p className="text-xs text-ink-muted mb-3">Distribuição percentual</p>
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={trafficSources}
-                  dataKey="value"
-                  innerRadius={45}
-                  outerRadius={70}
-                  paddingAngle={2}
-                >
-                  {trafficSources.map((s, i) => (
-                    <Cell key={i} fill={s.color} stroke="none" />
+      {rel && (
+        <>
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <Metric
+              icon={<Users size={16} />}
+              label="Visitantes"
+              value={fmtNumero(rel.resumo.visitors)}
+              delta={rel.resumo.deltaVisitors}
+              color="blue"
+            />
+            <Metric
+              icon={<Eye size={16} />}
+              label="Pageviews"
+              value={fmtNumero(rel.resumo.pageviews)}
+              delta={rel.resumo.deltaPageviews}
+              color="cyan"
+            />
+            <Metric
+              icon={<Activity size={16} />}
+              label="Taxa de rejeição"
+              value={rel.resumo.bounceRate === null ? '—' : `${rel.resumo.bounceRate}%`}
+              delta={null}
+              color="green"
+            />
+            <Metric
+              icon={<Clock size={16} />}
+              label="Tempo médio"
+              value={
+                rel.resumo.avgSessionMinutes === null
+                  ? '—'
+                  : `${rel.resumo.avgSessionMinutes} min`
+              }
+              delta={null}
+              color="cyan"
+            />
+            <Metric
+              icon={<Gauge size={16} />}
+              label="LCP (p75)"
+              value={
+                rel.resumo.lcpP75Ms === null
+                  ? '—'
+                  : `${(rel.resumo.lcpP75Ms / 1000).toFixed(2)}s`
+              }
+              delta={null}
+              color={rel.resumo.lcpP75Ms !== null && rel.resumo.lcpP75Ms > 2500 ? 'orange' : 'gold'}
+              nota={
+                rel.resumo.lcpAmostras > 0
+                  ? `${fmtNumero(rel.resumo.lcpAmostras)} amostras`
+                  : 'sem amostra'
+              }
+            />
+          </section>
+
+          <section className="grid gap-5 lg:grid-cols-3">
+            <div className="lg:col-span-2 pco-card">
+              <div className="mb-3">
+                <h3 className="text-base font-semibold text-pco-deep">Evolução de acessos</h3>
+                <p className="text-xs text-ink-muted">
+                  Visitantes e pageviews — {fmtData(rel.de)} a {fmtData(rel.ate)}
+                </p>
+              </div>
+              <div className="h-72 -mx-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={rel.serie}>
+                    <defs>
+                      <linearGradient id="visGrad" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="#0097B2" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#0097B2" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="pvGrad" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="#0CC0DF" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#0CC0DF" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#EEF5F7" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#98A2B3"
+                      fontSize={10}
+                      tickFormatter={(v: string) => v.slice(5)}
+                    />
+                    <YAxis stroke="#98A2B3" fontSize={10} width={40} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: '1px solid #EEF5F7', fontSize: 12 }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="pageviews"
+                      stroke="#0CC0DF"
+                      strokeWidth={2}
+                      fill="url(#pvGrad)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="visitors"
+                      stroke="#0097B2"
+                      strokeWidth={2}
+                      fill="url(#visGrad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="pco-card">
+              <h3 className="text-base font-semibold text-pco-deep mb-1">Origem do tráfego</h3>
+              <p className="text-xs text-ink-muted mb-3">
+                Classificada na primeira página de cada visita
+              </p>
+              {rel.sources.length === 0 ? (
+                <SemMedicao texto="Nenhuma visita no período." />
+              ) : (
+                <>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={rel.sources}
+                          dataKey="sessions"
+                          nameKey="name"
+                          innerRadius={45}
+                          outerRadius={70}
+                          paddingAngle={2}
+                        >
+                          {rel.sources.map((s) => (
+                            <Cell
+                              key={s.name}
+                              fill={COR_DA_ORIGEM[s.name] ?? '#98A2B3'}
+                              stroke="none"
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <ul className="mt-3 space-y-1.5 text-xs">
+                    {rel.sources.map((s) => (
+                      <li key={s.name} className="flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ background: COR_DA_ORIGEM[s.name] ?? '#98A2B3' }}
+                        />
+                        <span className="text-ink-muted flex-1">{s.name}</span>
+                        <span className="text-ink-subtle">{fmtNumero(s.sessions)}</span>
+                        <span className="font-semibold text-pco-deep w-12 text-right">
+                          {s.pct}%
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          </section>
+
+          <section className="grid gap-5 lg:grid-cols-2">
+            <div className="pco-card">
+              <h3 className="text-base font-semibold text-pco-deep mb-1">Páginas mais acessadas</h3>
+              <p className="text-xs text-ink-muted mb-3">
+                Tempo é o intervalo até a página seguinte; rejeição só conta quem entrou por ali.
+              </p>
+              {rel.topPages.length === 0 ? (
+                <SemMedicao texto="Nenhuma página vista no período." />
+              ) : (
+                <div className="overflow-x-auto -mx-2">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                        <th className="px-2 py-2 text-left font-medium">Página</th>
+                        <th className="px-2 py-2 text-right font-medium">Views</th>
+                        <th className="px-2 py-2 text-right font-medium">Tempo</th>
+                        <th className="px-2 py-2 text-right font-medium">Rejeição</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rel.topPages.map((p) => (
+                        <tr key={p.path} className="border-t border-surface-gray">
+                          <td className="px-2 py-2.5">
+                            <span className="font-mono text-[11px] text-pco-deep">{p.path}</span>
+                          </td>
+                          <td className="px-2 py-2.5 text-right text-pco-deep font-semibold">
+                            {fmtNumero(p.views)}
+                          </td>
+                          <td className="px-2 py-2.5 text-right text-ink-muted">
+                            {fmtDuracao(p.avgSeconds)}
+                          </td>
+                          <td className="px-2 py-2.5 text-right text-ink-muted">
+                            {p.bounceRate === null ? '—' : `${p.bounceRate}%`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="pco-card">
+              <h3 className="text-base font-semibold text-pco-deep mb-1">
+                Rotas que não existem
+              </h3>
+              <p className="text-xs text-ink-muted mb-3">
+                Endereços em que o site caiu no 404 — link quebrado em algum lugar, ou página que
+                mudou de endereço sem redirecionar.
+              </p>
+              {rel.notFound.length === 0 ? (
+                <SemMedicao texto="Nenhum 404 no período." tom="bom" />
+              ) : (
+                <ul className="space-y-2">
+                  {rel.notFound.map((n) => (
+                    <li
+                      key={n.path}
+                      className="flex items-center justify-between rounded-xl bg-surface-off p-3"
+                    >
+                      <span className="font-mono text-[11px] text-pco-deep truncate">{n.path}</span>
+                      <span className="pco-badge bg-pco-orange/10 text-pco-orange shrink-0">
+                        {n.hits}
+                      </span>
+                    </li>
                   ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <ul className="mt-3 space-y-1.5 text-xs">
-            {trafficSources.map((s) => (
-              <li key={s.name} className="flex items-center gap-2">
-                <span
-                  className="h-2.5 w-2.5 rounded-full shrink-0"
-                  style={{ background: s.color }}
-                />
-                <span className="text-ink-muted flex-1">{s.name}</span>
-                <span className="font-semibold text-pco-deep">{s.value}%</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-2">
-        <div className="pco-card">
-          <h3 className="text-base font-semibold text-pco-deep mb-3">Páginas mais acessadas</h3>
-          <div className="overflow-x-auto -mx-2">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
-                  <th className="px-2 py-2 text-left font-medium">Página</th>
-                  <th className="px-2 py-2 text-right font-medium">Views</th>
-                  <th className="px-2 py-2 text-right font-medium">Tempo</th>
-                  <th className="px-2 py-2 text-right font-medium">Rejeição</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topPages.map((p) => (
-                  <tr key={p.path} className="border-t border-surface-gray">
-                    <td className="px-2 py-2.5">
-                      <span className="font-mono text-[11px] text-pco-deep">{p.path}</span>
-                    </td>
-                    <td className="px-2 py-2.5 text-right text-pco-deep font-semibold">
-                      {p.views.toLocaleString('pt-BR')}
-                    </td>
-                    <td className="px-2 py-2.5 text-right text-ink-muted">{p.avg}</td>
-                    <td className="px-2 py-2.5 text-right text-ink-muted">{p.bounce}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="pco-card">
-          <h3 className="text-base font-semibold text-pco-deep mb-3">Palavras-chave</h3>
-          <div className="overflow-x-auto -mx-2">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
-                  <th className="px-2 py-2 text-left font-medium">Termo</th>
-                  <th className="px-2 py-2 text-right font-medium">Pos.</th>
-                  <th className="px-2 py-2 text-right font-medium">Volume</th>
-                  <th className="px-2 py-2 text-right font-medium">CTR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {keywords.map((k) => (
-                  <tr key={k.keyword} className="border-t border-surface-gray">
-                    <td className="px-2 py-2.5 text-pco-deep flex items-center gap-1.5">
-                      {k.trend === 'up' ? (
-                        <ArrowUpRight size={12} className="text-status-success" />
-                      ) : k.trend === 'down' ? (
-                        <ArrowDownRight size={12} className="text-status-danger" />
-                      ) : (
-                        <Minus size={12} className="text-ink-subtle" />
-                      )}
-                      {k.keyword}
-                    </td>
-                    <td className="px-2 py-2.5 text-right font-semibold text-pco-deep">
-                      #{k.position}
-                    </td>
-                    <td className="px-2 py-2.5 text-right text-ink-muted">
-                      {k.searchVolume.toLocaleString('pt-BR')}
-                    </td>
-                    <td className="px-2 py-2.5 text-right text-ink-muted">{k.ctr}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-3">
-        <div className="pco-card">
-          <h3 className="text-base font-semibold text-pco-deep mb-3">SEO técnico</h3>
-          <ul className="space-y-2">
-            {techSeo.map((t) => (
-              <li
-                key={t.label}
-                className="flex items-center justify-between p-3 rounded-xl bg-surface-off"
-              >
-                <span className="text-sm text-ink-muted">{t.label}</span>
-                <span
-                  className={`pco-badge ${
-                    t.status === 'ok'
-                      ? 'bg-status-success/10 text-status-success'
-                      : 'bg-pco-orange/10 text-pco-orange'
-                  }`}
-                >
-                  {t.value}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="pco-card">
-          <h3 className="text-base font-semibold text-pco-deep mb-3">Dispositivos</h3>
-          <ul className="space-y-3">
-            <DeviceRow icon={<Monitor size={16} />} label="Desktop" pct={58} />
-            <DeviceRow icon={<Smartphone size={16} />} label="Mobile" pct={36} />
-            <DeviceRow icon={<Tablet size={16} />} label="Tablet" pct={6} />
-          </ul>
-        </div>
-
-        <div className="pco-card">
-          <h3 className="text-base font-semibold text-pco-deep mb-1 flex items-center gap-2">
-            <TrendingUp size={16} className="text-pco-blue" strokeWidth={1.75} />
-            Recomendações de melhoria
-          </h3>
-          <p className="text-xs text-ink-muted mb-3">Oportunidades para os próximos sprints de SEO</p>
-          <ul className="space-y-2 text-sm">
-            <Recommendation text="Atualizar meta descriptions em 14 páginas." />
-            <Recommendation text="Reduzir LCP da home (3.4s → meta 2.5s)." />
-            <Recommendation text="Adicionar schema.org Course nas páginas de curso." />
-            <Recommendation text="Corrigir 7 links 404 internos." />
-          </ul>
-        </div>
-      </section>
-
-      <section className="pco-card">
-        <h3 className="text-base font-semibold text-pco-deep mb-3">Status das integrações</h3>
-        <div className="grid gap-3 md:grid-cols-3">
-          {[
-            { name: 'Google Analytics', status: 'Não conectado' },
-            { name: 'Google Search Console', status: 'Não conectado' },
-            { name: 'API própria', status: 'Ativa (JSON local)' },
-          ].map((i) => (
-            <div
-              key={i.name}
-              className="flex items-center justify-between rounded-xl bg-surface-off p-3"
-            >
-              <span className="text-sm font-medium text-pco-deep">{i.name}</span>
-              <span className="pco-badge bg-pco-orange/10 text-pco-orange">{i.status}</span>
+                </ul>
+              )}
             </div>
-          ))}
-        </div>
-        <p className="mt-3 text-[11px] text-ink-subtle">
-          Tela preparada para integração futura com Google Analytics, Search Console, CMS, API
-          própria ou logs internos.
-        </p>
-      </section>
+          </section>
+
+          <section className="grid gap-5 lg:grid-cols-3">
+            <div className="pco-card">
+              <h3 className="text-base font-semibold text-pco-deep mb-1">SEO técnico</h3>
+              <p className="text-xs text-ink-muted mb-3">
+                Cada item é apurado agora — passe o mouse para ver de onde veio.
+              </p>
+              <ul className="space-y-2">
+                {rel.tecnico.map((item) => (
+                  <li
+                    key={item.label}
+                    title={item.fonte}
+                    className="flex items-center justify-between p-3 rounded-xl bg-surface-off"
+                  >
+                    <span className="text-sm text-ink-muted">{item.label}</span>
+                    <span
+                      className={`pco-badge ${
+                        item.status === 'ok'
+                          ? 'bg-status-success/10 text-status-success'
+                          : item.status === 'warn'
+                            ? 'bg-pco-orange/10 text-pco-orange'
+                            : 'bg-surface-gray text-ink-subtle'
+                      }`}
+                    >
+                      {item.value}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="pco-card">
+              <h3 className="text-base font-semibold text-pco-deep mb-1">Dispositivos</h3>
+              <p className="text-xs text-ink-muted mb-3">Por sessão, classificado no servidor</p>
+              {rel.devices.length === 0 ? (
+                <SemMedicao texto="Nenhuma visita no período." />
+              ) : (
+                <ul className="space-y-3">
+                  {rel.devices.map((d) => (
+                    <DeviceRow
+                      key={d.name}
+                      icon={ICONE_DO_DEVICE[d.name] ?? <Monitor size={16} />}
+                      label={d.name}
+                      pct={d.pct}
+                      sessions={d.sessions}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="pco-card">
+              <h3 className="text-base font-semibold text-pco-deep mb-1 flex items-center gap-2">
+                <AlertTriangle size={16} className="text-pco-orange" strokeWidth={1.75} />
+                O que esta tela não mede
+              </h3>
+              <p className="text-xs text-ink-muted mb-3">
+                Listado em vez de estimado — número inventado aqui vira decisão errada lá fora.
+              </p>
+              <ul className="space-y-2 text-sm">
+                {rel.status.semFonte.map((f) => (
+                  <li key={f.o_que} className="flex items-start gap-2 text-ink-muted">
+                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-pco-orange shrink-0" />
+                    <span>
+                      {f.o_que}
+                      <span className="block text-[11px] text-ink-subtle">
+                        depende de: {f.depende_de}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        </>
+      )}
     </div>
+  );
+}
+
+function SemMedicao({ texto, tom = 'neutro' }: { texto: string; tom?: 'neutro' | 'bom' }) {
+  return (
+    <p
+      className={`rounded-xl bg-surface-off p-4 text-center text-xs ${
+        tom === 'bom' ? 'text-status-success' : 'text-ink-subtle'
+      }`}
+    >
+      {texto}
+    </p>
   );
 }
 
@@ -434,15 +489,16 @@ function Metric({
   label,
   value,
   delta,
-  trend,
   color,
+  nota,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  delta: string;
-  trend: 'up' | 'down' | 'flat';
+  /** Variação % contra o período anterior. `null` quando não há base. */
+  delta: number | null;
   color: 'blue' | 'cyan' | 'green' | 'orange' | 'gold';
+  nota?: string;
 }) {
   const colorMap: Record<string, { bg: string; text: string }> = {
     blue: { bg: 'bg-pco-blue/10', text: 'text-pco-blue' },
@@ -452,6 +508,7 @@ function Metric({
     gold: { bg: 'bg-status-gold/15', text: 'text-status-gold' },
   };
   const c = colorMap[color];
+  const trend = delta === null ? 'flat' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
 
   return (
     <div className="pco-card">
@@ -465,30 +522,52 @@ function Metric({
       </div>
       <div className="mt-2 flex items-baseline gap-2 flex-wrap">
         <div className="text-xl font-bold tracking-tight text-pco-deep">{value}</div>
-        <span
-          className={`text-[11px] font-semibold inline-flex items-center gap-0.5 ${
-            trend === 'up'
-              ? 'text-status-success'
-              : trend === 'down'
-                ? 'text-status-danger'
-                : 'text-ink-subtle'
-          }`}
-        >
-          {trend === 'up' ? <ArrowUpRight size={11} /> : trend === 'down' ? <ArrowDownRight size={11} /> : <Minus size={11} />}
-          {delta}
-        </span>
+        {delta !== null && (
+          <span
+            className={`text-[11px] font-semibold inline-flex items-center gap-0.5 ${
+              trend === 'up'
+                ? 'text-status-success'
+                : trend === 'down'
+                  ? 'text-status-danger'
+                  : 'text-ink-subtle'
+            }`}
+            title="Contra o período anterior de mesmo tamanho"
+          >
+            {trend === 'up' ? (
+              <ArrowUpRight size={11} />
+            ) : trend === 'down' ? (
+              <ArrowDownRight size={11} />
+            ) : (
+              <Minus size={11} />
+            )}
+            {delta > 0 ? '+' : ''}
+            {delta}%
+          </span>
+        )}
       </div>
+      {nota && <p className="mt-1 text-[10px] text-ink-subtle">{nota}</p>}
     </div>
   );
 }
 
-function DeviceRow({ icon, label, pct }: { icon: React.ReactNode; label: string; pct: number }) {
+function DeviceRow({
+  icon,
+  label,
+  pct,
+  sessions,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  pct: number;
+  sessions: number;
+}) {
   return (
     <li>
       <div className="flex items-center gap-2 mb-1">
         <span className="text-pco-blue">{icon}</span>
         <span className="text-sm text-ink-muted flex-1">{label}</span>
-        <span className="text-xs font-semibold text-pco-deep">{pct}%</span>
+        <span className="text-[11px] text-ink-subtle">{fmtNumero(sessions)}</span>
+        <span className="text-xs font-semibold text-pco-deep w-11 text-right">{pct}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-surface-gray overflow-hidden">
         <div
@@ -496,15 +575,6 @@ function DeviceRow({ icon, label, pct }: { icon: React.ReactNode; label: string;
           style={{ width: `${pct}%` }}
         />
       </div>
-    </li>
-  );
-}
-
-function Recommendation({ text }: { text: string }) {
-  return (
-    <li className="flex items-start gap-2 text-sm text-ink-muted">
-      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-pco-blue shrink-0" />
-      <span>{text}</span>
     </li>
   );
 }
