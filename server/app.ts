@@ -8958,6 +8958,15 @@ export function buildApp() {
         smtpUser: body.smtpUser ? String(body.smtpUser) : undefined,
         smtpPassword: body.smtpPassword ? String(body.smtpPassword) : undefined,
         smtpSecure: body.smtpSecure === true,
+        // Mailgun e SES estavam implementados, apareciam no seletor e não
+        // tinham como ser configurados: estes três campos eram descartados
+        // aqui em silêncio, e a falha só aparecia no primeiro envio.
+        mailgunDomain: body.mailgunDomain ? String(body.mailgunDomain) : undefined,
+        mailgunRegion: body.mailgunRegion === 'eu' ? 'eu' : undefined,
+        sesRegion: body.sesRegion ? String(body.sesRegion) : undefined,
+        sesSecretAccessKey: body.sesSecretAccessKey
+          ? String(body.sesSecretAccessKey)
+          : undefined,
       });
       return c.json(created, 201);
     },
@@ -8978,6 +8987,12 @@ export function buildApp() {
       smtpUser: body.smtpUser !== undefined ? String(body.smtpUser) : undefined,
       smtpPassword: body.smtpPassword !== undefined ? String(body.smtpPassword) : undefined,
       smtpSecure: typeof body.smtpSecure === 'boolean' ? body.smtpSecure : undefined,
+      mailgunDomain: body.mailgunDomain !== undefined ? String(body.mailgunDomain) : undefined,
+      mailgunRegion:
+        body.mailgunRegion === 'eu' ? 'eu' : body.mailgunRegion === 'us' ? 'us' : undefined,
+      sesRegion: body.sesRegion !== undefined ? String(body.sesRegion) : undefined,
+      sesSecretAccessKey:
+        body.sesSecretAccessKey !== undefined ? String(body.sesSecretAccessKey) : undefined,
     });
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
     return c.json(updated);

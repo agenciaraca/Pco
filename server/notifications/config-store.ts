@@ -13,18 +13,20 @@ function newId(): string {
 
 export interface EmailConfigPublicView extends Omit<
   EmailConfig,
-  'apiKeyEncrypted' | 'smtpPasswordEncrypted'
+  'apiKeyEncrypted' | 'smtpPasswordEncrypted' | 'sesSecretAccessKeyEncrypted'
 > {
   hasApiKey: boolean;
   hasSmtpPassword: boolean;
+  hasSesSecret: boolean;
 }
 
 function toPublic(c: EmailConfig): EmailConfigPublicView {
-  const { apiKeyEncrypted, smtpPasswordEncrypted, ...rest } = c;
+  const { apiKeyEncrypted, smtpPasswordEncrypted, sesSecretAccessKeyEncrypted, ...rest } = c;
   return {
     ...rest,
     hasApiKey: !!apiKeyEncrypted,
     hasSmtpPassword: !!smtpPasswordEncrypted,
+    hasSesSecret: !!sesSecretAccessKeyEncrypted,
   };
 }
 
@@ -59,6 +61,18 @@ export interface EmailConfigInput {
   smtpUser?: string;
   smtpPassword?: string; // plain
   smtpSecure?: boolean;
+  /**
+   * Mailgun e SES precisavam destes campos e não tinham como recebê-los: os
+   * dois provedores estavam implementados, apareciam no seletor do admin e a
+   * rota descartava `mailgunDomain`, `mailgunRegion` e `sesRegion` em silêncio.
+   * Dava para escolher Mailgun; não dava para configurá-lo — a falha só
+   * aparecia no primeiro envio.
+   */
+  mailgunDomain?: string;
+  mailgunRegion?: 'us' | 'eu';
+  sesRegion?: string;
+  /** Secret access key da AWS, em claro na entrada; criptografada no store. */
+  sesSecretAccessKey?: string;
 }
 
 export async function createConfig(
@@ -80,6 +94,12 @@ export async function createConfig(
       ? encryptApiKey(input.smtpPassword)
       : undefined,
     smtpSecure: input.smtpSecure,
+    mailgunDomain: input.mailgunDomain,
+    mailgunRegion: input.mailgunRegion,
+    sesRegion: input.sesRegion,
+    sesSecretAccessKeyEncrypted: input.sesSecretAccessKey
+      ? encryptApiKey(input.sesSecretAccessKey)
+      : undefined,
     createdAt: now,
     updatedAt: now,
   };
@@ -112,6 +132,14 @@ export async function updateConfig(
           ? encryptApiKey(patch.smtpPassword)
           : c.smtpPasswordEncrypted,
       smtpSecure: patch.smtpSecure ?? c.smtpSecure,
+      mailgunDomain: patch.mailgunDomain ?? c.mailgunDomain,
+      mailgunRegion: patch.mailgunRegion ?? c.mailgunRegion,
+      sesRegion: patch.sesRegion ?? c.sesRegion,
+      // Mesma regra da apiKey: string vazia é "não mexi", não "apague".
+      sesSecretAccessKeyEncrypted:
+        patch.sesSecretAccessKey !== undefined && patch.sesSecretAccessKey !== ''
+          ? encryptApiKey(patch.sesSecretAccessKey)
+          : c.sesSecretAccessKeyEncrypted,
       updatedAt: new Date().toISOString(),
     }),
   );

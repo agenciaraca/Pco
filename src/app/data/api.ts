@@ -3171,7 +3171,24 @@ export async function updateRecoveryPlanStatus(
 
 // ---------- Email transacional ----------
 
-export type EmailProviderIdDto = 'mock' | 'resend' | 'sendgrid' | 'postmark' | 'smtp';
+/**
+ * Os oito provedores de e-mail implementados em
+ * `server/notifications/providers/registry.ts`.
+ *
+ * Este tipo listava cinco. O seletor do admin é populado pelo servidor, que
+ * sempre devolveu os oito — então mailgun, brevo e ses apareciam na lista como
+ * "mailgun — undefined", porque o rótulo vinha de um `Record` que não os
+ * conhecia. Três provedores prontos, com cara de bug.
+ */
+export type EmailProviderIdDto =
+  | 'mock'
+  | 'resend'
+  | 'sendgrid'
+  | 'postmark'
+  | 'mailgun'
+  | 'brevo'
+  | 'ses'
+  | 'smtp';
 
 export interface EmailConfigDto {
   id: string;
@@ -3184,8 +3201,12 @@ export interface EmailConfigDto {
   smtpPort?: number;
   smtpUser?: string;
   smtpSecure?: boolean;
+  mailgunDomain?: string;
+  mailgunRegion?: 'us' | 'eu';
+  sesRegion?: string;
   hasApiKey: boolean;
   hasSmtpPassword: boolean;
+  hasSesSecret?: boolean;
   lastTestedAt?: string;
   lastTestStatus?: 'ok' | 'error';
   lastTestMessage?: string;
@@ -3205,6 +3226,12 @@ export interface EmailConfigInputDto {
   smtpUser?: string;
   smtpPassword?: string;
   smtpSecure?: boolean;
+  /** Mailgun: domínio dedicado de envio (ex.: mg.exemplo.com) e região. */
+  mailgunDomain?: string;
+  mailgunRegion?: 'us' | 'eu';
+  /** SES: `apiKey` é o access key id; estes completam a credencial. */
+  sesRegion?: string;
+  sesSecretAccessKey?: string;
 }
 
 export interface EmailLogDto {

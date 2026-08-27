@@ -28,12 +28,25 @@ import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { EmailConfigDto, EmailProviderIdDto } from '../../data/api';
 import { useT } from '../../i18n';
 
+/**
+ * Um rótulo por provedor implementado. Faltavam três — mailgun, brevo e ses
+ * apareciam no seletor como "mailgun — undefined", porque o seletor é populado
+ * pelo servidor (que sempre devolveu os oito) e o rótulo vinha daqui.
+ *
+ * E o SMTP dizia "em breve" com o provedor pronto e registrado desde sempre
+ * (`server/notifications/providers/smtp.ts`: TLS direto ou STARTTLS, AUTH
+ * LOGIN, multipart, sem nodemailer). Uma escola com servidor de e-mail próprio
+ * leria isso e concluiria que precisa contratar um serviço externo.
+ */
 const PROVIDER_DESCRIPTION: Record<EmailProviderIdDto, string> = {
-  mock: 'Apenas log (dev/teste)',
-  resend: 'Resend.com (recomendado, simples)',
-  sendgrid: 'SendGrid v3',
+  mock: 'Apenas log — não envia nada (dev/teste)',
+  resend: 'Resend.com — o mais simples de configurar',
+  sendgrid: 'SendGrid v3 (API key)',
   postmark: 'Postmark (server token)',
-  smtp: 'SMTP (em breve — use Resend/SendGrid/Postmark)',
+  mailgun: 'Mailgun (API key + domínio)',
+  brevo: 'Brevo, ex-Sendinblue (API key)',
+  ses: 'AWS SES (chave, segredo e região)',
+  smtp: 'SMTP do seu servidor (host, porta, usuário e senha)',
 };
 
 const TEMPLATE_LABELS: Record<string, string> = {
@@ -80,6 +93,9 @@ export default function AdminEmail() {
       </header>
 
       <ConfigEditor
+        // Trocar a config em edição remonta o formulário — é o que substitui a
+        // sincronização por setState que existia dentro do componente.
+        key={editing?.id ?? 'novo'}
         editing={editing}
         providers={providers.data?.providers ?? []}
         onSave={async (input) => {
@@ -361,6 +377,15 @@ function ConfigEditor({
     fromName?: string;
     replyToEmail?: string;
     apiKey?: string;
+    smtpHost?: string;
+    smtpPort?: number;
+    smtpUser?: string;
+    smtpPassword?: string;
+    smtpSecure?: boolean;
+    mailgunDomain?: string;
+    mailgunRegion?: 'us' | 'eu';
+    sesRegion?: string;
+    sesSecretAccessKey?: string;
   }) => void;
   onCancel: () => void;
 }) {
@@ -372,15 +397,27 @@ function ConfigEditor({
   const [fromName, setFromName] = useState(editing?.fromName ?? 'AVA PCO');
   const [replyTo, setReplyTo] = useState(editing?.replyToEmail ?? '');
   const [apiKey, setApiKey] = useState('');
+  // Estes campos não existiam no formulário. SMTP, Mailgun e SES estavam
+  // implementados no servidor, apareciam no seletor e não tinham onde receber
+  // a credencial — dava para escolher, não para configurar.
+  const [smtpHost, setSmtpHost] = useState(editing?.smtpHost ?? '');
+  const [smtpPort, setSmtpPort] = useState(String(editing?.smtpPort ?? 587));
+  const [smtpUser, setSmtpUser] = useState(editing?.smtpUser ?? '');
+  const [smtpPassword, setSmtpPassword] = useState('');
+  const [smtpSecure, setSmtpSecure] = useState(editing?.smtpSecure ?? false);
+  const [mailgunDomain, setMailgunDomain] = useState(editing?.mailgunDomain ?? '');
+  const [mailgunRegion, setMailgunRegion] = useState<'us' | 'eu'>(
+    editing?.mailgunRegion ?? 'us',
+  );
+  const [sesRegion, setSesRegion] = useState(editing?.sesRegion ?? 'us-east-1');
+  const [sesSecret, setSesSecret] = useState('');
 
-  useMemo(() => {
-    setProvider(editing?.provider ?? 'resend');
-    setEnabled(editing?.enabled ?? true);
-    setFromEmail(editing?.fromEmail ?? '');
-    setFromName(editing?.fromName ?? 'AVA PCO');
-    setReplyTo(editing?.replyToEmail ?? '');
-    setApiKey('');
-  }, [editing]);
+  // Aqui havia um `useMemo` que só chamava quinze `setState` para recarregar o
+  // formulário quando `editing` mudava. `useMemo` não é para efeito, e chamar
+  // setState durante a renderização não é suportado — o React pode não rodar o
+  // memo de novo, e o formulário ficaria com os dados da configuração
+  // anterior. Quem remonta o componente agora é a `key` no ponto de uso, e o
+  // estado inicial vem direto das props. Sem sincronização, sem efeito.
 
   return (
     <section className="pco-card p-4 space-y-3">
@@ -432,16 +469,105 @@ function ConfigEditor({
           onChange={setReplyTo}
           placeholder="suporte@psicanaliseclinica.online"
         />
-        <Input
-          label={
-            editing?.hasApiKey
-              ? 'API key (vazio = manter atual)'
-              : 'API key / Server token'
-          }
-          value={apiKey}
-          onChange={setApiKey}
-          type="password"
-        />
+        {provider !== 'smtp' && provider !== 'mock' && (
+          <Input
+            label={
+              provider === 'ses'
+                ? editing?.hasApiKey
+                  ? 'AWS Access Key ID (vazio = manter atual)'
+                  : 'AWS Access Key ID'
+                : editing?.hasApiKey
+                  ? 'API key (vazio = manter atual)'
+                  : 'API key / Server token'
+            }
+            value={apiKey}
+            onChange={setApiKey}
+            type="password"
+          />
+        )}
+
+        {/* Mailgun: sem domínio dedicado, o envio falha na primeira tentativa. */}
+        {provider === 'mailgun' && (
+          <>
+            <Input
+              label="Domínio de envio"
+              value={mailgunDomain}
+              onChange={setMailgunDomain}
+              placeholder="mg.psicanaliseclinica.online"
+            />
+            <label className="block">
+              <span className="text-xs font-medium text-ink-muted">Região</span>
+              <select
+                value={mailgunRegion}
+                onChange={(e) => setMailgunRegion(e.target.value as 'us' | 'eu')}
+                className="pco-input mt-1 text-sm w-full"
+              >
+                <option value="us">Estados Unidos (api.mailgun.net)</option>
+                <option value="eu">Europa (api.eu.mailgun.net)</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {provider === 'ses' && (
+          <>
+            <Input
+              label={
+                editing?.hasSesSecret
+                  ? 'AWS Secret Access Key (vazio = manter atual)'
+                  : 'AWS Secret Access Key'
+              }
+              value={sesSecret}
+              onChange={setSesSecret}
+              type="password"
+            />
+            <Input
+              label="Região"
+              value={sesRegion}
+              onChange={setSesRegion}
+              placeholder="us-east-1"
+            />
+          </>
+        )}
+
+        {/* SMTP dizia "em breve" no seletor. O provedor existe desde sempre;
+            o que faltava eram estes quatro campos. */}
+        {provider === 'smtp' && (
+          <>
+            <Input
+              label="Servidor (host)"
+              value={smtpHost}
+              onChange={setSmtpHost}
+              placeholder="smtp.seuprovedor.com"
+            />
+            <Input label="Porta" value={smtpPort} onChange={setSmtpPort} placeholder="587" />
+            <Input
+              label="Usuário"
+              value={smtpUser}
+              onChange={setSmtpUser}
+              placeholder="envio@psicanaliseclinica.online"
+            />
+            <Input
+              label={
+                editing?.hasSmtpPassword ? 'Senha (vazio = manter atual)' : 'Senha'
+              }
+              value={smtpPassword}
+              onChange={setSmtpPassword}
+              type="password"
+            />
+            <label className="flex items-center gap-2 mt-5">
+              <input
+                type="checkbox"
+                checked={smtpSecure}
+                onChange={(e) => setSmtpSecure(e.target.checked)}
+                className="accent-pco-blue"
+              />
+              <span className="text-sm">
+                TLS direto (porta 465). Desmarcado usa STARTTLS, o normal na 587.
+              </span>
+            </label>
+          </>
+        )}
       </div>
       <div className="flex items-center gap-2 justify-end">
         {editing && (
@@ -459,6 +585,24 @@ function ConfigEditor({
               fromName: fromName || undefined,
               replyToEmail: replyTo || undefined,
               apiKey: apiKey || undefined,
+              ...(provider === 'smtp'
+                ? {
+                    smtpHost: smtpHost || undefined,
+                    smtpPort: smtpPort ? Number(smtpPort) : undefined,
+                    smtpUser: smtpUser || undefined,
+                    smtpPassword: smtpPassword || undefined,
+                    smtpSecure,
+                  }
+                : {}),
+              ...(provider === 'mailgun'
+                ? { mailgunDomain: mailgunDomain || undefined, mailgunRegion }
+                : {}),
+              ...(provider === 'ses'
+                ? {
+                    sesRegion: sesRegion || undefined,
+                    sesSecretAccessKey: sesSecret || undefined,
+                  }
+                : {}),
             })
           }
           disabled={!fromEmail}

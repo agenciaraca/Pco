@@ -182,3 +182,37 @@ Default é `enabled: false`. Config em `data/student-progress-email-config.json`
 - `/admin/reengajamento-auto` — config + dry-run + log
 - `/admin/progresso-aluno` — e-mail semanal de progresso: liga/desliga, dia+hora
   UTC (com equivalente BRT) e última execução
+
+
+## Os oito provedores passaram a ser configuráveis pela tela (27/ago/2026)
+
+O registro (`server/notifications/providers/registry.ts`) sempre teve oito
+provedores, e `GET /admin/email/providers` sempre devolveu os oito. A tela do
+admin, porém, só sabia lidar com cinco — e nem esses cinco por inteiro.
+
+**Três sintomas, uma causa:**
+
+1. Mailgun, Brevo e SES apareciam no seletor como `mailgun — undefined`: o
+   rótulo vinha de um `Record` no `.tsx` que só conhecia cinco chaves.
+2. O SMTP aparecia como `SMTP (em breve — use Resend/SendGrid/Postmark)`, com
+   o provedor pronto e registrado desde sempre. Uma escola com servidor de
+   e-mail próprio leria isso e concluiria que precisava contratar um serviço.
+3. A causa real: **o formulário só tinha campo de API key**, e as rotas de
+   criar/atualizar descartavam `mailgunDomain`, `mailgunRegion` e `sesRegion`
+   em silêncio. Dava para escolher Mailgun; não dava para configurá-lo, e a
+   falha só apareceria no primeiro envio.
+
+Agora o formulário mostra os campos de cada provedor:
+
+| Provedor | Campos |
+| --- | --- |
+| Resend, SendGrid, Postmark, Brevo | API key |
+| Mailgun | API key + domínio de envio + região (us/eu) |
+| AWS SES | Access Key ID + Secret Access Key + região |
+| SMTP | host, porta, usuário, senha, TLS direto (465) vs STARTTLS (587) |
+| Mock | nenhum — só registra em log |
+
+**A secret da AWS é criptografada como as demais** (AES-GCM,
+`sesSecretAccessKeyEncrypted`) e sai da view pública como `hasSesSecret`.
+Campo em branco na atualização significa "não mexi", nunca "apague" — mesma
+regra já usada para `apiKey` e `smtpPassword`.
