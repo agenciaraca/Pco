@@ -1,7 +1,7 @@
 # 27 de agosto de 2026 — a tela que mentia levou à porta que estava aberta
 
-Quatorze commits. Começou como continuação da varredura por "telas que mentem" e
-terminou em onze problemas de segurança — um entregando o produto inteiro de
+Dezesseis commits. Começou como continuação da varredura por "telas que mentem" e
+terminou em doze problemas de segurança — um entregando o produto inteiro de
 graça, outro deixando marcar pedido como pago sem pagar.
 
 O fio condutor não foi planejado: para saber se `/admin/metricas` mostrava
@@ -224,13 +224,25 @@ por design; ativo no ar, vira curso de graça para quem passar por
 
 Stripe, Asaas e MercadoPago já estavam certos.
 
+### E o checkout público dizia quem já era aluno
+
+`POST /public/checkout` devolvia `isNewAccount`, e ninguém consumia — o script
+do site público lê só `checkoutUrl`. O campo respondia, numa rota aberta, se um
+e-mail tem conta na escola. Numa escola de psicanálise isso é informação sobre
+a vida de alguém, e o teto de 8 por minuto não impede verificar uma lista de
+nomes com paciência.
+
+O teste cobra a propriedade forte, não a ausência do campo: resposta para
+e-mail conhecido e desconhecido precisa ter a **mesma forma**. Campo removido
+volta fácil; forma indistinguível é o que protege.
+
 ---
 
 ## Números
 
-- **1912 testes** verdes (eram 1833), **E2E 26/26** com `CI=true`
-- **14 commits**, todos com typecheck, lint, suíte e build verificados
-- 11 problemas de segurança fechados, incluindo um bypass de pagamento e o
+- **1915 testes** verdes (eram 1833), **E2E 26/26** com `CI=true`
+- **16 commits**, todos com typecheck, lint, suíte e build verificados
+- 12 problemas de segurança e privacidade fechados, incluindo um bypass de pagamento e o
   vazamento do material pago; os de rota verificados com requisição real antes
   e depois
 
@@ -264,7 +276,7 @@ credencial do Search Console (é o que falta para as palavras-chave).
 **Precisa de produção:** rodar `resolver_duracoes_aulas.ts`, fechar a auditoria
 das contas, aplicar o delta da loja, e re-aplicar a migração v3.
 
-**Falta deploy — e agora ele é urgente.** São 39 commits esperando, e entre eles
+**Falta deploy — e agora ele é urgente.** São 41 commits esperando, e entre eles
 o fechamento de oito rotas que hoje, em produção, respondem sem token. Enquanto
 o deploy não sai, **a base de alunos e o material pago continuam abertos**. A
 trava é a chave SSH que não existe nesta máquina; o caminho está em
