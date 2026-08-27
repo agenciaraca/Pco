@@ -345,3 +345,21 @@ conta, porque não há a que amarrar o direito.
 O padrão a procurar da próxima vez é esse: **par de rotas onde a de escrita tem
 guarda e a de leitura não.** Foi a forma de três dos casos desta varredura, e
 também do vazamento do material pago.
+
+
+## O checkout público dizia quem já era aluno (27/ago/2026)
+
+`POST /public/checkout` devolvia `isNewAccount` — e **ninguém consumia**: o
+script do site público lê só `checkoutUrl`. O que o campo fazia era responder,
+numa rota aberta, se um e-mail tem conta na escola.
+
+Numa escola de psicanálise isso não é trivia. Saber que alguém estuda aqui é
+informação sobre a vida dessa pessoa, e o teto de 8 requisições por minuto
+permite verificar uma lista de nomes com paciência.
+
+O campo saiu. O teste cobra a propriedade forte, e não só a ausência do campo:
+a resposta para um e-mail conhecido e para um desconhecido precisa ter a
+**mesma forma**.
+
+O que a tela precisa dizer serve para os dois casos e não revela nada: "se for
+sua primeira compra, você receberá um e-mail para definir a senha".

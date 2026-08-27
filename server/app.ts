@@ -10285,11 +10285,22 @@ export function buildApp() {
           console.error('[public-checkout welcome email]', err);
         }
       }
+      /**
+       * `isNewAccount` saía daqui até 27/ago/2026 e ninguém consumia — o
+       * script do site público lê só `checkoutUrl`.
+       *
+       * O que ele fazia era responder, numa rota pública, se um e-mail já tem
+       * conta na escola. Numa escola de psicanálise isso não é trivia: saber
+       * que fulano estuda aqui é informação sobre a vida dele.
+       *
+       * O que a tela precisa dizer serve para os dois casos e não revela
+       * nada: "se for sua primeira compra, você receberá um e-mail para
+       * definir a senha".
+       */
       return c.json(
         {
           checkoutUrl: updated?.checkoutUrl ?? result.checkoutUrl,
           orderId: order.id,
-          isNewAccount,
         },
         201,
       );
