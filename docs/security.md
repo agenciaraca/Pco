@@ -224,3 +224,33 @@ Captura mutações sensíveis (config changes, user CRUD, etc). Visível em `/ad
 - `test/encryption.test.ts` — round-trip AES-GCM, IV random, tampering detection
 - `test/auth.test.tsx` — fluxos React de login/logout
 - `test/http-confirm.test.ts` — two-step delete normalização
+
+
+## Rota `/admin/*` de leitura também exige token (27/ago/2026)
+
+**Cinco rotas de leitura sob `/admin/` não exigiam autenticação nenhuma.** A
+pior era `GET /api/admin/students`: devolvia nome, e-mail, progresso, último
+acesso e score de risco de **todos** os alunos para quem simplesmente pedisse a
+URL. Em produção são cerca de duas mil pessoas. As outras quatro:
+`/admin/students/:id`, `/admin/students/:id/stats`,
+`/admin/ai/configurations` e `/admin/ai/configurations/:id`.
+
+**A causa é sutil e vai se repetir se ninguém vigiar.** `attachUser` roda em
+`app.use('*')` e coloca o usuário no contexto quando há token — mas não exige.
+Quem lê o código rápido vê um middleware global de autenticação onde existe só
+um de conveniência. Quem exige é `requireAuth`, e ele é rota a rota.
+
+Já havia um teste de guarda (`admin-routes-guard`), mas ele cobre uma
+**amostra** de rotas de escrita — e foi exatamente uma amostra que deixou estas
+cinco passarem por meses.
+
+`test/admin-rotas-sem-auth.test.ts` percorre as rotas que o app de fato
+registrou (`app.routes`) e cobra 401 em cada uma. Duas proteções contra o teste
+virar decoração:
+
+- exige encontrar mais de 100 rotas, para que uma mudança na forma de
+  `app.routes` não faça o laço passar sobre uma lista vazia;
+- foi verificado removendo a proteção de uma rota e confirmando que a suíte
+  fica vermelha.
+
+Rota nova sem `requireAuth` agora cai na suíte, não em produção.

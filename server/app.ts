@@ -2875,7 +2875,9 @@ export function buildApp() {
 
   // ---------- AI: configurations (admin) ----------
 
-  app.get('/admin/ai/configurations', async (c) => c.json(await aiConfigRepo.listConfigs()));
+  app.get('/admin/ai/configurations', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await aiConfigRepo.listConfigs()),
+  );
 
   app.post('/admin/ai/configurations', requireAuth('admin', 'superadmin'), async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
@@ -2914,8 +2916,8 @@ export function buildApp() {
     return c.json({ ok: true });
   });
 
-  app.get('/admin/ai/configurations/:id', async (c) => {
-    const cfg = await aiConfigRepo.getConfig(c.req.param('id'));
+  app.get('/admin/ai/configurations/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const cfg = await aiConfigRepo.getConfig(c.req.param('id') as string);
     if (!cfg) return jsonError(c, 404, 'NOT_FOUND', 'Configuração não encontrada');
     const usage = await aiConfigRepo.aggregateUsage(cfg.id);
     return c.json({ ...aiConfigRepo.toPublic(cfg), usage });
@@ -3217,7 +3219,19 @@ export function buildApp() {
 
   // ---------- Admin students ----------
 
-  app.get('/admin/students', async (c) => {
+  /**
+   * Toda rota `/admin/*` exige token, **inclusive as de leitura**.
+   *
+   * Até 27/ago/2026 cinco rotas de leitura não exigiam nada: `GET
+   * /admin/students` devolvia nome, e-mail, progresso e score de risco de
+   * todos os alunos para quem simplesmente pedisse a URL. `attachUser` roda em
+   * `*`, mas ele só anexa o usuário quando há token — não exige.
+   *
+   * O teste `admin-rotas-sem-auth` percorre as rotas registradas no app e
+   * cobra 401 em todas elas, para que a próxima rota esquecida caia na suíte e
+   * não em produção.
+   */
+  app.get('/admin/students', requireAuth('admin', 'superadmin'), async (c) => {
     const filtersResult = studentsFilterSchema.safeParse({
       search: c.req.query('search'),
       status: c.req.query('status'),
@@ -3262,8 +3276,8 @@ export function buildApp() {
     });
   });
 
-  app.get('/admin/students/:id', async (c) => {
-    const s = await studentsRepo.findAdminStudent(c.req.param('id'));
+  app.get('/admin/students/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const s = await studentsRepo.findAdminStudent(c.req.param('id') as string);
     if (!s) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
     return c.json(s);
   });
@@ -3273,7 +3287,7 @@ export function buildApp() {
    * Biblioteca. Para a aba Recursos do AdminUserDetail. Dados reais
    * baseados nos stores existentes; library ainda sem tracking real.
    */
-  app.get('/admin/students/:id/stats', async (c) => {
+  app.get('/admin/students/:id/stats', requireAuth('admin', 'superadmin'), async (c) => {
     const id = c.req.param('id') as string;
     const s = await studentsRepo.findAdminStudent(id);
     if (!s) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
