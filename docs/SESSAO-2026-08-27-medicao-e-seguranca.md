@@ -1,8 +1,8 @@
 # 27 de agosto de 2026 — a tela que mentia levou à porta que estava aberta
 
-Onze commits. Começou como continuação da varredura por "telas que mentem" e
-terminou em oito problemas de segurança, um deles entregando o produto inteiro
-de graça.
+Quatorze commits. Começou como continuação da varredura por "telas que mentem" e
+terminou em onze problemas de segurança — um entregando o produto inteiro de
+graça, outro deixando marcar pedido como pago sem pagar.
 
 O fio condutor não foi planejado: para saber se `/admin/metricas` mostrava
 números reais, foi preciso ir ver de onde os dados vinham. Ir ver de onde os
@@ -199,14 +199,40 @@ sempre verificou. `GET /session/:sessionId/transcript` bastava estar logado.
 guarda e a de leitura não.** Foi a forma de quatro dos oito problemas deste dia,
 inclusive o vazamento do material pago.
 
+### E o webhook de pagamento aceitava evento forjado
+
+O caminho do dinheiro foi o último a ser auditado, e tinha o mesmo formato de
+defeito: uma verificação que existia no comentário e não no código.
+
+**Pagar.me** só fazia `JSON.parse`, com um comentário dizendo que a
+autenticação era "feita pelo nginx upstream em prod". Não há nginx na frente da
+app no VPS atual, e mesmo que houvesse — verificação que vive fora do
+repositório é verificação que ninguém vê sumir. **PayPal** idem, com um
+comentário dizendo que a verificação real "entra em sprint dedicado".
+
+Quem soubesse o `externalId` de um pedido pendente — o próprio comprador, que o
+vê no checkout — mandava um `order.paid` forjado e recebia o curso sem pagar.
+
+Os dois agora verificam de verdade, e **a regra é falha fechada**: sem
+credencial configurada, o evento não é aceito. Antes, a ausência de
+configuração era o caminho feliz — o pior padrão possível numa verificação de
+segurança, porque quem esquece de configurar não descobre.
+
+O gateway `mock` passou a ser recusado em produção. Ele aceita qualquer corpo
+por design; ativo no ar, vira curso de graça para quem passar por
+`/checkout/mock`, que é rota pública.
+
+Stripe, Asaas e MercadoPago já estavam certos.
+
 ---
 
 ## Números
 
-- **1903 testes** verdes (eram 1833), **E2E 26/26** com `CI=true`
-- **11 commits**, todos com typecheck, lint, suíte e build verificados
-- 8 problemas de segurança fechados, todos verificados com requisição real
-  antes e depois
+- **1912 testes** verdes (eram 1833), **E2E 26/26** com `CI=true`
+- **14 commits**, todos com typecheck, lint, suíte e build verificados
+- 11 problemas de segurança fechados, incluindo um bypass de pagamento e o
+  vazamento do material pago; os de rota verificados com requisição real antes
+  e depois
 
 ## O CI não roda desde 26 de agosto — e isso é pior que não ter CI
 
@@ -238,7 +264,7 @@ credencial do Search Console (é o que falta para as palavras-chave).
 **Precisa de produção:** rodar `resolver_duracoes_aulas.ts`, fechar a auditoria
 das contas, aplicar o delta da loja, e re-aplicar a migração v3.
 
-**Falta deploy — e agora ele é urgente.** São 36 commits esperando, e entre eles
+**Falta deploy — e agora ele é urgente.** São 39 commits esperando, e entre eles
 o fechamento de oito rotas que hoje, em produção, respondem sem token. Enquanto
 o deploy não sai, **a base de alunos e o material pago continuam abertos**. A
 trava é a chave SSH que não existe nesta máquina; o caminho está em
