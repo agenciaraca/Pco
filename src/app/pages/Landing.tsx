@@ -320,11 +320,30 @@ export default function Landing() {
               humana. A IA sugere — a equipe pedagógica decide.
             </p>
           </div>
+          {/*
+            Aqui havia quatro estatísticas de desempenho — "Retenção 90d 64%",
+            "Conclusão 58%", "Reengajados 48%", "Ritmo 2,4 h/sem", todas com
+            variação positiva. Nenhuma vinha de medição: eram as mesmas
+            constantes que a tela interna de retenção exibia. Numa página de
+            venda isso deixa de ser tela que mente e vira propaganda enganosa
+            (CDC, art. 37) — afirmação de resultado a quem ainda vai decidir
+            comprar.
+
+            O que ficou no lugar é o que o sistema faz de verdade, e cada item
+            aponta para código que existe: o cálculo de risco
+            (`server/services/retention-calculator.ts`), o worker de
+            reengajamento e os planos de retomada, que nascem como rascunho —
+            é isso que torna verdadeira a frase "a IA sugere, a equipe decide".
+
+            Publicar os números reais seria outra decisão, e não é técnica:
+            desempenho de escola é dado de negócio, e hoje a base ainda carrega
+            o problema de matrículas da migração.
+          */}
           <div className="grid grid-cols-2 gap-3">
-            <StatBlock label="Retenção 90d" value="64%" delta="+4pp" />
-            <StatBlock label="Conclusão" value="58%" delta="+2pp" />
-            <StatBlock label="Reengajados" value="48%" delta="+9pp" />
-            <StatBlock label="Ritmo (h/sem)" value="2,4" delta="+0,3" />
+            <StatBlock label="Score de risco" texto="Recalculado por aluno a cada 6 horas" />
+            <StatBlock label="Ação recomendada" texto="Sugerida junto com o motivo do risco" />
+            <StatBlock label="Reengajamento" texto="E-mail automático a quem sumiu" />
+            <StatBlock label="Plano de retomada" texto="Nasce rascunho, some se ninguém aprovar" />
           </div>
         </div>
       </Section>
@@ -519,20 +538,16 @@ function FeatureCard({
   );
 }
 
-function StatBlock({
-  label,
-  value,
-  delta,
-}: {
-  label: string;
-  value: string;
-  delta: string;
-}) {
+/**
+ * Antes exibia número e variação ("64%", "+4pp"). Passou a descrever o que o
+ * recurso faz: numa página de venda, número sem medição por trás é afirmação
+ * de resultado, e afirmação de resultado tem dono.
+ */
+function StatBlock({ label, texto }: { label: string; texto: string }) {
   return (
     <div className="pco-card">
       <div className="text-[11px] uppercase tracking-wider text-ink-subtle">{label}</div>
-      <div className="mt-1 text-2xl font-bold text-pco-deep">{value}</div>
-      <div className="text-[11px] text-status-success font-semibold">{delta}</div>
+      <div className="mt-1.5 text-sm font-medium leading-snug text-pco-deep">{texto}</div>
     </div>
   );
 }

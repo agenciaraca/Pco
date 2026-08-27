@@ -99,6 +99,7 @@ import { rateLimit } from './rate-limit';
 import { registraHit } from './analytics/collector';
 import { montaRelatorio, normalizaRange, seoTecnico } from './analytics/relatorio';
 import { montaRetencao } from './analytics/retencao';
+import { agendaDoDia } from './sessions/horarios';
 import * as rateLimitTelemetry from './rate-limit';
 import { jsonError, validate } from './http';
 import { getProvider, listProviders, calculateCost } from './ai/providers';
@@ -2339,6 +2340,29 @@ export function buildApp() {
         profissionalPublico,
       ),
     });
+  });
+
+  /**
+   * Os horários de um profissional num dia, com os ocupados já bloqueados.
+   *
+   * Existe porque a tela dizia "Horários disponíveis" sobre uma lista fixa que
+   * não consultava nada: o aluno escolhia um horário já tomado, preenchia tudo
+   * e só descobria no envio. O servidor sempre barrou a colisão — o que
+   * faltava era a tela saber antes de prometer.
+   *
+   * Público, como o resto de `/sessions/*`: quem ainda não tem conta precisa
+   * ver horário para decidir. Devolve `hora` e `disponivel`, nunca quem ocupa
+   * — a agenda de um profissional não é informação de outro aluno.
+   */
+  app.get('/sessions/professionals/:id/horarios', async (c) => {
+    const id = c.req.param('id') as string;
+    const data = c.req.query('data') ?? '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      return jsonError(c, 400, 'VALIDATION', 'Informe a data no formato AAAA-MM-DD.');
+    }
+    const prof = (await sessionsRepo.listProfessionals()).find((p) => p.id === id);
+    if (!prof) return jsonError(c, 404, 'NOT_FOUND', 'Profissional não encontrado.');
+    return c.json(await agendaDoDia(id, data));
   });
 
   /**

@@ -320,6 +320,15 @@ export function useRetencao() {
   return useQuery({ queryKey: ['analytics-retencao'] as const, queryFn: api.fetchRetencao });
 }
 
+/** Só busca quando há profissional E data — antes disso não há o que perguntar. */
+export function useAgendaDoDia(professionalId: string | undefined, data: string | undefined) {
+  return useQuery({
+    queryKey: ['sessions-agenda', professionalId, data] as const,
+    queryFn: () => api.fetchAgendaDoDia(professionalId!, data!),
+    enabled: Boolean(professionalId && data),
+  });
+}
+
 export function useAiConfigurations() {
   return useQuery({
     queryKey: queryKeys.aiConfigurations,

@@ -2402,6 +2402,28 @@ export async function fetchRetencao(): Promise<RelatorioRetencao> {
   return http.get<RelatorioRetencao>('/admin/analytics/retencao');
 }
 
+/**
+ * Agenda de um profissional num dia. Antes a tela listava oito horários fixos
+ * sob o título "Horários disponíveis" sem consultar nada.
+ */
+export interface AgendaDoDia {
+  data: string;
+  professionalId: string;
+  durationMinutes: number;
+  slots: Array<{ hora: string; disponivel: boolean; motivo?: 'ocupado' | 'passado' }>;
+  observacao: string;
+}
+
+export async function fetchAgendaDoDia(
+  professionalId: string,
+  data: string,
+): Promise<AgendaDoDia> {
+  return http.get<AgendaDoDia>(
+    `/sessions/professionals/${encodeURIComponent(professionalId)}/horarios`,
+    { query: { data } },
+  );
+}
+
 // ---------- AI ----------
 
 export interface AiProviderInfo {

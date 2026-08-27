@@ -29,6 +29,7 @@ import {
   useCourses,
   useRetentionRisks,
   useAllCertificates,
+  useStudentAnalytics,
   useIssueCertificate,
   useUserTimeline,
   useAdminStudentStats,
@@ -81,6 +82,8 @@ export default function AdminUserDetail() {
   const coursesQ = useCourses();
   const risksQ = useRetentionRisks();
   const certsQ = useAllCertificates();
+  // Fonte real do progresso por curso — a aba "progresso" mostrava número fixo.
+  const analyticsQ = useStudentAnalytics(id);
   const timelineQ = useUserTimeline(id);
   const statsQ = useAdminStudentStats(id);
 
@@ -288,6 +291,14 @@ export default function AdminUserDetail() {
         <div className="space-y-4">
           {enrolled.map((c) => {
             const pct = student.progressByCourse[c.id] ?? 0;
+            const medido = analyticsQ.data?.enrollment.courses.find((x) => x.courseId === c.id);
+            // O percentual guardado na ficha e o contado a partir das aulas
+            // marcadas podem discordar — e quando discordam, é sinal, não
+            // ruído. A migração deixou progresso amarrado a matrícula errada
+            // (ver docs/migration-wp-ld.md); esconder a diferença é perder o
+            // único lugar onde ela aparece por aluno.
+            const divergente =
+              medido !== undefined && Math.abs(medido.completionPct - pct) >= 5;
             return (
               <div key={c.id} className="pco-card">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -308,12 +319,37 @@ export default function AdminUserDetail() {
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <Box label="Aulas concluídas" value={`${Math.round((pct / 100) * 24)}/24`} />
-                  <Box label="Avaliações" value="2/8" />
-                  <Box label="Tutor (uso)" value="12" />
-                  <Box label="POD (plays)" value="6" />
+                {/*
+                  Aqui havia quatro caixas fixas — "Aulas concluídas
+                  {'{'}pct/100*24{'}'}/24", "Avaliações 2/8", "Tutor (uso) 12",
+                  "POD (plays) 6". As três últimas eram constantes; a primeira
+                  dividia por 24 aulas um curso que pode ter 60. Tudo isso
+                  aparecia sob o nome de um aluno específico, e um coordenador
+                  podia agir achando que aquela pessoa usou o tutor 12 vezes.
+
+                  Ficaram só as duas que saem de registro: aulas efetivamente
+                  marcadas como concluídas e o total real do curso. Uso do
+                  tutor e plays de podcast não são contados por aluno em lugar
+                  nenhum — inventar de novo seria repetir o erro.
+                */}
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <Box
+                    label="Aulas concluídas"
+                    value={
+                      medido ? `${medido.completedLessons}/${medido.totalLessons}` : '—'
+                    }
+                  />
+                  <Box
+                    label="Conclusão calculada"
+                    value={medido ? `${medido.completionPct}%` : '—'}
+                  />
                 </div>
+                {divergente && (
+                  <p className="mt-2 text-[11px] text-pco-orange">
+                    O progresso gravado na ficha ({pct}%) não bate com as aulas marcadas (
+                    {medido!.completionPct}%). Vale conferir antes de decidir algo com base nele.
+                  </p>
+                )}
               </div>
             );
           })}

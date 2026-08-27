@@ -197,3 +197,28 @@ resposta.
 ## O que ainda não existe
 
 - Nenhum profissional cadastrado. Sem cadastro, não há com quem agendar.
+
+
+## Os horários que o aluno vê — `GET /sessions/professionals/:id/horarios`
+
+**Desde 27/ago/2026.** Antes disso a tela listava oito horários fixos sob o
+título "Horários disponíveis" e não consultava nada. `horarioOcupado` sempre
+barrou a colisão no servidor, então ninguém marcou em cima de ninguém — mas o
+aluno escolhia um horário já tomado, seguia até o passo de confirmação e só
+descobria no envio.
+
+`server/sessions/horarios.ts` responde a faixa padrão da escola com cada
+horário marcado como livre ou bloqueado, e o motivo (`ocupado` ou `passado`).
+Três coisas que não são óbvias:
+
+- **A faixa mora no servidor**, não no `.tsx`. Mudar o horário de atendimento
+  da escola é uma linha, e a decisão deixa de estar escondida num componente.
+- **Encostar não é sobrepor:** uma sessão às 15:00 (50 min) não bloqueia as
+  14:00 nem as 16:00. É a mesma regra meio-aberta de `horarioOcupado`.
+- **A resposta não diz quem ocupa.** A agenda de um profissional não é
+  informação de outro aluno; só sai `hora` e `disponivel`.
+
+**O que continua não existindo é a agenda individual.** O modelo tem
+`professionals.available`, que é um sim/não do dia inteiro, não uma grade. Por
+isso a resposta carrega uma `observacao` que a tela exibe: horário livre na
+agenda do sistema, não promessa de que a pessoa estará lá.

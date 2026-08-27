@@ -21,6 +21,7 @@ import {
   useCancelBooking,
   useCheckoutBooking,
   useRescheduleBooking,
+  useAgendaDoDia,
 } from '../data/hooks';
 import type { SessionService } from '../types/schema';
 // O tipo público — sem e-mail nem hourlyRate, que a rota aberta não devolve.
@@ -36,7 +37,27 @@ interface Booking {
   time?: string;
 }
 
-const slots = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+interface HorarioExibido {
+  hora: string;
+  disponivel: boolean;
+  motivo?: 'ocupado' | 'passado';
+}
+
+/**
+ * Esqueleto mostrado **antes** de o aluno escolher um dia — todos desligados.
+ * A lista de verdade vem do servidor; esta existe só para o passo não aparecer
+ * vazio. A faixa de atendimento agora mora em `server/sessions/horarios.ts`.
+ */
+const HORARIOS_FALLBACK = [
+  '09:00',
+  '10:00',
+  '11:00',
+  '14:00',
+  '15:00',
+  '16:00',
+  '17:00',
+  '18:00',
+].map((hora): HorarioExibido => ({ hora, disponivel: false }));
 
 const statusStyles: Record<string, string> = {
   pending_payment: 'bg-pco-orange/15 text-pco-orange',
@@ -329,6 +350,7 @@ export default function AnaliseSupervisao() {
                 {remarcando === s.id && (
                   <div className="w-full border-t border-surface-gray pt-3 mt-1">
                     <DateTimeStep
+                      professionalId={s.professionalId}
                       onSelect={async (date, time) => {
                         setErroAcao(null);
                         try {
@@ -384,6 +406,7 @@ export default function AnaliseSupervisao() {
             )}
             {step === 'datetime' && selectedService && selectedPro && (
               <DateTimeStep
+                professionalId={selectedPro.id}
                 onSelect={(date, time) => {
                   setBooking({ ...booking, date, time });
                   setStep('confirm');
@@ -554,14 +577,18 @@ function ProfessionalStep({
 }
 
 function DateTimeStep({
+  professionalId,
   onSelect,
   onBack,
 }: {
+  /** Sem ele não há agenda para consultar — e o passo vira palpite de novo. */
+  professionalId: string;
   onSelect: (date: string, time: string) => void;
   onBack: () => void;
 }) {
   const [date, setDate] = useState<string>('');
   const [time, setTime] = useState<string>('');
+  const agendaQ = useAgendaDoDia(professionalId, date || undefined);
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
@@ -598,26 +625,62 @@ function DateTimeStep({
             })}
           </div>
         </div>
+        {/*
+          Este bloco listava oito horários fixos sob o título "Horários
+          disponíveis" e não consultava nada: o aluno escolhia um horário já
+          tomado, preenchia o resto e só descobria no envio, porque o servidor
+          sempre barrou a colisão. Agora a lista vem de
+          `/sessions/professionals/:id/horarios`, com o ocupado e o que já
+          passou desligados e dizendo por quê.
+        */}
         <div>
-          <div className="text-xs font-medium text-ink-muted mb-2">Horários disponíveis</div>
-          <div className="grid grid-cols-4 gap-2">
-            {slots.map((t) => (
-              <button
-                key={t}
-                disabled={!date}
-                onClick={() => setTime(t)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  time === t
-                    ? 'bg-pco-blue text-white'
-                    : !date
-                      ? 'bg-surface-off text-ink-subtle cursor-not-allowed'
-                      : 'bg-surface-off text-pco-deep hover:bg-surface-gray'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+          <div className="text-xs font-medium text-ink-muted mb-2">
+            {date ? 'Horários' : 'Escolha um dia para ver os horários'}
           </div>
+          {agendaQ.isLoading && date && (
+            <p className="text-xs text-ink-subtle">Consultando a agenda…</p>
+          )}
+          {agendaQ.isError && (
+            <p className="text-xs text-status-danger">
+              Não foi possível consultar a agenda. Escolher horário agora seria palpite.
+            </p>
+          )}
+          <div className="grid grid-cols-4 gap-2">
+            {(agendaQ.data?.slots ?? HORARIOS_FALLBACK).map((slot: HorarioExibido) => {
+              const livre = date ? slot.disponivel : false;
+              return (
+                <button
+                  key={slot.hora}
+                  disabled={!livre}
+                  title={
+                    slot.motivo === 'ocupado'
+                      ? 'Já reservado com este profissional'
+                      : slot.motivo === 'passado'
+                        ? 'Horário já passou'
+                        : undefined
+                  }
+                  onClick={() => setTime(slot.hora)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    time === slot.hora
+                      ? 'bg-pco-blue text-white'
+                      : !livre
+                        ? 'bg-surface-off text-ink-subtle cursor-not-allowed line-through decoration-1'
+                        : 'bg-surface-off text-pco-deep hover:bg-surface-gray'
+                  }`}
+                >
+                  {slot.hora}
+                </button>
+              );
+            })}
+          </div>
+          {agendaQ.data && (
+            <p className="mt-2 text-[11px] text-ink-subtle">{agendaQ.data.observacao}</p>
+          )}
+          {agendaQ.data && agendaQ.data.slots.every((sl) => !sl.disponivel) && (
+            <p className="mt-1 text-[11px] text-pco-orange">
+              Nenhum horário livre neste dia. Escolha outro.
+            </p>
+          )}
         </div>
         <button
           disabled={!date || !time}
