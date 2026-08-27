@@ -4,7 +4,8 @@
 
 import crypto from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from '../db/client';
+import { schema } from '../db/client';
+import { bancoSeTabelaExiste } from '../db/tabela-ausente';
 import { JsonStore } from '../db/json-store';
 import { getActiveByModule } from '../ai/store';
 import { getProvider } from '../ai/providers';
@@ -197,7 +198,7 @@ export async function createQuestion(input: CreateQuestionInput): Promise<Questi
     createdAt: now,
     updatedAt: now,
   };
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('question_bank');
   if (db) {
     await db.insert(schema.questionBank).values(paraLinha(q));
     return q;
@@ -212,7 +213,7 @@ function clampDifficulty(n: number): number {
 }
 
 export async function listAll(): Promise<Question[]> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('question_bank');
   if (db) {
     const rows = await db.select().from(schema.questionBank);
     // Tabela vazia é banco novo, não "sem questões": cair no JSON preserva o
@@ -223,7 +224,7 @@ export async function listAll(): Promise<Question[]> {
 }
 
 export async function listByCourse(courseId: string): Promise<Question[]> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('question_bank');
   if (db) {
     const rows = await db
       .select()
@@ -235,7 +236,7 @@ export async function listByCourse(courseId: string): Promise<Question[]> {
 }
 
 export async function findById(id: string): Promise<Question | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('question_bank');
   if (db) {
     const rows = await db
       .select()
@@ -297,7 +298,7 @@ export async function updateQuestion(
     updates.moduleId = patch.moduleId ?? undefined;
   }
   updates.updatedAt = new Date().toISOString();
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('question_bank');
   if (db) {
     await db
       .update(schema.questionBank)
@@ -312,7 +313,7 @@ export async function updateQuestion(
 export async function deleteQuestion(id: string): Promise<boolean> {
   const q = await findById(id);
   if (!q) return false;
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('question_bank');
   if (db) {
     const rows = await db
       .delete(schema.questionBank)

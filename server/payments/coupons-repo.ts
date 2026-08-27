@@ -11,7 +11,8 @@
 
 import crypto from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
-import { getDb, schema } from '../db/client';
+import { schema } from '../db/client';
+import { bancoSeTabelaExiste } from '../db/tabela-ausente';
 import { JsonStore } from '../db/json-store';
 
 export type CouponDiscount =
@@ -58,7 +59,7 @@ function newId(): string {
 }
 
 export async function listAll(): Promise<Coupon[]> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_coupons');
   if (db) {
     const rows = await db.select().from(schema.paymentCoupons);
     if (rows.length > 0) return rows.map(daLinha);
@@ -68,7 +69,7 @@ export async function listAll(): Promise<Coupon[]> {
 
 export async function findByCode(code: string): Promise<Coupon | null> {
   const alvo = code.trim().toUpperCase();
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_coupons');
   if (db) {
     const rows = await db
       .select()
@@ -80,7 +81,7 @@ export async function findByCode(code: string): Promise<Coupon | null> {
 }
 
 export async function findById(id: string): Promise<Coupon | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_coupons');
   if (db) {
     const rows = await db
       .select()
@@ -124,7 +125,7 @@ export async function createCoupon(input: CreateInput): Promise<Coupon> {
     createdAt: now,
     updatedAt: now,
   };
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_coupons');
   if (db) {
     await db.insert(schema.paymentCoupons).values({
       ...c,
@@ -138,7 +139,7 @@ export async function createCoupon(input: CreateInput): Promise<Coupon> {
 }
 
 export async function updateCoupon(id: string, patch: Partial<CreateInput>): Promise<Coupon | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_coupons');
   if (db) {
     const campos: Record<string, unknown> = { updatedAt: new Date().toISOString() };
     if (patch.description !== undefined) campos.description = patch.description;
@@ -175,7 +176,7 @@ export async function updateCoupon(id: string, patch: Partial<CreateInput>): Pro
 }
 
 export async function deleteCoupon(id: string): Promise<boolean> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_coupons');
   if (db) {
     const rows = await db
       .delete(schema.paymentCoupons)
@@ -223,7 +224,7 @@ export function validateCoupon(
 }
 
 export async function incrementUsage(id: string): Promise<void> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_coupons');
   if (db) {
     // Incremento no próprio SQL, e não ler-somar-gravar: duas compras
     // simultâneas com o mesmo cupom perderiam um uso na segunda forma, e o

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { getDb, schema } from '../db/client';
+import { schema } from '../db/client';
+import { bancoSeTabelaExiste } from '../db/tabela-ausente';
 import { JsonStore } from '../db/json-store';
 
 /**
@@ -110,7 +111,7 @@ export async function create(input: NovoAgendamento): Promise<SessionBooking> {
     cancelReason: '',
     orderId: null,
   };
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('session_bookings');
   if (db) {
     await db.insert(schema.sessionBookings).values(row);
     return row;
@@ -122,7 +123,7 @@ export async function create(input: NovoAgendamento): Promise<SessionBooking> {
 }
 
 export async function listAll(): Promise<SessionBooking[]> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('session_bookings');
   if (!db) return (await store.getAll()).sort(porDataDesc);
   const rows = await db.select().from(schema.sessionBookings);
   return rows.map(daLinha).sort(porDataDesc);
@@ -133,7 +134,7 @@ export async function listForUser(userId: string): Promise<SessionBooking[]> {
 }
 
 export async function findById(id: string): Promise<SessionBooking | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('session_bookings');
   if (!db) return (await store.getAll()).find((b) => b.id === id) ?? null;
   const rows = await db
     .select()
@@ -190,7 +191,7 @@ export async function update(
   patch: Partial<Omit<SessionBooking, 'id' | 'createdAt'>>,
 ): Promise<SessionBooking | null> {
   const dados = { ...patch, updatedAt: agora() };
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('session_bookings');
   if (db) {
     const rows = await db
       .update(schema.sessionBookings)

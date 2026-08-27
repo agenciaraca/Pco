@@ -14,7 +14,8 @@
  */
 
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from '../db/client';
+import { schema } from '../db/client';
+import { bancoSeTabelaExiste } from '../db/tabela-ausente';
 import { JsonStore } from '../db/json-store';
 
 /** Origem da visita, classificada na primeira página da sessão. */
@@ -97,7 +98,7 @@ function normalizaBuckets(b: number[] | null | undefined): number[] {
 
 /** Lê um dia; devolve `null` quando não houve medição nenhuma nele. */
 export async function lerDia(date: string): Promise<DailyTraffic | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('analytics_daily');
   if (db) {
     const rows = await db
       .select()
@@ -112,7 +113,7 @@ export async function lerDia(date: string): Promise<DailyTraffic | null> {
 
 export async function gravarDia(dia: DailyTraffic): Promise<void> {
   const registro = { ...dia, updatedAt: new Date().toISOString() };
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('analytics_daily');
   if (db) {
     await db
       .insert(schema.analyticsDaily)
@@ -158,7 +159,7 @@ export async function gravarDia(dia: DailyTraffic): Promise<void> {
 
 /** Dias no intervalo [de, ate], inclusive, ordenados. Só os que existem. */
 export async function lerIntervalo(de: string, ate: string): Promise<DailyTraffic[]> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('analytics_daily');
   let dias: DailyTraffic[];
   if (db) {
     const rows = await db.select().from(schema.analyticsDaily);
@@ -173,7 +174,7 @@ export async function lerIntervalo(de: string, ate: string): Promise<DailyTraffi
 
 /** Data da primeira medição — o começo do histórico que existe de verdade. */
 export async function primeiroDia(): Promise<string | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('analytics_daily');
   const dias = db
     ? (await db.select().from(schema.analyticsDaily)).map((r) => r.date)
     : (await store.getAll()).map((d) => d.date);

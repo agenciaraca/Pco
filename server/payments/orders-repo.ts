@@ -13,7 +13,8 @@
 
 import crypto from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from '../db/client';
+import { schema } from '../db/client';
+import { bancoSeTabelaExiste } from '../db/tabela-ausente';
 import { JsonStore } from '../db/json-store';
 import type { Order, OrderStatus } from './types';
 
@@ -66,7 +67,7 @@ export async function migrarJsonParaBanco(): Promise<{
   jaNoBanco: number;
   migrados: number;
 }> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_orders');
   if (!db) return { noJson: 0, jaNoBanco: 0, migrados: 0 };
 
   const doJson = await store.getAll();
@@ -101,7 +102,7 @@ export async function migrarJsonParaBanco(): Promise<{
 }
 
 export async function listAll(): Promise<Order[]> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
     const rows = await db.select().from(schema.paymentOrders);
     // Tabela vazia é banco novo, não "sem pedidos": cair no JSON preserva o
@@ -112,7 +113,7 @@ export async function listAll(): Promise<Order[]> {
 }
 
 export async function listForUser(userId: string): Promise<Order[]> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
     const rows = await db
       .select()
@@ -124,7 +125,7 @@ export async function listForUser(userId: string): Promise<Order[]> {
 }
 
 export async function findById(id: string): Promise<Order | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
     const rows = await db
       .select()
@@ -136,7 +137,7 @@ export async function findById(id: string): Promise<Order | null> {
 }
 
 export async function findByExternalId(externalId: string): Promise<Order | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
     const rows = await db
       .select()
@@ -179,7 +180,7 @@ export async function createOrder(input: CreateInput): Promise<Order> {
     updatedAt: now,
     paidAt: null,
   };
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
     await db.insert(schema.paymentOrders).values({ ...o, events: o.events });
     return o;
@@ -192,7 +193,7 @@ export async function attachGatewayResult(
   id: string,
   data: { externalId: string; checkoutUrl?: string; qrCode?: string; status: OrderStatus },
 ): Promise<Order | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
     const atual = await findById(id);
     if (!atual) return null;
@@ -244,7 +245,7 @@ export async function updateStatus(
   status: OrderStatus,
   note?: string,
 ): Promise<Order | null> {
-  const db = getDb();
+  const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
     const atual = await findById(id);
     if (!atual) return null;
