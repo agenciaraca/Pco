@@ -62,8 +62,30 @@ export default function Landing() {
 
       {/* 1. Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-pco-deep via-pco-blue to-pco-cyan" />
-        <div className="absolute inset-0 opacity-30 mix-blend-overlay">
+        {/*
+          Foto de fundo. É decorativa — quem usa leitor de tela não perde nada
+          ao não recebê-la —, então vai com alt vazio e escondida da árvore de
+          acessibilidade. O PNG de origem tinha 2,7 MB; as versões WebP em
+          `public/img/` pesam 152 KB e 72 KB, e o `srcSet` deixa o celular
+          baixar a menor.
+        */}
+        <img
+          src="/img/hero-consultorio.webp"
+          srcSet="/img/hero-consultorio-1280.webp 1280w, /img/hero-consultorio.webp 1792w"
+          sizes="100vw"
+          alt=""
+          aria-hidden="true"
+          loading="eager"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        {/*
+          Overlay a 80%: a foto aparece a 20% e o texto branco mantém contraste.
+          É o mesmo gradiente da marca que existia aqui antes — a foto entra por
+          baixo dele, não no lugar dele.
+        */}
+        <div className="absolute inset-0 opacity-80 bg-gradient-to-br from-pco-deep via-pco-blue to-pco-cyan" />
+        <div className="absolute inset-0 opacity-20 mix-blend-overlay">
           <div className="absolute top-12 -left-12 w-96 h-96 rounded-full bg-pco-cyan-light/40 blur-3xl" />
           <div className="absolute bottom-0 right-0 w-[36rem] h-[36rem] rounded-full bg-pco-orange/30 blur-3xl" />
         </div>

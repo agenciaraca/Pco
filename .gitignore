@@ -98,3 +98,6 @@ data/question-bank-stubs.json
 data/analytics-daily.json
 data/backup-*/
 data/*.bak*
+
+# Saída do Playwright MCP (screenshots e logs de sessão)
+.playwright-mcp/
