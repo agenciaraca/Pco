@@ -211,19 +211,21 @@ Só restart, sem rebuild: `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
 - `git pull` aborta com `package-lock.json` modificado — daí o `git checkout --` antes.
 - `git` como root reclama de `dubious ownership` no repo do `avapco`; sempre use `sudo -u avapco`.
 - Confirme o que subiu comparando o hash do bundle: `curl -s https://ava.psicanaliseclinica.online/login | grep -o 'assets/index-[^"]*\.js'` contra o `dist/index.html` local. `/api/health` responde 200 mesmo com código velho.
-- **O deploy automático vai para o servidor ERRADO** (medido em 21/ago/2026).
-  `.github/workflows/deploy.yml` conecta em `srv1621737`, não em produção
-  (`srv539124` = 195.200.0.253). Lá existe uma cópia do repo e **nenhum processo
-  PM2** — daí o sintoma enganoso: `git pull` e `npm run build` passavam, e só o
-  `pm2 restart ava-pco` falhava com "Process or Namespace not found".
-  Prova: o deploy automático "puxou" `ed524f8` e produção continuou em `7440f2a`
-  até o deploy manual.
-  **Correção (só o dono pode):** trocar os secrets `VPS_HOST` **e**
-  `VPS_PASSWORD` juntos — a senha guardada é do host errado. Produção aceita
-  senha (`50-cloud-init.conf` traz `PasswordAuthentication yes` e vence o
-  `60-cloudimg-settings.conf`; no sshd a primeira ocorrência manda).
-  Enquanto isso, o workflow checa `pm2 describe ava-pco` **antes** de qualquer
-  pull e falha dizendo o hostname, em vez de trabalhar à toa.
+- **O deploy automático foi consertado em 30/ago/2026** — passou a autenticar
+  por **chave**, não por senha. O problema anterior: `.github/workflows/deploy.yml`
+  conectava em `srv1621737`, não em produção (`srv539124` = 195.200.0.253). Lá
+  existe uma cópia do repo e **nenhum processo PM2** — daí o sintoma enganoso:
+  `git pull` e `npm run build` passavam, e só o `pm2 restart ava-pco` falhava
+  com "Process or Namespace not found". Host e senha guardados eram do mesmo
+  servidor errado, então acertar só um não resolvia.
+  **O que mudou:** secrets `VPS_SSH_KEY` (chave `~/.ssh/pco_deploy`, já instalada
+  no usuário `avapco`), `VPS_HOST=195.200.0.253`, `VPS_USER=avapco`,
+  `VPS_PORT=22`, `PUBLIC_URL`. O secret `VPS_PASSWORD` foi **removido** — não há
+  mais senha guardada. O workflow segue checando `pm2 describe ava-pco` **antes**
+  de qualquer pull e falha dizendo o hostname, em vez de trabalhar à toa.
+  ⚠️ **Ainda não rodou de verdade**: a conta do GitHub está travada por cobrança
+  desde 26/ago, então nenhum job é executado. O deploy segue manual até isso ser
+  regularizado — mas o caminho já está correto e testado por SSH.
 
 Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
@@ -326,36 +328,51 @@ aviso sem enviar nada.
 Em 21/ago/2026 **nenhum dos 6 cursos declarava prazo** — ninguém está vencido.
 Detalhes, números por curso e os smokes em `docs/prazo-de-acesso.md`.
 
-## Migração WP/LD/WC — alunos, cursos e progressões NÃO migraram direito
+## Migração WP/LD/WC — a carga v3 está aplicada; o que sobrou é outra coisa
 
-Migração dos dois sites WP (`portalpco.online` LMS + `psicanaliseclinica.online` loja) para o AVA. Os dados de **alunos, cursos e progressões em produção estão sabidamente errados** desde o deploy v2 (2026-05-15) — não confiar neles antes da v3 reaplicar.
+> **Corrigido em 30/ago/2026.** Esta seção descrevia por três meses o estado v2
+> quebrado (10.205 matrículas fantasma, 333 alunos faltando, nomes com spam) e
+> mandava "re-aplicar a migração v3". **Isso já foi feito em 07/jul/2026.**
+> Medido em produção hoje, com `scripts/backup_divz_students.ts`:
+> **1601 alunos, 615 fichas, 1122 matrículas** — números sãos, ~1,8 matrícula
+> por aluno, nada parecido com o quadro fantasma.
+>
+> A instrução velha era **perigosa**, não só desatualizada: a base local está
+> zerada pelo `reset_imported_data.ts` (3 usuários), e `load_v3_to_divz.ts`
+> marca como inativo quem não vier na fonte. Rodá-lo a partir daqui derrubaria
+> os 1601. **Antes de qualquer carga, confira a contagem local contra a de
+> produção.**
 
-**O que está quebrado em produção hoje:**
+Migração dos dois sites WP (`portalpco.online` LMS + `psicanaliseclinica.online`
+loja) para o AVA. O handoff vivo, com slugs, mapeamentos, os três bugs de origem
+e a sequência de comandos correta, é `docs/migration-wp-ld.md` — **leia ele, não
+esta seção**, antes de mexer em migração.
 
-| Entidade                                       | Estado em prod (v2)                                                                                                     | Estado esperado                            |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Alunos (`users.json`)                          | 1641 importados, **333 faltando**, **~436 com nomes spam SEO** (Russian blogspot etc.)                                  | ~1972 únicos limpos                        |
-| Cursos (`courses.json`)                        | 13 LD + 3 seed, mas 7 estão como `draft` no portal e foram importados como ativos                                       | 6 publicados ou flag `published` por curso |
-| Matrículas (`admin-students.progressByCourse`) | **10.205 enrollments fantasma** — cada um dos 785 alunos aparece em todos os 13 cursos                                  | ~1500 reais                                |
-| Progressões                                    | 679 registros não-zero, média 39.7% — **amarrados aos enrollments errados**, então quase todos apontam pro curso errado | progresso só nos cursos realmente cursados |
-| `external-references.json`                     | 14.049 entries com colisões portal↔psi (mesmo WP user ID em ambos os sites era fundido num só)                          | refs prefixadas `portal:` / `psi:`         |
+### O que continua aberto
 
-**Por que quebrou (raiz):**
+- **160 pessoas apagadas na origem** entre julho e agosto (52 desistentes, 35
+  inadimplentes, 7 reembolsados, 6 inativos, 14 ativos) seguem em produção com
+  256 matrículas, 97 com progresso real. Por isso o loader deixou de fazer
+  wipe-and-reload e o dump de 07/jul virou a fonte de verdade — sumir do
+  WordPress não é ordem para apagar do AVA. Decidir o destino delas é do dono.
+- **Delta da loja**: `scripts/sync_wc_delta.ts`. Ensaiado em 30/ago/2026 contra
+  produção: 18 pedidos pagos desde 06/jul, **4 contas a criar, 4 matrículas
+  novas, 14 já existentes**. Falta aplicar com `--commit`.
+- **222 contas com presença no portal e sem ficha** — a dúvida remanescente da
+  auditoria. `scripts/auditar_contas_sem_ficha.ts --db` fecha a questão contra
+  produção; na base local ele responde `INCONCLUSIVO` por falta de progresso.
+- **Durações de aula**: todas gravadas como 15 min (placeholder do import).
+  `scripts/resolver_duracoes_aulas.ts` resolve pelo provedor do vídeo e nunca
+  inventa duração.
 
-1. `GET /ldlms/v2/cursos/{id}/usuarios` mente quando autenticado como admin — retorna **todos** os users do site, não os matriculados. Fix: iterar users e chamar `/users/{id}/courses`.
-2. WP user IDs colidem entre os dois sites (`1125` é Adriana no portal e spam no psi) e o `refsStore` fundia ambos. Fix: prefixar com origem.
-3. Bots SEO encheram `display_name` de 436 customers do psi com lixo russo. Fix: `filterSpam()` com 8 patterns.
+### As três causas que já foram corrigidas no código
 
-**Status da recuperação v3 (= re-migrar tudo do zero com os fixes):** o pipeline é o mesmo dos scripts de import — re-coleta busca **alunos + cursos + aulas + tópicos + matrículas + progressões + produtos + pedidos** dos dois WP via REST com os connectors corrigidos; re-aplica persiste em `data/*.json` substituindo o estado v2 quebrado.
+1. `GET /ldlms/v2/cursos/{id}/usuarios` mente quando autenticado como admin —
+   devolve **todos** os users do site, não os matriculados. Corrigido iterando
+   users e chamando `/users/{id}/courses`.
+2. WP user IDs colidem entre os dois sites e o `refsStore` fundia ambos.
+   Corrigido prefixando a origem (`portal:` / `psi:`).
+3. Bots de SEO encheram `display_name` de 436 customers da loja com lixo.
+   Corrigido com `filterSpam()`.
 
-Estado:
-
-1. ✅ Código corrigido (`server/imports/connectors/ld.ts`, `scripts/migrate_wp_to_ava.ts`)
-2. ✅ Reset local executado (`scripts/reset_imported_data.ts` — mantém só seeds + superadmin)
-3. ⏳ **Re-coleta v3 rodando em background** (~30 min) — gera novo dump em `data/migration/<ts>/raw/{portal,psi}.json`
-4. ⏳ Re-aplicar: `npx tsx scripts/migrate_wp_to_ava.ts --apply --from-raw=data/migration/<ts>` (~15 min) → reescreve `users.json`, `admin-students.json`, `external-references.json`, `payment-products.json` com dados corretos
-5. ⏳ `npx tsx scripts/import_lessons_and_map_products.ts` → monta `courses.json` com aulas e link cursos↔produtos
-6. ⏳ Sync para VPS: `python scripts/sync_data_to_vps.py` + restart
-7. ⏳ Secundários: 112 questões → `question-bank.json`, 77 posts → `news.json`, 1 cupom → `coupons.json`
-
-**Antes de mexer na migração, releia `docs/migration-wp-ld.md`** — é o handoff vivo com slugs PT-BR, snapshot de contagens, mappings, seções "Bug #1/#2/#3" e checklist em "Como continuar de onde paramos". Creds dos dois WP ficam em `.env.import` (gitignored).
+Creds dos dois WP em `.env.import` (gitignored).

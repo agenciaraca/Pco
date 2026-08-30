@@ -1,8 +1,15 @@
 name: Deploy to VPS
 
-# Auto-deploy on push to main após CI passar.
-# Requer secrets: VPS_HOST, VPS_USER, VPS_PORT, VPS_PASSWORD
-# Os hosts/secrets ficam em github.com/<repo>/settings/secrets/actions
+# Auto-deploy no push para main.
+#
+# Autenticação por CHAVE, não por senha (desde 30/ago/2026). A troca não foi
+# preferência: os secrets guardados apontavam para `srv1621737`, uma máquina que
+# tem uma cópia do repositório e nenhum processo da app. Durante três semanas o
+# deploy "passou" — pull e build rodavam, produção ficava parada e o push seguia
+# verde. Senha e host errados vinham em par, e acertar só um não resolvia.
+#
+# Requer secrets: VPS_SSH_KEY (chave privada), VPS_HOST, VPS_USER.
+# Opcionais: VPS_PORT (default 22), PUBLIC_URL.
 
 on:
   push:
@@ -18,44 +25,51 @@ jobs:
   deploy:
     name: Pull + Build + Restart no VPS
     runs-on: ubuntu-latest
-    # Só roda se o CI passou primeiro (ci.yml roda em push também)
     if: github.repository_owner == 'agenciaraca'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Prepara a chave SSH
+        env:
+          KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "✗ Secret VPS_SSH_KEY não definido."
+            echo "  Gere/instale a chave no servidor e rode:"
+            echo "    gh secret set VPS_SSH_KEY --repo <owner>/<repo> < caminho/da/chave"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
 
       - name: Deploy via SSH (pull + build + restart)
         env:
           HOST: ${{ secrets.VPS_HOST }}
           USER: ${{ secrets.VPS_USER }}
           PORT: ${{ secrets.VPS_PORT }}
-          PASS: ${{ secrets.VPS_PASSWORD }}
         run: |
-          if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PASS" ]; then
-            echo "⚠ Secrets VPS_HOST / VPS_USER / VPS_PASSWORD não definidos. Pulando deploy."
-            exit 0
+          set -eu
+          if [ -z "$HOST" ] || [ -z "$USER" ]; then
+            echo "✗ Secrets VPS_HOST / VPS_USER não definidos."
+            exit 1
           fi
           PORT=${PORT:-22}
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
+              -p "$PORT" "$USER@$HOST" bash -s <<'EOF'
           set -eu
-          sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USER@$HOST" bash -s <<'EOF'
-          set -eu
-          # O login do CI é um usuário de acesso (grupo avapco), não o dono da app:
-          # o repo mora no home do avapco e o PM2 é o daemon dele.
           APP_DIR=/home/avapco/ava-pco
           export PM2_HOME=/home/avapco/.pm2
-          # node/npm/pm2 vêm do sistema; nvm é opcional
           [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" || true
           echo "conectado em $(hostname) como $(whoami)"
+
           # Esta é a máquina de produção mesmo?
           #
-          # Vale a pergunta porque a falha silenciosa já aconteceu: durante três
-          # semanas o deploy "passou", fazendo pull e build numa máquina que tem
-          # uma cópia do repositório e nenhum processo da app. Produção ficava
-          # parada e o push seguia verde. Perguntar antes de mexer transforma
-          # isso num erro que diz o que fazer.
+          # A pergunta existe porque a falha silenciosa já aconteceu (ver o
+          # cabeçalho). Produção é quem tem o processo PM2 da app; qualquer
+          # outra máquina pode ter o repositório e enganar o pull e o build.
           if ! pm2 describe ava-pco > /dev/null 2>&1; then
             echo "✗ Não existe processo PM2 'ava-pco' nesta máquina ($(hostname))."
             echo "  O deploy está indo para o servidor errado — confira o secret VPS_HOST."
@@ -63,6 +77,7 @@ jobs:
             pm2 list || true
             exit 1
           fi
+
           cd "$APP_DIR"
           # repo de outro dono: git recusa sem essa exceção
           git config --global --add safe.directory "$APP_DIR" || true
@@ -77,6 +92,10 @@ jobs:
           curl -s -m 8 http://127.0.0.1:3035/api/health || (pm2 logs ava-pco --lines 30 --nostream && exit 1)
           echo "✓ Deploy concluído em $(hostname): $(git log --oneline -1)"
           EOF
+
+      - name: Remove a chave
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
 
       - name: Verifica health público
         env:
@@ -93,3 +112,15 @@ jobs:
           done
           echo "✗ Health público falhou após 3 tentativas"
           exit 1
+
+      # O bundle é o que prova que o código novo subiu: /api/health responde 200
+      # mesmo com código velho, porque o processo antigo continua saudável.
+      # Aqui só registramos o hash no log — comparar com o build local não cabe,
+      # este job não constrói nada.
+      - name: Registra o bundle publicado
+        env:
+          PUBLIC_URL: ${{ secrets.PUBLIC_URL }}
+        run: |
+          URL="${PUBLIC_URL:-https://ava.psicanaliseclinica.online}"
+          NO_AR=$(curl -s -m 10 "$URL/login" | grep -o 'assets/index-[^"]*\.js' | head -1)
+          echo "bundle no ar: ${NO_AR:-<não encontrado>}"
