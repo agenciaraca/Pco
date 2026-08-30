@@ -25,6 +25,20 @@ Produção em `13f2549`. 180 arquivos de teste, 1.714 testes, zero falhas.
 > ⚠️ **Nada disso foi para produção.** 25 commits esperando deploy, travado pela
 > falta da chave SSH nesta máquina.
 
+> **30/ago/2026** — o AVA assumiu o domínio principal
+> `psicanaliseclinica.online`, o deploy automático passou a autenticar por
+> chave, entrou o portão de acesso ("ninguém entra sem ter comprado") e o site
+> deixou de ser dois: um cabeçalho, um menu de seis destinos e uma lista de
+> cursos só. 9 commits, 1941 testes. **Tudo em produção.**
+>
+> ⚠️ **O achado que vale mais que o resto da lista:** nenhum curso tem preço e a
+> loja está fora do ar — **os dois canais de venda estão parados**. Ver
+> `docs/SESSAO-2026-08-30-dominio-design-acesso.md`, que é o handoff vivo desta
+> frente.
+>
+> A seção "Migração WP/LD/WC" do CLAUDE.md estava errada havia três meses e
+> mandava reaplicar uma carga que teria derrubado 1.601 alunos. Corrigida.
+
 Painel visual (Artifact, mesma URL sempre):
 https://claude.ai/code/artifact/f548e6f4-0775-4965-acb9-cefea684412c
 
