@@ -113,6 +113,7 @@ import {
 import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
 import { isPubliclyListed } from './public/projections';
+import { podeEntrar, MENSAGEM_SEM_MATRICULA } from './access/portao-de-entrada';
 import {
   segmentar as segmentarConvite,
   ROTULO_MOTIVO as ROTULO_MOTIVO_CONVITE,
@@ -530,6 +531,13 @@ export function buildApp() {
     const user = await usersStore.verifyPassword(email, password);
     if (!user) return jsonError(c, 401, 'INVALID_CREDENTIALS', 'E-mail ou senha incorretos.');
 
+    // Portão de compra. Vem antes do 2FA de propósito: quem não pode entrar
+    // não deve nem receber o ticket intermediário.
+    const portao = await podeEntrar(user);
+    if (!portao.pode) {
+      return jsonError(c, 403, 'SEM_MATRICULA', MENSAGEM_SEM_MATRICULA);
+    }
+
     // Se 2FA ativado, retorna challenge — token só após verificar TOTP
     if (user.totpEnabled) {
       const ticket = await signToken(
@@ -570,6 +578,13 @@ export function buildApp() {
     const raw = await usersStore.findRawById(claims.sub);
     if (!raw || !raw.totpEnabled || !raw.totpSecretEncrypted) {
       return jsonError(c, 400, 'NO_TOTP', 'Usuário sem 2FA ativo.');
+    }
+
+    // Reconferido aqui também: o ticket vale 10 minutos, e quem perdeu o
+    // direito nesse intervalo não pode concluir a entrada com ele.
+    const portaoTotp = await podeEntrar(raw);
+    if (!portaoTotp.pode) {
+      return jsonError(c, 403, 'SEM_MATRICULA', MENSAGEM_SEM_MATRICULA);
     }
 
     const code = body.code.trim();
@@ -666,6 +681,9 @@ export function buildApp() {
     if (!raw || !raw.active) {
       return c.redirect('/login?error=oauth_user_inactive', 302);
     }
+    if (!(await podeEntrar(raw)).pode) {
+      return c.redirect('/login?error=sem_matricula', 302);
+    }
 
     const token = await signToken({
       sub: raw.id,
@@ -741,6 +759,9 @@ export function buildApp() {
     }
     if (!raw || !raw.active) {
       return c.redirect('/login?error=oauth_user_inactive', 302);
+    }
+    if (!(await podeEntrar(raw)).pode) {
+      return c.redirect('/login?error=sem_matricula', 302);
     }
     const token = await signToken({
       sub: raw.id,
@@ -824,6 +845,9 @@ export function buildApp() {
     }
     if (!raw || !raw.active) {
       return c.redirect('/login?error=saml_user_inactive', 302);
+    }
+    if (!(await podeEntrar(raw)).pode) {
+      return c.redirect('/login?error=sem_matricula', 302);
     }
     const token = await signToken({
       sub: raw.id,
