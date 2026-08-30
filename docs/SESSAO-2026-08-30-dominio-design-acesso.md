@@ -182,6 +182,10 @@ Etapas 1 a 3 estão feitas. Faltam:
 | Plano de domínio | https://claude.ai/code/artifact/0a6e884e-5ee4-494b-9523-89a6ee3014ca |
 | Arquitetura do site | https://claude.ai/code/artifact/3ada306b-080e-4fc7-bc28-510110c1606b |
 
+O HTML dos três está versionado em `docs/paineis/`, **para que uma sessão
+futura consiga atualizar a mesma URL** — o diretório de rascunho da sessão some
+quando a máquina reinicia, o repositório não. Ver `docs/paineis/README.md`.
+
 Documentos entregues ao Claude Design, em `docs/` e copiados para `Downloads/`:
 `paginas-para-design.md` e `admin-design-spec.md`.
 

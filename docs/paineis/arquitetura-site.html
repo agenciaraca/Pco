@@ -1,0 +1,722 @@
+<title>Um site, não dois</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Tokens do produto — os mesmos de tailwind.config.js e theme.css.
+     Esta página é desenhada na linguagem do /ava-pco de propósito: se o
+     sistema aguenta explicar uma reestruturação, aguenta o produto. */
+  :root {
+    --pco-deep: #063b49;
+    --pco-blue: #0097b2;
+    --pco-cyan: #0cc0df;
+    --pco-cyan-light: #5ce1e6;
+    --pco-orange: #ff914d;
+
+    --surface-white: #ffffff;
+    --surface-off: #f8fcfd;
+    --surface-gray: #eef5f7;
+
+    --ink-base: #101828;
+    --ink-muted: #475467;
+    --ink-subtle: #98a2b3;
+
+    --ok: #16a34a;
+    --bad: #d92d20;
+    --bad-soft: #fdeceb;
+    --warn: #b45309;
+    --warn-soft: #fdf3e3;
+
+    --radius-xl: 14px;
+    --radius-2xl: 20px;
+    --shadow-card: 0 4px 16px rgba(6, 59, 73, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+    --shadow-lift: 0 12px 32px rgba(6, 59, 73, 0.1), 0 2px 6px rgba(16, 24, 40, 0.06);
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* Escuro: só os neutros mudam — mesma estratégia do produto. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --surface-white: #0f1f25;
+      --surface-off: #0a1418;
+      --surface-gray: #1c2a30;
+      --ink-base: #e5edf0;
+      --ink-muted: #9aa9ae;
+      --ink-subtle: #6b7c82;
+      --pco-deep: #7fd4e4;
+      --bad: #fb7185;
+      --bad-soft: #2e1519;
+      --warn: #fbbf24;
+      --warn-soft: #2b2110;
+      --ok: #4ade80;
+      --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
+      --shadow-lift: 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+  }
+  :root[data-theme='dark'] {
+    --surface-white: #0f1f25;
+    --surface-off: #0a1418;
+    --surface-gray: #1c2a30;
+    --ink-base: #e5edf0;
+    --ink-muted: #9aa9ae;
+    --ink-subtle: #6b7c82;
+    --pco-deep: #7fd4e4;
+    --bad: #fb7185;
+    --bad-soft: #2e1519;
+    --warn: #fbbf24;
+    --warn-soft: #2b2110;
+    --ok: #4ade80;
+    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
+    --shadow-lift: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--surface-off);
+    color: var(--ink-base);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- seções alternadas, como no /ava-pco ---- */
+  .sec { padding: 64px 0; }
+  .sec.branca { background: var(--surface-white); }
+  .wrap { max-width: 1024px; margin: 0 auto; padding: 0 24px; }
+
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  h1 { font-size: clamp(34px, 5.2vw, 58px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+  h2 { font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -0.02em; color: var(--pco-deep); }
+  h3 { font-size: 16px; font-weight: 600; color: var(--pco-deep); }
+  p { margin: 0; }
+  .lead { color: var(--ink-muted); max-width: 62ch; }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 13px; border-radius: 999px;
+    background: color-mix(in srgb, var(--pco-blue) 10%, transparent);
+    color: var(--pco-blue); font-size: 12px; font-weight: 600;
+  }
+  .tag svg { width: 13px; height: 13px; }
+
+  .card {
+    background: var(--surface-white);
+    border: 1px solid var(--surface-gray);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+  }
+  .selo-icone {
+    width: 40px; height: 40px; border-radius: var(--radius-xl);
+    background: color-mix(in srgb, var(--pco-blue) 10%, transparent);
+    display: grid; place-items: center; margin-bottom: 12px; color: var(--pco-blue);
+  }
+
+  /* ---- hero ---- */
+  .hero { position: relative; overflow: hidden; }
+  .hero-grad { position: absolute; inset: 0; background: linear-gradient(135deg, #063b49, #0097b2 55%, #0cc0df); }
+  .hero-orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+  .hero-orb.a { top: 40px; left: -60px; width: 380px; height: 380px; background: rgba(92, 225, 230, 0.35); }
+  .hero-orb.b { bottom: -80px; right: -40px; width: 520px; height: 520px; background: rgba(255, 145, 77, 0.28); }
+  .hero .wrap { position: relative; padding-top: 84px; padding-bottom: 84px; color: #fff; }
+  .hero h1 { color: #fff; max-width: 15ch; }
+  .hero .lead { color: rgba(255, 255, 255, 0.88); max-width: 58ch; margin-top: 20px; font-size: 17px; }
+  .pill-hero {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255, 255, 255, 0.16); backdrop-filter: blur(6px);
+    padding: 6px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 500; margin-bottom: 22px;
+  }
+
+  /* ---- os dois menus, lado a lado ---- */
+  .menus { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 30px; }
+  .menu-caixa {
+    background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(6px);
+    border-radius: var(--radius-xl); padding: 16px 18px;
+  }
+  .menu-caixa .rotulo {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: rgba(255, 255, 255, 0.7); margin-bottom: 10px;
+  }
+  .menu-itens { display: flex; flex-wrap: wrap; gap: 6px; }
+  .m-item {
+    font-size: 12.5px; padding: 4px 10px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16); color: #fff; white-space: nowrap;
+  }
+  .m-item.colide { background: rgba(255, 145, 77, 0.85); font-weight: 600; }
+
+  /* ---- problemas ---- */
+  .problemas { display: grid; gap: 18px; margin-top: 28px; }
+  .prob { display: grid; grid-template-columns: 44px 1fr; gap: 0 18px; align-items: start; }
+  .prob-n {
+    width: 40px; height: 40px; border-radius: var(--radius-xl);
+    background: var(--bad-soft); color: var(--bad);
+    display: grid; place-items: center; font-family: var(--mono); font-weight: 500; font-size: 14px;
+  }
+  .prob-corpo { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .prob p { color: var(--ink-muted); font-size: 14.5px; max-width: 70ch; }
+
+  .evidencia {
+    font-family: var(--mono); font-size: 12.5px;
+    background: var(--surface-gray); border-radius: 12px; padding: 13px 16px;
+    color: var(--ink-muted); overflow-x: auto; line-height: 1.8;
+  }
+  .evidencia b { color: var(--bad); font-weight: 500; }
+  .evidencia i { color: var(--ok); font-style: normal; }
+
+  /* ---- percurso ---- */
+  .percurso { display: flex; flex-direction: column; gap: 2px; margin-top: 24px; }
+  .passo {
+    display: grid; grid-template-columns: 26px 1fr; gap: 0 14px;
+    align-items: start; padding: 11px 0;
+  }
+  .passo-marca {
+    width: 22px; height: 22px; border-radius: 50%; margin-top: 2px;
+    display: grid; place-items: center; font-size: 11px; font-family: var(--mono);
+    background: var(--surface-gray); color: var(--ink-subtle);
+  }
+  .passo.ruim .passo-marca { background: var(--bad-soft); color: var(--bad); }
+  .passo p { font-size: 14px; color: var(--ink-muted); }
+  .passo b { color: var(--ink-base); font-weight: 600; }
+
+  /* ---- proposta: menu ---- */
+  .menu-novo {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    background: var(--surface-white); border: 1px solid var(--surface-gray);
+    border-radius: 999px; padding: 10px 14px; box-shadow: var(--shadow-card);
+    margin-top: 24px;
+  }
+  .menu-novo .marca {
+    display: flex; align-items: center; gap: 8px; font-weight: 700;
+    color: var(--pco-deep); font-size: 15px; margin-right: 10px;
+  }
+  .menu-novo .marca span {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: linear-gradient(135deg, #063b49, #0cc0df);
+    display: grid; place-items: center; color: #fff; font-size: 13px;
+  }
+  .menu-novo a {
+    font-size: 14px; font-weight: 500; color: var(--ink-muted);
+    padding: 7px 13px; border-radius: 999px; text-decoration: none;
+  }
+  .menu-novo a[aria-current] { background: var(--surface-gray); color: var(--pco-deep); }
+  .menu-novo .entrar {
+    margin-left: auto; background: var(--pco-blue); color: #fff; font-weight: 600;
+    padding: 8px 18px;
+  }
+
+  /* ---- árvore ---- */
+  .ordem { display: flex; flex-direction: column; gap: 11px; }
+  .ord { display: grid; grid-template-columns: 26px 1fr; gap: 0 13px; align-items: start; font-size: 14px; color: var(--ink-muted); }
+  .ord b { color: var(--ink-base); font-weight: 600; }
+  .ord-n {
+    width: 22px; height: 22px; border-radius: 50%; margin-top: 2px;
+    display: grid; place-items: center; font-family: var(--mono); font-size: 11px;
+    background: color-mix(in srgb, var(--pco-blue) 12%, transparent); color: var(--pco-blue);
+  }
+  .arvore { margin-top: 18px; display: grid; gap: 12px; }
+  .ramo {
+    background: var(--surface-white); border: 1px solid var(--surface-gray);
+    border-left: 3px solid var(--pco-blue);
+    border-radius: var(--radius-xl); padding: 16px 20px;
+  }
+  .ramo-topo { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .ramo-rota { font-family: var(--mono); font-size: 12.5px; color: var(--pco-blue); font-weight: 500; }
+  .ramo p { font-size: 13.6px; color: var(--ink-muted); margin-top: 7px; max-width: 74ch; }
+  .filhos { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
+  .filho {
+    font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 6px;
+    background: var(--surface-gray); color: var(--ink-subtle);
+  }
+  .filho.some { text-decoration: line-through; opacity: 0.65; }
+
+  .principios { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; margin-top: 28px; }
+  .principios p { color: var(--ink-muted); font-size: 13.8px; margin-top: 7px; }
+
+  .etapas { margin-top: 26px; display: flex; flex-direction: column; }
+  .etapa { display: grid; grid-template-columns: 34px 1fr; gap: 0 16px; padding: 15px 0; border-bottom: 1px solid var(--surface-gray); }
+  .etapa:last-child { border-bottom: 0; }
+  .etapa-n {
+    width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--pco-blue) 10%, transparent); color: var(--pco-blue);
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+  }
+  .etapa p { color: var(--ink-muted); font-size: 14px; margin-top: 4px; max-width: 72ch; }
+
+  .destaque {
+    background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 32%, transparent);
+    border-radius: var(--radius-2xl); padding: 20px 22px; margin-top: 26px;
+  }
+  .destaque h3 { color: var(--warn); }
+  .destaque p { color: var(--ink-muted); font-size: 14px; margin-top: 7px; max-width: 72ch; }
+
+  code {
+    font-family: var(--mono); font-size: 0.87em; background: var(--surface-gray);
+    padding: 1px 6px; border-radius: 5px; color: var(--ink-base); white-space: nowrap;
+  }
+
+  @media (max-width: 780px) {
+    .menus { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .sec { padding: 44px 0; }
+    .prob { grid-template-columns: 34px 1fr; gap: 0 12px; }
+    .prob-n { width: 30px; height: 30px; font-size: 12px; }
+    .menu-novo .entrar { margin-left: 0; }
+  }
+</style>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="hero-grad" aria-hidden="true"></div>
+  <div class="hero-orb a" aria-hidden="true"></div>
+  <div class="hero-orb b" aria-hidden="true"></div>
+  <div class="wrap">
+    <span class="pill-hero">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="m12 3 1.9 5.8L20 10.7l-5.1 3.7L16.5 21 12 17.6 7.5 21l1.6-6.6L4 10.7l6.1-1.9z"/></svg>
+      Site público · etapas 1 a 3 executadas
+    </span>
+    <h1>Encontrava dois sites. Agora é um.</h1>
+    <p class="lead">
+      <strong>Executado e publicado em 30/ago.</strong> Havia dois cabeçalhos, dois menus e duas
+      listas dos mesmos cursos, em dois sistemas de interface — e um item de menu que atravessava de
+      um para o outro. Abaixo, os dois menus <em>como eram</em>: em laranja, o que colidia. O
+      diagnóstico fica registrado porque explica as decisões que vieram depois.
+    </p>
+
+    <div class="menus">
+      <div class="menu-caixa">
+        <div class="rotulo">Antes · menu do site</div>
+        <div class="menu-itens">
+          <span class="m-item">Início</span>
+          <span class="m-item colide">Cursos</span>
+          <span class="m-item">Blog</span>
+          <span class="m-item">Sobre</span>
+          <span class="m-item">Contato</span>
+          <span class="m-item colide">Nosso AVA</span>
+        </div>
+      </div>
+      <div class="menu-caixa">
+        <div class="rotulo">Antes · menu do /ava-pco</div>
+        <div class="menu-itens">
+          <span class="m-item colide">Cursos</span>
+          <span class="m-item colide">Formações</span>
+          <span class="m-item">Comparar</span>
+          <span class="m-item colide">Conhecer o AVA</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ O PERCURSO ============ -->
+<section class="sec branca">
+  <div class="wrap">
+    <span class="tag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      O que acontece na prática
+    </span>
+    <h2 style="margin-top: 14px">Seis cliques para dar duas voltas no mesmo lugar</h2>
+    <p class="lead" style="margin-top: 12px">
+      Este é o caminho real de alguém que chega pela busca e quer ver os cursos.
+    </p>
+
+    <div class="percurso">
+      <div class="passo">
+        <div class="passo-marca">1</div>
+        <p>Chega em <b>psicanaliseclinica.online</b> pela busca ou por um anúncio.</p>
+      </div>
+      <div class="passo">
+        <div class="passo-marca">2</div>
+        <p>Clica em <b>Cursos</b> e vê a lista de formações.</p>
+      </div>
+      <div class="passo ruim">
+        <div class="passo-marca">3</div>
+        <p>Volta e clica em <b>Nosso AVA</b> — e cai num site com outro cabeçalho, outra tipografia e outro jeito de botão. <b>Parece outra empresa.</b></p>
+      </div>
+      <div class="passo ruim">
+        <div class="passo-marca">4</div>
+        <p>Nesse menu novo vê <b>Cursos</b> e <b>Formações</b> como dois itens diferentes. São a mesma coisa.</p>
+      </div>
+      <div class="passo ruim">
+        <div class="passo-marca">5</div>
+        <p>Clica em <b>Cursos</b> e chega numa <b>segunda lista dos mesmos cursos</b>, com cartões diferentes dos que acabou de ver.</p>
+      </div>
+      <div class="passo ruim">
+        <div class="passo-marca">6</div>
+        <p>Abre um curso e vê uma <b>página de curso diferente</b> da que existe no site — com outro preço em destaque, outro botão, outra ordem de informação.</p>
+      </div>
+    </div>
+
+    <div class="destaque" style="margin-top:24px">
+      <h3>Por que isso custa dinheiro</h3>
+      <p>
+        Cada volta é uma chance de desistir, e a inconsistência lê-se como descuido — numa escola
+        que vende formação, isso pesa. Do lado de dentro custa igual: cada correção precisa ser
+        feita duas vezes, e quando alguém esquece uma, as duas versões divergem mais.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROBLEMAS ============ -->
+<section class="sec">
+  <div class="wrap">
+    <span class="tag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Achados
+    </span>
+    <h2 style="margin-top: 14px">Quatro problemas, todos contados no código</h2>
+
+    <div class="problemas">
+
+      <div class="prob">
+        <div class="prob-n">01</div>
+        <div class="prob-corpo">
+          <h3>A mesma página existe duas vezes, em dois sistemas</h3>
+          <p>
+            Catálogo, página de curso e página inicial foram construídos uma vez em HTML no
+            servidor e outra em React. São dois códigos para o mesmo trabalho.
+          </p>
+          <div class="evidencia">
+lista de cursos ...... /formacoes          <b>e</b>  /catalogo
+página do curso ...... /formacao/:slug     <b>e</b>  /curso-preview/:id
+página inicial ....... /                   <b>e</b>  /landing  <b>e</b>  /ava-pco
+          </div>
+        </div>
+      </div>
+
+      <div class="prob">
+        <div class="prob-n">02</div>
+        <div class="prob-corpo">
+          <h3>O aplicativo trata o próprio site como se fosse de terceiros</h3>
+          <p>
+            No menu do <code>/ava-pco</code>, o link para <code>/formacoes</code> está marcado no
+            código como <code>externo: true</code> — o mesmo tratamento que se daria a um site de
+            outra empresa. É a separação entre as duas metades escrita literalmente.
+          </p>
+          <div class="evidencia">
+{ to: '/catalogo',  label: 'Cursos' }
+{ to: '/formacoes', label: 'Formações', <b>externo: true</b> }
+          </div>
+        </div>
+      </div>
+
+      <div class="prob">
+        <div class="prob-n">03</div>
+        <div class="prob-corpo">
+          <h3>Duas páginas existem e ninguém consegue chegar nelas</h3>
+          <p>
+            Foram construídas, funcionam, e não há um único link apontando para elas em todo o
+            produto. Só chega quem digitar o endereço.
+          </p>
+          <div class="evidencia">
+/comparar ............ comparação de cursos ..... <b>0 links</b>
+/aula-preview/:id .... amostra de aula .......... <b>0 links</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="prob">
+        <div class="prob-n">04</div>
+        <div class="prob-corpo">
+          <h3>“Cursos” e “Formações” convivem no mesmo menu</h3>
+          <p>
+            Dois rótulos diferentes para a mesma coisa, um ao lado do outro. Quem lê supõe que há
+            uma distinção — curso curto e formação longa, talvez — e escolhe errado. Não existe
+            distinção nenhuma.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ A PROPOSTA ============ -->
+<section class="sec branca">
+  <div class="wrap">
+    <span class="tag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      Proposta
+    </span>
+    <h2 style="margin-top: 14px">Um menu só, com a ordem que a decisão pede</h2>
+    <p class="lead" style="margin-top: 12px">
+      Os seis destinos são os que você definiu. O que eu escolhi foi a ordem — e ela segue o
+      caminho de quem está decidindo se compra, não a estrutura interna do sistema.
+    </p>
+
+    <div class="menu-novo">
+      <div class="marca"><span>ψ</span> PCO</div>
+      <a href="#" aria-current="page">Cursos</a>
+      <a href="#">Psicanálise Clínica</a>
+      <a href="#">Nosso AVA</a>
+      <a href="#">Blog</a>
+      <a href="#">Sobre</a>
+      <a href="#">Contato</a>
+      <a href="#" class="entrar">Entrar</a>
+    </div>
+
+    <div class="ordem" style="margin-top: 22px">
+      <div class="ord"><span class="ord-n">1</span><div><b>Cursos</b> — a porta larga. Primeira posição porque é o que a maioria veio buscar, e porque o primeiro item é o mais visto de qualquer menu.</div></div>
+      <div class="ord"><span class="ord-n">2</span><div><b>Psicanálise Clínica</b> — o carro-chefe ganha porta direta, sem passar pela lista. Quem já sabe o nome não deveria precisar de dois cliques.</div></div>
+      <div class="ord"><span class="ord-n">3</span><div><b>Nosso AVA</b> — responde “o que eu recebo depois de pagar”. Vem logo após as duas portas de produto porque é o argumento que sustenta a decisão que elas abriram.</div></div>
+      <div class="ord"><span class="ord-n">4</span><div><b>Blog</b> — atrai quem ainda não está decidindo. Importante para a busca, mas fora do caminho de compra.</div></div>
+      <div class="ord"><span class="ord-n">5</span><div><b>Sobre</b> — a checagem de credibilidade, consultada momentos antes de decidir. Aqui moram RNTP, CNPJ e os limites da formação livre.</div></div>
+      <div class="ord"><span class="ord-n">6</span><div><b>Contato</b> — última posição, que é a segunda mais vista. É para onde vai quem já decidiu e quem travou; nos dois casos, procurar no fim é hábito.</div></div>
+      <div class="ord"><span class="ord-n" style="background:color-mix(in srgb,var(--pco-orange) 18%,transparent);color:var(--pco-orange)">↳</span><div><b>Entrar</b> não entra na contagem: é ação, não destino. Fica descolado à direita, com peso próprio, para não competir com os seis.</div></div>
+    </div>
+
+    <div class="destaque" style="margin-top:26px;background:color-mix(in srgb,var(--pco-blue) 7%,transparent);border-color:color-mix(in srgb,var(--pco-blue) 30%,transparent)">
+      <h3 style="color:var(--pco-blue)">A logo, e por que ela sozinha já resolve metade</h3>
+      <p>
+        O <code>/ava-pco</code> usa a logomarca de verdade — o arquivo branco sobre o degradê da
+        marca. O site público usa outra coisa: a letra <b>ψ</b> dentro de um quadradinho, com o
+        texto “PCO” ao lado. São <b>duas identidades diferentes no mesmo domínio</b>, e é a
+        primeira coisa que o olho compara ao trocar de página.
+      </p>
+      <p style="margin-top:10px">
+        Adotar a logomarca do <code>/ava-pco</code> nos dois lados, sobre o mesmo degradê
+        <code>#063b49 → #0097b2 → #0cc0df</code>, com a mesma altura e o mesmo espaçamento, é
+        barato e some com a maior parte da sensação de “outro site” — antes de qualquer página
+        ser redesenhada.
+      </p>
+    </div>
+
+    <h3 style="margin-top:34px;font-size:19px">O que muda por trás de cada item</h3>
+
+    <div class="arvore">
+
+      <div class="ramo">
+        <div class="ramo-topo">
+          <h3>Cursos</h3>
+          <span class="ramo-rota">/formacoes</span>
+        </div>
+        <p>
+          <b>Uma lista só.</b> Hoje existem duas — <code>/formacoes</code> no site e
+          <code>/catalogo</code> no aplicativo, com os mesmos cursos e cartões diferentes. O
+          endereço <code>/formacoes</code> fica, porque já tem histórico na busca; o rótulo passa a
+          ser “Cursos”, que é como você e as pessoas falam. A comparação, hoje órfã em
+          <code>/comparar</code>, volta como seleção nos próprios cartões.
+        </p>
+        <div class="filhos">
+          <span class="filho some">/catalogo</span>
+          <span class="filho some">/comparar</span>
+          <span class="filho">→ /formacoes</span>
+        </div>
+      </div>
+
+      <div class="ramo">
+        <div class="ramo-topo">
+          <h3>Psicanálise Clínica</h3>
+          <span class="ramo-rota">/formacao/psicanalise-clinica</span>
+        </div>
+        <p>
+          A página do produto principal, com porta direta no menu. Também existe hoje em duas
+          versões — a do site e a <code>/curso-preview/:id</code> do aplicativo, com ordem de
+          informação e botões diferentes. Fica a do site, que é a que a busca indexa e a que leva
+          ao checkout.
+        </p>
+        <div class="filhos">
+          <span class="filho some">/curso-preview/:id</span>
+          <span class="filho">→ /formacao/:slug</span>
+        </div>
+      </div>
+
+      <div class="ramo">
+        <div class="ramo-topo">
+          <h3>Nosso AVA</h3>
+          <span class="ramo-rota">/ava-pco</span>
+        </div>
+        <p>
+          <b>Fica como destino</b> — e deixa de ser outro site. Hoje ele tem cabeçalho próprio,
+          com um menu que oferece “Cursos” e “Formações” como itens distintos e trata
+          <code>/formacoes</code> como link externo. Passa a usar o mesmo cabeçalho e o mesmo
+          rodapé das outras páginas. O conteúdo não muda; o que muda é a moldura.
+        </p>
+        <div class="filhos">
+          <span class="filho some">/landing</span>
+          <span class="filho">→ /ava-pco</span>
+          <span class="filho">cabeçalho próprio → cabeçalho único</span>
+        </div>
+      </div>
+
+      <div class="ramo">
+        <div class="ramo-topo">
+          <h3>Blog</h3>
+          <span class="ramo-rota">/blog · /blog/:slug</span>
+        </div>
+        <p>Já está resolvido e é o que traz gente pela busca. Só herda o sistema visual novo.</p>
+      </div>
+
+      <div class="ramo">
+        <div class="ramo-topo">
+          <h3>Sobre</h3>
+          <span class="ramo-rota">/sobre</span>
+        </div>
+        <p>
+          Quem constrói, como se ensina, o reconhecimento RNTP e os limites da formação livre.
+          Hoje esses avisos aparecem espalhados; aqui ganham lugar próprio, que é onde alguém
+          confere antes de decidir.
+        </p>
+      </div>
+
+      <div class="ramo">
+        <div class="ramo-topo">
+          <h3>Contato</h3>
+          <span class="ramo-rota">/contato</span>
+        </div>
+        <p>
+          WhatsApp em primeiro lugar, porque é por onde a escola realmente atende, com os dois
+          endereços e o CNPJ logo abaixo.
+        </p>
+      </div>
+
+      <div class="ramo" style="border-left-color: var(--pco-orange)">
+        <div class="ramo-topo">
+          <h3>Entrar</h3>
+          <span class="ramo-rota" style="color: var(--pco-orange)">/login</span>
+        </div>
+        <p>
+          A fronteira mais importante do produto. Quem atravessa aqui precisa sentir que continua
+          no mesmo lugar — mesma logomarca, mesmo fundo, mesma tipografia antes e depois.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRINCÍPIOS ============ -->
+<section class="sec">
+  <div class="wrap">
+    <span class="tag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 8h14"/></svg>
+      As regras que usei
+    </span>
+    <h2 style="margin-top: 14px">Cinco decisões, sem exceção</h2>
+
+    <div class="principios">
+      <div class="card">
+        <div class="selo-icone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="20" height="20"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h3>Uma coisa mora num lugar só</h3>
+        <p>Se existe em dois, um vira redirecionamento. Duas implementações do mesmo assunto sempre divergem — é questão de tempo, não de disciplina.</p>
+      </div>
+      <div class="card">
+        <div class="selo-icone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="20" height="20"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+        </div>
+        <h3>Um rótulo por conceito</h3>
+        <p>“Cursos” e “Formações” não podem coexistir no mesmo menu. Escolhido: <b>Cursos</b> como rótulo, <code>/formacoes</code> como endereço — o nome que as pessoas usam, e a URL que a busca já conhece.</p>
+      </div>
+      <div class="card">
+        <div class="selo-icone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+        </div>
+        <h3>Página órfã não existe</h3>
+        <p>Se nada aponta para ela, ou ganha lugar na navegação ou é absorvida por quem devia contê-la. Tela sem entrada é custo sem retorno.</p>
+      </div>
+      <div class="card">
+        <div class="selo-icone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+        </div>
+        <h3>A base é o que já é bom</h3>
+        <p>O <code>/ava-pco</code> vira o sistema: seções alternadas, pílula em ciano, cartão com selo de ícone, título em petróleo, hero com o degradê da marca.</p>
+      </div>
+      <div class="card">
+        <div class="selo-icone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="20" height="20"><path d="M9 17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4M15 7h4a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M8 12h8"/></svg>
+        </div>
+        <h3>Nada é apagado sem substituto</h3>
+        <p>Toda rota atual continua respondendo, com redirecionamento permanente. Link salvo, anúncio antigo e resultado de busca não podem quebrar.</p>
+      </div>
+      <div class="card">
+        <div class="selo-icone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="20" height="20"><path d="M12 20v-6M6 20v-3M18 20v-9"/></svg>
+        </div>
+        <h3>Velocidade é parte do desenho</h3>
+        <p>O site público não carrega fonte externa de propósito — é ele que o Google mede. O sistema novo precisa caber nessa restrição, não contorná-la.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXECUÇÃO ============ -->
+<section class="sec branca">
+  <div class="wrap">
+    <span class="tag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      Ordem de execução
+    </span>
+    <h2 style="margin-top: 14px">Três feitas, duas pela frente</h2>
+
+    <div class="etapas">
+      <div class="etapa">
+        <div class="etapa-n" style="background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)">✓</div>
+        <div>
+          <h3 style="text-decoration:line-through;text-decoration-color:var(--ink-subtle);text-decoration-thickness:1px">Decidir os nomes</h3> <span style="font-size:11.5px;font-family:var(--mono);color:var(--ok)">FEITO</span>
+          <p>“Formações” ou “Cursos” — um dos dois morre. E o que fazer com “Comparar”: modo da lista ou descarte. É decisão sua, não de código, e trava tudo o mais.</p>
+        </div>
+      </div>
+      <div class="etapa">
+        <div class="etapa-n" style="background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)">✓</div>
+        <div>
+          <h3 style="text-decoration:line-through;text-decoration-color:var(--ink-subtle);text-decoration-thickness:1px">Unificar o cabeçalho e o rodapé</h3> <span style="font-size:11.5px;font-family:var(--mono);color:var(--ok)">FEITO</span>
+          <p>Um par só, servindo as duas metades. É a mudança que mais reduz a sensação de “dois sites”, e não depende de redesenhar página nenhuma.</p>
+        </div>
+      </div>
+      <div class="etapa">
+        <div class="etapa-n" style="background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)">✓</div>
+        <div>
+          <h3 style="text-decoration:line-through;text-decoration-color:var(--ink-subtle);text-decoration-thickness:1px">Fundir as duplicadas</h3> <span style="font-size:11.5px;font-family:var(--mono);color:var(--ok)">FEITO</span>
+          <p>Catálogo, página de curso e as três rotas da página inicial. As antigas viram redirecionamento permanente — a busca entende e transfere o histórico.</p>
+        </div>
+      </div>
+      <div class="etapa">
+        <div class="etapa-n">4</div>
+        <div>
+          <h3>Extrair o sistema visual do <code>/ava-pco</code></h3>
+          <p>Tokens, seção, pílula, cartão, selo de ícone e botão viram peças compartilhadas. Só depois disso as páginas do site são refeitas — uma de cada vez, começando pela de curso, que é onde a venda acontece.</p>
+        </div>
+      </div>
+      <div class="etapa">
+        <div class="etapa-n">5</div>
+        <div>
+          <h3>Costurar a fronteira do login</h3>
+          <p>Mesma marca, mesmo fundo, mesma tipografia antes e depois de entrar. É o último passo porque só faz sentido com o sistema já extraído.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="destaque" style="background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 32%,transparent)">
+      <h3 style="color:var(--bad)">O que a lista melhor deixou visível</h3>
+      <p>
+        Ao trocar o cartão de curso pelo desenho do <code>/catalogo</code>, dois problemas de
+        conteúdo ficaram altos: <strong>nenhum dos 7 cursos tem preço</strong> — todos mostram
+        “Consulte”, e o checkout recusa sem produto ativo ligado — e dois cursos exibem lixo do
+        scraper do LearnDash como texto de venda (“20% Concluído · Expand All Módulos”), enquanto
+        outros quatro repetem o próprio título. Só 2 dos 7 têm descrição de verdade.
+      </p>
+      <p style="margin-top:10px">
+        Com a loja também fora do ar, <strong>os dois canais de venda estão parados</strong>. Isso
+        vale mais que as duas etapas de design que faltam.
+      </p>
+    </div>
+
+    <div class="destaque">
+      <h3>O que eu não faria</h3>
+      <p>
+        Não começaria redesenhando as páginas. Repintar duas versões da mesma tela entrega duas
+        telas bonitas que continuam divergindo — e o retrabalho aparece na semana seguinte, quando
+        a fusão mexer no que acabou de ser pintado. Nomes e duplicação primeiro; cor depois.
+      </p>
+    </div>
+  </div>
+</section>

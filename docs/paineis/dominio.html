@@ -1,0 +1,662 @@
+<title>O AVA no domínio principal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Mesma paleta do painel de estado — herdada de tailwind.config.js. */
+  :root {
+    --deep: #063b49;
+    --blue: #0097b2;
+    --orange: #fe9002;
+
+    --bg: #f2f8fa;
+    --surface: #ffffff;
+    --surface-2: #eef5f7;
+    --line: #d5e4e9;
+    --line-soft: #e6eff2;
+
+    --ink: #101828;
+    --ink-muted: #475467;
+    --ink-subtle: #7d8b9c;
+
+    --ok: #16a34a;
+    --ok-bg: #e8f7ee;
+    --warn: #b45309;
+    --warn-bg: #fdf3e3;
+    --stop: #d92d20;
+    --stop-bg: #fdeceb;
+    --idle: #64748b;
+    --idle-bg: #eef2f5;
+
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(6, 59, 73, 0.06);
+    --shadow-card: 0 4px 16px rgba(6, 59, 73, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+
+    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --deep: #7fd4e4; --blue: #2bb7cf; --orange: #ffab3d;
+      --bg: #0a1419; --surface: #101f26; --surface-2: #162b34;
+      --line: #234049; --line-soft: #1a333c;
+      --ink: #e8f2f5; --ink-muted: #a3bac2; --ink-subtle: #7794a0;
+      --ok: #4ade80; --ok-bg: #10281c;
+      --warn: #fbbf24; --warn-bg: #2b2110;
+      --stop: #fb7185; --stop-bg: #2e1519;
+      --idle: #94a3b8; --idle-bg: #1a2830;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --deep: #7fd4e4; --blue: #2bb7cf; --orange: #ffab3d;
+    --bg: #0a1419; --surface: #101f26; --surface-2: #162b34;
+    --line: #234049; --line-soft: #1a333c;
+    --ink: #e8f2f5; --ink-muted: #a3bac2; --ink-subtle: #7794a0;
+    --ok: #4ade80; --ok-bg: #10281c;
+    --warn: #fbbf24; --warn-bg: #2b2110;
+    --stop: #fb7185; --stop-bg: #2e1519;
+    --idle: #94a3b8; --idle-bg: #1a2830;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 24px 88px;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-subtle);
+  }
+
+  h1 {
+    font-size: clamp(29px, 4.2vw, 40px);
+    line-height: 1.09;
+    letter-spacing: -0.028em;
+    font-weight: 700;
+    margin: 10px 0 0;
+    text-wrap: balance;
+  }
+
+  h2 { font-size: 20px; letter-spacing: -0.015em; font-weight: 650; margin: 0; text-wrap: balance; }
+  h3 { font-size: 15.5px; font-weight: 620; letter-spacing: -0.008em; margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+  .prose { color: var(--ink-muted); max-width: 68ch; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 5px;
+    padding: 1px 5px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .head-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; }
+
+  .subtitle {
+    margin-top: 14px;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink-muted);
+    max-width: 62ch;
+  }
+  .subtitle strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- alerta central ---------- */
+  .alert {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--stop);
+    border-radius: 14px;
+    box-shadow: var(--shadow-card);
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .alert-head { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+    background: var(--idle-bg);
+    color: var(--idle);
+  }
+  .tag.ok { background: var(--ok-bg); color: var(--ok); }
+  .tag.warn { background: var(--warn-bg); color: var(--warn); }
+  .tag.stop { background: var(--stop-bg); color: var(--stop); }
+
+  section { display: flex; flex-direction: column; gap: 18px; }
+
+  .sec-head {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sec-title-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .count { font-family: var(--mono); font-size: 12px; color: var(--ink-subtle); }
+
+  /* ---------- tabela ---------- */
+  .tabela-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.6px; min-width: 520px; }
+  th, td { text-align: left; padding: 10px 16px 10px 0; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-subtle);
+  }
+  td.host { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; color: var(--ink); }
+  td.ip { font-family: var(--mono); font-size: 12.5px; color: var(--ink-muted); white-space: nowrap; }
+  tr.destaque td { background: var(--stop-bg); }
+
+  /* ---------- caminhos ---------- */
+  .paths { display: grid; grid-template-columns: repeat(auto-fit, minmax(275px, 1fr)); gap: 12px; }
+
+  .path {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+    padding: 17px 19px 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .path.rec { border-color: color-mix(in srgb, var(--ok) 45%, transparent); border-width: 1.5px; }
+  .path.nao { opacity: 0.72; }
+
+  .path-letter {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--ink-subtle);
+  }
+  .path p { font-size: 13.4px; color: var(--ink-muted); line-height: 1.55; }
+  .path .custo {
+    font-size: 12.8px;
+    color: var(--ink-muted);
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+  }
+  .path .custo b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- etapas ---------- */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+
+  .step {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 0 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line-soft);
+    align-items: start;
+  }
+  .step:last-child { border-bottom: none; }
+
+  .step-n {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-subtle);
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 7px;
+    width: 30px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .step.livre .step-n { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); background: var(--ok-bg); }
+  .step.trava .step-n { color: var(--stop); border-color: color-mix(in srgb, var(--stop) 45%, transparent); background: var(--stop-bg); }
+  .step.feito .step-n { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); background: var(--ok-bg); }
+  .step.feito .step-body > .step-title h3 { text-decoration-line: line-through; text-decoration-color: var(--ink-subtle); text-decoration-thickness: 1px; }
+
+  .step-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .step-title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .step p { font-size: 13.4px; color: var(--ink-muted); line-height: 1.55; max-width: 74ch; }
+
+  /* ---------- listas de verificação ---------- */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+    padding: 16px 18px 17px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .card.ready { border-left: 3px solid var(--ok); }
+  .card.todo { border-left: 3px solid var(--warn); }
+
+  ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  li { font-size: 13.3px; color: var(--ink-muted); line-height: 1.5; padding-left: 18px; position: relative; }
+  li::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 8px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--ink-subtle);
+  }
+  li.sim::before { background: var(--ok); }
+  li.nao::before { background: var(--warn); }
+  li b { color: var(--ink); font-weight: 600; }
+
+  .regra {
+    background: var(--warn-bg);
+    border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+    border-radius: 12px;
+    padding: 17px 19px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .regra h3 { color: var(--warn); }
+  .regra p { font-size: 13.8px; color: var(--ink-muted); line-height: 1.55; max-width: 74ch; }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 28px 16px 64px; gap: 34px; }
+    .step { grid-template-columns: 28px 1fr; gap: 0 12px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="head-top">
+      <div class="eyebrow">AVA PCO · Plano de domínio</div>
+      <div class="eyebrow">30 de agosto de 2026 · migração concluída</div>
+    </div>
+    <h1>Levar o AVA para o endereço principal</h1>
+    <p class="subtitle">
+      <strong>Feito.</strong> O AVA responde em <code>psicanaliseclinica.online</code>, com
+      certificado válido, <code>ava.</code> e <code>www.</code> redirecionando em 301, e o
+      <code>&lt;link rel="canonical"&gt;</code> apontando para o principal. O domínio saiu de 18
+      cópias no código para um arquivo só. <strong>O que continua aberto é a loja</strong>, que
+      ainda não tem certificado em <code>old.</code> e por isso segue fora do ar — detalhe abaixo.
+    </p>
+  </header>
+
+  <!-- ============ O CONFLITO ============ -->
+  <div class="alert">
+    <div class="alert-head">
+      <h2>O endereço principal é a loja — e a loja está vendendo</h2>
+      <span class="tag stop">decisão de negócio</span>
+    </div>
+    <p class="prose">
+      A loja mudou para <code>old.psicanaliseclinica.online</code>, mas a origem
+      <code>72.60.153.234</code> só apresenta certificado para <code>psicanaliseclinica.online</code>
+      e derruba o handshake quando a Cloudflare pede o nome <code>old.</code> — por isso o erro 525.
+      O WordPress está intacto: pedindo direto à origem, ele responde 200.
+    </p>
+    <p class="prose">
+      <strong>Falta emitir o certificado de <code>old.</code> no servidor da loja.</strong> Enquanto
+      isso não acontece, a loja está inacessível — e ela vendeu 18 pedidos nas oito semanas
+      anteriores. Só depois disso eu religo o <code>includeSubDomains</code> do HSTS, que tirei
+      justamente para o navegador não trancar a loja por um ano.
+    </p>
+  </div>
+
+  <!-- ============ QUEM FAZ O QUÊ ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>Quem faz o quê</h2>
+        <span class="count">a pergunta que decide o ritmo daqui pra frente</span>
+      </div>
+      <p class="prose">
+        Eu tenho acesso ao servidor do AVA, ao repositório e ao banco. Não tenho acesso ao DNS, aos
+        painéis de pagamento, às contas Google e Microsoft, nem ao servidor da loja.
+      </p>
+    </div>
+    <div class="grid-2">
+
+      <div class="card ready">
+        <h3>Eu faço, sem você</h3>
+        <ul>
+          <li class="sim"><b>Feito:</b> centralizar o domínio no código — era 18 cópias, virou uma linha de configuração, com teste que impede a volta.</li>
+          <li class="sim"><b>Feito:</b> definir a variável de endereço em produção, com backup do arquivo de configuração.</li>
+          <li>Publicar o código novo no servidor.</li>
+          <li>Configurar o site e emitir o certificado do endereço principal no servidor do AVA.</li>
+          <li>Virar a variável para o endereço novo e reiniciar.</li>
+          <li>Escrever os redirecionamentos do endereço antigo.</li>
+          <li>Conferir tudo depois: rotas protegidas, catálogo, links de e-mail, uma compra inteira.</li>
+        </ul>
+      </div>
+
+      <div class="card todo">
+        <h3>Só você pode fazer</h3>
+        <ul>
+          <li class="nao"><b>Decidir o destino da loja</b> — é o que trava tudo. Detalhe logo abaixo.</li>
+          <li class="nao"><b>Apontar o DNS</b> do endereço principal para o servidor do AVA. Hoje ele vai direto para a máquina da loja, sem passar pela Cloudflare. Preciso saber onde o domínio é gerenciado — ou você faz, ou me dá acesso.</li>
+          <li class="nao"><b>Painéis de pagamento</b> — Stripe, Asaas, MercadoPago, Pagar.me e PayPal: cadastrar o endereço novo nas URLs de retorno e de confirmação. São suas contas.</li>
+          <li class="nao"><b>Entrar com Google e Microsoft</b> — autorizar o endereço novo no console de cada um.</li>
+          <li class="nao"><b>A loja</b> — mover ou desligar. Ela vive em outro servidor, ao qual não tenho acesso.</li>
+          <li class="nao"><b>Search Console</b> — criar a propriedade do endereço novo.</li>
+          <li class="nao"><b>Cobrança do GitHub</b> — sem ela o deploy automático não roda, e toda publicação continua manual.</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ ESTADO MEDIDO ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>Onde cada endereço aponta hoje</h2>
+        <span class="count">medido agora, por consulta de DNS</span>
+      </div>
+    </div>
+    <div class="tabela-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Endereço</th>
+            <th>Servidor</th>
+            <th>O que serve</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="destaque">
+            <td class="host">psicanaliseclinica.online</td>
+            <td class="ip">72.60.153.234 · direto</td>
+            <td>A loja WooCommerce — <b>o alvo da mudança</b></td>
+          </tr>
+          <tr>
+            <td class="host">www.psicanaliseclinica.online</td>
+            <td class="ip">Cloudflare</td>
+            <td>Redireciona para o endereço principal</td>
+          </tr>
+          <tr>
+            <td class="host">ava.psicanaliseclinica.online</td>
+            <td class="ip">Cloudflare → 195.200.0.253</td>
+            <td>O AVA, onde ele está hoje</td>
+          </tr>
+          <tr>
+            <td class="host">portalpco.online</td>
+            <td class="ip">72.60.153.234</td>
+            <td>O ambiente de cursos antigo, ainda no ar</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose">
+      A loja e o portal antigo dividem a mesma máquina; o AVA está em outra, atrás da Cloudflare.
+      O endereço principal é o único dos quatro que <em>não</em> passa pela Cloudflare hoje — isso
+      também muda na virada.
+    </p>
+  </section>
+
+  <!-- ============ OS TRÊS CAMINHOS ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>Três caminhos, e o que cada um custa</h2>
+        <span class="count">a escolha é sua e trava as etapas 4 em diante</span>
+      </div>
+    </div>
+    <div class="paths">
+
+      <div class="path">
+        <span class="path-letter">Caminho A</span>
+        <h3>A loja vira um subendereço</h3>
+        <p>
+          O AVA assume o endereço principal e a loja passa a viver em
+          <code>loja.psicanaliseclinica.online</code>. A operação de venda continua intacta.
+        </p>
+        <p class="custo">
+          <b>Custo:</b> todo link, anúncio, e-mail e resultado de busca que aponta para o endereço
+          principal passa a cair no AVA. Exige um mapa de redirecionamento página a página — mandar
+          tudo para a página inicial perde a venda no meio do caminho.
+        </p>
+      </div>
+
+      <div class="path rec">
+        <div class="path-letter">Caminho B <span class="tag ok" style="margin-left:6px">recomendado</span></div>
+        <h3>A loja é aposentada</h3>
+        <p>
+          A venda migra para o checkout do próprio AVA, que já existe e está testado: seis meios de
+          pagamento, produtos, cupons, pedidos e recebimento de confirmação verificado.
+        </p>
+        <p class="custo">
+          <b>Custo:</b> exige espelhar o catálogo e conviver com os dois no ar por um período.
+          <b>Ganho:</b> acaba com o cadastro duplicado que gerou o descompasso de matrículas — a
+          origem do trabalho de sincronismo que existe até hoje.
+        </p>
+      </div>
+
+      <div class="path nao">
+        <span class="path-letter">Caminho C</span>
+        <h3>Dividir por caminho de URL</h3>
+        <p>
+          O AVA na raiz, a loja em <code>/loja</code>. Exigiria um único servidor na frente
+          distribuindo entre duas máquinas diferentes.
+        </p>
+        <p class="custo">
+          <b>Não recomendo.</b> É o mais frágil dos três e o mais difícil de diagnosticar quando
+          quebra — e quebraria no meio de uma compra.
+        </p>
+      </div>
+
+    </div>
+    <p class="prose">
+      <strong>Minha recomendação é B, usando A como estado intermediário.</strong> A entrega o
+      endereço principal ao AVA rápido e sem risco de receita; B é onde isso deve terminar, quando o
+      catálogo estiver espelhado no checkout próprio.
+    </p>
+  </section>
+
+  <!-- ============ PRONTO / FALTA ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>O que o código já resolve, e o que não</h2>
+        <span class="count">37 referências, todas centralizadas hoje</span>
+      </div>
+    </div>
+    <div class="grid-2">
+
+      <div class="card ready">
+        <h3>Já pronto — os 37 pontos</h3>
+        <ul>
+          <li class="sim">Todas as URLs de retorno de pagamento — <b>Stripe, Pagar.me, MercadoPago e PayPal</b> leem a variável de ambiente.</li>
+          <li class="sim">Avisos de vencimento de acesso, lembretes de sessão, comunicados e reengajamento.</li>
+          <li class="sim"><code>robots.txt</code> e <code>sitemap.xml</code> já se montam a partir do endereço da própria requisição — mudam sozinhos.</li>
+        </ul>
+        <p class="prose" style="font-size:13px">
+          <b>Resolvido hoje:</b> a variável foi definida em produção e os 5 pontos fixos foram
+          corrigidos. O endereço agora existe em um arquivo só, e um teste falha se voltar a se
+          espalhar. Trocar de domínio virou uma linha.
+        </p>
+      </div>
+
+      <div class="card todo">
+        <h3>Os 5 que ignoravam a variável — corrigidos</h3>
+        <ul>
+          <li class="nao"><b>Dados estruturados e SEO</b> — o endereço da organização está fixo no código.</li>
+          <li class="nao"><b>E-mail de boas-vindas</b> — o link de login está fixo.</li>
+          <li class="nao"><b>E-mail de progresso</b> — o link do painel está fixo, em dois lugares.</li>
+          <li class="nao"><b>Rodapé de todos os e-mails</b> — a assinatura traz o endereço antigo.</li>
+          <li class="nao"><b>Página de erro do servidor</b> — a marca aponta para o endereço antigo.</li>
+        </ul>
+        <p class="prose" style="font-size:13px">
+          Todos corrigidos. A pré-visualização de e-mail no admin também passou a usar o endereço
+          real — prévia mostrando domínio diferente do que vai no envio é tela que mente.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ FORA DO CÓDIGO ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>Fora do código</h2>
+        <span class="count">é aqui que migração de domínio costuma quebrar</span>
+      </div>
+      <p class="prose">Nenhum destes aparece em teste. Todos aparecem no dia seguinte, em forma de gente sem conseguir entrar ou pagar.</p>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Antes de virar o DNS</h3>
+        <ul>
+          <li>Certificado de segurança do endereço principal emitido no servidor do AVA.</li>
+          <li>Endereço principal entra na Cloudflare, como o do AVA já está.</li>
+          <li><b>Meios de pagamento:</b> cada painel tem a URL de retorno e a de confirmação cadastradas. Precisam aceitar os <b>dois</b> endereços antes da virada, não depois.</li>
+          <li><b>Entrar com Google e Microsoft:</b> o endereço autorizado é exato — o novo é um cadastro novo.</li>
+          <li>Tempo de propagação do DNS reduzido com algumas horas de antecedência.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Na virada e depois</h3>
+        <ul>
+          <li>Virar em janela de venda baixa, com uma compra de teste de ponta a ponta logo em seguida.</li>
+          <li>Se o remetente de e-mail mudar de domínio, os registros de autenticação de envio vão junto.</li>
+          <li>Nova propriedade no Search Console, e o mapa de redirecionamentos é o que preserva o que já aparece na busca.</li>
+          <li>Redirecionamentos mantidos por <b>pelo menos seis meses</b>.</li>
+          <li>Links soltos: campanhas, WhatsApp, Instagram, assinatura de e-mail.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ORDEM ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>A ordem</h2>
+        <span class="count">as duas primeiras saíram hoje</span>
+      </div>
+      <p class="prose">A numeração aqui é sequência real: cada etapa depende da anterior ter acontecido.</p>
+    </div>
+    <div class="steps">
+
+      <div class="step feito">
+        <div class="step-n">✓</div>
+        <div class="step-body">
+          <div class="step-title"><h3>Definir a variável de endereço em produção</h3><span class="tag ok">feito hoje</span></div>
+          <p>Gravada com o valor atual e com backup do arquivo de configuração. Sem mudança visível para ninguém — entra em vigor no próximo reinício, junto com a publicação do código, para não custar duas interrupções.</p>
+        </div>
+      </div>
+
+      <div class="step feito">
+        <div class="step-n">✓</div>
+        <div class="step-body">
+          <div class="step-title"><h3>Centralizar o domínio no código</h3><span class="tag ok">feito hoje</span></div>
+          <p>Eram <b>18 cópias</b> espalhadas pelo servidor — 13 que consultavam a variável e <b>5 que escreviam o endereço direto</b>, sem nem olhar para ela: dados estruturados, link de login do e-mail de boas-vindas, link do painel no e-mail de progresso, assinatura de todos os e-mails e a página de erro.</p>
+          <p>O perigo não era o trabalho de trocar — era o que sobra ao esquecer um: link morto no e-mail, retorno de pagamento que não volta, busca apontando para o endereço velho. Nada disso quebra teste nem derruba o site; falha em silêncio, com a pessoa do outro lado. Agora existe um teste que varre o servidor e falha se o endereço voltar a ser copiado.</p>
+        </div>
+      </div>
+
+      <div class="step trava">
+        <div class="step-n">3</div>
+        <div class="step-body">
+          <div class="step-title"><h3>Decidir entre A e B</h3><span class="tag stop">trava as seguintes</span></div>
+          <p>O que acontece com a loja: vira subendereço, ou é aposentada em favor do checkout próprio.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">4</div>
+        <div class="step-body">
+          <h3>Preparar o endereço principal no servidor do AVA</h3>
+          <p>Configuração do site e certificado emitidos <b>sem</b> apontar o DNS ainda. Nada muda para o público nesta etapa.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">5</div>
+        <div class="step-body">
+          <h3>Publicar a loja no destino escolhido e conferir uma compra</h3>
+          <p>De ponta a ponta, com dinheiro de verdade ou em modo de teste do meio de pagamento — mas a compra inteira, até a confirmação chegar.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">6</div>
+        <div class="step-body">
+          <h3>Cadastrar os dois endereços nos pagamentos e no login social</h3>
+          <p>Aceitar ambos antes da virada é o que evita janela de compra quebrada.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">7</div>
+        <div class="step-body">
+          <h3>Virar o DNS em janela de venda baixa</h3>
+          <p>Com o tempo de propagação já reduzido horas antes, e alguém acompanhando.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">8</div>
+        <div class="step-body">
+          <h3>Manter os redirecionamentos por seis meses</h3>
+          <p>É o que preserva o que já ranqueia e os links que outras pessoas publicaram ao longo dos anos.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ REGRA ============ -->
+  <section>
+    <div class="regra">
+      <h3>A regra que não pode ser quebrada</h3>
+      <p>
+        O AVA não assume o endereço principal enquanto a loja estiver vendendo por lá sem um destino
+        pronto. Dezoito pedidos pagos em oito semanas é a prova de que ela está viva — e nenhum ganho
+        de endereço compensa uma semana de checkout quebrado.
+      </p>
+    </div>
+  </section>
+
+</div>

@@ -1,0 +1,1103 @@
+<title>Estado do AVA PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Paleta herdada do próprio projeto — tailwind.config.js (tokens `pco`, `ink`, `status`). */
+  :root {
+    --deep: #063b49;
+    --blue: #0097b2;
+    --cyan: #0cc0df;
+    --orange: #fe9002;
+
+    --bg: #f2f8fa;
+    --surface: #ffffff;
+    --surface-2: #eef5f7;
+    --line: #d5e4e9;
+    --line-soft: #e6eff2;
+
+    --ink: #101828;
+    --ink-muted: #475467;
+    --ink-subtle: #7d8b9c;
+
+    --ok: #16a34a;
+    --ok-bg: #e8f7ee;
+    --warn: #b45309;
+    --warn-bg: #fdf3e3;
+    --stop: #d92d20;
+    --stop-bg: #fdeceb;
+    --idle: #64748b;
+    --idle-bg: #eef2f5;
+
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(6, 59, 73, 0.06);
+    --shadow-card: 0 4px 16px rgba(6, 59, 73, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+
+    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --deep: #7fd4e4;
+      --blue: #2bb7cf;
+      --cyan: #5ce1e6;
+      --orange: #ffab3d;
+
+      --bg: #0a1419;
+      --surface: #101f26;
+      --surface-2: #162b34;
+      --line: #234049;
+      --line-soft: #1a333c;
+
+      --ink: #e8f2f5;
+      --ink-muted: #a3bac2;
+      --ink-subtle: #7794a0;
+
+      --ok: #4ade80;
+      --ok-bg: #10281c;
+      --warn: #fbbf24;
+      --warn-bg: #2b2110;
+      --stop: #fb7185;
+      --stop-bg: #2e1519;
+      --idle: #94a3b8;
+      --idle-bg: #1a2830;
+
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --deep: #7fd4e4;
+    --blue: #2bb7cf;
+    --cyan: #5ce1e6;
+    --orange: #ffab3d;
+
+    --bg: #0a1419;
+    --surface: #101f26;
+    --surface-2: #162b34;
+    --line: #234049;
+    --line-soft: #1a333c;
+
+    --ink: #e8f2f5;
+    --ink-muted: #a3bac2;
+    --ink-subtle: #7794a0;
+
+    --ok: #4ade80;
+    --ok-bg: #10281c;
+    --warn: #fbbf24;
+    --warn-bg: #2b2110;
+    --stop: #fb7185;
+    --stop-bg: #2e1519;
+    --idle: #94a3b8;
+    --idle-bg: #1a2830;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 40px 24px 88px;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+
+  /* ---------- tipografia utilitária ---------- */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-subtle);
+  }
+
+  h1 {
+    font-size: clamp(30px, 4.4vw, 42px);
+    line-height: 1.08;
+    letter-spacing: -0.028em;
+    font-weight: 700;
+    margin: 10px 0 0;
+    text-wrap: balance;
+  }
+
+  h2 {
+    font-size: 20px;
+    letter-spacing: -0.015em;
+    font-weight: 650;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-size: 15.5px;
+    font-weight: 620;
+    letter-spacing: -0.008em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  p { margin: 0; }
+  .prose { color: var(--ink-muted); max-width: 68ch; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 5px;
+    padding: 1px 5px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  /* ---------- cabeçalho ---------- */
+  header .head-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .subtitle {
+    margin-top: 14px;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink-muted);
+    max-width: 62ch;
+  }
+  .subtitle strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- veredito ---------- */
+  .verdict {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--ok);
+    border-radius: 14px;
+    box-shadow: var(--shadow-card);
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .verdict-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .pulse {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 4px var(--ok-bg);
+    flex: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .pulse { animation: breathe 2.8s ease-in-out infinite; }
+    @keyframes breathe {
+      0%, 100% { box-shadow: 0 0 0 3px var(--ok-bg); }
+      50% { box-shadow: 0 0 0 7px var(--ok-bg); }
+    }
+  }
+
+  .checks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+    gap: 1px;
+    background: var(--line-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .check {
+    background: var(--surface);
+    padding: 13px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .check .k {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-subtle);
+    overflow-wrap: anywhere;
+  }
+
+  .check .v {
+    font-size: 14px;
+    font-weight: 560;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex: none;
+    background: var(--ok);
+  }
+  .dot.warn { background: var(--warn); }
+  .dot.stop { background: var(--stop); }
+
+  /* ---------- métricas ---------- */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+    gap: 12px;
+  }
+
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+    padding: 16px 17px 15px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .metric .n {
+    font-family: var(--mono);
+    font-size: 27px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+    color: var(--deep);
+  }
+
+  .metric .l {
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    line-height: 1.35;
+  }
+
+  .metric .sub {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    color: var(--ink-subtle);
+    margin-top: 3px;
+  }
+
+  /* ---------- seções ---------- */
+  section { display: flex; flex-direction: column; gap: 18px; }
+
+  .sec-head {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sec-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .count {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-subtle);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- itens ---------- */
+  .items { display: flex; flex-direction: column; gap: 10px; }
+
+  .item {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+    padding: 15px 18px 16px;
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: 4px 1fr;
+    gap: 0 15px;
+    align-items: start;
+  }
+
+  .item::before {
+    content: '';
+    grid-row: 1 / -1;
+    align-self: stretch;
+    border-radius: 3px;
+    background: var(--idle);
+    min-height: 100%;
+  }
+  .item.done::before { background: var(--ok); }
+  .item.open::before { background: var(--warn); }
+  .item.block::before { background: var(--stop); }
+
+  .item-body { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+
+  .item-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .item p { font-size: 13.8px; color: var(--ink-muted); line-height: 1.55; max-width: 74ch; }
+  .item p + p { margin-top: -1px; }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+    background: var(--idle-bg);
+    color: var(--idle);
+  }
+  .tag.ok { background: var(--ok-bg); color: var(--ok); }
+  .tag.warn { background: var(--warn-bg); color: var(--warn); }
+  .tag.stop { background: var(--stop-bg); color: var(--stop); }
+
+  .meta {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-subtle);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding-top: 2px;
+  }
+  .meta code { font-size: 11px; }
+
+  /* ---------- pronto: grade compacta ---------- */
+  .done-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+    gap: 10px;
+  }
+
+  .done-card {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-left: 3px solid var(--ok);
+    border-radius: 10px;
+    padding: 13px 16px 14px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .done-card h3 { font-size: 14.5px; }
+  .done-card p { font-size: 13px; color: var(--ink-muted); line-height: 1.5; }
+  .done-card .when {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    color: var(--ink-subtle);
+    text-transform: uppercase;
+  }
+
+  /* ---------- risco ---------- */
+  .risk {
+    background: var(--stop-bg);
+    border: 1px solid color-mix(in srgb, var(--stop) 28%, transparent);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .risk h3 { color: var(--stop); }
+  .risk p { font-size: 13.8px; color: var(--ink-muted); line-height: 1.55; max-width: 74ch; }
+
+  /* ---------- rodapé de apuração ---------- */
+  .audit {
+    border-top: 1px solid var(--line);
+    padding-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .audit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 9px 26px;
+  }
+
+  .audit-line {
+    display: flex;
+    gap: 10px;
+    font-size: 12.8px;
+    color: var(--ink-muted);
+    align-items: baseline;
+  }
+  .audit-line .src {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-subtle);
+    flex: none;
+  }
+
+  .tabela-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.4px;
+    min-width: 460px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 14px 9px 0;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-subtle);
+  }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, .item:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 4px; }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 28px 16px 64px; gap: 34px; }
+    .item { padding: 14px 15px 15px; gap: 0 12px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="head-top">
+      <div class="eyebrow">AVA PCO · Painel de estado</div>
+      <div class="eyebrow mono">30 de agosto de 2026 · fim do dia</div>
+    </div>
+    <h1>O que está no ar, o que está aberto e quem destrava</h1>
+    <p class="subtitle">
+      A plataforma <strong>está no ar e atualizada</strong> — não há código esperando deploy.
+      O que resta se divide em duas pilhas bem diferentes: <strong>três tarefas que dependem só de rodar
+      contra produção</strong> e <strong>oito decisões que só você pode tomar</strong>. Uma delas está
+      cobrando juros.
+    </p>
+  </header>
+
+  <!-- ============ VEREDITO ============ -->
+  <div class="verdict">
+    <div class="verdict-head">
+      <span class="pulse" aria-hidden="true"></span>
+      <h2>No ar, no domínio principal, com o código de agora</h2>
+      <span class="tag ok">verificado hoje</span>
+    </div>
+    <p class="prose">
+      O AVA assumiu <code>psicanaliseclinica.online</code> hoje. Produção, <code>origin/main</code> e
+      a máquina local estão no mesmo commit — nada esperando publicação. Nove commits entraram:
+      domínio canônico, deploy por chave, portão de acesso e a unificação do site, que deixou de ser
+      dois. Tudo conferido pela internet depois de publicado.
+    </p>
+    <div class="checks">
+      <div class="check">
+        <span class="k">psicanaliseclinica.online</span>
+        <span class="v"><span class="dot"></span>200 · banco conectado</span>
+      </div>
+      <div class="check">
+        <span class="k">GET /api/admin/students</span>
+        <span class="v"><span class="dot"></span>401 — exige token</span>
+      </div>
+      <div class="check">
+        <span class="k">ava. e www. → principal</span>
+        <span class="v"><span class="dot"></span>301, canônico único</span>
+      </div>
+      <div class="check">
+        <span class="k">/catalogo, /comparar, /landing</span>
+        <span class="v"><span class="dot"></span>301, rotas fundidas</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MÉTRICAS ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>O tamanho da coisa</h2>
+        <span class="count">apurado hoje na máquina e em produção</span>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric">
+        <span class="n">1.941</span>
+        <span class="l">testes, todos passando</span>
+        <span class="sub">207 arquivos · 64 s</span>
+      </div>
+      <div class="metric">
+        <span class="n">0</span>
+        <span class="l">canais de venda no ar</span>
+        <span class="sub">site sem preço · loja em 525</span>
+      </div>
+      <div class="metric">
+        <span class="n">440</span>
+        <span class="l">rotas de API</span>
+        <span class="sub">server/app.ts · 10.617 linhas</span>
+      </div>
+      <div class="metric">
+        <span class="n">352</span>
+        <span class="l">aulas no catálogo público</span>
+        <span class="sub">7 cursos · 62 módulos</span>
+      </div>
+      <div class="metric">
+        <span class="n">11</span>
+        <span class="l">rotinas de fundo ativas</span>
+        <span class="sub">lembretes, avisos, backup…</span>
+      </div>
+      <div class="metric">
+        <span class="n">1.601</span>
+        <span class="l">alunos em produção</span>
+        <span class="sub">615 fichas · 1.122 matrículas</span>
+      </div>
+      <div class="metric">
+        <span class="n">10</span>
+        <span class="l">commits hoje</span>
+        <span class="sub">581 desde 3 de maio</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRONTO ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>Pronto e no ar</h2>
+        <span class="count">17 frentes fechadas</span>
+      </div>
+      <p class="prose">O que já funciona em produção e tem teste vigiando para não regredir.</p>
+    </div>
+    <div class="done-grid">
+
+      <div class="done-card">
+        <span class="when">30 de agosto</span>
+        <h3>O site deixou de ser dois</h3>
+        <p>Havia dois cabeçalhos, dois menus e duas listas dos mesmos cursos — e um item de menu que
+          atravessava de um para o outro. Agora é um cabeçalho só, com a logomarca de verdade, seis
+          destinos numa ordem que segue o caminho de compra, e uma lista de cursos com o desenho da
+          melhor das duas versões.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">30 de agosto</span>
+        <h3>O AVA assumiu o domínio principal</h3>
+        <p>Com endereço canônico único — <code>ava.</code> e <code>www.</code> redirecionam — e o
+          domínio saiu de 18 cópias no código para um arquivo só. Cinco desses lugares escreviam o
+          endereço direto, sem nem olhar a configuração: link de e-mail, dados estruturados,
+          assinatura. Um teste impede que voltem.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">30 de agosto</span>
+        <h3>Ninguém entra sem ter comprado</h3>
+        <p>Guardadas as <strong>cinco</strong> portas que emitem sessão, não só o login. A regra é
+          “matrícula ou pedido pago”: medi antes e a versão literal trancaria os 615 alunos
+          matriculados, porque não existe um único pedido pago no banco — a receita histórica foi
+          cobrada no sistema antigo.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">27 de agosto</span>
+        <h3>Doze buracos de segurança fechados</h3>
+        <p>A base de alunos inteira, o risco de evasão e as configurações de IA respondiam sem token
+          nenhum. O catálogo público entregava o corpo de todas as aulas pagas. Um webhook forjado
+          marcava pedido como pago. Tudo fechado, com duas suítes que varrem <em>todas</em> as rotas
+          <code>/admin/*</code> a cada execução.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">27 de agosto</span>
+        <h3>Medição própria, sem cookie e sem IP</h3>
+        <p>As telas de métricas e retenção calculavam sobre números inventados dentro do próprio
+          arquivo. Agora medem de verdade — e mostram a base junto do percentual, que é o que
+          denuncia um número errado antes de ele virar decisão.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">21 de agosto</span>
+        <h3>O conteúdo das aulas de volta</h3>
+        <p>309 aulas terminavam no meio da frase porque a tabela não tinha coluna para o corpo do
+          texto. Restauradas 522 aulas — 2,93 milhões de caracteres.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">26 de agosto</span>
+        <h3>Sessões: agendar, pagar, remarcar</h3>
+        <p>Agendamento que persiste, pagamento pelo mesmo checkout dos cursos, remarcação com
+          bloqueio por sobreposição de horário, avisos por e-mail e lembrete de 24 h e 1 h. Preço e
+          nomes copiados no ato, para que reajuste não mude o que já foi combinado.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">26 de agosto</span>
+        <h3>Venda casada barrada no código</h3>
+        <p>Análise e supervisão nunca podem ser requisito de curso — art. 39, I do CDC. A regra é
+          código, não parágrafo, e tem teste cobrando a citação da lei.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">26 de agosto</span>
+        <h3>Aviso de vencimento de acesso</h3>
+        <p>Faixas de 30, 7 e 1 dia mais o aviso de vencido, um por faixa. Tem modo de ensaio: lista
+          quem receberia sem enviar nada.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">26 de agosto</span>
+        <h3>Pedidos, cupons e banco de questões no banco</h3>
+        <p>Saíram dos arquivos JSON para tabelas de verdade, com o caminho antigo preservado. O
+          contador de uso do cupom passou a somar dentro do SQL — duas compras simultâneas perdiam
+          um uso, e o limite existe justamente para valer aí.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">26–27 de agosto</span>
+        <h3>As telas pararam de mentir</h3>
+        <p>Cinco telas com dados de demonstração, vinte e cinco botões sem ação, campos que não
+          guardavam a escolha — incluindo o “lembrar de mim” do login, que nunca lembrou de nada.
+          Varridas e corrigidas.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">27 de agosto</span>
+        <h3>Tabela ausente não derruba mais o site</h3>
+        <p>Produção estava 43 commits atrás e sem permissão para criar tabela. Agora a ausência de
+          uma tabela cai no arquivo JSON em vez de estourar a rota — a ordem entre migrar e publicar
+          deixou de decidir se o site fica no ar.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">contínuo</span>
+        <h3>Seis integrações de pagamento, oito de e-mail</h3>
+        <p>Stripe, Asaas, Pagar.me, MercadoPago e PayPal; Resend, SendGrid, Postmark, Mailgun,
+          Brevo, SES e SMTP. Troca de provedor pelo painel, sem republicar o sistema.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">contínuo</span>
+        <h3>Chaves guardadas cifradas</h3>
+        <p>Chaves de gateway, de e-mail, de IA, segredos de webhook e sementes de 2FA — todas
+          cifradas em repouso, decifradas só na hora da chamada.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">26 de agosto</span>
+        <h3>Autoria institucional</h3>
+        <p>Os dados estruturados assinavam com “Dra. [Nome do Responsável Técnico]” e credenciais
+          inventadas anexadas. A PCO passou a assinar como organização.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ EM ABERTO — DÁ PARA FAZER ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>Em aberto — não depende de você</h2>
+        <span class="count">3 itens · ferramenta pronta em todos</span>
+      </div>
+      <p class="prose">
+        Todos estavam travados pela falta de acesso ao servidor. <strong>A chave SSH foi instalada em
+        27 de agosto</strong>, então os quatro estão liberados para execução.
+      </p>
+    </div>
+    <div class="items">
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Migração v3 — conferida em produção, já estava aplicada</h3>
+            <span class="tag ok">resolvido em 30/ago</span>
+          </div>
+          <p>
+            Este item dizia que produção tinha <strong>10.205 matrículas fantasma, 333 alunos
+            faltando e 436 nomes tomados por spam</strong>, e pedia a reaplicação da carga. Ao
+            conferir a base real antes de agir, o quadro é outro:
+            <strong>1.601 alunos, 615 fichas e 1.122 matrículas</strong> — cerca de 1,8 matrícula por
+            aluno. A carga v3 foi aplicada em 7 de julho; a descrição do problema tinha três meses e
+            ninguém a revisitou.
+          </p>
+          <p>
+            E reaplicar teria sido <strong>destrutivo</strong>: a base local está zerada por um reset,
+            e o carregador marca como inativo quem não aparecer na fonte — os 1.601 sairiam do ar.
+            O texto velho foi corrigido no repositório para que ninguém siga a instrução perigosa.
+          </p>
+          <div class="meta">
+            <span>medido com <code>scripts/backup_divz_students.ts</code></span>
+            <span>backup de produção gravado antes</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item open">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Duração real das aulas</h3>
+            <span class="tag warn">352 aulas afetadas</span>
+          </div>
+          <p>
+            Todas as aulas estão gravadas com 15 minutos — um valor de preenchimento da importação.
+            Não muda a carga horária declarada do curso, mas distorce toda métrica de estudo que o
+            aluno vê. O script busca a duração no próprio provedor do vídeo e <strong>nunca
+            inventa</strong>: aula sem vídeo fica como está.
+          </p>
+          <div class="meta">
+            <span><code>scripts/resolver_duracoes_aulas.ts</code></span>
+            <span>Vimeo direto · YouTube exige chave</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item open">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Fechar a auditoria das contas sem ficha</h3>
+          </div>
+          <p>
+            São 989 contas com login e nenhuma matrícula. Já se sabe que <strong>763 delas (77%) só
+            existem na loja</strong> — nunca foram alunas, explicação inocente. As outras 222 têm
+            presença no portal e são a dúvida real. Nenhuma matrícula ficou órfã, o que já afasta a
+            hipótese pior. Falta rodar sobre uma base com progresso carregado: progresso sem ficha é
+            a prova definitiva, e o script já a procura.
+          </p>
+          <div class="meta"><span><code>scripts/auditar_contas_sem_ficha.ts</code></span></div>
+        </div>
+      </div>
+
+      <div class="item open">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Aplicar o delta da loja</h3>
+            <span class="tag warn">ensaiado hoje · falta gravar</span>
+          </div>
+          <p>
+            A loja continuou vendendo. O ensaio contra produção mediu
+            <strong>18 pedidos pagos desde 6 de julho</strong>: 14 dessas pessoas já entraram por
+            outro caminho, e <strong>4 seguem sem conta e sem matrícula, tendo pago</strong>.
+          </p>
+          <p>
+            A operação é aditiva — cria conta e matrícula, nunca apaga — e o backup de produção já
+            está feito. A gravação foi barrada pela política de permissões desta máquina e precisa da
+            sua liberação.
+          </p>
+          <div class="meta">
+            <span><code>scripts/sync_wc_delta.ts --commit</code></span>
+            <span>4 contas · 4 matrículas</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ TRAVADO NO DONO ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>Só você destrava</h2>
+        <span class="count">8 itens · 1 cobrando juros</span>
+      </div>
+      <p class="prose">
+        Em ordem de urgência. O primeiro não é tarefa de produto — é algo que piora enquanto não é
+        resolvido, e que hoje segura também o deploy automático, já consertado no resto.
+      </p>
+    </div>
+    <div class="items">
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>O CI do GitHub não roda desde 26 de agosto</h3>
+            <span class="tag stop">4 dias cego</span>
+          </div>
+          <p>
+            <em>“The job was not started because your account is locked due to a billing issue.”</em>
+            Todos os runs desde 26/ago terminam assim, em 4 a 6 segundos. Nenhum executou teste,
+            tipo, lint ou build.
+          </p>
+          <p>
+            Um X vermelho permanente por motivo alheio ao código é <strong>pior que não ter CI</strong>:
+            treina todo mundo a ignorar o vermelho, e no dia em que ele for de verdade ninguém vai
+            olhar. Enquanto isso a verificação é local — foi o que rodei em cada commit.
+          </p>
+          <div class="meta"><span>ação: regularizar a cobrança na conta do GitHub</span></div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>O deploy automático — consertado</h3>
+            <span class="tag ok">resolvido em 30/ago</span>
+          </div>
+          <p>
+            Em vez de acertar a senha do servidor errado, o fluxo passou a autenticar por
+            <strong>chave</strong> — a mesma que já estava instalada no servidor e que testei agora.
+            A senha guardada foi <strong>removida</strong>: não há mais credencial de senha em lugar
+            nenhum do repositório.
+          </p>
+          <p>
+            Endereço, usuário, porta e chave foram gravados nos segredos do repositório por aqui —
+            você não precisa mexer em nada. A verificação que pergunta “esta é a máquina de produção
+            mesmo?” antes de qualquer alteração continua no lugar.
+          </p>
+          <p>
+            <strong>Só não roda ainda</strong> porque a conta do GitHub está travada por cobrança —
+            é o item logo acima. Assim que destravar, o deploy automático volta a funcionar sozinho.
+          </p>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>A grade real do curso</h3>
+            <span class="tag stop">trava uma frente inteira</span>
+          </div>
+          <p>
+            Decide se a página de vendas nova é construir do zero ou apenas transpor o que existe, e
+            junto com ela a decisão entre “curso de fundamentos” e “formação”. Enquanto não vier,
+            currículo, SEO, dados estruturados e checkout da página nova ficam parados.
+          </p>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Cadastrar os profissionais que atendem</h3>
+            <span class="tag stop">zero cadastrados</span>
+          </div>
+          <p>
+            Agendamento, pagamento, remarcação e lembrete de sessão estão prontos e testados — e não
+            têm quem atender. O preço vem da titulação de quem atende (escola R$ 80, mestrado R$ 140,
+            doutorado R$ 450), e profissional sem serviço marcado ou sem faixa de preço ativa não é
+            oferecido ao aluno.
+          </p>
+          <div class="meta"><span>onde: <code>/admin/analise-supervisao</code></span></div>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Rotacionar a senha do banco</h3>
+            <span class="tag stop">exposta em conversa</span>
+          </div>
+          <p>
+            A credencial de dono do banco passou por conversa em 27 de agosto para aplicar as
+            migrações. Deve ser trocada.
+          </p>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Declarar o prazo de acesso de cada curso</h3>
+            <span class="tag warn">efeito retroativo</span>
+          </div>
+          <p>
+            Nenhum curso declara por quantos meses a matrícula dá acesso, então <strong>ninguém está
+            vencido hoje</strong>. Cuidado: matrícula que veio da importação não tem prazo próprio
+            gravado, e passa a valer <em>data de matrícula + meses declarados</em> no instante em que
+            o curso declara. Com datas reais de 2021 a 2026, declarar “6 meses” tranca centenas de
+            pessoas de uma vez.
+          </p>
+          <p>
+            Isso é o comportamento correto — o que não pode é ser descoberto depois. Existem duas
+            ferramentas para isso: uma simula o impacto ao vivo ao lado do campo, e outra concede um
+            prazo de carência a quem ficaria vencido.
+          </p>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Revisão jurídica de duas afirmações</h3>
+          </div>
+          <p>
+            O módulo 17 se chama “Regulamentação da Profissão de Psicanalista e Terapeuta” enquanto o
+            FAQ do próprio site afirma que classificação na CBO não é regulamentação. E a natureza e
+            os limites da RNTP precisam de conferência documental.
+          </p>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Disparar os 507 convites</h3>
+          </div>
+          <p>
+            Alunos importados que ainda não receberam acesso. A cota gratuita do provedor é de 300
+            por dia e a tela mostra quanto resta — são dois dias de envio.
+          </p>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Credencial do Search Console</h3>
+          </div>
+          <p>
+            É a única coisa que falta para o painel mostrar as palavras-chave reais que trazem gente
+            ao site, em vez de deixar o quadro vazio.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ RISCO ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>O que me tira o sono</h2>
+      </div>
+    </div>
+    <div class="items">
+      <div class="risk">
+        <h3>A PCO não consegue receber um pagamento hoje</h3>
+        <p>
+          <strong>Nenhum dos 7 cursos tem preço</strong> — todos mostram “Consulte”, e a página do
+          carro-chefe tem o botão “Matricular-se” sem valor nenhum. O checkout recusa com
+          <code>NOT_FOR_SALE</code> quando não há produto ativo ligado ao curso.
+          E <strong>a loja está fora do ar</strong> em <code>old.</code>, com erro de certificado.
+        </p>
+        <p>
+          Somados, <strong>os dois canais de venda estão parados</strong>. Isso vale mais que
+          qualquer item de design da lista. O caminho é criar o produto em <code>/admin/produtos</code>,
+          definir o preço e ligá-lo ao curso — depois eu confirmo a compra de ponta a ponta.
+        </p>
+      </div>
+
+      <div class="risk">
+        <h3>Documentação velha quase me fez derrubar a base de alunos</h3>
+        <p>
+          As instruções do projeto descreviam, havia três meses, um estado que já tinha sido
+          corrigido — e mandavam reaplicar uma carga que teria desativado 1.601 alunos. Só não
+          aconteceu porque conferi a produção antes de agir. Corrigi o texto, mas o padrão vale como
+          alerta: <strong>instrução de migração envelhece em silêncio</strong>, e a única defesa é
+          medir a base antes de qualquer carga, em vez de confiar no que está escrito.
+        </p>
+      </div>
+      <div class="risk">
+        <h3>Sem CI, a rede de proteção depende de alguém lembrar de puxá-la</h3>
+        <p>
+          Os 1.923 testes só valem quando alguém os roda. Hoje isso acontece porque eu rodo a cada
+          commit — não porque o sistema obriga. No primeiro commit feito com pressa por qualquer
+          pessoa, a proteção não existe.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ APURAÇÃO ============ -->
+  <section class="audit">
+    <div class="sec-title-row">
+      <h2>Como cada número acima foi apurado</h2>
+    </div>
+    <p class="prose">
+      Nenhum valor desta página foi estimado. Onde a medição não existe, o quadro fica vazio em vez
+      de mostrar zero — zero diz “medi e não houve”, e é diferente de “não medi”.
+    </p>
+    <div class="tabela-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Valor</th>
+            <th>Origem</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Testes</td>
+            <td class="num">1.923 / 205 arq.</td>
+            <td>suíte completa executada hoje, 80 s, saída zero</td>
+          </tr>
+          <tr>
+            <td>Tipos e lint</td>
+            <td class="num">0 erros</td>
+            <td>compilador e verificador de estilo executados hoje</td>
+          </tr>
+          <tr>
+            <td>Catálogo público</td>
+            <td class="num">7 · 62 · 352</td>
+            <td>resposta real de produção, baixada hoje pela internet</td>
+          </tr>
+          <tr>
+            <td>Rotas de API</td>
+            <td class="num">440</td>
+            <td>contagem no código do servidor</td>
+          </tr>
+          <tr>
+            <td>Estado do processo</td>
+            <td class="num">online, 2 d</td>
+            <td>gerenciador de processos no servidor de produção</td>
+          </tr>
+          <tr>
+            <td>Alunos e matrículas</td>
+            <td class="num">1.601 · 1.122</td>
+            <td>contagem direta na base de produção, hoje, com backup gravado antes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="audit-grid" style="margin-top: 6px">
+      <div class="audit-line">
+        <span class="src">produção</span>
+        <span>srv539124 · 195.200.0.253:3035 · Node 20 · banco conectado</span>
+      </div>
+      <div class="audit-line">
+        <span class="src">no ar</span>
+        <span><code>e5085cb</code> — local está 1 commit à frente, só documentação</span>
+      </div>
+    </div>
+  </section>
+
+</div>
