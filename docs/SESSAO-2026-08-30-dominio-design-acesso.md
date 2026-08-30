@@ -1,7 +1,8 @@
 # 30 de agosto de 2026 — domínio, design e o portão de acesso
 
-> **Ponto exato de retomada.** Local, `origin/main` e produção estão todos em
-> `4c7c1dc`. Nada pendente de commit, push ou deploy.
+> **Ponto exato de retomada.** Local e `origin/main` em `d355d83`; **produção em
+> `4c7c1dc`**, que é o último commit de código — os posteriores são só
+> documentação e não precisam de deploy. Nada pendente de commit nem de push.
 
 9 commits. 207 arquivos de teste, **1941 testes**, zero falhas. Lint sem erros.
 
