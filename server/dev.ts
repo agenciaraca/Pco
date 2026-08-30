@@ -108,6 +108,32 @@ if (staticRoot) {
     return c.redirect(`${canonico}${url.pathname}${url.search}`, 301);
   });
 
+  /**
+   * Rotas antigas que passaram a ter um dono único (30/ago/2026).
+   *
+   * O produto tinha a mesma página em dois lugares: a lista de cursos existia
+   * em `/formacoes` (servidor) e `/catalogo` (aplicativo), e a página inicial
+   * respondia em três endereços. Duas implementações do mesmo assunto sempre
+   * divergem — e divergiram: cartões diferentes, ordem de informação diferente,
+   * preço em destaque diferente.
+   *
+   * 301 e não 302: é mudança definitiva, e é o que faz o buscador transferir o
+   * histórico da URL antiga para a nova em vez de tratar as duas como páginas
+   * concorrentes. Link salvo, anúncio antigo e resultado de busca continuam
+   * funcionando.
+   *
+   * `/comparar` some porque nenhum link do produto apontava para ela; a
+   * comparação volta como seleção nos cartões da própria lista.
+   */
+  const ROTAS_FUNDIDAS: Record<string, string> = {
+    '/catalogo': '/formacoes',
+    '/comparar': '/formacoes',
+    '/landing': '/ava-pco',
+  };
+  for (const [de, para] of Object.entries(ROTAS_FUNDIDAS)) {
+    root.get(de, (c) => c.redirect(para, 301));
+  }
+
   // SEO básico: robots.txt e sitemap.xml (públicos)
   root.get('/robots.txt', (c) => {
     const host = c.req.header('host') ?? hostPublico();
@@ -128,7 +154,7 @@ if (staticRoot) {
       'Allow: /verificar/',
       'Allow: /termos',
       'Allow: /privacidade',
-      'Allow: /catalogo',
+      'Allow: /ava-pco',
       `Sitemap: ${proto}://${host}/sitemap.xml`,
     ].join('\n');
     return c.text(body, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -143,6 +169,9 @@ if (staticRoot) {
     const staticUrls = [
       { path: '/', priority: '1.0', changefreq: 'weekly' },
       { path: '/formacoes', priority: '0.9', changefreq: 'weekly' },
+      // Destino do menu desde 30/ago/2026 ("Nosso AVA"): apresenta o ambiente
+      // a quem ainda não comprou, e por isso pertence ao sitemap.
+      { path: '/ava-pco', priority: '0.7', changefreq: 'monthly' },
       { path: '/blog', priority: '0.8', changefreq: 'weekly' },
       { path: '/sobre', priority: '0.6', changefreq: 'monthly' },
       // /autor sai do sitemap enquanto o responsável técnico for placeholder —

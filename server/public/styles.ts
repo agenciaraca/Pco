@@ -97,20 +97,30 @@ p{margin:0}
 .tag-chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-soft);
   background:var(--surface-2);border:1px solid var(--line-soft);padding:5px 11px;border-radius:8px}
 /* ---- header ---- */
-.site-header{position:sticky;top:0;z-index:100;background:color-mix(in srgb,var(--paper) 88%,transparent);
-  backdrop-filter:saturate(1.2) blur(10px);border-bottom:1px solid var(--line)}
-.site-header .bar{display:flex;align-items:center;justify-content:space-between;gap:18px;height:66px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:18px}
-.brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#0b7486,#0cc0df);display:grid;place-items:center;color:#fff;font-size:15px}
-.nav{display:flex;align-items:center;gap:6px}
-.nav a{padding:9px 13px;border-radius:9px;font-weight:600;font-size:14.5px;color:var(--ink-soft)}
-.nav a:hover,.nav a[aria-current="page"]{color:var(--ink);background:var(--surface-2)}
-.header-cta{display:flex;align-items:center;gap:10px}
-.cart-link{position:relative;display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border-radius:9px;font-weight:600;font-size:14.5px;color:var(--ink-soft)}
-.cart-link:hover{background:var(--surface-2);color:var(--ink)}
-.cart-badge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center}
+/* Cabeçalho no degradê da marca, igual ao do /ava-pco. Ver o comentário em
+   layout.ts: eram duas identidades no mesmo domínio. */
+.site-header{position:sticky;top:0;z-index:100;background:var(--brand-gradient);
+  box-shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06)}
+.site-header .bar{display:flex;align-items:center;justify-content:space-between;gap:18px;height:64px}
+.brand{display:flex;align-items:center;flex:none}
+.brand img{height:36px;width:auto;object-fit:contain;display:block}
+.nav{display:flex;align-items:center;gap:2px}
+.nav a{padding:8px 12px;border-radius:9px;font-weight:500;font-size:14px;color:rgba(255,255,255,.85);white-space:nowrap;transition:background .15s,color .15s}
+.nav a:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav a[aria-current="page"]{background:rgba(255,255,255,.2);color:#fff}
+.header-cta{display:flex;align-items:center;gap:8px;flex:none}
+.cart-link{position:relative;display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:9px;font-size:14.5px;color:rgba(255,255,255,.85)}
+.cart-link:hover{background:rgba(255,255,255,.12);color:#fff}
+.cart-badge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--brand-orange);color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center}
 .cart-badge[data-count]:not([data-count="0"]){display:inline-flex}
-.menu-toggle{display:none;background:none;border:1px solid var(--line);border-radius:9px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+/* Botões do topo: vivem sobre o degradê, então não usam as variantes claras. */
+.btn-topo{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;
+  border-radius:999px;padding:8px 13px;font-size:14px;cursor:pointer;font-family:inherit;line-height:1}
+.btn-topo:hover{background:rgba(255,255,255,.15)}
+.btn-topo-cheio{background:#fff;color:var(--brand-deep);border-radius:999px;padding:9px 20px;
+  font-weight:700;font-size:14.5px;border:0}
+.btn-topo-cheio:hover{background:rgba(255,255,255,.9)}
+.menu-toggle{display:none;background:none;border:1px solid rgba(255,255,255,.35);border-radius:9px;padding:8px 10px;cursor:pointer;color:#fff}
 /* ---- hero deep ---- */
 .hero-deep{background:var(--brand-gradient);color:var(--on-deep);position:relative}
 .hero-deep .eyebrow{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#dfeeea}
@@ -163,6 +173,39 @@ p{margin:0}
 .hero-veu{position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(180deg,rgba(11,116,134,.25),rgba(0,151,178,.05) 40%,rgba(11,116,134,.55))}
 .hero-deep .wrap{position:relative;z-index:1}
+/* ---- grade de cursos (desenho vindo do /catalogo) ---- */
+.cursos-grade{display:grid;gap:20px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.curso-cartao{display:flex;flex-direction:column;background:var(--raise);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;
+  transition:box-shadow .2s ease,transform .2s ease}
+.curso-cartao:hover{box-shadow:0 12px 32px rgba(6,59,73,.12),0 2px 6px rgba(16,24,40,.06);transform:translateY(-2px)}
+.curso-capa{position:relative;height:158px;padding:18px;display:flex;flex:none}
+.curso-capa .capa-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.curso-brilho{position:absolute;inset:0;
+  background:radial-gradient(circle at 70% 20%,rgba(255,255,255,.22),transparent 60%)}
+/* Véu por cima da foto: sem ele, capa clara come o texto branco. */
+.curso-capa .capa-img+.curso-brilho{background:linear-gradient(180deg,rgba(6,59,73,.25),rgba(6,59,73,.72)),
+  radial-gradient(circle at 70% 20%,rgba(255,255,255,.18),transparent 60%)}
+.curso-capa-texto{position:relative;display:flex;flex-direction:column;justify-content:space-between;
+  height:100%;width:100%;color:#fff;gap:10px}
+.curso-etiqueta{align-self:flex-start;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.22);
+  backdrop-filter:blur(4px);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.curso-capa-texto h3{font-size:20px;line-height:1.15;color:#fff;max-width:22ch}
+.curso-selo{position:absolute;top:12px;right:12px;z-index:2;padding:3px 9px;border-radius:999px;
+  background:var(--brand-orange);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.curso-corpo{padding:18px;display:flex;flex-direction:column;gap:13px;flex:1}
+.curso-desc{color:var(--ink-soft);font-size:14px;line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.curso-meta{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12.5px;color:var(--ink-soft)}
+.curso-meta span{display:inline-flex;align-items:center;gap:6px}
+.curso-meta span::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.curso-rodape{margin-top:auto;padding-top:13px;border-top:1px solid var(--line-soft);
+  display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.preco-rotulo{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+.preco-valor{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.preco-consulte{font-size:15px;font-weight:700;color:var(--ink-soft)}
+.preco-parcela{font-size:12px;color:var(--ink-faint);margin-top:2px}
+.curso-acao{font-size:13.5px;font-weight:700;color:var(--accent);white-space:nowrap}
 /* ---- utility layouts ---- */
 .stack{display:grid;gap:16px}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:28px}
@@ -176,7 +219,7 @@ p{margin:0}
   .nav{display:none}.menu-toggle{display:inline-flex}
   .two-col,.three-col{grid-template-columns:1fr}
   .site-footer .cols{grid-template-columns:1fr 1fr;gap:28px}
-  .nav.open{display:flex;position:absolute;top:66px;left:0;right:0;flex-direction:column;align-items:stretch;background:var(--paper);border-bottom:1px solid var(--line);padding:12px 24px}
+  .nav.open{display:flex;position:absolute;top:64px;left:0;right:0;flex-direction:column;align-items:stretch;background:var(--brand-deep);padding:12px 24px;gap:2px}
 }
 @media (max-width:860px){.site-footer .cols,.site-footer .cols.cols-2{grid-template-columns:1fr}.rodape-privacidade{text-align:center;align-items:center}}
 `.trim();

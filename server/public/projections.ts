@@ -68,6 +68,16 @@ export interface PublicCourseSummary {
   installments: number | null;
   installmentFormatted: string | null;
   priceNote?: string;
+  /**
+   * Contagens, não conteúdo. Subiram do curso completo para o resumo em
+   * 30/ago/2026, porque é o que faz o cartão da lista dizer algo: "12 módulos ·
+   * 48 aulas · 20h" informa; um quadrado colorido com o título, não.
+   *
+   * Só o número atravessa — nenhum texto de aula entra aqui. Ver
+   * `server/access/conteudo-aula.ts`.
+   */
+  modules: number;
+  lessons: number;
 }
 
 export interface PublicFaq {
@@ -92,14 +102,26 @@ export interface PublicCourse extends PublicCourseSummary {
   instructorName?: string;
   instructorBio?: string;
   instructorPhotoUrl?: string;
-  modules?: number;
-  lessons?: number;
 }
 
 /** Projeta um curso + produto no sumário público (whitelist). */
 function toSummary(c: Row, product: Product | undefined): PublicCourseSummary {
   const priceCents = product ? (num((product as unknown as Row).priceCents) ?? null) : null;
   const installments = priceCents != null ? 12 : null;
+
+  // A origem varia: às vezes o curso traz os módulos como lista, às vezes só a
+  // contagem já somada. Contar a lista quando ela existe, e cair no número
+  // pronto quando não — o cartão não pode mostrar "0 módulos" por causa do
+  // formato de quem chamou.
+  const modulosLista = Array.isArray(c.modules) ? (c.modules as Row[]) : null;
+  const modulos = modulosLista ? modulosLista.length : (num(c.modules) ?? 0);
+  const aulas = modulosLista
+    ? modulosLista.reduce(
+        (total, m) => total + (Array.isArray(m.lessons) ? (m.lessons as unknown[]).length : 0),
+        0,
+      )
+    : (num(c.lessons) ?? 0);
+
   return {
     id: String(c.id),
     slug: str(c.slug) ?? String(c.id),
@@ -118,6 +140,8 @@ function toSummary(c: Row, product: Product | undefined): PublicCourseSummary {
     installmentFormatted:
       priceCents != null && installments ? fmtBRL(Math.round(priceCents / installments)) : null,
     priceNote: str(c.priceNote) ?? 'condições no ato da matrícula',
+    modules: modulos,
+    lessons: aulas,
   };
 }
 
@@ -144,8 +168,6 @@ function toFull(c: Row, product: Product | undefined): PublicCourse {
     instructorName: str(c.instructorName),
     instructorBio: str(c.instructorBio),
     instructorPhotoUrl: str(c.instructorPhotoUrl),
-    modules: num(c.modules),
-    lessons: num(c.lessons),
   };
 }
 

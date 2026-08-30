@@ -19,14 +19,38 @@ export interface NavItem {
   href: string;
   key: string;
 }
+/**
+ * O menu do site — seis destinos, nesta ordem, e ela não é arbitrária.
+ *
+ * 1. **Cursos** abre a porta larga: é o que a maioria veio buscar, e a primeira
+ *    posição é a mais vista de qualquer menu.
+ * 2. **Psicanálise Clínica** dá porta direta ao carro-chefe. Quem já sabe o
+ *    nome não deveria precisar passar pela lista.
+ * 3. **Nosso AVA** responde "o que eu recebo depois de pagar" — sustenta a
+ *    decisão que os dois primeiros abriram.
+ * 4. **Blog** atrai quem ainda não decide nada; importa para a busca, mas está
+ *    fora do caminho de compra.
+ * 5. **Sobre** é a checagem de credibilidade, feita instantes antes de decidir.
+ * 6. **Contato** fecha porque a última posição é a segunda mais vista, e é onde
+ *    procura quem já decidiu — e quem travou.
+ *
+ * "Início" não é item: o logotipo leva para casa, como em todo site.
+ *
+ * O rótulo é **Cursos** e o endereço continua `/formacoes`. São coisas
+ * diferentes de propósito: "cursos" é como as pessoas falam, e `/formacoes` é o
+ * que a busca já conhece — trocar a URL jogaria fora o histórico dela.
+ */
 export const NAV: NavItem[] = [
-  { label: 'Início', href: '/', key: 'home' },
   { label: 'Cursos', href: '/formacoes', key: 'cursos' },
+  {
+    label: 'Psicanálise Clínica',
+    href: '/formacao/curso-de-psicanalise-clinica-online',
+    key: 'carro-chefe',
+  },
+  { label: 'Nosso AVA', href: '/ava-pco', key: 'ava' },
   { label: 'Blog', href: '/blog', key: 'blog' },
   { label: 'Sobre', href: '/sobre', key: 'sobre' },
   { label: 'Contato', href: '/contato', key: 'contato' },
-  // A landing original do AVA (SPA) vira um item de menu.
-  { label: 'Nosso AVA', href: '/ava-pco', key: 'ava' },
 ];
 
 export interface PageOptions {
@@ -90,13 +114,25 @@ function jsonLdTags(blocks: Array<Record<string, unknown> | null> = []): Html {
   )}`;
 }
 
+/**
+ * Cabeçalho do site — o mesmo do `/ava-pco`, e é essa a questão.
+ *
+ * Até 30/ago/2026 havia dois: este, branco, com a letra ψ dentro de um
+ * quadradinho; e o do aplicativo, com o degradê da marca e a logomarca de
+ * verdade. Duas identidades no mesmo domínio, e a troca entre elas era a
+ * primeira coisa que o olho comparava ao mudar de página — a sensação de "isto
+ * é outra empresa" começava aqui, antes de qualquer conteúdo.
+ *
+ * Agora os dois lados usam o degradê `--brand-gradient`, o arquivo
+ * `/logo-pco-dark.png` (branco, feito para fundo escuro) com 36px de altura, e
+ * a mesma régua de 64px.
+ */
 function header(active?: string): Html {
   return html`
     <header class="site-header">
       <div class="wrap bar">
-        <a class="brand" href="/" aria-label="${ORG.shortName} — início">
-          <span class="mark" aria-hidden="true">ψ</span>
-          <span>${ORG.shortName}</span>
+        <a class="brand" href="/" aria-label="${ORG.shortName} — página inicial">
+          <img src="/logo-pco-dark.png" alt="${ORG.name}" width="150" height="36" />
         </a>
         <nav class="nav" id="site-nav" aria-label="Principal">
           ${raw(
@@ -112,15 +148,14 @@ function header(active?: string): Html {
             <span class="cart-badge" data-count="0" aria-hidden="true">0</span>
           </a>
           <button
-            class="btn btn-outline"
+            class="btn-topo"
             data-theme-toggle
             type="button"
             aria-label="Alternar tema"
-            style="padding:9px 14px"
           >
             ◐
           </button>
-          <a class="btn btn-primary" href="/login" style="padding:10px 20px">Entrar</a>
+          <a class="btn btn-topo-cheio" href="/login">Entrar</a>
           <button
             class="menu-toggle"
             data-menu-toggle

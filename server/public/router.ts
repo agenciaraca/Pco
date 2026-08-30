@@ -674,38 +674,88 @@ publicSite.get('/', async (c) => {
 // ============================ /formacoes (catálogo) ============================
 publicSite.get('/formacoes', async (c) => {
   const courses = await listPublicCourses();
-  const row = (co: (typeof courses)[number]): string => `
-    <a class="card" href="/formacao/${co.slug}" style="display:flex;gap:18px;align-items:flex-start">
-      <div aria-hidden="true" style="width:76px;height:76px;flex:0 0 auto;border-radius:12px;background:${esc(co.coverColor || 'var(--accent)')}"></div>
-      <div style="flex:1">
-        ${co.badge ? `<span class="tag-chip">${esc(co.badge)}</span>` : ''}
-        <h3 style="font-size:19px;margin:8px 0 6px">${esc(co.title)}</h3>
-        <p style="color:var(--ink-soft);font-size:14.5px">${esc((co.tagline || co.description || '').slice(0, 140))}</p>
-        <div style="display:flex;gap:14px;align-items:center;margin-top:12px;flex-wrap:wrap">
-          ${co.totalHours ? `<span class="tag-chip">${co.totalHours}h</span>` : ''}
-          ${co.priceFormatted ? `<span style="font-weight:800">${esc(co.priceFormatted)}</span>` : ''}
-          ${co.installmentFormatted ? `<span style="color:var(--ink-faint);font-size:13px">ou 12x ${esc(co.installmentFormatted)}</span>` : ''}
+
+  /**
+   * Cartão de curso — o desenho vem do `/catalogo` (React), que era a melhor
+   * versão das duas que existiam. A URL é que ficou desta: `/formacoes` tem
+   * histórico na busca, e trocá-la jogaria isso fora.
+   *
+   * A capa é imagem quando existe e degradê da cor do curso quando não —
+   * nunca um quadrado chapado, que era o que tornava a lista antiga
+   * indistinguível de uma tabela.
+   */
+  const cartao = (co: (typeof courses)[number]): string => {
+    const capa = co.coverImageUrl
+      ? `<img src="${esc(co.coverImageUrl)}" alt="" loading="lazy" decoding="async" class="capa-img" />`
+      : '';
+    const fundo = co.coverImageUrl
+      ? 'background:var(--brand-deep)'
+      : `background:linear-gradient(135deg,${esc(co.coverColor || 'var(--accent)')},var(--brand-deep))`;
+
+    const meta = [
+      co.modules ? `${co.modules} módulo${co.modules === 1 ? '' : 's'}` : '',
+      co.lessons ? `${co.lessons} aula${co.lessons === 1 ? '' : 's'}` : '',
+      co.totalHours ? `${co.totalHours}h` : '',
+    ].filter(Boolean);
+
+    // Sem preço a linha inteira sai, em vez de mostrar "A partir de" vazio.
+    const preco = co.priceFormatted
+      ? `<div>
+           <div class="preco-rotulo">A partir de</div>
+           <div class="preco-valor">${esc(co.priceFormatted)}</div>
+           ${
+             co.installmentFormatted
+               ? `<div class="preco-parcela">ou 12x ${esc(co.installmentFormatted)}</div>`
+               : ''
+           }
+         </div>`
+      : '<div><div class="preco-rotulo">Investimento</div><div class="preco-consulte">Consulte</div></div>';
+
+    return `
+    <a class="curso-cartao" href="/formacao/${esc(co.slug)}">
+      <div class="curso-capa" style="${fundo}">
+        ${capa}
+        <div class="curso-brilho" aria-hidden="true"></div>
+        ${co.badge ? `<span class="curso-selo">${esc(co.badge)}</span>` : ''}
+        <div class="curso-capa-texto">
+          <span class="curso-etiqueta">${esc(co.shortTitle || co.title)}</span>
+          <h3>${esc(co.title)}</h3>
+        </div>
+      </div>
+      <div class="curso-corpo">
+        <p class="curso-desc">${esc(co.tagline || co.description || '')}</p>
+        ${
+          meta.length
+            ? `<div class="curso-meta">${meta.map((m) => `<span>${m}</span>`).join('')}</div>`
+            : ''
+        }
+        <div class="curso-rodape">
+          ${preco}
+          <span class="curso-acao">Ver curso →</span>
         </div>
       </div>
     </a>`;
+  };
+
   const body = html`
-    <section class="section-tight hero-deep">
+    <section class="section-tight hero-deep tem-pincel">
       <div class="wrap">
-        <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
-          <a href="/">Início</a><span>›</span><span>Formações</span>
+        <nav class="breadcrumb" aria-label="Trilha" style="color:#cfe7ee">
+          <a href="/">Início</a><span>›</span><span>Cursos</span>
         </nav>
-        <span class="eyebrow">Nossas formações</span>
+        <span class="eyebrow">Nossos cursos</span>
         <h1 style="margin:14px 0 12px">Cursos de psicanálise clínica e áreas afins</h1>
         <p class="lead" style="max-width:56ch">
           Formações livres, estruturadas e no seu ritmo, com certificado digital.
         </p>
       </div>
+      ${pincel('var(--paper)')}
     </section>
     <section class="section">
       <div class="wrap">
         ${courses.length
-          ? html`<div class="stack">${raw(courses.map(row).join(''))}</div>`
-          : raw('<p style="color:var(--ink-soft)">Em breve novas formações.</p>')}
+          ? html`<div class="cursos-grade">${raw(courses.map(cartao).join(''))}</div>`
+          : raw('<p style="color:var(--ink-soft)">Em breve novos cursos.</p>')}
       </div>
     </section>
   `;

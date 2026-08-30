@@ -22,12 +22,25 @@ import { useAuth } from '../auth/AuthContext';
  * `externo: true` marca rota servida pelo servidor, não pelo roteador do
  * navegador — `/formacoes` é a vitrine pública renderizada no servidor. Usar
  * <Link> nela daria página em branco, porque o SPA não conhece essa rota.
+ *
+ * **Os seis itens são os mesmos do menu do site**, na mesma ordem (ver `NAV`
+ * em `server/public/layout.ts`, onde a ordem está justificada). Até
+ * 30/ago/2026 este menu tinha "Cursos" e "Formações" como itens separados —
+ * duas listas dos mesmos cursos, em duas implementações — e "Comparar", para
+ * onde nenhum link do produto apontava. Quem lia supunha uma distinção entre
+ * curso e formação que nunca existiu.
  */
 const LINKS: Array<{ to: string; label: string; externo?: boolean }> = [
-  { to: '/catalogo', label: 'Cursos' },
-  { to: '/formacoes', label: 'Formações', externo: true },
-  { to: '/comparar', label: 'Comparar' },
-  { to: '/ava-pco', label: 'Conhecer o AVA' },
+  { to: '/formacoes', label: 'Cursos', externo: true },
+  {
+    to: '/formacao/curso-de-psicanalise-clinica-online',
+    label: 'Psicanálise Clínica',
+    externo: true,
+  },
+  { to: '/ava-pco', label: 'Nosso AVA' },
+  { to: '/blog', label: 'Blog', externo: true },
+  { to: '/sobre', label: 'Sobre', externo: true },
+  { to: '/contato', label: 'Contato', externo: true },
 ];
 
 export default function SiteHeader() {
@@ -88,12 +101,12 @@ export default function SiteHeader() {
               >
                 Entrar
               </Link>
-              <Link
-                to="/catalogo"
+              <a
+                href="/formacoes"
                 className="pco-btn bg-white text-pco-deep hover:bg-white/90 text-sm"
               >
                 Ver cursos
-              </Link>
+              </a>
             </>
           )}
           <button
