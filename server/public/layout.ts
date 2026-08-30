@@ -8,7 +8,7 @@
  */
 import { html, raw } from 'hono/html';
 import type { HtmlEscapedString } from 'hono/utils/html';
-import { ORG, AUTHOR_IS_PLACEHOLDER } from './config';
+import { ORG, AUTHOR_IS_PLACEHOLDER, ENDERECO_PEDAGOGICO, PRIVACIDADE_RESUMO } from './config';
 import { PUBLIC_CSS } from './styles';
 
 /** Resultado de um template hono/html (síncrono ou assíncrono). */
@@ -40,6 +40,40 @@ export interface PageOptions {
   ogImage?: string;
   ogType?: string;
   activeNav?: string;
+}
+
+/**
+ * Ícone oficial do WhatsApp. Existe como SVG e não como glifo (`✆`) porque o
+ * glifo é um telefone genérico: quem bate o olho não reconhece o canal, e em
+ * fonte sem esse caractere vira um quadrado vazio.
+ */
+export const ICONE_WHATSAPP = raw(
+  '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">' +
+    '<path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.08-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.14-.14.3-.35.45-.53.15-.18.2-.3.3-.5.1-.2.05-.38-.02-.53-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.38-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35z"/>' +
+    '<path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2 22l5.25-1.38a9.86 9.86 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24a8.24 8.24 0 0 1 8.24 8.25c0 4.54-3.7 8.23-8.24 8.23z"/>' +
+  '</svg>',
+);
+
+/**
+ * Divisor "pincel": três curvas longas e assimétricas do mesmo tom, em
+ * opacidades crescentes, que dissolvem o corte reto entre duas seções.
+ *
+ * `cor` é o **fundo da seção seguinte** — é isso que faz o divisor parecer a
+ * própria seção avançando. Passar a cor da seção atual desenha uma faixa solta
+ * no lugar de uma transição.
+ *
+ * A seção que o recebe precisa de `position:relative`, `overflow:hidden` e
+ * espaço embaixo — a classe `.tem-pincel` já traz os três.
+ */
+export function pincel(cor: string, opts: { topo?: boolean } = {}): Html {
+  const classe = opts.topo ? 'pincel-topo' : 'pincel';
+  return html`<div class="${classe}" aria-hidden="true">
+    <svg viewBox="0 0 1440 150" preserveAspectRatio="none" fill="${cor}">
+      <path opacity=".3" d="M0,70 C320,10 660,120 1020,52 C1210,18 1350,44 1440,72 L1440,151 L0,151 Z" />
+      <path opacity=".5" d="M0,94 C300,44 640,132 1000,80 C1200,52 1350,76 1440,58 L1440,151 L0,151 Z" />
+      <path d="M0,114 C310,72 640,146 1010,100 C1210,76 1350,96 1440,84 L1440,151 L0,151 Z" />
+    </svg>
+  </div>`;
 }
 
 function jsonLdTags(blocks: Array<Record<string, unknown> | null> = []): Html {
@@ -103,41 +137,96 @@ function header(active?: string): Html {
   `;
 }
 
+/**
+ * Separador ondulado entre blocos do rodapé. Traço fino, não uma linha reta —
+ * acompanha a linguagem do divisor "pincel" das seções.
+ */
+function ondinha(): Html {
+  return html`<svg
+    class="ondinha"
+    viewBox="0 0 120 8"
+    preserveAspectRatio="none"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path
+      d="M0,4 C15,0 25,8 40,4 C55,0 65,8 80,4 C95,0 105,8 120,4"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.2"
+    />
+  </svg>`;
+}
+
+/** Um telefone com ícone e link direto para a conversa. */
+function linhaWhatsapp(numero: string): Html {
+  const digitos = numero.replace(/\D/g, '');
+  return html`<a
+    class="rodape-contato"
+    href="https://wa.me/55${digitos}"
+    rel="noopener nofollow"
+    >${ICONE_WHATSAPP}<span>${numero}</span></a
+  >`;
+}
+
 function footer(): Html {
-  const year = 2026;
+  const year = new Date().getFullYear();
+  const comercial = ORG.address;
+  const pedag = ENDERECO_PEDAGOGICO;
+
+  // A coluna de privacidade só existe quando há texto de verdade para ela.
+  // Sem isso, a grade cai para duas colunas em vez de deixar um vão.
+  const temPrivacidade = PRIVACIDADE_RESUMO !== null && PRIVACIDADE_RESUMO.length > 0;
+
   return html`
+    ${pincel('var(--brand-grad-topo)', { topo: true })}
     <footer class="site-footer">
-      <div class="wrap cols">
-        <div>
-          <div class="brand" style="color:#fff;margin-bottom:12px">
+      <div class="wrap cols${raw(temPrivacidade ? '' : ' cols-2')}">
+        <div class="rodape-col">
+          <div class="brand" style="color:#fff;margin-bottom:14px;justify-content:center">
             <span class="mark" aria-hidden="true">ψ</span><span>${ORG.shortName}</span>
           </div>
-          <p style="color:#cfe0dc;font-size:14.5px;max-width:34ch">${ORG.slogan}</p>
-          <p style="color:#9fc0ba;font-size:12.5px;margin-top:14px">
-            ${ORG.rntp ?? ''} · desde ${ORG.founded ?? ''}
+          ${raw(ORG.phones.map((t) => linhaWhatsapp(t)).join(''))}
+          <a class="rodape-contato" href="mailto:${ORG.email}">${ORG.email}</a>
+          ${ondinha()}
+          <p class="rodape-rotulo">Comercial</p>
+          <p class="rodape-endereco">
+            ${comercial.street}<br />${comercial.city}-${comercial.region} CEP
+            ${comercial.postalCode}
           </p>
+          <p class="rodape-rotulo">${pedag.rotulo}</p>
+          <p class="rodape-endereco">
+            ${pedag.street}<br />${pedag.city} – ${pedag.region} CEP ${pedag.postalCode}
+          </p>
+          ${raw(ORG.cnpj ? `<p class="rodape-endereco">CNPJ ${ORG.cnpj}</p>` : '')}
         </div>
-        <div>
-          <h4>Navegar</h4>
-          <ul>
-            ${raw(NAV.map((n) => `<li><a href="${n.href}">${n.label}</a></li>`).join(''))}
-            ${raw(AUTHOR_IS_PLACEHOLDER ? '' : '<li><a href="/autor">Responsável técnico</a></li>')}
-          </ul>
+
+        <div class="rodape-col">
+          <div class="selo-rntp" aria-hidden="true">
+            <span>RNTP</span>
+            <small>REGISTRO NACIONAL<br />DE TERAPEUTAS</small>
+          </div>
+          ${ondinha()}
+          <p class="rodape-endereco" style="font-weight:700">${ORG.rntp ?? ''}</p>
+          <p class="rodape-endereco" style="font-style:italic">Escola Reconhecida RNTP</p>
         </div>
-        <div>
-          <h4>Contato</h4>
-          <ul>
-            <li>
-              <a href="${ORG.whatsapp}" rel="noopener nofollow">WhatsApp: ${ORG.phones[0]}</a>
-            </li>
-            <li><a href="mailto:${ORG.email}">${ORG.email}</a></li>
-            <li>${ORG.address.city} · ${ORG.address.region}</li>
-          </ul>
-        </div>
+
+        ${raw(
+          temPrivacidade
+            ? `<div class="rodape-col rodape-privacidade">
+                 <p class="rodape-priv-titulo">Política de Privacidade:</p>
+                 ${PRIVACIDADE_RESUMO!.map((par) => `<p>${par}</p>`).join('')}
+                 <p><a class="link-destaque" href="/privacidade">Política de Privacidade completa</a></p>
+               </div>`
+            : '',
+        )}
       </div>
       <div class="wrap legal">
-        <span>© ${year} ${ORG.legalName}${ORG.cnpj ? ' · CNPJ ' + ORG.cnpj : ''}</span>
-        <span><a href="/termos">Termos</a> · <a href="/privacidade">Privacidade</a></span>
+        <span>© ${ORG.founded ?? 2018}–${year} ${ORG.name}. Todos os direitos reservados.</span>
+        <span
+          ><a href="/termos">Termos</a> ·
+          <a class="link-destaque" href="/privacidade">Política de Privacidade</a></span
+        >
       </div>
     </footer>
   `;
@@ -157,8 +246,8 @@ export function renderPage(o: PageOptions): Html {
         <meta name="description" content="${o.description}" />
         <link rel="canonical" href="${canonical}" />
         <meta name="robots" content="${robots}" />
-        <meta name="theme-color" content="#0f6e66" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#0a2f2c" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#0097b2" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0a5f6e" media="(prefers-color-scheme: dark)" />
         <meta property="og:type" content="${ogType}" />
         <meta property="og:site_name" content="${ORG.name}" />
         <meta property="og:locale" content="pt_BR" />

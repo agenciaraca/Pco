@@ -67,6 +67,34 @@ export const ORG: OrgConfig = {
   slogan: 'A escolha inteligente para estudar psicanálise clínica.',
 };
 
+/**
+ * Endereço da coordenação pedagógica, separado do comercial.
+ *
+ * São dois lugares diferentes e o rodapé mostra os dois rotulados: quem procura
+ * a escola para assunto acadêmico não deve ser mandado para o endereço de
+ * vendas.
+ */
+export const ENDERECO_PEDAGOGICO = {
+  rotulo: 'Coordenação Pedagógica',
+  street: 'Q SHN QUADRA 2 BLOCO A',
+  city: 'Brasília',
+  region: 'DF',
+  postalCode: '70.702-900',
+  country: 'BR',
+} as const;
+
+/**
+ * Resumo da política de privacidade exibido no rodapé (LGPD).
+ *
+ * `null` de propósito: o texto é jurídico e precisa vir **verbatim** de quem
+ * responde por ele. Enquanto for nulo, o rodapé mostra apenas o link para a
+ * página completa em vez de inventar um resumo — texto de LGPD aproximado é
+ * pior do que texto nenhum, porque passa a valer como promessa ao titular.
+ *
+ * Para preencher: cada item do array vira um parágrafo, na ordem.
+ */
+export const PRIVACIDADE_RESUMO: readonly string[] | null = null;
+
 export interface AuthorConfig {
   slug: string;
   name: string;

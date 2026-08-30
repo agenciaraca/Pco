@@ -9,7 +9,7 @@
 import { Hono } from 'hono';
 import { html, raw } from 'hono/html';
 import { ORG, AUTHOR, AUTHOR_IS_PLACEHOLDER, YMYL_DISCLAIMER } from './config';
-import { renderPage } from './layout';
+import { renderPage, pincel, ICONE_WHATSAPP } from './layout';
 import {
   orgJsonLd,
   websiteJsonLd,
@@ -105,7 +105,7 @@ publicSite.get('/llms.txt', async (c) => {
 // ============================ /sobre ============================
 publicSite.get('/sobre', async (c) => {
   const body = html`
-    <section class="section-tight hero-deep">
+    <section class="section-tight hero-deep tem-pincel">
       <div class="wrap">
         <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
           <a href="/">Início</a><span>›</span><span>Sobre</span>
@@ -119,6 +119,7 @@ publicSite.get('/sobre', async (c) => {
           transparência — reconhecidos pela ${ORG.rntp}.
         </p>
       </div>
+    ${pincel('var(--paper)')}
     </section>
 
     <section class="section">
@@ -148,7 +149,7 @@ publicSite.get('/sobre', async (c) => {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px">
               <div>
                 <div style="font-size:30px;font-weight:800;color:var(--accent)">
-                  <span data-count-to="2018">2018</span>
+                  <span data-count-to="2018" data-count-plain>2018</span>
                 </div>
                 <div style="font-size:13px;color:var(--ink-soft)">no ar desde</div>
               </div>
@@ -370,7 +371,7 @@ publicSite.get('/blog', async (c) => {
   const card = (p: (typeof posts)[number], big = false): string => `
     <a class="card" href="/blog/${p.slug}" style="display:block${big ? ';grid-column:1/-1' : ''}">
       <div aria-hidden="true" style="height:8px;border-radius:6px;background:${esc(p.coverColor || 'var(--accent)')};margin:-6px -6px 16px"></div>
-      ${p.category ? `<span class="tag-chip">${esc(p.category)}</span>` : ''}
+      ${p.category ? `<span class="tag-chip tag-categoria">${esc(p.category)}</span>` : ''}
       <h3 style="font-size:${big ? 22 : 18}px;margin:10px 0 8px">${esc(p.title)}</h3>
       <p style="color:var(--ink-soft);font-size:14.5px">${esc(p.excerpt.slice(0, big ? 220 : 120))}${p.excerpt.length > (big ? 220 : 120) ? '…' : ''}</p>
       <p style="color:var(--ink-faint);font-size:12.5px;margin-top:14px">${esc(p.authorName)} · ${fmtDate(p.publishedAt)} · ${p.readingMinutes} min de leitura</p>
@@ -550,7 +551,13 @@ publicSite.get('/', async (c) => {
       <p style="color:var(--ink-faint);font-size:12.5px;margin-top:12px">${p.readingMinutes} min de leitura</p>
     </a>`;
   const body = html`
-    <section class="hero-deep" style="padding:clamp(56px,9vw,110px) 0">
+    <section class="hero-deep" style="padding:clamp(56px,9vw,110px) 0 150px;overflow:hidden">
+      <div
+        class="hero-foto"
+        style="background-image:url('/img/hero-consultorio.webp')"
+        aria-hidden="true"
+      ></div>
+      <div class="hero-veu" aria-hidden="true"></div>
       <div class="wrap" style="max-width:820px">
         <span class="eyebrow">Formação livre em psicanálise clínica · desde ${ORG.founded}</span>
         <h1 style="margin:18px 0 18px">Estude psicanálise clínica com seriedade, no seu ritmo</h1>
@@ -560,18 +567,20 @@ publicSite.get('/', async (c) => {
         </p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px">
           <a class="btn btn-primary" href="/formacoes">Ver cursos</a>
-          <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow">Falar no WhatsApp</a>
+          <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow">${ICONE_WHATSAPP} Falar no WhatsApp</a>
         </div>
         <p style="color:#cfe0dc;font-size:13.5px;margin-top:22px">
-          ★ 4,7/5 · centenas de alunos formados · ${ORG.rntp}
+          <span style="color:var(--brand-orange)">★★★★★</span> 4,7/5 · centenas de alunos
+          formados · ${ORG.rntp}
         </p>
       </div>
+      ${pincel('var(--paper)')}
     </section>
 
-    <section class="section-tight" style="background:var(--brand-deep)">
+    <section class="section-tight tem-pincel" style="background:var(--brand-gradient)">
       <div class="wrap three-col" style="text-align:center;color:var(--on-deep)">
         <div>
-          <div style="font-size:38px;font-weight:800"><span data-count-to="2018">2018</span></div>
+          <div style="font-size:38px;font-weight:800"><span data-count-to="2018" data-count-plain>2018</span></div>
           <div style="color:#cfe0dc;font-size:14px">no ar desde</div>
         </div>
         <div>
@@ -644,7 +653,7 @@ publicSite.get('/', async (c) => {
         <p class="lead" style="color:#cfe0dc;margin-bottom:24px">
           Comece sua formação em psicanálise clínica hoje.
         </p>
-        <a class="btn btn-primary" href="/formacoes">Ver cursos e matricular-se</a>
+        <a class="btn btn-cta" href="/formacoes">Ver cursos e matricular-se</a>
       </div>
     </section>
   `;
@@ -781,7 +790,7 @@ publicSite.get('/formacao/:slug', async (c) => {
     ? `<div class="card" style="margin-top:16px"><div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);font-weight:600">Responsável</div><div style="font-weight:700;margin-top:6px">${esc(co.instructorName)}</div>${co.instructorBio ? `<p style="color:var(--ink-soft);font-size:13.5px;margin-top:6px">${esc(co.instructorBio)}</p>` : ''}</div>`
     : '';
   const body = html`
-    <section class="section-tight hero-deep">
+    <section class="section-tight hero-deep tem-pincel">
       <div class="wrap" style="max-width:820px">
         <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
           <a href="/">Início</a><span>›</span><a href="/formacoes">Formações</a><span>›</span
@@ -792,6 +801,7 @@ publicSite.get('/formacao/:slug', async (c) => {
         ${co.tagline ? html`<p class="lead" style="color:#cfe0dc">${co.tagline}</p>` : ''}
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">${raw(chips)}</div>
       </div>
+    ${pincel('var(--paper)')}
     </section>
     <section class="section">
       <div
@@ -814,7 +824,7 @@ publicSite.get('/formacao/:slug', async (c) => {
         <aside style="position:sticky;top:88px">
           <div class="card">
             ${raw(priceBlock)}
-            <a class="btn btn-primary" href="/catalogo" style="width:100%;margin-top:16px"
+            <a class="btn btn-cta" href="/catalogo" style="width:100%;margin-top:16px"
               >Matricular-se</a
             >
             <a
@@ -904,11 +914,11 @@ publicSite.get('/checkout', async (c) => {
         <input type="checkbox" name="consent" required style="margin-top:3px">
         <span>Concordo com os <a href="/termos" style="color:var(--accent)">Termos</a> e a <a href="/privacidade" style="color:var(--accent)">Política de Privacidade</a> (LGPD).</span>
       </label>
-      <button type="submit" data-checkout-submit class="btn btn-primary" style="width:100%">Ir para o pagamento</button>
+      <button type="submit" data-checkout-submit class="btn btn-cta" style="width:100%">Ir para o pagamento</button>
       <p data-checkout-error role="alert" style="display:none;color:var(--crit);font-size:13.5px;margin:0"></p>
       <p style="color:var(--ink-faint);font-size:12px;margin:0;text-align:center">Pagamento processado com segurança pelo gateway. Você recebe um e-mail para definir sua senha de acesso.</p>
     </form>`
-    : `<a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow" style="width:100%">Falar no WhatsApp</a>`;
+    : `<a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow" style="width:100%">${ICONE_WHATSAPP} Falar no WhatsApp</a>`;
   const body = html`
     <section class="section">
       <div class="wrap" style="max-width:920px">

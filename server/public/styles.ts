@@ -11,9 +11,15 @@ export const PUBLIC_CSS = `
   --paper:#f3f4f1;--surface:#fbfcfa;--surface-2:#eaece6;--raise:#fff;
   --ink:#1b1e22;--ink-soft:#575c62;--ink-faint:#868c92;
   --line:#dcdfd8;--line-soft:#e8eae4;
-  --accent:#0f6e66;--accent-ink:#0c5651;--accent-soft:#dcebe8;--on-accent:#fff;
-  --brand-deep:#0b3b37;--on-deep:#eef3f1;
-  --orange:#e6852f;--orange-soft:#f6ede1;
+  --accent:#0097b2;--accent-ink:#007a91;--accent-soft:#d9eef4;--on-accent:#ffffff;
+  --brand-deep:#0b7486;--on-deep:#eef3f1;
+  --brand-orange:#ff914d;--brand-orange-ink:#d96a24;--brand-orange-soft:#ffe9db;--on-orange:#2b1608;
+  /* Alias do laranja antigo, para não quebrar quem já usa --orange. */
+  --orange:#ff914d;--orange-soft:#ffe9db;
+  /* Degradê oficial: sempre do principal para o escuro, nunca invertido. */
+  --brand-gradient:linear-gradient(118deg,#0097b2 0%,#008ba4 52%,#0b7486 100%);
+  --brand-grad-topo:#0097b2;
+  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);
   --good:#2f7d4f;--good-bg:#e0efe4;--good-line:#bcdcc6;
   --warn:#9a6a12;--warn-bg:#f5ead1;--warn-line:#e5d09a;
   --crit:#b0422f;--crit-bg:#f6e2dc;--crit-line:#e8bfb3;
@@ -24,8 +30,13 @@ export const PUBLIC_CSS = `
   --paper:#101216;--surface:#181b20;--surface-2:#20242a;--raise:#1e2228;
   --ink:#e9ebe6;--ink-soft:#9ea4aa;--ink-faint:#6e747b;
   --line:#2b2f36;--line-soft:#242830;
-  --accent:#52bcb0;--accent-ink:#7fd2c8;--accent-soft:#16302d;--on-accent:#0c1f1d;
-  --brand-deep:#0a2f2c;--on-deep:#eef3f1;--orange:#e2954a;--orange-soft:#2a2113;
+  --accent:#4cc3d9;--accent-ink:#7fd8e8;--accent-soft:#102c33;--on-accent:#062229;
+  --brand-deep:#0a5f6e;--on-deep:#eef3f1;
+  --brand-orange:#ff914d;--brand-orange-ink:#ffab77;--brand-orange-soft:#33200f;--on-orange:#2b1608;
+  --orange:#ff914d;--orange-soft:#33200f;
+  --brand-gradient:linear-gradient(118deg,#0a7f95 0%,#0a7183 52%,#0a5f6e 100%);
+  --brand-grad-topo:#0a7f95;
+  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);
   --good:#5cbd83;--good-bg:#16281d;--good-line:#274a34;
   --warn:#d6a24c;--warn-bg:#2c2413;--warn-line:#4a3c1c;
   --crit:#e08066;--crit-bg:#2c1a14;--crit-line:#4d2c22;
@@ -35,8 +46,13 @@ export const PUBLIC_CSS = `
   --paper:#101216;--surface:#181b20;--surface-2:#20242a;--raise:#1e2228;
   --ink:#e9ebe6;--ink-soft:#9ea4aa;--ink-faint:#6e747b;
   --line:#2b2f36;--line-soft:#242830;
-  --accent:#52bcb0;--accent-ink:#7fd2c8;--accent-soft:#16302d;--on-accent:#0c1f1d;
-  --brand-deep:#0a2f2c;--on-deep:#eef3f1;--orange:#e2954a;--orange-soft:#2a2113;
+  --accent:#4cc3d9;--accent-ink:#7fd8e8;--accent-soft:#102c33;--on-accent:#062229;
+  --brand-deep:#0a5f6e;--on-deep:#eef3f1;
+  --brand-orange:#ff914d;--brand-orange-ink:#ffab77;--brand-orange-soft:#33200f;--on-orange:#2b1608;
+  --orange:#ff914d;--orange-soft:#33200f;
+  --brand-gradient:linear-gradient(118deg,#0a7f95 0%,#0a7183 52%,#0a5f6e 100%);
+  --brand-grad-topo:#0a7f95;
+  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);
   --good:#5cbd83;--good-bg:#16281d;--good-line:#274a34;
   --warn:#d6a24c;--warn-bg:#2c2413;--warn-line:#4a3c1c;
   --crit:#e08066;--crit-bg:#2c1a14;--crit-line:#4d2c22;
@@ -71,7 +87,13 @@ p{margin:0}
 .btn:hover{filter:brightness(1.05)}.btn:active{transform:translateY(1px)}
 .btn-primary{background:var(--accent);color:var(--on-accent)}
 .btn-outline{border-color:var(--line);color:var(--ink);background:var(--raise)}
-.btn-wa{background:#25d366;color:#0b3b1e}
+/* CTA de conversão (matrícula, checkout, entrar no AVA): degradê laranja.
+   O laranja é detalhe de identidade — usado só onde há decisão de compra. */
+.btn-cta{background:var(--cta-gradient);color:#fff;font-weight:700;box-shadow:0 12px 30px rgba(255,145,77,.35)}
+.btn-cta:hover{filter:brightness(1.04)}
+.btn-wa{background:#25d366;color:#fff;box-shadow:0 10px 26px rgba(37,211,102,.35)}
+.btn-wa svg{width:18px;height:18px;flex:none}
+.tag-categoria{color:var(--brand-orange-ink);text-transform:uppercase;letter-spacing:.06em;font-size:11.5px;font-weight:700;background:var(--brand-orange-soft);border-color:transparent}
 .tag-chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-soft);
   background:var(--surface-2);border:1px solid var(--line-soft);padding:5px 11px;border-radius:8px}
 /* ---- header ---- */
@@ -79,7 +101,7 @@ p{margin:0}
   backdrop-filter:saturate(1.2) blur(10px);border-bottom:1px solid var(--line)}
 .site-header .bar{display:flex;align-items:center;justify-content:space-between;gap:18px;height:66px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:18px}
-.brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#0a3f3a,#1f9e93);display:grid;place-items:center;color:#fff;font-size:15px}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#0b7486,#0cc0df);display:grid;place-items:center;color:#fff;font-size:15px}
 .nav{display:flex;align-items:center;gap:6px}
 .nav a{padding:9px 13px;border-radius:9px;font-weight:600;font-size:14.5px;color:var(--ink-soft)}
 .nav a:hover,.nav a[aria-current="page"]{color:var(--ink);background:var(--surface-2)}
@@ -90,19 +112,57 @@ p{margin:0}
 .cart-badge[data-count]:not([data-count="0"]){display:inline-flex}
 .menu-toggle{display:none;background:none;border:1px solid var(--line);border-radius:9px;padding:8px 10px;cursor:pointer;color:var(--ink)}
 /* ---- hero deep ---- */
-.hero-deep{background:var(--brand-deep);color:var(--on-deep)}
+.hero-deep{background:var(--brand-gradient);color:var(--on-deep);position:relative}
 .hero-deep .eyebrow{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#dfeeea}
 .hero-deep h1{color:#fff}
 .hero-deep .lead{color:#cfe0dc}
 /* ---- footer ---- */
-.site-footer{background:var(--brand-deep);color:var(--on-deep);margin-top:64px}
+.site-footer{background:var(--brand-gradient);color:var(--on-deep)}
 .site-footer a{color:#cfe0dc}.site-footer a:hover{color:#fff}
-.site-footer .cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px;padding:56px 0 40px}
+.site-footer .cols{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:36px;padding:56px 0 40px;text-align:center;justify-items:center}
+.site-footer .cols.cols-2{grid-template-columns:1fr 1fr;max-width:820px;margin:0 auto}
+.rodape-col{display:flex;flex-direction:column;align-items:center;gap:9px;max-width:38ch}
+.rodape-contato{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:600}
+.rodape-contato svg{width:17px;height:17px;flex:none}
+.ondinha{width:120px;height:8px;color:rgba(255,255,255,.45);margin:8px 0}
+.rodape-rotulo{font-style:italic;font-size:13px;color:#bcd9e2;margin-top:6px}
+.rodape-endereco{font-size:13.5px;color:#dceaef;line-height:1.5}
+.selo-rntp{width:132px;height:132px;border-radius:50%;border:2px solid rgba(255,255,255,.35);
+  background:rgba(255,255,255,.08);display:grid;place-content:center;text-align:center;gap:4px;padding:10px}
+.selo-rntp span{font-size:22px;font-weight:800;letter-spacing:.06em}
+.selo-rntp small{font-size:9px;letter-spacing:.08em;line-height:1.35;color:#dceaef}
+.rodape-privacidade{text-align:left;max-width:46ch;align-items:flex-start}
+.rodape-privacidade p{font-size:12.8px;line-height:1.6;color:#dceaef;margin-bottom:8px}
+.rodape-priv-titulo{font-weight:800;font-style:italic;font-size:13.5px;color:#fff}
+.link-destaque{color:var(--brand-orange)!important;font-weight:600}
+.link-destaque:hover{color:#ffb384!important}
 .site-footer h4{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#9fc0ba;margin:0 0 14px;font-weight:700}
 .site-footer ul{list-style:none;margin:0;padding:0;display:grid;gap:9px;font-size:14.5px}
 .site-footer .legal{border-top:1px solid rgba(255,255,255,.12);padding:20px 0;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;font-size:12.5px;color:#9fc0ba}
 .disclaimer{background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--ink);border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.6}
 .wa-float{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:50%;background:#25d366;color:#0b3b1e;display:grid;place-items:center;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:90}
+/* ---- divisor "pincel" ----
+   Três camadas do mesmo tom em opacidades crescentes, com curvas longas e
+   assimétricas. Serve para tirar o corte reto entre seções; a cor vem do
+   fundo da seção SEGUINTE, senão o divisor aparece como faixa solta. */
+.pincel{position:absolute;left:0;right:0;bottom:-1px;line-height:0;pointer-events:none;z-index:2}
+.pincel svg{display:block;width:100%;height:clamp(60px,10vw,150px)}
+/* Variante do rodapé: entra no fluxo (não absoluta) logo acima dele.
+   NÃO leva scaleY(-1): as curvas já preenchem de baixo para cima, então a
+   parte sólida encosta no rodapé e a borda ondulada fica virada para a página.
+   Invertida, a parte sólida ia para cima e o divisor virava uma faixa solta.
+   A margem superior vive aqui, e nao no rodape: la ela abriria um vao entre os
+   dois. (Sem crase neste comentario: o CSS mora dentro de um template literal.) */
+.pincel-topo{line-height:0;pointer-events:none;margin-top:64px}
+.pincel-topo svg{display:block;width:100%;height:clamp(60px,10vw,150px)}
+.tem-pincel{position:relative;overflow:hidden;padding-bottom:120px}
+/* ---- foto de fundo do hero ----
+   Bem tênue: a foto ambienta, o degradê da marca é que manda. Decorativa, por
+   isso entra como background e não como <img> com texto alternativo. */
+.hero-foto{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.16;pointer-events:none}
+.hero-veu{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(11,116,134,.25),rgba(0,151,178,.05) 40%,rgba(11,116,134,.55))}
+.hero-deep .wrap{position:relative;z-index:1}
 /* ---- utility layouts ---- */
 .stack{display:grid;gap:16px}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:28px}
@@ -118,5 +178,5 @@ p{margin:0}
   .site-footer .cols{grid-template-columns:1fr 1fr;gap:28px}
   .nav.open{display:flex;position:absolute;top:66px;left:0;right:0;flex-direction:column;align-items:stretch;background:var(--paper);border-bottom:1px solid var(--line);padding:12px 24px}
 }
-@media (max-width:560px){.site-footer .cols{grid-template-columns:1fr}}
+@media (max-width:860px){.site-footer .cols,.site-footer .cols.cols-2{grid-template-columns:1fr}.rodape-privacidade{text-align:center;align-items:center}}
 `.trim();

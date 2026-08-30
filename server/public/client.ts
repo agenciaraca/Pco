@@ -79,16 +79,45 @@ export const PUBLIC_JS = `
   });
 
   // ---- contadores ao entrar na viewport ----
+  // Era IntersectionObserver com threshold .4 e falhava calado: a barra de
+  // números ocupa quase a altura da tela, então em telas baixas 40% dela nunca
+  // fica visível de uma vez e o disparo não acontecia — o número ficava
+  // congelado em 0 para sempre, o que é pior do que não animar.
+  // Agora a decisão é por posição (getBoundingClientRect), com um intervalo de
+  // meio segundo como rede para o caso de a página carregar já rolada.
   var counters=document.querySelectorAll('[data-count-to]');
-  if(counters.length&&'IntersectionObserver'in window){
-    var io=new IntersectionObserver(function(ents){ents.forEach(function(en){
-      if(!en.isIntersecting)return;io.unobserve(en.target);
-      var el=en.target,to=Number(el.getAttribute('data-count-to')||0),t0=null,dur=1100;
+  if(counters.length){
+    var pendentes=[].slice.call(counters);
+    var timer=null;
+    function anima(el){
+      var to=Number(el.getAttribute('data-count-to')||0),t0=null,dur=1100;
+      // Ano não leva separador de milhar: "2.018" não é um ano, é um número.
+      // O separador vale para quantidade ("1.000+ alunos"), não para data.
+      var cru=el.hasAttribute('data-count-plain');
       function step(ts){if(!t0)t0=ts;var p=Math.min((ts-t0)/dur,1);var e=1-Math.pow(1-p,3);
-        el.textContent=Math.round(to*e).toLocaleString('pt-BR');if(p<1)requestAnimationFrame(step);}
+        var v=Math.round(to*e);
+        el.textContent=cru?String(v):v.toLocaleString('pt-BR');
+        if(p<1)requestAnimationFrame(step);}
       requestAnimationFrame(step);
-    });},{threshold:.4});
-    counters.forEach(function(c){io.observe(c);});
+    }
+    function varre(){
+      for(var i=pendentes.length-1;i>=0;i--){
+        var el=pendentes[i];
+        var r=el.getBoundingClientRect();
+        // 1.1x a altura da janela: começa um pouco antes de entrar, para que a
+        // animação não comece exatamente quando o olho chega.
+        if(r.top<window.innerHeight*1.1&&r.bottom>0){pendentes.splice(i,1);anima(el);}
+      }
+      if(!pendentes.length){
+        window.removeEventListener('scroll',varre);
+        window.removeEventListener('resize',varre);
+        if(timer){clearInterval(timer);timer=null;}
+      }
+    }
+    window.addEventListener('scroll',varre,{passive:true});
+    window.addEventListener('resize',varre,{passive:true});
+    timer=setInterval(varre,500);
+    varre();
   }
   // sync entre abas
   window.addEventListener('storage',function(e){if(e.key===CART_KEY)paintCart();});
