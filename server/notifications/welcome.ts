@@ -2,6 +2,7 @@
 // temporária + lista de cursos liberados (opcional).
 
 import { sendSafe } from './sender';
+import { urlPublica } from '../origem-publica';
 
 export interface WelcomeEmailInput {
   email: string;
@@ -16,7 +17,7 @@ export function renderWelcomeEmail(input: WelcomeEmailInput): {
   html: string;
   text: string;
 } {
-  const loginUrl = input.loginUrl ?? 'https://ava.psicanaliseclinica.online/login';
+  const loginUrl = input.loginUrl ?? urlPublica('/login');
   const subject = `Bem-vindo(a) ao AVA PCO, ${input.name}!`;
 
   const coursesBlock =

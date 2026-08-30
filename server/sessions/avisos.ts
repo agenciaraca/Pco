@@ -20,6 +20,7 @@ import * as notificationsRepo from '../repositories/notifications';
 import { sendSafe } from '../notifications/sender';
 import * as usersStore from '../auth/users-store';
 import type { SessionBooking } from './bookings-repo';
+import { origemPublica } from '../origem-publica';
 
 const DESTINO = '/analise-supervisao';
 
@@ -124,7 +125,7 @@ export async function avisar(
     const user = await usersStore.findUserById(booking.userId);
     const email = user?.email ?? booking.userEmail;
     if (email) {
-      const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+      const base = origemPublica();
       const r = await sendSafe({
         to: { email, name: user?.name ?? '' },
         subject: assunto,

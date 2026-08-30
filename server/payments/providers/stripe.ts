@@ -11,6 +11,7 @@ import type {
   RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
+import { origemPublica } from '../../origem-publica';
 
 const API_BASE = 'https://api.stripe.com/v1';
 
@@ -171,5 +172,5 @@ export const stripeProvider: PaymentProviderImpl = {
 };
 
 function publicOrigin(): string {
-  return process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+  return origemPublica();
 }

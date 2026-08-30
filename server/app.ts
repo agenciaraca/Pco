@@ -198,6 +198,7 @@ import { PSYCHOANALYSIS_VOCABULARY } from './transcription/vocabulary';
 import * as savedSearches from './saved-searches/store';
 import { readConfirmHeader, confirmMatches } from './http/confirm';
 import { buildOpenApiSpec } from './http/openapi';
+import { origemPublica, hostPublico } from './origem-publica';
 import * as logBuffer from './monitoring/log-buffer';
 import * as watchTimeRepo from './repositories/watch-time';
 import * as courseReviews from './reviews/store';
@@ -265,7 +266,7 @@ a{color:#0070f3;text-decoration:none}
 <div class="box">
 <h1>${escapeHtmlBasic(title)}</h1>
 <p>${escapeHtmlBasic(message)}</p>
-<p class="brand">AVA PCO · <a href="https://ava.psicanaliseclinica.online">ava.psicanaliseclinica.online</a></p>
+<p class="brand">AVA PCO · <a href="${origemPublica()}">${hostPublico()}</a></p>
 </div>
 </body>
 </html>`;
@@ -971,7 +972,7 @@ export function buildApp() {
         // eslint-disable-next-line no-console
         console.log(`[forgot-password] reset token para ${u.email}: ${token.token}`);
       }
-      const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+      const base = origemPublica();
       const resetUrl = `${base}/redefinir-senha?token=${encodeURIComponent(token.token)}`;
       const tpl = renderPasswordReset({
         userName: u.name,
@@ -7036,7 +7037,7 @@ export function buildApp() {
         if (antes === undefined) delete process.env.RESET_TOKEN_TTL_MINUTES;
         else process.env.RESET_TOKEN_TTL_MINUTES = antes;
 
-        const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+        const base = origemPublica();
         const tpl = renderPrimeiroAcesso({
           userName: a.name,
           setPasswordUrl: `${base}/redefinir-senha?token=${encodeURIComponent(token.token)}`,
@@ -10270,7 +10271,7 @@ export function buildApp() {
       if (isNewAccount) {
         try {
           const token = await createResetToken(user.id, user.email);
-          const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+          const base = origemPublica();
           const resetUrl = `${base}/redefinir-senha?token=${encodeURIComponent(token.token)}`;
           const tpl = renderPasswordReset({ userName: user.name, resetUrl, expiresInMinutes: 60 });
           void sendSafe({
@@ -10428,7 +10429,7 @@ export function buildApp() {
             style: 'currency',
             currency: updated.currency || 'BRL',
           });
-          const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+          const base = origemPublica();
           const tpl = renderOrderPaid({
             userName: buyer.name,
             productName: updated.productSnapshot.name,

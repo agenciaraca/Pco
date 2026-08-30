@@ -10,6 +10,7 @@ import type {
 } from './types';
 import crypto from 'node:crypto';
 import { PaymentProviderError } from './types';
+import { origemPublica } from '../../origem-publica';
 
 const API_BASE = 'https://api.pagar.me/core/v5';
 
@@ -182,5 +183,5 @@ export const pagarmeProvider: PaymentProviderImpl = {
 };
 
 function publicOrigin(): string {
-  return process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+  return origemPublica();
 }

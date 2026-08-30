@@ -1,5 +1,7 @@
 // Templates HTML básicos. Stateless — recebem dados, retornam {subject, html, text}.
 
+import { hostPublico, urlPublica } from '../origem-publica';
+
 interface RenderResult {
   subject: string;
   html: string;
@@ -61,7 +63,7 @@ function layout(opts: {
         </td></tr>
         ${footerNoteHtml}
         <tr><td style="padding:16px 32px;background:#fafafa;color:#666;font-size:12px;text-align:center;">
-          ${escapeHtml(orgName)} · ava.psicanaliseclinica.online
+          ${escapeHtml(orgName)} · ${escapeHtml(hostPublico())}
         </td></tr>
       </table>
     </td></tr>
@@ -244,7 +246,7 @@ export function previewTemplate(
     case 'password_reset':
       return renderPasswordReset({
         userName: 'Maria Silva',
-        resetUrl: 'https://ava.psicanaliseclinica.online/redefinir-senha?token=preview',
+        resetUrl: urlPublica('/redefinir-senha?token=preview'),
         expiresInMinutes: 30,
         override,
       });
@@ -253,21 +255,21 @@ export function previewTemplate(
         userName: 'João Souza',
         productName: 'Curso de Introdução à Psicanálise',
         amountFormatted: 'R$ 497,00',
-        orderUrl: 'https://ava.psicanaliseclinica.online/pedidos',
+        orderUrl: urlPublica('/pedidos'),
         override,
       });
     case 'course_enrolled':
       return renderCourseEnrolled({
         userName: 'Ana Costa',
         courseTitle: 'Análise e Supervisão',
-        courseUrl: 'https://ava.psicanaliseclinica.online/curso/abc123',
+        courseUrl: urlPublica('/curso/abc123'),
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60_000).toISOString(),
         override,
       });
     case 'welcome':
       return renderWelcome({
         userName: 'Carlos Pereira',
-        loginUrl: 'https://ava.psicanaliseclinica.online/login',
+        loginUrl: urlPublica('/login'),
         tempPassword: 'pco-temp-1234',
         override,
       });

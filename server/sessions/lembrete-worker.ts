@@ -20,6 +20,7 @@ import * as bookingsRepo from './bookings-repo';
 import * as notificationsRepo from '../repositories/notifications';
 import { sendSafe } from '../notifications/sender';
 import * as usersStore from '../auth/users-store';
+import { origemPublica } from '../origem-publica';
 
 /** Faixas de lembrete, em horas antes do início. */
 export const FAIXAS_HORAS = [24, 1] as const;
@@ -151,7 +152,7 @@ async function tickInterno(opts: { dryRun?: boolean } = {}): Promise<RunResult> 
       const user = await usersStore.findUserById(b.userId);
       const email = user?.email ?? b.userEmail;
       if (email) {
-        const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+        const base = origemPublica();
         await sendSafe({
           to: { email, name: user?.name ?? '' },
           subject: assunto,

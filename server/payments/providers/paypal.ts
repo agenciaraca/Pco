@@ -9,6 +9,7 @@ import type {
   RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
+import { origemPublica } from '../../origem-publica';
 
 function apiBase(mode: 'test' | 'live'): string {
   return mode === 'live'
@@ -240,5 +241,5 @@ export const paypalProvider: PaymentProviderImpl = {
 };
 
 function publicOrigin(): string {
-  return process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+  return origemPublica();
 }

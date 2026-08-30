@@ -8,6 +8,7 @@ import * as studentsRepo from '../repositories/students';
 import * as notificationPrefs from './prefs-store';
 import { sendSafe } from './sender';
 import { signToken } from '../auth/jwt';
+import { origemPublica } from '../origem-publica';
 
 export type BroadcastAudience =
   | 'all'
@@ -170,7 +171,7 @@ async function runBroadcast(
   );
   let sent = 0;
   let failed = 0;
-  const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+  const base = origemPublica();
   for (const r of recipients) {
     // Token de unsubscribe — TTL longo (1 ano), scope=unsubscribe
     const unsubToken = await signToken(

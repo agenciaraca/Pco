@@ -7,6 +7,7 @@ import { installConsoleCapture } from './monitoring/log-buffer';
 import { buildApp } from './app';
 import { publicSite } from './public/router';
 import { AUTHOR_IS_PLACEHOLDER } from './public/config';
+import { hostPublico } from './origem-publica';
 
 // Captura console.* em ring buffer ANTES de qualquer log do app
 installConsoleCapture();
@@ -59,7 +60,7 @@ if (staticRoot) {
 
   // SEO básico: robots.txt e sitemap.xml (públicos)
   root.get('/robots.txt', (c) => {
-    const host = c.req.header('host') ?? 'ava.psicanaliseclinica.online';
+    const host = c.req.header('host') ?? hostPublico();
     const proto = c.req.header('x-forwarded-proto') ?? 'https';
     const body = [
       'User-agent: *',
@@ -84,7 +85,7 @@ if (staticRoot) {
   });
 
   root.get('/sitemap.xml', async (c) => {
-    const host = c.req.header('host') ?? 'ava.psicanaliseclinica.online';
+    const host = c.req.header('host') ?? hostPublico();
     const proto = c.req.header('x-forwarded-proto') ?? 'https';
     const base = `${proto}://${host}`;
     const today = new Date().toISOString().slice(0, 10);

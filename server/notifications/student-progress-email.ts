@@ -5,6 +5,7 @@ import * as coursesRepo from '../repositories/courses';
 import * as usersStore from '../auth/users-store';
 import { blockedFromReengagement } from './prefs-store';
 import { sendSafe } from './sender';
+import { urlPublica } from '../origem-publica';
 
 export interface StudentProgressConfig {
   enabled: boolean;
@@ -162,7 +163,7 @@ export function renderEmail(data: StudentWeeklyData): {
     ` : ''}
 
     <div style="text-align:center;margin-top:20px">
-      <a href="https://ava.psicanaliseclinica.online/dashboard" style="display:inline-block;padding:10px 24px;background:#0097B2;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:bold">${ctaText}</a>
+      <a href="${urlPublica('/dashboard')}" style="display:inline-block;padding:10px 24px;background:#0097B2;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:bold">${ctaText}</a>
     </div>
 
     <p style="margin-top:20px;font-size:11px;color:#94a3b8;text-align:center">
@@ -182,7 +183,7 @@ export function renderEmail(data: StudentWeeklyData): {
       (c) => `${c.courseTitle}: ${c.pct}% (${c.completed}/${c.total})`,
     ),
     '',
-    `${ctaText}: https://ava.psicanaliseclinica.online/dashboard`,
+    `${ctaText}: ${urlPublica('/dashboard')}`,
   ];
 
   return { subject, html, text: textLines.join('\n') };

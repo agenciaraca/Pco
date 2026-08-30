@@ -6,6 +6,7 @@ import * as studentsRepo from '../repositories/students';
 import * as usersStore from '../auth/users-store';
 import * as notificationPrefs from '../notifications/prefs-store';
 import { sendSafe } from '../notifications/sender';
+import { origemPublica } from '../origem-publica';
 
 export interface RunResult {
   scanned: number;
@@ -59,7 +60,7 @@ async function tickWorkerInternal(opts: { dryRun?: boolean } = {}): Promise<RunR
       continue;
     }
 
-    const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+    const base = origemPublica();
     const html = renderTemplate(cfg.bodyHtml, {
       name: user.name,
       lastAccess: new Date(s.lastAccessAt).toLocaleDateString('pt-BR'),

@@ -30,6 +30,7 @@ import * as usersStore from '../auth/users-store';
 import * as notificationsRepo from '../repositories/notifications';
 import { sendSafe } from '../notifications/sender';
 import { accessFor } from './course-access';
+import { origemPublica } from '../origem-publica';
 
 /** Faixas de aviso, em dias restantes. A ordem importa: da mais folgada à mais apertada. */
 export const FAIXAS_AVISO = [30, 7, 1] as const;
@@ -142,7 +143,7 @@ async function tickInterno(opts: { dryRun?: boolean } = {}): Promise<RunResult> 
 
   const enviados = new Set((await ledger.getAll()).map(chave));
   const agora = new Date();
-  const base = process.env.PUBLIC_ORIGIN ?? 'https://ava.psicanaliseclinica.online';
+  const base = origemPublica();
 
   for (const s of students) {
     for (const courseId of s.enrolledCourseIds ?? []) {

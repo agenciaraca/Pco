@@ -8,6 +8,8 @@
  * Fonte: handoff de design (data/site.js), adaptado ao AVA.
  */
 
+import { origemPublica } from '../origem-publica';
+
 export interface OrgConfig {
   name: string;
   shortName: string;
@@ -36,8 +38,14 @@ export const ORG: OrgConfig = {
   name: 'Psicanálise Clínica Online (PCO)',
   shortName: 'PCO',
   legalName: 'PCO — Psicanálise Clínica Online',
-  // Domínio de produção do AVA. Ajustar se o site público subir em domínio próprio.
-  url: 'https://ava.psicanaliseclinica.online',
+  // Endereço público do AVA. Vem de `PUBLIC_ORIGIN`, não de literal — é o que
+  // faz os dados estruturados e o SEO acompanharem uma troca de domínio.
+  // É getter, e não valor fixo, porque `ORG_ID` e companhia em `jsonld.ts` são
+  // avaliados no import: com valor fixo, quem definisse a variável depois
+  // ficaria com o endereço velho gravado.
+  get url(): string {
+    return origemPublica();
+  },
   logo: '/uploads/logo-pco.png',
   cnpj: '41.961.134/0001-56',
   rntp: 'RNTP 1407167IE',

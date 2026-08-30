@@ -3,15 +3,17 @@
 // vivente para integradores e como base pra `Try it out` em qualquer
 // Swagger UI.
 
+import { origemPublica } from '../origem-publica';
+
 export interface OpenApiOptions {
-  /** Origem pública (ex.: https://ava.psicanaliseclinica.online). */
+  /** Origem pública. Sem valor, cai em `origemPublica()`. */
   origin?: string;
   /** Versão do app (lida do package.json em runtime). */
   version?: string;
 }
 
 export function buildOpenApiSpec(opts: OpenApiOptions = {}): unknown {
-  const origin = opts.origin ?? 'https://ava.psicanaliseclinica.online';
+  const origin = opts.origin ?? origemPublica();
   const version = opts.version ?? '0.1.0';
 
   return {
