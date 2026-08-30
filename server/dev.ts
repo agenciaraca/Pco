@@ -38,8 +38,24 @@ if (staticRoot) {
           "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
       );
     }
+    // HSTS **sem** `includeSubDomains` desde 30/ago/2026, e isso é temporário.
+    //
+    // Enquanto o AVA respondia só em `ava.`, incluir os subdomínios não custava
+    // nada. Servindo o domínio principal, a diretiva passa a valer para *todos*
+    // os subdomínios — inclusive `old.`, que hospeda a loja e ainda não tem
+    // certificado válido. O efeito é brutal e silencioso: quem abre o site
+    // principal fica um ano sem conseguir acessar a loja, e o navegador não
+    // oferece "continuar assim mesmo" — HSTS não tem escapatória por clique.
+    //
+    // Ligar de volta assim que `old.psicanaliseclinica.online` tiver
+    // certificado próprio. A troca é sentida por quem revisitar o site
+    // principal, porque a política é substituída a cada visita.
     if (!c.res.headers.has('Strict-Transport-Security')) {
-      c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      const comSubdominios = process.env.HSTS_INCLUDE_SUBDOMAINS === 'true';
+      c.header(
+        'Strict-Transport-Security',
+        `max-age=31536000${comSubdominios ? '; includeSubDomains' : ''}`,
+      );
     }
     if (!c.res.headers.has('X-Frame-Options')) {
       c.header('X-Frame-Options', 'DENY');
@@ -57,6 +73,40 @@ if (staticRoot) {
 
   // /api/* -> API (Hono inteiro com basePath '/api')
   root.all('/api/*', (c) => api.fetch(c.req.raw));
+
+  // Endereço canônico: um domínio responde, os outros apontam para ele.
+  //
+  // O AVA atende hoje por mais de um nome (`ava.`, `www.` e o principal). Sem
+  // isso, o buscador encontra a mesma página em três endereços e trata como
+  // conteúdo duplicado — e o `<link rel="canonical">`, que já sai apontando
+  // para `PUBLIC_ORIGIN`, contradiz a URL que a pessoa está vendo.
+  //
+  // Vem **depois** de `/api/*` de propósito: redirecionar a API quebraria
+  // integração. Um 301 num POST faz parte dos clientes reenviar como GET e
+  // perder o corpo — quem consome a API pública passa a receber erro sem
+  // entender por quê. A API responde por qualquer um dos nomes.
+  //
+  // Só age quando há para onde ir e o nome é diferente, então em
+  // desenvolvimento (sem `PUBLIC_ORIGIN`) não redireciona nada.
+  root.use('*', async (c, next) => {
+    const canonico = process.env.PUBLIC_ORIGIN?.trim();
+    if (!canonico) return next();
+
+    let hostCanonico: string;
+    try {
+      hostCanonico = new URL(canonico).host;
+    } catch {
+      // Origem malformada não pode derrubar o site inteiro num redirecionamento
+      // para lugar nenhum: segue sem redirecionar.
+      return next();
+    }
+
+    const host = c.req.header('host');
+    if (!host || host === hostCanonico) return next();
+
+    const url = new URL(c.req.url);
+    return c.redirect(`${canonico}${url.pathname}${url.search}`, 301);
+  });
 
   // SEO básico: robots.txt e sitemap.xml (públicos)
   root.get('/robots.txt', (c) => {
