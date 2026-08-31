@@ -99,6 +99,13 @@
       "when": 1787850000000,
       "tag": "0013_analytics_proprio",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788200000000,
+      "tag": "0014_produtos_no_banco",
+      "breakpoints": true
     }
   ]
 }

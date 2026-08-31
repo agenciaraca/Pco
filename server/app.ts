@@ -4935,6 +4935,11 @@ export function buildApp() {
     c.json(await ordersRepo.migrarJsonParaBanco()),
   );
 
+  /** O mesmo para os produtos — que agora são quem carrega o preço. */
+  app.post('/admin/payments/products/migrar', requireAuth('superadmin'), async (c) =>
+    c.json(await productsRepo.migrarJsonParaBanco()),
+  );
+
   app.put('/admin/orders/:id/status', requireAuth('admin', 'superadmin'), async (c) => {
     const id = c.req.param('id') as string;
     const body = await c.req.json().catch(() => ({}));

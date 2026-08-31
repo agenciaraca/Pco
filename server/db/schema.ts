@@ -528,6 +528,29 @@ export const sessionBookings = pgTable('session_bookings', {
  * congelada e um log cronológico. Normalizá-los daria três tabelas para
  * responder à mesma pergunta.
  */
+/**
+ * Produtos à venda — o que define o PREÇO de um curso.
+ *
+ * Vieram para o banco em 31/ago/2026, pelo mesmo motivo dos pedidos: preço é
+ * registro de dinheiro. Enquanto viveu só em `data/payment-products.json`,
+ * ficou fora do backup transacional e sujeito a sumir junto com o arquivo — e a
+ * partir de 31/ago é ele que decide quanto o aluno paga.
+ */
+export const paymentProducts = pgTable('payment_products', {
+  id: text('id').primaryKey(),
+  kind: text('kind').notNull(),
+  /** courseId quando kind=course; serviceId quando kind=session_pack. */
+  refId: text('ref_id'),
+  name: text('name').notNull(),
+  description: text('description'),
+  priceCents: integer('price_cents').notNull().default(0),
+  currency: text('currency').notNull().default('BRL'),
+  active: boolean('active').notNull().default(true),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
 export const paymentOrders = pgTable('payment_orders', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull(),
