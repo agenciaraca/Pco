@@ -29,9 +29,14 @@ export default {
           gold: '#D6A84F',
         },
       },
+      /**
+       * Exatamente a pilha de `server/public/styles.ts`. As duas metades do
+       * produto precisam ler igual: quem vem do site e entra no AVA não pode
+       * ver a letra mudar na fronteira do login.
+       */
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       borderRadius: {
         xl: '14px',
