@@ -26,11 +26,8 @@
  *   npx tsx scripts/resolver_duracoes_aulas.ts --aplicar       # grava
  */
 
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
-
-const DATA_DIR = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
-const ARQUIVO = path.join(DATA_DIR, 'courses.json');
+import 'dotenv/config';
+import * as coursesRepo from '../server/repositories/courses';
 
 export interface Video {
   provedor: 'youtube' | 'vimeo';
@@ -123,7 +120,11 @@ async function main(): Promise<void> {
   const aplicar = process.argv.includes('--aplicar');
   const chaveYt = process.env.YOUTUBE_API_KEY ?? '';
 
-  const cursos = JSON.parse(await fs.readFile(ARQUIVO, 'utf8')) as Array<{
+  // Lê pelo repositório, não pelo arquivo: produção é Postgres e a versão
+  // anterior só sabia mexer em `data/courses.json` — rodava, dizia "0 aulas" e
+  // parecia que não havia o que fazer.
+  const cursos = (await coursesRepo.listCourses()) as unknown as Array<{
+    title?: string;
     modules?: Array<{ lessons?: Aula[] }>;
   }>;
 
@@ -166,14 +167,10 @@ async function main(): Promise<void> {
         r.resolvidas++;
         if (aula.durationMinutes !== minutos) {
           r.alteradas++;
-          if (aplicar) aula.durationMinutes = minutos;
+          if (aplicar) await coursesRepo.updateLesson(aula.id, { durationMinutes: minutos });
         }
       }
     }
-  }
-
-  if (aplicar && r.alteradas > 0) {
-    await fs.writeFile(ARQUIVO, JSON.stringify(cursos, null, 2) + '\n');
   }
 
   console.log('');
@@ -189,7 +186,7 @@ async function main(): Promise<void> {
     console.log(`     ^ defina YOUTUBE_API_KEY para resolver as do YouTube`);
   }
   console.log(`durações que mudariam .......... ${r.alteradas}`);
-  console.log(aplicar ? '>> gravado em courses.json' : '>> nada foi gravado (use --aplicar)');
+  console.log(aplicar ? '>> gravado pelo repositório (banco ou JSON)' : '>> nada foi gravado (use --aplicar)');
   console.log('');
 }
 
