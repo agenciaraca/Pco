@@ -1221,46 +1221,72 @@ function formularioCheckout(modo: { tipo: 'curso'; slug: string } | { tipo: 'car
  * que são coisas diferentes.
  */
 publicSite.get('/carrinho', async (c) => {
+  /**
+   * Transposição de `docs/design/pages/Carrinho.dc.html`.
+   *
+   * O carrinho vive no `localStorage` deste navegador — o servidor não sabe o
+   * que tem nele, e é assim de propósito: guardar carrinho no servidor exigiria
+   * identificar quem está navegando antes de a pessoa decidir comprar. A página
+   * chega com os dois estados prontos e escondidos, e o `/_pub/site.js` mostra o
+   * que couber. Sem JS fica o aviso — nunca uma lista vazia se passando por
+   * "carrinho vazio", que são coisas diferentes.
+   *
+   * **O seletor de quantidade do protótipo não veio.** Ele desenha "− 1 +" em
+   * cada item, como qualquer loja. Só que curso não se compra em dobro: comprar
+   * duas vezes não dá dois acessos, e o servidor colapsa duplicata ao montar o
+   * pedido (`test/checkout-carrinho.test.ts`). Um botão que deixasse marcar 3 e
+   * cobrasse 1 seria exatamente a tela que mente que este projeto persegue.
+   *
+   * "Descontos —" fica como travessão: existe cupom no sistema, mas o checkout
+   * público não aplica nenhum. Travessão diz "não há"; "R$ 0,00" diria que
+   * alguém calculou.
+   */
   const body = html`
-    <section class="section">
-      <div class="wrap" style="max-width:820px">
-        <nav class="breadcrumb" aria-label="Trilha">
-          <a href="/">Início</a><span>›</span><a href="/formacoes">Cursos</a><span>›</span
-          ><span>Carrinho</span>
-        </nav>
-        <h1 style="margin:8px 0 24px">Seu carrinho</h1>
+    <section class="carrinho-topo">
+      <nav class="carrinho-trilha" aria-label="Trilha">
+        <a href="/">Início</a> / <span class="atual">Carrinho</span>
+      </nav>
+      <h1>Seu carrinho</h1>
+    </section>
 
-        <noscript>
-          <div class="disclaimer" style="margin-bottom:20px">
-            O carrinho depende de JavaScript, porque ele fica guardado neste navegador. Você pode se
-            matricular direto pela página de cada formação.
-          </div>
-        </noscript>
-
-        <div data-carrinho-vazio style="display:none">
-          <div class="card" style="text-align:center">
-            <p style="color:var(--ink-soft);margin-bottom:18px">Seu carrinho está vazio.</p>
-            <a class="btn btn-primary" href="/formacoes">Ver as formações</a>
-          </div>
-        </div>
-
-        <div data-carrinho-corpo style="display:none">
-          <div class="card">
-            <div data-carrinho-lista></div>
-            <div class="carrinho-total">
-              <span class="rotulo">Total</span>
-              <span class="valor" data-carrinho-total>—</span>
-            </div>
-          </div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:20px">
-            <a class="btn btn-cta" href="/checkout?carrinho=1">Finalizar matrícula</a>
-            <a class="btn btn-outline" href="/formacoes">Continuar escolhendo</a>
-          </div>
-          <p style="color:var(--ink-faint);font-size:12.5px;margin-top:14px">
-            O valor final é conferido no checkout, a partir dos preços vigentes.
-          </p>
+    <noscript>
+      <div class="wrap" style="max-width:1100px">
+        <div class="disclaimer">
+          O carrinho depende de JavaScript, porque ele fica guardado neste navegador. Você pode se
+          matricular direto pela página de cada formação.
         </div>
       </div>
+    </noscript>
+
+    <section class="carrinho-vazio" data-carrinho-vazio style="display:none">
+      ${raw(
+        `<div class="icone"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>`,
+      )}
+      <h2>Seu carrinho está vazio</h2>
+      <p>Explore as formações da PCO e comece sua jornada na psicanálise clínica.</p>
+      <a class="btn btn-primary" href="/formacoes">Ver os cursos</a>
+    </section>
+
+    <section class="carrinho-layout" data-carrinho-corpo style="display:none">
+      <div>
+        <div class="carrinho-itens" data-carrinho-lista></div>
+        <a class="carrinho-continuar" href="/formacoes">← Continuar escolhendo cursos</a>
+      </div>
+
+      <aside class="carrinho-resumo">
+        <h2>Resumo</h2>
+        <div class="carrinho-linha"><span>Subtotal</span><span data-carrinho-subtotal>—</span></div>
+        <div class="carrinho-linha"><span>Descontos</span><span>—</span></div>
+        <div class="carrinho-total">
+          <span class="rotulo">Total</span>
+          <span class="valor" data-carrinho-total>—</span>
+        </div>
+        <div class="carrinho-nota">ou parcelado no cartão · condições no checkout</div>
+        <a class="btn btn-cta" href="/checkout?carrinho=1">Ir para o checkout</a>
+        ${raw(
+          `<a class="carrinho-zap" href="${ORG.whatsapp}" rel="noopener nofollow">Dúvidas? Fale no WhatsApp</a>`,
+        )}
+      </aside>
     </section>
   `;
   return c.html(

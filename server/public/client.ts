@@ -29,7 +29,11 @@ export const PUBLIC_JS = `
   window.pcoCart={
     add:function(item){
       var c=readCart();var f=c.find(function(x){return x.slug===item.slug;});
-      if(f){f.qty=(f.qty||1)+1;}else{c.push({slug:item.slug,title:item.title,price:item.price,qty:1});}
+      // Curso nao se compra em dobro: comprar duas vezes nao da dois acessos, e
+      // o servidor colapsa duplicata ao montar o pedido. Entao adicionar de novo
+      // nao incrementa nada — so avisa que ja esta la.
+      if(f){toast('Este curso ja esta no carrinho');return;}
+      c.push({slug:item.slug,title:item.title,price:item.price,href:item.href,qty:1});
       try{localStorage.setItem(CART_KEY,JSON.stringify(c));}catch(e){}
       paintCart();window.dispatchEvent(new CustomEvent('pco-cart-change'));toast('Adicionado ao carrinho');
     },
@@ -45,7 +49,7 @@ export const PUBLIC_JS = `
   document.addEventListener('click',function(e){
     var tt=e.target.closest('[data-theme-toggle]');if(tt){e.preventDefault();toggleTheme();return;}
     var mt=e.target.closest('[data-menu-toggle]');if(mt){e.preventDefault();var nav=document.getElementById('site-nav');if(nav){nav.classList.toggle('open');mt.setAttribute('aria-expanded',nav.classList.contains('open')?'true':'false');}return;}
-    var add=e.target.closest('[data-add-cart]');if(add){e.preventDefault();window.pcoCart.add({slug:add.getAttribute('data-slug'),title:add.getAttribute('data-title'),price:Number(add.getAttribute('data-price')||0)});return;}
+    var add=e.target.closest('[data-add-cart]');if(add){e.preventDefault();window.pcoCart.add({slug:add.getAttribute('data-slug'),title:add.getAttribute('data-title'),price:Number(add.getAttribute('data-price')||0),href:'/formacao/'+add.getAttribute('data-slug')});return;}
     var acc=e.target.closest('[data-accordion]');if(acc){var panel=acc.nextElementSibling;var open=acc.getAttribute('aria-expanded')==='true';acc.setAttribute('aria-expanded',open?'false':'true');if(panel){panel.style.maxHeight=open?'0px':panel.scrollHeight+'px';}return;}
   });
   // ---- checkout público (form -> API -> redirect pro gateway) ----
@@ -96,10 +100,10 @@ export const PUBLIC_JS = `
   }
   function pintarCarrinho(){
     var lista=document.querySelector('[data-carrinho-lista]');
-    if(!lista) return;
-    var itens=readCart();
     var vazio=document.querySelector('[data-carrinho-vazio]');
     var corpo=document.querySelector('[data-carrinho-corpo]');
+    if(!lista&&!vazio) return;
+    var itens=readCart();
     if(!itens.length){
       if(vazio) vazio.style.display='';
       if(corpo) corpo.style.display='none';
@@ -107,33 +111,50 @@ export const PUBLIC_JS = `
     }
     if(vazio) vazio.style.display='none';
     if(corpo) corpo.style.display='';
-    var total=0;
+    if(!lista) return;
+    var total=0,temSemPreco=false;
     lista.innerHTML='';
     itens.forEach(function(i){
-      var cents=Number(i.price||0)*100;
+      var cents=Math.round(Number(i.price||0)*100);
+      if(!cents) temSemPreco=true;
       total+=cents;
-      var li=document.createElement('div');
-      li.className='carrinho-item';
-      var nome=document.createElement('div');
-      nome.className='nome';
-      nome.textContent=i.title||i.slug;
+      var href=i.href||('/formacao/'+i.slug);
+
+      var cartao=document.createElement('div');
+      cartao.className='carrinho-item';
+
+      var capa=document.createElement('a');
+      capa.className='carrinho-capa';
+      capa.href=href;
+      capa.setAttribute('aria-hidden','true');
+      capa.setAttribute('tabindex','-1');
+
+      var meio=document.createElement('div');
+      meio.className='meio';
+      var titulo=document.createElement('a');
+      titulo.className='titulo';titulo.href=href;titulo.textContent=i.title||i.slug;
+      var tipo=document.createElement('div');
+      tipo.className='tipo';tipo.textContent='Formação profissional · online';
+      var tirar=document.createElement('button');
+      tirar.type='button';tirar.className='tirar';
+      tirar.setAttribute('data-carrinho-remover',i.slug);
+      tirar.setAttribute('aria-label','Remover '+(i.title||i.slug)+' do carrinho');
+      tirar.textContent='Remover';
+      meio.appendChild(titulo);meio.appendChild(tipo);meio.appendChild(tirar);
+
       var valor=document.createElement('div');
       valor.className='valor';
       valor.textContent=cents?brl(cents):'—';
-      var tirar=document.createElement('button');
-      tirar.type='button';
-      tirar.className='tirar';
-      tirar.setAttribute('data-carrinho-remover',i.slug);
-      tirar.setAttribute('aria-label','Tirar '+(i.title||i.slug)+' do carrinho');
-      tirar.textContent='Remover';
-      li.appendChild(nome);li.appendChild(valor);li.appendChild(tirar);
-      lista.appendChild(li);
+
+      cartao.appendChild(capa);cartao.appendChild(meio);cartao.appendChild(valor);
+      lista.appendChild(cartao);
     });
-    var elTotal=document.querySelector('[data-carrinho-total]');
-    // Sem preco em algum item o total mentiria, entao ele sai de cena e quem
-    // fecha a conta e o checkout.
-    var temSemPreco=itens.some(function(i){return !Number(i.price);});
-    if(elTotal) elTotal.textContent=temSemPreco?'—':brl(total);
+    // Com item sem preco o total mentiria, entao ele sai de cena e quem fecha a
+    // conta e o checkout, que soma no servidor.
+    var texto=temSemPreco?'—':brl(total);
+    document.querySelectorAll('[data-carrinho-total],[data-carrinho-subtotal]').forEach(function(el){
+      el.textContent=texto;
+    });
   }
   function removerDoCarrinho(slug){
     var c=readCart().filter(function(i){return i.slug!==slug;});

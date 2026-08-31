@@ -31,6 +31,11 @@ repositório, sim.
 | `pages/Checkout.dc.html` | O checkout — transposto em 30/ago/2026, **sem** os campos de cartão |
 | `pages/Home.dc.html` | A página inicial — transposta em 30/ago/2026 |
 | `pages/Login.dc.html` | O login (React, não SSR) — só os blocos que faltavam |
+| `pages/Carrinho.dc.html` | O carrinho — transposto em 31/ago/2026, **sem** o seletor de quantidade |
+| `pages/Dashboard.dc.html` | A área do aluno (React) — ainda não transposta |
+| `pages/Aula.dc.html` | O leitor de aula (React) — ainda não transposto |
+| `pages/Componentes.dc.html` | A biblioteca de componentes com estados — referência |
+| `tokens.css` | A FONTE ÚNICA de tokens, claro + escuro |
 | `data/site.js` | Dados de referência, com o **conteúdo verbatim** do curso de Psicanálise Clínica |
 
 ## Como usar
@@ -61,27 +66,34 @@ E mais duas que valem por página:
   e se anuncia como "ambiente de demonstração". O checkout real é hospedado: o
   pagamento acontece na página do provedor. Copiar os campos criaria escopo de
   PCI que o projeto não tem.
-- **"Adicionar ao carrinho".** Não existe página de carrinho neste site, só o
-  contador no topo. Onde o protótipo põe essa ação, o produto manda para o
-  checkout — ou não mostra botão nenhum.
+- **O seletor de quantidade do carrinho.** O protótipo desenha "− 1 +" em cada
+  item, como qualquer loja. Curso não se compra em dobro: comprar duas vezes não
+  dá dois acessos, e o servidor colapsa duplicata ao montar o pedido. Um botão
+  que deixasse marcar 3 e cobrasse 1 seria tela que mente.
 
 O que atravessa é texto: `scripts/conteudo/psicanalise-clinica.json`, aplicado
 por `scripts/aplicar_conteudo_curso.ts` (seco por padrão, `--commit` grava).
 
 ## O que falta transpor
 
-Do handoff, ainda não vieram para o produto: `Dashboard`, `Aula`,
-`Componentes`, `SiteFooter`, `Sobre`, `Contato`, `Carrinho`, `Blog`, `Post`,
-`Autor` — e o `tokens.css` como fonte única (hoje os tokens estão duplicados
-entre `server/public/styles.ts` e `tailwind.config.js`).
+Do handoff, ainda não vieram para o produto: `Dashboard` e `Aula` (as duas de
+dentro do AVA, em React), `Componentes`, `SiteHeader`, `SiteFooter`, `Sobre`,
+`Contato`, `Blog`, `Post`, `Autor`.
+
+O `tokens.css` já está aqui, mas ainda **não** é a fonte única: os tokens
+seguem duplicados entre `server/public/styles.ts` e `tailwind.config.js`.
+Unificar mexe na cor de todas as telas do admin, que o dono já aprovou como
+estão — então é decisão dele, não conserto técnico.
+
+A tipografia, essa sim, já foi unificada: as duas metades em system-ui, sem
+webfont (`test/fronteira-do-login.test.ts`).
 
 Duas decisões continuam com o dono, e por isso não foram tomadas aqui:
 
-- **O cabeçalho.** O protótipo usa cabeçalho **branco** com a logomarca; o site
-  usa o degradê da marca, decisão tomada em 30/ago. Os dois não valem ao mesmo
-  tempo.
-- **O carrinho.** Ou existe página de carrinho, ou a ação sai do desenho. Hoje
-  há contador no topo e nenhuma página.
+- ~~**O cabeçalho.**~~ Resolvido em 31/ago: **fica o degradê da marca**. O
+  cabeçalho branco do protótipo não vale.
+- **Os tokens.** Unificar `tokens.css` como fonte única muda a cor do admin,
+  que está aprovado como está.
 
 Para baixar mais arquivos: abrir o projeto, **All project files**, passar o
 mouse na linha, `...` → Download.

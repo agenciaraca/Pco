@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>PCO — Biblioteca de Componentes</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .sec { max-width: 1120px; margin: 0 auto; padding: 40px 28px; }
+  .sec h2 { font-size: 22px; margin-bottom: 6px; }
+  .sec .hint { font-size: 13.5px; color: var(--ink-faint); margin: 0 0 22px; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .lab { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-faint); margin: 18px 0 10px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; font-weight: 700; font-size: 15px; padding: 13px 24px; border: none; cursor: pointer; font-family: var(--font-sans); }
+  .btn:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none !important; }
+  .btn-cta { background: var(--grad-cta); color: #fff; box-shadow: 0 10px 26px rgba(255,145,77,.32); }
+  .btn-cta:hover { filter: brightness(1.05); }
+  .btn-primary { background: var(--accent); color: var(--on-accent); box-shadow: 0 8px 22px rgba(0,151,178,.28); }
+  .btn-primary:hover { background: var(--accent-ink); }
+  .btn-outline { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .btn-ghost { background: transparent; color: var(--accent-ink); padding: 13px 16px; }
+  .btn-ghost:hover { background: var(--accent-soft); }
+  .btn-wa { background: var(--wa); color: #fff; box-shadow: 0 8px 22px rgba(37,211,102,.3); }
+  .fi { width: 100%; max-width: 340px; padding: 13px 15px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); font-size: 15px; font-family: var(--font-sans); background: var(--raise); color: var(--ink); }
+  .fi:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .fi[disabled] { background: var(--surface-2); color: var(--ink-faint); cursor: not-allowed; }
+  .fi.err { border-color: var(--crit); box-shadow: 0 0 0 3px var(--crit-bg); }
+  .lbl { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
+  .card { background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+  .spin { width: 16px; height: 16px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .skel { background: linear-gradient(90deg, var(--surface-2) 25%, var(--line-soft) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: var(--radius-sm); }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  table.tb { width: 100%; border-collapse: collapse; background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .tb th { text-align: left; font-size: 12px; letter-spacing: .6px; text-transform: uppercase; color: var(--ink-faint); padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .tb td { padding: 14px 16px; font-size: 14.5px; border-bottom: 1px solid var(--line-soft); }
+</style>
+</helmet>
+
+<div style="padding-bottom: 80px;">
+<header style="background: var(--grad-brand); color: #fff; padding: 44px 28px;">
+  <div style="max-width: 1120px; margin: 0 auto;">
+    <h1 style="font-size: clamp(26px,3.4vw,40px); color: #fff;">Biblioteca de Componentes PCO</h1>
+    <p style="margin: 10px 0 0; color: rgba(255,255,255,.85); font-size: 15.5px; max-width: 62ch;">Especificação por comportamento, válida para as duas metades (site público e AVA). Tudo lê os tokens de <code style="font-family: var(--font-mono); font-size: 13px;">tokens.css</code>. Alternar tema: <code style="font-family: var(--font-mono); font-size: 13px;">document.documentElement.dataset.theme = 'dark' | 'light'</code>.</p>
+    <button onClick="{{ toggleTheme }}" class="btn btn-outline" style="margin-top: 18px; border-color: rgba(255,255,255,.5); color: #fff;">Alternar tema (claro/escuro)</button>
+  </div>
+</header>
+
+<!-- BOTÕES -->
+<section class="sec">
+  <h2>Botão — 4 variantes + WhatsApp</h2>
+  <p class="hint">CTA (degradê laranja) só onde há decisão de compra. Primário ciano para ações principais sem venda. Estados: normal, hover, foco (anel), desabilitado, carregando.</p>
+  <div class="lab">Variantes</div>
+  <div class="row">
+    <button class="btn btn-cta">Matricular-se agora</button>
+    <button class="btn btn-primary">Continuar aula</button>
+    <button class="btn btn-outline">Ver curso</button>
+    <button class="btn btn-ghost">Saber mais →</button>
+    <a class="btn btn-wa" href="#"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2z"/></svg>Falar no WhatsApp</a>
+  </div>
+  <div class="lab">Estados</div>
+  <div class="row">
+    <button class="btn btn-cta" disabled>Desabilitado</button>
+    <button class="btn btn-primary"><span class="spin"></span> Processando…</button>
+    <button class="btn btn-outline" style="border-color: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 3px var(--accent-soft);">Com foco</button>
+  </div>
+</section>
+
+<!-- CAMPOS -->
+<section class="sec" style="background: var(--surface); border-block: 1px solid var(--line-soft);">
+  <h2>Campo de formulário</h2>
+  <p class="hint">Label sempre visível acima. Erro = borda + anel + mensagem embaixo; nunca só cor.</p>
+  <div class="row" style="align-items: flex-start; gap: 26px;">
+    <div><label class="lbl">Normal</label><input class="fi" placeholder="voce@email.com"></div>
+    <div><label class="lbl">Foco</label><input class="fi" style="border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);" value="foco visível"></div>
+    <div><label class="lbl">Erro</label><input class="fi err" value="cpf inválido"><div style="font-size: 12.5px; color: var(--crit); margin-top: 5px;">Confira o CPF — são 11 dígitos.</div></div>
+    <div><label class="lbl">Desabilitado</label><input class="fi" disabled value="—"></div>
+  </div>
+</section>
+
+<!-- CARTÃO / SELO / ABAS -->
+<section class="sec">
+  <h2>Cartão, selo e abas</h2>
+  <p class="hint">Cartão: raio --radius, sombra --shadow, borda --line. Selos semânticos nunca em cor de marca.</p>
+  <div class="row" style="align-items: stretch;">
+    <div class="card" style="width: 280px;">
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <span style="font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink);">Formação</span>
+        <span style="font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--good-bg); color: var(--good); border: 1px solid var(--good-line);">Concluído</span>
+      </div>
+      <div style="font-weight: 700; font-size: 17px;">Psicanálise Clínica</div>
+      <div style="font-size: 13.5px; color: var(--ink-soft); margin-top: 5px;">12 módulos · 60 aulas · 560h</div>
+    </div>
+    <div class="card" style="width: 300px;">
+      <div style="display: flex; border-bottom: 1px solid var(--line); gap: 4px;">
+        <button style="padding: 10px 14px; border: none; background: none; font-weight: 700; font-size: 14px; color: var(--accent-ink); border-bottom: 2.5px solid var(--accent); cursor: pointer; font-family: var(--font-sans);">Conteúdo</button>
+        <button style="padding: 10px 14px; border: none; background: none; font-weight: 600; font-size: 14px; color: var(--ink-faint); border-bottom: 2.5px solid transparent; cursor: pointer; font-family: var(--font-sans);">Avaliações</button>
+        <button style="padding: 10px 14px; border: none; background: none; font-weight: 600; font-size: 14px; color: var(--ink-faint); border-bottom: 2.5px solid transparent; cursor: pointer; font-family: var(--font-sans);">Fórum</button>
+      </div>
+      <div style="padding-top: 14px; font-size: 14px; color: var(--ink-soft);">Aba ativa: cor --accent-ink + régua --accent.</div>
+    </div>
+  </div>
+</section>
+
+<!-- AVISOS -->
+<section class="sec" style="background: var(--surface); border-block: 1px solid var(--line-soft);">
+  <h2>Avisos</h2>
+  <p class="hint">O aviso de formação livre (âmbar) é obrigatório em páginas de curso e artigo — visível, nunca escondido no rodapé.</p>
+  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 720px;">
+    <div style="background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--radius); padding: 16px 20px; font-size: 14.5px; line-height: 1.6; color: var(--ink);"><strong style="color: var(--warn);">Formação livre.</strong> Não substitui graduação em Psicologia ou Medicina, nem constitui aconselhamento clínico. Em caso de crise, ligue para o CVV: 188.</div>
+    <div style="background: var(--good-bg); border: 1px solid var(--good-line); border-radius: var(--radius); padding: 16px 20px; font-size: 14.5px; color: var(--ink);"><strong style="color: var(--good);">Tudo certo.</strong> Pagamento confirmado — acesso liberado.</div>
+    <div style="background: var(--crit-bg); border: 1px solid var(--crit-line); border-radius: var(--radius); padding: 16px 20px; font-size: 14.5px; color: var(--ink);"><strong style="color: var(--crit);">Algo falhou.</strong> Não foi possível salvar. Tente novamente.</div>
+  </div>
+</section>
+
+<!-- TABELA + PAGINAÇÃO -->
+<section class="sec">
+  <h2>Tabela e paginação</h2>
+  <p class="hint">Números com tabular-nums e sempre com a base ("58% de 1.122"); sem medição = travessão, não zero.</p>
+  <table class="tb">
+    <thead><tr><th>Pedido</th><th>Curso</th><th>Status</th><th style="text-align:right;">Valor</th></tr></thead>
+    <tbody>
+      <tr><td style="font-family: var(--font-mono); font-size: 13px;">PCO-8F2K1</td><td>Psicanálise Clínica</td><td><span style="font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--good-bg); color: var(--good);">Pago</span></td><td style="text-align:right;">R$ 1.497,00</td></tr>
+      <tr><td style="font-family: var(--font-mono); font-size: 13px;">PCO-8F1Q9</td><td>Hipnoterapia Clínica</td><td><span style="font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--warn-bg); color: var(--warn);">Aguardando</span></td><td style="text-align:right;">R$ 1.297,00</td></tr>
+      <tr><td style="font-family: var(--font-mono); font-size: 13px;">PCO-8E7D2</td><td>Terapia Familiar</td><td>—</td><td style="text-align:right;">—</td></tr>
+    </tbody>
+  </table>
+  <div class="row" style="margin-top: 16px; gap: 6px;">
+    <button class="btn btn-outline" style="padding: 8px 14px; font-size: 13.5px;">‹</button>
+    <button class="btn btn-primary" style="padding: 8px 14px; font-size: 13.5px;">1</button>
+    <button class="btn btn-outline" style="padding: 8px 14px; font-size: 13.5px;">2</button>
+    <button class="btn btn-outline" style="padding: 8px 14px; font-size: 13.5px;">3</button>
+    <button class="btn btn-outline" style="padding: 8px 14px; font-size: 13.5px;">›</button>
+  </div>
+</section>
+
+<!-- ESTADOS DE PÁGINA -->
+<section class="sec" style="background: var(--surface); border-block: 1px solid var(--line-soft);">
+  <h2>Estados: vazio, carregando, erro</h2>
+  <p class="hint">Vazio orienta a próxima ação; carregando usa skeleton (nunca spinner de página inteira); erro oferece saída.</p>
+  <div class="row" style="align-items: stretch;">
+    <div class="card" style="width: 280px; text-align: center;">
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--accent-soft); margin: 6px auto 12px; display: flex; align-items: center; justify-content: center; color: var(--accent-ink); font-size: 22px;">☰</div>
+      <div style="font-weight: 700;">Nenhuma anotação ainda</div>
+      <div style="font-size: 13.5px; color: var(--ink-soft); margin: 6px 0 14px;">Suas anotações de aula aparecem aqui.</div>
+      <button class="btn btn-primary" style="padding: 10px 18px; font-size: 14px;">Ir para as aulas</button>
+    </div>
+    <div class="card" style="width: 280px;">
+      <div class="skel" style="height: 14px; width: 60%;"></div>
+      <div class="skel" style="height: 14px; width: 90%; margin-top: 10px;"></div>
+      <div class="skel" style="height: 14px; width: 75%; margin-top: 10px;"></div>
+      <div class="skel" style="height: 90px; margin-top: 14px;"></div>
+    </div>
+    <div class="card" style="width: 280px; text-align: center; border-color: var(--crit-line);">
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--crit-bg); margin: 6px auto 12px; display: flex; align-items: center; justify-content: center; color: var(--crit); font-size: 22px;">!</div>
+      <div style="font-weight: 700;">Não conseguimos carregar</div>
+      <div style="font-size: 13.5px; color: var(--ink-soft); margin: 6px 0 14px;">Verifique a conexão e tente de novo.</div>
+      <button class="btn btn-outline" style="padding: 10px 18px; font-size: 14px;">Tentar novamente</button>
+    </div>
+  </div>
+</section>
+
+<!-- MODAL + CHAT -->
+<section class="sec">
+  <h2>Modal e padrão de chat (Tutor Virtual)</h2>
+  <p class="hint">Modal: raio --radius-lg, sombra --shadow-lg, fundo escurecido rgba(6,59,73,.5). Chat: IA à esquerda em --surface-2, aluno à direita em --accent.</p>
+  <div class="row" style="align-items: flex-start;">
+    <div style="width: 340px; background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden;">
+      <div style="padding: 20px 24px 0;"><h3 style="font-size: 18px;">Emitir certificado?</h3><p style="font-size: 14px; color: var(--ink-soft); line-height: 1.55; margin: 8px 0 0;">Confira seu nome antes de emitir — a reemissão é controlada.</p></div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; padding: 18px 20px;"><button class="btn btn-outline" style="padding: 10px 18px; font-size: 14px;">Cancelar</button><button class="btn btn-primary" style="padding: 10px 18px; font-size: 14px;">Emitir</button></div>
+    </div>
+    <div style="width: 340px;" class="card">
+      <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+        <span style="width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">IA</span>
+        <div style="background: var(--surface-2); border-radius: 12px; padding: 11px 13px; font-size: 13.5px; line-height: 1.5;">Posso te ajudar com dúvidas dos seus cursos.</div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;"><div style="background: var(--accent); color: var(--on-accent); border-radius: 12px; padding: 11px 13px; font-size: 13.5px; max-width: 80%;">O que é transferência?</div></div>
+      <div style="display: flex; gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px;"><span style="flex: 1; font-size: 13.5px; color: var(--ink-faint);">Sua pergunta…</span><span style="width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center;">↑</span></div>
+      <div style="font-size: 11px; color: var(--ink-faint); text-align: center; margin-top: 10px;">Uso educativo · não substitui supervisão clínica</div>
+    </div>
+  </div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  toggleTheme = () => {
+    const r = document.documentElement;
+    const dark = (r.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
+    r.dataset.theme = dark ? 'light' : 'dark';
+  };
+  renderVals() { return { toggleTheme: this.toggleTheme }; }
+}
+</script>
+</body>
+</html>

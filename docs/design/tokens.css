@@ -1,0 +1,100 @@
+/* ============================================================
+   PCO — Design Tokens (fonte única, duas metades)
+   Mapear estes nomes em server/public/styles.ts e tailwind.config.js
+   Tema: claro por padrão; escuro via [data-theme="dark"] OU prefers-color-scheme.
+   ============================================================ */
+:root {
+  /* neutros — viés frio, nunca cinza puro */
+  --paper: #f3f4f1;      /* fundo da página */
+  --surface: #fbfcfa;    /* faixas/seções alternadas */
+  --surface-2: #eaece6;  /* recuos, pílulas, fundos de controle */
+  --raise: #ffffff;      /* cartões e superfícies elevadas */
+  --ink: #101828;        /* texto principal (grafite oficial) */
+  --ink-soft: #575c62;   /* texto secundário */
+  --ink-faint: #868c92;  /* legendas, placeholders */
+  --line: #dcdfd8;       /* bordas padrão */
+  --line-soft: #e8eae4;  /* bordas sutis/divisores */
+
+  /* marca — ciano manda; troque só este bloco para rebrandar */
+  --accent: #0097b2;         /* ciano principal */
+  --accent-ink: #007a91;     /* ciano p/ texto sobre claro (contraste) */
+  --accent-soft: #d9eef4;    /* tint de fundo */
+  --on-accent: #ffffff;
+  --accent-bright: #0cc0df;  /* ciano claro (gráficos, brilhos) */
+  --accent-light: #5ce1e6;   /* ciano claro 2 (detalhes finos) */
+  --brand-petroleo: #063b49; /* petróleo — superfícies/texto de peso */
+  --brand-deep: #0b7486;     /* ponta escura do degradê oficial */
+  --on-deep: #eef3f1;
+
+  /* laranja — DETALHE de identidade + CTA de conversão; nunca dominante */
+  --brand-orange: #ff914d;
+  --brand-orange-ink: #d96a24;   /* laranja legível sobre claro */
+  --brand-orange-soft: #ffe9db;
+  --on-orange: #2b1608;
+
+  /* degradês oficiais — sempre do principal para o escuro */
+  --grad-brand: linear-gradient(118deg, #0097b2 0%, #008ba4 52%, #0b7486 100%);
+  --grad-cta: linear-gradient(118deg, #ff914d, #f07a2f);
+
+  /* terceiros */
+  --wa: #25d366; /* WhatsApp oficial */
+
+  /* semânticos — são ESTADO, nunca cor de marca */
+  --good: #2f7d4f; --good-bg: #e0efe4; --good-line: #bcdcc6;
+  --warn: #9a6a12; --warn-bg: #f5ead1; --warn-line: #e5d09a;
+  --crit: #b0422f; --crit-bg: #f6e2dc; --crit-line: #e8bfb3;
+
+  /* geometria e sombra */
+  --radius-sm: 9px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --shadow: 0 1px 2px rgba(20,25,30,.04), 0 4px 16px rgba(20,25,30,.05);
+  --shadow-lg: 0 12px 34px rgba(11,116,134,.14);
+
+  /* tipografia — site público NÃO carrega webfont (Core Web Vitals) */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  color-scheme: light;
+}
+
+/* tema escuro — mesmíssimo cuidado */
+:root[data-theme="dark"] {
+  --paper: #101216; --surface: #181b20; --surface-2: #20242a; --raise: #1e2228;
+  --ink: #e9ebe6; --ink-soft: #9ea4aa; --ink-faint: #6e747b;
+  --line: #2b2f36; --line-soft: #242830;
+  --accent: #4cc3d9; --accent-ink: #7fd8e8; --accent-soft: #102c33; --on-accent: #0c1f1d;
+  --accent-bright: #0cc0df; --accent-light: #5ce1e6;
+  --brand-petroleo: #041f27; --brand-deep: #0a5f6e; --on-deep: #eef3f1;
+  --brand-orange: #ff914d; --brand-orange-ink: #ffab77; --brand-orange-soft: #33200f;
+  --good: #5cbd83; --good-bg: #16281d; --good-line: #274a34;
+  --warn: #d6a24c; --warn-bg: #2c2413; --warn-line: #4a3c1c;
+  --crit: #e08066; --crit-bg: #2c1a14; --crit-line: #4d2c22;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+  --shadow-lg: 0 14px 38px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #101216; --surface: #181b20; --surface-2: #20242a; --raise: #1e2228;
+    --ink: #e9ebe6; --ink-soft: #9ea4aa; --ink-faint: #6e747b;
+    --line: #2b2f36; --line-soft: #242830;
+    --accent: #4cc3d9; --accent-ink: #7fd8e8; --accent-soft: #102c33; --on-accent: #0c1f1d;
+    --accent-bright: #0cc0df; --accent-light: #5ce1e6;
+    --brand-petroleo: #041f27; --brand-deep: #0a5f6e; --on-deep: #eef3f1;
+    --brand-orange: #ff914d; --brand-orange-ink: #ffab77; --brand-orange-soft: #33200f;
+    --good: #5cbd83; --good-bg: #16281d; --good-line: #274a34;
+    --warn: #d6a24c; --warn-bg: #2c2413; --warn-line: #4a3c1c;
+    --crit: #e08066; --crit-bg: #2c1a14; --crit-line: #4d2c22;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+    --shadow-lg: 0 14px 38px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+
+/* base mínima compartilhada */
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+a { color: var(--accent-ink); text-decoration: none; }
+a:hover { color: var(--accent); }
+h1, h2, h3 { margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+::selection { background: var(--accent-soft); }

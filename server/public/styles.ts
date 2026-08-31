@@ -484,22 +484,64 @@ p{margin:0}
   .porque{grid-template-columns:1fr}
 }
 
-/* ================= CARRINHO =================
+/* ================= CARRINHO (protótipo aprovado) =================
+   Transposição de docs/design/pages/Carrinho.dc.html.
+
    O carrinho mora no localStorage deste navegador, entao a pagina chega vazia
    do servidor e e preenchida pelo /_pub/site.js. Sem JS, fica o aviso que ja
-   veio no HTML — nunca uma lista vazia se passando por carrinho vazio. */
-.carrinho-item{display:flex;align-items:center;gap:16px;padding:16px 0;
-  border-bottom:1px solid var(--line-soft)}
-.carrinho-item:last-child{border-bottom:0}
-.carrinho-item .nome{flex:1;font-weight:600;color:var(--ink);font-size:16px}
-.carrinho-item .valor{font-weight:700;color:var(--ink);white-space:nowrap}
-.carrinho-item .tirar{background:none;border:0;cursor:pointer;font-family:inherit;
-  font-size:13px;color:var(--ink-faint);text-decoration:underline;padding:4px}
-.carrinho-item .tirar:hover{color:var(--crit)}
-.carrinho-total{display:flex;justify-content:space-between;align-items:baseline;
-  margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
-.carrinho-total .rotulo{font-weight:700;color:var(--ink);font-size:16px}
+   veio no HTML — nunca uma lista vazia se passando por carrinho vazio.
+
+   O seletor de quantidade do protótipo (− 1 +) NAO veio: curso nao se compra em
+   dobro. O servidor colapsa duplicata ao criar o pedido, entao um botao que
+   deixasse marcar 3 e cobrasse 1 seria tela que mente. Ver o comentario da rota. */
+.carrinho-topo{max-width:1100px;margin:0 auto;padding:50px 28px 20px}
+.carrinho-topo h1{font-size:clamp(30px,4vw,44px);color:var(--ink);letter-spacing:-.6px}
+.carrinho-trilha{font-size:13px;color:var(--ink-soft);margin-bottom:18px}
+.carrinho-trilha .atual{color:var(--ink)}
+/* vazio */
+.carrinho-vazio{max-width:640px;margin:0 auto;padding:40px 28px 100px;text-align:center}
+.carrinho-vazio .icone{width:70px;height:70px;border-radius:50%;background:var(--accent-soft);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 20px;color:var(--accent)}
+.carrinho-vazio h2{font-size:24px;color:var(--ink);margin-bottom:10px}
+.carrinho-vazio p{font-size:16px;color:var(--ink-soft);margin-bottom:24px}
+/* com itens */
+.carrinho-layout{max-width:1100px;margin:0 auto;padding:30px 28px 100px;display:grid;
+  grid-template-columns:1.7fr 1fr;gap:40px;align-items:start}
+.carrinho-itens{display:flex;flex-direction:column;gap:16px}
+.carrinho-item{background:var(--raise);border:1px solid var(--line-soft);border-radius:18px;
+  padding:22px;display:flex;gap:20px;align-items:center}
+.carrinho-capa{width:90px;height:90px;border-radius:12px;flex-shrink:0;display:block;
+  background-color:#0b7486;background-size:cover;background-position:center;
+  background-image:linear-gradient(135deg,rgba(0,151,178,.55),rgba(11,116,134,.9)),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 14px,rgba(255,255,255,0) 14px 28px)}
+.carrinho-item .meio{flex:1;min-width:0}
+.carrinho-item .titulo{font-weight:700;color:var(--ink);font-size:19px;display:block}
+.carrinho-item .titulo:hover{color:var(--accent)}
+.carrinho-item .tipo{font-size:13px;color:var(--ink-soft);margin-top:4px}
+.carrinho-item .tirar{margin-top:8px;background:none;border:0;color:var(--crit);font-size:13px;
+  font-weight:600;cursor:pointer;padding:0;font-family:inherit}
+.carrinho-item .tirar:hover{text-decoration:underline}
+.carrinho-item .valor{font-weight:700;color:var(--ink);font-size:18px;min-width:100px;text-align:right}
+.carrinho-continuar{font-weight:600;color:var(--accent);font-size:15px;margin-top:6px;display:inline-block}
+/* resumo */
+.carrinho-resumo{position:sticky;top:100px;background:var(--raise);border:1px solid var(--line);
+  border-radius:22px;padding:30px;box-shadow:0 16px 44px var(--accent-soft)}
+.carrinho-resumo h2{font-size:20px;color:var(--ink);margin-bottom:20px}
+.carrinho-linha{display:flex;justify-content:space-between;font-size:15px;color:var(--ink-soft);margin-bottom:10px}
+.carrinho-total{border-top:1px solid var(--line-soft);padding-top:16px;display:flex;
+  justify-content:space-between;align-items:baseline;margin-top:6px}
+.carrinho-total .rotulo{font-weight:700;color:var(--ink)}
 .carrinho-total .valor{font-size:28px;font-weight:700;color:var(--ink)}
+.carrinho-nota{font-size:13px;color:var(--ink-soft);margin-top:6px}
+.carrinho-resumo .btn{width:100%;margin-top:22px;padding:16px;font-size:16px}
+.carrinho-zap{display:block;text-align:center;margin-top:10px;font-size:14px;color:var(--ink-soft)}
+.carrinho-zap:hover{color:var(--accent)}
+@media (max-width:900px){
+  .carrinho-layout{grid-template-columns:1fr;gap:28px}
+  .carrinho-resumo{position:static}
+  .carrinho-item{flex-wrap:wrap}
+  .carrinho-item .valor{text-align:left;min-width:0}
+}
 `.trim();
 
 /**
