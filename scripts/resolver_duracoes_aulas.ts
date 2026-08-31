@@ -72,16 +72,41 @@ export function segundosParaMinutos(seg: number): number | null {
   return Math.ceil(seg / 60);
 }
 
+/**
+ * Os vídeos da PCO são `privacy.embed: whitelist` — só tocam em domínio
+ * autorizado. O oEmbed obedece à mesma lista: pedido sem referer autorizado
+ * volta 200, mas **sem `duration` e sem `title`**, com `domain_status_code: 403`.
+ *
+ * Foi por isso que a primeira execução contra produção resolveu ZERO de 105
+ * aulas com vídeo e não deu erro nenhum: a resposta chegava "ok" e vazia.
+ *
+ * `VIMEO_REFERER` diz de qual domínio pedir. O padrão é o domínio público do
+ * AVA — que é onde isto deveria funcionar. Enquanto ele não estiver na lista da
+ * Vimeo, passe o domínio que já está autorizado.
+ */
+const REFERER_VIMEO = process.env.VIMEO_REFERER ?? 'https://psicanaliseclinica.online/';
+
 async function duracaoVimeo(id: string): Promise<number | null> {
   try {
-    const r = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${id}`);
+    const r = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${id}`, {
+      headers: { Referer: REFERER_VIMEO },
+    });
     if (!r.ok) return null;
-    const j = (await r.json()) as { duration?: number };
+    const j = (await r.json()) as { duration?: number; domain_status_code?: number };
+    if (j.domain_status_code === 403) {
+      // Bloqueio de domínio, não vídeo sem duração. Silenciar isso seria repetir
+      // o erro que fez a execução anterior parecer bem-sucedida.
+      naoAutorizados++;
+      return null;
+    }
     return typeof j.duration === 'number' ? segundosParaMinutos(j.duration) : null;
   } catch {
     return null;
   }
 }
+
+/** Quantas aulas a Vimeo recusou por domínio não autorizado. */
+let naoAutorizados = 0;
 
 async function duracaoYoutube(id: string, chave: string): Promise<number | null> {
   try {
@@ -184,6 +209,14 @@ async function main(): Promise<void> {
   if (r.bloqueadasPorChave > 0) {
     console.log(`  dessas, por falta de chave ... ${r.bloqueadasPorChave}`);
     console.log(`     ^ defina YOUTUBE_API_KEY para resolver as do YouTube`);
+  }
+  if (naoAutorizados > 0) {
+    console.log('');
+    console.log(`ATENÇÃO: ${naoAutorizados} vídeos recusaram o domínio.`);
+    console.log(`  A Vimeo respondeu 403 de domínio para ${REFERER_VIMEO}.`);
+    console.log('  Isso vale para o PLAYER também: aula com vídeo assim não toca');
+    console.log('  para o aluno neste domínio. Autorize o domínio na Vimeo, ou');
+    console.log('  rode com VIMEO_REFERER=<domínio já autorizado> só para medir.');
   }
   console.log(`durações que mudariam .......... ${r.alteradas}`);
   console.log(aplicar ? '>> gravado pelo repositório (banco ou JSON)' : '>> nada foi gravado (use --aplicar)');
