@@ -59,10 +59,18 @@ export const PUBLIC_JS = `
     var g = function (n) { var el = f.querySelector('[name="' + n + '"]'); return el ? el.value : ''; };
     var cons = f.querySelector('[name="consent"]');
     var payload = {
-      courseSlug: f.getAttribute('data-slug'),
       name: g('name'), email: g('email'), whatsapp: g('whatsapp'),
       document: g('document'), consent: !!(cons && cons.checked)
     };
+    // Checkout de carrinho manda a lista; o de um curso só manda o slug.
+    // O PRECO nao vai em nenhum dos dois: quem soma e o servidor, a partir dos
+    // produtos ativos. O carrinho vive no localStorage, entao o que ele diz
+    // sobre valor e palpite.
+    if (f.hasAttribute('data-checkout-carrinho')) {
+      payload.courseSlugs = readCart().map(function (i) { return i.slug; });
+    } else {
+      payload.courseSlug = f.getAttribute('data-slug');
+    }
     if (btn) { btn.disabled = true; btn.textContent = 'Processando…'; }
     fetch('/api/public/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
@@ -77,6 +85,68 @@ export const PUBLIC_JS = `
         if (btn) { btn.disabled = false; btn.textContent = 'Ir para o pagamento'; }
       });
   });
+
+  // ---- carrinho: lista, remover, total ----
+  // A pagina do carrinho e servida vazia e preenchida aqui, porque o carrinho
+  // mora no localStorage deste navegador — nao no servidor. Sem JS a pagina
+  // mostra o aviso que ja veio no HTML.
+  function brl(cents){
+    try{return (cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+    catch(e){return 'R$ '+(cents/100).toFixed(2);}
+  }
+  function pintarCarrinho(){
+    var lista=document.querySelector('[data-carrinho-lista]');
+    if(!lista) return;
+    var itens=readCart();
+    var vazio=document.querySelector('[data-carrinho-vazio]');
+    var corpo=document.querySelector('[data-carrinho-corpo]');
+    if(!itens.length){
+      if(vazio) vazio.style.display='';
+      if(corpo) corpo.style.display='none';
+      return;
+    }
+    if(vazio) vazio.style.display='none';
+    if(corpo) corpo.style.display='';
+    var total=0;
+    lista.innerHTML='';
+    itens.forEach(function(i){
+      var cents=Number(i.price||0)*100;
+      total+=cents;
+      var li=document.createElement('div');
+      li.className='carrinho-item';
+      var nome=document.createElement('div');
+      nome.className='nome';
+      nome.textContent=i.title||i.slug;
+      var valor=document.createElement('div');
+      valor.className='valor';
+      valor.textContent=cents?brl(cents):'—';
+      var tirar=document.createElement('button');
+      tirar.type='button';
+      tirar.className='tirar';
+      tirar.setAttribute('data-carrinho-remover',i.slug);
+      tirar.setAttribute('aria-label','Tirar '+(i.title||i.slug)+' do carrinho');
+      tirar.textContent='Remover';
+      li.appendChild(nome);li.appendChild(valor);li.appendChild(tirar);
+      lista.appendChild(li);
+    });
+    var elTotal=document.querySelector('[data-carrinho-total]');
+    // Sem preco em algum item o total mentiria, entao ele sai de cena e quem
+    // fecha a conta e o checkout.
+    var temSemPreco=itens.some(function(i){return !Number(i.price);});
+    if(elTotal) elTotal.textContent=temSemPreco?'—':brl(total);
+  }
+  function removerDoCarrinho(slug){
+    var c=readCart().filter(function(i){return i.slug!==slug;});
+    try{localStorage.setItem(CART_KEY,JSON.stringify(c));}catch(e){}
+    paintCart();pintarCarrinho();
+    window.dispatchEvent(new CustomEvent('pco-cart-change'));
+  }
+  document.addEventListener('click',function(e){
+    var r=e.target.closest('[data-carrinho-remover]');
+    if(r){e.preventDefault();removerDoCarrinho(r.getAttribute('data-carrinho-remover'));}
+  });
+  window.addEventListener('pco-cart-change',pintarCarrinho);
+  pintarCarrinho();
 
   // ---- contadores ao entrar na viewport ----
   // Era IntersectionObserver com threshold .4 e falhava calado: a barra de

@@ -182,18 +182,34 @@ export type CheckoutInput = z.infer<typeof checkoutSchema>;
  * Checkout PÚBLICO (visitante não logado). Provisiona a conta pelo e-mail e
  * cria o pedido no gateway. Usado pelo site público de vendas.
  */
-export const publicCheckoutSchema = z.object({
-  courseSlug: z.string().min(1).max(120),
-  name: z.string().min(2).max(120),
-  email: z.string().email().max(160),
-  /** CPF/CNPJ (opcional; alguns gateways exigem). */
-  document: z.string().max(20).optional().or(z.literal('')),
-  whatsapp: z.string().max(30).optional().or(z.literal('')),
-  gatewayId: z.string().min(1).optional(),
-  couponCode: z.string().max(40).optional(),
-  /** Consentimento LGPD obrigatório. */
-  consent: z.literal(true),
-});
+export const publicCheckoutSchema = z
+  .object({
+    /** Compra de um curso só. Continua valendo — o site usava só isto. */
+    courseSlug: z.string().min(1).max(120).optional(),
+    /**
+     * Carrinho: vários cursos num pedido só.
+     *
+     * O modelo de pedido tem UM produto (`productId` é coluna, não tabela de
+     * itens). Em vez de mexer na tabela do dinheiro, o servidor materializa um
+     * produto `kind: 'bundle'` inativo com os `courseIds` do carrinho — e
+     * `grantAccessForOrder` já matricula em todos os cursos de um pacote. É
+     * caminho existente e testado, não invenção nova.
+     */
+    courseSlugs: z.array(z.string().min(1).max(120)).min(1).max(20).optional(),
+    name: z.string().min(2).max(120),
+    email: z.string().email().max(160),
+    /** CPF/CNPJ (opcional; alguns gateways exigem). */
+    document: z.string().max(20).optional().or(z.literal('')),
+    whatsapp: z.string().max(30).optional().or(z.literal('')),
+    gatewayId: z.string().min(1).optional(),
+    couponCode: z.string().max(40).optional(),
+    /** Consentimento LGPD obrigatório. */
+    consent: z.literal(true),
+  })
+  .refine((d) => Boolean(d.courseSlug) || (d.courseSlugs?.length ?? 0) > 0, {
+    message: 'Informe courseSlug ou courseSlugs.',
+    path: ['courseSlug'],
+  });
 export type PublicCheckoutInput = z.infer<typeof publicCheckoutSchema>;
 
 // Cupons

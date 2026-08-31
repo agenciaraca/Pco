@@ -483,6 +483,23 @@ p{margin:0}
   .afirmacao{grid-template-columns:1fr;gap:28px}
   .porque{grid-template-columns:1fr}
 }
+
+/* ================= CARRINHO =================
+   O carrinho mora no localStorage deste navegador, entao a pagina chega vazia
+   do servidor e e preenchida pelo /_pub/site.js. Sem JS, fica o aviso que ja
+   veio no HTML — nunca uma lista vazia se passando por carrinho vazio. */
+.carrinho-item{display:flex;align-items:center;gap:16px;padding:16px 0;
+  border-bottom:1px solid var(--line-soft)}
+.carrinho-item:last-child{border-bottom:0}
+.carrinho-item .nome{flex:1;font-weight:600;color:var(--ink);font-size:16px}
+.carrinho-item .valor{font-weight:700;color:var(--ink);white-space:nowrap}
+.carrinho-item .tirar{background:none;border:0;cursor:pointer;font-family:inherit;
+  font-size:13px;color:var(--ink-faint);text-decoration:underline;padding:4px}
+.carrinho-item .tirar:hover{color:var(--crit)}
+.carrinho-total{display:flex;justify-content:space-between;align-items:baseline;
+  margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+.carrinho-total .rotulo{font-weight:700;color:var(--ink);font-size:16px}
+.carrinho-total .valor{font-size:28px;font-weight:700;color:var(--ink)}
 `.trim();
 
 /**

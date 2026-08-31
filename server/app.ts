@@ -1921,9 +1921,7 @@ export function buildApp() {
    * cursos. Ementa (título, descrição, duração, ordem) continua saindo — é
    * ela que vende. Ver `server/access/conteudo-aula.ts`.
    */
-  app.get('/courses', async (c) =>
-    c.json(listaSemConteudoDeAula(await coursesRepo.listCourses())),
-  );
+  app.get('/courses', async (c) => c.json(listaSemConteudoDeAula(await coursesRepo.listCourses())));
   /**
    * Endpoint público: retorna o conteúdo de uma lesson SE ela estiver marcada
    * como isPreview=true. Caso contrário 403. Usado pra player aberto a
@@ -2160,34 +2158,28 @@ export function buildApp() {
    * escapa por aqui — quem precisa ver conteúdo para editar usa as rotas de
    * `/admin/`, que têm o próprio controle.
    */
-  app.get(
-    '/me/courses/:courseId/lessons/:lessonId/content',
-    requireAuth(),
-    async (c) => {
-      const u = c.get('user')!;
-      const courseId = c.req.param('courseId') as string;
-      const lessonId = c.req.param('lessonId') as string;
+  app.get('/me/courses/:courseId/lessons/:lessonId/content', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const courseId = c.req.param('courseId') as string;
+    const lessonId = c.req.param('lessonId') as string;
 
-      const acc = await courseAccessFor(u.sub, courseId);
-      if (!acc.canStudy) {
-        return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc));
-      }
+    const acc = await courseAccessFor(u.sub, courseId);
+    if (!acc.canStudy) {
+      return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc));
+    }
 
-      const course = await coursesRepo.findCourse(courseId);
-      if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+    const course = await coursesRepo.findCourse(courseId);
+    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
 
-      const lesson = course.modules
-        .flatMap((m) => m.lessons ?? [])
-        .find((l) => l.id === lessonId);
-      if (!lesson) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada neste curso.');
+    const lesson = course.modules.flatMap((m) => m.lessons ?? []).find((l) => l.id === lessonId);
+    if (!lesson) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada neste curso.');
 
-      return c.json({
-        lessonId,
-        courseId,
-        content: (lesson as unknown as { content?: string }).content ?? null,
-      });
-    },
-  );
+    return c.json({
+      lessonId,
+      courseId,
+      content: (lesson as unknown as { content?: string }).content ?? null,
+    });
+  });
 
   /**
    * Verifica se o aluno logado completou os pré-requisitos do curso.
@@ -9123,9 +9115,7 @@ export function buildApp() {
         mailgunDomain: body.mailgunDomain ? String(body.mailgunDomain) : undefined,
         mailgunRegion: body.mailgunRegion === 'eu' ? 'eu' : undefined,
         sesRegion: body.sesRegion ? String(body.sesRegion) : undefined,
-        sesSecretAccessKey: body.sesSecretAccessKey
-          ? String(body.sesSecretAccessKey)
-          : undefined,
+        sesSecretAccessKey: body.sesSecretAccessKey ? String(body.sesSecretAccessKey) : undefined,
       });
       return c.json(created, 201);
     },
@@ -10207,25 +10197,83 @@ export function buildApp() {
     const v = validate(publicCheckoutSchema, body);
     if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
 
+    /**
+     * Um curso ou um carrinho. `courseSlugs` chegou com o carrinho; `courseSlug`
+     * continua valendo porque era o único que existia.
+     *
+     * Duplicata não vira cobrança dobrada: o carrinho é conjunto de cursos, e
+     * comprar o mesmo curso duas vezes não dá acesso em dobro.
+     */
+    const slugs = Array.from(
+      new Set(v.data.courseSlugs?.length ? v.data.courseSlugs : [v.data.courseSlug!]),
+    );
+
     const courses = await coursesRepo.listCourses();
     // Mesmo portão do catálogo: curso fora da vitrine não pode ser comprado por
     // quem descobriu o slug. Não basta `active` — ver isPubliclyListed().
-    const course = courses.find(
-      (co) =>
-        (co.slug ?? String(co.id)) === v.data.courseSlug &&
-        isPubliclyListed(co as unknown as Record<string, unknown>),
-    );
-    if (!course) return jsonError(c, 404, 'COURSE_NOT_FOUND', 'Curso não encontrado.');
-
-    const product = await productsRepo.findByCourseId(course.id);
-    if (!product || !product.active) {
-      return jsonError(
-        c,
-        409,
-        'NOT_FOR_SALE',
-        'Este curso ainda não está disponível para compra online. Fale com a gente pelo WhatsApp.',
+    const escolhidos: {
+      curso: (typeof courses)[number];
+      produto: import('./payments/types').Product;
+    }[] = [];
+    for (const slug of slugs) {
+      const course = courses.find(
+        (co) =>
+          (co.slug ?? String(co.id)) === slug &&
+          isPubliclyListed(co as unknown as Record<string, unknown>),
       );
+      if (!course) return jsonError(c, 404, 'COURSE_NOT_FOUND', `Curso não encontrado: ${slug}`);
+
+      const prod = await productsRepo.findByCourseId(course.id);
+      if (!prod || !prod.active) {
+        return jsonError(
+          c,
+          409,
+          'NOT_FOR_SALE',
+          `"${course.title}" ainda não está disponível para compra online. Fale com a gente pelo WhatsApp.`,
+        );
+      }
+      escolhidos.push({ curso: course, produto: prod });
     }
+
+    /**
+     * O preço NUNCA vem do cliente.
+     *
+     * O carrinho mora no localStorage do navegador, então o que ele manda é
+     * palpite — inclusive um palpite malicioso. Aqui o valor é somado a partir
+     * dos produtos ativos que o servidor acabou de ler. O corpo da requisição
+     * só escolhe QUAIS cursos; quanto custam é decisão daqui.
+     */
+    const moedas = new Set(escolhidos.map((e) => e.produto.currency));
+    if (moedas.size > 1) {
+      return jsonError(c, 409, 'MIXED_CURRENCY', 'Não dá para pagar moedas diferentes num pedido.');
+    }
+    const totalCents = escolhidos.reduce((soma, e) => soma + e.produto.priceCents, 0);
+
+    /**
+     * Um pedido tem UM produto (`productId` é coluna). Para o carrinho virar um
+     * pagamento só, o servidor materializa um pacote com os cursos escolhidos —
+     * `kind: 'bundle'`, que `grantAccessForOrder` já sabe matricular em todos.
+     *
+     * Nasce `active: false` e marcado `adhoc`: não é oferta, é o registro
+     * congelado do que esta pessoa comprou. Produto inativo não aparece em
+     * `listActive()`, então ele nunca entra no catálogo nem na vitrine.
+     */
+    const product: import('./payments/types').Product =
+      escolhidos.length === 1
+        ? escolhidos[0].produto
+        : await productsRepo.createProduct({
+            kind: 'bundle',
+            name: `Carrinho — ${escolhidos.length} formações`,
+            description: escolhidos.map((e) => e.curso.title).join(' + '),
+            priceCents: totalCents,
+            currency: escolhidos[0].produto.currency,
+            active: false,
+            metadata: {
+              adhoc: true,
+              courseIds: escolhidos.map((e) => e.curso.id),
+              slugs,
+            },
+          });
 
     // Provisiona / recupera a conta pelo e-mail (role student).
     const email = v.data.email.toLowerCase().trim();

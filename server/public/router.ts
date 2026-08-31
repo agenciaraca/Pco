@@ -805,9 +805,17 @@ publicSite.get('/formacoes', async (c) => {
          </div>`;
 
     const href = `/formacao/${esc(co.slug)}`;
+    /**
+     * Duas ações quando há preço, como no protótipo: juntar ao carrinho ou ir
+     * direto. Sem preço, nenhuma das duas aparece — não há o que somar nem o
+     * que cobrar, e a página do curso oferece o caminho por WhatsApp.
+     */
     const matricular =
       co.priceCents != null
-        ? `<a class="btn btn-cta" href="/checkout?curso=${esc(co.slug)}">Matricular-se</a>`
+        ? `<button type="button" class="btn btn-outline" data-add-cart
+             data-slug="${esc(co.slug)}" data-title="${esc(co.shortTitle || co.title)}"
+             data-price="${(co.priceCents / 100).toFixed(2)}">Adicionar ao carrinho</button>
+           <a class="btn btn-cta" href="/checkout?curso=${esc(co.slug)}">Matricular-se</a>`
         : '';
 
     return `
@@ -1059,6 +1067,9 @@ publicSite.get('/formacao/:slug', async (c) => {
        ${co.installmentFormatted ? `<div class="curso-parcela">ou ${co.installments}x de ${esc(co.installmentFormatted)}</div>` : ''}
        ${co.priceNote ? `<div class="curso-preco-nota">${esc(co.priceNote)}</div>` : ''}
        <a class="btn btn-cta" href="${destinoCompra}">Matricular-se agora</a>
+       <button type="button" class="btn btn-outline" data-add-cart
+         data-slug="${esc(co.slug)}" data-title="${esc(co.shortTitle || co.title)}"
+         data-price="${((co.priceCents ?? 0) / 100).toFixed(2)}">Adicionar ao carrinho</button>
        <a class="curso-duvida" href="${wa}" rel="noopener nofollow">Tirar dúvidas no WhatsApp</a>`
     : `<div class="curso-invest">Matrículas abertas</div>
        <div class="curso-preco-nota" style="margin-top:8px">Este curso ainda não tem matrícula online. Fale com a gente para saber as condições.</div>
@@ -1125,8 +1136,211 @@ publicSite.get('/formacao/:slug', async (c) => {
   );
 });
 
+/**
+ * O formulário do checkout, um só para os dois modos.
+ *
+ * `curso` manda um slug; `carrinho` manda a lista que está no localStorage —
+ * quem monta o payload é o `/_pub/site.js`, e em nenhum dos dois casos o preço
+ * sai do navegador: quem soma é o servidor.
+ *
+ * Os campos de cartão do protótipo não vêm: o pagamento acontece na página do
+ * provedor. Ver o comentário da rota /checkout.
+ */
+const CADEADO_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+
+function formularioCheckout(modo: { tipo: 'curso'; slug: string } | { tipo: 'carrinho' }): string {
+  const atrs =
+    modo.tipo === 'curso'
+      ? `data-checkout data-slug="${esc(modo.slug)}"`
+      : 'data-checkout data-checkout-carrinho';
+  return `
+    <form ${atrs} class="ck-coluna">
+      <div class="ck-bloco">
+        <h2>1. Seus dados</h2>
+        <div class="ck-campos">
+          <div>
+            <label class="lbl" for="ck-nome">Nome completo</label>
+            <input class="fi" id="ck-nome" name="name" required minlength="2" autocomplete="name" placeholder="Seu nome">
+          </div>
+          <div class="ck-dupla">
+            <div>
+              <label class="lbl" for="ck-email">E-mail</label>
+              <input class="fi" id="ck-email" name="email" type="email" required autocomplete="email" placeholder="voce@email.com">
+            </div>
+            <div>
+              <label class="lbl" for="ck-zap">WhatsApp</label>
+              <input class="fi" id="ck-zap" name="whatsapp" autocomplete="tel" placeholder="(00) 00000-0000">
+            </div>
+          </div>
+          <div>
+            <label class="lbl" for="ck-cpf">CPF</label>
+            <input class="fi" id="ck-cpf" name="document" inputmode="numeric" placeholder="000.000.000-00">
+          </div>
+        </div>
+      </div>
+
+      <div class="ck-bloco">
+        <h2>2. Pagamento</h2>
+        <div class="ck-provedor">
+          <span class="selo">${CADEADO_SVG}</span>
+          <span>
+            O pagamento é feito na página segura do provedor. Ao continuar, você escolhe
+            lá a forma de pagamento disponível — cartão, Pix ou boleto, conforme o provedor.
+            <strong>Nenhum dado de cartão é digitado ou guardado neste site.</strong>
+          </span>
+        </div>
+      </div>
+
+      <label class="ck-lgpd">
+        <input type="checkbox" name="consent" required>
+        <span>Li e concordo com os <a href="/termos">Termos de Uso</a> e a
+          <a href="/privacidade">Política de Privacidade</a>. Autorizo o tratamento dos meus
+          dados conforme a LGPD para fins de matrícula e comunicação.</span>
+      </label>
+
+      <p data-checkout-error role="alert" class="ck-erro" style="display:none"></p>
+
+      <button type="submit" data-checkout-submit class="btn btn-cta ck-pagar">Ir para o pagamento</button>
+
+      <p class="ck-nota">
+        Você recebe um e-mail para definir sua senha de acesso. O acesso é liberado após a
+        confirmação do pagamento.
+      </p>
+    </form>`;
+}
+
+// ============================ /carrinho ============================
+/**
+ * O carrinho vive no `localStorage` deste navegador — o servidor não sabe o que
+ * tem nele, e é assim de propósito: guardar carrinho no servidor exigiria
+ * identificar quem está navegando antes de a pessoa decidir comprar.
+ *
+ * A página, então, chega vazia e é preenchida por `/_pub/site.js`. Sem JS fica
+ * o aviso — nunca uma lista vazia se passando por "seu carrinho está vazio",
+ * que são coisas diferentes.
+ */
+publicSite.get('/carrinho', async (c) => {
+  const body = html`
+    <section class="section">
+      <div class="wrap" style="max-width:820px">
+        <nav class="breadcrumb" aria-label="Trilha">
+          <a href="/">Início</a><span>›</span><a href="/formacoes">Cursos</a><span>›</span
+          ><span>Carrinho</span>
+        </nav>
+        <h1 style="margin:8px 0 24px">Seu carrinho</h1>
+
+        <noscript>
+          <div class="disclaimer" style="margin-bottom:20px">
+            O carrinho depende de JavaScript, porque ele fica guardado neste navegador. Você pode se
+            matricular direto pela página de cada formação.
+          </div>
+        </noscript>
+
+        <div data-carrinho-vazio style="display:none">
+          <div class="card" style="text-align:center">
+            <p style="color:var(--ink-soft);margin-bottom:18px">Seu carrinho está vazio.</p>
+            <a class="btn btn-primary" href="/formacoes">Ver as formações</a>
+          </div>
+        </div>
+
+        <div data-carrinho-corpo style="display:none">
+          <div class="card">
+            <div data-carrinho-lista></div>
+            <div class="carrinho-total">
+              <span class="rotulo">Total</span>
+              <span class="valor" data-carrinho-total>—</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:20px">
+            <a class="btn btn-cta" href="/checkout?carrinho=1">Finalizar matrícula</a>
+            <a class="btn btn-outline" href="/formacoes">Continuar escolhendo</a>
+          </div>
+          <p style="color:var(--ink-faint);font-size:12.5px;margin-top:14px">
+            O valor final é conferido no checkout, a partir dos preços vigentes.
+          </p>
+        </div>
+      </div>
+    </section>
+  `;
+  return c.html(
+    renderPage({
+      title: `Carrinho — ${ORG.shortName}`,
+      description: 'Formações escolhidas.',
+      path: '/carrinho',
+      noindex: true,
+      activeNav: 'cursos',
+      bodyHtml: body,
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
 // ============================ /checkout (público) ============================
 publicSite.get('/checkout', async (c) => {
+  /**
+   * Dois modos: um curso (`?curso=slug`) ou o carrinho (`?carrinho=1`).
+   *
+   * No modo carrinho o servidor NÃO sabe o que a pessoa escolheu — o carrinho
+   * mora no localStorage. Então o resumo chega vazio e é preenchido pelo
+   * `/_pub/site.js`, e o valor real é o que o servidor soma na hora de criar o
+   * pedido. O número na tela é conferência; o que cobra é o backend.
+   */
+  if (c.req.query('carrinho') === '1') {
+    const corpoCarrinho = html`
+      <section class="ck-wrap">
+        <nav class="ck-trilha" aria-label="Trilha">
+          <a href="/">Início</a> / <a href="/formacoes">Cursos</a> /
+          <a href="/carrinho">Carrinho</a> / <span class="atual">Checkout</span>
+        </nav>
+        <h1>Finalizar matrícula</h1>
+        <p class="ck-sub">Formações escolhidas no seu carrinho.</p>
+        <div class="ck-layout">
+          ${raw(formularioCheckout({ tipo: 'carrinho' }))}
+          <aside class="ck-resumo">
+            <h2>Sua matrícula</h2>
+            <div data-carrinho-vazio style="display:none">
+              <p style="color:var(--ink-soft);font-size:14px">
+                Seu carrinho está vazio.
+                <a href="/formacoes" style="color:var(--accent)">Ver formações</a>.
+              </p>
+            </div>
+            <div data-carrinho-corpo style="display:none">
+              <div class="ck-itens" data-carrinho-lista></div>
+              <div class="ck-total">
+                <span class="rotulo">Total</span>
+                <span class="valor" data-carrinho-total>—</span>
+              </div>
+              <div class="ck-garantias">
+                <div>
+                  <span class="ok" aria-hidden="true">✓</span
+                  ><span>Acesso imediato após a confirmação</span>
+                </div>
+                <div>
+                  <span class="ok" aria-hidden="true">✓</span
+                  ><span>Direito de arrependimento em 7 dias</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    `;
+    return c.html(
+      renderPage({
+        title: `Checkout — ${ORG.shortName}`,
+        description: 'Finalize sua matrícula.',
+        path: '/checkout?carrinho=1',
+        noindex: true,
+        activeNav: 'cursos',
+        bodyHtml: corpoCarrinho,
+      }),
+      200,
+      HTML_HEADERS,
+    );
+  }
+
   const slug = c.req.query('curso') ?? '';
   const co = slug ? await getPublicCourseBySlug(slug) : null;
   if (!co) return c.redirect('/formacoes', 302);
@@ -1181,64 +1395,8 @@ publicSite.get('/checkout', async (c) => {
       }
     </aside>`;
 
-  const CADEADO_SVG =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
-
   const form = forSale
-    ? `
-    <form data-checkout data-slug="${esc(co.slug)}" class="ck-coluna">
-      <div class="ck-bloco">
-        <h2>1. Seus dados</h2>
-        <div class="ck-campos">
-          <div>
-            <label class="lbl" for="ck-nome">Nome completo</label>
-            <input class="fi" id="ck-nome" name="name" required minlength="2" autocomplete="name" placeholder="Seu nome">
-          </div>
-          <div class="ck-dupla">
-            <div>
-              <label class="lbl" for="ck-email">E-mail</label>
-              <input class="fi" id="ck-email" name="email" type="email" required autocomplete="email" placeholder="voce@email.com">
-            </div>
-            <div>
-              <label class="lbl" for="ck-zap">WhatsApp</label>
-              <input class="fi" id="ck-zap" name="whatsapp" autocomplete="tel" placeholder="(00) 00000-0000">
-            </div>
-          </div>
-          <div>
-            <label class="lbl" for="ck-cpf">CPF</label>
-            <input class="fi" id="ck-cpf" name="document" inputmode="numeric" placeholder="000.000.000-00">
-          </div>
-        </div>
-      </div>
-
-      <div class="ck-bloco">
-        <h2>2. Pagamento</h2>
-        <div class="ck-provedor">
-          <span class="selo">${CADEADO_SVG}</span>
-          <span>
-            O pagamento é feito na página segura do provedor. Ao continuar, você escolhe
-            lá a forma de pagamento disponível — cartão, Pix ou boleto, conforme o provedor.
-            <strong>Nenhum dado de cartão é digitado ou guardado neste site.</strong>
-          </span>
-        </div>
-      </div>
-
-      <label class="ck-lgpd">
-        <input type="checkbox" name="consent" required>
-        <span>Li e concordo com os <a href="/termos">Termos de Uso</a> e a
-          <a href="/privacidade">Política de Privacidade</a>. Autorizo o tratamento dos meus
-          dados conforme a LGPD para fins de matrícula e comunicação.</span>
-      </label>
-
-      <p data-checkout-error role="alert" class="ck-erro" style="display:none"></p>
-
-      <button type="submit" data-checkout-submit class="btn btn-cta ck-pagar">Ir para o pagamento</button>
-
-      <p class="ck-nota">
-        Você recebe um e-mail para definir sua senha de acesso. O acesso é liberado após a
-        confirmação do pagamento.
-      </p>
-    </form>`
+    ? formularioCheckout({ tipo: 'curso', slug: co.slug })
     : `<div class="ck-coluna"><div class="ck-bloco">
          <h2>Matrícula por atendimento</h2>
          <p style="color:var(--ink-soft);font-size:15px;line-height:1.6;margin-bottom:20px">
