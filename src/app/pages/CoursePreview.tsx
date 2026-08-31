@@ -10,12 +10,7 @@ import {
   BookOpen,
   Star,
 } from 'lucide-react';
-import {
-  useCourse,
-  useCoursePrereqCheck,
-  useProducts,
-  useCourseRating,
-} from '../data/hooks';
+import { useCourse, useCoursePrereqCheck, useProducts, useCourseRating } from '../data/hooks';
 import { useAuth } from '../auth/AuthContext';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
@@ -44,27 +39,22 @@ export default function CoursePreview() {
           icon={<BookOpen size={28} />}
         />
         <div className="text-center mt-4">
-          <Link to="/catalogo" className="pco-btn-primary">
+          <a href="/formacoes" className="pco-btn-primary">
             Ver catálogo
-          </Link>
+          </a>
         </div>
       </div>
     );
   }
 
-  const product = products.find(
-    (p) => p.kind === 'course' && p.refId === course.id && p.active,
-  );
+  const product = products.find((p) => p.kind === 'course' && p.refId === course.id && p.active);
   const price =
     product &&
     (product.priceCents / 100).toLocaleString('pt-BR', {
       style: 'currency',
       currency: product.currency,
     });
-  const totalLessons = course.modules.reduce(
-    (s, m) => s + m.lessons.length,
-    0,
-  );
+  const totalLessons = course.modules.reduce((s, m) => s + m.lessons.length, 0);
 
   return (
     <div className="min-h-screen bg-surface-off">
@@ -80,9 +70,9 @@ export default function CoursePreview() {
             <div className="text-sm">
               <strong className="text-pco-deep">Curso com pré-requisito.</strong>{' '}
               <span className="text-ink-muted">
-                Este curso exige a conclusão de {course.prerequisiteCourseIds!.length}{' '}
-                outro{course.prerequisiteCourseIds!.length === 1 ? '' : 's'} antes da
-                matrícula. Faça login pra ver o status detalhado.
+                Este curso exige a conclusão de {course.prerequisiteCourseIds!.length} outro
+                {course.prerequisiteCourseIds!.length === 1 ? '' : 's'} antes da matrícula. Faça
+                login pra ver o status detalhado.
               </span>
             </div>
           </section>
@@ -95,19 +85,14 @@ export default function CoursePreview() {
           >
             <header className="flex items-center gap-2">
               <Lock size={18} className="text-pco-orange" strokeWidth={2} />
-              <h2 className="text-base font-semibold text-pco-deep">
-                Pré-requisitos pendentes
-              </h2>
+              <h2 className="text-base font-semibold text-pco-deep">Pré-requisitos pendentes</h2>
             </header>
             <p className="text-sm text-ink-strong">
               Para acessar este curso você precisa concluir antes:
             </p>
             <ul className="space-y-1.5">
               {prereqQ.data.status.map((s) => (
-                <li
-                  key={s.courseId}
-                  className="flex items-center gap-2 text-sm"
-                >
+                <li key={s.courseId} className="flex items-center gap-2 text-sm">
                   {s.completed ? (
                     <span className="text-status-success">✓</span>
                   ) : (
@@ -128,8 +113,8 @@ export default function CoursePreview() {
               ))}
             </ul>
             <p className="text-[11px] text-ink-subtle">
-              Você ainda pode visualizar o conteúdo do curso aqui, mas a
-              matrícula efetiva exige completar os pré-requisitos.
+              Você ainda pode visualizar o conteúdo do curso aqui, mas a matrícula efetiva exige
+              completar os pré-requisitos.
             </p>
           </section>
         )}
@@ -149,12 +134,8 @@ export default function CoursePreview() {
             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold uppercase tracking-wider">
               {course.shortTitle}
             </span>
-            <h1 className="text-3xl md:text-4xl font-bold mt-3 leading-tight">
-              {course.title}
-            </h1>
-            <p className="mt-3 text-base opacity-90 max-w-xl">
-              {course.description}
-            </p>
+            <h1 className="text-3xl md:text-4xl font-bold mt-3 leading-tight">{course.title}</h1>
+            <p className="mt-3 text-base opacity-90 max-w-xl">{course.description}</p>
             <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
               <span className="inline-flex items-center gap-1.5">
                 <Layers size={14} strokeWidth={1.75} />
@@ -180,9 +161,7 @@ export default function CoursePreview() {
 
         {course.instructorName && (
           <section className="pco-card p-6">
-            <h2 className="text-lg font-bold text-pco-deep mb-4">
-              Sobre o instrutor
-            </h2>
+            <h2 className="text-lg font-bold text-pco-deep mb-4">Sobre o instrutor</h2>
             <div className="flex items-start gap-4 flex-wrap">
               {course.instructorPhotoUrl ? (
                 <img
@@ -202,9 +181,7 @@ export default function CoursePreview() {
                 </div>
               )}
               <div className="flex-1 min-w-[240px]">
-                <h3 className="text-base font-semibold text-pco-deep">
-                  {course.instructorName}
-                </h3>
+                <h3 className="text-base font-semibold text-pco-deep">{course.instructorName}</h3>
                 {course.instructorBio && (
                   <p className="text-sm text-ink-muted mt-1 whitespace-pre-line">
                     {course.instructorBio}
@@ -217,9 +194,7 @@ export default function CoursePreview() {
 
         {(course.collaborators?.length ?? 0) > 0 && (
           <section className="pco-card p-6">
-            <h2 className="text-lg font-bold text-pco-deep mb-4">
-              Equipe pedagógica
-            </h2>
+            <h2 className="text-lg font-bold text-pco-deep mb-4">Equipe pedagógica</h2>
             <ul className="grid gap-4 sm:grid-cols-2">
               {course.collaborators!.map((c, idx) => (
                 <li key={idx} className="flex items-start gap-3">
@@ -241,19 +216,13 @@ export default function CoursePreview() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-pco-deep">
-                      {c.name}
-                    </div>
+                    <div className="text-sm font-semibold text-pco-deep">{c.name}</div>
                     {c.role && (
                       <div className="text-[11px] text-pco-blue uppercase tracking-wide font-medium">
                         {c.role}
                       </div>
                     )}
-                    {c.bio && (
-                      <p className="text-xs text-ink-muted mt-1 line-clamp-3">
-                        {c.bio}
-                      </p>
-                    )}
+                    {c.bio && <p className="text-xs text-ink-muted mt-1 line-clamp-3">{c.bio}</p>}
                   </div>
                 </li>
               ))}
@@ -263,15 +232,10 @@ export default function CoursePreview() {
 
         {(course.learningOutcomes?.length ?? 0) > 0 && (
           <section className="pco-card p-6">
-            <h2 className="text-lg font-bold text-pco-deep mb-4">
-              O que você vai aprender
-            </h2>
+            <h2 className="text-lg font-bold text-pco-deep mb-4">O que você vai aprender</h2>
             <ul className="grid gap-2 sm:grid-cols-2">
               {course.learningOutcomes!.map((o, idx) => (
-                <li
-                  key={idx}
-                  className="flex items-start gap-2 text-sm text-ink-strong"
-                >
+                <li key={idx} className="flex items-start gap-2 text-sm text-ink-strong">
                   <span className="text-pco-blue text-lg leading-tight">✓</span>
                   <span className="flex-1">{o}</span>
                 </li>
@@ -282,13 +246,9 @@ export default function CoursePreview() {
 
         <div className="grid gap-6 md:grid-cols-3">
           <section className="md:col-span-2 space-y-4">
-            <h2 className="text-lg font-bold text-pco-deep">
-              Conteúdo programático
-            </h2>
+            <h2 className="text-lg font-bold text-pco-deep">Conteúdo programático</h2>
             {course.modules.length === 0 ? (
-              <p className="text-sm text-ink-muted">
-                Conteúdo em preparação.
-              </p>
+              <p className="text-sm text-ink-muted">Conteúdo em preparação.</p>
             ) : (
               <ol className="space-y-3">
                 {course.modules.map((m, mi) => (
@@ -298,13 +258,9 @@ export default function CoursePreview() {
                         {mi + 1}
                       </span>
                       <div className="flex-1">
-                        <div className="font-semibold text-pco-deep">
-                          {m.title}
-                        </div>
+                        <div className="font-semibold text-pco-deep">{m.title}</div>
                         {m.description && (
-                          <p className="text-xs text-ink-muted mt-1">
-                            {m.description}
-                          </p>
+                          <p className="text-xs text-ink-muted mt-1">{m.description}</p>
                         )}
                         <ul className="mt-3 space-y-1.5">
                           {m.lessons.map((l) => {
@@ -371,10 +327,7 @@ export default function CoursePreview() {
                     </div>
                     <div className="text-3xl font-bold text-pco-deep">{price}</div>
                   </div>
-                  <Link
-                    to="/login"
-                    className="pco-btn-primary w-full justify-center"
-                  >
+                  <Link to="/login" className="pco-btn-primary w-full justify-center">
                     <PlayCircle size={14} strokeWidth={2} />
                     Quero estudar
                   </Link>
@@ -383,10 +336,7 @@ export default function CoursePreview() {
                   </p>
                 </>
               ) : (
-                <Link
-                  to="/login"
-                  className="pco-btn-primary w-full justify-center"
-                >
+                <Link to="/login" className="pco-btn-primary w-full justify-center">
                   Saber mais
                   <ArrowRight size={14} strokeWidth={2} />
                 </Link>

@@ -18,9 +18,7 @@ export default function LessonPreviewPublic() {
   const { data, isLoading, isError } = useLessonPreview(id);
 
   useDocumentMeta({
-    title: data?.lesson.title
-      ? `${data.lesson.title} — preview livre`
-      : 'Aula preview — AVA PCO',
+    title: data?.lesson.title ? `${data.lesson.title} — preview livre` : 'Aula preview — AVA PCO',
     description: data?.lesson.description,
   });
 
@@ -35,9 +33,9 @@ export default function LessonPreviewPublic() {
           icon={<BookOpen size={28} />}
         />
         <div className="text-center mt-4">
-          <Link to="/catalogo" className="pco-btn-primary">
+          <a href="/formacoes" className="pco-btn-primary">
             Ver catálogo
-          </Link>
+          </a>
         </div>
       </div>
     );
@@ -60,9 +58,7 @@ export default function LessonPreviewPublic() {
             <PlayCircle size={10} strokeWidth={2.5} />
             Preview livre
           </span>
-          <h1 className="text-2xl md:text-3xl font-bold text-pco-deep mt-2">
-            {lesson.title}
-          </h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-pco-deep mt-2">{lesson.title}</h1>
           <p className="text-sm text-ink-muted mt-1">
             <span className="font-medium">{course.title}</span>
             <span className="mx-1.5 opacity-50">·</span>
@@ -75,12 +71,7 @@ export default function LessonPreviewPublic() {
 
         {lesson.videoUrl ? (
           <section className="aspect-video bg-black rounded-xl overflow-hidden">
-            <video
-              src={lesson.videoUrl}
-              controls
-              className="w-full h-full"
-              preload="metadata"
-            >
+            <video src={lesson.videoUrl} controls className="w-full h-full" preload="metadata">
               Seu navegador não suporta o player de vídeo.
             </video>
           </section>
@@ -88,9 +79,7 @@ export default function LessonPreviewPublic() {
           <section className="aspect-video bg-gradient-to-br from-pco-deep to-pco-blue rounded-xl flex items-center justify-center text-white">
             <div className="text-center">
               <PlayCircle size={48} strokeWidth={1.5} />
-              <p className="text-sm mt-3 opacity-80">
-                Vídeo não publicado para esta aula.
-              </p>
+              <p className="text-sm mt-3 opacity-80">Vídeo não publicado para esta aula.</p>
             </div>
           </section>
         )}
@@ -117,8 +106,8 @@ export default function LessonPreviewPublic() {
               Continue estudando — matricule-se em {course.shortTitle}
             </h2>
             <p className="mt-2 text-sm opacity-90 max-w-xl">
-              Acesse todas as aulas do curso, materiais complementares,
-              certificado de conclusão e suporte do tutor.
+              Acesse todas as aulas do curso, materiais complementares, certificado de conclusão e
+              suporte do tutor.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <a

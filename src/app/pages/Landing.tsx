@@ -50,7 +50,6 @@ const CAPAS = [
 /** Quantos cursos a seção mostra antes de mandar para o catálogo. */
 const CURSOS_NA_VITRINE = 8;
 
-
 export default function Landing() {
   const cursosQ = useCourses();
   // Mesmo portão do site público e do checkout — ver shared/visibilidade.ts.
@@ -133,9 +132,7 @@ export default function Landing() {
         <div className="grid gap-10 lg:grid-cols-2 items-center">
           <div>
             <Tag>Jornada PCO</Tag>
-            <h2 className="mt-3 text-3xl font-bold text-pco-deep">
-              Trilha visual de aprendizagem
-            </h2>
+            <h2 className="mt-3 text-3xl font-bold text-pco-deep">Trilha visual de aprendizagem</h2>
             <p className="mt-3 text-ink-muted max-w-md">
               Acompanhe módulos, aulas, avaliações, microvitórias e desbloqueios em uma trilha
               adulta — sem mascotes, sem ranking infantil. Foco em progresso real.
@@ -174,9 +171,7 @@ export default function Landing() {
                   >
                     {m.o}
                   </div>
-                  <span className="text-sm font-semibold text-pco-deep flex-1">
-                    Módulo {m.o}
-                  </span>
+                  <span className="text-sm font-semibold text-pco-deep flex-1">Módulo {m.o}</span>
                   <span
                     className={`pco-badge ${
                       m.s === 'completed'
@@ -213,13 +208,11 @@ export default function Landing() {
           </div>
           <div className="order-1 lg:order-2">
             <Tag>Modo de estudo imersivo</Tag>
-            <h2 className="mt-3 text-3xl font-bold text-pco-deep">
-              Concentre-se no que importa
-            </h2>
+            <h2 className="mt-3 text-3xl font-bold text-pco-deep">Concentre-se no que importa</h2>
             <p className="mt-3 text-ink-muted max-w-md">
-              Quando você entra em curso, módulo, aula ou avaliação, o AVA muda para um layout
-              de estudo dedicado. Sidebar contextual com a trilha, painel de apoio e Modo Foco
-              para maximizar vídeo e conteúdo.
+              Quando você entra em curso, módulo, aula ou avaliação, o AVA muda para um layout de
+              estudo dedicado. Sidebar contextual com a trilha, painel de apoio e Modo Foco para
+              maximizar vídeo e conteúdo.
             </p>
           </div>
         </div>
@@ -227,12 +220,14 @@ export default function Landing() {
 
       {/* 5. Multi-cursos */}
       {vitrine.length > 0 && (
-      <Section bg="off">
-        <div className="text-center mb-10">
-          <Tag>Multi-cursos</Tag>
-          <h2 className="mt-3 text-3xl font-bold text-pco-deep">Várias formações, um único AVA</h2>
-        </div>
-        {/*
+        <Section bg="off">
+          <div className="text-center mb-10">
+            <Tag>Multi-cursos</Tag>
+            <h2 className="mt-3 text-3xl font-bold text-pco-deep">
+              Várias formações, um único AVA
+            </h2>
+          </div>
+          {/*
           Esta grade listava três cursos escritos à mão — "Psicanálise
           Clínica", "Terapia Familiar Sistêmica", "Hipnoterapia" — e um quarto
           card dizendo "Novos cursos PCO / Mais formações em breve". O catálogo
@@ -244,29 +239,31 @@ export default function Landing() {
           (`isPubliclyListed`). Se a lista não carregar, a seção some — anunciar
           um cardápio antigo é pior do que não anunciar.
         */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {vitrine.map((c, i) => (
-            <Link
-              key={c.id}
-              to={`/curso-preview/${c.id}`}
-              className="pco-card pco-card-hover p-0 overflow-hidden block"
-            >
-              <div className={`h-24 bg-gradient-to-br ${c.coverColor || CAPAS[i % CAPAS.length]}`} />
-              <div className="p-5">
-                <div className="font-semibold text-pco-deep">{c.shortTitle || c.title}</div>
-                <p className="mt-1 text-xs text-ink-muted line-clamp-2">{c.description}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-        {cursosQ.data && cursosQ.data.length > CURSOS_NA_VITRINE && (
-          <div className="mt-6 text-center">
-            <Link to="/catalogo" className="pco-btn-secondary">
-              Ver as {cursosQ.data.length} formações
-            </Link>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {vitrine.map((c, i) => (
+              <Link
+                key={c.id}
+                to={`/curso-preview/${c.id}`}
+                className="pco-card pco-card-hover p-0 overflow-hidden block"
+              >
+                <div
+                  className={`h-24 bg-gradient-to-br ${c.coverColor || CAPAS[i % CAPAS.length]}`}
+                />
+                <div className="p-5">
+                  <div className="font-semibold text-pco-deep">{c.shortTitle || c.title}</div>
+                  <p className="mt-1 text-xs text-ink-muted line-clamp-2">{c.description}</p>
+                </div>
+              </Link>
+            ))}
           </div>
-        )}
-      </Section>
+          {cursosQ.data && cursosQ.data.length > CURSOS_NA_VITRINE && (
+            <div className="mt-6 text-center">
+              <a href="/formacoes" className="pco-btn-secondary">
+                Ver as {cursosQ.data.length} formações
+              </a>
+            </div>
+          )}
+        </Section>
       )}
 
       {/* 6. Recursos */}
@@ -299,9 +296,9 @@ export default function Landing() {
               Apoio pedagógico, no ritmo do aluno
             </h2>
             <p className="mt-3 text-ink-muted max-w-md">
-              IA treinada para responder dúvidas dos cursos da PCO. Limites configuráveis,
-              pacotes adicionais externos e escopo claramente delimitado — sempre com aviso de
-              que não substitui supervisão clínica ou atendimento profissional.
+              IA treinada para responder dúvidas dos cursos da PCO. Limites configuráveis, pacotes
+              adicionais externos e escopo claramente delimitado — sempre com aviso de que não
+              substitui supervisão clínica ou atendimento profissional.
             </p>
           </div>
           <div className="pco-card p-5">
@@ -312,9 +309,7 @@ export default function Landing() {
               <ChatBubble role="user">
                 Qual a diferença entre escuta e técnica em psicanálise?
               </ChatBubble>
-              <ChatBubble role="assistant">
-                Boa pergunta. A escuta é a postura ética...
-              </ChatBubble>
+              <ChatBubble role="assistant">Boa pergunta. A escuta é a postura ética...</ChatBubble>
             </div>
             <div className="mt-3 text-[11px] text-ink-subtle">
               Limite mensal e escopo configurados em /admin/tutor
@@ -329,8 +324,8 @@ export default function Landing() {
           <Tag>Conteúdo curado</Tag>
           <h2 className="mt-3 text-3xl font-bold text-pco-deep">PCO POD, News e Biblioteca</h2>
           <p className="mt-3 text-ink-muted max-w-xl mx-auto">
-            Áudio, artigos comentados e materiais selecionados — diretamente conectados aos
-            seus cursos.
+            Áudio, artigos comentados e materiais selecionados — diretamente conectados aos seus
+            cursos.
           </p>
         </div>
         <div className="grid gap-5 md:grid-cols-3">
@@ -420,8 +415,8 @@ export default function Landing() {
               Certificação digital com validação
             </h2>
             <p className="mt-3 text-ink-muted max-w-md">
-              QR Code, código de validação único e checklist de requisitos. Reemissão
-              controlada e validação aberta para terceiros.
+              QR Code, código de validação único e checklist de requisitos. Reemissão controlada e
+              validação aberta para terceiros.
             </p>
           </div>
         </div>
@@ -436,8 +431,8 @@ export default function Landing() {
           <h3 className="text-2xl font-bold text-pco-deep">Análise e Supervisão (opcional)</h3>
           <p className="mt-2 text-sm text-ink-muted max-w-xl mx-auto">
             Análise pessoal, supervisão clínica e orientação formativa são serviços opcionais,
-            contratados separadamente. Não são obrigatórios para conclusão dos cursos ou
-            emissão de certificado.
+            contratados separadamente. Não são obrigatórios para conclusão dos cursos ou emissão de
+            certificado.
           </p>
         </div>
       </Section>
@@ -597,13 +592,7 @@ function StatBlock({ label, texto }: { label: string; texto: string }) {
   );
 }
 
-function ChatBubble({
-  role,
-  children,
-}: {
-  role: 'user' | 'assistant';
-  children: React.ReactNode;
-}) {
+function ChatBubble({ role, children }: { role: 'user' | 'assistant'; children: React.ReactNode }) {
   return (
     <div className={`flex gap-2 ${role === 'user' ? 'flex-row-reverse' : ''}`}>
       <div

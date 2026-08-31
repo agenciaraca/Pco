@@ -109,11 +109,7 @@ export default function Login() {
         </div>
         <div className="relative flex flex-col justify-between w-full max-w-md">
           {cfg?.logoUrl ? (
-            <img
-              src={cfg.logoUrl}
-              alt="Logo"
-              className="h-12 w-auto object-contain self-start"
-            />
+            <img src={cfg.logoUrl} alt="Logo" className="h-12 w-auto object-contain self-start" />
           ) : (
             <Logo variant="dark" className="self-start" />
           )}
@@ -131,13 +127,15 @@ export default function Login() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs text-white/70">
+            <span>Escola Reconhecida RNTP · RNTP 1407167IE</span>
+            <span className="opacity-50">•</span>
             <span>© AVA PCO</span>
             <span className="opacity-50">•</span>
             <Link to="/termos" className="hover:text-white">
               Termos
             </Link>
             <span className="opacity-50">•</span>
-            <Link to="/landing" className="hover:text-white">
+            <Link to="/ava-pco" className="hover:text-white">
               Sobre o AVA
             </Link>
           </div>
@@ -173,10 +171,7 @@ export default function Login() {
                 </div>
               )}
               <div>
-                <label
-                  htmlFor="totp"
-                  className="block text-xs font-medium text-ink-muted mb-1.5"
-                >
+                <label htmlFor="totp" className="block text-xs font-medium text-ink-muted mb-1.5">
                   Código de verificação
                 </label>
                 <input
@@ -212,94 +207,94 @@ export default function Login() {
               </button>
             </form>
           ) : (
-          <form className="mt-8 space-y-4" onSubmit={handleSubmit} noValidate>
-            {error && (
-              <div
-                role="alert"
-                className="rounded-xl border border-status-danger/30 bg-status-danger/5 p-3 flex items-start gap-2 text-xs text-status-danger"
-              >
-                <AlertCircle size={14} strokeWidth={1.75} className="shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
+            <form className="mt-8 space-y-4" onSubmit={handleSubmit} noValidate>
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-status-danger/30 bg-status-danger/5 p-3 flex items-start gap-2 text-xs text-status-danger"
+                >
+                  <AlertCircle size={14} strokeWidth={1.75} className="shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
 
-            <div>
-              <label htmlFor="email" className="block text-xs font-medium text-ink-muted mb-1.5">
-                {t('auth.email')}
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="text"
-                inputMode="email"
-                autoComplete="email"
-                autoCapitalize="off"
-                spellCheck={false}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pco-input"
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-medium text-ink-muted mb-1.5"
-              >
-                {t('auth.password')}
-              </label>
-              <div className="relative">
+              <div>
+                <label htmlFor="email" className="block text-xs font-medium text-ink-muted mb-1.5">
+                  {t('auth.email')}
+                </label>
                 <input
-                  id="password"
-                  name="password"
-                  type={showPwd ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pco-input pr-11"
-                  placeholder="••••••••"
+                  id="email"
+                  name="email"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pco-input"
+                  placeholder="seu@email.com"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center text-ink-subtle hover:text-pco-blue rounded-lg hover:bg-surface-gray"
-                  aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
               </div>
-            </div>
 
-            <div className="flex items-center justify-between text-xs">
-              <label className="inline-flex items-center gap-2 text-ink-muted">
-                {/*
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-xs font-medium text-ink-muted mb-1.5"
+                >
+                  {t('auth.password')}
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPwd ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pco-input pr-11"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center text-ink-subtle hover:text-pco-blue rounded-lg hover:bg-surface-gray"
+                    aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <label className="inline-flex items-center gap-2 text-ink-muted">
+                  {/*
                   A caixa não tinha estado nem onChange: marcada ou não, a
                   sessão ia para o localStorage e sobrevivia a fechar o
                   navegador. Quem usa computador compartilhado desmarcava e
                   continuava logado. Agora ela decide de fato onde a sessão
                   mora — ver `writeSession` no AuthContext.
                 */}
-                <input
-                  type="checkbox"
-                  checked={lembrar}
-                  onChange={(e) => setLembrar(e.target.checked)}
-                  className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
-                />
-                {t('auth.rememberMe')}
-              </label>
-              <Link to="/esqueci-senha" className="text-pco-blue hover:underline font-medium">
-                {t('auth.forgotPassword')}
-              </Link>
-            </div>
+                  <input
+                    type="checkbox"
+                    checked={lembrar}
+                    onChange={(e) => setLembrar(e.target.checked)}
+                    className="h-4 w-4 rounded text-pco-blue focus:ring-pco-blue"
+                  />
+                  {t('auth.rememberMe')}
+                </label>
+                <Link to="/esqueci-senha" className="text-pco-blue hover:underline font-medium">
+                  {t('auth.forgotPassword')}
+                </Link>
+              </div>
 
-            <button type="submit" disabled={submitting} className="pco-btn-primary w-full">
-              {submitting ? `${t('auth.signIn')}...` : t('auth.signIn')}
-              {!submitting && <ArrowRight size={16} strokeWidth={2} />}
-            </button>
-          </form>
+              <button type="submit" disabled={submitting} className="pco-btn-primary w-full">
+                {submitting ? `${t('auth.signIn')}...` : t('auth.signIn')}
+                {!submitting && <ArrowRight size={16} strokeWidth={2} />}
+              </button>
+            </form>
           )}
 
           {!totpTicket && (
@@ -353,6 +348,24 @@ export default function Login() {
             <Link to="/onboarding" className="text-pco-blue hover:underline font-medium">
               Iniciar onboarding
             </Link>
+          </div>
+
+          {/*
+            Quem ainda não comprou não entra — o portão de acesso passou a exigir
+            matrícula ou pedido pago nas cinco portas que emitem sessão. Sem este
+            bloco, essa pessoa chega aqui, apanha do formulário e não recebe
+            nenhum caminho: a tela de login vira o fim da linha para justamente
+            quem a escola quer receber.
+
+            `/formacoes` é servida por SSR e não existe no React Router, então é
+            navegação de página inteira, não <Link>.
+          */}
+          <div className="mt-4 rounded-xl border border-surface-gray bg-surface-off p-4 text-center text-xs text-ink-muted">
+            Ainda não é aluno? Conheça as{' '}
+            <a href="/formacoes" className="text-pco-blue hover:underline font-medium">
+              formações da PCO
+            </a>{' '}
+            — o acesso é liberado assim que o pagamento é confirmado.
           </div>
         </div>
       </section>

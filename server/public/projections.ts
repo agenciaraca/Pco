@@ -17,6 +17,8 @@ import { isPubliclyListed } from '../../shared/visibilidade';
 import * as coursesRepo from '../repositories/courses';
 import * as productsRepo from '../payments/products-repo';
 import * as newsRepo from '../repositories/news';
+import * as certificatesRepo from '../repositories/certificates';
+import * as reviewsStore from '../reviews/store';
 
 type Product = Awaited<ReturnType<typeof productsRepo.listActive>>[number];
 
@@ -233,6 +235,71 @@ function toFull(c: Row, product: Product | undefined): PublicCourse {
  * O reexport mantém o import antigo funcionando — aditivo, não destrutivo.
  */
 export { isPubliclyListed };
+
+/**
+ * Números da home — medidos, nunca declarados.
+ *
+ * O protótipo aprovado traz uma barra com "+1000 alunos formados", "+7 anos de
+ * mercado", "96% de satisfação" e o selo RNTP, e o hero repete "4,7/5 ·
+ * avaliação dos alunos". Três desses quatro números não tinham medição atrás.
+ *
+ * Não é preciosismo: a mesma sessão que desenhou isso já tinha tirado quatro
+ * estatísticas inventadas da página `/ava-pco`, com o motivo escrito no código
+ * — em página de venda, afirmação de resultado a quem ainda vai comprar é
+ * publicidade enganosa (CDC, art. 37). O que estava no site SSR passou batido
+ * e continuou no ar.
+ *
+ * Então:
+ * - **avaliação** sai das avaliações reais (só aluno matriculado avalia) e
+ *   **anda com a base**: "4,8 · 37 avaliações". Sem avaliação, some.
+ * - **formados** é a contagem de certificados emitidos. Sem certificado, some.
+ * - **anos** vem de `ORG.founded`, calculado — não escrito à mão, senão
+ *   envelhece sozinho.
+ * - **96% de satisfação** não entra: não existe pesquisa de satisfação neste
+ *   sistema. Número sem medição não vira meta; vira travessão, e em página de
+ *   venda vira ausência.
+ */
+export interface NumerosDoSite {
+  /** Média e base das avaliações; null quando ninguém avaliou ainda. */
+  avaliacao: { media: number; total: number } | null;
+  /** Certificados emitidos; null quando nenhum foi emitido. */
+  formados: number | null;
+  /** Anos completos desde a fundação. */
+  anos: number | null;
+}
+
+export async function numerosDoSite(fundadoEm?: string): Promise<NumerosDoSite> {
+  const avaliacao = await safe(
+    'reviews',
+    async () => {
+      const todas = await reviewsStore.listAll();
+      const validas = todas.filter((r) => r.rating >= 1 && r.rating <= 5);
+      if (validas.length === 0) return null;
+      const soma = validas.reduce((acc, r) => acc + r.rating, 0);
+      return {
+        media: Math.round((soma / validas.length) * 10) / 10,
+        total: validas.length,
+      };
+    },
+    null as NumerosDoSite['avaliacao'],
+  );
+
+  const formados = await safe(
+    'certificates',
+    async () => {
+      const todos = await certificatesRepo.listAllCertificates();
+      const emitidos = todos.filter((c) => c.status === 'issued').length;
+      return emitidos > 0 ? emitidos : null;
+    },
+    null as number | null,
+  );
+
+  const ano = Number(fundadoEm);
+  const anos =
+    Number.isFinite(ano) && ano > 1900 ? Math.max(0, new Date().getFullYear() - ano) : null;
+
+  return { avaliacao, formados, anos };
+}
 
 /** Mapa courseId -> produto 'course' ativo. */
 async function activeCourseProducts(): Promise<Map<string, Product>> {

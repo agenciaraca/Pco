@@ -28,6 +28,7 @@ import {
   listPublicCourses,
   getPublicCourseBySlug,
   getPublicCourseSlugById,
+  numerosDoSite,
 } from './projections';
 import { PUBLIC_JS } from './client';
 
@@ -104,6 +105,50 @@ publicSite.get('/llms.txt', async (c) => {
 
 // ============================ /sobre ============================
 publicSite.get('/sobre', async (c) => {
+  /**
+   * "Em números" — medido, como na home.
+   *
+   * Este quadro afirmava "1000+ alunos formados", "4,7 avaliação média" e
+   * "3 formações". Os dois primeiros nunca foram medidos; o terceiro estava
+   * simplesmente errado — o catálogo público tem bem mais que três. Número de
+   * catálogo se conta.
+   */
+  const numerosSobre = await numerosDoSite(ORG.founded);
+  const cursosPublicos = await listPublicCourses();
+  const celulasSobre = [
+    numerosSobre.anos ? { valor: String(ORG.founded ?? ''), rotulo: 'no ar desde' } : null,
+    cursosPublicos.length
+      ? {
+          valor: String(cursosPublicos.length),
+          rotulo: `formaç${cursosPublicos.length === 1 ? 'ão' : 'ões'} no catálogo`,
+        }
+      : null,
+    numerosSobre.formados
+      ? { valor: String(numerosSobre.formados), rotulo: 'certificados emitidos' }
+      : null,
+    numerosSobre.avaliacao
+      ? {
+          valor: numerosSobre.avaliacao.media.toLocaleString('pt-BR', {
+            minimumFractionDigits: 1,
+          }),
+          rotulo: `avaliação média · ${numerosSobre.avaliacao.total} avaliaç${numerosSobre.avaliacao.total === 1 ? 'ão' : 'ões'}`,
+        }
+      : null,
+  ].filter(Boolean) as { valor: string; rotulo: string }[];
+
+  const emNumerosHtml = celulasSobre.length
+    ? `<div class="card">
+         <h3 style="margin-bottom:6px">Em números</h3>
+         <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px">
+           ${celulasSobre
+             .map(
+               (n) =>
+                 `<div><div style="font-size:30px;font-weight:800;color:var(--accent)">${esc(n.valor)}</div><div style="font-size:13px;color:var(--ink-soft)">${esc(n.rotulo)}</div></div>`,
+             )
+             .join('')}
+         </div>
+       </div>`
+    : '';
   const body = html`
     <section class="section-tight hero-deep tem-pincel">
       <div class="wrap">
@@ -144,33 +189,7 @@ publicSite.get('/sobre', async (c) => {
           </ul>
         </div>
         <aside class="stack">
-          <div class="card">
-            <h3 style="margin-bottom:6px">Em números</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px">
-              <div>
-                <div style="font-size:30px;font-weight:800;color:var(--accent)">
-                  <span data-count-to="2018" data-count-plain>2018</span>
-                </div>
-                <div style="font-size:13px;color:var(--ink-soft)">no ar desde</div>
-              </div>
-              <div>
-                <div style="font-size:30px;font-weight:800;color:var(--accent)">
-                  <span data-count-to="1000">0</span>+
-                </div>
-                <div style="font-size:13px;color:var(--ink-soft)">alunos formados</div>
-              </div>
-              <div>
-                <div style="font-size:30px;font-weight:800;color:var(--accent)">
-                  <span data-count-to="3">0</span>
-                </div>
-                <div style="font-size:13px;color:var(--ink-soft)">formações</div>
-              </div>
-              <div>
-                <div style="font-size:30px;font-weight:800;color:var(--accent)">4,7</div>
-                <div style="font-size:13px;color:var(--ink-soft)">avaliação média</div>
-              </div>
-            </div>
-          </div>
+          ${raw(emNumerosHtml)}
           <div class="disclaimer">${YMYL_DISCLAIMER}</div>
           ${raw(
             AUTHOR_IS_PLACEHOLDER
@@ -534,7 +553,90 @@ publicSite.get('/blog/:slug', async (c) => {
 
 // ============================ / (Home) ============================
 publicSite.get('/', async (c) => {
-  const [courses, posts] = await Promise.all([listPublicCourses(), listPublicPosts()]);
+  const [courses, posts, numeros] = await Promise.all([
+    listPublicCourses(),
+    listPublicPosts(),
+    numerosDoSite(ORG.founded),
+  ]);
+
+  /**
+   * A faixa de confiança do hero e a barra de números — do protótipo aprovado,
+   * mas com o que dá para medir.
+   *
+   * O desenho pede "4,7/5 · avaliação dos alunos", "+1000 alunos formados" e
+   * "96% de satisfação". Nenhum dos três tinha medição atrás, e a home já
+   * publicava dois deles. A regra do projeto é a mesma desde o `/ava-pco`:
+   * número em página de venda é afirmação de resultado, e afirmação de
+   * resultado tem dono (CDC, art. 37). Aqui a avaliação sai das avaliações
+   * reais e **anda com a base**; "formados" é contagem de certificado emitido;
+   * satisfação não entra porque não existe pesquisa de satisfação no sistema.
+   *
+   * Cada item some sozinho quando não há o que medir — a faixa nunca mostra
+   * zero, porque numa página de venda zero é pior do que ausência.
+   */
+  const itensConfianca = [
+    numeros.avaliacao
+      ? `<span class="item"><span class="estrelas" aria-hidden="true">★★★★★</span><span><strong>${numeros.avaliacao.media.toLocaleString('pt-BR', { minimumFractionDigits: 1 })}/5</strong> · ${numeros.avaliacao.total} avaliaç${numeros.avaliacao.total === 1 ? 'ão' : 'ões'} de alunos</span></span>`
+      : '',
+    `<span class="item"><span class="selo">RNTP</span><span>Escola reconhecida</span></span>`,
+  ]
+    .filter(Boolean)
+    .join('');
+
+  const celulas = [
+    numeros.anos
+      ? {
+          valor: `${numeros.anos}`,
+          rotulo: 'anos de escola',
+          base: `desde ${esc(ORG.founded ?? '')}`,
+        }
+      : null,
+    numeros.formados
+      ? {
+          valor: `${numeros.formados}`,
+          rotulo: 'certificados emitidos',
+          base: 'contagem no sistema',
+        }
+      : null,
+    numeros.avaliacao
+      ? {
+          valor: numeros.avaliacao.media.toLocaleString('pt-BR', { minimumFractionDigits: 1 }),
+          rotulo: 'avaliação média',
+          base: `${numeros.avaliacao.total} avaliaç${numeros.avaliacao.total === 1 ? 'ão' : 'ões'}`,
+        }
+      : null,
+    { valor: 'RNTP', rotulo: 'escola reconhecida', base: esc(ORG.rntp ?? '') },
+  ].filter(Boolean) as { valor: string; rotulo: string; base: string }[];
+
+  const barraNumeros = celulas
+    .map(
+      (n) =>
+        `<div><div class="valor">${esc(n.valor)}</div><div class="rotulo">${esc(n.rotulo)}</div><div class="base">${n.base}</div></div>`,
+    )
+    .join('');
+
+  const ladrilhos = [
+    'Compreenda a mente humana com profundidade',
+    'Atue com técnica e postura ética',
+    'Estude no seu próprio ritmo',
+    'Construa uma nova trajetória',
+  ]
+    .map((t) => `<div class="ladrilho"><span>${esc(t)}</span></div>`)
+    .join('');
+
+  const porque = [
+    ['Aulas em vídeo', 'Conteúdo em vídeo com aulas exclusivas e indicações complementares.'],
+    ['Material 24h', 'Todo o material na plataforma para revisar quantas vezes precisar.'],
+    ['Início imediato', 'Acesso liberado após a confirmação do pagamento.'],
+    ['Pagamento facilitado', 'Parcele no boleto ou no cartão, conforme as condições vigentes.'],
+    ['Certificado digital', 'Certificado sem custo adicional ao concluir e quitar o curso.'],
+    ['Reconhecimento RNTP', 'Cursos avaliados e reconhecidos pela RNTP.'],
+  ]
+    .map(
+      ([t, d], i) =>
+        `<div class="porque-item"><div class="n">${i + 1}</div><div class="t">${esc(t)}</div><div class="d">${esc(d)}</div></div>`,
+    )
+    .join('');
   const courseCard = (co: (typeof courses)[number]): string => `
     <a class="card" href="/formacao/${co.slug}" style="display:block">
       <div aria-hidden="true" style="height:8px;border-radius:6px;background:${esc(co.coverColor || 'var(--accent)')};margin:-6px -6px 16px"></div>
@@ -571,31 +673,28 @@ publicSite.get('/', async (c) => {
             >${ICONE_WHATSAPP} Falar no WhatsApp</a
           >
         </div>
-        <p style="color:#cfe0dc;font-size:13.5px;margin-top:22px">
-          <span style="color:var(--brand-orange)">★★★★★</span> 4,7/5 · centenas de alunos formados ·
-          ${ORG.rntp}
-        </p>
+        <div class="hero-confianca">${raw(itensConfianca)}</div>
       </div>
       ${pincel('var(--paper)')}
     </section>
 
-    <section class="section-tight tem-pincel" style="background:var(--brand-gradient)">
-      <div class="wrap three-col" style="text-align:center;color:var(--on-deep)">
+    <section class="section">
+      <div class="wrap afirmacao">
         <div>
-          <div style="font-size:38px;font-weight:800">
-            <span data-count-to="2018" data-count-plain>2018</span>
-          </div>
-          <div style="color:#cfe0dc;font-size:14px">no ar desde</div>
+          <h2>
+            Com conteúdo estruturado e estudo no seu tempo, você desenvolve a base necessária para
+            atuar com técnica e ética na psicanálise clínica.
+          </h2>
+          <a class="maisinfo" href="/formacoes"
+            >Conheça os cursos <span aria-hidden="true">→</span></a
+          >
         </div>
-        <div>
-          <div style="font-size:38px;font-weight:800"><span data-count-to="1000">0</span>+</div>
-          <div style="color:#cfe0dc;font-size:14px">alunos formados</div>
-        </div>
-        <div>
-          <div style="font-size:38px;font-weight:800">4,7</div>
-          <div style="color:#cfe0dc;font-size:14px">avaliação média</div>
-        </div>
+        <div class="ladrilhos">${raw(ladrilhos)}</div>
       </div>
+    </section>
+
+    <section class="section-tight" style="background:var(--brand-gradient)">
+      <div class="wrap barra-numeros">${raw(barraNumeros)}</div>
     </section>
 
     ${courses.length
@@ -613,28 +712,9 @@ publicSite.get('/', async (c) => {
 
     <section class="section" style="background:var(--surface-2)">
       <div class="wrap">
-        <span class="eyebrow">Por que a ${ORG.shortName}</span>
-        <h2 style="margin:12px 0 24px">Uma escolha séria para estudar psicanálise</h2>
-        <div class="three-col">
-          <div class="card">
-            <h3 style="font-size:17px">Conteúdo estruturado</h3>
-            <p style="color:var(--ink-soft);font-size:14.5px;margin-top:8px">
-              Dos fundamentos de Freud às abordagens contemporâneas, em módulos progressivos.
-            </p>
-          </div>
-          <div class="card">
-            <h3 style="font-size:17px">No seu ritmo</h3>
-            <p style="color:var(--ink-soft);font-size:14.5px;margin-top:8px">
-              Estude quando e onde quiser, com acesso estendido e revisão do material.
-            </p>
-          </div>
-          <div class="card">
-            <h3 style="font-size:17px">Ética e transparência</h3>
-            <p style="color:var(--ink-soft);font-size:14.5px;margin-top:8px">
-              Responsável técnico identificado e clareza sobre os limites da formação livre.
-            </p>
-          </div>
-        </div>
+        <span class="eyebrow">Por que escolher a ${ORG.shortName}</span>
+        <h2 style="margin:12px 0 24px">A escolha inteligente para estudar psicanálise</h2>
+        <div class="porque">${raw(porque)}</div>
       </div>
     </section>
 

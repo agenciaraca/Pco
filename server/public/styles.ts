@@ -442,6 +442,47 @@ p{margin:0}
   .ck-resumo{position:static}
   .ck-dupla{grid-template-columns:1fr}
 }
+
+/* ================= HOME (protótipo aprovado) =================
+   Transposição de docs/design/pages/Home.dc.html: faixa de confiança no hero,
+   bloco de afirmação com ladrilhos, barra de números, "por que escolher" em
+   seis cartões numerados. */
+.hero-confianca{display:flex;flex-wrap:wrap;gap:14px 26px;margin-top:26px;align-items:center}
+.hero-confianca .item{display:inline-flex;align-items:center;gap:9px;font-size:13.5px;color:#dceaef}
+.hero-confianca .estrelas{color:var(--brand-orange);letter-spacing:1px}
+.hero-confianca .selo{display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:3px 9px;
+  font-size:11.5px;font-weight:800;letter-spacing:.06em}
+/* afirmação + ladrilhos */
+.afirmacao{display:grid;grid-template-columns:1.1fr .9fr;gap:44px;align-items:center}
+.afirmacao h2{font-size:clamp(22px,2.6vw,30px);color:var(--ink);line-height:1.35;
+  letter-spacing:-.4px;max-width:24ch}
+.afirmacao .maisinfo{display:inline-flex;align-items:center;gap:8px;margin-top:20px;
+  font-weight:700;color:var(--accent);font-size:15px}
+.afirmacao .maisinfo:hover{color:var(--accent-ink)}
+.ladrilhos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ladrilho{border-radius:16px;min-height:132px;padding:18px;display:flex;align-items:flex-end;
+  color:#fff;font-weight:700;font-size:15px;line-height:1.3;
+  background-color:#0b7486;
+  background-image:linear-gradient(135deg,rgba(0,151,178,.55),rgba(11,116,134,.9)),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 14px,rgba(255,255,255,0) 14px 28px)}
+/* barra de números */
+.barra-numeros{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:24px;text-align:center;color:var(--on-deep)}
+.barra-numeros .valor{font-size:38px;font-weight:800;line-height:1.1}
+.barra-numeros .rotulo{color:#cfe0dc;font-size:14px;margin-top:4px}
+.barra-numeros .base{color:#a9c9d2;font-size:12px;margin-top:2px}
+/* por que escolher */
+.porque{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.porque-item{background:var(--raise);border:1px solid var(--line-soft);border-radius:18px;padding:26px}
+.porque-item .n{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);
+  color:var(--accent);font-weight:800;font-size:15px;display:grid;place-items:center;margin-bottom:14px}
+.porque-item .t{font-weight:700;color:var(--ink);font-size:17px}
+.porque-item .d{font-size:14.5px;color:var(--ink-soft);line-height:1.55;margin-top:6px}
+@media (max-width:900px){
+  .afirmacao{grid-template-columns:1fr;gap:28px}
+  .porque{grid-template-columns:1fr}
+}
 `.trim();
 
 /**

@@ -41,13 +41,15 @@ export default function CompareCourses() {
 
   const courses = useMemo(() => {
     if (!allCourses) return [];
-    return ids
-      .map((id) => allCourses.find((c) => c.id === id))
-      .filter((c): c is NonNullable<typeof c> => !!c)
-      // Esta rota é pública e resolve qualquer id que venha na URL. Sem o
-      // portão, quem soubesse o id de um curso tirado da vitrine via a página
-      // de comparação dele — o mesmo furo que o catálogo tinha.
-      .filter(isPubliclyListed);
+    return (
+      ids
+        .map((id) => allCourses.find((c) => c.id === id))
+        .filter((c): c is NonNullable<typeof c> => !!c)
+        // Esta rota é pública e resolve qualquer id que venha na URL. Sem o
+        // portão, quem soubesse o id de um curso tirado da vitrine via a página
+        // de comparação dele — o mesmo furo que o catálogo tinha.
+        .filter(isPubliclyListed)
+    );
   }, [allCourses, ids]);
 
   function removeId(id: string) {
@@ -71,12 +73,12 @@ export default function CompareCourses() {
     return (
       <div className="space-y-6">
         <header>
-          <Link
-            to="/catalogo"
+          <a
+            href="/formacoes"
             className="text-xs font-medium text-pco-blue inline-flex items-center gap-1 hover:underline"
           >
             <ArrowLeft size={12} /> Voltar ao catálogo
-          </Link>
+          </a>
           <h1 className="pco-section-title mt-2">Comparar cursos</h1>
           <p className="pco-section-subtitle mt-1">
             Adicione cursos abaixo (até {MAX_COMPARE}) pra ver lado a lado.
@@ -88,12 +90,7 @@ export default function CompareCourses() {
             description="Escolha cursos do catálogo pra comparar."
           />
         </div>
-        <CoursePicker
-          all={allCourses ?? []}
-          selected={[]}
-          onPick={addId}
-          maxReached={false}
-        />
+        <CoursePicker all={allCourses ?? []} selected={[]} onPick={addId} maxReached={false} />
       </div>
     );
   }
@@ -101,12 +98,12 @@ export default function CompareCourses() {
   return (
     <div className="space-y-6">
       <header>
-        <Link
-          to="/catalogo"
+        <a
+          href="/formacoes"
           className="text-xs font-medium text-pco-blue inline-flex items-center gap-1 hover:underline"
         >
           <ArrowLeft size={12} /> Voltar ao catálogo
-        </Link>
+        </a>
         <h1 className="pco-section-title mt-2">
           Comparar {courses.length} curso{courses.length > 1 ? 's' : ''}
         </h1>
@@ -123,15 +120,10 @@ export default function CompareCourses() {
                 Característica
               </th>
               {courses.map((c) => (
-                <th
-                  key={c.id}
-                  className="text-left px-4 py-3 align-top min-w-[200px]"
-                >
+                <th key={c.id} className="text-left px-4 py-3 align-top min-w-[200px]">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="text-sm font-bold text-pco-deep">
-                        {c.shortTitle}
-                      </div>
+                      <div className="text-sm font-bold text-pco-deep">{c.shortTitle}</div>
                       <div className="text-[11px] text-ink-subtle">/{c.slug}</div>
                     </div>
                     <button
@@ -153,11 +145,7 @@ export default function CompareCourses() {
                 <td key={c.id} className="px-4 py-3">
                   <div className="relative h-20 rounded-lg overflow-hidden">
                     {c.coverImageUrl ? (
-                      <img
-                        src={c.coverImageUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={c.coverImageUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className={`w-full h-full bg-gradient-to-br ${c.coverColor}`} />
                     )}
@@ -222,7 +210,9 @@ export default function CompareCourses() {
                     {reqs.length === 0 ? (
                       <span className="text-ink-subtle">—</span>
                     ) : (
-                      <span>{reqs.length} curso{reqs.length === 1 ? '' : 's'}</span>
+                      <span>
+                        {reqs.length} curso{reqs.length === 1 ? '' : 's'}
+                      </span>
                     )}
                   </td>
                 );
@@ -260,12 +250,7 @@ export default function CompareCourses() {
       </div>
 
       {courses.length < MAX_COMPARE && (
-        <CoursePicker
-          all={allCourses ?? []}
-          selected={ids}
-          onPick={addId}
-          maxReached={false}
-        />
+        <CoursePicker all={allCourses ?? []} selected={ids} onPick={addId} maxReached={false} />
       )}
     </div>
   );
@@ -309,9 +294,7 @@ function CoursePicker({
     <div className="pco-card">
       <h3 className="text-sm font-semibold text-pco-deep mb-3">
         Adicionar curso à comparação{' '}
-        <span className="text-[11px] text-ink-subtle font-normal">
-          (até {MAX_COMPARE})
-        </span>
+        <span className="text-[11px] text-ink-subtle font-normal">(até {MAX_COMPARE})</span>
       </h3>
       {maxReached || selected.length >= MAX_COMPARE ? (
         <p className="text-xs text-ink-muted">
