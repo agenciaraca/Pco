@@ -73,7 +73,17 @@ const buildModules = (courseId: string, prefix: string, n: number) =>
 export const courses: Course[] = [
   {
     id: 'c-psi',
-    slug: 'psicanalise-clinica',
+    /**
+     * O slug do carro-chefe acompanha PRODUÇÃO, não o gosto do seed.
+     *
+     * O cabeçalho do site tem uma porta direta para este curso, com o endereço
+     * escrito à mão em `server/public/layout.ts`. Enquanto o seed dizia
+     * `psicanalise-clinica` e produção servia
+     * `curso-de-psicanalise-clinica-online`, o principal item do menu era 404
+     * em qualquer instalação limpa — e nada reclamava.
+     * `test/menu-do-site.test.ts` amarra os dois daqui em diante.
+     */
+    slug: 'curso-de-psicanalise-clinica-online',
     title: 'Psicanálise Clínica',
     shortTitle: 'Psicanálise',
     description:
@@ -100,8 +110,7 @@ export const courses: Course[] = [
     slug: 'hipnoterapia',
     title: 'Hipnoterapia',
     shortTitle: 'Hipno',
-    description:
-      'Hipnose terapêutica com base científica, integrada à prática clínica de cuidado.',
+    description: 'Hipnose terapêutica com base científica, integrada à prática clínica de cuidado.',
     coverColor: 'from-pco-orange to-[#FFB347]',
     modules: buildModules('c-hipno', 'hip', 5),
     totalHours: 120,
@@ -138,8 +147,7 @@ export const newsArticles: NewsArticle[] = [
   {
     id: 'n-3',
     title: 'Hipnose clínica e evidências: o que a ciência diz hoje',
-    excerpt:
-      'Uma revisão acessível das evidências contemporâneas em hipnoterapia.',
+    excerpt: 'Uma revisão acessível das evidências contemporâneas em hipnoterapia.',
     category: 'Recomendado',
     tags: ['hipnose', 'evidências'],
     coverColor: 'from-pco-orange to-[#FFC76A]',
@@ -153,8 +161,7 @@ export const podcasts: PodcastEpisode[] = [
   {
     id: 'p-1',
     title: 'O ato analítico além da técnica',
-    description:
-      'Conversa sobre o que diferencia a escuta psicanalítica de outras abordagens.',
+    description: 'Conversa sobre o que diferencia a escuta psicanalítica de outras abordagens.',
     durationMinutes: 42,
     publishedAt: '2026-04-20',
     coverColor: 'from-pco-blue to-pco-deep',
@@ -164,8 +171,7 @@ export const podcasts: PodcastEpisode[] = [
   {
     id: 'p-2',
     title: 'Genograma na prática familiar',
-    description:
-      'Como construir e ler um genograma para entender padrões sistêmicos.',
+    description: 'Como construir e ler um genograma para entender padrões sistêmicos.',
     durationMinutes: 35,
     publishedAt: '2026-04-12',
     coverColor: 'from-pco-cyan to-pco-cyan-light',
@@ -372,10 +378,28 @@ export const seoTimeseries: SeoMetric[] = Array.from({ length: 30 }, (_, i) => {
 });
 
 export const keywords: KeywordMetric[] = [
-  { keyword: 'curso de psicanálise online', position: 4, searchVolume: 2900, trend: 'up', ctr: 6.2 },
+  {
+    keyword: 'curso de psicanálise online',
+    position: 4,
+    searchVolume: 2900,
+    trend: 'up',
+    ctr: 6.2,
+  },
   { keyword: 'formação em hipnoterapia', position: 7, searchVolume: 1800, trend: 'up', ctr: 4.1 },
-  { keyword: 'terapia familiar sistêmica curso', position: 12, searchVolume: 1300, trend: 'flat', ctr: 2.4 },
-  { keyword: 'pós em psicanálise clínica', position: 9, searchVolume: 990, trend: 'down', ctr: 3.0 },
+  {
+    keyword: 'terapia familiar sistêmica curso',
+    position: 12,
+    searchVolume: 1300,
+    trend: 'flat',
+    ctr: 2.4,
+  },
+  {
+    keyword: 'pós em psicanálise clínica',
+    position: 9,
+    searchVolume: 990,
+    trend: 'down',
+    ctr: 3.0,
+  },
   { keyword: 'pco escola de psicanálise', position: 1, searchVolume: 480, trend: 'up', ctr: 14.8 },
 ];
 

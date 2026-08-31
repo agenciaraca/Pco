@@ -17,6 +17,13 @@
  *   npx tsx scripts/aplicar_conteudo_curso.ts psicanalise-clinica
  *   npx tsx scripts/aplicar_conteudo_curso.ts psicanalise-clinica --commit
  *
+ * **O arquivo e o curso podem ter slugs diferentes**, e no carro-chefe têm: o
+ * conteúdo está em `psicanalise-clinica.json`, mas em produção o curso é
+ * `curso-de-psicanalise-clinica-online` (conferido em 31/ago/2026 — o outro
+ * slug responde 404 lá). Para mirar outro curso:
+ *
+ *   npx tsx scripts/aplicar_conteudo_curso.ts psicanalise-clinica --curso curso-de-psicanalise-clinica-online --commit
+ *
  * Contra produção, exporte antes o `DATABASE_URL` do banco certo.
  */
 import { readFileSync } from 'node:fs';
@@ -26,8 +33,13 @@ import * as coursesRepo from '../server/repositories/courses';
 async function main() {
   const slug = process.argv[2];
   const commit = process.argv.includes('--commit');
-  if (!slug) {
-    console.error('uso: aplicar_conteudo_curso.ts <slug> [--commit]');
+  const iAlvo = process.argv.indexOf('--curso');
+  /** Qual curso recebe o conteúdo. Por padrão, o de mesmo nome do arquivo. */
+  const slugAlvo = iAlvo > -1 ? process.argv[iAlvo + 1] : slug;
+  if (!slug || (iAlvo > -1 && !slugAlvo)) {
+    console.error(
+      'uso: aplicar_conteudo_curso.ts <slug-do-conteudo> [--curso <slug-alvo>] [--commit]',
+    );
     process.exit(1);
   }
 
@@ -41,9 +53,13 @@ async function main() {
   }
 
   const cursos = await coursesRepo.listCourses();
-  const curso = cursos.find((c) => (c as unknown as { slug?: string }).slug === slug);
+  const curso = cursos.find((c) => (c as unknown as { slug?: string }).slug === slugAlvo);
   if (!curso) {
-    console.error(`curso "${slug}" não existe nesta base (${cursos.length} cursos lidos).`);
+    console.error(`curso "${slugAlvo}" não existe nesta base (${cursos.length} cursos lidos).`);
+    const parecidos = cursos
+      .map((c) => (c as unknown as { slug?: string }).slug)
+      .filter((sl): sl is string => Boolean(sl) && sl!.includes(slugAlvo.split('-')[0]));
+    if (parecidos.length) console.error(`parecidos: ${parecidos.join(', ')}`);
     process.exit(1);
   }
 
