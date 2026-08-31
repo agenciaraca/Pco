@@ -229,6 +229,12 @@ Só restart, sem rebuild: `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
 
 Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
+## Onde o trabalho parou
+
+O handoff vivo é **`docs/SESSAO-2026-08-31-design-carrinho-tokens.md`**.
+Produção está em `4c7c1dc`; o repositório, à frente. Nada de 31/ago foi
+publicado — decisão do dono.
+
 ## O desenho do site vem de fora do repositório
 
 A referência visual **não é o código**: é um projeto do Claude Design aprovado
