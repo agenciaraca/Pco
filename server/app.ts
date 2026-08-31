@@ -211,6 +211,7 @@ import * as settingsBackup from './settings/backup';
 import * as reengagementWorker from './reengagement/worker';
 import * as expiryWorker from './access/expiry-worker';
 import * as lembreteWorker from './sessions/lembrete-worker';
+import * as sandraPoll from './payments/sandra-poll-worker';
 import * as webhookDeliveries from './webhooks/delivery-store';
 import * as webhooksDispatcher from './webhooks/dispatcher';
 import { ALL_WEBHOOK_EVENTS, type WebhookEventType } from './webhooks/types';
@@ -281,7 +282,17 @@ function escapeHtmlBasic(s: string): string {
   );
 }
 
-async function grantAccessForOrder(order: import('./payments/types').Order): Promise<void> {
+/**
+ * Libera o que o pedido pago comprou.
+ *
+ * Exportada em 31/ago/2026 porque o worker de sondagem da Sandra precisa
+ * confirmar pagamento fora do ciclo de webhook — e duplicar esta lógica lá
+ * seria criar um segundo lugar onde matrícula nasce, que é o tipo de divergência
+ * que só aparece quando um aluno paga e não entra.
+ */
+export async function grantAccessForOrder(
+  order: import('./payments/types').Order,
+): Promise<void> {
   if (order.productSnapshot.kind === 'course' && order.productSnapshot.refId) {
     await studentsRepo.enrollInCourse(order.userId, order.productSnapshot.refId);
     return;
@@ -6939,6 +6950,7 @@ export function buildApp() {
         },
         expiryWorker.getStatus(),
         lembreteWorker.getStatus(),
+        sandraPoll.getStatus(),
       ],
     });
   });
@@ -6969,6 +6981,13 @@ export function buildApp() {
         const dryRun = c.req.query('dryRun') === 'true';
         const r = await lembreteWorker.tickWorker({ dryRun });
         return c.json({ name, ok: true, ...r, dryRun });
+      }
+      // Enquanto a Sandra não emite o aviso de pagamento, é esta varredura que
+      // confirma. Rodar à mão serve para não esperar o intervalo quando alguém
+      // acabou de pagar e ligou perguntando.
+      if (name === 'sandra-poll') {
+        const r = await sandraPoll.varrer();
+        return c.json({ name, ok: true, ...r });
       }
       return jsonError(c, 404, 'NOT_FOUND', `Job desconhecido: ${name}`);
     },
@@ -10366,6 +10385,12 @@ export function buildApp() {
         currency: product.currency,
         description: product.name,
         customerEmail: user.email,
+        // Nome, documento e telefone vêm do formulário e param aqui — antes
+        // paravam no cadastro do usuário e o gateway recebia só o e-mail. A
+        // Sandra exige CPF/CNPJ para emitir, então sem isto a cobrança nem sai.
+        customerName: v.data.name,
+        customerDocument: v.data.document || undefined,
+        customerPhone: v.data.whatsapp || undefined,
         metadata: { orderId: order.id, userId: user.id, source: 'public' },
       });
       const updated = await ordersRepo.attachGatewayResult(order.id, {

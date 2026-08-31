@@ -334,6 +334,11 @@ import('./access/expiry-worker').then((m) => m.startWorker(24 * 60 * 60_000));
 // precisa de resolução melhor que um dia para existir de verdade.
 import('./sessions/lembrete-worker').then((m) => m.startWorker(15 * 60_000));
 
+// Sondagem das cobranças da Sandra a cada 5 min — é assim que o pagamento é
+// confirmado enquanto o aviso de volta dela não existe. Intervalo em minutos,
+// como a documentação dela pede; sem gateway Sandra cadastrado, não faz nada.
+import('./payments/sandra-poll-worker').then((m) => m.startWorker(5 * 60_000));
+
 // Rotaciona app.log quando passa de 10MB (verifica a cada 1h)
 import('./services/log-rotator').then((m) => m.startWorker(60 * 60_000));
 

@@ -273,6 +273,17 @@ function GatewayEditor({ editing, providers, submitting, onClose, onSubmit }: Ed
   const [publicKey, setPublicKey] = useState(editing?.publicKey ?? '');
   const [showSecrets, setShowSecrets] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * A Sandra precisa de duas coisas que não são credencial: o endereço da
+   * instalação e o slug da escola. Sem elas o provider recusa antes de chamar —
+   * e sem campo aqui, o gateway seria cadastrável e inútil.
+   */
+  const opcoes = (editing?.options ?? {}) as { baseUrl?: string; tenantSlug?: string };
+  const [sandraBaseUrl, setSandraBaseUrl] = useState(opcoes.baseUrl ?? 'https://app.sandra.com.vc');
+  const [sandraSlug, setSandraSlug] = useState(opcoes.tenantSlug ?? '');
+  const [sandraMetodo, setSandraMetodo] = useState<string>(
+    (editing?.options as { metodo?: string })?.metodo ?? 'pix',
+  );
 
   return (
     <div
@@ -313,6 +324,10 @@ function GatewayEditor({ editing, providers, submitting, onClose, onSubmit }: Ed
               setError('API key obrigatória ao criar.');
               return;
             }
+            if (provider === 'sandra' && (!sandraBaseUrl.trim() || !sandraSlug.trim())) {
+              setError('Sandra: informe o endereço e o slug da escola.');
+              return;
+            }
             void onSubmit({
               provider,
               displayName: displayName.trim(),
@@ -322,6 +337,15 @@ function GatewayEditor({ editing, providers, submitting, onClose, onSubmit }: Ed
               apiSecret: apiSecret.trim() || undefined,
               webhookSecret: webhookSecret.trim() || undefined,
               publicKey: publicKey.trim() || undefined,
+              ...(provider === 'sandra'
+                ? {
+                    options: {
+                      baseUrl: sandraBaseUrl.trim(),
+                      tenantSlug: sandraSlug.trim(),
+                      metodo: sandraMetodo,
+                    },
+                  }
+                : {}),
             });
           }}
           className="p-6 space-y-4"
@@ -342,6 +366,52 @@ function GatewayEditor({ editing, providers, submitting, onClose, onSubmit }: Ed
               ))}
             </select>
           </Field>
+
+          {provider === 'sandra' && (
+            <div className="rounded-xl border border-pco-blue/25 bg-pco-blue/5 p-4 space-y-3">
+              <p className="text-xs text-ink-muted">
+                Na Sandra, a cobrança é emitida no gateway da <strong>própria escola</strong> — o
+                dinheiro não passa por ela. Além da chave de API, ela precisa saber onde está
+                instalada e qual é a escola.
+              </p>
+              <Field label="Endereço da Sandra" hint="Ex.: https://app.sandra.com.vc">
+                <input
+                  type="url"
+                  value={sandraBaseUrl}
+                  onChange={(e) => setSandraBaseUrl(e.target.value)}
+                  placeholder="https://app.sandra.com.vc"
+                  className="pco-input"
+                />
+              </Field>
+              <Field label="Slug da escola" hint="O identificador da escola dentro da Sandra">
+                <input
+                  type="text"
+                  value={sandraSlug}
+                  onChange={(e) => setSandraSlug(e.target.value)}
+                  placeholder="pco"
+                  className="pco-input font-mono"
+                />
+              </Field>
+              <Field label="Forma de cobrança" hint="A Sandra não tem padrão — escolha uma.">
+                <select
+                  value={sandraMetodo}
+                  onChange={(e) => setSandraMetodo(e.target.value)}
+                  className="pco-input"
+                >
+                  <option value="pix">PIX</option>
+                  <option value="boleto">Boleto</option>
+                  <option value="credit">Cartão de crédito</option>
+                  <option value="debit">Cartão de débito</option>
+                </select>
+              </Field>
+              <p className="text-[11px] text-ink-subtle">
+                A chave de API precisa do escopo <code>charges:write</code>, e no servidor da Sandra
+                a variável <code>PUBLIC_CHARGES</code> tem de estar ligada — em <code>off</code> a
+                rota responde 404. Enquanto ela não avisa o pagamento, quem confirma é a varredura
+                <code>sandra-poll</code>, em /admin/jobs.
+              </p>
+            </div>
+          )}
 
           <Field label="Nome para exibir">
             <input

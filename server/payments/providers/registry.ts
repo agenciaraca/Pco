@@ -8,6 +8,7 @@ import { asaasProvider } from './asaas';
 import { pagarmeProvider } from './pagarme';
 import { paypalProvider } from './paypal';
 import { mercadopagoProvider } from './mercadopago';
+import { sandraProvider } from './sandra';
 
 const registry: Partial<Record<PaymentProvider, PaymentProviderImpl>> = {
   mock: mockProvider,
@@ -16,6 +17,7 @@ const registry: Partial<Record<PaymentProvider, PaymentProviderImpl>> = {
   pagarme: pagarmeProvider,
   paypal: paypalProvider,
   mercadopago: mercadopagoProvider,
+  sandra: sandraProvider,
 };
 
 export function getPaymentProvider(name: PaymentProvider): PaymentProviderImpl | null {
@@ -33,4 +35,5 @@ export const ALL_PROVIDERS: Array<{ id: PaymentProvider; label: string; implemen
   { id: 'pagarme', label: 'Pagar.me', implemented: true },
   { id: 'paypal', label: 'PayPal', implemented: true },
   { id: 'mercadopago', label: 'Mercado Pago', implemented: true },
+  { id: 'sandra', label: 'Sandra (cobrança no gateway da escola)', implemented: true },
 ];

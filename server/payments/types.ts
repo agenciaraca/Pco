@@ -6,7 +6,13 @@ export type PaymentProvider =
   | 'asaas'
   | 'pagarme'
   | 'paypal'
-  | 'mercadopago';
+  | 'mercadopago'
+  /**
+   * Sandra — a cobrança é emitida no gateway da PRÓPRIA escola, com a
+   * credencial dela. O dinheiro não passa pela Sandra. Ver
+   * `providers/sandra.ts`.
+   */
+  | 'sandra';
 
 export type PaymentMode = 'test' | 'live';
 

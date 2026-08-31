@@ -8,6 +8,14 @@ export interface CreatePaymentInput {
   description: string;
   customerEmail: string;
   customerName?: string;
+  /**
+   * CPF/CNPJ do comprador. Opcional na interface porque a maioria dos gateways
+   * não exige — mas a Sandra exige, e sem ele a cobrança nem sai. O checkout
+   * público já coleta o campo; até 31/ago/2026 ele parava no cadastro e não
+   * chegava aqui.
+   */
+  customerDocument?: string;
+  customerPhone?: string;
   // metadata para correlacionar com Order interna
   metadata: Record<string, string>;
   successUrl?: string;

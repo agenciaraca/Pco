@@ -124,6 +124,8 @@ export const paymentProviderEnum = z.enum([
   'pagarme',
   'paypal',
   'mercadopago',
+  /** Sandra — emite a cobrança no gateway da própria escola. */
+  'sandra',
 ]);
 export const paymentModeEnum = z.enum(['test', 'live']);
 

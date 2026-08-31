@@ -705,7 +705,15 @@ export async function studentSearch(q: string): Promise<StudentSearchHitDto[]> {
 
 // ---------- Payment gateways (admin) ----------
 
-export type PaymentProviderId = 'mock' | 'stripe' | 'asaas' | 'pagarme' | 'paypal' | 'mercadopago';
+export type PaymentProviderId =
+  | 'mock'
+  | 'stripe'
+  | 'asaas'
+  | 'pagarme'
+  | 'paypal'
+  | 'mercadopago'
+  /** Sandra — a cobrança nasce no gateway da própria escola. */
+  | 'sandra';
 
 export interface PaymentProviderInfoDto {
   id: PaymentProviderId;
