@@ -183,10 +183,17 @@ p{margin:0}
 .ondinha{width:120px;height:8px;color:rgba(255,255,255,.45);margin:8px 0}
 .rodape-rotulo{font-style:italic;font-size:13px;color:#bcd9e2;margin-top:6px}
 .rodape-endereco{font-size:13.5px;color:#dceaef;line-height:1.5}
-.selo-rntp{width:132px;height:132px;border-radius:50%;border:2px solid rgba(255,255,255,.35);
-  background:rgba(255,255,255,.08);display:grid;place-content:center;text-align:center;gap:4px;padding:10px}
-.selo-rntp span{font-size:22px;font-weight:800;letter-spacing:.06em}
-.selo-rntp small{font-size:9px;letter-spacing:.08em;line-height:1.35;color:#dceaef}
+/* Selo RNTP: a imagem oficial, baixada do site da escola. O protótipo desenha
+   um círculo com o texto "RNTP" porque não tinha o arquivo; desenhar à mão um
+   selo de certificação é pior que não ter — parece o selo sem ser o selo. */
+.selo-rntp{width:124px;height:124px;display:block;border-radius:50%;background:#fff;padding:7px;
+  box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.selo-rntp img{width:100%;height:100%;object-fit:contain;display:block}
+.rodape-social{display:flex;gap:10px;margin-top:16px}
+.rodape-social a{width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;
+  justify-content:center;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff}
+.rodape-social a:hover{background:rgba(255,255,255,.26);color:#fff}
+.rodape-social svg{width:18px;height:18px}
 .rodape-privacidade{text-align:left;max-width:46ch;align-items:flex-start}
 .rodape-privacidade p{font-size:12.8px;line-height:1.6;color:#dceaef;margin-bottom:8px}
 .rodape-priv-titulo{font-weight:800;font-style:italic;font-size:13.5px;color:#fff}
@@ -261,6 +268,47 @@ p{margin:0}
 .prose ul{color:var(--ink-soft);padding-left:20px;margin:0 0 16px;display:grid;gap:7px}
 .breadcrumb{font-size:13px;color:var(--ink-faint);display:flex;gap:8px;flex-wrap:wrap;padding:18px 0}
 .breadcrumb a:hover{color:var(--accent)}
+/* ================= HOME (conteúdo do dono, desenho do protótipo) ================= */
+/* Três pilares: Flexibilidade, Acessibilidade, Suporte. */
+.pilares{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.pilar{background:var(--raise);border:1px solid var(--line-soft);border-radius:18px;padding:26px;
+  box-shadow:var(--shadow)}
+.pilar h3{font-size:19px;margin-bottom:8px}
+.pilar p{font-size:14.5px;color:var(--ink-soft);line-height:1.6}
+/* Faixa de chamada no degradê, com o pincel dissolvendo para a seção seguinte. */
+.faixa-cta{background:var(--brand-gradient);color:#fff;position:relative;padding-bottom:clamp(60px,8vw,110px)}
+.faixa-cta h2{color:#fff}
+/* Depoimentos: aspas de verdade, nome e papel separados do texto. */
+.depoimentos{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.depo{margin:0;background:var(--raise);border:1px solid var(--line-soft);border-radius:18px;
+  padding:26px 26px 22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px}
+.depo blockquote{margin:0;font-size:15.5px;line-height:1.65;color:var(--ink);position:relative;padding-top:36px}
+/* Aspa decorativa com o caractere literal: escape CSS de quatro digitos nao
+   sobrevive a esta string de template — some a contrabarra e sobra o "C". */
+.depo blockquote::before{content:'“';position:absolute;top:0;left:-3px;font-size:58px;
+  line-height:.75;color:var(--accent);opacity:.3;font-family:Georgia,'Times New Roman',serif}
+.depo figcaption{display:flex;flex-direction:column;gap:2px;margin-top:auto}
+.depo .nome{font-weight:700;color:var(--ink);font-size:15px}
+.depo .papel{font-size:13px;color:var(--ink-faint)}
+/* Bloco RNTP com o selo real ao lado do texto. */
+.rntp-bloco{display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center}
+.rntp-bloco .selo-rntp{width:150px;height:150px;box-shadow:var(--shadow-lg)}
+/* Números DECLARADOS pela escola — separados dos medidos, e rotulados como tal. */
+.numeros-declarados{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:24px;
+  text-align:center;color:#fff}
+.numeros-declarados .valor{font-size:clamp(34px,5vw,50px);font-weight:800;line-height:1.05}
+.numeros-declarados .rotulo{color:#cfe0dc;font-size:15px;margin-top:6px}
+.declarados-nota{margin-top:26px;color:#dceaef;font-size:15px;line-height:1.7;max-width:78ch}
+/* A barra medida sobrevive, agora sobre fundo claro e dizendo que é medição. */
+.barra-numeros-neutra{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:18px;
+  padding:24px;margin-top:12px}
+.barra-numeros-neutra .valor{color:var(--ink)}
+.barra-numeros-neutra .rotulo{color:var(--ink-soft)}
+.barra-numeros-neutra .base{color:var(--ink-faint)}
+@media (max-width:900px){
+  .pilares{grid-template-columns:1fr}
+  .rntp-bloco{grid-template-columns:1fr;justify-items:center;text-align:center;gap:24px}
+}
 @media (max-width:900px){
   .nav{display:none}.menu-toggle{display:inline-flex}
   .two-col,.three-col{grid-template-columns:1fr}

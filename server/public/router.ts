@@ -552,6 +552,23 @@ publicSite.get('/blog/:slug', async (c) => {
 });
 
 // ============================ / (Home) ============================
+/**
+ * HOME — o texto é o do dono, verbatim.
+ *
+ * Em 31/ago/2026 o dono entregou o conteúdo textual completo da home e foi
+ * explícito: "o texto da home deve ser exatamente esse", com liberdade de
+ * ajuste apenas de UX/UI e sem perder o desenho aprovado. Então a estrutura,
+ * os componentes e os tokens são os do protótipo; as palavras são as dele.
+ *
+ * **Os três números do final são declarados pelo dono, não medidos pelo
+ * sistema** — "+800 alunos formados", "+100 aulas exclusivas" e "96,6% de
+ * índice de satisfação" vêm do site antigo. O projeto tem a regra de que número
+ * em página de venda anda com a medição, e ela vale para o que o SISTEMA
+ * afirma: a barra de números medidos continua existindo mais acima, separada, e
+ * some sozinha quando não há o que medir. Estes três são afirmação da escola,
+ * marcados como tal no código para que ninguém os confunda com contagem.
+ * Ver `numerosDoSite()` para o que é medido de verdade.
+ */
 publicSite.get('/', async (c) => {
   const [courses, posts, numeros] = await Promise.all([
     listPublicCourses(),
@@ -559,20 +576,12 @@ publicSite.get('/', async (c) => {
     numerosDoSite(ORG.founded),
   ]);
 
+  /** O curso carro-chefe é o destino de toda CTA desta página. */
+  const CARRO_CHEFE = '/formacao/curso-de-psicanalise-clinica-online';
+
   /**
-   * A faixa de confiança do hero e a barra de números — do protótipo aprovado,
-   * mas com o que dá para medir.
-   *
-   * O desenho pede "4,7/5 · avaliação dos alunos", "+1000 alunos formados" e
-   * "96% de satisfação". Nenhum dos três tinha medição atrás, e a home já
-   * publicava dois deles. A regra do projeto é a mesma desde o `/ava-pco`:
-   * número em página de venda é afirmação de resultado, e afirmação de
-   * resultado tem dono (CDC, art. 37). Aqui a avaliação sai das avaliações
-   * reais e **anda com a base**; "formados" é contagem de certificado emitido;
-   * satisfação não entra porque não existe pesquisa de satisfação no sistema.
-   *
-   * Cada item some sozinho quando não há o que medir — a faixa nunca mostra
-   * zero, porque numa página de venda zero é pior do que ausência.
+   * Faixa de confiança do herói: só o que tem medição atrás. A avaliação sai
+   * das avaliações reais e **anda com a base**; some quando não há nenhuma.
    */
   const itensConfianca = [
     numeros.avaliacao
@@ -615,28 +624,122 @@ publicSite.get('/', async (c) => {
     )
     .join('');
 
-  const ladrilhos = [
-    'Compreenda a mente humana com profundidade',
-    'Atue com técnica e postura ética',
-    'Estude no seu próprio ritmo',
-    'Construa uma nova trajetória',
-  ]
-    .map((t) => `<div class="ladrilho"><span>${esc(t)}</span></div>`)
+  // ---- os três pilares (texto do dono) ----
+  const pilares: Array<[string, string]> = [
+    [
+      'Flexibilidade',
+      'Nosso programa foi projetado para se adaptar à sua agenda, não o contrário. Você pode começar a aprender em qualquer momento e progredir de acordo com seu próprio ritmo.',
+    ],
+    [
+      'Acessibilidade',
+      'Acreditamos que a educação de qualidade deve ser acessível a todos. Nossos cursos são oferecidos a preços competitivos, com opções de pagamento flexíveis.',
+    ],
+    [
+      'Suporte',
+      'Ao se inscrever na PCO, você se torna parte de uma comunidade vibrante de estudantes e profissionais. Oferecemos suporte contínuo para garantir que você tenha todas as ferramentas necessárias para ter sucesso.',
+    ],
+  ];
+  const pilaresHtml = pilares
+    .map(
+      ([t, d]) =>
+        `<div class="pilar"><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`,
+    )
     .join('');
 
-  const porque = [
-    ['Aulas em vídeo', 'Conteúdo em vídeo com aulas exclusivas e indicações complementares.'],
-    ['Material 24h', 'Todo o material na plataforma para revisar quantas vezes precisar.'],
-    ['Início imediato', 'Acesso liberado após a confirmação do pagamento.'],
-    ['Pagamento facilitado', 'Parcele no boleto ou no cartão, conforme as condições vigentes.'],
-    ['Certificado digital', 'Certificado sem custo adicional ao concluir e quitar o curso.'],
-    ['Reconhecimento RNTP', 'Cursos avaliados e reconhecidos pela RNTP.'],
-  ]
+  // ---- por que escolher a PCO (texto do dono, oito itens) ----
+  const porqueItens: Array<[string, string]> = [
+    ['Aulas em Vídeo', 'Vasto material de estudo em vídeo com aulas exclusivas e sugestões de filmes.'],
+    [
+      'Pagamento Facilitado',
+      'Você pode optar pelos planos de pagamento que melhor se encaixa para você. No boleto ou no cartão, conheça as condições.',
+    ],
+    [
+      'Vasto Material de Leitura',
+      'Todo o material de leitura disponível na plataforma 24 horas por dia, para fazer a leitura quantas vezes precisar!',
+    ],
+    [
+      'Início Imediato',
+      'Aqui na Psicanálise Clínica Online você inicia imediatamente seu curso e através do exclusivo painel do aluno de psicanálise. Liberados um módulo por semana.',
+    ],
+    [
+      'Provas Simplificadas',
+      'Uma prova por módulo de forma simplificada. Você vai eliminando as matérias até o final do seu curso.',
+    ],
+    ['Duração', 'Sua formação em apenas 4 meses, tudo feito nas horas vagas, dependendo apenas de você.'],
+    [
+      'Reconhecimento RNTP',
+      'Nosso curso é reconhecido pela RNTP, após a conclusão do seu curso basta você se associar e pronto, sua carteirinha de psicanalista é emitida sem burocracia e avaliações de suficiência.',
+    ],
+    [
+      'Tutoria Dedicada',
+      'Imagine um professor dando atenção e tirando suas dúvidas! Isso mesmo, você pode contratar um professor para responder suas dúvidas diretamente no seu painel do aluno.',
+    ],
+  ];
+  const porque = porqueItens
     .map(
       ([t, d], i) =>
         `<div class="porque-item"><div class="n">${i + 1}</div><div class="t">${esc(t)}</div><div class="d">${esc(d)}</div></div>`,
     )
     .join('');
+
+  // ---- depoimentos (texto do dono; o site antigo repetia dois para o carrossel) ----
+  const depoimentos: Array<[string, string, string]> = [
+    [
+      'O curso é extremamente didático, as aulas e os materiais deixam o conteúdo mais leve e mais fácil de entender. Parabéns a professora e a equipe por contribuir de forma excepcional para o início da minha nova profissão.',
+      'Samuel Castro',
+      'Psicanalista',
+    ],
+    [
+      'Acabei de concluir o curso e minha satisfação é de 100%. Foi uma experiência única e bastante acessível. Consegui organizar meus horários e estudar tranquilamente. A plataforma é de fácil acesso e os módulos são bem apresentados. Estou muito feliz em ter esse curso no meu currículo.',
+      'Bruno Silva',
+      'Psicanalista formado conosco',
+    ],
+    [
+      'Eu comecei o curso e estou amando! Agora sinto que me encontrei! Cheguei a pesquisar outras instituições, mas esta é diferenciada. Eles te tratam muito bem e resolvem tudo da melhor maneira possível!',
+      'Ludimila Borges',
+      'Aluna do curso de Psicanálise Clínica',
+    ],
+    [
+      'Melhor curso que tem. Estou no segundo módulo e estou muito satisfeita.',
+      'Luciana Crespo',
+      'Aluna do curso de Psicanálise Clínica',
+    ],
+    [
+      'Neste curso, consegui não só me encontrar como pessoa, mas também como indivíduo na sua plena totalidade. O curso me abriu um leque de oportunidades e me proporcionou muito mais conhecimento.',
+      'Natalino Faustino',
+      'Psicanalista',
+    ],
+    [
+      'Gostei bastante, acho que o material foi bem elaborado e bem explicativo. Obrigada!',
+      'Elaine Maciel',
+      'Psicanalista',
+    ],
+    [
+      'Recomendo o curso, consegui aprender muito mesmo com pouco tempo para estudar. Didática boa, material de fácil aprendizado. Show',
+      'Vanusa Ribeiro',
+      'Terapeuta',
+    ],
+  ];
+  const depoimentosHtml = depoimentos
+    .map(
+      ([texto, nome, papel]) =>
+        `<figure class="depo"><blockquote>${esc(texto)}</blockquote><figcaption><span class="nome">${esc(nome)}</span><span class="papel">${esc(papel)}</span></figcaption></figure>`,
+    )
+    .join('');
+
+  /**
+   * Números do site antigo, DECLARADOS pela escola — não medidos aqui.
+   * Ficam separados da barra medida e assumidos como afirmação da PCO.
+   */
+  const numerosDeclarados: Array<[string, string]> = [
+    ['+800', 'Alunos Formados'],
+    ['+100', 'Aulas Exclusivas'],
+    ['96,6%', 'Índice de Satisfação'],
+  ];
+  const declaradosHtml = numerosDeclarados
+    .map(([v, r]) => `<div><div class="valor">${esc(v)}</div><div class="rotulo">${esc(r)}</div></div>`)
+    .join('');
+
   const courseCard = (co: (typeof courses)[number]): string => `
     <a class="card" href="/formacao/${co.slug}" style="display:block">
       <div aria-hidden="true" style="height:8px;border-radius:6px;background:${esc(co.coverColor || 'var(--accent)')};margin:-6px -6px 16px"></div>
@@ -652,6 +755,7 @@ publicSite.get('/', async (c) => {
       <p style="color:var(--ink-soft);font-size:14px">${esc(p.excerpt.slice(0, 100))}…</p>
       <p style="color:var(--ink-faint);font-size:12.5px;margin-top:12px">${p.readingMinutes} min de leitura</p>
     </a>`;
+
   const body = html`
     <section class="hero-deep" style="padding:clamp(56px,9vw,110px) 0 150px;overflow:hidden">
       <div
@@ -660,17 +764,18 @@ publicSite.get('/', async (c) => {
         aria-hidden="true"
       ></div>
       <div class="hero-veu" aria-hidden="true"></div>
-      <div class="wrap" style="max-width:820px">
-        <span class="eyebrow">Formação livre em psicanálise clínica · desde ${ORG.founded}</span>
-        <h1 style="margin:18px 0 18px">Estude psicanálise clínica com seriedade, no seu ritmo</h1>
-        <p class="lead" style="max-width:60ch">
-          Percursos estruturados dos fundamentos freudianos às abordagens contemporâneas — com
-          certificado digital, ética e o reconhecimento da ${ORG.rntp}.
+      <div class="wrap" style="max-width:860px">
+        <span class="eyebrow">Bem-vindo à Psicanálise Clínica Online</span>
+        <h1 style="margin:18px 0 18px">Curso de Psicanálise Clínica Online</h1>
+        <p class="lead" style="max-width:62ch">
+          O curso de psicanálise com o melhor custo-benefício do Brasil! Conheça agora o curso que
+          vai te formar psicanalista em pouco tempo, gastando pouco e aprendendo muito. Aulas, dicas
+          e orientações totalmente online.
         </p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px">
-          <a class="btn btn-cta btn-lg" href="/formacoes">Ver os cursos</a>
+          <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Ver Detalhes do Curso</a>
           <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow"
-            >${ICONE_WHATSAPP} Falar no WhatsApp</a
+            >${ICONE_WHATSAPP} Quero Falar no Whatsapp</a
           >
         </div>
         <div class="hero-confianca">${raw(itensConfianca)}</div>
@@ -679,26 +784,150 @@ publicSite.get('/', async (c) => {
     </section>
 
     <section class="section">
-      <div class="wrap afirmacao">
-        <div>
-          <h2>
-            Com conteúdo estruturado e estudo no seu tempo, você desenvolve a base necessária para
-            atuar com técnica e ética na psicanálise clínica.
-          </h2>
-          <a class="maisinfo" href="/formacoes"
-            >Conheça os cursos <span aria-hidden="true">→</span></a
+      <div class="wrap" style="max-width:820px">
+        <span class="eyebrow">Sobre a PCO — Psicanálise Clínica Online</span>
+        <h2 style="margin:14px 0 20px">
+          Uma jornada única para compreender a mente humana — e transformar isso em carreira
+        </h2>
+        <p style="color:var(--ink-soft);font-size:17px;line-height:1.7;margin-bottom:16px">
+          Em um mundo em constante evolução, onde a compreensão pessoal e as habilidades para
+          auxiliar os outros são cruciais, a Psicanálise Clínica Online (PCO) se destaca. Oferecemos
+          uma jornada única e transformadora que permite a você explorar as profundezas da mente
+          humana, compreender os comportamentos de maneira mais profunda e, por fim, transformar
+          essa paixão em uma carreira verdadeiramente gratificante.
+        </p>
+        <p style="color:var(--ink-soft);font-size:17px;line-height:1.7">
+          Nossa abordagem de ensino é flexível e inovadora, proporcionando a você a oportunidade de
+          se qualificar no seu próprio ritmo, sem comprometer a qualidade ou a profundidade do
+          aprendizado. Embarque nessa jornada conosco e descubra como a Psicanálise Clínica Online
+          pode ser a chave para o seu sucesso pessoal e profissional em um mundo em constante
+          transformação.
+        </p>
+      </div>
+    </section>
+
+    <section class="section-tight">
+      <div class="wrap pilares">${raw(pilaresHtml)}</div>
+    </section>
+
+    <section class="section-tight faixa-cta">
+      <div class="wrap" style="text-align:center;max-width:720px">
+        <h2 style="color:#fff;margin-bottom:20px">Faça já sua matrícula e comece a estudar</h2>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+          <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero me matricular</a>
+          <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow"
+            >${ICONE_WHATSAPP} Quero Falar no Whatsapp</a
           >
         </div>
-        <div class="ladrilhos">${raw(ladrilhos)}</div>
+      </div>
+      ${pincel('var(--surface-2)')}
+    </section>
+
+    <section class="section" style="background:var(--surface-2)">
+      <div class="wrap">
+        <span class="eyebrow">Por que escolher a ${ORG.shortName}</span>
+        <h2 style="margin:12px 0 14px">Por que escolher a PCO Psicanálise Clínica Online?</h2>
+        <p class="lead" style="max-width:76ch;margin-bottom:26px">
+          A escolha do seu curso de psicanálise clínica é sempre complicada, pois existe muita
+          oferta e diversos formatos. A PCO simplificou e preparou um curso online para que você,
+          através do seu próprio potencial, se torne um psicanalista.
+        </p>
+        <div class="porque">${raw(porque)}</div>
+        <div style="margin-top:28px">
+          <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero começar</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap" style="max-width:820px">
+        <h2 style="margin-bottom:20px">
+          Sua carreira após a Formação em Psicanálise Clínica aqui na PCO
+        </h2>
+        <p style="color:var(--ink-soft);font-size:17px;line-height:1.7;margin-bottom:16px">
+          Desperte o psicanalista em você com nossa formação em psicanálise online de excelência! Ao
+          concluir nosso curso, você não apenas dominará a psicanálise, mas também estará apto a se
+          tornar membro do RNTP, elevando sua credibilidade e desbloqueando um mundo de novas
+          oportunidades.
+        </p>
+        <p style="color:var(--ink-soft);font-size:17px;line-height:1.7">
+          Seja desbravando consultórios virtuais, integrando equipes multidisciplinares online, ou
+          atuando em clínicas digitais, sua jornada como psicanalista promete ser não apenas rica e
+          variada, mas também incrivelmente gratificante. Prepare-se para uma carreira
+          transformadora, onde o conhecimento profundo se une à flexibilidade do aprendizado online.
+          Estamos aqui para guiar você rumo ao sucesso na psicanálise!
+        </p>
+      </div>
+    </section>
+
+    <section class="section" style="background:var(--surface-2)">
+      <div class="wrap">
+        <span class="eyebrow">O que dizem sobre nós?</span>
+        <h2 style="margin:12px 0 26px">
+          Palavra dos alunos formados pelo Curso de Psicanálise Clínica Online
+        </h2>
+        <div class="depoimentos">${raw(depoimentosHtml)}</div>
+        <div style="margin-top:30px;max-width:76ch">
+          <p style="color:var(--ink-soft);font-size:16px;line-height:1.7;margin-bottom:20px">
+            Dependa apenas de você para sua formação profissional em psicanálise, e conte com o
+            melhor conteúdo da categoria, eleito pelo RNTP como uma das melhores escolas para
+            aprendizado de psicanálise.
+          </p>
+          <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero fazer este curso</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap rntp-bloco">
+        <span class="selo-rntp">
+          <img
+            src="/img/selo-rntp.png"
+            alt="Selo do Registro Nacional de Terapeutas e Psicanalistas"
+            width="406"
+            height="415"
+            loading="lazy"
+          />
+        </span>
+        <div>
+          <span class="eyebrow">Curso reconhecido RNTP</span>
+          <h2 style="margin:12px 0 14px">Reconhecimento que atesta a formação</h2>
+          <p style="color:var(--ink-soft);font-size:16.5px;line-height:1.7">
+            Orgulhamo-nos em afirmar que nosso Curso de Psicanálise Clínica conquistou o
+            reconhecimento do RNTP, após uma rigorosa avaliação de seu conteúdo. Este selo de
+            qualidade atesta a excelência na formação do psicanalista, colocando a PCO no seleto
+            grupo das melhores escolas de psicanálise do Brasil. Estamos comprometidos em oferecer
+            uma experiência de aprendizado excepcional, preparando você para se destacar como
+            profissional na área da psicanálise clínica. Faça parte da nossa comunidade e trilhe o
+            caminho da excelência em sua formação!
+          </p>
+        </div>
       </div>
     </section>
 
     <section class="section-tight" style="background:var(--brand-gradient)">
-      <div class="wrap barra-numeros">${raw(barraNumeros)}</div>
+      <div class="wrap">
+        <div class="numeros-declarados">${raw(declaradosHtml)}</div>
+        <p class="declarados-nota">
+          Com orgulho, celebramos a formação de mais de 1000 alunos que escolheram trilhar a jornada
+          do Curso de Psicanálise Clínica Online conosco. Oferecemos mais de 100 aulas exclusivas,
+          proporcionando um aprendizado abrangente e de qualidade. Nosso compromisso com a
+          excelência reflete no impressionante índice de satisfação de mais de 96%, demonstrando a
+          confiança e a satisfação dos nossos alunos. Junte-se a nós e faça parte dessa comunidade
+          de sucesso na Psicanálise Clínica Online!
+        </p>
+      </div>
+    </section>
+
+    <section class="section-tight">
+      <div class="wrap barra-numeros-claro">
+        <span class="eyebrow">Medido no sistema, hoje</span>
+        <div class="barra-numeros barra-numeros-neutra">${raw(barraNumeros)}</div>
+      </div>
     </section>
 
     ${courses.length
-      ? html`<section class="section">
+      ? html`<section class="section" style="background:var(--surface-2)">
           <div class="wrap">
             <span class="eyebrow">Nossas formações</span>
             <h2 style="margin:12px 0 24px">Escolha por onde começar</h2>
@@ -709,14 +938,6 @@ publicSite.get('/', async (c) => {
           </div>
         </section>`
       : ''}
-
-    <section class="section" style="background:var(--surface-2)">
-      <div class="wrap">
-        <span class="eyebrow">Por que escolher a ${ORG.shortName}</span>
-        <h2 style="margin:12px 0 24px">A escolha inteligente para estudar psicanálise</h2>
-        <div class="porque">${raw(porque)}</div>
-      </div>
-    </section>
 
     ${posts.length
       ? html`<section class="section">
@@ -737,14 +958,14 @@ publicSite.get('/', async (c) => {
         <p class="lead" style="color:#cfe0dc;margin-bottom:24px">
           Comece sua formação em psicanálise clínica hoje.
         </p>
-        <a class="btn btn-cta btn-lg" href="/formacoes">Ver os cursos</a>
+        <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero me matricular</a>
       </div>
     </section>
   `;
   return c.html(
     renderPage({
-      title: `${ORG.name} — Formação em Psicanálise Clínica`,
-      description: `Estude psicanálise clínica com a ${ORG.shortName}: formação livre estruturada, certificado digital e ${ORG.rntp}. Desde ${ORG.founded}. Não substitui graduação em Psicologia ou Medicina.`,
+      title: `${ORG.name} — Curso de Psicanálise Clínica Online`,
+      description: `O curso de psicanálise com o melhor custo-benefício do Brasil. Formação livre estruturada, certificado digital e ${ORG.rntp}. Desde ${ORG.founded}. Não substitui graduação em Psicologia ou Medicina.`,
       path: '/',
       activeNav: 'home',
       bodyHtml: body,

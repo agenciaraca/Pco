@@ -93,6 +93,12 @@ describe('o topo de toda página leva à compra', () => {
   });
 
   it('o herói da home abre com a CTA grande, não com a ação secundária', () => {
-    expect(router).toMatch(/class="btn btn-cta btn-lg" href="\/formacoes"/);
+    // A home usa a constante CARRO_CHEFE no href, então o teste cobra a classe
+    // (que é a decisão de desenho) e o destino da constante — que precisa ser
+    // uma página de curso, nunca uma rota que responde 301.
+    expect(router).toMatch(/class="btn btn-cta btn-lg"/);
+    const alvo = router.match(/const CARRO_CHEFE = '([^']+)'/)?.[1];
+    expect(alvo, 'a home perdeu a constante do curso carro-chefe').toBeTruthy();
+    expect(alvo).toMatch(/^\/formacao\//);
   });
 });
