@@ -929,6 +929,13 @@ export const marketingTagsSchema = z.object({
   metaPixelId: idOuVazio(/^[0-9]{8,24}$/, '1234567890123456'),
   googleSiteVerification: idOuVazio(/^[A-Za-z0-9_-]{20,120}$/, 'o conteúdo da meta tag'),
   facebookDomainVerification: idOuVazio(/^[A-Za-z0-9]{16,80}$/, 'o conteúdo da meta tag'),
+  /**
+   * Token da API de Conversões do Meta. Diferente dos outros campos, é
+   * credencial — vem em texto livre porque o formato é do Meta, e é cifrado
+   * antes de tocar o disco.
+   */
+  metaCapiToken: z.string().max(600).or(z.literal('')),
+  enviarConversaoServidor: z.boolean(),
   exigirConsentimento: z.boolean(),
   ativo: z.boolean(),
 });

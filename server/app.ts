@@ -293,6 +293,27 @@ function escapeHtmlBasic(s: string): string {
 export async function grantAccessForOrder(
   order: import('./payments/types').Order,
 ): Promise<void> {
+  /**
+   * Conversão pelo servidor, no único instante em que a compra é fato.
+   *
+   * Best-effort de propósito: se o Meta estiver fora, o aluno continua
+   * matriculado. Perder uma métrica é ruim; perder uma matrícula por causa de
+   * uma métrica seria pior. Nasce desligado — ver `marketing/meta-capi.ts`.
+   */
+  void (async () => {
+    try {
+      const { enviarCompra } = await import('./marketing/meta-capi');
+      const u = await usersStore.findUserById(order.userId).catch(() => null);
+      await enviarCompra(order, {
+        email: order.userEmail || u?.email,
+        nome: u?.name,
+        telefone: (u as { phone?: string } | null)?.phone,
+      });
+    } catch {
+      // silencioso: já é best-effort e não pode atrapalhar a matrícula
+    }
+  })();
+
   if (order.productSnapshot.kind === 'course' && order.productSnapshot.refId) {
     await studentsRepo.enrollInCourse(order.userId, order.productSnapshot.refId);
     return;
@@ -444,9 +465,10 @@ export function buildApp() {
   // A leitura é de ADMIN, não pública: identificador de pixel não é segredo (vai
   // no HTML de toda página), mas listar o que a escola usa em marketing não é
   // assunto de visitante.
-  app.get('/admin/marketing-tags', requireAuth('admin', 'superadmin'), async (c) =>
-    c.json(await marketingTagsStore.getTags()),
-  );
+  app.get('/admin/marketing-tags', requireAuth('admin', 'superadmin'), async (c) => {
+    const t = await marketingTagsStore.getTags();
+    return c.json({ ...t, metaCapiToken: '', temCapiToken: Boolean(t.metaCapiToken) });
+  });
 
   app.put('/admin/marketing-tags', requireAuth('admin', 'superadmin'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
@@ -459,8 +481,19 @@ export function buildApp() {
         'Identificador fora do formato do provedor',
         v.error.flatten(),
       );
-    const next = await marketingTagsStore.updateTags(v.data);
-    return c.json(next);
+    /**
+     * O token de conversão é credencial, e credencial não vai para o disco em
+     * claro — mesmo tratamento das chaves de gateway. String vazia significa
+     * "apagar", e não "cifrar o vazio".
+     */
+    const patch = { ...v.data };
+    if (patch.metaCapiToken !== undefined) {
+      patch.metaCapiToken = patch.metaCapiToken ? encryptApiKey(patch.metaCapiToken) : '';
+    }
+    const next = await marketingTagsStore.updateTags(patch);
+    // O token nunca volta para a tela, nem cifrado: quem tem a tela não precisa
+    // dele de volta, e devolvê-lo só amplia onde ele passa.
+    return c.json({ ...next, metaCapiToken: '', temCapiToken: Boolean(next.metaCapiToken) });
   });
 
   // ---------- Login customization ----------

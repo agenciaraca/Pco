@@ -21,6 +21,8 @@ const base: TagsMarketing = {
   metaPixelId: '',
   googleSiteVerification: '',
   facebookDomainVerification: '',
+  metaCapiToken: '',
+  enviarConversaoServidor: false,
   exigirConsentimento: true,
   ativo: true,
   updatedAt: new Date(0).toISOString(),
@@ -34,6 +36,8 @@ describe('o que o admin consegue gravar', () => {
       metaPixelId: '1234567890123456',
       googleSiteVerification: 'abcdefghij0123456789_-abcdef',
       facebookDomainVerification: 'a1b2c3d4e5f6g7h8i9j0',
+      metaCapiToken: 'EAAG...token-do-meta',
+      enviarConversaoServidor: false,
       exigirConsentimento: true,
       ativo: true,
     });

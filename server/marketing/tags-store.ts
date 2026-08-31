@@ -43,6 +43,18 @@ export interface TagsMarketing {
   googleSiteVerification: string;
   /** Conteúdo da meta `facebook-domain-verification`. */
   facebookDomainVerification: string;
+  /**
+   * Token da API de Conversões do Meta, **cifrado em repouso** — é credencial de
+   * verdade, do mesmo tipo das chaves de gateway, e não identificador público.
+   */
+  metaCapiToken: string;
+  /**
+   * Manda o `Purchase` pelo servidor quando o pedido vira pago.
+   *
+   * Nasce desligado: enviar dado de comprador (mesmo em hash) para um terceiro é
+   * decisão de dono, não padrão de fábrica.
+   */
+  enviarConversaoServidor: boolean;
   /** Tags só sobem depois do aceite de cookies. Padrão: sim. */
   exigirConsentimento: boolean;
   /** Interruptor geral: desliga tudo sem apagar o que foi cadastrado. */
@@ -56,6 +68,8 @@ const PADRAO: TagsMarketing = {
   metaPixelId: '',
   googleSiteVerification: '',
   facebookDomainVerification: '',
+  metaCapiToken: '',
+  enviarConversaoServidor: false,
   exigirConsentimento: true,
   ativo: true,
   updatedAt: new Date(0).toISOString(),

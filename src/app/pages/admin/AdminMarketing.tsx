@@ -63,6 +63,8 @@ export default function AdminMarketing() {
     metaPixelId: '',
     googleSiteVerification: '',
     facebookDomainVerification: '',
+    metaCapiToken: '',
+    enviarConversaoServidor: false,
     exigirConsentimento: true,
     ativo: true,
   });
@@ -76,6 +78,10 @@ export default function AdminMarketing() {
       metaPixelId: d.metaPixelId,
       googleSiteVerification: d.googleSiteVerification,
       facebookDomainVerification: d.facebookDomainVerification,
+      // O token nunca volta do servidor. Campo vazio significa "manter o que
+      // está guardado"; digitar algo substitui.
+      metaCapiToken: '',
+      enviarConversaoServidor: d.enviarConversaoServidor,
       exigirConsentimento: d.exigirConsentimento,
       ativo: d.ativo,
     });
@@ -85,7 +91,10 @@ export default function AdminMarketing() {
 
   const salvar = async () => {
     try {
-      await mut.mutateAsync(form);
+      // Token em branco não é "apagar o token": é "não mexi nele". Mandar vazio
+      // apagaria a credencial de quem só quis trocar o pixel.
+      const { metaCapiToken, ...resto } = form;
+      await mut.mutateAsync(metaCapiToken ? form : resto);
       toast.success('Tags salvas. Vale na próxima carga das páginas públicas.');
     } catch (e) {
       // O servidor recusa identificador fora do formato do provedor — mostrar a
@@ -136,6 +145,55 @@ export default function AdminMarketing() {
             <span className="block text-xs text-ink-500">{campo.dica}</span>
           </label>
         ))}
+      </div>
+
+      <div className="rounded-xl border border-ink-100 bg-white p-5 space-y-4">
+        <h2 className="text-sm font-semibold text-ink-900">
+          Conversão pelo servidor (opcional)
+        </h2>
+        <p className="text-xs text-ink-500 max-w-3xl">
+          O pixel do navegador perde parte das compras: bloqueador de anúncio, aba fechada durante o
+          redirecionamento para o gateway, Safari cortando cookie. Como quem paga sai do site para a
+          página do provedor e muitas vezes não volta, essa perda aqui é grande. Ligando isto, o
+          evento de compra sai <strong>do servidor</strong>, no instante em que o pedido vira pago —
+          com o id do pedido como chave, para o Meta juntar com o do navegador em vez de contar duas
+          vezes.
+        </p>
+
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-ink-700">
+            Token da API de Conversões do Meta
+          </span>
+          <input
+            type="password"
+            value={form.metaCapiToken}
+            placeholder={q.data?.temCapiToken ? '•••••• (guardado — digite para substituir)' : 'cole o token aqui'}
+            onChange={(e) => setForm((f) => ({ ...f, metaCapiToken: e.target.value.trim() }))}
+            className="w-full rounded-lg border border-ink-200 px-3 py-2 font-mono text-sm focus:border-pco-blue focus:outline-none focus:ring-2 focus:ring-pco-blue/20"
+          />
+          <span className="block text-xs text-ink-500">
+            Este é o único campo desta tela que é credencial de verdade: fica cifrado em repouso,
+            como as chaves de gateway, e nunca volta para cá. Deixar em branco mantém o que já está
+            guardado.
+          </span>
+        </label>
+
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={form.enviarConversaoServidor}
+            onChange={(e) => setForm((f) => ({ ...f, enviarConversaoServidor: e.target.checked }))}
+            className="mt-1"
+          />
+          <span>
+            <span className="font-medium text-ink-800">Enviar a compra pelo servidor</span>
+            <span className="block text-xs text-ink-500">
+              Nasce desligado de propósito: mandar dado de comprador para um terceiro — mesmo em
+              hash irreversível de e-mail, nome e telefone — é decisão sua, não padrão de fábrica.
+              Sem pixel e sem token, ligar não faz nada.
+            </span>
+          </span>
+        </label>
       </div>
 
       <div className="rounded-xl border border-ink-100 bg-white p-5 space-y-4">

@@ -700,7 +700,7 @@
         <span class="sub">server/app.ts · 10.690 linhas</span>
       </div>
       <div class="metric">
-        <span class="n">171</span>
+        <span class="n">105</span>
         <span class="l">aulas com vídeo que não toca</span>
         <span class="sub">Vimeo recusa este domínio</span>
       </div>
@@ -1016,21 +1016,26 @@
         </div>
       </div>
 
-      <div class="item open">
+      <div class="item done">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>Duração real das aulas</h3>
-            <span class="tag warn">todas as aulas afetadas</span>
+            <h3>Duração real das aulas — medida e gravada</h3>
+            <span class="tag ok">resolvido hoje</span>
           </div>
           <p>
-            Todas as aulas estão gravadas com 15 minutos — um valor de preenchimento da importação.
-            Não muda a carga horária declarada do curso, mas distorce toda métrica de estudo que o
-            aluno vê. O script busca a duração no próprio provedor do vídeo e <strong>nunca
-            inventa</strong>: aula sem vídeo fica como está.
+            Todas as aulas estavam com 15 minutos, um valor de preenchimento da importação. Agora
+            <strong>105 aulas têm a duração de verdade</strong>, lida do próprio provedor do vídeo:
+            somam 48,3 horas de vídeo. As 133 sem vídeo ficaram exatamente como estavam — trocar um
+            preenchimento por outro seria piorar em silêncio.
+          </p>
+          <p>
+            Foi preciso medir pedindo de um domínio que a Vimeo já autoriza, porque deste aqui ela
+            recusa. <strong>Isso mede, mas não faz a aula tocar</strong> — o item da Vimeo continua
+            aberto logo abaixo, e é ele que devolve o vídeo ao aluno.
           </p>
           <div class="meta">
-            <span><code>scripts/resolver_duracoes_aulas.ts</code></span>
-            <span>Vimeo direto · YouTube exige chave</span>
+            <span><code>scripts/resolver_duracoes_aulas.ts --aplicar</code></span>
+            <span>105 de 105 resolvidas, zero inventadas</span>
           </div>
         </div>
       </div>
@@ -1095,7 +1100,7 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>Autorizar o domínio do AVA na Vimeo</h3>
-            <span class="tag stop">171 aulas mudas</span>
+            <span class="tag stop">105 aulas mudas</span>
           </div>
           <p>
             É o item mais urgente da lista e não tem nada de código. Os vídeos estão com
@@ -1349,7 +1354,8 @@
           vídeo a vídeo.
         </p>
         <p>
-          São <strong>171 aulas com vídeo</strong> nessa condição. Não é um defeito do código nem
+          São <strong>105 aulas com vídeo</strong> nessa condição — corrigido: a primeira contagem
+          (171) saiu da base de exemplo da máquina, não de produção. Não é um defeito do código nem
           coisa que deploy resolva: é uma linha na configuração da conta da Vimeo. Enquanto ela não
           entrar, o aluno que pagou abre a aula e não vê nada — e a página de venda que acabou de
           ficar pronta está vendendo o que não toca.

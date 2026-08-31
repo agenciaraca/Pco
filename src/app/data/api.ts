@@ -586,6 +586,11 @@ export interface MarketingTagsDto {
   metaPixelId: string;
   googleSiteVerification: string;
   facebookDomainVerification: string;
+  /** Volta sempre vazio: credencial não faz o caminho de volta para a tela. */
+  metaCapiToken: string;
+  /** Se já existe um token guardado — para a tela dizer isso sem mostrá-lo. */
+  temCapiToken?: boolean;
+  enviarConversaoServidor: boolean;
   exigirConsentimento: boolean;
   ativo: boolean;
   updatedAt: string;
