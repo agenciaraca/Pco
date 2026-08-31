@@ -18,7 +18,7 @@
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
   a { color: #2C7DA0; text-decoration: none; } a:hover { color: var(--ink); }
   h1,h2,h3 { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
-  .ph { background-color: #12414d; background-image: linear-gradient(135deg, rgba(15,110,102,0.55), rgba(15,76,92,0.9)), repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
+  .ph { background-color: #0b7486; background-image: linear-gradient(135deg, rgba(0,151,178,0.55), rgba(11,116,134,0.9)), repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
   @media (max-width: 960px) { [data-layout] { grid-template-columns: 1fr !important; } [data-enroll] { position: static !important; } [data-grid2] { grid-template-columns: 1fr !important; } }
 </style>
 </helmet>
@@ -29,8 +29,8 @@
 <sc-if value="{{ found }}" hint-placeholder-val="{{ true }}">
 <div>
 <!-- HERO -->
-<section class="ph" style="position: relative; padding: 70px 28px 60px;">
-  <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(11,45,54,0.92), rgba(15,76,92,0.78));"></div>
+<section class="ph" style="position: relative; padding: 70px 28px 130px; overflow: hidden;">
+  <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(8,68,79,0.92), rgba(11,116,134,0.78));"></div>
   <div style="position: relative; max-width: 1160px; margin: 0 auto; color: #fff;">
     <nav style="font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 22px;"><a href="Home.dc.html" style="color:rgba(255,255,255,0.7);">Início</a> / <a href="Cursos.dc.html" style="color:rgba(255,255,255,0.7);">Cursos</a> / <span style="color:#fff;">{{ c.short }}</span></nav>
     <span style="display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 999px;">{{ c.badge }} · {{ c.level }}</span>
@@ -42,13 +42,14 @@
       </sc-for>
     </div>
   </div>
+<div style="position:absolute; left:0; right:0; bottom:-1px; line-height:0; pointer-events:none; z-index:2;"><svg viewBox="0 0 1440 150" preserveAspectRatio="none" style="display:block; width:100%; height:clamp(60px,10vw,150px);" fill="var(--paper)"><path opacity=".3" d="M0,70 C320,10 660,120 1020,52 C1210,18 1350,44 1440,72 L1440,151 L0,151 Z"></path><path opacity=".5" d="M0,94 C300,44 640,132 1000,80 C1200,52 1350,76 1440,58 L1440,151 L0,151 Z"></path><path d="M0,114 C310,72 640,146 1010,100 C1210,76 1350,96 1440,84 L1440,151 L0,151 Z"></path></svg></div>
 </section>
 
 <!-- LAYOUT: content + sticky enroll -->
 <section style="max-width: 1160px; margin: 0 auto; padding: 60px 28px 90px; display: grid; grid-template-columns: 1.6fr 0.9fr; gap: 48px; align-items: start;" data-layout>
   <div>
     <!-- TL;DR -->
-    <div style="background: var(--accent-soft); border: 1px solid rgba(15,110,102,0.2); border-radius: 18px; padding: 24px 28px; margin-bottom: 40px;">
+    <div style="background: var(--accent-soft); border: 1px solid rgba(0,151,178,0.2); border-radius: 18px; padding: 24px 28px; margin-bottom: 40px;">
       <div style="font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">Resumo rápido</div>
       <p style="font-size: 16px; line-height: 1.6; color: var(--ink); margin: 0;">{{ c.tldr }}</p>
     </div>
@@ -69,7 +70,7 @@
         <h3 style="font-size: 20px; color: var(--ink); margin-bottom: 14px;">O que você desenvolve</h3>
         <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
           <sc-for list="{{ c.outcomes }}" as="o" hint-placeholder-count="4">
-            <li style="display: flex; gap: 10px; font-size: 15.5px; color: var(--ink-soft); line-height: 1.5;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f6e66" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><path d="M20 6 9 17l-5-5"/></svg> {{ o }}</li>
+            <li style="display: flex; gap: 10px; font-size: 15.5px; color: var(--ink-soft); line-height: 1.5;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0097b2" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><path d="M20 6 9 17l-5-5"/></svg> {{ o }}</li>
           </sc-for>
         </ul>
       </div>
@@ -85,6 +86,50 @@
       </sc-for>
     </div>
 
+    <!-- DESTAQUES -->
+    <sc-if value="{{ hasHighlights }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 44px;">
+        <sc-for list="{{ highlights }}" as="h" hint-placeholder-count="3">
+          <div style="background: var(--accent-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px;">
+            <div style="font-weight: 700; color: var(--ink); font-size: 16.5px; line-height: 1.4;">{{ h.title }}</div>
+            <div style="font-size: 12.5px; color: var(--ink-faint); margin-top: 6px; line-height: 1.5;">{{ h.note }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- SEÇÕES LONGAS -->
+    <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="0">
+      <div style="margin-bottom: 44px;">
+        <h2 style="font-size: 26px; color: var(--ink); margin-bottom: 6px; line-height: 1.25;">{{ sec.title }}</h2>
+        <sc-if value="{{ sec.subtitle }}" hint-placeholder-val="{{ false }}">
+          <div style="font-weight: 600; color: var(--accent-ink); font-size: 16px; margin-bottom: 10px;">{{ sec.subtitle }}</div>
+        </sc-if>
+        <sc-for list="{{ sec.paras }}" as="p" hint-placeholder-count="2">
+          <p style="font-size: 16.5px; line-height: 1.7; color: var(--ink-soft); margin: 0 0 16px;">{{ p }}</p>
+        </sc-for>
+        <sc-if value="{{ sec.cta }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px;">
+            <button onClick="{{ buyNow }}" style="padding: 14px 26px; border-radius: 999px; border: none; background: linear-gradient(118deg, #ff914d, #f07a2f); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 8px 22px rgba(255,145,77,.3);">QUERO ME MATRICULAR</button>
+            <a href="{{ wa }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 24px; border-radius: 999px; background: #25D366; color: #fff; font-weight: 700; font-size: 15px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.03a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.12.82.83-3.04-.2-.31a8.09 8.09 0 0 1-1.24-4.28c0-4.47 3.64-8.11 8.12-8.11 4.47 0 8.11 3.64 8.11 8.11s-3.64 8.12-8.07 8.12z"/></svg>Quero Falar No Whatsapp</a>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+
+    <!-- JORNADA -->
+    <sc-if value="{{ hasJornada }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 18px; margin-bottom: 44px;">
+        <sc-for list="{{ jornada }}" as="j" hint-placeholder-count="3">
+          <div style="background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px;">
+            <h3 style="font-size: 20px; color: var(--ink); margin-bottom: 4px;">{{ j.title }}</h3>
+            <div style="font-weight: 600; color: var(--accent-ink); font-size: 14.5px; margin-bottom: 10px;">{{ j.subtitle }}</div>
+            <p style="font-size: 15.5px; line-height: 1.7; color: var(--ink-soft); margin: 0;">{{ j.text }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
     <h2 style="font-size: 28px; color: var(--ink); margin-bottom: 20px;">Perguntas frequentes</h2>
     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px;">
       <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="3">
@@ -99,18 +144,19 @@
     </div>
 
     <div style="background: var(--paper); border: 1px dashed var(--line); border-radius: 14px; padding: 20px 24px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.6;">
+      <sc-if value="{{ promoNote }}" hint-placeholder-val="{{ false }}"><span style="display:block; margin-bottom: 12px;">{{ promoNote }}</span></sc-if>
       <strong style="color:var(--ink-soft);">Aviso importante:</strong> este é um curso de formação livre. Não constitui graduação em Psicologia ou Medicina, nem regulamenta profissão. A atuação profissional depende de estudo continuado, postura ética e das normas aplicáveis à sua região. Conteúdo de caráter educativo.
     </div>
   </div>
 
   <!-- ENROLL CARD -->
   <aside data-enroll style="position: sticky; top: 100px;">
-    <div style="background: var(--raise); border: 1px solid var(--line); border-radius: 22px; padding: 30px; box-shadow: 0 16px 44px rgba(15,76,92,0.1);">
+    <div style="background: var(--raise); border: 1px solid var(--line); border-radius: 22px; padding: 30px; box-shadow: 0 16px 44px rgba(11,116,134,0.1);">
       <div style="font-size: 14px; color: var(--ink-soft);">Investimento · à vista</div>
       <div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 40px; font-weight: 700; color: var(--ink); line-height: 1; margin: 6px 0;">{{ c.priceLabel }}</div>
       <div style="font-size: 15px; color: var(--accent); font-weight: 600;">ou {{ c.installLabel }}</div>
       <div style="font-size: 13px; color: var(--ink-faint); margin-top: 4px;">{{ c.priceNote }}</div>
-      <button onClick="{{ buyNow }}" style="width: 100%; margin-top: 22px; padding: 16px; border-radius: 999px; border: none; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 16px; cursor: pointer; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 10px 26px rgba(15,110,102,.3);">Matricular-se agora</button>
+      <button onClick="{{ buyNow }}" style="width: 100%; margin-top: 22px; padding: 16px; border-radius: 999px; border: none; background: linear-gradient(118deg, #ff914d, #f07a2f); color: #fff; font-weight: 700; font-size: 16px; cursor: pointer; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 10px 26px rgba(0,151,178,.3);">Matricular-se agora</button>
       <button onClick="{{ addCart }}" style="width: 100%; margin-top: 10px; padding: 15px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--raise); color: var(--accent); font-weight: 700; font-size: 15px; cursor: pointer; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">{{ addLabel }}</button>
       <a href="{{ wa }}" target="_blank" rel="noopener" style="display: block; text-align: center; margin-top: 14px; font-size: 14px; color: var(--ink-soft);">Tirar dúvidas no WhatsApp</a>
       <div style="border-top: 1px solid var(--line-soft); margin-top: 20px; padding-top: 18px; display: flex; flex-direction: column; gap: 10px;">
@@ -137,8 +183,8 @@
 </div>
 
 <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
-  <div style="position: fixed; bottom: 24px; right: 24px; z-index: 300; background: var(--brand-deep); color: #fff; padding: 14px 20px; border-radius: 14px; box-shadow: 0 12px 34px rgba(15,76,92,0.3); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 12px;">
-    <span style="color:#7fd2c8;">✓</span> Adicionado ao carrinho <a href="Carrinho.dc.html" style="color:#E9A44C; font-weight:700;">Ver carrinho</a>
+  <div style="position: fixed; bottom: 24px; right: 24px; z-index: 300; background: var(--brand-deep); color: #fff; padding: 14px 20px; border-radius: 14px; box-shadow: 0 12px 34px rgba(11,116,134,0.3); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 12px;">
+    <span style="color:var(--accent-ink);">✓</span> Adicionado ao carrinho <a href="Carrinho.dc.html" style="color:var(--brand-orange); font-weight:700;">Ver carrinho</a>
   </div>
 </sc-if>
 </x-dc>
@@ -218,8 +264,13 @@ class Component extends DCLogic {
       maxH: this.state.openFaq === i ? '340px' : '0px',
       rotate: this.state.openFaq === i ? 'rotate(45deg)' : 'rotate(0deg)',
     }));
+    const sections = (c.sections || []).map(x => ({ ...x, subtitle: x.subtitle || false, cta: !!x.cta }));
     return {
       found: true, notFound: false, c: view, faqs,
+      highlights: c.highlights || [], hasHighlights: !!(c.highlights && c.highlights.length),
+      sections,
+      jornada: c.jornada || [], hasJornada: !!(c.jornada && c.jornada.length),
+      promoNote: c.promoNote || false,
       wa: this.wa, toast: this.state.toast,
       addCart: this.addCart, buyNow: this.buyNow,
       addLabel: this.state.inCart ? 'No carrinho — ver' : 'Adicionar ao carrinho',

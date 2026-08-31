@@ -17,8 +17,9 @@
     --paper:#f3f4f1; --surface:#fbfcfa; --surface-2:#eaece6; --raise:#ffffff;
     --ink:#1b1e22; --ink-soft:#575c62; --ink-faint:#868c92;
     --line:#dcdfd8; --line-soft:#e8eae4;
-    --accent:#0f6e66; --accent-ink:#0c5651; --accent-soft:#dcebe8; --on-accent:#ffffff;
-    --brand-deep:#0b3b37; --on-deep:#eef3f1;
+    --accent:#0097b2; --accent-ink:#007a91; --accent-soft:#d9eef4; --on-accent:#ffffff;
+    --brand-orange:#ff914d; --brand-orange-ink:#d96a24; --brand-orange-soft:#ffe9db; --on-orange:#2b1608;
+    --brand-deep:#0b7486; --on-deep:#eef3f1;
     --good:#2f7d4f; --good-bg:#e0efe4; --good-line:#bcdcc6;
     --warn:#9a6a12; --warn-bg:#f5ead1; --warn-line:#e5d09a;
     --crit:#b0422f; --crit-bg:#f6e2dc; --crit-line:#e8bfb3;
@@ -30,8 +31,9 @@
   --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
   --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
   --line:#2b2f36; --line-soft:#242830;
-  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
-  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --accent:#4cc3d9; --accent-ink:#7fd8e8; --accent-soft:#102c33; --on-accent:#0c1f1d;
+    --brand-orange:#ff914d; --brand-orange-ink:#ffab77; --brand-orange-soft:#33200f; --on-orange:#2b1608;
+  --brand-deep:#0a5f6e; --on-deep:#eef3f1;
   --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
   --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
   --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
@@ -41,8 +43,9 @@
   --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
   --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
   --line:#2b2f36; --line-soft:#242830;
-  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
-  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --accent:#4cc3d9; --accent-ink:#7fd8e8; --accent-soft:#102c33; --on-accent:#0c1f1d;
+    --brand-orange:#ff914d; --brand-orange-ink:#ffab77; --brand-orange-soft:#33200f; --on-orange:#2b1608;
+  --brand-deep:#0a5f6e; --on-deep:#eef3f1;
   --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
   --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
   --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
@@ -53,7 +56,7 @@
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
   a { color: #2C7DA0; text-decoration: none; } a:hover { color: var(--ink); }
   h1,h2,h3 { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
-  .ph { background-color: #12414d; background-image: linear-gradient(135deg, rgba(15,110,102,0.55), rgba(15,76,92,0.9)), repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
+  .ph { background-color: #0b7486; background-image: linear-gradient(135deg, rgba(0,151,178,0.55), rgba(11,116,134,0.9)), repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
   @media (max-width: 900px) { [data-related] { grid-template-columns: 1fr !important; } }
 </style>
 </helmet>
@@ -67,7 +70,7 @@
   <!-- HERO -->
   <header style="max-width: 760px; margin: 0 auto; padding: 56px 28px 30px;">
     <nav style="font-size: 13px; color: var(--ink-soft); margin-bottom: 22px;"><a href="Home.dc.html" style="color:var(--ink-soft);">Início</a> / <a href="Blog.dc.html" style="color:var(--ink-soft);">Blog</a> / <span style="color:var(--ink);">{{ p.category }}</span></nav>
-    <div style="font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px;">{{ p.category }}</div>
+    <div style="font-size: 13px; font-weight: 700; color: var(--brand-orange-ink); text-transform: uppercase; letter-spacing: .6px;">{{ p.category }}</div>
     <h1 style="font-size: clamp(30px,4.2vw,48px); color: var(--ink); margin: 14px 0 18px; line-height: 1.12; letter-spacing: -0.6px; text-wrap: balance;">{{ p.title }}</h1>
     <p style="font-size: 20px; color: var(--ink-soft); line-height: 1.5; margin-bottom: 24px;">{{ p.dek }}</p>
     <div style="display: flex; align-items: center; gap: 14px; padding: 16px 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);">
@@ -85,7 +88,7 @@
   <!-- BODY -->
   <div style="max-width: 720px; margin: 0 auto; padding: 44px 28px 20px;">
     <!-- TL;DR -->
-    <div style="background: var(--accent-soft); border: 1px solid rgba(15,110,102,0.2); border-radius: 16px; padding: 22px 26px; margin-bottom: 40px;">
+    <div style="background: var(--accent-soft); border: 1px solid rgba(0,151,178,0.2); border-radius: 16px; padding: 22px 26px; margin-bottom: 40px;">
       <div style="font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">Resumo (TL;DR)</div>
       <p style="font-size: 16px; line-height: 1.6; color: var(--ink); margin: 0;">{{ p.tldr }}</p>
     </div>
@@ -107,7 +110,7 @@
   <!-- TAGS -->
   <div style="max-width: 720px; margin: 0 auto; padding: 10px 28px 0; display: flex; gap: 10px; flex-wrap: wrap;">
     <sc-for list="{{ p.tags }}" as="t" hint-placeholder-count="3">
-      <span style="font-size: 13px; color: var(--ink); background: rgba(15,76,92,0.06); padding: 6px 14px; border-radius: 999px;">#{{ t }}</span>
+      <span style="font-size: 13px; color: var(--ink); background: var(--accent-soft); padding: 6px 14px; border-radius: 999px;">#{{ t }}</span>
     </sc-for>
   </div>
 
@@ -116,7 +119,7 @@
     <div style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 20px; padding: 28px; display: flex; gap: 20px; align-items: flex-start;">
       <a href="Autor.dc.html" class="ph" style="width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0;"></a>
       <div>
-        <div style="font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .5px;">Escrito por</div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--brand-orange-ink); text-transform: uppercase; letter-spacing: .5px;">Escrito por</div>
         <div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 20px; font-weight: 700; color: var(--ink); margin: 4px 0 2px;"><a href="Autor.dc.html" style="color:var(--ink);">{{ author.name }}</a></div>
         <div style="font-size: 13px; color: var(--ink-soft); margin-bottom: 10px;">{{ author.honorific }}</div>
         <p style="font-size: 14.5px; color: var(--ink-soft); line-height: 1.6; margin: 0;">{{ author.bio }}</p>
@@ -155,10 +158,10 @@
   <h2 style="font-size: 26px; color: var(--ink); margin-bottom: 24px;">Continue lendo</h2>
   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;" data-related>
     <sc-for list="{{ related }}" as="r" hint-placeholder-count="2">
-      <a href="{{ r.href }}" style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 18px; overflow: hidden; box-shadow: 0 6px 24px rgba(15,76,92,0.05);">
+      <a href="{{ r.href }}" style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 18px; overflow: hidden; box-shadow: 0 6px 24px rgba(11,116,134,0.06);">
         <div class="ph" style="height: 140px;"></div>
         <div style="padding: 22px;">
-          <div style="font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase;">{{ r.category }}</div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--brand-orange-ink); text-transform: uppercase;">{{ r.category }}</div>
           <div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; color: var(--ink); font-size: 18px; margin-top: 8px; line-height: 1.25;">{{ r.title }}</div>
         </div>
       </a>

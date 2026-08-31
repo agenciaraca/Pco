@@ -28,8 +28,8 @@
   a { color: #2C7DA0; text-decoration: none; }
   a:hover { color: var(--ink); }
   h1,h2,h3 { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
-  ::selection { background: rgba(15,110,102,0.24); }
-  .ph { background-color: #12414d; background-image: linear-gradient(135deg, rgba(15,110,102,0.55), rgba(15,76,92,0.9)), repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
+  ::selection { background: rgba(0,151,178,0.24); }
+  .ph { background-color: #0b7486; background-image: linear-gradient(135deg, rgba(0,151,178,0.55), rgba(11,116,134,0.9)), repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
   @media (max-width: 900px) {
     [data-two], [data-footer] { grid-template-columns: 1fr !important; }
     [data-cards3], [data-tiles], [data-nums] { grid-template-columns: repeat(2,1fr) !important; }
@@ -53,25 +53,26 @@
 <dc-import name="SiteHeader" active="home" variant="onhero" hint-size="100%,80px"></dc-import>
 
 <!-- HERO -->
-<section id="top" data-screen-label="Hero" class="ph" style="position: relative; min-height: 92vh; display: flex; align-items: flex-end; overflow: hidden;">
-  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,45,54,0.55) 0%, rgba(11,45,54,0.12) 35%, rgba(11,45,54,0.85) 100%);"></div>
-  <div style="position: absolute; bottom: 16px; right: 24px; font-family: monospace; color: rgba(255,255,255,0.4); font-size: 11px; max-width: 260px; text-align: right;">[ foto full-bleed: aluna estudando / ambiente acolhedor ]</div>
-  <div style="position: relative; max-width: 1280px; margin: 0 auto; width: 100%; padding: 120px 28px 92px;">
+<section id="top" data-screen-label="Hero" style="position: relative; min-height: 92vh; display: flex; align-items: flex-end; overflow: hidden; background: linear-gradient(118deg, #0097b2 0%, #008ba4 52%, #0b7486 100%);">
+  <div style="position: absolute; inset: 0; background-image: url('../assets/hero-consultorio.png'); background-size: cover; background-position: center; opacity: 0.16;"></div>
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,116,134,0.25) 0%, rgba(0,151,178,0.05) 40%, rgba(11,116,134,0.55) 100%);"></div>
+  <div style="position: relative; max-width: 1280px; margin: 0 auto; width: 100%; padding: 120px 28px 150px;">
     <div style="display: inline-flex; align-items: center; gap: 9px; background: rgba(255,255,255,0.12); backdrop-filter: blur(6px); color: #fff; font-weight: 600; font-size: 13px; padding: 9px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.22);">
-      <span style="width: 7px; height: 7px; border-radius: 50%; background: #7fd2c8;"></span>
+      <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--brand-orange);"></span>
       Escola de Psicanálise Clínica Online · Reconhecida RNTP
     </div>
     <h1 style="font-size: clamp(40px, 6.2vw, 76px); line-height: 1.04; font-weight: 700; color: #fff; margin: 26px 0 0; letter-spacing: -1px; max-width: 15ch; text-wrap: balance;">Estude psicanálise clínica com seriedade — no seu ritmo.</h1>
     <p style="font-size: clamp(17px, 2vw, 21px); line-height: 1.55; color: rgba(255,255,255,0.9); margin: 24px 0 0; max-width: 620px; text-wrap: pretty;">Conteúdo estruturado, autonomia de estudo e excelente custo-benefício. A escolha inteligente para começar sem comprometer a rotina.</p>
     <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 34px;">
-      <a href="Cursos.dc.html" style="display: inline-flex; align-items: center; padding: 17px 34px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 16px; box-shadow: 0 12px 30px rgba(15,110,102,.36);">Ver os cursos</a>
-      <a href="{{ wa }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 10px; padding: 17px 30px; border-radius: 999px; background: rgba(255,255,255,0.12); backdrop-filter: blur(6px); border: 1.5px solid rgba(255,255,255,0.55); color: #fff; font-weight: 600; font-size: 16px;">Falar no WhatsApp</a>
+      <a href="Cursos.dc.html" style="display: inline-flex; align-items: center; padding: 17px 34px; border-radius: 999px; background: linear-gradient(118deg, #ff914d, #f07a2f); color: #fff; font-weight: 700; font-size: 16px; box-shadow: 0 12px 30px rgba(255,145,77,.4);">Ver os cursos</a>
+      <a href="{{ wa }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 10px; padding: 17px 30px; border-radius: 999px; background: #25D366; border: none; color: #fff; font-weight: 700; font-size: 16px; box-shadow: 0 10px 26px rgba(37,211,102,.35);"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.03a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.12.82.83-3.04-.2-.31a8.09 8.09 0 0 1-1.24-4.28c0-4.47 3.64-8.11 8.12-8.11 4.47 0 8.11 3.64 8.11 8.11s-3.64 8.12-8.07 8.12zm4.45-6.07c-.24-.12-1.44-.71-1.66-.79-.22-.08-.39-.12-.55.12-.16.24-.63.79-.77.95-.14.16-.28.18-.53.06-.24-.12-1.03-.38-1.96-1.21-.72-.65-1.21-1.44-1.35-1.69-.14-.24-.02-.37.11-.5.11-.11.24-.28.37-.42.12-.14.16-.24.24-.4.08-.16.04-.31-.02-.43-.06-.12-.55-1.32-.75-1.81-.2-.48-.4-.41-.55-.42h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05 0 1.21.88 2.38 1 2.54.12.16 1.72 2.63 4.18 3.69.58.25 1.04.4 1.4.52.59.19 1.12.16 1.54.1.47-.07 1.44-.59 1.65-1.16.2-.57.2-1.05.14-1.16-.06-.1-.22-.16-.47-.28z"/></svg> Falar no WhatsApp</a>
     </div>
     <div style="display: flex; align-items: center; gap: 26px; margin-top: 38px; flex-wrap: wrap;">
-      <div style="display: flex; align-items: center; gap: 10px;"><span style="color: #E9A44C; font-size: 19px; letter-spacing: 2px;">★★★★★</span><span style="font-size: 14px; color: rgba(255,255,255,0.88);"><strong style="color:#fff;">4,7/5</strong> · avaliação dos alunos</span></div>
+      <div style="display: flex; align-items: center; gap: 10px;"><span style="color: var(--brand-orange); font-size: 19px; letter-spacing: 2px;">★★★★★</span><span style="font-size: 14px; color: rgba(255,255,255,0.88);"><strong style="color:#fff;">4,7/5</strong> · avaliação dos alunos</span></div>
       <div style="display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.22);"><span style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; color: #fff;">RNTP</span><span style="font-size: 13px; color: rgba(255,255,255,0.82);">Escola Reconhecida</span></div>
     </div>
   </div>
+<div style="position:absolute; left:0; right:0; bottom:-1px; line-height:0; pointer-events:none; z-index:2;"><svg viewBox="0 0 1440 150" preserveAspectRatio="none" style="display:block; width:100%; height:clamp(60px,10vw,150px);" fill="var(--paper)"><path opacity=".3" d="M0,70 C320,10 660,120 1020,52 C1210,18 1350,44 1440,72 L1440,151 L0,151 Z"></path><path opacity=".5" d="M0,94 C300,44 640,132 1000,80 C1200,52 1350,76 1440,58 L1440,151 L0,151 Z"></path><path d="M0,114 C310,72 640,146 1010,100 C1210,76 1350,96 1440,84 L1440,151 L0,151 Z"></path></svg></div>
 </section>
 
 <!-- STATEMENT + TILES -->
@@ -83,7 +84,7 @@
   <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 52px;" data-tiles>
     <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="4">
       <div class="ph" style="position: relative; border-radius: 20px; overflow: hidden; aspect-ratio: 3/4; display: flex; align-items: flex-end;">
-        <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,45,54,0) 40%, rgba(11,45,54,0.85) 100%);"></div>
+        <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,68,79,0) 40%, rgba(8,68,79,0.85) 100%);"></div>
         <div style="position: relative; padding: 22px; color: #fff; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 19px; line-height: 1.25; font-weight: 600; text-wrap: balance;">{{ t }}</div>
       </div>
     </sc-for>
@@ -91,7 +92,7 @@
 </section>
 
 <!-- STAT BAR -->
-<section ref="{{ setStatRef }}" style="background: var(--brand-deep); color: #fff; padding: 56px 28px; margin-top: 40px;">
+<section ref="{{ setStatRef }}" style="background: var(--brand-deep); color: #fff; padding: 56px 28px 120px; margin-top: 40px; position: relative; overflow: hidden;">
   <div style="max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; text-align: center;" data-statgrid>
     <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
       <div style="border-right: 1px solid rgba(255,255,255,0.14); padding: 6px 0;" data-statcell>
@@ -100,6 +101,7 @@
       </div>
     </sc-for>
   </div>
+<div style="position:absolute; left:0; right:0; bottom:-1px; line-height:0; pointer-events:none; z-index:2;"><svg viewBox="0 0 1440 150" preserveAspectRatio="none" style="display:block; width:100%; height:clamp(60px,10vw,150px);" fill="var(--paper)"><path opacity=".3" d="M0,70 C320,10 660,120 1020,52 C1210,18 1350,44 1440,72 L1440,151 L0,151 Z"></path><path opacity=".5" d="M0,94 C300,44 640,132 1000,80 C1200,52 1350,76 1440,58 L1440,151 L0,151 Z"></path><path d="M0,114 C310,72 640,146 1010,100 C1210,76 1350,96 1440,84 L1440,151 L0,151 Z"></path></svg></div>
 </section>
 
 <!-- CURSOS -->
@@ -110,7 +112,7 @@
   </div>
   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;" data-cards3>
     <sc-for list="{{ courses }}" as="c" hint-placeholder-count="3">
-      <div style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 22px; overflow: hidden; box-shadow: 0 8px 28px rgba(15,76,92,0.05); display: flex; flex-direction: column;">
+      <div style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 22px; overflow: hidden; box-shadow: 0 8px 28px rgba(11,116,134,0.06); display: flex; flex-direction: column;">
         <a href="{{ c.href }}" class="ph" style="height: 150px; display: block; position: relative;">
           <span style="position: absolute; top: 14px; left: 14px; background: rgba(255,255,255,0.92); color: var(--ink); font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px;">{{ c.badge }}</span>
         </a>
@@ -124,7 +126,7 @@
           </div>
           <div style="display: flex; gap: 10px;">
             <a href="{{ c.href }}" style="flex: 1; text-align: center; padding: 12px; border-radius: 999px; border: 1.5px solid var(--line); color: var(--ink); font-weight: 600; font-size: 14px;">Ver curso</a>
-            <button onClick="{{ c.add }}" style="flex: 1; padding: 12px; border-radius: 999px; border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">Adicionar</button>
+            <button onClick="{{ c.add }}" style="flex: 1; padding: 12px; border-radius: 999px; border: none; background: linear-gradient(118deg, #ff914d, #f07a2f); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">Adicionar</button>
           </div>
         </div>
       </div>
@@ -142,7 +144,7 @@
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;" data-cards3>
       <sc-for list="{{ porque }}" as="c" hint-placeholder-count="6">
         <div style="background: var(--paper); border: 1px solid var(--line-soft); border-radius: 20px; padding: 30px;">
-          <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(15,76,92,0.08); display: flex; align-items: center; justify-content: center; color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; font-size: 20px;">{{ c.n }}</div>
+          <div style="width: 48px; height: 48px; border-radius: 14px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; font-size: 20px;">{{ c.n }}</div>
           <div style="font-weight: 700; color: var(--ink); font-size: 18px; margin: 18px 0 8px;">{{ c.title }}</div>
           <div style="font-size: 15px; color: var(--ink-soft); line-height: 1.6;">{{ c.desc }}</div>
         </div>
@@ -162,10 +164,10 @@
   </div>
   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;" data-cards3>
     <sc-for list="{{ posts }}" as="p" hint-placeholder-count="3">
-      <a href="{{ p.href }}" style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 20px; overflow: hidden; box-shadow: 0 6px 24px rgba(15,76,92,0.05); display: flex; flex-direction: column;">
+      <a href="{{ p.href }}" style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 20px; overflow: hidden; box-shadow: 0 6px 24px rgba(11,116,134,0.06); display: flex; flex-direction: column;">
         <div class="ph" style="height: 160px;"></div>
         <div style="padding: 24px;">
-          <div style="font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .5px;">{{ p.category }} · {{ p.readingTime }} min</div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--brand-orange-ink); text-transform: uppercase; letter-spacing: .5px;">{{ p.category }} · {{ p.readingTime }} min</div>
           <div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; color: var(--ink); font-size: 19px; margin: 10px 0 8px; line-height: 1.25;">{{ p.title }}</div>
           <div style="font-size: 14px; color: var(--ink-soft); line-height: 1.55;">{{ p.dek }}</div>
         </div>
@@ -176,13 +178,13 @@
 
 <!-- CTA -->
 <section class="ph" style="position: relative; padding: 130px 28px;">
-  <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(15,110,102,0.9), rgba(11,45,54,0.9));"></div>
+  <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(11,116,134,0.9), rgba(8,68,79,0.9));"></div>
   <div style="position: relative; max-width: 900px; margin: 0 auto; text-align: center; color: #fff;">
     <h2 style="font-size: clamp(40px,5.5vw,68px); line-height: 1.05; margin: 0 0 20px; letter-spacing: -1px; text-wrap: balance;">Faça a escolha inteligente.</h2>
     <p style="font-size: 19px; line-height: 1.65; color: rgba(255,255,255,0.92); max-width: 640px; margin: 0 auto 34px;">Formação online, conteúdo estruturado, flexibilidade e preço acessível para quem quer dar um passo sério na psicanálise clínica.</p>
     <div style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;">
-      <a href="Cursos.dc.html" style="display: inline-flex; align-items: center; padding: 17px 38px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 16px;">Ver os cursos</a>
-      <a href="{{ wa }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; padding: 17px 32px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1.5px solid rgba(255,255,255,0.5); color: #fff; font-weight: 600; font-size: 16px;">Falar no WhatsApp</a>
+      <a href="Cursos.dc.html" style="display: inline-flex; align-items: center; padding: 17px 38px; border-radius: 999px; background: linear-gradient(118deg, #ff914d, #f07a2f); color: #fff; font-weight: 700; font-size: 16px;">Ver os cursos</a>
+      <a href="{{ wa }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; padding: 17px 32px; border-radius: 999px; background: #25D366; border: none; color: #fff; font-weight: 700; font-size: 16px; gap: 10px; box-shadow: 0 10px 26px rgba(37,211,102,.35);"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.03a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.12.82.83-3.04-.2-.31a8.09 8.09 0 0 1-1.24-4.28c0-4.47 3.64-8.11 8.12-8.11 4.47 0 8.11 3.64 8.11 8.11s-3.64 8.12-8.07 8.12zm4.45-6.07c-.24-.12-1.44-.71-1.66-.79-.22-.08-.39-.12-.55.12-.16.24-.63.79-.77.95-.14.16-.28.18-.53.06-.24-.12-1.03-.38-1.96-1.21-.72-.65-1.21-1.44-1.35-1.69-.14-.24-.02-.37.11-.5.11-.11.24-.28.37-.42.12-.14.16-.24.24-.4.08-.16.04-.31-.02-.43-.06-.12-.55-1.32-.75-1.81-.2-.48-.4-.41-.55-.42h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05 0 1.21.88 2.38 1 2.54.12.16 1.72 2.63 4.18 3.69.58.25 1.04.4 1.4.52.59.19 1.12.16 1.54.1.47-.07 1.44-.59 1.65-1.16.2-.57.2-1.05.14-1.16-.06-.1-.22-.16-.47-.28z"/></svg> Falar no WhatsApp</a>
     </div>
   </div>
 </section>
@@ -190,12 +192,12 @@
 <dc-import name="SiteFooter" hint-size="100%,420px"></dc-import>
 </div>
 
-<a href="{{ wa }}" target="_blank" rel="noopener" aria-label="WhatsApp" style="position: fixed; bottom: 24px; right: 24px; z-index: 200; display: inline-flex; align-items: center; gap: 10px; background: #25D366; color: #fff; padding: 14px 20px; border-radius: 999px; font-weight: 700; font-size: 15px; box-shadow: 0 10px 30px rgba(37,211,102,0.4);"><span style="font-size:18px;">✆</span> WhatsApp</a>
+<a href="{{ wa }}" target="_blank" rel="noopener" aria-label="WhatsApp" style="position: fixed; bottom: 24px; right: 24px; z-index: 200; display: inline-flex; align-items: center; gap: 10px; background: #25D366; color: #fff; padding: 14px 20px; border-radius: 999px; font-weight: 700; font-size: 15px; box-shadow: 0 10px 30px rgba(37,211,102,0.4);"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.03a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.12.82.83-3.04-.2-.31a8.09 8.09 0 0 1-1.24-4.28c0-4.47 3.64-8.11 8.12-8.11 4.47 0 8.11 3.64 8.11 8.11s-3.64 8.12-8.07 8.12zm4.45-6.07c-.24-.12-1.44-.71-1.66-.79-.22-.08-.39-.12-.55.12-.16.24-.63.79-.77.95-.14.16-.28.18-.53.06-.24-.12-1.03-.38-1.96-1.21-.72-.65-1.21-1.44-1.35-1.69-.14-.24-.02-.37.11-.5.11-.11.24-.28.37-.42.12-.14.16-.24.24-.4.08-.16.04-.31-.02-.43-.06-.12-.55-1.32-.75-1.81-.2-.48-.4-.41-.55-.42h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05 0 1.21.88 2.38 1 2.54.12.16 1.72 2.63 4.18 3.69.58.25 1.04.4 1.4.52.59.19 1.12.16 1.54.1.47-.07 1.44-.59 1.65-1.16.2-.57.2-1.05.14-1.16-.06-.1-.22-.16-.47-.28z"/></svg> WhatsApp</a>
 
 <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
-  <div style="position: fixed; bottom: 90px; right: 24px; z-index: 300; background: var(--brand-deep); color: #fff; padding: 14px 20px; border-radius: 14px; box-shadow: 0 12px 34px rgba(15,76,92,0.3); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 12px;">
-    <span style="color: #7fd2c8;">✓</span> Adicionado ao carrinho
-    <a href="Carrinho.dc.html" style="color: #E9A44C; font-weight: 700;">Ver carrinho</a>
+  <div style="position: fixed; bottom: 90px; right: 24px; z-index: 300; background: var(--brand-deep); color: #fff; padding: 14px 20px; border-radius: 14px; box-shadow: 0 12px 34px rgba(11,116,134,0.3); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 12px;">
+    <span style="color: var(--accent-ink);">✓</span> Adicionado ao carrinho
+    <a href="Carrinho.dc.html" style="color: var(--brand-orange); font-weight: 700;">Ver carrinho</a>
   </div>
 </sc-if>
 </x-dc>
@@ -231,14 +233,25 @@ class Component extends DCLogic {
     const [site, cart] = await Promise.all([import('./data/site.js'), import('./data/cart.js')]);
     this.site = site; this.cart = cart;
     this.forceUpdate();
-    if (this.statEl && 'IntersectionObserver' in window) {
-      this._io = new IntersectionObserver((es) => es.forEach(e => {
-        if (e.isIntersecting && !this._c) { this._c = true; this.animate(); }
-      }), { threshold: 0.35 });
-      this._io.observe(this.statEl);
-    }
+    this._check = () => {
+      if (this._c) return;
+      if (!this.statEl) {
+        const g = document.querySelector('[data-statgrid]');
+        this.statEl = g ? g.parentElement : null;
+      }
+      if (!this.statEl) return;
+      const r = this.statEl.getBoundingClientRect();
+      if (r.top < window.innerHeight * 1.1 && r.bottom > 0) { this._c = true; this.animate(); this._cleanup(); }
+    };
+    this._cleanup = () => {
+      window.removeEventListener('scroll', this._check);
+      if (this._iv) { clearInterval(this._iv); this._iv = null; }
+    };
+    window.addEventListener('scroll', this._check, { passive: true });
+    this._iv = setInterval(this._check, 500); // fallback caso o ref chegue tarde
+    this._check();
   }
-  componentWillUnmount() { if (this._io) this._io.disconnect(); if (this._tt) clearTimeout(this._tt); }
+  componentWillUnmount() { if (this._cleanup) this._cleanup(); if (this._tt) clearTimeout(this._tt); }
 
   animate() {
     const targets = this.statsCfg.filter(s => s.target != null).map(s => s.target);

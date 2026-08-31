@@ -18,8 +18,9 @@
     --paper:#f3f4f1; --surface:#fbfcfa; --surface-2:#eaece6; --raise:#ffffff;
     --ink:#1b1e22; --ink-soft:#575c62; --ink-faint:#868c92;
     --line:#dcdfd8; --line-soft:#e8eae4;
-    --accent:#0f6e66; --accent-ink:#0c5651; --accent-soft:#dcebe8; --on-accent:#ffffff;
-    --brand-deep:#0b3b37; --on-deep:#eef3f1;
+    --accent:#0097b2; --accent-ink:#007a91; --accent-soft:#d9eef4; --on-accent:#ffffff;
+    --brand-orange:#ff914d; --brand-orange-ink:#d96a24; --brand-orange-soft:#ffe9db; --on-orange:#2b1608;
+    --brand-deep:#0b7486; --on-deep:#eef3f1;
     --good:#2f7d4f; --good-bg:#e0efe4; --good-line:#bcdcc6;
     --warn:#9a6a12; --warn-bg:#f5ead1; --warn-line:#e5d09a;
     --crit:#b0422f; --crit-bg:#f6e2dc; --crit-line:#e8bfb3;
@@ -31,8 +32,9 @@
   --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
   --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
   --line:#2b2f36; --line-soft:#242830;
-  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
-  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --accent:#4cc3d9; --accent-ink:#7fd8e8; --accent-soft:#102c33; --on-accent:#0c1f1d;
+    --brand-orange:#ff914d; --brand-orange-ink:#ffab77; --brand-orange-soft:#33200f; --on-orange:#2b1608;
+  --brand-deep:#0a5f6e; --on-deep:#eef3f1;
   --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
   --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
   --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
@@ -42,8 +44,9 @@
   --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
   --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
   --line:#2b2f36; --line-soft:#242830;
-  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
-  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --accent:#4cc3d9; --accent-ink:#7fd8e8; --accent-soft:#102c33; --on-accent:#0c1f1d;
+    --brand-orange:#ff914d; --brand-orange-ink:#ffab77; --brand-orange-soft:#33200f; --on-orange:#2b1608;
+  --brand-deep:#0a5f6e; --on-deep:#eef3f1;
   --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
   --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
   --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
@@ -53,7 +56,7 @@
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
   a { color: #2C7DA0; text-decoration: none; } a:hover { color: var(--ink); }
   h1,h2,h3 { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
-  .ph { background-color: #12414d; background-image: linear-gradient(135deg, rgba(15,110,102,0.55), rgba(15,76,92,0.9)); }
+  .ph { background-color: #0b7486; background-image: linear-gradient(135deg, rgba(0,151,178,0.55), rgba(11,116,134,0.9)); }
   @media (max-width: 860px) { [data-layout] { grid-template-columns: 1fr !important; } [data-summary] { position: static !important; } }
 </style>
 </helmet>
@@ -70,7 +73,7 @@
 <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
   <section style="max-width: 640px; margin: 0 auto; padding: 40px 28px 100px; text-align: center;">
     <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0f6e66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0097b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
     </div>
     <h2 style="font-size: 24px; color: var(--ink); margin-bottom: 10px;">Seu carrinho está vazio</h2>
     <p style="font-size: 16px; color: var(--ink-soft); margin-bottom: 24px;">Explore as formações da PCO e comece sua jornada na psicanálise clínica.</p>
@@ -100,7 +103,7 @@
     <a href="Cursos.dc.html" style="font-weight: 600; color: var(--accent); font-size: 15px; margin-top: 6px;">← Continuar escolhendo cursos</a>
   </div>
 
-  <aside data-summary style="position: sticky; top: 100px; background: var(--raise); border: 1px solid var(--line); border-radius: 22px; padding: 30px; box-shadow: 0 16px 44px rgba(15,76,92,0.08);">
+  <aside data-summary style="position: sticky; top: 100px; background: var(--raise); border: 1px solid var(--line); border-radius: 22px; padding: 30px; box-shadow: 0 16px 44px var(--accent-soft);">
     <h2 style="font-size: 20px; color: var(--ink); margin-bottom: 20px;">Resumo</h2>
     <div style="display: flex; justify-content: space-between; font-size: 15px; color: var(--ink-soft); margin-bottom: 10px;"><span>Subtotal</span><span>{{ total }}</span></div>
     <div style="display: flex; justify-content: space-between; font-size: 15px; color: var(--ink-soft); margin-bottom: 16px;"><span>Descontos</span><span>—</span></div>
@@ -109,7 +112,7 @@
       <span style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 28px; font-weight: 700; color: var(--ink);">{{ total }}</span>
     </div>
     <div style="font-size: 13px; color: var(--ink-soft); margin-top: 6px;">ou parcelado no cartão · condições no checkout</div>
-    <a href="Checkout.dc.html" style="display: block; text-align: center; margin-top: 22px; padding: 16px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 16px; box-shadow: 0 10px 26px rgba(15,110,102,.3);">Ir para o checkout</a>
+    <a href="Checkout.dc.html" style="display: block; text-align: center; margin-top: 22px; padding: 16px; border-radius: 999px; background: linear-gradient(118deg, #ff914d, #f07a2f); color: #fff; font-weight: 700; font-size: 16px; box-shadow: 0 10px 26px rgba(255,145,77,.35);">Ir para o checkout</a>
     <a href="{{ wa }}" target="_blank" rel="noopener" style="display: block; text-align: center; margin-top: 10px; font-size: 14px; color: var(--ink-soft);">Dúvidas? Fale no WhatsApp</a>
   </aside>
 </section>

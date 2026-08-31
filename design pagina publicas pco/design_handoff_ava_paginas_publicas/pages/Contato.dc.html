@@ -23,8 +23,9 @@
     --paper:#f3f4f1; --surface:#fbfcfa; --surface-2:#eaece6; --raise:#ffffff;
     --ink:#1b1e22; --ink-soft:#575c62; --ink-faint:#868c92;
     --line:#dcdfd8; --line-soft:#e8eae4;
-    --accent:#0f6e66; --accent-ink:#0c5651; --accent-soft:#dcebe8; --on-accent:#ffffff;
-    --brand-deep:#0b3b37; --on-deep:#eef3f1;
+    --accent:#0097b2; --accent-ink:#007a91; --accent-soft:#d9eef4; --on-accent:#ffffff;
+    --brand-orange:#ff914d; --brand-orange-ink:#d96a24; --brand-orange-soft:#ffe9db; --on-orange:#2b1608;
+    --brand-deep:#0b7486; --on-deep:#eef3f1;
     --good:#2f7d4f; --good-bg:#e0efe4; --good-line:#bcdcc6;
     --warn:#9a6a12; --warn-bg:#f5ead1; --warn-line:#e5d09a;
     --crit:#b0422f; --crit-bg:#f6e2dc; --crit-line:#e8bfb3;
@@ -36,8 +37,9 @@
   --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
   --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
   --line:#2b2f36; --line-soft:#242830;
-  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
-  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --accent:#4cc3d9; --accent-ink:#7fd8e8; --accent-soft:#102c33; --on-accent:#0c1f1d;
+    --brand-orange:#ff914d; --brand-orange-ink:#ffab77; --brand-orange-soft:#33200f; --on-orange:#2b1608;
+  --brand-deep:#0a5f6e; --on-deep:#eef3f1;
   --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
   --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
   --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
@@ -47,8 +49,9 @@
   --paper:#101216; --surface:#181b20; --surface-2:#20242a; --raise:#1e2228;
   --ink:#e9ebe6; --ink-soft:#9ea4aa; --ink-faint:#6e747b;
   --line:#2b2f36; --line-soft:#242830;
-  --accent:#52bcb0; --accent-ink:#7fd2c8; --accent-soft:#16302d; --on-accent:#0c1f1d;
-  --brand-deep:#0a2f2c; --on-deep:#eef3f1;
+  --accent:#4cc3d9; --accent-ink:#7fd8e8; --accent-soft:#102c33; --on-accent:#0c1f1d;
+    --brand-orange:#ff914d; --brand-orange-ink:#ffab77; --brand-orange-soft:#33200f; --on-orange:#2b1608;
+  --brand-deep:#0a5f6e; --on-deep:#eef3f1;
   --good:#5cbd83; --good-bg:#16281d; --good-line:#274a34;
   --warn:#d6a24c; --warn-bg:#2c2413; --warn-line:#4a3c1c;
   --crit:#e08066; --crit-bg:#2c1a14; --crit-line:#4d2c22;
@@ -59,7 +62,7 @@
   a { color: #2C7DA0; text-decoration: none; } a:hover { color: var(--ink); }
   h1,h2,h3 { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
   .fi { width: 100%; padding: 13px 15px; border: 1.5px solid var(--line); border-radius: 12px; font-size: 15px; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: var(--raise); color: var(--ink); }
-  .fi:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(15,110,102,0.15); }
+  .fi:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,151,178,0.15); }
   .lbl { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; display: block; }
   @media (max-width: 860px) { [data-layout] { grid-template-columns: 1fr !important; } }
 </style>
@@ -81,10 +84,10 @@
 
 <section style="max-width: 1080px; margin: 0 auto; padding: 40px 28px 90px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 44px; align-items: start;" data-layout>
   <!-- FORM -->
-  <div style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 22px; padding: 34px; box-shadow: 0 10px 34px rgba(15,76,92,0.06);">
+  <div style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 22px; padding: 34px; box-shadow: 0 10px 34px var(--accent-soft);">
     <sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
       <div style="text-align: center; padding: 30px 0;">
-        <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0f6e66" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0097b2" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
         <h2 style="font-size: 22px; color: var(--ink); margin-bottom: 8px;">Mensagem enviada!</h2>
         <p style="font-size: 15px; color: var(--ink-soft);">Recebemos seu contato e responderemos em breve. <span style="color:var(--ink-faint);">(demonstração)</span></p>
       </div>
@@ -108,7 +111,7 @@
   <!-- CANAIS -->
   <div style="display: flex; flex-direction: column; gap: 16px;">
     <a href="{{ wa }}" target="_blank" rel="noopener" style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 18px; padding: 24px; display: flex; gap: 16px; align-items: center;">
-      <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(37,211,102,0.14); display: flex; align-items: center; justify-content: center; color: #25D366; font-size: 20px;">✆</div>
+      <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(37,211,102,0.14); display: flex; align-items: center; justify-content: center; color: #25D366;"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.03a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.12.82.83-3.04-.2-.31a8.09 8.09 0 0 1-1.24-4.28c0-4.47 3.64-8.11 8.12-8.11 4.47 0 8.11 3.64 8.11 8.11s-3.64 8.12-8.07 8.12zm4.45-6.07c-.24-.12-1.44-.71-1.66-.79-.22-.08-.39-.12-.55.12-.16.24-.63.79-.77.95-.14.16-.28.18-.53.06-.24-.12-1.03-.38-1.96-1.21-.72-.65-1.21-1.44-1.35-1.69-.14-.24-.02-.37.11-.5.11-.11.24-.28.37-.42.12-.14.16-.24.24-.4.08-.16.04-.31-.02-.43-.06-.12-.55-1.32-.75-1.81-.2-.48-.4-.41-.55-.42h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05 0 1.21.88 2.38 1 2.54.12.16 1.72 2.63 4.18 3.69.58.25 1.04.4 1.4.52.59.19 1.12.16 1.54.1.47-.07 1.44-.59 1.65-1.16.2-.57.2-1.05.14-1.16-.06-.1-.22-.16-.47-.28z"/></svg></div>
       <div><div style="font-weight: 700; color: var(--ink); font-size: 16px;">WhatsApp</div><div style="font-size: 14px; color: var(--ink-soft);">(11) 98401-0715 · (11) 97123-0714</div></div>
     </a>
     <a href="mailto:falecompco@gmail.com" style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 18px; padding: 24px; display: flex; gap: 16px; align-items: center;">
@@ -116,7 +119,7 @@
       <div><div style="font-weight: 700; color: var(--ink); font-size: 16px;">E-mail</div><div style="font-size: 14px; color: var(--ink-soft);">falecompco@gmail.com</div></div>
     </a>
     <div style="background: var(--raise); border: 1px solid var(--line-soft); border-radius: 18px; padding: 24px; display: flex; gap: 16px; align-items: flex-start;">
-      <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(15,76,92,0.08); display: flex; align-items: center; justify-content: center; color: var(--ink);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <div style="width: 46px; height: 46px; border-radius: 12px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; color: var(--ink);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
       <div><div style="font-weight: 700; color: var(--ink); font-size: 16px;">Endereço</div><div style="font-size: 14px; color: var(--ink-soft); line-height: 1.5;">Av. Vital Brasil, 305, Butantã<br>São Paulo/SP · CEP 05503-001</div></div>
     </div>
     <div style="background: var(--accent-soft); border: 1px solid var(--accent-soft); border-radius: 18px; padding: 20px 24px; font-size: 14px; color: var(--ink-soft); line-height: 1.6;">

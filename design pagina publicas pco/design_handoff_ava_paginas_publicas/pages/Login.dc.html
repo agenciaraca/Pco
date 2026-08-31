@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Entrar | PCO — Psicanálise Clínica Online</title>
+<meta name="robots" content="noindex,follow">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .fi { width: 100%; padding: 13px 15px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); font-size: 15px; font-family: var(--font-sans); background: var(--raise); color: var(--ink); box-sizing: border-box; }
+  .fi:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .lbl { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
+  @media (max-width: 900px) { [data-split] { grid-template-columns: 1fr !important; } [data-brandpane] { display: none !important; } }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr;" data-split>
+  <!-- PAINEL DA MARCA (continuidade com o site público) -->
+  <div data-brandpane style="position: relative; background: var(--grad-brand); color: #fff; display: flex; flex-direction: column; justify-content: space-between; padding: 44px 48px; overflow: hidden;">
+    <div style="position: absolute; inset: 0; background-image: url('../assets/hero-consultorio.png'); background-size: cover; background-position: center; opacity: 0.12;"></div>
+    <a href="Home.dc.html" style="position: relative; display: inline-flex;"><img src="../assets/logo-pco.png" alt="PCO" style="height: 46px; filter: brightness(0) invert(1);"></a>
+    <div style="position: relative;">
+      <h1 style="font-size: clamp(26px,2.8vw,38px); color: #fff; max-width: 15ch; line-height: 1.15;">Sua jornada de formação continua aqui.</h1>
+      <p style="color: rgba(255,255,255,.85); font-size: 16px; line-height: 1.6; max-width: 44ch; margin: 14px 0 0;">Aulas, trilha de estudos, biblioteca, PCO POD e certificados — tudo no mesmo ambiente.</p>
+    </div>
+    <div style="position: relative; font-size: 13px; color: rgba(255,255,255,.7);">Escola Reconhecida RNTP · RNTP 1407167IE</div>
+  </div>
+
+  <!-- FORMULÁRIO -->
+  <div style="display: flex; align-items: center; justify-content: center; padding: 44px 28px; background: var(--paper);">
+    <div style="width: 100%; max-width: 400px;">
+      <h2 style="font-size: 26px;">Entrar no AVA</h2>
+      <p style="font-size: 14.5px; color: var(--ink-soft); margin: 8px 0 26px;">Use o e-mail cadastrado na sua matrícula.</p>
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div><label class="lbl">E-mail</label><input class="fi" type="email" placeholder="voce@email.com"></div>
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;"><label class="lbl">Senha</label><a href="#" style="font-size: 13px; font-weight: 600;">Esqueci a senha</a></div>
+          <input class="fi" type="password" placeholder="••••••••">
+        </div>
+        <label style="display: flex; gap: 9px; align-items: center; font-size: 14px; color: var(--ink-soft); cursor: pointer;"><input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--accent);"> Lembrar de mim</label>
+        <button onClick="{{ noop }}" style="padding: 15px; border-radius: 999px; border: none; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 16px; cursor: pointer; font-family: var(--font-sans); box-shadow: 0 8px 22px rgba(0,151,178,.28);">Entrar</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px; margin: 22px 0;"><div style="flex: 1; height: 1px; background: var(--line);"></div><span style="font-size: 12.5px; color: var(--ink-faint);">ou</span><div style="flex: 1; height: 1px; background: var(--line);"></div></div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 13px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--raise); color: var(--ink); font-weight: 600; font-size: 14.5px; cursor: pointer; font-family: var(--font-sans);"><svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>Entrar com Google</button>
+        <button style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 13px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--raise); color: var(--ink); font-weight: 600; font-size: 14.5px; cursor: pointer; font-family: var(--font-sans);"><svg width="16" height="16" viewBox="0 0 24 24"><rect width="10" height="10" x="1" y="1" fill="#F25022"/><rect width="10" height="10" x="13" y="1" fill="#7FBA00"/><rect width="10" height="10" x="1" y="13" fill="#00A4EF"/><rect width="10" height="10" x="13" y="13" fill="#FFB900"/></svg>Entrar com Microsoft</button>
+      </div>
+
+      <!-- sem compra -->
+      <div style="margin-top: 26px; background: var(--accent-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; font-size: 14px; line-height: 1.55; color: var(--ink);">
+        Ainda não é aluno? Conheça as <a href="Cursos.dc.html" style="font-weight: 700;">formações da PCO</a> — matrícula com acesso imediato após a confirmação do pagamento.
+      </div>
+
+      <div style="margin-top: 22px; font-size: 12.5px; color: var(--ink-faint); text-align: center;"><a href="#" style="color: var(--ink-faint);">Termos de uso</a> · <a href="#" style="color: var(--ink-faint);">Privacidade</a> · <a href="Contato.dc.html" style="color: var(--ink-faint);">Suporte</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:800}}">
+class Component extends DCLogic {
+  noop = () => {};
+  renderVals() { return { noop: this.noop }; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Painel | AVA PCO</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .card { background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .navitem { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius-sm); font-size: 14.5px; font-weight: 600; color: var(--ink-soft); }
+  .navitem:hover { background: var(--surface-2); color: var(--ink); }
+  .navitem.on { background: var(--accent-soft); color: var(--accent-ink); }
+  @media (max-width: 980px) { [data-shell] { grid-template-columns: 1fr !important; } [data-sidebar] { display: none !important; } [data-grid2] { grid-template-columns: 1fr !important; } }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: var(--paper);">
+<!-- HEADER DO APP: mesma altura/marca do site público -->
+<header style="position: sticky; top: 0; z-index: 50; background: var(--surface); border-bottom: 1px solid var(--line); backdrop-filter: blur(12px);">
+  <div style="max-width: 1360px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; gap: 20px;">
+    <img src="../assets/logo-pco.png" alt="PCO" style="height: 38px;">
+    <div style="flex: 1;"></div>
+    <button onClick="{{ toggleTheme }}" aria-label="Tema" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--raise); color: var(--ink-soft); cursor: pointer; font-size: 15px;">◐</button>
+    <button aria-label="Notificações" style="position: relative; width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--raise); color: var(--ink-soft); cursor: pointer;">🔔<span style="position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; border-radius: 50%; background: var(--brand-orange); color: var(--on-orange); font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">2</span></button>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 38px; height: 38px; border-radius: 50%; background: var(--grad-brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">MA</div>
+      <div style="line-height: 1.2;"><div style="font-weight: 700; font-size: 13.5px;">Maria A.</div><div style="font-size: 11.5px; color: var(--ink-faint);">Aluna</div></div>
+    </div>
+  </div>
+</header>
+
+<div style="max-width: 1360px; margin: 0 auto; display: grid; grid-template-columns: 240px 1fr; gap: 28px; padding: 26px 24px 60px;" data-shell>
+  <!-- SIDEBAR -->
+  <aside data-sidebar style="display: flex; flex-direction: column; gap: 3px; position: sticky; top: 84px; align-self: start;">
+    <a class="navitem on" href="#">▦ Painel</a>
+    <a class="navitem" href="#">◈ Jornada</a>
+    <a class="navitem" href="#">▶ Meus cursos</a>
+    <a class="navitem" href="#">❏ Biblioteca</a>
+    <a class="navitem" href="#">✦ PCO News</a>
+    <a class="navitem" href="#">♪ PCO POD</a>
+    <a class="navitem" href="#">✧ Tutor Virtual</a>
+    <a class="navitem" href="#">✎ Anotações</a>
+    <a class="navitem" href="#">❋ Certificados</a>
+    <a class="navitem" href="#">▣ Eventos</a>
+    <a class="navitem" href="#">☖ Análise e supervisão</a>
+    <div style="height: 1px; background: var(--line-soft); margin: 10px 6px;"></div>
+    <a class="navitem" href="#">☰ Pedidos</a>
+    <a class="navitem" href="#">⚙ Perfil</a>
+    <a class="navitem" href="#">☏ Suporte</a>
+  </aside>
+
+  <!-- CONTEÚDO -->
+  <main style="display: flex; flex-direction: column; gap: 22px; min-width: 0;">
+    <div>
+      <h1 style="font-size: clamp(22px,2.6vw,30px);">Boa tarde, Maria 👋</h1>
+      <p style="font-size: 14.5px; color: var(--ink-soft); margin: 6px 0 0;">Continue de onde parou — falta pouco para concluir o Módulo 2.</p>
+    </div>
+
+    <!-- PRÓXIMA AÇÃO -->
+    <div class="card" style="padding: 0; overflow: hidden; display: grid; grid-template-columns: 5px 1fr;">
+      <div style="background: var(--grad-brand);"></div>
+      <div style="padding: 22px 26px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 240px;">
+          <div style="font-size: 11.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--accent-ink);">Próxima ação recomendada</div>
+          <div style="font-weight: 800; font-size: 19px; margin: 6px 0 2px;">Aula 09 — Mecanismos de defesa</div>
+          <div style="font-size: 13.5px; color: var(--ink-soft);">Psicanálise Clínica · Módulo 2 · 18 min restantes</div>
+        </div>
+        <button style="padding: 13px 26px; border-radius: 999px; border: none; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 15px; cursor: pointer; font-family: var(--font-sans); box-shadow: 0 8px 22px rgba(0,151,178,.28);">Continuar aula ▶</button>
+      </div>
+    </div>
+
+    <!-- PROGRESSO + AVISOS -->
+    <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 22px;" data-grid2>
+      <div class="card" style="padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;"><h2 style="font-size: 17px;">Meu progresso</h2><a href="#" style="font-size: 13.5px; font-weight: 600;">Ver jornada →</a></div>
+        <sc-for list="{{ progresso }}" as="p" hint-placeholder-count="2">
+          <div style="margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 7px;"><span style="font-weight: 600;">{{ p.curso }}</span><span style="color: var(--ink-soft);">{{ p.label }}</span></div>
+            <div style="height: 9px; border-radius: 999px; background: var(--surface-2); overflow: hidden;"><div style="height: 100%; border-radius: 999px; background: var(--grad-brand); width: {{ p.pct }};"></div></div>
+          </div>
+        </sc-for>
+        <div style="font-size: 12px; color: var(--ink-faint);">Percentuais sobre o total de aulas de cada curso.</div>
+      </div>
+      <div class="card" style="padding: 24px;">
+        <h2 style="font-size: 17px; margin-bottom: 14px;">Avisos</h2>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; gap: 11px; font-size: 13.5px; line-height: 1.5;"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--brand-orange); margin-top: 5px; flex-shrink: 0;"></span><span><strong>Evento ao vivo</strong> — Supervisão coletiva, qui 19h. <a href="#" style="font-weight: 600;">Reservar</a></span></div>
+          <div style="display: flex; gap: 11px; font-size: 13.5px; line-height: 1.5;"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0;"></span><span>Novo episódio no <strong>PCO POD</strong>: "Escuta e enquadre".</span></div>
+          <div style="display: flex; gap: 11px; font-size: 13.5px; line-height: 1.5;"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0;"></span><span>Seu acesso ao curso vale até <strong>14/12/2026</strong>.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ATALHOS -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;" data-grid2>
+      <sc-for list="{{ atalhos }}" as="a" hint-placeholder-count="4">
+        <a href="#" class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 10px; color: var(--ink);">
+          <span style="width: 38px; height: 38px; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-size: 17px;">{{ a.icon }}</span>
+          <span style="font-weight: 700; font-size: 14.5px;">{{ a.title }}</span>
+          <span style="font-size: 12.5px; color: var(--ink-faint);">{{ a.desc }}</span>
+        </a>
+      </sc-for>
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:860}}">
+class Component extends DCLogic {
+  toggleTheme = () => {
+    const r = document.documentElement;
+    const dark = (r.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
+    r.dataset.theme = dark ? 'light' : 'dark';
+  };
+  progresso = [
+    { curso: 'Psicanálise Clínica', label: '14 de 60 aulas · 23%', pct: '23%' },
+    { curso: 'Hipnoterapia Clínica', label: '3 de 39 aulas · 8%', pct: '8%' },
+  ];
+  atalhos = [
+    { icon: '✧', title: 'Tutor Virtual', desc: 'Tire uma dúvida agora' },
+    { icon: '❏', title: 'Biblioteca', desc: '+300 obras' },
+    { icon: '✎', title: 'Anotações', desc: 'Suas notas de aula' },
+    { icon: '❋', title: 'Certificados', desc: 'Emissão e validação' },
+  ];
+  renderVals() { return { toggleTheme: this.toggleTheme, progresso: this.progresso, atalhos: this.atalhos }; }
+}
+</script>
+</body>
+</html>

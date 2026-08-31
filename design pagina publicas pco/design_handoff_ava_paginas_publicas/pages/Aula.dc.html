@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Aula 09 — Mecanismos de defesa | AVA PCO</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .lesson { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); font-size: 13.5px; color: var(--ink-soft); }
+  .lesson:hover { background: var(--surface-2); }
+  .lesson.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
+  .lesson.done { color: var(--ink-faint); }
+  .modhead { font-size: 11.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-faint); padding: 16px 12px 8px; }
+  @media (max-width: 980px) { [data-reader] { grid-template-columns: 1fr !important; } [data-coursenav] { position: static !important; max-height: none !important; border-right: none !important; border-bottom: 1px solid var(--line); } }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: var(--paper);">
+<!-- HEADER compacto do leitor -->
+<header style="position: sticky; top: 0; z-index: 50; background: var(--surface); border-bottom: 1px solid var(--line);">
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 20px;">
+    <a href="Dashboard.dc.html" style="display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink-soft);">← Painel</a>
+    <div style="width: 1px; height: 22px; background: var(--line);"></div>
+    <img src="../assets/logo-pco.png" alt="PCO" style="height: 30px;">
+    <div style="flex: 1; min-width: 0; text-align: center; font-size: 13.5px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Psicanálise Clínica · Módulo 2 · <strong style="color: var(--ink);">Aula 09 de 60</strong></div>
+    <div style="height: 7px; width: 140px; border-radius: 999px; background: var(--surface-2); overflow: hidden;"><div style="height: 100%; width: 23%; background: var(--grad-brand); border-radius: 999px;"></div></div>
+    <span style="font-size: 12.5px; color: var(--ink-faint);">23%</span>
+  </div>
+</header>
+
+<div style="max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 55px);" data-reader>
+  <!-- NAV DO CURSO -->
+  <aside data-coursenav style="border-right: 1px solid var(--line); background: var(--surface); padding: 12px; position: sticky; top: 55px; max-height: calc(100vh - 55px); overflow-y: auto;">
+    <div class="modhead">Módulo 1 — concluído</div>
+    <a class="lesson done" href="#">✓ 01 · O pensar ético</a>
+    <a class="lesson done" href="#">✓ 02 · Ética na prática clínica</a>
+    <a class="lesson done" href="#">✓ 03 · Sigilo e enquadre</a>
+    <div class="modhead">Módulo 2 — em andamento</div>
+    <a class="lesson done" href="#">✓ 08 · O inconsciente</a>
+    <a class="lesson on" href="#">▶ 09 · Mecanismos de defesa</a>
+    <a class="lesson" href="#">10 · Repressão e negação</a>
+    <a class="lesson" href="#">11 · Transferência</a>
+    <a class="lesson" href="#" style="color: var(--ink-faint);">⚑ Avaliação do módulo</a>
+    <div class="modhead">Módulo 3 — bloqueado</div>
+    <a class="lesson" href="#" style="opacity: .5;">🔒 12 · Freud: vida e obra</a>
+    <a class="lesson" href="#" style="opacity: .5;">🔒 13 · Teorias do desenvolvimento</a>
+  </aside>
+
+  <!-- CONTEÚDO DA AULA -->
+  <main style="min-width: 0; padding: 28px clamp(20px, 4vw, 56px) 70px;">
+    <!-- PLAYER -->
+    <div style="max-width: 880px; margin: 0 auto;">
+      <div style="position: relative; aspect-ratio: 16/9; border-radius: var(--radius-lg); overflow: hidden; background: linear-gradient(150deg, var(--brand-petroleo), var(--brand-deep)); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg);">
+        <button aria-label="Reproduzir" style="width: 74px; height: 74px; border-radius: 50%; border: none; background: rgba(255,255,255,.16); backdrop-filter: blur(4px); color: #fff; font-size: 26px; cursor: pointer; border: 1px solid rgba(255,255,255,.3);">▶</button>
+        <span style="position: absolute; left: 18px; bottom: 14px; font-size: 12px; color: rgba(255,255,255,.6);">[ vídeo da aula · player ]</span>
+        <button style="position: absolute; right: 14px; bottom: 12px; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.4); background: rgba(255,255,255,.12); color: #fff; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: var(--font-sans);">⛶ Modo Foco</button>
+      </div>
+
+      <!-- TÍTULO + AÇÕES -->
+      <div style="display: flex; align-items: flex-start; gap: 18px; margin: 26px 0 6px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 260px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--accent-ink);">Módulo 2 · Aula 09</div>
+          <h1 style="font-size: clamp(22px,2.8vw,32px); margin-top: 6px;">Mecanismos de defesa</h1>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button style="padding: 10px 18px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--raise); color: var(--ink); font-weight: 600; font-size: 13.5px; cursor: pointer; font-family: var(--font-sans);">✎ Anotar</button>
+          <button style="padding: 10px 18px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--raise); color: var(--ink); font-weight: 600; font-size: 13.5px; cursor: pointer; font-family: var(--font-sans);">✧ Perguntar ao Tutor</button>
+        </div>
+      </div>
+
+      <!-- TEXTO LONGO: coluna de leitura -->
+      <article style="max-width: 68ch; font-size: 17.5px; line-height: 1.75; color: var(--ink);">
+        <p>Os mecanismos de defesa são estratégias inconscientes que o ego utiliza para lidar com conflitos entre desejos internos e as exigências da realidade. Anna Freud sistematizou esse campo a partir do trabalho do pai, descrevendo como a mente se protege de conteúdos que geram angústia.</p>
+        <h2 style="font-size: 22px; margin: 30px 0 12px;">Por que eles importam na clínica</h2>
+        <p>Na escuta clínica, identificar defesas não é rotular o paciente — é compreender de que a psique se protege e a que custo. A defesa é sempre uma solução de compromisso: reduz a angústia agora, mas pode cristalizar padrões que geram sofrimento adiante.</p>
+        <blockquote style="margin: 26px 0; padding: 4px 0 4px 22px; border-left: 4px solid var(--accent); font-style: italic; font-size: 19px; color: var(--accent-ink);">A defesa não é o problema; é a pista.</blockquote>
+        <p>Nesta aula, percorremos as defesas descritas por Anna Freud — repressão, projeção, formação reativa, regressão, sublimação — com exemplos clínicos comentados. Observe como cada mecanismo aparece na fala cotidiana, não apenas em contextos patológicos.</p>
+        <h2 style="font-size: 22px; margin: 30px 0 12px;">Material de apoio</h2>
+        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 15px;">
+          <a href="#" style="display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius-sm); font-weight: 600;">📄 Apostila — Mecanismos de defesa (PDF)</a>
+          <a href="#" style="display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius-sm); font-weight: 600;">❏ Capítulo na Biblioteca: "O Ego e os Mecanismos de Defesa"</a>
+        </div>
+      </article>
+
+      <!-- AVISO OBRIGATÓRIO -->
+      <div style="max-width: 68ch; margin-top: 34px; background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--radius); padding: 14px 18px; font-size: 13.5px; line-height: 1.6;"><strong style="color: var(--warn);">Formação livre.</strong> Não substitui graduação em Psicologia ou Medicina, nem constitui aconselhamento clínico. Em caso de crise, ligue para o CVV: 188.</div>
+
+      <!-- NAVEGAÇÃO ENTRE AULAS -->
+      <div style="display: flex; justify-content: space-between; gap: 14px; margin-top: 36px; flex-wrap: wrap;">
+        <a href="#" style="display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px; border: 1.5px solid var(--line); color: var(--ink); font-weight: 600; font-size: 14.5px;">← Aula 08 · O inconsciente</a>
+        <a href="#" style="display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 14.5px; box-shadow: 0 8px 22px rgba(0,151,178,.28);">Concluir e avançar → Aula 10</a>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:860}}"></script>
+</body>
+</html>

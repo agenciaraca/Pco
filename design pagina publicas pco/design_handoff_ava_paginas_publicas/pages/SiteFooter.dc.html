@@ -9,56 +9,65 @@
 <x-dc>
 <helmet>
 <style>
-  @media (max-width: 760px) { [data-footgrid] { grid-template-columns: 1fr !important; } }
+  @media (max-width: 860px) { [data-footgrid] { grid-template-columns: 1fr !important; gap: 44px !important; } }
 </style>
 </helmet>
-<footer style="background: var(--brand-deep); color: rgba(255,255,255,0.72); padding: 76px 28px 36px; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">
-  <div style="max-width: 1160px; margin: 0 auto;">
-    <div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: clamp(28px,4vw,44px); color: #fff; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 52px; max-width: 16ch;">A escolha inteligente para estudar psicanálise clínica.</div>
-    <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr; gap: 44px;" data-footgrid>
-      <div>
-        <img src="../assets/logo-pco.png" alt="PCO" style="height: 42px; filter: brightness(0) invert(1); opacity: .95;">
-        <p style="font-size: 14px; line-height: 1.6; margin: 16px 0 0; max-width: 300px;">Escola de Psicanálise Clínica Online. Formação séria, flexível e acessível, com reconhecimento RNTP.</p>
-        <div style="margin-top: 16px; font-size: 13px; display: flex; gap: 14px;">
-          <a href="https://facebook.com/psicanalise.online.curso" target="_blank" rel="noopener" style="color:#7fd2c8;">Facebook</a>
-          <a href="https://instagram.com/cursopsicanaliseclinica" target="_blank" rel="noopener" style="color:#7fd2c8;">Instagram</a>
-        </div>
+<footer style="position: relative; background: linear-gradient(118deg, #0097b2 0%, #008ba4 52%, #0b7486 100%); color: #fff; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">
+  <div style="line-height: 0;">
+    <svg viewBox="0 0 1440 150" preserveAspectRatio="none" style="display:block; width:100%; height:clamp(60px,10vw,150px); transform: scaleY(-1);" fill="var(--paper)">
+      <path opacity=".3" d="M0,70 C320,10 660,120 1020,52 C1210,18 1350,44 1440,72 L1440,151 L0,151 Z"></path>
+      <path opacity=".5" d="M0,94 C300,44 640,132 1000,80 C1200,52 1350,76 1440,58 L1440,151 L0,151 Z"></path>
+      <path d="M0,114 C310,72 640,146 1010,100 C1210,76 1350,96 1440,84 L1440,151 L0,151 Z"></path>
+    </svg>
+  </div>
+  <div style="max-width: 1240px; margin: 0 auto; padding: 40px 28px 70px; display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 60px; text-align: center;" data-footgrid>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+      <img src="../assets/logo-pco.png" alt="PCO — Psicanálise Clínica Online" style="height: 54px; filter: brightness(0) invert(1); margin-bottom: 14px;">
+      <a href="https://api.whatsapp.com/send?phone=5511984010715" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 9px; color: #fff; font-size: 15.5px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.03a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.12.82.83-3.04-.2-.31a8.09 8.09 0 0 1-1.24-4.28c0-4.47 3.64-8.11 8.12-8.11 4.47 0 8.11 3.64 8.11 8.11s-3.64 8.12-8.07 8.12z"/></svg>
+        (11) 9 8401 0715
+      </a>
+      <a href="https://api.whatsapp.com/send?phone=5511971230714" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 9px; color: #fff; font-size: 15.5px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.03a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.12.82.83-3.04-.2-.31a8.09 8.09 0 0 1-1.24-4.28c0-4.47 3.64-8.11 8.12-8.11 4.47 0 8.11 3.64 8.11 8.11s-3.64 8.12-8.07 8.12z"/></svg>
+        (11) 9 9 71230714
+      </a>
+      <a href="mailto:falecompco@gmail.com" style="color: #fff; font-size: 16px;">falecompco@gmail.com</a>
+      <svg width="110" height="12" viewBox="0 0 110 12" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" stroke-linecap="round" style="margin: 14px 0;"><path d="M2 8 Q8 2 14 8 T26 8 T38 8 T50 8 T62 8 T74 8 T86 8 T98 8 T108 8"></path></svg>
+      <div style="font-size: 14px; line-height: 1.55;">
+        <em style="font-weight: 700;">Comercial</em><br>
+        Avenida Vital Brasil, n° 305, Butantã<br>
+        São Paulo-SP CEP 05503-001
       </div>
-      <div>
-        <div style="font-weight: 700; color: #fff; font-size: 15px; margin-bottom: 14px;">Cursos</div>
-        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
-          <a href="Curso.dc.html?slug=psicanalise-clinica" style="color: rgba(255,255,255,0.72);">Psicanálise Clínica</a>
-          <a href="Curso.dc.html?slug=terapia-familiar-sistemica" style="color: rgba(255,255,255,0.72);">Terapia Familiar Sistêmica</a>
-          <a href="Curso.dc.html?slug=hipnoterapia-clinica" style="color: rgba(255,255,255,0.72);">Hipnoterapia Clínica</a>
-          <a href="Cursos.dc.html" style="color: rgba(255,255,255,0.72);">Todos os cursos</a>
-        </div>
+      <div style="font-size: 14px; line-height: 1.55; margin-top: 14px;">
+        <em style="font-weight: 700;">Coordenação Pedagógica</em><br>
+        Q SHN QUADRA 2 BLOCO A<br>
+        Brasília – DF CEP 70.702-900
       </div>
-      <div>
-        <div style="font-weight: 700; color: #fff; font-size: 15px; margin-bottom: 14px;">Institucional</div>
-        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
-          <a href="Sobre.dc.html" style="color: rgba(255,255,255,0.72);">Quem somos</a>
-          <a href="Autor.dc.html" style="color: rgba(255,255,255,0.72);">Responsável técnica</a>
-          <a href="Blog.dc.html" style="color: rgba(255,255,255,0.72);">Blog</a>
-          <a href="Contato.dc.html" style="color: rgba(255,255,255,0.72);">Contato</a>
-        </div>
-      </div>
-      <div>
-        <div style="font-weight: 700; color: #fff; font-size: 15px; margin-bottom: 14px;">Contato</div>
-        <div style="font-size: 14px; line-height: 1.7;">
-          WhatsApp: (11) 98401-0715<br>
-          (11) 97123-0714<br>
-          <a href="mailto:falecompco@gmail.com" style="color:#7fd2c8;">falecompco@gmail.com</a>
-          <span style="display:block; margin-top:10px; color: rgba(255,255,255,0.55); font-size: 13px;">Av. Vital Brasil, 305, Butantã — São Paulo/SP · CEP 05503-001</span>
-        </div>
-      </div>
+      <div style="font-size: 14px; margin-top: 14px;">CNPJ 41.961.134/0001-56</div>
     </div>
-    <div style="margin-top: 46px; padding-top: 26px; border-top: 1px solid rgba(255,255,255,0.12); font-size: 12.5px; line-height: 1.7; color: rgba(255,255,255,0.5);">
-      © 2018–2026 Psicanálise Clínica Online (PCO). Todos os direitos reservados. · CNPJ: 41.961.134/0001-56 · RNTP 1407167IE — Escola Reconhecida RNTP.<br>
-      <strong style="color: rgba(255,255,255,0.62); font-weight: 600;">Aviso:</strong> os cursos da PCO são formações livres e não substituem a graduação em Psicologia ou Medicina, nem constituem aconselhamento clínico. Conteúdo educativo. Em caso de sofrimento psíquico intenso, procure um profissional de saúde. Tratamos seus dados conforme a LGPD (Lei 13.709/2018).
+
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+      <div style="width: 124px; height: 124px; border-radius: 50%; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">
+        <span style="font-weight: 800; font-size: 24px; letter-spacing: 1px;">RNTP</span>
+        <span style="font-size: 8.5px; letter-spacing: 1.4px; opacity: .85;">REGISTRO NACIONAL</span>
+        <span style="font-size: 8.5px; letter-spacing: 1.4px; opacity: .85;">DE TERAPEUTAS</span>
+      </div>
+      <svg width="110" height="12" viewBox="0 0 110 12" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" stroke-linecap="round" style="margin: 12px 0 6px;"><path d="M2 8 Q8 2 14 8 T26 8 T38 8 T50 8 T62 8 T74 8 T86 8 T98 8 T108 8"></path></svg>
+      <div style="font-size: 17px; font-weight: 600;">RNTP 1407167IE</div>
+      <div style="font-size: 14px; font-style: italic; opacity: .9;">Escola Reconhecida RNTP</div>
+    </div>
+
+    <div style="text-align: center; max-width: 460px; margin: 0 auto;">
+      <div style="font-weight: 700; font-style: italic; font-size: 15px; margin-bottom: 14px;">Política de Privacidade:</div>
+      <p style="font-size: 13px; line-height: 1.65; margin: 0 0 14px;">A Psicanálise Clínica Online está comprometida com a proteção da privacidade e dos dados pessoais dos usuários. Em conformidade com a Lei Geral de Proteção de Dados (LGPD), nossa política de privacidade visa garantir a transparência sobre a coleta, uso, armazenamento e proteção das informações pessoais dos usuários que acessam e utilizam nossos serviços.</p>
+      <p style="font-size: 13px; line-height: 1.65; margin: 0 0 14px;">Comprometemo-nos a respeitar sua privacidade e a utilizar suas informações pessoais de maneira responsável e segura. O uso contínuo deste site implica a aceitação de nossa política de privacidade e o consentimento para o tratamento de seus dados conforme estabelecido. Para mais informações sobre como gerenciamos os dados e seus direitos como usuário, por favor, acesse nossa <a href="#" style="color: var(--brand-orange); font-weight: 600;">Política de Privacidade completa</a></p>
+      <p style="font-size: 13px; line-height: 1.65; margin: 0;">Para quaisquer dúvidas ou solicitações relacionadas aos seus direitos de proteção de dados, entre em contato conosco através <a href="Contato.dc.html" style="color: var(--brand-orange); font-weight: 600;">deste link</a></p>
     </div>
   </div>
+  <div style="border-top: 1px solid rgba(255,255,255,.2); padding: 18px 28px; text-align: center; font-size: 12.5px; color: rgba(255,255,255,.75);">© 2018–2026 Psicanálise Clínica Online (PCO). Todos os direitos reservados.</div>
 </footer>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:420}}"></script>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:560}}"></script>
 </body>
 </html>
