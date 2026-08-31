@@ -500,35 +500,36 @@
     .item { padding: 14px 15px 15px; gap: 0 12px; }
   }
 </style>
-
 <div class="wrap">
 
   <header>
     <div class="head-top">
       <div class="eyebrow">AVA PCO · Painel de estado</div>
-      <div class="eyebrow mono">30 de agosto de 2026 · fim do dia</div>
+      <div class="eyebrow mono">31 de agosto de 2026 · depois da troca de disco</div>
     </div>
-    <h1>O que está no ar, o que está aberto e quem destrava</h1>
+    <h1>O que está no ar, o que está pronto sem estar no ar, e quem destrava</h1>
     <p class="subtitle">
-      A plataforma <strong>está no ar e atualizada</strong> — não há código esperando deploy.
-      O que resta se divide em duas pilhas bem diferentes: <strong>três tarefas que dependem só de rodar
-      contra produção</strong> e <strong>oito decisões que só você pode tomar</strong>. Uma delas está
-      cobrando juros.
+      Mudou uma coisa importante desde o painel anterior: <strong>o repositório deixou de estar em
+      dia com a produção</strong>. Dez commits da madrugada de 31/ago estão no GitHub e
+      <strong>não foram publicados — decisão sua</strong>. E a cópia local do projeto trocou de
+      disco: saiu de <code>C:</code>, foi para <code>H:</code>, e chegou lá com o histórico de
+      versões desatualizado. Isso está corrigido e conferido — está tudo relatado abaixo.
     </p>
   </header>
 
   <!-- ============ VEREDITO ============ -->
-  <div class="verdict">
+  <div class="verdict" style="border-left-color: var(--warn)">
     <div class="verdict-head">
-      <span class="pulse" aria-hidden="true"></span>
-      <h2>No ar, no domínio principal, com o código de agora</h2>
-      <span class="tag ok">verificado hoje</span>
+      <span class="pulse" aria-hidden="true" style="background: var(--warn); box-shadow: 0 0 0 4px var(--warn-bg)"></span>
+      <h2>No ar e saudável — com o código de 30 de agosto</h2>
+      <span class="tag warn">verificado hoje</span>
     </div>
     <p class="prose">
-      O AVA assumiu <code>psicanaliseclinica.online</code> hoje. Produção, <code>origin/main</code> e
-      a máquina local estão no mesmo commit — nada esperando publicação. Nove commits entraram:
-      domínio canônico, deploy por chave, portão de acesso e a unificação do site, que deixou de ser
-      dois. Tudo conferido pela internet depois de publicado.
+      O servidor responde, o banco está conectado e a loja antiga <strong>voltou ao ar</strong> —
+      no painel anterior ela estava fora, com erro de certificado. O que mudou de figura é a
+      distância: produção segue no commit de 30/ago e o repositório está
+      <strong>dez commits à frente</strong>. Nada disso é acidente — você decidiu publicar só no
+      GitHub, sem deploy.
     </p>
     <div class="checks">
       <div class="check">
@@ -536,64 +537,252 @@
         <span class="v"><span class="dot"></span>200 · banco conectado</span>
       </div>
       <div class="check">
-        <span class="k">GET /api/admin/students</span>
-        <span class="v"><span class="dot"></span>401 — exige token</span>
+        <span class="k">old.psicanaliseclinica.online</span>
+        <span class="v"><span class="dot"></span>200 · voltou ao ar</span>
       </div>
       <div class="check">
-        <span class="k">ava. e www. → principal</span>
-        <span class="v"><span class="dot"></span>301, canônico único</span>
+        <span class="k">produção × origin/main</span>
+        <span class="v"><span class="dot warn"></span>10 commits atrás</span>
       </div>
       <div class="check">
-        <span class="k">/catalogo, /comparar, /landing</span>
-        <span class="v"><span class="dot"></span>301, rotas fundidas</span>
+        <span class="k">suíte completa, no disco novo</span>
+        <span class="v"><span class="dot"></span>1.984 testes, zero falhas</span>
       </div>
     </div>
   </div>
+
+  <!-- ============ TROCA DE DISCO ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>A troca de disco — o que veio inteiro e o que não veio</h2>
+        <span class="count">conferido hoje, arquivo por arquivo</span>
+      </div>
+      <p class="prose">
+        O projeto saiu de <code>C:\ia\dev\pco</code> para <code>H:\ia\dev\pco</code>. Os arquivos
+        atravessaram completos. O histórico de versões, não — e esse é o tipo de falha que não
+        aparece até alguém trabalhar em cima dela.
+      </p>
+    </div>
+    <div class="items">
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Os arquivos vieram inteiros</h3>
+            <span class="tag ok">nada faltando</span>
+          </div>
+          <p>
+            Comparei os dois discos byte a byte: todo arquivo do projeto, os 42 arquivos de dados,
+            as duas configurações com segredo (<code>.env</code> e <code>.env.import</code>) e o
+            arquivo do protótipo são <strong>idênticos</strong> nos dois lados. Nenhum arquivo
+            existe só num deles.
+          </p>
+          <div class="meta">
+            <span>tipos: 0 erros</span>
+            <span>1.984 testes · 217 arquivos · 96 s · rodados do disco H:</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>O histórico de versões veio velho — e isso era o perigo</h3>
+            <span class="tag ok">corrigido hoje</span>
+          </div>
+          <p>
+            A pasta de controle de versões copiada estava parada no dia 30. Resultado: no disco
+            novo o projeto se dizia <strong>dez commits atrás do GitHub</strong>, e todo o trabalho
+            da madrugada de 31/ago — carrinho, tokens, correção dos links de compra —
+            aparecia como <strong>alteração por salvar</strong>, como se nunca tivesse sido feito.
+          </p>
+          <p>
+            Uma sessão que começasse assim faria uma de duas coisas ruins: refazer o que já estava
+            pronto, ou commitar de novo por cima. Pior, parte do histórico chegou pela metade — o
+            próprio comando de listar versões dava erro ao chegar no commit do carrinho.
+          </p>
+          <p>
+            <strong>Nada foi perdido.</strong> Trouxe o histórico completo do GitHub e realinhei o
+            marcador sem tocar em um arquivo sequer — e o projeto ficou limpo, sem nenhuma
+            diferença pendente. O que estava no disco já era, exatamente, o que o GitHub guarda.
+          </p>
+          <div class="meta">
+            <span>era <code>3cbfc8f</code> · é <code>1c007d3</code></span>
+            <span>10 commits recuperados</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Oito documentos ainda mandavam ir para o disco antigo</h3>
+            <span class="tag ok">corrigido hoje</span>
+          </div>
+          <p>
+            As instruções do projeto e os cinco registros de sessão abriam com
+            <code>cd C:\ia\dev\pco</code>. Quem seguisse o passo a passo cairia na cópia velha e
+            trabalharia nela sem perceber. Todos apontam para <code>H:</code> agora.
+          </p>
+        </div>
+      </div>
+
+      <div class="item open">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>A cópia antiga continua lá, e continua ligada ao GitHub</h3>
+            <span class="tag ok">decidido hoje: fica por enquanto</span>
+          </div>
+          <p>
+            <code>C:\ia\dev\pco</code> não é uma pasta morta: é um projeto completo, com histórico,
+            apontando para o mesmo repositório remoto — e hoje ele está mais atualizado que a
+            memória do disco novo estava. Enquanto existir, qualquer atalho antigo, script ou
+            sessão desavisada pode editar o lugar errado, e o trabalho some sem erro nenhum.
+          </p>
+          <p>
+            Não apaguei nada: apagar projeto com histórico é decisão de dono. <strong>Você decidiu
+            deixar como está por enquanto e apagar depois</strong> — fica registrado aqui para que a
+            decisão continue sendo uma decisão. Enquanto isso vale a regra simples: trabalho de
+            agora é sempre em <code>H:</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="item open">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Dois resíduos menores do disco antigo</h3>
+            <span class="tag ok">decidido: refazer conforme aparecerem</span>
+          </div>
+          <p>
+            A lista de permissões desta máquina guarda uns quinze comandos gravados com caminho em
+            <code>C:</code> — não quebram nada, só deixaram de valer, e vão pedir autorização de
+            novo quando reaparecerem. E um documento de replicação aponta para
+            <code>C:\ia\dev\ae</code>, projeto que <strong>não existe no disco H:</strong> com esse
+            nome nem com outro parecido; deixei como está porque adivinhar o destino seria pior que
+            o problema.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
 
   <!-- ============ MÉTRICAS ============ -->
   <section>
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>O tamanho da coisa</h2>
-        <span class="count">apurado hoje na máquina e em produção</span>
+        <span class="count">apurado hoje, na máquina e em produção</span>
       </div>
     </div>
     <div class="metrics">
       <div class="metric">
-        <span class="n">1.941</span>
+        <span class="n">1.984</span>
         <span class="l">testes, todos passando</span>
-        <span class="sub">207 arquivos · 64 s</span>
+        <span class="sub">217 arquivos · 96 s</span>
+      </div>
+      <div class="metric">
+        <span class="n">10</span>
+        <span class="l">commits prontos e não publicados</span>
+        <span class="sub">produção em 4c7c1dc</span>
       </div>
       <div class="metric">
         <span class="n">0</span>
-        <span class="l">canais de venda no ar</span>
-        <span class="sub">site sem preço · loja em 525</span>
+        <span class="l">cursos com preço</span>
+        <span class="sub">nenhum canal fecha venda</span>
       </div>
       <div class="metric">
         <span class="n">440</span>
         <span class="l">rotas de API</span>
-        <span class="sub">server/app.ts · 10.617 linhas</span>
+        <span class="sub">server/app.ts · 10.690 linhas</span>
       </div>
       <div class="metric">
-        <span class="n">352</span>
+        <span class="n">238</span>
         <span class="l">aulas no catálogo público</span>
-        <span class="sub">7 cursos · 62 módulos</span>
-      </div>
-      <div class="metric">
-        <span class="n">11</span>
-        <span class="l">rotinas de fundo ativas</span>
-        <span class="sub">lembretes, avisos, backup…</span>
+        <span class="sub">4 cursos · 38 módulos · era 7 em 30/ago</span>
       </div>
       <div class="metric">
         <span class="n">1.601</span>
         <span class="l">alunos em produção</span>
-        <span class="sub">615 fichas · 1.122 matrículas</span>
+        <span class="sub">medido em 30/ago, não hoje</span>
       </div>
       <div class="metric">
-        <span class="n">10</span>
-        <span class="l">commits hoje</span>
-        <span class="sub">581 desde 3 de maio</span>
+        <span class="n">592</span>
+        <span class="l">commits desde 3 de maio</span>
+        <span class="sub">10 na madrugada de 31/ago</span>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ PRONTO, SEM ESTAR NO AR ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>Pronto no repositório — ainda não no ar</h2>
+        <span class="count">6 frentes · 10 commits</span>
+      </div>
+      <p class="prose">
+        Tudo desta seção está testado e no GitHub, e <strong>nada disso o visitante vê hoje</strong>:
+        produção segue no código de 30/ago porque você decidiu não publicar. Um comando de deploy
+        resolve o dia em que você quiser.
+      </p>
+    </div>
+    <div class="done-grid">
+
+      <div class="done-card" style="border-left-color: var(--warn)">
+        <span class="when">31 de agosto · não publicado</span>
+        <h3>O desenho aprovado entrou no repositório</h3>
+        <p>A referência visual nunca esteve no código — vivia num projeto de design fora dele, e por
+          isso a sessão anterior refez a página do curso a partir do que existia, que era exatamente
+          o que devia ser substituído. Agora nove pranchas e o arquivo de cores estão versionados,
+          e a página do curso, a lista, o checkout e a home seguem o desenho escolhido.</p>
+      </div>
+
+      <div class="done-card" style="border-left-color: var(--warn)">
+        <span class="when">31 de agosto · não publicado</span>
+        <h3>O botão de comprar deixou de devolver o comprador para a lista</h3>
+        <p>“Matricular-se” apontava para uma rota que virou redirecionamento para o próprio catálogo:
+          quem decidia comprar voltava para onde tinha acabado de sair. E o checkout, que funciona,
+          <strong>não tinha um único link apontando para ele</strong> no produto inteiro. Eram duas
+          causas para “o site não vende”, e a segunda sobreviveria ao cadastro dos preços.</p>
+      </div>
+
+      <div class="done-card" style="border-left-color: var(--warn)">
+        <span class="when">31 de agosto · não publicado</span>
+        <h3>Carrinho: vários cursos, um pagamento só</h3>
+        <p>O pedido só comporta um produto, e mexer na tabela do dinheiro seria risco à toa. Em vez
+          disso o servidor monta um pacote com os cursos escolhidos e cobra uma vez, por um caminho
+          que já existia e já era testado. <strong>O preço nunca vem do navegador</strong> — o
+          carrinho diz quais cursos, o servidor diz quanto custa.</p>
+      </div>
+
+      <div class="done-card" style="border-left-color: var(--warn)">
+        <span class="when">31 de agosto · não publicado</span>
+        <h3>Um jogo de cores só</h3>
+        <p>O laranja divergente, aberto havia meses, acabou. Site, área do aluno e administração
+          passaram a ler a mesma paleta do desenho — com sua aprovação, porque isso mudou a cor de
+          todas as telas internas. Um teste impede que dois jogos de cor voltem a existir.</p>
+      </div>
+
+      <div class="done-card" style="border-left-color: var(--warn)">
+        <span class="when">31 de agosto · não publicado</span>
+        <h3>A home parou de afirmar número que ninguém mediu</h3>
+        <p>A limpeza de 27/ago tinha sido feita só na área do aluno. O site publicava “4,7/5” e
+          “+1000 alunos formados”, e o <em>sobre</em> dizia “3 formações” com dezesseis no catálogo.
+          Agora cada número é medido — nota a partir das avaliações reais e sempre com a base — e a
+          célula some quando não há o que medir.</p>
+      </div>
+
+      <div class="done-card" style="border-left-color: var(--warn)">
+        <span class="when">31 de agosto · não publicado</span>
+        <h3>A letra parou de mudar na fronteira do login</h3>
+        <p>O site não carregava fonte externa; a área do aluno carregava. Além do sobressalto visual
+          ao entrar, era um pedido a servidor de terceiro no caminho crítico de toda tela do aluno.
+          Saiu.</p>
+      </div>
+
     </div>
   </section>
 
@@ -602,7 +791,7 @@
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>Pronto e no ar</h2>
-        <span class="count">17 frentes fechadas</span>
+        <span class="count">15 frentes fechadas</span>
       </div>
       <p class="prose">O que já funciona em produção e tem teste vigiando para não regredir.</p>
     </div>
@@ -734,11 +923,10 @@
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>Em aberto — não depende de você</h2>
-        <span class="count">3 itens · ferramenta pronta em todos</span>
+        <span class="count">4 itens · ferramenta pronta em todos</span>
       </div>
       <p class="prose">
-        Todos estavam travados pela falta de acesso ao servidor. <strong>A chave SSH foi instalada em
-        27 de agosto</strong>, então os quatro estão liberados para execução.
+        Trabalho técnico que já tem caminho e não espera decisão sua — só execução.
       </p>
     </div>
     <div class="items">
@@ -746,25 +934,34 @@
       <div class="item done">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>Migração v3 — conferida em produção, já estava aplicada</h3>
-            <span class="tag ok">resolvido em 30/ago</span>
+            <h3>Os botões e as chamadas passaram a ser os do desenho</h3>
+            <span class="tag ok">resolvido hoje</span>
           </div>
           <p>
-            Este item dizia que produção tinha <strong>10.205 matrículas fantasma, 333 alunos
-            faltando e 436 nomes tomados por spam</strong>, e pedia a reaplicação da carga. Ao
-            conferir a base real antes de agir, o quadro é outro:
-            <strong>1.601 alunos, 615 fichas e 1.122 matrículas</strong> — cerca de 1,8 matrícula por
-            aluno. A carga v3 foi aplicada em 7 de julho; a descrição do problema tinha três meses e
-            ninguém a revisitou.
+            Você apontou que o acabamento não estava no padrão. Conferido contra a biblioteca de
+            componentes do handoff, item a item: existiam <strong>três das cinco variantes de botão
+            e nenhum dos estados</strong>. Botão desabilitado ficava idêntico a botão clicável, não
+            havia “carregando”, faltava a variante discreta, e o foco era o contorno cru do
+            navegador em vez do anel macio do desenho. O campo de formulário tinha o mesmo buraco:
+            bloqueado e com erro se pareciam com campo normal.
           </p>
           <p>
-            E reaplicar teria sido <strong>destrutivo</strong>: a base local está zerada por um reset,
-            e o carregador marca como inativo quem não aparecer na fonte — os 1.601 sairiam do ar.
-            O texto velho foi corrigido no repositório para que ninguém siga a instrução perigosa.
+            Duas chamadas estavam na cor errada, e essa é a que custa dinheiro:
+            <strong>o topo de toda página levava só para “Entrar”</strong> — porta de quem já
+            comprou — e o herói da home abria com a ação secundária em ciano. Agora o cabeçalho tem
+            “Matricular-se” no degradê laranja, e o herói abre com a CTA grande. O carrinho deixou
+            de ser um emoji, que muda de desenho conforme o sistema de quem visita, e virou o ícone
+            do protótipo dentro do botão redondo.
+          </p>
+          <p>
+            Medido em cinco larguras de tela: a barra não estoura em nenhuma, e abaixo de 560px as
+            duas portas descem para dentro do menu, como no protótipo.
+            <code>test/botoes-do-desenho.test.ts</code> cobra o contrato inteiro — variantes,
+            estados, tamanhos e a CTA do topo — para que não se perca de novo.
           </p>
           <div class="meta">
-            <span>medido com <code>scripts/backup_divz_students.ts</code></span>
-            <span>backup de produção gravado antes</span>
+            <span><code>design pagina publicas pco/design_handoff_ava_paginas_publicas</code></span>
+            <span>9 testes novos</span>
           </div>
         </div>
       </div>
@@ -773,7 +970,7 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>Duração real das aulas</h3>
-            <span class="tag warn">352 aulas afetadas</span>
+            <span class="tag warn">todas as aulas afetadas</span>
           </div>
           <p>
             Todas as aulas estão gravadas com 15 minutos — um valor de preenchimento da importação.
@@ -808,7 +1005,7 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>Aplicar o delta da loja</h3>
-            <span class="tag warn">ensaiado hoje · falta gravar</span>
+            <span class="tag warn">ensaiado · falta gravar</span>
           </div>
           <p>
             A loja continuou vendendo. O ensaio contra produção mediu
@@ -835,7 +1032,7 @@
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>Só você destrava</h2>
-        <span class="count">8 itens · 1 cobrando juros</span>
+        <span class="count">10 itens · 1 cobrando juros</span>
       </div>
       <p class="prose">
         Em ordem de urgência. O primeiro não é tarefa de produto — é algo que piora enquanto não é
@@ -848,43 +1045,77 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>O CI do GitHub não roda desde 26 de agosto</h3>
-            <span class="tag stop">4 dias cego</span>
+            <span class="tag stop">5 dias cego</span>
           </div>
           <p>
             <em>“The job was not started because your account is locked due to a billing issue.”</em>
-            Todos os runs desde 26/ago terminam assim, em 4 a 6 segundos. Nenhum executou teste,
-            tipo, lint ou build.
+            O push da madrugada de 31/ago disparou o fluxo e ele terminou assim, como todos os
+            anteriores. Nenhum executou teste, tipo, lint ou build.
           </p>
           <p>
             Um X vermelho permanente por motivo alheio ao código é <strong>pior que não ter CI</strong>:
             treina todo mundo a ignorar o vermelho, e no dia em que ele for de verdade ninguém vai
-            olhar. Enquanto isso a verificação é local — foi o que rodei em cada commit.
+            olhar. Enquanto isso a verificação é local — foi o que rodei em cada commit, e de novo
+            hoje no disco novo.
           </p>
           <div class="meta"><span>ação: regularizar a cobrança na conta do GitHub</span></div>
         </div>
       </div>
 
-      <div class="item done">
+      <div class="item block">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>O deploy automático — consertado</h3>
-            <span class="tag ok">resolvido em 30/ago</span>
+            <h3>Preço dos cursos</h3>
+            <span class="tag stop">nenhum canal fecha venda</span>
           </div>
           <p>
-            Em vez de acertar a senha do servidor errado, o fluxo passou a autenticar por
-            <strong>chave</strong> — a mesma que já estava instalada no servidor e que testei agora.
-            A senha guardada foi <strong>removida</strong>: não há mais credencial de senha em lugar
-            nenhum do repositório.
+            Continua sendo o item que trava a receita, e agora é o <em>único</em> que trava: a
+            segunda causa — o botão de compra que devolvia para a lista — foi corrigida. Sem produto
+            ativo com preço, o checkout recusa e a página mostra “Consulte”.
+          </p>
+          <div class="meta"><span>onde: <code>/admin/produtos</code></span></div>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Não existe onde colocar tag do Google, do Meta e afins</h3>
+            <span class="tag stop">não é falta de achar — não existe</span>
+          </div>
+          <p>
+            Você procurou o lugar de cadastrar credencial e tag de Google e Meta e não achou porque
+            <strong>esse lugar não foi construído</strong>. Não há campo para Google Tag Manager,
+            Google Analytics, pixel do Meta, verificação de propriedade do Search Console nem para
+            qualquer script de terceiro no topo das páginas. A própria tela de integrações lista o
+            Google Analytics como <em>inexistente</em>, e não como “não conectado” — a diferença é
+            entre “falta alguém configurar” e “não há o que configurar”.
           </p>
           <p>
-            Endereço, usuário, porta e chave foram gravados nos segredos do repositório por aqui —
-            você não precisa mexer em nada. A verificação que pergunta “esta é a máquina de produção
-            mesmo?” antes de qualquer alteração continua no lugar.
+            A medição de tráfego do painel é própria, sem cookie e sem IP, e não depende de nada
+            disso. Mas anúncio pago precisa de pixel para medir conversão, e é isso que hoje não tem
+            onde entrar. Construir a tela é trabalho pequeno e conhecido — precisa da sua ordem,
+            porque envolve carregar script de terceiro no site e mexe em consentimento/LGPD.
           </p>
+          <div class="meta">
+            <span>hoje: <code>/admin/integracoes</code> só informa estado, não guarda credencial</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item open">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Publicar — ou não — a sessão de 31 de agosto</h3>
+            <span class="tag warn">decisão registrada: não publicar</span>
+          </div>
           <p>
-            <strong>Só não roda ainda</strong> porque a conta do GitHub está travada por cobrança —
-            é o item logo acima. Assim que destravar, o deploy automático volta a funcionar sozinho.
+            Dez commits prontos e testados aguardam. A decisão de segurar foi sua e está registrada;
+            este item existe para que ela continue sendo uma decisão, e não um esquecimento. Quanto
+            mais tempo passa, maior o pacote que sobe de uma vez — e maior a superfície se algo der
+            errado.
           </p>
+          <div class="meta"><span>produção <code>4c7c1dc</code> · repositório <code>1c007d3</code></span></div>
         </div>
       </div>
 
@@ -895,9 +1126,9 @@
             <span class="tag stop">trava uma frente inteira</span>
           </div>
           <p>
-            Decide se a página de vendas nova é construir do zero ou apenas transpor o que existe, e
-            junto com ela a decisão entre “curso de fundamentos” e “formação”. Enquanto não vier,
-            currículo, SEO, dados estruturados e checkout da página nova ficam parados.
+            Decide a contagem de módulos, aulas e horas que a página de vendas publica — o protótipo
+            traz “12 · 60 · 560”, que é maquete e nunca atravessa. Junto vem a decisão entre “curso
+            de fundamentos” e “formação”, que muda o texto inteiro da página.
           </p>
         </div>
       </div>
@@ -955,12 +1186,14 @@
       <div class="item block">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>Revisão jurídica de duas afirmações</h3>
+            <h3>Revisão jurídica, LGPD e descrições</h3>
           </div>
           <p>
-            O módulo 17 se chama “Regulamentação da Profissão de Psicanalista e Terapeuta” enquanto o
-            FAQ do próprio site afirma que classificação na CBO não é regulamentação. E a natureza e
-            os limites da RNTP precisam de conferência documental.
+            Três frentes de texto que só você aprova: a contradição entre o módulo 17
+            (“Regulamentação da Profissão”) e o FAQ do próprio site, que nega que classificação na
+            CBO seja regulamentação; os três parágrafos de LGPD que faltam no rodapé; e as
+            descrições dos cursos — dois ainda trazem lixo do importador e quatro apenas repetem o
+            título.
           </p>
         </div>
       </div>
@@ -968,23 +1201,13 @@
       <div class="item block">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>Disparar os 507 convites</h3>
+            <h3>Disparar os 507 convites · credencial do Search Console</h3>
           </div>
           <p>
-            Alunos importados que ainda não receberam acesso. A cota gratuita do provedor é de 300
-            por dia e a tela mostra quanto resta — são dois dias de envio.
-          </p>
-        </div>
-      </div>
-
-      <div class="item block">
-        <div class="item-body">
-          <div class="item-title-row">
-            <h3>Credencial do Search Console</h3>
-          </div>
-          <p>
-            É a única coisa que falta para o painel mostrar as palavras-chave reais que trazem gente
-            ao site, em vez de deixar o quadro vazio.
+            Os convites são de alunos importados que ainda não receberam acesso: a cota gratuita do
+            provedor é de 300 por dia, então são dois dias de envio. A credencial do Search Console é
+            a única coisa que falta para o painel mostrar as palavras-chave reais que trazem gente ao
+            site, em vez de deixar o quadro vazio.
           </p>
         </div>
       </div>
@@ -1001,34 +1224,43 @@
     </div>
     <div class="items">
       <div class="risk">
-        <h3>A PCO não consegue receber um pagamento hoje</h3>
+        <h3>A PCO continua sem conseguir receber um pagamento</h3>
         <p>
-          <strong>Nenhum dos 7 cursos tem preço</strong> — todos mostram “Consulte”, e a página do
-          carro-chefe tem o botão “Matricular-se” sem valor nenhum. O checkout recusa com
-          <code>NOT_FOR_SALE</code> quando não há produto ativo ligado ao curso.
-          E <strong>a loja está fora do ar</strong> em <code>old.</code>, com erro de certificado.
-        </p>
-        <p>
-          Somados, <strong>os dois canais de venda estão parados</strong>. Isso vale mais que
-          qualquer item de design da lista. O caminho é criar o produto em <code>/admin/produtos</code>,
-          definir o preço e ligá-lo ao curso — depois eu confirmo a compra de ponta a ponta.
+          <strong>Nenhum curso tem preço</strong> — todos mostram “Consulte”, e o checkout recusa
+          quando não há produto ativo ligado ao curso. Mudou uma coisa desde o painel anterior: a
+          loja antiga <strong>voltou ao ar</strong>, então o canal alternativo não está mais caído.
+          Mas o canal principal segue sem preço, e o conserto continua sendo o mesmo: criar o
+          produto, definir o valor e ligá-lo ao curso. Depois eu confirmo a compra de ponta a ponta.
         </p>
       </div>
 
       <div class="risk">
-        <h3>Documentação velha quase me fez derrubar a base de alunos</h3>
+        <h3>Havia duas cópias vivas do projeto, em dois discos</h3>
         <p>
-          As instruções do projeto descreviam, havia três meses, um estado que já tinha sido
-          corrigido — e mandavam reaplicar uma carga que teria desativado 1.601 alunos. Só não
-          aconteceu porque conferi a produção antes de agir. Corrigi o texto, mas o padrão vale como
-          alerta: <strong>instrução de migração envelhece em silêncio</strong>, e a única defesa é
-          medir a base antes de qualquer carga, em vez de confiar no que está escrito.
+          A do disco novo se dizia em dia e estava dez commits atrás; a do disco antigo estava
+          correta. Nenhum erro aparece nessa situação — o trabalho simplesmente é feito no lugar
+          errado, ou refeito. Está reconciliado, e nada se perdeu, mas
+          <strong>a cópia antiga continua existindo e continua ligada ao mesmo repositório</strong> —
+          por decisão sua, até você apagá-la. Enquanto as duas existirem, a próxima sessão pode cair
+          na errada; a defesa é que todo caminho escrito no projeto já aponta para <code>H:</code>.
         </p>
       </div>
+
+      <div class="risk">
+        <h3>O catálogo público encolheu de 7 cursos para 4</h3>
+        <p>
+          Em 30 de agosto a resposta de produção trazia 7 cursos, 62 módulos e 352 aulas. Hoje,
+          mesma pergunta ao mesmo servidor: <strong>4 cursos, 38 módulos, 238 aulas</strong>.
+          Produção não mudou de versão nesse intervalo, então isso é <strong>dado, não código</strong>
+          — três cursos deixaram de ser listados publicamente. Se foi você despublicando, está
+          certo e é só ignorar; se não foi, alguém precisa olhar.
+        </p>
+      </div>
+
       <div class="risk">
         <h3>Sem CI, a rede de proteção depende de alguém lembrar de puxá-la</h3>
         <p>
-          Os 1.923 testes só valem quando alguém os roda. Hoje isso acontece porque eu rodo a cada
+          Os 1.984 testes só valem quando alguém os roda. Hoje isso acontece porque eu rodo a cada
           commit — não porque o sistema obriga. No primeiro commit feito com pressa por qualquer
           pessoa, a proteção não existe.
         </p>
@@ -1057,17 +1289,17 @@
         <tbody>
           <tr>
             <td>Testes</td>
-            <td class="num">1.923 / 205 arq.</td>
-            <td>suíte completa executada hoje, 80 s, saída zero</td>
+            <td class="num">1.984 / 217 arq.</td>
+            <td>suíte completa executada hoje no disco H:, 96 s, saída zero</td>
           </tr>
           <tr>
-            <td>Tipos e lint</td>
+            <td>Tipos</td>
             <td class="num">0 erros</td>
-            <td>compilador e verificador de estilo executados hoje</td>
+            <td>compilador executado hoje, do disco novo</td>
           </tr>
           <tr>
             <td>Catálogo público</td>
-            <td class="num">7 · 62 · 352</td>
+            <td class="num">4 · 38 · 238</td>
             <td>resposta real de produção, baixada hoje pela internet</td>
           </tr>
           <tr>
@@ -1076,14 +1308,24 @@
             <td>contagem no código do servidor</td>
           </tr>
           <tr>
-            <td>Estado do processo</td>
-            <td class="num">online, 2 d</td>
-            <td>gerenciador de processos no servidor de produção</td>
+            <td>Loja antiga</td>
+            <td class="num">200</td>
+            <td>requisição de hoje a <code>old.</code>, certificado válido</td>
+          </tr>
+          <tr>
+            <td>Distância até produção</td>
+            <td class="num">10 commits</td>
+            <td>histórico do repositório contra o commit que está publicado</td>
+          </tr>
+          <tr>
+            <td>Arquivos entre os discos</td>
+            <td class="num">0 diferenças</td>
+            <td>comparação byte a byte de C: contra H:, incluindo dados e segredos</td>
           </tr>
           <tr>
             <td>Alunos e matrículas</td>
             <td class="num">1.601 · 1.122</td>
-            <td>contagem direta na base de produção, hoje, com backup gravado antes</td>
+            <td>contagem na base de produção em 30/ago — <strong>não remedido hoje</strong></td>
           </tr>
         </tbody>
       </table>
@@ -1091,13 +1333,19 @@
     <div class="audit-grid" style="margin-top: 6px">
       <div class="audit-line">
         <span class="src">produção</span>
-        <span>srv539124 · 195.200.0.253:3035 · Node 20 · banco conectado</span>
+        <span>srv539124 · 195.200.0.253:3035 · Node 20 · banco conectado · <code>4c7c1dc</code></span>
       </div>
       <div class="audit-line">
-        <span class="src">no ar</span>
-        <span><code>e5085cb</code> — local está 1 commit à frente, só documentação</span>
+        <span class="src">repositório</span>
+        <span><code>1c007d3</code> — local e GitHub iguais, 10 commits à frente do que está no ar</span>
+      </div>
+      <div class="audit-line">
+        <span class="src">máquina</span>
+        <span>H:\ia\dev\pco — a cópia em C: não está mais em uso</span>
       </div>
     </div>
   </section>
 
 </div>
+
+</body></html>
