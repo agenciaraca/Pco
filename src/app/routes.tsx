@@ -80,6 +80,7 @@ const AdminAnaliseSupervisao = lazy(() => import('./pages/admin/AdminAnaliseSupe
 const AdminLoginModels = lazy(() => import('./pages/admin/AdminLoginModels'));
 const AdminLoginCustomize = lazy(() => import('./pages/admin/AdminLoginCustomize'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const AdminMarketing = lazy(() => import('./pages/admin/AdminMarketing'));
 const AdminUsuarios = lazy(() => import('./pages/admin/AdminUsuarios'));
 const AdminSystemUserDetail = lazy(() => import('./pages/admin/AdminSystemUserDetail'));
 const AdminUsersImport = lazy(() => import('./pages/admin/AdminUsersImport'));
@@ -259,6 +260,7 @@ export const router = createBrowserRouter([
       { path: 'login-modelos', element: <S><AdminLoginModels /></S> },
       { path: 'login-customizacao', element: <S><AdminLoginCustomize /></S> },
       { path: 'configuracoes', element: <S><AdminSettings /></S> },
+      { path: 'marketing', element: <S><AdminMarketing /></S> },
       { path: 'usuarios', element: <S><AdminUsuarios /></S> },
       { path: 'usuarios/:id', element: <S><AdminSystemUserDetail /></S> },
       { path: 'usuarios/import', element: <S><AdminUsersImport /></S> },

@@ -31,6 +31,8 @@ import {
   numerosDoSite,
 } from './projections';
 import { PUBLIC_JS } from './client';
+import { getTags } from '../marketing/tags-store';
+import { tagsScript } from '../marketing/tags-script';
 
 /** Data pt-BR legível a partir de ISO. */
 function fmtDate(iso: string): string {
@@ -44,6 +46,20 @@ export const publicSite = new Hono();
 const HTML_HEADERS = { 'Content-Type': 'text/html; charset=utf-8' } as const;
 
 // ---- asset JS same-origin (CSP script-src 'self') ----
+/**
+ * As tags de marketing, montadas pelo servidor a partir dos identificadores
+ * cadastrados no admin. Servido same-origin porque a CSP é `script-src 'self'`
+ * — e é justamente essa CSP que impede que o painel do GTM vire porta de
+ * execução arbitrária no site. Ver `server/marketing/tags-script.ts`.
+ */
+publicSite.get('/_pub/tags.js', async (c) => {
+  const tags = await getTags();
+  c.header('Content-Type', 'application/javascript; charset=utf-8');
+  // Curto de propósito: mudar o pixel no admin tem de valer rápido.
+  c.header('Cache-Control', 'public, max-age=300');
+  return c.body(tagsScript(tags));
+});
+
 publicSite.get('/_pub/site.js', (c) => {
   c.header('Content-Type', 'application/javascript; charset=utf-8');
   c.header('Cache-Control', 'public, max-age=3600');

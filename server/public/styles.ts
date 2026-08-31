@@ -268,6 +268,20 @@ p{margin:0}
 .prose ul{color:var(--ink-soft);padding-left:20px;margin:0 0 16px;display:grid;gap:7px}
 .breadcrumb{font-size:13px;color:var(--ink-faint);display:flex;gap:8px;flex-wrap:wrap;padding:18px 0}
 .breadcrumb a:hover{color:var(--accent)}
+/* ---- aviso de cookies (só existe quando há tag esperando consentimento) ----
+   "Recusar" tem o mesmo peso de "Aceitar": botão de recusa escondido é
+   consentimento arrancado, não obtido. */
+.consent{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:150;
+  width:min(720px,calc(100% - 32px));background:var(--raise);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:18px 20px;
+  display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.consent p{font-size:14px;color:var(--ink-soft);line-height:1.55;flex:1;min-width:260px}
+.consent a{color:var(--accent-ink);text-decoration:underline}
+.consent-acoes{display:flex;gap:10px;flex:none}
+.consent-acoes .btn{padding:11px 20px;font-size:14px}
+@media (max-width:560px){.consent{bottom:0;border-radius:var(--radius) var(--radius) 0 0;width:100%}
+  .consent-acoes{width:100%}.consent-acoes .btn{flex:1}}
+
 /* ================= HOME (conteúdo do dono, desenho do protótipo) ================= */
 /* Três pilares: Flexibilidade, Acessibilidade, Suporte. */
 .pilares{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}

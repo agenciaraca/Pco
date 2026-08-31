@@ -10,6 +10,17 @@ import { html, raw } from 'hono/html';
 import type { HtmlEscapedString } from 'hono/utils/html';
 import { ORG, AUTHOR_IS_PLACEHOLDER, ENDERECO_PEDAGOGICO, PRIVACIDADE_RESUMO } from './config';
 import { PUBLIC_CSS_SERVIDO } from './styles';
+import { getTags, tagsEmCache, temTag } from '../marketing/tags-store';
+import { metasDeVerificacao, tagsNoscript } from '../marketing/tags-script';
+
+/**
+ * Aquece o cache das tags uma vez, no carregamento do módulo.
+ *
+ * `renderPage` é síncrona e é chamada de uns quinze lugares; transformá-la em
+ * assíncrona só para ler um arquivo pequeno espalharia `await` por todo o site.
+ * O cache é lido de forma síncrona e escrito aqui e a cada gravação no admin.
+ */
+void getTags();
 
 /** Resultado de um template hono/html (síncrono ou assíncrono). */
 export type Html = HtmlEscapedString | Promise<HtmlEscapedString>;
@@ -254,6 +265,35 @@ function redesSociais(): Html {
   return links ? html`<div class="rodape-social">${raw(links)}</div>` : html``;
 }
 
+/**
+ * Aviso de cookies — só existe quando há tag de terceiro esperando consentimento.
+ *
+ * Site que não carrega nada de terceiro não precisa pedir licença para nada, e
+ * mostrar a barra assim mesmo é ruído que ensina a clicar em "aceitar" sem ler.
+ * Por isso ela aparece quando, e só quando, existe pixel configurado com
+ * `exigirConsentimento`.
+ *
+ * "Recusar" tem o mesmo peso visual de "aceitar" — botão de recusa escondido é
+ * consentimento arrancado, não obtido.
+ */
+function bannerConsentimento(): Html {
+  const t = tagsEmCache();
+  if (!temTag(t) || !t.exigirConsentimento) return html``;
+  return html`
+    <div class="consent" data-consent hidden>
+      <p>
+        Usamos cookies de medição para entender o que traz gente ao site. Nada é carregado antes da
+        sua escolha. Veja a
+        <a href="/privacidade">Política de Privacidade</a>.
+      </p>
+      <div class="consent-acoes">
+        <button type="button" class="btn btn-outline" data-consent-nao>Recusar</button>
+        <button type="button" class="btn btn-primary" data-consent-sim>Aceitar</button>
+      </div>
+    </div>
+  `;
+}
+
 function footer(): Html {
   const year = new Date().getFullYear();
   const comercial = ORG.address;
@@ -356,6 +396,7 @@ export function renderPage(o: PageOptions): Html {
         <meta name="twitter:description" content="${o.description}" />
         <meta name="twitter:image" content="${ogImage}" />
         <link rel="icon" href="/favicon.ico" />
+        ${raw(metasDeVerificacao(tagsEmCache()))}
         <style>
           ${raw(PUBLIC_CSS_SERVIDO)}
         </style>
@@ -378,7 +419,9 @@ export function renderPage(o: PageOptions): Html {
             />
           </svg>
         </a>
+        ${raw(tagsNoscript(tagsEmCache()))} ${bannerConsentimento()}
         <script src="/_pub/site.js" defer></script>
+        ${raw(temTag() ? '<script src="/_pub/tags.js" defer></script>' : '')}
       </body>
     </html>`;
 }

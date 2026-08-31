@@ -77,6 +77,32 @@ async function lerDoDisco(email: string): Promise<LoginResult | null> {
   }
 }
 
+/**
+ * Matricula o aluno da suíte no primeiro curso do catálogo, usando o admin.
+ *
+ * Admin e superadmin nunca são barrados pelo portão de entrada — é a exceção
+ * que existe justamente para que alguém consiga consertar a regra. Então o
+ * caminho é: entrar como superadmin, achar a ficha pelo e-mail e matricular.
+ */
+async function garantirMatricula(request: APIRequestContext, email: string): Promise<void> {
+  const admin = await sessaoCompartilhada(request, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
+  const cursos = await fetchCourses(request);
+  if (cursos.length === 0) throw new Error('sem curso no catálogo para matricular o aluno da suíte');
+
+  const res = await request.get('/api/admin/students?limit=200', {
+    headers: { Authorization: `Bearer ${admin.token}` },
+  });
+  if (!res.ok()) throw new Error(`lista de alunos falhou: HTTP ${res.status()}`);
+  const corpo = (await res.json()) as
+    | { items?: Array<{ id: string; email: string }> }
+    | Array<{ id: string; email: string }>;
+  const lista = Array.isArray(corpo) ? corpo : (corpo.items ?? []);
+  const aluno = lista.find((a) => a.email?.toLowerCase() === email.toLowerCase());
+  if (!aluno) throw new Error(`aluno ${email} não apareceu na lista do admin`);
+
+  await ensureEnrolled(request, admin.token, cursos[0]!.id, aluno.id);
+}
+
 export function sessaoCompartilhada(
   request: APIRequestContext,
   email: string,
@@ -91,7 +117,21 @@ export function sessaoCompartilhada(
   const nova = (async () => {
     const doDisco = await lerDoDisco(email);
     if (doDisco?.token) return doDisco;
-    const r = await loginViaApi(request, email, password);
+    let r: LoginResult;
+    try {
+      r = await loginViaApi(request, email, password);
+    } catch (e) {
+      // Desde 30/ago/2026 ninguém entra sem ter comprado: conta sem matrícula
+      // recebe 403 SEM_MATRICULA no login. O aluno da suíte nasce sem nenhuma,
+      // então a suíte inteira parava na porta — e ninguém viu, porque o CI
+      // estava travado por cobrança e o job de E2E rodava com
+      // `continue-on-error`. Matricular antes de tentar de novo é o que o
+      // produto faz de verdade; desligar o portão no teste mediria um produto
+      // que não existe.
+      if (!(e instanceof Error) || !e.message.includes('SEM_MATRICULA')) throw e;
+      await garantirMatricula(request, email);
+      r = await loginViaApi(request, email, password);
+    }
     await fs.writeFile(arquivoDaSessao(email), JSON.stringify(r), 'utf8');
     return r;
   })().catch((e: unknown) => {

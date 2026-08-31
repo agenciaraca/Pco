@@ -80,6 +80,7 @@ import {
   updatePaymentGatewaySchema,
   createProductSchema,
   updateProductSchema,
+  updateMarketingTagsSchema,
   checkoutSchema,
   publicCheckoutSchema,
   createCouponSchema,
@@ -140,6 +141,7 @@ import * as metricsRepo from './repositories/metrics';
 import * as notificationsRepo from './repositories/notifications';
 import * as loginConfigRepo from './repositories/login-config';
 import * as settingsRepo from './repositories/settings';
+import * as marketingTagsStore from './marketing/tags-store';
 import * as tutorHistory from './repositories/tutor-history';
 import * as progressRepo from './repositories/progress';
 import * as lessonNotesRepo from './repositories/lesson-notes';
@@ -419,6 +421,34 @@ export function buildApp() {
       if (body[k] !== undefined) patch[k] = body[k];
     }
     const next = await settingsRepo.updateSettings(patch);
+    return c.json(next);
+  });
+
+  // ---------- Tags de marketing (Google, Meta, verificação de propriedade) ----------
+  //
+  // Só o identificador entra; quem monta o trecho é o servidor. Campo livre de
+  // "cole aqui o código" seria XSS com cara de recurso — ver o cabeçalho de
+  // `server/marketing/tags-store.ts`.
+  //
+  // A leitura é de ADMIN, não pública: identificador de pixel não é segredo (vai
+  // no HTML de toda página), mas listar o que a escola usa em marketing não é
+  // assunto de visitante.
+  app.get('/admin/marketing-tags', requireAuth('admin', 'superadmin'), async (c) =>
+    c.json(await marketingTagsStore.getTags()),
+  );
+
+  app.put('/admin/marketing-tags', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(updateMarketingTagsSchema, body);
+    if (!v.ok)
+      return jsonError(
+        c,
+        400,
+        'VALIDATION',
+        'Identificador fora do formato do provedor',
+        v.error.flatten(),
+      );
+    const next = await marketingTagsStore.updateTags(v.data);
     return c.json(next);
   });
 

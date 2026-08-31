@@ -1103,6 +1103,20 @@ export function useVersion() {
 }
 
 const settingsKey = ['settings'] as const;
+const marketingTagsKey = ['marketing-tags'] as const;
+
+export function useMarketingTags() {
+  return useQuery({ queryKey: marketingTagsKey, queryFn: api.fetchMarketingTags });
+}
+
+export function useUpdateMarketingTags() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.updateMarketingTags,
+    onSuccess: () => qc.invalidateQueries({ queryKey: marketingTagsKey }),
+  });
+}
+
 export function useSettings() {
   return useQuery({
     queryKey: settingsKey,

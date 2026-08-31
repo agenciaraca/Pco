@@ -6,6 +6,7 @@ import path from 'node:path';
 import { installConsoleCapture } from './monitoring/log-buffer';
 import { buildApp } from './app';
 import { publicSite } from './public/router';
+import { getTags, hostsParaCsp } from './marketing/tags-store';
 import { ROTAS_FUNDIDAS } from './public/rotas-fundidas';
 import { AUTHOR_IS_PLACEHOLDER } from './public/config';
 import { hostPublico } from './origem-publica';
@@ -28,14 +29,27 @@ if (staticRoot) {
   root.use('*', async (c, next) => {
     await next();
     if (!c.res.headers.has('Content-Security-Policy')) {
+      /**
+       * Os hosts das tags de marketing entram **apenas quando há tag
+       * cadastrada** — liberar googletagmanager e facebook "por via das
+       * dúvidas" afrouxaria a política mesmo com ninguém usando nada disso.
+       * Sem tag, a CSP é byte a byte a mesma de antes.
+       *
+       * `script-src` continua sem `'unsafe-inline'`, e é isso que impede que
+       * uma tag de HTML customizado dentro do GTM vire execução arbitrária no
+       * site: o painel do GTM não é uma porta para dentro daqui.
+       */
+      const extras = hostsParaCsp();
+      const mais = (lista: string[]): string => (lista.length ? ' ' + lista.join(' ') : '');
       c.header(
         'Content-Security-Policy',
         "default-src 'self'; " +
-          "script-src 'self'; " +
+          `script-src 'self'${mais(extras.script)}; ` +
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-          "img-src 'self' data: blob: https:; " +
+          `img-src 'self' data: blob: https:${mais(extras.img)}; ` +
           "font-src 'self' https://fonts.gstatic.com data:; " +
-          "connect-src 'self' https:; " +
+          `connect-src 'self' https:${mais(extras.connect)}; ` +
+          (extras.frame.length ? `frame-src 'self'${mais(extras.frame)}; ` : '') +
           "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
       );
     }
@@ -268,6 +282,15 @@ ${allUrls
   // eslint-disable-next-line no-console
   console.log('[ava-pco] modo dev (/api + site público SSR)');
 }
+
+/**
+ * Aquece o cache das tags antes de servir a primeira página.
+ *
+ * O middleware de CSP e o `<head>` leem a configuração de forma síncrona — não
+ * dá para esperar disco a cada requisição. Sem este aquecimento, a primeira
+ * página servida após um restart sairia sem as metas de verificação.
+ */
+void getTags();
 
 serve({ fetch: appToServe.fetch, port, hostname: process.env.HOST ?? '127.0.0.1' }, (info) => {
   // eslint-disable-next-line no-console

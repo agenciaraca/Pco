@@ -210,6 +210,27 @@ export const PUBLIC_JS = `
     timer=setInterval(varre,500);
     varre();
   }
+  // ---- consentimento de cookies ----
+  // A barra só existe no HTML quando ha tag de terceiro esperando aceite; aqui
+  // ela aparece so para quem ainda nao escolheu. Aceitar dispara o evento que
+  // acorda /_pub/tags.js sem recarregar a pagina; recusar guarda o "nao" para
+  // que a barra nao volte a cada clique.
+  var CONSENT_KEY='pco_consent';
+  var banner=document.querySelector('[data-consent]');
+  if(banner){
+    var escolha=null;
+    try{escolha=localStorage.getItem(CONSENT_KEY);}catch(e){}
+    if(!escolha){banner.hidden=false;}
+    function responde(valor){
+      try{localStorage.setItem(CONSENT_KEY,valor);}catch(e){}
+      banner.hidden=true;
+      if(valor==='sim'){document.dispatchEvent(new CustomEvent('pco:consentimento'));}
+    }
+    var sim=banner.querySelector('[data-consent-sim]');
+    var nao=banner.querySelector('[data-consent-nao]');
+    if(sim)sim.addEventListener('click',function(){responde('sim');});
+    if(nao)nao.addEventListener('click',function(){responde('nao');});
+  }
   // sync entre abas
   window.addEventListener('storage',function(e){if(e.key===CART_KEY)paintCart();});
   paintCart();

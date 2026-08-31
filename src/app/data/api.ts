@@ -578,6 +578,29 @@ export async function updateSettings(patch: Partial<AppSettingsDto>): Promise<Ap
   return http.put<AppSettingsDto>('/admin/settings', patch);
 }
 
+// ---------- Tags de marketing (Google, Meta, verificação de propriedade) ----------
+
+export interface MarketingTagsDto {
+  gtmId: string;
+  ga4Id: string;
+  metaPixelId: string;
+  googleSiteVerification: string;
+  facebookDomainVerification: string;
+  exigirConsentimento: boolean;
+  ativo: boolean;
+  updatedAt: string;
+}
+
+export async function fetchMarketingTags(): Promise<MarketingTagsDto> {
+  return http.get<MarketingTagsDto>('/admin/marketing-tags');
+}
+
+export async function updateMarketingTags(
+  patch: Partial<MarketingTagsDto>,
+): Promise<MarketingTagsDto> {
+  return http.put<MarketingTagsDto>('/admin/marketing-tags', patch);
+}
+
 // ---------- Login customization ----------
 
 export interface LoginConfigDto {

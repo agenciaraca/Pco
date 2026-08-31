@@ -900,3 +900,36 @@ export const analyticsHitSchema = z.object({
   apenasVitals: z.boolean().default(false),
 });
 export type AnalyticsHitInput = z.infer<typeof analyticsHitSchema>;
+
+// ---------- Tags de marketing (Google, Meta, verificação de propriedade) ----------
+
+/**
+ * Só IDENTIFICADOR entra — nunca script.
+ *
+ * O campo "cole aqui o código do Google" seria um buraco de XSS com aparência de
+ * recurso: admin comprometido passaria a executar JavaScript arbitrário em toda
+ * página, para todo visitante. Aqui cada campo aceita o formato do provedor e
+ * mais nada; quem monta o trecho é o servidor.
+ *
+ * String vazia é o jeito de LIMPAR um campo — daí o `.or(z.literal(''))` em vez
+ * de `.optional()`.
+ */
+const idOuVazio = (regex: RegExp, exemplo: string) =>
+  z
+    .string()
+    .trim()
+    .regex(regex, `formato inválido — esperado algo como ${exemplo}`)
+    .or(z.literal(''));
+
+export const marketingTagsSchema = z.object({
+  gtmId: idOuVazio(/^GTM-[A-Z0-9]{4,12}$/, 'GTM-ABC1234'),
+  ga4Id: idOuVazio(/^G-[A-Z0-9]{6,14}$/, 'G-ABCDE12345'),
+  metaPixelId: idOuVazio(/^[0-9]{8,24}$/, '1234567890123456'),
+  googleSiteVerification: idOuVazio(/^[A-Za-z0-9_-]{20,120}$/, 'o conteúdo da meta tag'),
+  facebookDomainVerification: idOuVazio(/^[A-Za-z0-9]{16,80}$/, 'o conteúdo da meta tag'),
+  exigirConsentimento: z.boolean(),
+  ativo: z.boolean(),
+});
+export type MarketingTagsInput = z.infer<typeof marketingTagsSchema>;
+
+export const updateMarketingTagsSchema = marketingTagsSchema.partial();
