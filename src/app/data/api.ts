@@ -2685,6 +2685,15 @@ export interface UpdateCoursePatch {
   forWhom?: string[];
   faqs?: Array<{ q: string; a: string }>;
   curriculum?: Array<{ n?: string; title: string; desc?: string }>;
+  /**
+   * Os blocos de argumento de venda do protótipo aprovado. Existiam no schema e
+   * na página desde 31/ago, mas só entravam por script — faltava o campo aqui e
+   * a tela lá, então o dono não tinha onde escrevê-los.
+   */
+  highlights?: Array<{ title: string; note?: string }>;
+  sections?: Array<{ title: string; subtitle?: string; paras: string[]; cta?: boolean }>;
+  jornada?: Array<{ title: string; subtitle?: string; text: string }>;
+  promoNote?: string;
 }
 
 export async function updateCourse(id: string, patch: UpdateCoursePatch): Promise<Course> {

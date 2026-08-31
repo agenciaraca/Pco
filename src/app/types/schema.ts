@@ -180,6 +180,14 @@ export interface Course {
   faqs?: Array<{ q: string; a: string }>;
   /** Ementa resumida por módulo. */
   curriculum?: Array<{ n?: string; title: string; desc?: string }>;
+  /** Cartões de destaque logo abaixo do topo; `note` é a letra miúda. */
+  highlights?: Array<{ title: string; note?: string }>;
+  /** Seções longas de venda; `cta` fecha a seção com o par de botões. */
+  sections?: Array<{ title: string; subtitle?: string; paras: string[]; cta?: boolean }>;
+  /** A jornada em etapas, na ordem em que o aluno a vive. */
+  jornada?: Array<{ title: string; subtitle?: string; text: string }>;
+  /** Regulamento da promoção, em letra miúda. Texto jurídico: entra verbatim. */
+  promoNote?: string;
 }
 
 export interface Certificate {

@@ -28,10 +28,33 @@ interface CurriculumItem {
   title: string;
   desc?: string;
 }
+interface Highlight {
+  title: string;
+  note?: string;
+}
+interface Section {
+  title: string;
+  subtitle?: string;
+  paras: string[];
+  cta?: boolean;
+}
+interface JornadaItem {
+  title: string;
+  subtitle?: string;
+  text: string;
+}
 
 type ScalarFields = Pick<
   UpdateCourseInput,
-  'publicListed' | 'badge' | 'tagline' | 'tldr' | 'level' | 'language' | 'monthsMin' | 'monthsMax'
+  | 'publicListed'
+  | 'badge'
+  | 'tagline'
+  | 'tldr'
+  | 'level'
+  | 'language'
+  | 'monthsMin'
+  | 'monthsMax'
+  | 'promoNote'
 >;
 
 export default function CoursePublicPane({ course }: { course: Course }) {
@@ -41,6 +64,12 @@ export default function CoursePublicPane({ course }: { course: Course }) {
   const [forWhom, setForWhom] = useState<string[]>(course.forWhom ?? []);
   const [faqs, setFaqs] = useState<Faq[]>(course.faqs ?? []);
   const [curriculum, setCurriculum] = useState<CurriculumItem[]>(course.curriculum ?? []);
+  // Os blocos de argumento de venda. Existiam na página e no schema desde
+  // 31/ago, mas só entravam por script — o dono não tinha onde escrevê-los.
+  const [outcomes, setOutcomes] = useState<string[]>(course.learningOutcomes ?? []);
+  const [highlights, setHighlights] = useState<Highlight[]>(course.highlights ?? []);
+  const [sections, setSections] = useState<Section[]>(course.sections ?? []);
+  const [jornada, setJornada] = useState<JornadaItem[]>(course.jornada ?? []);
 
   const {
     register,
@@ -57,6 +86,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
         language: true,
         monthsMin: true,
         monthsMax: true,
+        promoNote: true,
       }),
     ),
     defaultValues: {
@@ -69,6 +99,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
       language: course.language ?? '',
       monthsMin: course.monthsMin,
       monthsMax: course.monthsMax,
+      promoNote: course.promoNote ?? '',
     },
   });
 
@@ -89,6 +120,30 @@ export default function CoursePublicPane({ course }: { course: Course }) {
               ...(m.desc?.trim() ? { desc: m.desc.trim() } : {}),
             }))
             .filter((m) => m.title.length > 0),
+          learningOutcomes: outcomes.map((s) => s.trim()).filter((s) => s.length >= 2),
+          highlights: highlights
+            .map((h) => ({
+              title: h.title.trim(),
+              ...(h.note?.trim() ? { note: h.note.trim() } : {}),
+            }))
+            .filter((h) => h.title.length >= 2),
+          sections: sections
+            .map((s) => ({
+              title: s.title.trim(),
+              ...(s.subtitle?.trim() ? { subtitle: s.subtitle.trim() } : {}),
+              // Parágrafo é separado por linha em branco — é como se escreve
+              // texto longo, e é o que a página renderiza como <p> separados.
+              paras: s.paras.map((p) => p.trim()).filter((p) => p.length > 0),
+              cta: Boolean(s.cta),
+            }))
+            .filter((s) => s.title.length >= 2 && s.paras.length > 0),
+          jornada: jornada
+            .map((j) => ({
+              title: j.title.trim(),
+              ...(j.subtitle?.trim() ? { subtitle: j.subtitle.trim() } : {}),
+              text: j.text.trim(),
+            }))
+            .filter((j) => j.title.length >= 2),
         },
       });
       toast.success('Página pública atualizada', course.title);
