@@ -272,7 +272,7 @@ O repositório está limpo e sincronizado com o GitHub. Nada em curso, nada pela
 metade — cada commit fecha o que abriu.
 
 ```bash
-cd C:\ia\dev\pco
+cd H:\ia\dev\pco
 git log --oneline -5          # confere onde parou
 npm run dev                   # web em :5183, API em :3011 (portas no .env)
 ```

@@ -99,7 +99,7 @@ placeholders (`<your-...>`), nada real. Os ~9 MB vêm quase todos das fontes
    `Stop-Process` durante o diagnóstico de portas, todos filtrados por porta do
    PCO ou por caminho do PCO — nenhum filtro casa com aqueles dois — mas a
    coincidência é temporal e não dá para afirmar inocência. Basta reiniciar nas
-   pastas `C:\ia\dev\tarot` e `C:\ia\dev\Sandra`.
+   pastas `H:\ia\dev\tarot` e `H:\ia\dev\Sandra`.
 
 ## `npm run format` reformata o repositório inteiro — não rode
 

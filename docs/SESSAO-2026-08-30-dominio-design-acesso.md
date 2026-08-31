@@ -195,7 +195,7 @@ Documentos entregues ao Claude Design, em `docs/` e copiados para `Downloads/`:
 ## Como retomar
 
 ```bash
-cd C:\ia\dev\pco
+cd H:\ia\dev\pco
 git log --oneline -1        # deve ser 4c7c1dc
 npm run test                # 207 arquivos, 1941 testes
 ssh vps 'sudo -u avapco -i curl -s http://127.0.0.1:3035/api/health'

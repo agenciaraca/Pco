@@ -203,7 +203,7 @@ Contra produção, exporte antes o `DATABASE_URL` do banco certo.
 ## Como retomar
 
 ```bash
-cd C:\ia\dev\pco
+cd H:\ia\dev\pco
 git log --oneline -1        # deve ser 6699a4c
 npm run test                # 216 arquivos, 1975 testes
 ```

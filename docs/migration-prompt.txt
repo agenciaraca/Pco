@@ -22,7 +22,7 @@ Os dois têm bases de usuários distintas. O join cross-site é por EMAIL,
 nunca por WP user ID (números colidem entre os dois sites).
 
 Repo: https://github.com/agenciaraca/Pco · branch main · sem branch
-protection. Working dir do agent fica em `C:\ia\dev\pco`, mas o repo está
+protection. Working dir do agent fica em `H:\ia\dev\pco`, mas o repo está
 em `Pco/`. SEMPRE `cd Pco` antes de qualquer npm/git.
 
 Stack relevante para migração:
