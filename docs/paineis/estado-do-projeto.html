@@ -505,31 +505,32 @@
   <header>
     <div class="head-top">
       <div class="eyebrow">AVA PCO · Painel de estado</div>
-      <div class="eyebrow mono">31 de agosto de 2026 · depois da troca de disco</div>
+      <div class="eyebrow mono">31 de agosto de 2026 · fim do dia</div>
     </div>
-    <h1>O que está no ar, o que está pronto sem estar no ar, e quem destrava</h1>
+    <h1>A PCO passou a vender — e apareceu um problema maior que a venda</h1>
     <p class="subtitle">
-      Mudou uma coisa importante desde o painel anterior: <strong>o repositório deixou de estar em
-      dia com a produção</strong>. Dez commits da madrugada de 31/ago estão no GitHub e
-      <strong>não foram publicados — decisão sua</strong>. E a cópia local do projeto trocou de
-      disco: saiu de <code>C:</code>, foi para <code>H:</code>, e chegou lá com o histórico de
-      versões desatualizado. Isso está corrigido e conferido — está tudo relatado abaixo.
+      O item que travava a receita caiu: <strong>os cursos têm preço</strong>, a página de venda
+      tem o conteúdo comercial inteiro e o checkout aceita. Tudo publicado e conferido pela
+      internet. No caminho, medindo o que faltava para a duração das aulas, apareceu uma coisa
+      bem maior: <strong>os vídeos das aulas não tocam neste domínio</strong> — a Vimeo responde
+      403 para quem assiste a partir de <code>psicanaliseclinica.online</code>. Quem pagou não
+      consegue ver a aula. É o primeiro item da lista.
     </p>
   </header>
 
   <!-- ============ VEREDITO ============ -->
-  <div class="verdict" style="border-left-color: var(--warn)">
+  <div class="verdict">
     <div class="verdict-head">
-      <span class="pulse" aria-hidden="true" style="background: var(--warn); box-shadow: 0 0 0 4px var(--warn-bg)"></span>
-      <h2>No ar e saudável — com o código de 30 de agosto</h2>
-      <span class="tag warn">verificado hoje</span>
+      <span class="pulse" aria-hidden="true"></span>
+      <h2>Vendendo — e com as aulas mudas</h2>
+      <span class="tag ok">verificado hoje pela internet</span>
     </div>
     <p class="prose">
-      O servidor responde, o banco está conectado e a loja antiga <strong>voltou ao ar</strong> —
-      no painel anterior ela estava fora, com erro de certificado. O que mudou de figura é a
-      distância: produção segue no commit de 30/ago e o repositório está
-      <strong>dez commits à frente</strong>. Nada disso é acidente — você decidiu publicar só no
-      GitHub, sem deploy.
+      Produção, <code>origin/main</code> e a máquina estão no mesmo commit; foram sete deploys
+      hoje, cada um conferido pelo hash do bundle, porque <code>/api/health</code> responde 200
+      mesmo com código velho. Duas formações passaram a ter preço, e o carro-chefe ganhou a página
+      de venda completa. O contraponto está na última coluna: <strong>o vídeo da aula responde 403
+      neste domínio</strong>, e isso atinge quem já pagou.
     </p>
     <div class="checks">
       <div class="check">
@@ -541,12 +542,12 @@
         <span class="v"><span class="dot"></span>200 · voltou ao ar</span>
       </div>
       <div class="check">
-        <span class="k">produção × origin/main</span>
-        <span class="v"><span class="dot warn"></span>10 commits atrás</span>
+        <span class="k">vídeo da aula (Vimeo)</span>
+        <span class="v"><span class="dot stop"></span>403 · domínio não autorizado</span>
       </div>
       <div class="check">
-        <span class="k">suíte completa, no disco novo</span>
-        <span class="v"><span class="dot"></span>1.984 testes, zero falhas</span>
+        <span class="k">página de venda do carro-chefe</span>
+        <span class="v"><span class="dot"></span>preço, conteúdo e checkout</span>
       </div>
     </div>
   </div>
@@ -679,19 +680,19 @@
     </div>
     <div class="metrics">
       <div class="metric">
-        <span class="n">1.984</span>
+        <span class="n">2.011</span>
         <span class="l">testes, todos passando</span>
-        <span class="sub">217 arquivos · 96 s</span>
+        <span class="sub">220 arquivos · 73 s</span>
       </div>
       <div class="metric">
-        <span class="n">10</span>
-        <span class="l">commits prontos e não publicados</span>
-        <span class="sub">produção em 4c7c1dc</span>
+        <span class="n">22</span>
+        <span class="l">commits publicados hoje</span>
+        <span class="sub">7 deploys, todos conferidos</span>
       </div>
       <div class="metric">
-        <span class="n">0</span>
-        <span class="l">cursos com preço</span>
-        <span class="sub">nenhum canal fecha venda</span>
+        <span class="n">2</span>
+        <span class="l">cursos com preço no ar</span>
+        <span class="sub">R$ 1.198,60 · igual ao da loja</span>
       </div>
       <div class="metric">
         <span class="n">440</span>
@@ -699,9 +700,9 @@
         <span class="sub">server/app.ts · 10.690 linhas</span>
       </div>
       <div class="metric">
-        <span class="n">238</span>
-        <span class="l">aulas no catálogo público</span>
-        <span class="sub">4 cursos · 38 módulos · era 7 em 30/ago</span>
+        <span class="n">171</span>
+        <span class="l">aulas com vídeo que não toca</span>
+        <span class="sub">Vimeo recusa este domínio</span>
       </div>
       <div class="metric">
         <span class="n">1.601</span>
@@ -709,9 +710,9 @@
         <span class="sub">medido em 30/ago, não hoje</span>
       </div>
       <div class="metric">
-        <span class="n">592</span>
+        <span class="n">605</span>
         <span class="l">commits desde 3 de maio</span>
-        <span class="sub">10 na madrugada de 31/ago</span>
+        <span class="sub">22 em 31/ago</span>
       </div>
     </div>
   </section>
@@ -720,19 +721,58 @@
   <section>
     <div class="sec-head">
       <div class="sec-title-row">
-        <h2>Pronto no repositório — ainda não no ar</h2>
-        <span class="count">6 frentes · 10 commits</span>
+        <h2>Publicado hoje</h2>
+        <span class="count">11 frentes · 22 commits</span>
       </div>
       <p class="prose">
-        Tudo desta seção está testado e no GitHub, e <strong>nada disso o visitante vê hoje</strong>:
-        produção segue no código de 30/ago porque você decidiu não publicar. Um comando de deploy
-        resolve o dia em que você quiser.
+        Estava tudo pronto e segurado por decisão sua; hoje foi ao ar de uma vez, e cada item foi
+        conferido no site publicado, não só na máquina.
       </p>
     </div>
     <div class="done-grid">
 
-      <div class="done-card" style="border-left-color: var(--warn)">
-        <span class="when">31 de agosto · não publicado</span>
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
+        <h3>Os cursos passaram a ter preço</h3>
+        <p>Duas formações a R$ 1.198,60, em 12x — o mesmo valor que a loja antiga está cobrando
+          agora, lido da API dela para que os dois canais não briguem. O checkout aceita, e a
+          conferência foi feita no site publicado, não na máquina.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
+        <h3>A página do carro-chefe ganhou o conteúdo comercial inteiro</h3>
+        <p>Seis seções longas, a jornada em três etapas, quinze itens de ementa, destaques,
+          perguntas frequentes e o regulamento da promoção — o texto que você entregou, verbatim.
+          A contagem continua sendo contada: 19 módulos e 146 aulas, medidos do curso real.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
+        <h3>A home passou a ser a sua</h3>
+        <p>O texto que você mandou, inteiro, na casca do protótipo aprovado: sobre a PCO, os três
+          pilares, os oito motivos, a carreira, sete depoimentos, o reconhecimento e a faixa de
+          números. O selo do RNTP deixou de ser desenhado à mão e virou a imagem oficial.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
+        <h3>Existe onde colocar tag de Google e Meta</h3>
+        <p>Em <code>/admin/marketing</code>. Só o identificador entra, nunca o código — campo livre
+          de script seria execução de JavaScript em toda página. O consentimento vem antes da
+          carga, e a política de segurança do site só afrouxa para o provedor que você cadastrar.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
+        <h3>O conteúdo de venda saiu do script e virou tela</h3>
+        <p>Metade dos blocos da página de venda existia no sistema e não tinha campo em lugar
+          nenhum do admin — entrava só por script, rodado por quem tem shell. Agora você escreve os
+          cinco na aba “Página pública” do curso.</p>
+      </div>
+
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
         <h3>O desenho aprovado entrou no repositório</h3>
         <p>A referência visual nunca esteve no código — vivia num projeto de design fora dele, e por
           isso a sessão anterior refez a página do curso a partir do que existia, que era exatamente
@@ -740,8 +780,8 @@
           e a página do curso, a lista, o checkout e a home seguem o desenho escolhido.</p>
       </div>
 
-      <div class="done-card" style="border-left-color: var(--warn)">
-        <span class="when">31 de agosto · não publicado</span>
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
         <h3>O botão de comprar deixou de devolver o comprador para a lista</h3>
         <p>“Matricular-se” apontava para uma rota que virou redirecionamento para o próprio catálogo:
           quem decidia comprar voltava para onde tinha acabado de sair. E o checkout, que funciona,
@@ -749,8 +789,8 @@
           causas para “o site não vende”, e a segunda sobreviveria ao cadastro dos preços.</p>
       </div>
 
-      <div class="done-card" style="border-left-color: var(--warn)">
-        <span class="when">31 de agosto · não publicado</span>
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
         <h3>Carrinho: vários cursos, um pagamento só</h3>
         <p>O pedido só comporta um produto, e mexer na tabela do dinheiro seria risco à toa. Em vez
           disso o servidor monta um pacote com os cursos escolhidos e cobra uma vez, por um caminho
@@ -758,16 +798,16 @@
           carrinho diz quais cursos, o servidor diz quanto custa.</p>
       </div>
 
-      <div class="done-card" style="border-left-color: var(--warn)">
-        <span class="when">31 de agosto · não publicado</span>
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
         <h3>Um jogo de cores só</h3>
         <p>O laranja divergente, aberto havia meses, acabou. Site, área do aluno e administração
           passaram a ler a mesma paleta do desenho — com sua aprovação, porque isso mudou a cor de
           todas as telas internas. Um teste impede que dois jogos de cor voltem a existir.</p>
       </div>
 
-      <div class="done-card" style="border-left-color: var(--warn)">
-        <span class="when">31 de agosto · não publicado</span>
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
         <h3>A home parou de afirmar número que ninguém mediu</h3>
         <p>A limpeza de 27/ago tinha sido feita só na área do aluno. O site publicava “4,7/5” e
           “+1000 alunos formados”, e o <em>sobre</em> dizia “3 formações” com dezesseis no catálogo.
@@ -775,8 +815,8 @@
           célula some quando não há o que medir.</p>
       </div>
 
-      <div class="done-card" style="border-left-color: var(--warn)">
-        <span class="when">31 de agosto · não publicado</span>
+      <div class="done-card">
+        <span class="when">31 de agosto · no ar</span>
         <h3>A letra parou de mudar na fronteira do login</h3>
         <p>O site não carregava fonte externa; a área do aluno carregava. Além do sobressalto visual
           ao entrar, era um pedido a servidor de terceiro no caminho crítico de toda tela do aluno.
@@ -1032,7 +1072,7 @@
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>Só você destrava</h2>
-        <span class="count">10 itens · 1 cobrando juros</span>
+        <span class="count">12 itens · o primeiro atinge quem já pagou</span>
       </div>
       <p class="prose">
         Em ordem de urgência. O primeiro não é tarefa de produto — é algo que piora enquanto não é
@@ -1044,36 +1084,101 @@
       <div class="item block">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>O CI do GitHub não roda desde 26 de agosto</h3>
-            <span class="tag stop">5 dias cego</span>
+            <h3>Autorizar o domínio do AVA na Vimeo</h3>
+            <span class="tag stop">171 aulas mudas</span>
           </div>
           <p>
-            <em>“The job was not started because your account is locked due to a billing issue.”</em>
-            O push da madrugada de 31/ago disparou o fluxo e ele terminou assim, como todos os
-            anteriores. Nenhum executou teste, tipo, lint ou build.
+            É o item mais urgente da lista e não tem nada de código. Os vídeos estão com
+            privacidade por domínio e a lista autoriza só o portal antigo; deste domínio a Vimeo
+            responde 403. Quem pagou abre a aula e não vê nada.
           </p>
           <p>
-            Um X vermelho permanente por motivo alheio ao código é <strong>pior que não ter CI</strong>:
-            treina todo mundo a ignorar o vermelho, e no dia em que ele for de verdade ninguém vai
-            olhar. Enquanto isso a verificação é local — foi o que rodei em cada commit, e de novo
-            hoje no disco novo.
+            Na conta “Psicanalise Digital”, em cada vídeo (ou nas configurações de privacidade da
+            conta), adicione <code>psicanaliseclinica.online</code> aos domínios autorizados. Assim
+            que entrar, eu confirmo aula por aula e resolvo de uma vez a duração real, que está
+            travada pelo mesmo motivo.
           </p>
-          <div class="meta"><span>ação: regularizar a cobrança na conta do GitHub</span></div>
         </div>
       </div>
 
       <div class="item block">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>Preço dos cursos</h3>
-            <span class="tag stop">nenhum canal fecha venda</span>
+            <h3>Criar a tabela de produtos no banco</h3>
+            <span class="tag warn">precisa da credencial de dono</span>
           </div>
           <p>
-            Continua sendo o item que trava a receita, e agora é o <em>único</em> que trava: a
-            segunda causa — o botão de compra que devolvia para a lista — foi corrigida. Sem produto
-            ativo com preço, o checkout recusa e a página mostra “Consulte”.
+            O preço é o último registro de dinheiro que ainda mora em arquivo. O código para levá-lo
+            ao Postgres está publicado e é aditivo — enquanto a tabela não existir, tudo continua
+            funcionando pelo arquivo. Criar a tabela é DDL, e o usuário da aplicação não tem essa
+            permissão: precisa da credencial de dono do banco, que também está na lista para ser
+            trocada.
           </p>
-          <div class="meta"><span>onde: <code>/admin/produtos</code></span></div>
+          <div class="meta">
+            <span><code>DATABASE_URL=&lt;dono&gt; npx tsx server/db/migrate.ts</code></span>
+            <span>depois, <code>POST /admin/payments/products/migrar</code></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>560 ou 380 horas? Os dois sites discordam</h3>
+            <span class="tag warn">afirmação de carga horária</span>
+          </div>
+          <p>
+            A página antiga anuncia <strong>560 horas/aula</strong>; o curso no sistema declara
+            <strong>380</strong>. A nova página mostra 380, porque é o que está declarado aqui — e
+            eu não troco número de carga horária por conta própria. Módulos e aulas a página conta
+            sozinha (19 e 146, medidos). Só falta você dizer qual é a carga horária certa.
+          </p>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>O CI voltou a rodar — e a primeira coisa que fez foi achar um defeito</h3>
+            <span class="tag ok">destravado por você hoje</span>
+          </div>
+          <p>
+            Depois de cinco dias respondendo <em>“your account is locked due to a billing issue”</em>
+            em 5 segundos, o fluxo executou de verdade: tipos, lint e os testes passaram, o build
+            passou, e o <strong>deploy automático rodou sozinho</strong>.
+          </p>
+          <p>
+            E a suíte de ponta a ponta falhou — por motivo legítimo. Desde 30/ago ninguém entra sem
+            ter comprado, e o aluno da suíte nasce sem matrícula: <strong>a suíte inteira morria no
+            login com 403</strong> e ninguém tinha visto, porque o CI estava travado e o job de E2E
+            roda com “continue-on-error”. Consertado — o teste agora matricula pelo admin antes de
+            entrar, que é o que o produto faz de verdade.
+          </p>
+          <div class="meta"><span>o vermelho voltou a significar alguma coisa</span></div>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Preço dos cursos — resolvido, com o número medido</h3>
+            <span class="tag ok">resolvido hoje</span>
+          </div>
+          <p>
+            Você escolheu o preço que a loja cobra hoje. Foi lido da API pública dela e aplicado:
+            Psicanálise Clínica e Terapia Familiar a <strong>R$ 1.198,60</strong>, com 12x de
+            R$ 99,88. Hipnoterapia ficou de fora porque a importação deixou dois cursos com o mesmo
+            slug — preço no curso errado cobra o valor errado de gente de verdade, então o script
+            pula em vez de adivinhar.
+          </p>
+          <p>
+            Os dois cursos sem produto em lugar nenhum — Super Aluno e Treinamento PCO — saíram da
+            vitrine, como você decidiu, e continuam acessíveis para quem já está matriculado.
+          </p>
+          <div class="meta">
+            <span><code>scripts/precos_e_vitrine.ts</code></span>
+            <span>conferido no site publicado</span>
+          </div>
         </div>
       </div>
 
@@ -1103,19 +1208,19 @@
         </div>
       </div>
 
-      <div class="item open">
+      <div class="item done">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>Publicar — ou não — a sessão de 31 de agosto</h3>
-            <span class="tag warn">decisão registrada: não publicar</span>
+            <h3>A sessão de 31 de agosto foi publicada</h3>
+            <span class="tag ok">resolvido hoje</span>
           </div>
           <p>
-            Dez commits prontos e testados aguardam. A decisão de segurar foi sua e está registrada;
-            este item existe para que ela continue sendo uma decisão, e não um esquecimento. Quanto
-            mais tempo passa, maior o pacote que sobe de uma vez — e maior a superfície se algo der
-            errado.
+            Eram dez commits segurados por decisão sua, mais quatro de hoje. Subiram juntos, com
+            backup do <code>data/</code> antes e a conferência que importa: o bundle mudou de
+            <code>index-CLp34m5W</code> para <code>index-BbkZ3qlU</code>. Sem isso não dá para
+            afirmar que subiu — <code>/api/health</code> responde 200 com código velho.
           </p>
-          <div class="meta"><span>produção <code>4c7c1dc</code> · repositório <code>1c007d3</code></span></div>
+          <div class="meta"><span>produção e repositório em <code>c653c83</code></span></div>
         </div>
       </div>
 
@@ -1224,13 +1329,43 @@
     </div>
     <div class="items">
       <div class="risk">
-        <h3>A PCO continua sem conseguir receber um pagamento</h3>
+        <h3>As aulas não tocam neste domínio — e quem já pagou é quem sente</h3>
         <p>
-          <strong>Nenhum curso tem preço</strong> — todos mostram “Consulte”, e o checkout recusa
-          quando não há produto ativo ligado ao curso. Mudou uma coisa desde o painel anterior: a
-          loja antiga <strong>voltou ao ar</strong>, então o canal alternativo não está mais caído.
-          Mas o canal principal segue sem preço, e o conserto continua sendo o mesmo: criar o
-          produto, definir o valor e ligá-lo ao curso. Depois eu confirmo a compra de ponta a ponta.
+          Achado hoje, medindo outra coisa. Os vídeos das aulas são da Vimeo com
+          <strong>privacidade por domínio</strong>: só tocam onde a escola autorizou. A lista
+          autoriza <code>portalpco.online</code>, o portal antigo. De
+          <code>psicanaliseclinica.online</code> — onde o AVA vive desde 30/ago — a Vimeo responde
+          <strong>403, “Because of its privacy settings”</strong>. Conferido no player e na API,
+          vídeo a vídeo.
+        </p>
+        <p>
+          São <strong>171 aulas com vídeo</strong> nessa condição. Não é um defeito do código nem
+          coisa que deploy resolva: é uma linha na configuração da conta da Vimeo. Enquanto ela não
+          entrar, o aluno que pagou abre a aula e não vê nada — e a página de venda que acabou de
+          ficar pronta está vendendo o que não toca.
+        </p>
+        <p>
+          <strong>O conserto:</strong> na Vimeo, adicionar <code>psicanaliseclinica.online</code>
+          (e os subdomínios em uso) aos domínios autorizados dos vídeos. A conta é
+          “Psicanalise Digital”. Foi isto que também impediu a medição da duração real das aulas —
+          a mesma lista governa as duas coisas.
+        </p>
+      </div>
+
+      <div class="risk">
+        <h3>A venda destravou — e o preço agora mora num arquivo, não no banco</h3>
+        <p>
+          Duas formações passaram a ter preço no ar, a R$ 1.198,60 — <strong>o mesmo valor que a
+          loja antiga está cobrando neste momento</strong>, lido da API dela, para que os dois
+          canais não cobrem diferente pelo mesmo curso. O checkout aceita e a página do carro-chefe
+          está completa.
+        </p>
+        <p>
+          O que sobrou de incômodo: produto era o único registro de dinheiro ainda fora do banco.
+          O código para levá-lo ao Postgres já está publicado e cai no arquivo enquanto a tabela
+          não existir — <strong>criar a tabela exige a credencial de dono do banco</strong>, que o
+          servidor não tem. Até lá, o preço vive em <code>data/payment-products.json</code>: fora
+          do backup transacional, junto do disco.
         </p>
       </div>
 
@@ -1289,8 +1424,8 @@
         <tbody>
           <tr>
             <td>Testes</td>
-            <td class="num">1.984 / 217 arq.</td>
-            <td>suíte completa executada hoje no disco H:, 96 s, saída zero</td>
+            <td class="num">2.011 / 220 arq.</td>
+            <td>suíte completa executada hoje no disco H:, 73 s, saída zero</td>
           </tr>
           <tr>
             <td>Tipos</td>
@@ -1298,9 +1433,9 @@
             <td>compilador executado hoje, do disco novo</td>
           </tr>
           <tr>
-            <td>Catálogo público</td>
-            <td class="num">4 · 38 · 238</td>
-            <td>resposta real de produção, baixada hoje pela internet</td>
+            <td>Vídeo da aula</td>
+            <td class="num">403</td>
+            <td>player e API da Vimeo, com referer deste domínio — 200 com o do portal antigo</td>
           </tr>
           <tr>
             <td>Rotas de API</td>
@@ -1308,14 +1443,14 @@
             <td>contagem no código do servidor</td>
           </tr>
           <tr>
-            <td>Loja antiga</td>
-            <td class="num">200</td>
-            <td>requisição de hoje a <code>old.</code>, certificado válido</td>
+            <td>Preço do carro-chefe</td>
+            <td class="num">R$ 1.198,60</td>
+            <td>API pública da loja hoje, e conferido na página publicada do AVA</td>
           </tr>
           <tr>
             <td>Distância até produção</td>
-            <td class="num">10 commits</td>
-            <td>histórico do repositório contra o commit que está publicado</td>
+            <td class="num">0 commits</td>
+            <td>bundle publicado conferido pela internet: <code>index-CFLBwMRS</code></td>
           </tr>
           <tr>
             <td>Arquivos entre os discos</td>
@@ -1333,11 +1468,11 @@
     <div class="audit-grid" style="margin-top: 6px">
       <div class="audit-line">
         <span class="src">produção</span>
-        <span>srv539124 · 195.200.0.253:3035 · Node 20 · banco conectado · <code>4c7c1dc</code></span>
+        <span>srv539124 · 195.200.0.253:3035 · Node 20 · banco conectado · <code>69754dd</code></span>
       </div>
       <div class="audit-line">
         <span class="src">repositório</span>
-        <span><code>1c007d3</code> — local e GitHub iguais, 10 commits à frente do que está no ar</span>
+        <span><code>9bfec71</code> — local, GitHub e produção no mesmo commit</span>
       </div>
       <div class="audit-line">
         <span class="src">máquina</span>
