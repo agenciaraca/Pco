@@ -9,9 +9,13 @@ export const PUBLIC_CSS = `
 *,*::before,*::after{box-sizing:border-box}
 :root{
   --paper:#f3f4f1;--surface:#fbfcfa;--surface-2:#eaece6;--raise:#fff;
-  --ink:#1b1e22;--ink-soft:#575c62;--ink-faint:#868c92;
+  --ink:#101828;--ink-soft:#575c62;--ink-faint:#868c92;
   --line:#dcdfd8;--line-soft:#e8eae4;
   --accent:#0097b2;--accent-ink:#007a91;--accent-soft:#d9eef4;--on-accent:#ffffff;
+  /* Ciano claro e petróleo: existiam só no lado do aplicativo. Agora os dois
+     lados leem os mesmos nomes — ver docs/design/tokens.css. */
+  --accent-bright:#0cc0df;--accent-light:#5ce1e6;--brand-petroleo:#063b49;
+  --wa:#25d366;
   --brand-deep:#0b7486;--on-deep:#eef3f1;
   --brand-orange:#ff914d;--brand-orange-ink:#d96a24;--brand-orange-soft:#ffe9db;--on-orange:#2b1608;
   /* Alias do laranja antigo, para não quebrar quem já usa --orange. */
@@ -23,12 +27,15 @@ export const PUBLIC_CSS = `
   --good:#2f7d4f;--good-bg:#e0efe4;--good-line:#bcdcc6;
   --warn:#9a6a12;--warn-bg:#f5ead1;--warn-line:#e5d09a;
   --crit:#b0422f;--crit-bg:#f6e2dc;--crit-line:#e8bfb3;
-  --radius:14px;--shadow:0 1px 2px rgba(20,25,30,.04),0 4px 16px rgba(20,25,30,.05);
+  --radius-sm:9px;--radius:14px;--radius-lg:22px;
+  --shadow:0 1px 2px rgba(20,25,30,.04),0 4px 16px rgba(20,25,30,.05);
+  --shadow-lg:0 12px 34px rgba(11,116,134,.14);
   --wrap:1180px;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --paper:#101216;--surface:#181b20;--surface-2:#20242a;--raise:#1e2228;
   --ink:#e9ebe6;--ink-soft:#9ea4aa;--ink-faint:#6e747b;
+  --accent-bright:#0cc0df;--accent-light:#5ce1e6;--brand-petroleo:#041f27;
   --line:#2b2f36;--line-soft:#242830;
   --accent:#4cc3d9;--accent-ink:#7fd8e8;--accent-soft:#102c33;--on-accent:#062229;
   --brand-deep:#0a5f6e;--on-deep:#eef3f1;
@@ -45,6 +52,7 @@ export const PUBLIC_CSS = `
 :root[data-theme="dark"]{
   --paper:#101216;--surface:#181b20;--surface-2:#20242a;--raise:#1e2228;
   --ink:#e9ebe6;--ink-soft:#9ea4aa;--ink-faint:#6e747b;
+  --accent-bright:#0cc0df;--accent-light:#5ce1e6;--brand-petroleo:#041f27;
   --line:#2b2f36;--line-soft:#242830;
   --accent:#4cc3d9;--accent-ink:#7fd8e8;--accent-soft:#102c33;--on-accent:#062229;
   --brand-deep:#0a5f6e;--on-deep:#eef3f1;
