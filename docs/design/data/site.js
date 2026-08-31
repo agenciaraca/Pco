@@ -1,0 +1,322 @@
+// ============================================================
+// PCO — dados centrais do site (cursos, posts, autor, organização)
+// Fonte única de verdade. Editar aqui reflete em todo o site.
+// ============================================================
+
+export const ORG = {
+  name: 'Psicanálise Clínica Online (PCO)',
+  shortName: 'PCO',
+  legalName: 'PCO — Psicanálise Clínica Online',
+  url: 'https://www.psicanaliseclinicaonline.com.br',
+  logo: 'uploads/cropped-cropped-Logo-PsicanaliseClinicaOnline-e1617998616179-1.png',
+  cnpj: '41.961.134/0001-56',
+  rntp: 'RNTP 1407167IE',
+  founded: '2018',
+  email: 'falecompco@gmail.com',
+  phones: ['(11) 98401-0715', '(11) 97123-0714'],
+  whatsapp: 'https://api.whatsapp.com/send?phone=5511984010715',
+  address: {
+    street: 'Av. Vital Brasil, 305, Butantã',
+    city: 'São Paulo', region: 'SP', postalCode: '05503-001', country: 'BR',
+  },
+  social: {
+    facebook: 'https://facebook.com/psicanalise.online.curso',
+    instagram: 'https://instagram.com/cursopsicanaliseclinica',
+  },
+  slogan: 'A escolha inteligente para estudar psicanálise clínica.',
+};
+
+// Autor / responsável técnico — sinal central de E-E-A-T (YMYL).
+// PLACEHOLDER editável: substitua pelos dados reais do responsável técnico.
+export const AUTHOR = {
+  slug: 'coordenacao-pedagogica',
+  name: 'Dra. [Nome do Responsável Técnico]',
+  honorific: 'Psicanalista · Coordenação Pedagógica',
+  photo: '', // coloque uma foto real aqui
+  credentials: [
+    'Formação em Psicanálise Clínica',
+    'Especialização em Saúde Mental',
+    'Coordenação pedagógica da PCO desde 2018',
+  ],
+  jobTitle: 'Coordenadora Pedagógica e Responsável Técnica',
+  bio: 'Responsável técnica e coordenadora pedagógica da PCO, com atuação na formação de psicanalistas clínicos. Estrutura o conteúdo dos cursos com base em referências consolidadas — de Freud às abordagens contemporâneas — e é responsável pela curadoria dos materiais e pela revisão ética das aulas.',
+  experience: 'Mais de uma década dedicada ao ensino e à prática da psicanálise clínica, com centenas de alunos formados pela plataforma.',
+  sameAs: [
+    'https://instagram.com/cursopsicanaliseclinica',
+    'https://facebook.com/psicanalise.online.curso',
+    // adicione LinkedIn, Lattes, ORCID reais aqui
+  ],
+};
+
+export const COURSES = [
+  {
+    slug: 'psicanalise-clinica',
+    title: 'Formação em Psicanálise Clínica',
+    short: 'Psicanálise Clínica',
+    badge: 'Curso principal',
+    tagline: 'A base completa para compreender a mente humana e atuar com técnica e ética.',
+    heroLabel: '[ foto: sessão / escuta clínica ]',
+    price: 1497, installments: 12, installmentValue: 149.7,
+    priceNote: 'ou 12x no cartão · condições no ato da matrícula',
+    modules: 12, lessons: 60, hours: 560, monthsMin: 4, monthsMax: 16,
+    level: 'Formação profissional', language: 'pt-BR',
+    tldr: 'Formação online em psicanálise clínica com 12 módulos, 60 aulas e 560 horas/aula. Estude no seu ritmo (4 a 16 meses), com certificado digital e reconhecimento RNTP. Não substitui graduação em Psicologia ou Medicina.',
+    summary: 'Com o Curso de Psicanálise Clínica Online da PCO, você aprenderá primeiro sobre psicoterapia e as diferenças entre ela e práticas semelhantes. Você explorará os elementos comuns da psicoterapia e as várias maneiras pelas quais ela pode ajudar os clientes em ambientes de terapia individual, de casais ou de grupo e como os próprios clientes podem obter o máximo de suas sessões.',
+    forWhom: [
+      'Quem deseja iniciar uma trajetória na psicanálise clínica',
+      'Profissionais de áreas afins que querem aprofundar a escuta',
+      'Estudantes que buscam base teórica sólida antes da prática',
+    ],
+    outcomes: [
+      'Compreender os fundamentos do inconsciente e da técnica psicanalítica',
+      'Conhecer as principais escolas — de Freud aos pós-freudianos',
+      'Entender postura ética, aspectos jurídicos e atuação profissional',
+      'Construir repertório para dar os primeiros passos com segurança',
+    ],
+    curriculum: [
+      { n: '01', title: 'A Ética', desc: 'O pensar ético e sua influência na prática clínica.' },
+      { n: '02', title: 'A Psicoterapia', desc: 'O processo psicoterapêutico e as técnicas mais comuns.' },
+      { n: '03', title: 'A Psicanálise', desc: 'Visão 360º do processo psicanalítico.' },
+      { n: '04', title: 'Freud', desc: 'As teorias freudianas como base da psicanálise.' },
+      { n: '05', title: 'Anna Freud', desc: 'Mecanismos de defesa e proteção do inconsciente.' },
+      { n: '06', title: 'As Teorias Pós Freudianas', desc: 'Principais psicanalistas que ampliaram Freud.' },
+      { n: '07', title: 'Psicanálise Infantil', desc: 'A psicanálise no trabalho com crianças.' },
+      { n: '08', title: 'Teoria do Desenvolvimento', desc: 'Desenvolvimento mental na perspectiva de Piaget.' },
+      { n: '09', title: 'A Psicanálise Atual', desc: 'Os rumos contemporâneos da abordagem.' },
+      { n: '10', title: 'O Desenvolvimento Psicossocial', desc: 'A relação entre indivíduo e meio social.' },
+      { n: '11', title: 'Evidências da Psicanálise', desc: 'A psicanálise como investigação do inconsciente.' },
+      { n: '12', title: 'Ansiedade e Depressão', desc: 'Causas, sintomas e abordagem psicanalítica.' },
+      { n: '13', title: 'O Profissional da Psicanálise', desc: 'Postura e prática profissional.' },
+      { n: '14', title: 'Direito para Psicanalistas e Terapeutas', desc: 'Leis, direitos e deveres, registro.' },
+      { n: '15', title: 'Marketing para Psicanalistas', desc: 'Presença digital, redes e comunicação.' },
+    ],
+    highlights: [
+      { title: 'Faça sua matrícula e tenha acesso imediato* ao conteúdo do seu Curso de Psicanálise Clínica', note: '*após a confirmação do pagamento pela instituição financeira. Normalmente pagamentos em cartão levam no máximo 2 horas e pagamentos em boleto até 3 dias uteis.' },
+      { title: 'Escolha entre Boleto ou Cartão* a sua melhor forma de pagamento para você', note: '*Você pode parcelar sem juros no boleto ou cartão.' },
+      { title: 'Conclua o seu curso de psicanálise clínica em apenas 4 meses* de estudos.', note: '*4 meses é o tempo mínimo e 16 meses o tempo máximo para a conclusão do seu curso' },
+    ],
+    sections: [
+      { title: 'Transforme Sua Paixão em Profissão com o Curso de Psicanálise Clínica Mais Reconhecido do Brasil!', paras: [
+        'Você está a um passo de se juntar a uma comunidade exclusiva de profissionais de sucesso. O nosso curso de Psicanálise Clínica não apenas lhe oferece uma formação completa e reconhecida pelo RNTP, mas também a oportunidade de se tornar parte de um círculo seleto de psicanalistas capacitados para enfrentar os desafios do século XXI.',
+        'Com mais de 300 obras disponíveis em nossa biblioteca virtual, aulas práticas e teóricas ministradas por especialistas renomados, e o apoio contínuo de uma comunidade de prática, estamos aqui para garantir que sua jornada seja tão enriquecedora quanto transformadora.',
+        'Não Deixe Sua Vaga Escapar! As inscrições para a próxima turma são limitadas, e sabemos que você é uma pessoa de decisão, pronta para dar o próximo grande passo em sua carreira. Faça parte de um grupo seleto que escolhe crescer, escolhe a excelência e escolhe fazer a diferença no mundo.',
+        'Matricule-se agora e comece a transformar sua paixão em uma carreira de sucesso.',
+      ], cta: true },
+      { title: 'Curso de Psicanálise Clínica Reconhecido pelo RNTP?', paras: [
+        'O Curso de Psicanálise Clínica é Reconhecido pelo RNTP, isso significa que passou por uma avaliação criteriosa do seu conteúdo garantindo assim qualidade para a formação do psicanalista. Este reconhecimento é motivo de orgulho para nós da PCO nos colocando entre as melhores escolas de psicanálise do Brasil.',
+      ], cta: true },
+      { title: 'Qual a Grade do Curso de Psicanálise Clínica online ?', paras: [
+        'O curso de psicanálise clínica online da PCO é uma jornada enriquecedora projetada para imergir você nas profundezas da mente humana. Com uma grade curricular abrangente, este programa não apenas revisita as teorias fundamentais estabelecidas por Freud, mas também se estende às inovações pós-freudianas e às vanguardas da psicanálise global. Ao destacar a ética e os direitos fundamentais do psicanalista, garantimos uma educação completa, essencial para o exercício responsável e eficaz da profissão.',
+        'Além de fortalecer seu conhecimento teórico, este curso coloca um forte ênfase na aplicação prática da psicanálise, especialmente no tratamento de condições prevalentes como ansiedade e depressão. Equipado com uma compreensão das críticas modernas e como superá-las, você estará preparado para enfrentar os desafios contemporâneos da prática psicanalítica com confiança e proficiência.',
+        'A capacidade de refletir sobre si mesmo e sobre sua prática é valorizada, com o curso oferecendo insights profundos sobre a autorreflexão como uma ferramenta essencial para o desenvolvimento profissional. A investigação rigorosa sobre a eficácia da psicanálise, por meio de métodos de pesquisa quantitativos, qualitativos e mistos, reforça a qualidade e a relevância da nossa abordagem educacional.',
+        'Escolher se tornar um psicanalista por meio do nosso curso é decidir por um caminho de excelência, inovação e profundo comprometimento ético. Este é o seu convite para se unir a uma comunidade de profissionais dedicados e transformar sua paixão pela psicanálise em uma carreira recompensadora e impactante.',
+      ], cta: true },
+      { title: 'Biblioteca Virtual', paras: [
+        'Um acervo completo com mais de 300 obras dos maiores autores de psicanálise e psicoterapias do mundo. Tudo a sua disposição para aprender com quem desenvolveu o pensamento analítico e terapêutico. Completamente disponível para o aluno do curso de psicanálise clínica da PCO.',
+        'Receba o Certificado Impresso na sua residência.* — *O formando deve arcar com os custos de envio que será informado no momento da emissão do certificado.',
+      ], cta: true },
+      { title: 'Como funciona o Curso de Psicanálise Clínica online com certificação.', paras: [
+        'Descubra como a psicanálise foi desenvolvida por Sigmund Freud e continua a evoluir com aqueles que vieram depois dele. Você conhecerá os estudos realizados para comprovar sua eficácia, como é usado para ajudar os clientes, as qualidades e o treinamento necessários para se tornar um Psicanalista profissional.',
+        'Com o curso, você aprenderá primeiro sobre psicoterapia e as diferenças entre ela e práticas semelhantes. Você explorará os elementos comuns da psicoterapia e as várias maneiras pelas quais ela pode ajudar os clientes em ambientes de terapia individual, de casais ou de grupo e como os próprios clientes podem obter o máximo de suas sessões.',
+        'Você também aprenderá quais são as formas mais comuns de psicoterapia e as diferenças entre suas abordagens.',
+        'O curso se concentra na psicanálise – um método de psicoterapia que dá ênfase significativa aos conteúdos da mente inconsciente. Você descobrirá o que é psicanálise e como a prática é usada para ajudar os clientes a resolver seus problemas psicológicos e emocionais.',
+        'Como o pai fundador da psicanálise, é importante compreender a obra de Sigmund Freud. Com o Certificado de Psicanálise, você aprende sobre sua vida, crenças, teorias populares e menos conhecidas e o legado que ele deixou nos campos da psicologia e da psiquiatria.',
+        'O curso explica a teoria do desenvolvimento psicossexual de Freud e os cinco estágios da vida pelos quais todos passam, desde o nascimento até se tornar um jovem adulto, e como os outros se opõem a essa ideia. Você também aprenderá sobre a Teoria do Apego e como isso afeta os relacionamentos entre crianças e adultos.',
+      ], cta: true },
+      { title: 'Mantenha-se na Vanguarda da Psicanálise com O PCO NEWS', subtitle: 'Atualização Constante para Profissionais Modernos', paras: [
+        'Transforme-se em um profissional de destaque com acesso exclusivo ao nosso painel do aluno, onde compilamos as mais recentes descobertas e publicações das maiores instituições de psicologia, psicanálise e psiquiatria do mundo. Este recurso é um tesouro de conhecimento, projetado para mantê-lo informado e preparado para os desafios contemporâneos da prática psicanalítica. A atualização constante não é apenas uma vantagem; é uma necessidade para quem aspira à excelência e inovação na sua área de atuação. Disponível somente para alunos do curso de psicanálise clínica da PCO, esse é o seu portal para se tornar a referência no campo que escolheu.',
+      ], cta: true },
+    ],
+    jornada: [
+      { title: 'O Despertar da Sua Carreira na Psicanálise', subtitle: 'Encontre seu caminho profissional através da psicanálise.', text: 'Você está diante de uma oportunidade única de transformar sua paixão pela mente humana em uma carreira recompensadora. Nosso curso de Psicanálise Clínica é o primeiro passo para desbloquear seu potencial infinito. Através de uma abordagem inovadora e conteúdo enriquecedor, prometemos não apenas educar, mas inspirar. Imagine-se realizando mudanças significativas na vida das pessoas. Este é o momento de agir, de escolher um caminho que não só atende às suas aspirações profissionais, mas também contribui para o bem-estar dos outros.' },
+      { title: 'A Jornada do Conhecimento', subtitle: 'Adquirindo as bases teóricas para uma prática profunda.', text: 'Nesta etapa da sua jornada, mergulhamos profundamente nos fundamentos e teorias da psicanálise, garantindo que você adquira um conhecimento sólido e confiante. Nosso curso está cuidadosamente desenhado para cultivar sua habilidade de pensar criticamente e aplicar teorias complexas na prática. O caminho para se tornar um psicanalista de destaque começa com a compreensão profunda da mente humana. Equipado com este conhecimento, você estará preparado para enfrentar qualquer desafio profissional, levando luz às mentes e corações.' },
+      { title: 'A Sua Realização Profissional.', subtitle: 'Transformando conhecimento em ação.', text: 'Ao concluir o curso, você se encontrará no limiar de uma nova era profissional. Armado com um certificado que é um testemunho da sua dedicação e competência, você está pronto para dar vida à sua prática na psicanálise. Este documento não é apenas um pedaço de papel; é a chave para abrir portas em sua carreira, permitindo-lhe fazer a diferença na vida das pessoas. Agora é o momento de dar o salto, de se comprometer com sua paixão e propósito. Junte-se a nós e torne-se a mudança que você deseja ver no mundo.' },
+    ],
+    promoNote: '*Regulamento (psicanaliseclinica.online): Promoção válida para pedidos realizados entre 01/11/2025 e 30/11/2025, limitada a 20 vagas ou até o fim do período promocional, o que ocorrer primeiro. Para participar, o pedido deve ser realizado e pago, total ou parcialmente, durante a vigência da promoção, sendo necessário que a primeira parcela seja quitada até 30/11/2025. A promoção é aplicável aos produtos, cursos e serviços especificados no site psicanaliseclinica.online e as condições de desconto podem variar conforme cada item. Como benefício adicional, será concedido um minicurso gratuito para quem se matricular no curso de Psicanálise Clínica. O minicurso será disponibilizado apenas após a conclusão do curso principal de Psicanálise Clínica, sendo que a desistência ou não finalização do curso exclui automaticamente o direito ao benefício. Em caso de cancelamento, aplicam-se as políticas de reembolso vigentes da PCO. A promoção não é cumulativa com outros cupons ou descontos, e a PCO reserva-se o direito de alterar as condições, respeitando os direitos adquiridos. Dúvidas devem ser direcionadas aos canais de suporte da PCO',
+    faqs: [
+      { q: 'Preciso de formação prévia?', a: 'Não. O curso parte dos fundamentos, então é adequado para iniciantes sérios, e também aprofunda quem já atua em áreas afins.' },
+      { q: 'Quanto tempo tenho para concluir?', a: 'Prazo mínimo de 4 meses e acesso de até 16 meses, no seu ritmo.' },
+      { q: 'O curso substitui a faculdade de Psicologia?', a: 'Não. É uma formação livre em psicanálise clínica, não uma graduação nem substituto de formação regulamentada em Psicologia ou Medicina.' },
+    ],
+  },
+  {
+    slug: 'terapia-familiar-sistemica',
+    title: 'Formação em Terapia Familiar Sistêmica',
+    short: 'Terapia Familiar Sistêmica',
+    badge: 'Complementar',
+    tagline: 'Compreenda a família como sistema e amplie sua atuação terapêutica.',
+    heroLabel: '[ foto: família / grupo em conversa ]',
+    price: 1297, installments: 12, installmentValue: 129.7,
+    priceNote: 'ou 12x no cartão · condições no ato da matrícula',
+    modules: 9, lessons: 45, hours: 360, monthsMin: 3, monthsMax: 14,
+    level: 'Formação profissional', language: 'pt-BR',
+    tldr: 'Formação online em terapia familiar sistêmica: 9 módulos, 45 aulas, 360 horas/aula. Estude no seu ritmo, com certificado digital. Complementa a formação de quem já atua com escuta terapêutica.',
+    summary: 'A abordagem sistêmica olha para a família como um todo interligado, onde cada relação influencia as demais. Você aprende a mapear padrões, ciclos e comunicação familiar para intervir de forma mais ampla.',
+    forWhom: [
+      'Quem já atua com escuta e quer expandir para o contexto familiar',
+      'Profissionais interessados em dinâmicas relacionais e vínculos',
+      'Estudantes de psicanálise que querem ampliar o repertório',
+    ],
+    outcomes: [
+      'Entender a família como sistema e seus padrões de interação',
+      'Mapear ciclos vitais, comunicação e papéis familiares',
+      'Conhecer técnicas de intervenção sistêmica',
+      'Ampliar sua atuação para além do atendimento individual',
+    ],
+    curriculum: [
+      { n: '01', title: 'Introdução à Abordagem Sistêmica', desc: 'Origens e princípios do pensamento sistêmico.' },
+      { n: '02', title: 'A Família como Sistema', desc: 'Estrutura, subsistemas e fronteiras.' },
+      { n: '03', title: 'Ciclo Vital da Família', desc: 'Fases e transições ao longo do tempo.' },
+      { n: '04', title: 'Comunicação e Padrões', desc: 'Como a família se comunica e repete padrões.' },
+      { n: '05', title: 'Genograma', desc: 'Mapeamento das relações e da história familiar.' },
+      { n: '06', title: 'Conflitos e Alianças', desc: 'Triangulações, coalizões e papéis.' },
+      { n: '07', title: 'Técnicas de Intervenção', desc: 'Recursos práticos da terapia sistêmica.' },
+      { n: '08', title: 'Casais e Vínculos', desc: 'A dinâmica conjugal na perspectiva sistêmica.' },
+      { n: '09', title: 'Ética e Prática Profissional', desc: 'Postura, limites e atuação responsável.' },
+    ],
+    faqs: [
+      { q: 'É preciso ter feito o curso de Psicanálise antes?', a: 'Não é obrigatório, mas os cursos se complementam bem. Você pode fazê-los em qualquer ordem.' },
+      { q: 'Serve para atender casais?', a: 'O curso aborda a dinâmica conjugal dentro da perspectiva sistêmica, ampliando seu repertório para esse contexto.' },
+    ],
+  },
+  {
+    slug: 'hipnoterapia-clinica',
+    title: 'Formação em Hipnoterapia Clínica',
+    short: 'Hipnoterapia Clínica',
+    badge: 'Complementar',
+    tagline: 'Aprenda os fundamentos da hipnose aplicada ao contexto terapêutico.',
+    heroLabel: '[ foto: ambiente calmo / relaxamento ]',
+    price: 1297, installments: 12, installmentValue: 129.7,
+    priceNote: 'ou 12x no cartão · condições no ato da matrícula',
+    modules: 13, lessons: 39, hours: 300, monthsMin: 3, monthsMax: 14,
+    level: 'Formação profissional', language: 'pt-BR',
+    tldr: 'Formação online em hipnoterapia clínica: 13 módulos, 39 aulas, 300 horas/aula. Estude no seu ritmo, com certificado digital. Aborda técnicas de indução e aplicação ética da hipnose no contexto terapêutico.',
+    summary: 'A hipnoterapia utiliza estados de foco e relaxamento como recurso terapêutico. O curso apresenta os fundamentos históricos, os mitos e as técnicas de indução, sempre com ênfase na aplicação ética e responsável.',
+    forWhom: [
+      'Quem quer incorporar recursos de hipnose à prática terapêutica',
+      'Profissionais interessados em estados de consciência e foco',
+      'Estudantes curiosos sobre a hipnose baseada em evidências',
+    ],
+    outcomes: [
+      'Separar mitos de fatos sobre a hipnose',
+      'Compreender os fundamentos e a história da hipnoterapia',
+      'Conhecer técnicas de indução e aprofundamento',
+      'Aplicar a hipnose de forma ética e responsável',
+    ],
+    curriculum: [
+      { n: '01', title: 'História da Hipnose', desc: 'De Mesmer aos usos contemporâneos.' },
+      { n: '02', title: 'Mitos e Fatos', desc: 'O que a hipnose é e o que não é.' },
+      { n: '03', title: 'Estados de Consciência', desc: 'Foco, atenção e sugestionabilidade.' },
+      { n: '04', title: 'Técnicas de Indução', desc: 'Como conduzir o estado hipnótico.' },
+      { n: '05', title: 'Aprofundamento', desc: 'Recursos para intensificar o processo.' },
+      { n: '06', title: 'Sugestão Terapêutica', desc: 'Construção e aplicação de sugestões.' },
+      { n: '07', title: 'Aplicações Clínicas', desc: 'Usos no contexto terapêutico.' },
+      { n: '08', title: 'Ética e Limites', desc: 'Responsabilidade e cuidado na prática.' },
+    ],
+    faqs: [
+      { q: 'Hipnose é seguro?', a: 'Aplicada de forma ética e responsável, no contexto adequado, a hipnose é um recurso terapêutico reconhecido. O curso enfatiza limites e responsabilidade profissional.' },
+      { q: 'Vou sair hipnotizando pessoas?', a: 'O curso oferece fundamentos e técnicas. A prática exige estudo continuado, supervisão e responsabilidade ética.' },
+    ],
+  },
+];
+
+export const POSTS = [
+  {
+    slug: 'o-que-e-psicanalise-clinica',
+    title: 'O que é psicanálise clínica? Um guia direto para iniciantes',
+    dek: 'Uma explicação clara do que a psicanálise clínica é — e do que ela não é — para quem está considerando estudar a área.',
+    category: 'Fundamentos',
+    heroLabel: '[ foto: divã / consultório ]',
+    datePublished: '2025-01-14', dateModified: '2025-02-03',
+    readingTime: 7, authorSlug: 'coordenacao-pedagogica',
+    tags: ['psicanálise', 'fundamentos', 'carreira'],
+    tldr: 'A psicanálise clínica é uma abordagem terapêutica, criada por Freud, que investiga o inconsciente para compreender sofrimentos psíquicos. O psicanalista clínico atua com escuta e método próprios. No Brasil, a psicanálise não é profissão regulamentada por conselho, e o curso livre não substitui a graduação em Psicologia ou Medicina.',
+    body: [
+      { t: 'p', c: 'A psicanálise clínica é uma abordagem de tratamento e investigação da mente que parte de uma ideia central: boa parte do que determina nossos sentimentos, escolhas e sintomas está fora da consciência. O trabalho do psicanalista é ajudar a pessoa a dar palavras a esse material inconsciente.' },
+      { t: 'h2', c: 'De onde vem a psicanálise' },
+      { t: 'p', c: 'A psicanálise foi criada por Sigmund Freud no fim do século XIX. A partir da escuta de seus pacientes, Freud propôs que sintomas psíquicos têm sentido e que podem ser compreendidos ao trazer à tona conteúdos reprimidos. Desde então, a abordagem se expandiu com autores como Anna Freud, Melanie Klein, Winnicott e Lacan, entre muitos outros.' },
+      { t: 'h2', c: 'O que faz um psicanalista clínico' },
+      { t: 'p', c: 'O psicanalista clínico oferece um espaço de escuta em que a pessoa pode falar livremente. A partir dessa fala, trabalha-se com conceitos como transferência, resistência e associação livre. O objetivo não é dar conselhos, mas ajudar o paciente a compreender os próprios padrões e conflitos.' },
+      { t: 'ul', c: ['Escuta e acolhimento de forma ética e sem julgamento', 'Atenção ao que se repete na fala e na vida do paciente', 'Trabalho com o sentido dos sintomas, sonhos e lapsos', 'Respeito ao tempo singular de cada pessoa'] },
+      { t: 'h2', c: 'O que a psicanálise NÃO é' },
+      { t: 'p', c: 'É importante separar fatos de expectativas equivocadas. A psicanálise não é aconselhamento rápido, não promete curas imediatas e não substitui acompanhamento médico ou psiquiátrico quando este é necessário. Casos que envolvem risco ou sofrimento intenso exigem uma rede de cuidado que pode incluir outros profissionais de saúde.' },
+      { t: 'quote', c: 'A psicanálise trabalha com o tempo da palavra e da elaboração — não com atalhos.' },
+      { t: 'h2', c: 'Psicanálise é uma profissão regulamentada?' },
+      { t: 'p', c: 'No Brasil, a psicanálise não é regulamentada por um conselho profissional específico, e existe debate sobre o tema. Um curso livre de formação em psicanálise clínica oferece base teórica e certificação de conclusão, mas não é uma graduação nem substitui a formação regulamentada em Psicologia ou Medicina. Quem pretende atuar deve observar as normas aplicáveis à sua região, investir em estudo continuado e, idealmente, em supervisão.' },
+      { t: 'h2', c: 'Vale a pena estudar psicanálise clínica?' },
+      { t: 'p', c: 'Para muitas pessoas, sim — seja pelo interesse em compreender a mente humana, seja para complementar uma atuação já existente. O caminho responsável começa com uma formação séria, seguida de estudo constante, leitura das obras de referência e postura ética. Se você está começando, priorize conteúdo estruturado e clareza sobre os limites da prática.' },
+    ],
+    faqs: [
+      { q: 'Preciso de faculdade para estudar psicanálise?', a: 'Não é obrigatório para iniciar uma formação livre, mas a atuação profissional deve observar as normas da sua região. O curso livre não substitui a graduação em Psicologia ou Medicina.' },
+      { q: 'Quanto tempo leva para me formar?', a: 'Uma formação livre pode levar de alguns meses a mais de um ano, dependendo do curso. A prática clínica responsável, porém, envolve estudo continuado ao longo de toda a carreira.' },
+    ],
+  },
+  {
+    slug: 'como-comecar-carreira-psicanalise',
+    title: 'Como começar uma carreira em psicanálise clínica (passo a passo)',
+    dek: 'Um roteiro realista para quem quer sair da vontade e dar os primeiros passos sérios na psicanálise.',
+    category: 'Carreira',
+    heroLabel: '[ foto: pessoa estudando ]',
+    datePublished: '2025-02-10', dateModified: '2025-02-10',
+    readingTime: 8, authorSlug: 'coordenacao-pedagogica',
+    tags: ['carreira', 'formação', 'psicanálise'],
+    tldr: 'Para começar na psicanálise clínica: (1) faça uma formação estruturada, (2) leia as obras de referência, (3) faça sua própria análise, (4) busque supervisão, (5) estude continuamente e (6) atue com ética e dentro das normas da sua região. Não há atalho — é um caminho de formação continuada.',
+    body: [
+      { t: 'p', c: 'Começar na psicanálise clínica não depende de um único diploma, mas de um conjunto de práticas que sustentam a atuação ao longo do tempo. Abaixo está um roteiro realista, na ordem em que costuma fazer sentido.' },
+      { t: 'h2', c: '1. Faça uma formação estruturada' },
+      { t: 'p', c: 'Uma boa formação organiza o conhecimento: dos fundamentos freudianos às abordagens contemporâneas, passando por ética e aspectos práticos. Estudar de forma estruturada evita lacunas e dá uma base sólida para o que vem depois.' },
+      { t: 'h2', c: '2. Leia as obras de referência' },
+      { t: 'p', c: 'Nenhum curso substitui o contato direto com os textos. Comece por Freud e avance para autores pós-freudianos conforme seu interesse. A leitura constante é o combustível de longo prazo do psicanalista.' },
+      { t: 'h2', c: '3. Faça sua própria análise' },
+      { t: 'p', c: 'É amplamente recomendado que quem pretende atuar como psicanalista passe pela própria análise. Conhecer os próprios conflitos e pontos cegos é parte essencial da formação e da ética da prática.' },
+      { t: 'h2', c: '4. Busque supervisão' },
+      { t: 'p', c: 'A supervisão — discutir casos com um profissional mais experiente — é uma das ferramentas mais valiosas para quem está começando a atender. Ela protege o paciente e acelera o amadurecimento do psicanalista.' },
+      { t: 'h2', c: '5. Estude continuamente' },
+      { t: 'p', c: 'A formação nunca termina. Grupos de estudo, cursos complementares, leitura e participação em eventos mantêm a prática viva e atualizada.' },
+      { t: 'quote', c: 'Na psicanálise, formar-se é um verbo no presente contínuo.' },
+      { t: 'h2', c: '6. Atue com ética e dentro das normas' },
+      { t: 'p', c: 'Antes de atender, informe-se sobre as normas aplicáveis à sua região, defina com clareza o enquadre (sigilo, frequência, honorários) e mantenha uma postura ética rigorosa. A responsabilidade com o paciente vem sempre em primeiro lugar.' },
+      { t: 'h2', c: 'E o mercado?' },
+      { t: 'p', c: 'Além da clínica, há quem atue com escrita, ensino e conteúdo. Construir presença digital de forma honesta — sem promessas irreais — ajuda a comunicar seu trabalho. Mas nada substitui a base: formação, análise, supervisão e ética.' },
+    ],
+    faqs: [
+      { q: 'Dá para viver de psicanálise?', a: 'Muitos profissionais constroem uma clínica sustentável ao longo do tempo. Isso costuma exigir formação sólida, constância, ética e trabalho de comunicação — raramente acontece do dia para a noite.' },
+      { q: 'Preciso fazer análise mesmo?', a: 'É fortemente recomendado. A própria análise é considerada parte central da formação de quem pretende atuar como psicanalista.' },
+    ],
+  },
+  {
+    slug: 'estudar-online-vs-presencial-psicanalise',
+    title: 'Estudar psicanálise online funciona? Prós, limites e como escolher',
+    dek: 'Uma análise honesta do ensino online de psicanálise: o que ele resolve bem, onde tem limites e o que observar antes de se matricular.',
+    category: 'Educação',
+    heroLabel: '[ foto: estudo em casa / notebook ]',
+    datePublished: '2025-03-05', dateModified: '2025-03-05',
+    readingTime: 6, authorSlug: 'coordenacao-pedagogica',
+    tags: ['ensino online', 'formação', 'psicanálise'],
+    tldr: 'Estudar psicanálise online funciona bem para a base teórica: dá flexibilidade, custo menor e permite revisar o conteúdo. Os limites aparecem na prática — análise pessoal e supervisão continuam sendo etapas fundamentais fora do curso. Ao escolher, avalie estrutura do conteúdo, responsável técnico, suporte e transparência sobre os limites.',
+    body: [
+      { t: 'p', c: 'O ensino online tornou a formação em psicanálise muito mais acessível. Mas "funciona?" é a pergunta certa — e a resposta honesta é: depende do que você espera dele.' },
+      { t: 'h2', c: 'O que o online resolve bem' },
+      { t: 'p', c: 'Para a base teórica, o formato online é excelente. Você estuda no seu ritmo, revisa as aulas quantas vezes precisar e tem custo bem menor do que o presencial. Para quem concilia trabalho e estudo, essa flexibilidade costuma ser decisiva.' },
+      { t: 'ul', c: ['Flexibilidade de horário e ritmo próprio', 'Material disponível para revisão a qualquer momento', 'Custo mais acessível que o presencial', 'Início imediato, sem depender de turmas'] },
+      { t: 'h2', c: 'Onde estão os limites' },
+      { t: 'p', c: 'A formação de um psicanalista não se esgota no curso. Dois pilares — a análise pessoal e a supervisão de casos — acontecem fora da sala de aula, seja ela física ou virtual. Um bom curso online deixa isso claro em vez de prometer que basta assistir às aulas.' },
+      { t: 'quote', c: 'O curso dá a base. Análise pessoal e supervisão constroem o profissional.' },
+      { t: 'h2', c: 'Como escolher um curso online sério' },
+      { t: 'p', c: 'Nem todo curso é igual. Antes de se matricular, observe alguns sinais de seriedade:' },
+      { t: 'ul', c: ['Conteúdo estruturado e progressivo, com ementa clara', 'Um responsável técnico identificado, com credenciais visíveis', 'Suporte real por canais oficiais', 'Transparência sobre o que o curso é — e o que não é (não substitui graduação)', 'Regras claras de acesso, certificado e cancelamento'] },
+      { t: 'h2', c: 'Online ou presencial?' },
+      { t: 'p', c: 'Não precisa ser uma escolha excludente. Muitos profissionais começam pela base teórica online — pela flexibilidade e pelo custo — e complementam com análise, supervisão e grupos de estudo presenciais ou por videochamada. O importante é montar um caminho completo, e não depender de uma única etapa.' },
+    ],
+    faqs: [
+      { q: 'Certificado de curso online tem validade?', a: 'Um curso livre emite certificado de conclusão conforme suas regras. Ele comprova a formação livre, mas não equivale a um diploma de graduação nem regulamenta a profissão.' },
+      { q: 'Consigo aprender de verdade só pela internet?', a: 'A base teórica, sim. A prática clínica responsável envolve também análise pessoal e supervisão, que acontecem fora do curso.' },
+    ],
+  },
+];
+
+export function courseBySlug(slug) { return COURSES.find(c => c.slug === slug); }
+export function postBySlug(slug) { return POSTS.find(p => p.slug === slug); }
+export function fmtBRL(v) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}

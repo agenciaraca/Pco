@@ -90,6 +90,22 @@ export interface PublicCurriculumItem {
   desc: string;
 }
 
+export interface PublicHighlight {
+  title: string;
+  note?: string;
+}
+export interface PublicSection {
+  title: string;
+  subtitle?: string;
+  paras: string[];
+  cta: boolean;
+}
+export interface PublicJornadaItem {
+  title: string;
+  subtitle?: string;
+  text: string;
+}
+
 export interface PublicCourse extends PublicCourseSummary {
   tldr?: string;
   level?: string;
@@ -102,6 +118,19 @@ export interface PublicCourse extends PublicCourseSummary {
   instructorName?: string;
   instructorBio?: string;
   instructorPhotoUrl?: string;
+  /**
+   * Faixa de tempo para concluir, exibida como "Acesso 4-16 meses".
+   *
+   * NAO e o mesmo que `accessMonths`, que expira a matricula. Aqui e ritmo de
+   * estudo declarado na pagina de venda; la e o portao que corta o acesso. Um
+   * curso pode dizer "4 a 16 meses" e nao expirar nada.
+   */
+  monthsMin?: number;
+  monthsMax?: number;
+  highlights: PublicHighlight[];
+  sections: PublicSection[];
+  jornada: PublicJornadaItem[];
+  promoNote?: string;
 }
 
 /** Projeta um curso + produto no sumário público (whitelist). */
@@ -168,6 +197,27 @@ function toFull(c: Row, product: Product | undefined): PublicCourse {
     instructorName: str(c.instructorName),
     instructorBio: str(c.instructorBio),
     instructorPhotoUrl: str(c.instructorPhotoUrl),
+    monthsMin: num(c.monthsMin),
+    monthsMax: num(c.monthsMax),
+    highlights: (Array.isArray(c.highlights) ? (c.highlights as Row[]) : [])
+      .map((h) => ({ title: str(h.title) ?? '', note: str(h.note) }))
+      .filter((h) => h.title),
+    sections: (Array.isArray(c.sections) ? (c.sections as Row[]) : [])
+      .map((x) => ({
+        title: str(x.title) ?? '',
+        subtitle: str(x.subtitle),
+        paras: strArr(x.paras),
+        cta: x.cta === true,
+      }))
+      .filter((x) => x.title && x.paras.length > 0),
+    jornada: (Array.isArray(c.jornada) ? (c.jornada as Row[]) : [])
+      .map((j) => ({
+        title: str(j.title) ?? '',
+        subtitle: str(j.subtitle),
+        text: str(j.text) ?? '',
+      }))
+      .filter((j) => j.title && j.text),
+    promoNote: str(c.promoNote),
   };
 }
 

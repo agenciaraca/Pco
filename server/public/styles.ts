@@ -222,4 +222,114 @@ p{margin:0}
   .nav.open{display:flex;position:absolute;top:64px;left:0;right:0;flex-direction:column;align-items:stretch;background:var(--brand-deep);padding:12px 24px;gap:2px}
 }
 @media (max-width:860px){.site-footer .cols,.site-footer .cols.cols-2{grid-template-columns:1fr}.rodape-privacidade{text-align:center;align-items:center}}
+
+/* ================= PAGINA DO CURSO (protótipo aprovado) =================
+   Transposição de docs/design/pages/Curso.dc.html. O protótipo escreve tudo
+   em style inline; aqui vira classe, que é o que a etapa 4 do plano pedia —
+   "extrair o sistema visual como peças compartilhadas". Os valores são os do
+   desenho, não aproximações.
+
+   O protótipo usa um runtime próprio (sc-for / dc-import); o README do handoff
+   manda NAO portá-lo, só recriar markup e estilo. É o que está aqui.
+   (Sem crase neste comentario: o CSS mora dentro de um template literal.) */
+.curso-wrap{max-width:1160px;margin:0 auto}
+/* --- hero --- */
+.curso-hero{position:relative;padding:70px 28px 130px;overflow:hidden;
+  background-color:#0b7486;
+  background-image:linear-gradient(135deg,rgba(0,151,178,.55),rgba(11,116,134,.9)),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 14px,rgba(255,255,255,0) 14px 28px)}
+.curso-hero-veu{position:absolute;inset:0;background:linear-gradient(120deg,rgba(8,68,79,.92),rgba(11,116,134,.78))}
+.curso-hero .curso-wrap{position:relative;color:#fff}
+.curso-trilha{font-size:13px;color:rgba(255,255,255,.7);margin-bottom:22px}
+.curso-trilha a{color:rgba(255,255,255,.7)}
+.curso-trilha a:hover{color:#fff}
+.curso-trilha .atual{color:#fff}
+.curso-pilula{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+  color:#fff;font-size:13px;font-weight:600;padding:7px 16px;border-radius:999px}
+.curso-hero h1{font-size:clamp(32px,4.4vw,54px);margin:20px 0 14px;line-height:1.08;
+  letter-spacing:-.8px;max-width:20ch;text-wrap:balance;color:#fff}
+.curso-lema{font-size:clamp(17px,2vw,21px);color:rgba(255,255,255,.9);line-height:1.5;max-width:620px}
+.curso-chips{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+.curso-chips span{font-size:14px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);
+  padding:9px 16px;border-radius:999px}
+/* --- corpo + coluna de matrícula --- */
+.curso-layout{max-width:1160px;margin:0 auto;padding:60px 28px 90px;display:grid;
+  grid-template-columns:1.6fr .9fr;gap:48px;align-items:start}
+.curso-tldr{background:var(--accent-soft);border:1px solid rgba(0,151,178,.2);border-radius:18px;
+  padding:24px 28px;margin-bottom:40px}
+.curso-tldr .rotulo{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:8px}
+.curso-tldr p{font-size:16px;line-height:1.6;color:var(--ink);margin:0}
+.curso-corpo h2{font-size:28px;color:var(--ink);margin-bottom:14px}
+.curso-texto{font-size:17px;line-height:1.7;color:var(--ink-soft);margin-bottom:40px}
+.curso-duas{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-bottom:44px}
+.curso-duas h3{font-size:20px;color:var(--ink);margin-bottom:14px}
+.curso-lista{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.curso-lista li{display:flex;gap:10px;font-size:15.5px;color:var(--ink-soft);line-height:1.5}
+.curso-lista .seta{color:#2e9377;font-weight:700}
+.curso-lista svg{flex-shrink:0;margin-top:2px}
+/* ementa */
+.curso-ementa{display:flex;flex-direction:column;gap:10px;margin-bottom:44px}
+.curso-ementa-item{display:flex;gap:16px;align-items:flex-start;background:var(--raise);
+  border:1px solid var(--line-soft);border-radius:14px;padding:18px 22px}
+.curso-ementa-n{flex-shrink:0;font-weight:700;color:var(--accent);font-size:15px;background:var(--accent-soft);
+  width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+.curso-ementa-item .t{font-weight:700;color:var(--ink);font-size:16.5px}
+.curso-ementa-item .d{font-size:14.5px;color:var(--ink-soft);margin-top:3px;line-height:1.5}
+/* destaques */
+.curso-destaques{display:flex;flex-direction:column;gap:14px;margin-bottom:44px}
+.curso-destaque{background:var(--accent-soft);border:1px solid var(--line);border-radius:var(--radius);padding:20px 24px}
+.curso-destaque .t{font-weight:700;color:var(--ink);font-size:16.5px;line-height:1.4}
+.curso-destaque .n{font-size:12.5px;color:var(--ink-faint);margin-top:6px;line-height:1.5}
+/* seções longas */
+.curso-secao{margin-bottom:44px}
+.curso-secao h2{font-size:26px;color:var(--ink);margin-bottom:6px;line-height:1.25}
+.curso-secao .sub{font-weight:600;color:var(--accent-ink);font-size:16px;margin-bottom:10px}
+.curso-secao p{font-size:16.5px;line-height:1.7;color:var(--ink-soft);margin:0 0 16px}
+.curso-cta-par{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+/* jornada */
+.curso-jornada{display:flex;flex-direction:column;gap:18px;margin-bottom:44px}
+.curso-jornada-item{background:var(--raise);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:28px}
+.curso-jornada-item h3{font-size:20px;color:var(--ink);margin-bottom:4px}
+.curso-jornada-item .sub{font-weight:600;color:var(--accent-ink);font-size:14.5px;margin-bottom:10px}
+.curso-jornada-item p{font-size:15.5px;line-height:1.7;color:var(--ink-soft);margin:0}
+/* FAQ */
+.curso-faqs{display:flex;flex-direction:column;gap:12px;margin-bottom:40px}
+.curso-faq{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--raise)}
+.curso-faq>button{width:100%;text-align:left;background:none;border:0;cursor:pointer;padding:20px 24px;
+  display:flex;justify-content:space-between;align-items:center;gap:16px;font-family:inherit}
+.curso-faq>button span:first-child{font-weight:600;color:var(--ink);font-size:16.5px}
+.curso-faq .mais{flex-shrink:0;color:var(--accent);font-size:24px;line-height:1;transition:transform .2s}
+.curso-faq>button[aria-expanded="true"] .mais{transform:rotate(45deg)}
+.curso-faq-corpo{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.curso-faq-corpo>div{padding:0 24px 22px;color:var(--ink-soft);font-size:15.5px;line-height:1.65}
+/* letra miúda: regulamento + aviso de formação livre */
+.curso-miudo{background:var(--paper);border:1px dashed var(--line);border-radius:14px;padding:20px 24px;
+  font-size:13.5px;color:var(--ink-soft);line-height:1.6}
+.curso-miudo .promo{display:block;margin-bottom:12px}
+/* coluna de matrícula */
+.curso-matricula{position:sticky;top:100px}
+.curso-matricula .caixa{background:var(--raise);border:1px solid var(--line);border-radius:22px;padding:30px;
+  box-shadow:0 16px 44px rgba(11,116,134,.1)}
+.curso-invest{font-size:14px;color:var(--ink-soft)}
+.curso-preco{font-size:40px;font-weight:700;color:var(--ink);line-height:1;margin:6px 0}
+.curso-parcela{font-size:15px;color:var(--accent);font-weight:600}
+.curso-preco-nota{font-size:13px;color:var(--ink-faint);margin-top:4px}
+/* O botao principal da caixa e laranja quando ha preco e verde (WhatsApp)
+   quando nao ha, entao a medida vive na .btn e nao na variante. */
+.curso-matricula .caixa .btn{width:100%;margin-top:22px;padding:16px;font-size:16px}
+.curso-matricula .caixa .btn-outline{margin-top:10px;padding:15px;border-color:var(--accent);color:var(--accent)}
+.curso-duvida{display:block;text-align:center;margin-top:14px;font-size:14px;color:var(--ink-soft)}
+.curso-duvida:hover{color:var(--accent)}
+.curso-perks{border-top:1px solid var(--line-soft);margin-top:20px;padding-top:18px;
+  display:flex;flex-direction:column;gap:10px}
+.curso-perks div{display:flex;gap:10px;font-size:14px;color:var(--ink-soft)}
+.curso-perks .ok{color:#2e9377}
+.curso-arrependimento{text-align:center;font-size:12px;color:var(--ink-faint);margin-top:14px}
+@media (max-width:960px){
+  .curso-layout{grid-template-columns:1fr;gap:36px}
+  .curso-matricula{position:static}
+  .curso-duas{grid-template-columns:1fr}
+}
 `.trim();

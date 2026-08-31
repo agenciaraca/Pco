@@ -448,6 +448,53 @@ export const updateCourseSchema = z.object({
     )
     .max(60)
     .optional(),
+  /**
+   * ---- Blocos longos da página de venda (changelog de design, item 8) ----
+   *
+   * Vieram do protótipo aprovado (`docs/design/pages/Curso.dc.html`), onde a
+   * página do curso deixou de ser ementa + preço e passou a ter argumento de
+   * venda. São opcionais: curso que não preencher continua com a página curta,
+   * sem buraco na tela — cada bloco só aparece se tiver conteúdo.
+   */
+  /** Três cartões de destaque, cada um com a nota de asterisco embaixo. */
+  highlights: z
+    .array(
+      z.object({
+        title: z.string().min(2).max(300),
+        note: z.string().max(600).optional(),
+      }),
+    )
+    .max(10)
+    .optional(),
+  /** Seções longas de venda: título, subtítulo, parágrafos e par de CTAs. */
+  sections: z
+    .array(
+      z.object({
+        title: z.string().min(2).max(300),
+        subtitle: z.string().max(300).optional(),
+        paras: z.array(z.string().min(1).max(4000)).max(20),
+        /** Fecha a seção com "QUERO ME MATRICULAR" + WhatsApp. */
+        cta: z.boolean().optional(),
+      }),
+    )
+    .max(20)
+    .optional(),
+  /** A jornada em etapas (título, subtítulo, texto). */
+  jornada: z
+    .array(
+      z.object({
+        title: z.string().min(2).max(200),
+        subtitle: z.string().max(200).optional(),
+        text: z.string().max(2000),
+      }),
+    )
+    .max(10)
+    .optional(),
+  /**
+   * Regulamento da promoção, em letra miúda, antes do aviso de formação livre.
+   * Texto jurídico: entra verbatim, nunca reescrito.
+   */
+  promoNote: z.string().max(4000).optional().or(z.literal('')),
 });
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
 

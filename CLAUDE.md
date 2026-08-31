@@ -229,6 +229,39 @@ Só restart, sem rebuild: `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
 
 Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
+## O desenho do site vem de fora do repositório
+
+A referência visual **não é o código**: é um projeto do Claude Design aprovado
+pelo dono ("Inspiração Loyalist College"). Uma cópia dos arquivos que importam
+está em **`docs/design/`** — comece pelo `docs/design/README.md`.
+
+Isso está escrito aqui porque já custou: em 30/ago/2026 só o resumo
+(`CHANGELOG-design.md`) foi aplicado, o handoff completo nunca chegou ao
+repositório, e a sessão seguinte começou a refazer a página do curso a partir
+do código existente — que era exatamente o que devia ser substituído.
+
+**Antes de mexer em qualquer tela pública, confira se ela já tem artboard.**
+
+Duas coisas do protótipo nunca atravessam para o produto: **preço** (é do
+produto ativo, em `/admin/produtos` — o `price: 1497` de lá é maquete) e
+**contagem de módulos/aulas/horas** (conta-se do curso real). Texto atravessa;
+número e oferta, não.
+
+## Link interno não pode apontar para um 301
+
+`/catalogo`, `/comparar` e `/landing` viraram redirecionamento em 30/ago/2026.
+O botão **"Matricular-se"** da página do curso continuou apontando para
+`/catalogo` — quem decidia comprar era devolvido à lista de cursos. No mesmo
+período o `/checkout`, que funciona e conversa com `POST /public/checkout`,
+ficou **sem um único link apontando para ele** em todo o produto.
+
+Ou seja: o diagnóstico de que "o site não fecha venda" era creditado só à falta
+de preço, e havia esta segunda causa, que sobreviveria ao cadastro dos preços.
+
+O mapa de rotas fundidas saiu de dentro do `server/dev.ts` para
+`server/public/rotas-fundidas.ts` justamente para poder ser testado, e
+`test/links-internos.test.ts` cobra o que ninguém cobrava.
+
 ## Reference docs
 
 `docs/` has deeper notes per subsystem when you need them:

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+  a { color: #2C7DA0; text-decoration: none; } a:hover { color: var(--ink); }
+  h1,h2,h3 { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+  .ph { background-color: #0b7486; background-image: linear-gradient(135deg, rgba(0,151,178,0.55), rgba(11,116,134,0.9)), repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, rgba(255,255,255,0) 14px 28px); }
+  @media (max-width: 960px) { [data-layout] { grid-template-columns: 1fr !important; } [data-enroll] { position: static !important; } [data-grid2] { grid-template-columns: 1fr !important; } }
+</style>
+</helmet>
+
+<div style="overflow-x: hidden;">
+<dc-import name="SiteHeader" active="cursos" variant="solid" hint-size="100%,80px"></dc-import>
+
+<sc-if value="{{ found }}" hint-placeholder-val="{{ true }}">
+<div>
+<!-- HERO -->
+<section class="ph" style="position: relative; padding: 70px 28px 130px; overflow: hidden;">
+  <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(8,68,79,0.92), rgba(11,116,134,0.78));"></div>
+  <div style="position: relative; max-width: 1160px; margin: 0 auto; color: #fff;">
+    <nav style="font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 22px;"><a href="Home.dc.html" style="color:rgba(255,255,255,0.7);">Início</a> / <a href="Cursos.dc.html" style="color:rgba(255,255,255,0.7);">Cursos</a> / <span style="color:#fff;">{{ c.short }}</span></nav>
+    <span style="display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 999px;">{{ c.badge }} · {{ c.level }}</span>
+    <h1 style="font-size: clamp(32px,4.4vw,54px); margin: 20px 0 14px; line-height: 1.08; letter-spacing: -0.8px; max-width: 20ch; text-wrap: balance;">{{ c.title }}</h1>
+    <p style="font-size: clamp(17px,2vw,21px); color: rgba(255,255,255,0.9); line-height: 1.5; max-width: 620px;">{{ c.tagline }}</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px;">
+      <sc-for list="{{ c.chips }}" as="ch" hint-placeholder-count="5">
+        <span style="font-size: 14px; font-weight: 600; color: #fff; background: rgba(255,255,255,0.12); padding: 9px 16px; border-radius: 999px;">{{ ch }}</span>
+      </sc-for>
+    </div>
+  </div>
+<div style="position:absolute; left:0; right:0; bottom:-1px; line-height:0; pointer-events:none; z-index:2;"><svg viewBox="0 0 1440 150" preserveAspectRatio="none" style="display:block; width:100%; height:clamp(60px,10vw,150px);" fill="var(--paper)"><path opacity=".3" d="M0,70 C320,10 660,120 1020,52 C1210,18 1350,44 1440,72 L1440,151 L0,151 Z"></path><path opacity=".5" d="M0,94 C300,44 640,132 1000,80 C1200,52 1350,76 1440,58 L1440,151 L0,151 Z"></path><path d="M0,114 C310,72 640,146 1010,100 C1210,76 1350,96 1440,84 L1440,151 L0,151 Z"></path></svg></div>
+</section>
+
+<!-- LAYOUT: content + sticky enroll -->
+<section style="max-width: 1160px; margin: 0 auto; padding: 60px 28px 90px; display: grid; grid-template-columns: 1.6fr 0.9fr; gap: 48px; align-items: start;" data-layout>
+  <div>
+    <!-- TL;DR -->
+    <div style="background: var(--accent-soft); border: 1px solid rgba(0,151,178,0.2); border-radius: 18px; padding: 24px 28px; margin-bottom: 40px;">
+      <div style="font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">Resumo rápido</div>
+      <p style="font-size: 16px; line-height: 1.6; color: var(--ink); margin: 0;">{{ c.tldr }}</p>
+    </div>
+
+    <h2 style="font-size: 28px; color: var(--ink); margin-bottom: 14px;">Sobre a formação</h2>
+    <p style="font-size: 17px; line-height: 1.7; color: var(--ink-soft); margin-bottom: 40px;">{{ c.summary }}</p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 44px;" data-grid2>
+      <div>
+        <h3 style="font-size: 20px; color: var(--ink); margin-bottom: 14px;">Para quem é</h3>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
+          <sc-for list="{{ c.forWhom }}" as="f" hint-placeholder-count="3">
+            <li style="display: flex; gap: 10px; font-size: 15.5px; color: var(--ink-soft); line-height: 1.5;"><span style="color:#2E9377; font-weight:700;">›</span> {{ f }}</li>
+          </sc-for>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font-size: 20px; color: var(--ink); margin-bottom: 14px;">O que você desenvolve</h3>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
+          <sc-for list="{{ c.outcomes }}" as="o" hint-placeholder-count="4">
+            <li style="display: flex; gap: 10px; font-size: 15.5px; color: var(--ink-soft); line-height: 1.5;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0097b2" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><path d="M20 6 9 17l-5-5"/></svg> {{ o }}</li>
+          </sc-for>
+        </ul>
+      </div>
+    </div>
+
+    <h2 style="font-size: 28px; color: var(--ink); margin-bottom: 20px;">Conteúdo do curso</h2>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 44px;">
+      <sc-for list="{{ c.curriculum }}" as="m" hint-placeholder-count="12">
+        <div style="display: flex; gap: 16px; align-items: flex-start; background: var(--raise); border: 1px solid var(--line-soft); border-radius: 14px; padding: 18px 22px;">
+          <div style="flex-shrink: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; color: var(--accent); font-size: 15px; background: var(--accent-soft); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center;">{{ m.n }}</div>
+          <div><div style="font-weight: 700; color: var(--ink); font-size: 16.5px;">{{ m.title }}</div><div style="font-size: 14.5px; color: var(--ink-soft); margin-top: 3px; line-height: 1.5;">{{ m.desc }}</div></div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- DESTAQUES -->
+    <sc-if value="{{ hasHighlights }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 44px;">
+        <sc-for list="{{ highlights }}" as="h" hint-placeholder-count="3">
+          <div style="background: var(--accent-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px;">
+            <div style="font-weight: 700; color: var(--ink); font-size: 16.5px; line-height: 1.4;">{{ h.title }}</div>
+            <div style="font-size: 12.5px; color: var(--ink-faint); margin-top: 6px; line-height: 1.5;">{{ h.note }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- SEÇÕES LONGAS -->
+    <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="0">
+      <div style="margin-bottom: 44px;">
+        <h2 style="font-size: 26px; color: var(--ink); margin-bottom: 6px; line-height: 1.25;">{{ sec.title }}</h2>
+        <sc-if value="{{ sec.subtitle }}" hint-placeholder-val="{{ false }}">
+          <div style="font-weight: 600; color: var(--accent-ink); font-size: 16px; margin-bottom: 10px;">{{ sec.subtitle }}</div>
+        </sc-if>
+        <sc-for list="{{ sec.paras }}" as="p" hint-placeholder-count="2">
+          <p style="font-size: 16.5px; line-height: 1.7; color: var(--ink-soft); margin: 0 0 16px;">{{ p }}</p>
+        </sc-for>
+        <sc-if value="{{ sec.cta }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px;">
+            <button onClick="{{ buyNow }}" style="padding: 14px 26px; border-radius: 999px; border: none; background: linear-gradient(118deg, #ff914d, #f07a2f); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 8px 22px rgba(255,145,77,.3);">QUERO ME MATRICULAR</button>
+            <a href="{{ wa }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 24px; border-radius: 999px; background: #25D366; color: #fff; font-weight: 700; font-size: 15px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.03a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.12.82.83-3.04-.2-.31a8.09 8.09 0 0 1-1.24-4.28c0-4.47 3.64-8.11 8.12-8.11 4.47 0 8.11 3.64 8.11 8.11s-3.64 8.12-8.07 8.12z"/></svg>Quero Falar No Whatsapp</a>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+
+    <!-- JORNADA -->
+    <sc-if value="{{ hasJornada }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 18px; margin-bottom: 44px;">
+        <sc-for list="{{ jornada }}" as="j" hint-placeholder-count="3">
+          <div style="background: var(--raise); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px;">
+            <h3 style="font-size: 20px; color: var(--ink); margin-bottom: 4px;">{{ j.title }}</h3>
+            <div style="font-weight: 600; color: var(--accent-ink); font-size: 14.5px; margin-bottom: 10px;">{{ j.subtitle }}</div>
+            <p style="font-size: 15.5px; line-height: 1.7; color: var(--ink-soft); margin: 0;">{{ j.text }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <h2 style="font-size: 28px; color: var(--ink); margin-bottom: 20px;">Perguntas frequentes</h2>
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px;">
+      <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="3">
+        <div style="border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--raise);">
+          <button onClick="{{ f.toggle }}" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">
+            <span style="font-weight: 600; color: var(--ink); font-size: 16.5px;">{{ f.q }}</span>
+            <span style="flex-shrink: 0; color: var(--accent); font-size: 24px; line-height: 1; transition: transform .2s; transform: {{ f.rotate }};">+</span>
+          </button>
+          <div style="max-height: {{ f.maxH }}; overflow: hidden; transition: max-height .3s ease;"><div style="padding: 0 24px 22px; color: var(--ink-soft); font-size: 15.5px; line-height: 1.65;">{{ f.a }}</div></div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="background: var(--paper); border: 1px dashed var(--line); border-radius: 14px; padding: 20px 24px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.6;">
+      <sc-if value="{{ promoNote }}" hint-placeholder-val="{{ false }}"><span style="display:block; margin-bottom: 12px;">{{ promoNote }}</span></sc-if>
+      <strong style="color:var(--ink-soft);">Aviso importante:</strong> este é um curso de formação livre. Não constitui graduação em Psicologia ou Medicina, nem regulamenta profissão. A atuação profissional depende de estudo continuado, postura ética e das normas aplicáveis à sua região. Conteúdo de caráter educativo.
+    </div>
+  </div>
+
+  <!-- ENROLL CARD -->
+  <aside data-enroll style="position: sticky; top: 100px;">
+    <div style="background: var(--raise); border: 1px solid var(--line); border-radius: 22px; padding: 30px; box-shadow: 0 16px 44px rgba(11,116,134,0.1);">
+      <div style="font-size: 14px; color: var(--ink-soft);">Investimento · à vista</div>
+      <div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 40px; font-weight: 700; color: var(--ink); line-height: 1; margin: 6px 0;">{{ c.priceLabel }}</div>
+      <div style="font-size: 15px; color: var(--accent); font-weight: 600;">ou {{ c.installLabel }}</div>
+      <div style="font-size: 13px; color: var(--ink-faint); margin-top: 4px;">{{ c.priceNote }}</div>
+      <button onClick="{{ buyNow }}" style="width: 100%; margin-top: 22px; padding: 16px; border-radius: 999px; border: none; background: linear-gradient(118deg, #ff914d, #f07a2f); color: #fff; font-weight: 700; font-size: 16px; cursor: pointer; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 10px 26px rgba(0,151,178,.3);">Matricular-se agora</button>
+      <button onClick="{{ addCart }}" style="width: 100%; margin-top: 10px; padding: 15px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--raise); color: var(--accent); font-weight: 700; font-size: 15px; cursor: pointer; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">{{ addLabel }}</button>
+      <a href="{{ wa }}" target="_blank" rel="noopener" style="display: block; text-align: center; margin-top: 14px; font-size: 14px; color: var(--ink-soft);">Tirar dúvidas no WhatsApp</a>
+      <div style="border-top: 1px solid var(--line-soft); margin-top: 20px; padding-top: 18px; display: flex; flex-direction: column; gap: 10px;">
+        <sc-for list="{{ c.perks }}" as="p" hint-placeholder-count="4">
+          <div style="display: flex; gap: 10px; font-size: 14px; color: var(--ink-soft);"><span style="color:#2E9377;">✓</span> {{ p }}</div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="text-align: center; font-size: 12px; color: var(--ink-faint); margin-top: 14px;">Direito de arrependimento em até 7 dias corridos.</div>
+  </aside>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{ notFound }}" hint-placeholder-val="{{ false }}">
+  <section style="max-width: 700px; margin: 0 auto; padding: 120px 28px; text-align: center;">
+    <h1 style="font-size: 32px; color: var(--ink); margin-bottom: 14px;">Curso não encontrado</h1>
+    <p style="font-size: 16px; color: var(--ink-soft); margin-bottom: 24px;">O curso que você procura não está disponível. Veja todas as formações no catálogo.</p>
+    <a href="Cursos.dc.html" style="display: inline-flex; padding: 14px 28px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700;">Ver todos os cursos</a>
+  </section>
+</sc-if>
+
+<dc-import name="SiteFooter" hint-size="100%,420px"></dc-import>
+</div>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position: fixed; bottom: 24px; right: 24px; z-index: 300; background: var(--brand-deep); color: #fff; padding: 14px 20px; border-radius: 14px; box-shadow: 0 12px 34px rgba(11,116,134,0.3); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 12px;">
+    <span style="color:var(--accent-ink);">✓</span> Adicionado ao carrinho <a href="Carrinho.dc.html" style="color:var(--brand-orange); font-weight:700;">Ver carrinho</a>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { openFaq: 0, toast: false, loaded: false, inCart: false };
+  wa = 'https://api.whatsapp.com/send?phone=5511984010715';
+
+  async componentDidMount() {
+    const [site, cart] = await Promise.all([import('./data/site.js'), import('./data/cart.js')]);
+    this.site = site; this.cart = cart;
+    const slug = new URLSearchParams(location.search).get('slug') || 'psicanalise-clinica';
+    this.course = site.courseBySlug(slug);
+    this.setState({ loaded: true, inCart: this.isInCart() });
+    this._unsub = cart.subscribe(() => this.setState({ inCart: this.isInCart() }));
+    if (this.course) this.injectSEO();
+  }
+  componentWillUnmount() { if (this._tt) clearTimeout(this._tt); if (this._unsub) this._unsub(); }
+
+  isInCart() { return this.course && this.cart && this.cart.getCart().some(i => i.slug === this.course.slug); }
+
+  injectSEO() {
+    const c = this.course, base = this.site.ORG.url;
+    document.title = c.title + ' | PCO — Psicanálise Clínica Online';
+    this.setMeta('description', c.tldr);
+    const ld = {
+      '@context': 'https://schema.org', '@graph': [
+        { '@type': 'Course', name: c.title, description: c.summary, inLanguage: c.language,
+          provider: { '@type': 'Organization', name: this.site.ORG.name, sameAs: base },
+          educationalLevel: c.level, teaches: c.outcomes,
+          hasCourseInstance: { '@type': 'CourseInstance', courseMode: 'online', courseWorkload: 'PT' + c.hours + 'H' },
+          offers: { '@type': 'Offer', price: c.price, priceCurrency: 'BRL', availability: 'https://schema.org/InStock', category: 'Formação livre' } },
+        { '@type': 'FAQPage', mainEntity: c.faqs.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+        { '@type': 'BreadcrumbList', itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Início', item: base + '/' },
+          { '@type': 'ListItem', position: 2, name: 'Cursos', item: base + '/cursos' },
+          { '@type': 'ListItem', position: 3, name: c.short, item: base + '/curso/' + c.slug } ] },
+      ],
+    };
+    const s = document.createElement('script'); s.type = 'application/ld+json'; s.textContent = JSON.stringify(ld); document.head.appendChild(s);
+  }
+  setMeta(name, content) {
+    let m = document.querySelector('meta[name="' + name + '"]');
+    if (!m) { m = document.createElement('meta'); m.setAttribute('name', name); document.head.appendChild(m); }
+    m.setAttribute('content', content);
+  }
+
+  toggleFaq = (i) => this.setState(s => ({ openFaq: s.openFaq === i ? -1 : i }));
+
+  addCart = () => {
+    if (this.isInCart()) { location.href = 'Carrinho.dc.html'; return; }
+    this.cart.addToCart({ slug: this.course.slug, title: this.course.short, price: this.course.price });
+    this.setState({ toast: true });
+    if (this._tt) clearTimeout(this._tt);
+    this._tt = setTimeout(() => this.setState({ toast: false }), 2600);
+  };
+  buyNow = () => {
+    if (!this.isInCart()) this.cart.addToCart({ slug: this.course.slug, title: this.course.short, price: this.course.price });
+    location.href = 'Checkout.dc.html';
+  };
+
+  renderVals() {
+    if (!this.state.loaded) return { found: false, notFound: false, toast: false };
+    if (!this.course) return { found: false, notFound: true, toast: false };
+    const c = this.course;
+    const view = {
+      short: c.short, title: c.title, tagline: c.tagline, badge: c.badge, level: c.level,
+      tldr: c.tldr, summary: c.summary, forWhom: c.forWhom, outcomes: c.outcomes, curriculum: c.curriculum,
+      priceNote: c.priceNote,
+      chips: [c.modules + ' módulos', c.lessons + ' aulas', c.hours + ' horas/aula', 'Acesso ' + c.monthsMin + '–' + c.monthsMax + ' meses', 'Certificado digital'],
+      priceLabel: this.site.fmtBRL(c.price),
+      installLabel: c.installments + 'x de ' + this.site.fmtBRL(c.installmentValue),
+      perks: ['Acesso ' + c.monthsMin + ' a ' + c.monthsMax + ' meses', 'Certificado digital incluso', 'Material disponível 24h', 'Suporte pelos canais oficiais'],
+    };
+    const faqs = c.faqs.map((f, i) => ({
+      q: f.q, a: f.a, toggle: () => this.toggleFaq(i),
+      maxH: this.state.openFaq === i ? '340px' : '0px',
+      rotate: this.state.openFaq === i ? 'rotate(45deg)' : 'rotate(0deg)',
+    }));
+    const sections = (c.sections || []).map(x => ({ ...x, subtitle: x.subtitle || false, cta: !!x.cta }));
+    return {
+      found: true, notFound: false, c: view, faqs,
+      highlights: c.highlights || [], hasHighlights: !!(c.highlights && c.highlights.length),
+      sections,
+      jornada: c.jornada || [], hasJornada: !!(c.jornada && c.jornada.length),
+      promoNote: c.promoNote || false,
+      wa: this.wa, toast: this.state.toast,
+      addCart: this.addCart, buyNow: this.buyNow,
+      addLabel: this.state.inCart ? 'No carrinho — ver' : 'Adicionar ao carrinho',
+    };
+  }
+}
+</script>
+</body>
+</html>

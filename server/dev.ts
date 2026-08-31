@@ -6,6 +6,7 @@ import path from 'node:path';
 import { installConsoleCapture } from './monitoring/log-buffer';
 import { buildApp } from './app';
 import { publicSite } from './public/router';
+import { ROTAS_FUNDIDAS } from './public/rotas-fundidas';
 import { AUTHOR_IS_PLACEHOLDER } from './public/config';
 import { hostPublico } from './origem-publica';
 
@@ -125,11 +126,6 @@ if (staticRoot) {
    * `/comparar` some porque nenhum link do produto apontava para ela; a
    * comparação volta como seleção nos cartões da própria lista.
    */
-  const ROTAS_FUNDIDAS: Record<string, string> = {
-    '/catalogo': '/formacoes',
-    '/comparar': '/formacoes',
-    '/landing': '/ava-pco',
-  };
   for (const [de, para] of Object.entries(ROTAS_FUNDIDAS)) {
     root.get(de, (c) => c.redirect(para, 301));
   }
@@ -324,8 +320,6 @@ import('./services/log-rotator').then((m) => m.startWorker(60 * 60_000));
 // fechar com o outro e ninguém saber por quê.
 for (const sinal of ['SIGTERM', 'SIGINT'] as const) {
   process.once(sinal, () => {
-    void import('./analytics/collector')
-      .then((m) => m.flush())
-      .finally(() => process.exit(0));
+    void import('./analytics/collector').then((m) => m.flush()).finally(() => process.exit(0));
   });
 }

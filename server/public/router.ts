@@ -119,7 +119,7 @@ publicSite.get('/sobre', async (c) => {
           transparência — reconhecidos pela ${ORG.rntp}.
         </p>
       </div>
-    ${pincel('var(--paper)')}
+      ${pincel('var(--paper)')}
     </section>
 
     <section class="section">
@@ -567,11 +567,13 @@ publicSite.get('/', async (c) => {
         </p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px">
           <a class="btn btn-primary" href="/formacoes">Ver cursos</a>
-          <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow">${ICONE_WHATSAPP} Falar no WhatsApp</a>
+          <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow"
+            >${ICONE_WHATSAPP} Falar no WhatsApp</a
+          >
         </div>
         <p style="color:#cfe0dc;font-size:13.5px;margin-top:22px">
-          <span style="color:var(--brand-orange)">★★★★★</span> 4,7/5 · centenas de alunos
-          formados · ${ORG.rntp}
+          <span style="color:var(--brand-orange)">★★★★★</span> 4,7/5 · centenas de alunos formados ·
+          ${ORG.rntp}
         </p>
       </div>
       ${pincel('var(--paper)')}
@@ -580,7 +582,9 @@ publicSite.get('/', async (c) => {
     <section class="section-tight tem-pincel" style="background:var(--brand-gradient)">
       <div class="wrap three-col" style="text-align:center;color:var(--on-deep)">
         <div>
-          <div style="font-size:38px;font-weight:800"><span data-count-to="2018" data-count-plain>2018</span></div>
+          <div style="font-size:38px;font-weight:800">
+            <span data-count-to="2018" data-count-plain>2018</span>
+          </div>
           <div style="color:#cfe0dc;font-size:14px">no ar desde</div>
         </div>
         <div>
@@ -801,100 +805,202 @@ publicSite.get('/formacao/:slug', async (c) => {
       HTML_HEADERS,
     );
   }
-  const chip = (t: string) => `<span class="tag-chip">${esc(t)}</span>`;
+  /**
+   * A página do curso — transposição do protótipo aprovado pelo dono
+   * (`docs/design/pages/Curso.dc.html`, projeto "Inspiração Loyalist College").
+   *
+   * O que existia aqui era ementa + preço. O desenho escolhido transforma a
+   * página em argumento de venda: resumo rápido, "para quem é" ao lado de "o
+   * que você desenvolve", ementa numerada, destaques, seções longas com par de
+   * CTAs, jornada, FAQ e a letra miúda. O estilo saiu do style inline do
+   * protótipo e virou classe em `styles.ts` — era o que a etapa 4 pedia.
+   *
+   * Cada bloco só aparece se tiver conteúdo: curso sem `sections` mantém a
+   * página curta, sem buraco na tela.
+   *
+   * **O preço nunca é inventado.** O protótipo traz R$ 1.497 como dado de
+   * exemplo; aqui o valor vem sempre do produto ativo. Sem produto, a caixa
+   * mantém o formato e diz a verdade, em vez de exibir um número de maquete.
+   */
+  const wa = ORG.whatsapp;
+  const temPreco = co.priceCents != null;
+  /** Para onde vai quem decidiu comprar. Sem preço, o único caminho real é gente. */
+  const destinoCompra = temPreco ? `/checkout?curso=${esc(co.slug)}` : wa;
+
+  /**
+   * "Acesso 4–16 meses" no desenho. Vem de `monthsMin`/`monthsMax`, que são
+   * RITMO DE ESTUDO declarado — não confundir com `accessMonths`, que expira a
+   * matrícula. Curso que não declarou nada não ganha a pastilha: prazo é
+   * promessa, e promessa sem dado atrás vira propaganda enganosa.
+   */
+  const prazoTexto =
+    co.monthsMin && co.monthsMax
+      ? `Acesso ${co.monthsMin}–${co.monthsMax} meses`
+      : co.monthsMax
+        ? `Acesso até ${co.monthsMax} meses`
+        : '';
+
   const chips = [
-    co.totalHours ? `${co.totalHours} horas` : '',
-    co.level || '',
-    co.language || 'pt-BR',
+    co.modules ? `${co.modules} módulos` : '',
+    co.lessons ? `${co.lessons} aulas` : '',
+    co.totalHours ? `${co.totalHours} horas/aula` : '',
+    prazoTexto,
     co.certificateAvailable ? 'Certificado digital' : '',
   ]
     .filter(Boolean)
-    .map(chip)
+    .map((t) => `<span>${esc(t)}</span>`)
     .join('');
-  const outcomesHtml = co.learningOutcomes.length
-    ? `<h2>O que você vai aprender</h2><ul>${co.learningOutcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>`
+
+  /**
+   * O par de CTAs que fecha cada seção longa, como no protótipo: laranja para
+   * comprar, verde para falar com gente.
+   *
+   * Sem preço, o laranja sairia apontando para o mesmo WhatsApp do botão ao
+   * lado — dois botões para o mesmo lugar, um deles prometendo matrícula que
+   * ainda não existe. Nesse caso fica só o verde.
+   */
+  const parCtaHtml = `<div class="curso-cta-par">
+      ${temPreco ? `<a class="btn btn-cta" href="${destinoCompra}">QUERO ME MATRICULAR</a>` : ''}
+      <a class="btn btn-wa" href="${wa}" rel="noopener nofollow">${ICONE_WHATSAPP} Quero Falar No Whatsapp</a>
+    </div>`;
+
+  const tldrHtml = co.tldr
+    ? `<div class="curso-tldr"><div class="rotulo">Resumo rápido</div><p>${esc(co.tldr)}</p></div>`
     : '';
-  const forWhomHtml = co.forWhom.length
-    ? `<h2>Para quem é</h2><ul>${co.forWhom.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>`
+
+  const sobreHtml = co.description
+    ? `<h2>Sobre a formação</h2><p class="curso-texto">${esc(co.description)}</p>`
     : '';
-  const currHtml = co.curriculum.length
-    ? `<h2>Ementa</h2><div class="stack" style="gap:10px">${co.curriculum
+
+  const CHECK_SVG =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
+  const colunaForWhom = co.forWhom.length
+    ? `<div><h3>Para quem é</h3><ul class="curso-lista">${co.forWhom
+        .map((f) => `<li><span class="seta" aria-hidden="true">›</span><span>${esc(f)}</span></li>`)
+        .join('')}</ul></div>`
+    : '';
+  const colunaOutcomes = co.learningOutcomes.length
+    ? `<div><h3>O que você desenvolve</h3><ul class="curso-lista">${co.learningOutcomes
+        .map((o) => `<li>${CHECK_SVG}<span>${esc(o)}</span></li>`)
+        .join('')}</ul></div>`
+    : '';
+  const duasColunasHtml =
+    colunaForWhom || colunaOutcomes
+      ? `<div class="curso-duas">${colunaForWhom}${colunaOutcomes}</div>`
+      : '';
+
+  const ementaHtml = co.curriculum.length
+    ? `<h2>Conteúdo do curso</h2><div class="curso-ementa">${co.curriculum
         .map(
           (m) =>
-            `<div class="card" style="padding:16px"><div style="display:flex;gap:12px"><span style="font-weight:800;color:var(--accent)">${esc(m.n)}</span><div><div style="font-weight:700">${esc(m.title)}</div>${m.desc ? `<div style="color:var(--ink-soft);font-size:14px;margin-top:2px">${esc(m.desc)}</div>` : ''}</div></div></div>`,
+            `<div class="curso-ementa-item"><div class="curso-ementa-n">${esc(m.n)}</div><div><div class="t">${esc(m.title)}</div>${m.desc ? `<div class="d">${esc(m.desc)}</div>` : ''}</div></div>`,
         )
         .join('')}</div>`
     : '';
+
+  const destaquesHtml = co.highlights.length
+    ? `<div class="curso-destaques">${co.highlights
+        .map(
+          (h) =>
+            `<div class="curso-destaque"><div class="t">${esc(h.title)}</div>${h.note ? `<div class="n">${esc(h.note)}</div>` : ''}</div>`,
+        )
+        .join('')}</div>`
+    : '';
+
+  const secoesHtml = co.sections
+    .map(
+      (sec) =>
+        `<div class="curso-secao"><h2>${esc(sec.title)}</h2>${sec.subtitle ? `<div class="sub">${esc(sec.subtitle)}</div>` : ''}${sec.paras
+          .map((par) => `<p>${esc(par)}</p>`)
+          .join('')}${sec.cta ? parCtaHtml : ''}</div>`,
+    )
+    .join('');
+
+  const jornadaHtml = co.jornada.length
+    ? `<div class="curso-jornada">${co.jornada
+        .map(
+          (j) =>
+            `<div class="curso-jornada-item"><h3>${esc(j.title)}</h3>${j.subtitle ? `<div class="sub">${esc(j.subtitle)}</div>` : ''}<p>${esc(j.text)}</p></div>`,
+        )
+        .join('')}</div>`
+    : '';
+
   const faqHtml = co.faqs.length
-    ? `<h2>Perguntas frequentes</h2><div class="stack" style="gap:8px">${co.faqs
+    ? `<h2>Perguntas frequentes</h2><div class="curso-faqs">${co.faqs
         .map(
           (f) =>
-            `<div class="card" style="padding:0"><button data-accordion aria-expanded="false" style="width:100%;text-align:left;background:none;border:0;padding:16px;font-weight:700;font-size:15px;cursor:pointer;color:var(--ink);font-family:inherit">${esc(f.q)}</button><div style="max-height:0;overflow:hidden;transition:max-height .25s"><div style="padding:0 16px 16px;color:var(--ink-soft);font-size:14.5px">${esc(f.a)}</div></div></div>`,
+            `<div class="curso-faq"><button data-accordion aria-expanded="false"><span>${esc(f.q)}</span><span class="mais" aria-hidden="true">+</span></button><div class="curso-faq-corpo"><div>${esc(f.a)}</div></div></div>`,
         )
         .join('')}</div>`
     : '';
-  const priceBlock = co.priceFormatted
-    ? `<div style="font-size:30px;font-weight:800">${esc(co.priceFormatted)}</div>${co.installmentFormatted ? `<div style="color:var(--ink-soft);font-size:14px">ou 12x de ${esc(co.installmentFormatted)}</div>` : ''}<div style="color:var(--ink-faint);font-size:12.5px;margin-top:4px">${esc(co.priceNote || '')}</div>`
-    : `<div style="font-size:20px;font-weight:800">Matrículas abertas</div><div style="color:var(--ink-soft);font-size:14px">Fale conosco para condições</div>`;
+
+  /**
+   * Regulamento da promoção (quando houver) e o aviso de formação livre, que é
+   * obrigatório em toda página de curso — ver a seção 7 do inventário de design.
+   */
+  const miudoHtml = `<div class="curso-miudo">${
+    co.promoNote ? `<span class="promo">${esc(co.promoNote)}</span>` : ''
+  }<strong>Aviso importante:</strong> ${YMYL_DISCLAIMER}</div>`;
+
+  const perks = [
+    prazoTexto,
+    co.certificateAvailable ? 'Certificado digital incluso' : '',
+    'Material disponível 24h',
+    'Suporte pelos canais oficiais',
+  ]
+    .filter(Boolean)
+    .map((t) => `<div><span class="ok" aria-hidden="true">✓</span><span>${esc(t)}</span></div>`)
+    .join('');
+
+  const caixaPrecoHtml = temPreco
+    ? `<div class="curso-invest">Investimento · à vista</div>
+       <div class="curso-preco">${esc(co.priceFormatted || '')}</div>
+       ${co.installmentFormatted ? `<div class="curso-parcela">ou ${co.installments}x de ${esc(co.installmentFormatted)}</div>` : ''}
+       ${co.priceNote ? `<div class="curso-preco-nota">${esc(co.priceNote)}</div>` : ''}
+       <a class="btn btn-cta" href="${destinoCompra}">Matricular-se agora</a>
+       <a class="curso-duvida" href="${wa}" rel="noopener nofollow">Tirar dúvidas no WhatsApp</a>`
+    : `<div class="curso-invest">Matrículas abertas</div>
+       <div class="curso-preco-nota" style="margin-top:8px">Este curso ainda não tem matrícula online. Fale com a gente para saber as condições.</div>
+       <a class="btn btn-wa" href="${wa}" rel="noopener nofollow">${ICONE_WHATSAPP} Falar sobre a matrícula</a>`;
+
   const instructorHtml = co.instructorName
     ? `<div class="card" style="margin-top:16px"><div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);font-weight:600">Responsável</div><div style="font-weight:700;margin-top:6px">${esc(co.instructorName)}</div>${co.instructorBio ? `<p style="color:var(--ink-soft);font-size:13.5px;margin-top:6px">${esc(co.instructorBio)}</p>` : ''}</div>`
     : '';
+
   const body = html`
-    <section class="section-tight hero-deep tem-pincel">
-      <div class="wrap" style="max-width:820px">
-        <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
-          <a href="/">Início</a><span>›</span><a href="/formacoes">Formações</a><span>›</span
-          ><span>${co.shortTitle}</span>
+    <section class="curso-hero">
+      <div class="curso-hero-veu"></div>
+      <div class="curso-wrap">
+        <nav class="curso-trilha" aria-label="Trilha">
+          <a href="/">Início</a> / <a href="/formacoes">Cursos</a> /
+          <span class="atual">${co.shortTitle}</span>
         </nav>
-        ${co.badge ? raw(`<span class="eyebrow">${esc(co.badge)}</span>`) : ''}
-        <h1 style="margin:14px 0 12px">${co.title}</h1>
-        ${co.tagline ? html`<p class="lead" style="color:#cfe0dc">${co.tagline}</p>` : ''}
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">${raw(chips)}</div>
+        ${raw(
+          `<span class="curso-pilula">${esc([co.badge, co.level].filter(Boolean).join(' · '))}</span>`,
+        )}
+        <h1>${co.title}</h1>
+        ${co.tagline ? html`<p class="curso-lema">${co.tagline}</p>` : ''}
+        <div class="curso-chips">${raw(chips)}</div>
       </div>
-    ${pincel('var(--paper)')}
+      ${pincel('var(--paper)')}
     </section>
-    <section class="section">
-      <div
-        class="wrap"
-        style="display:grid;grid-template-columns:1fr 340px;gap:36px;align-items:start"
-      >
-        <div class="prose">
-          ${co.tldr
-            ? raw(
-                `<div class="disclaimer" style="margin-bottom:20px"><strong>Em resumo:</strong> ${esc(co.tldr)}</div>`,
-              )
-            : ''}
-          ${co.description
-            ? html`<h2>Sobre a formação</h2>
-                <p>${co.description}</p>`
-            : ''}
-          ${raw(forWhomHtml)} ${raw(outcomesHtml)} ${raw(currHtml)} ${raw(faqHtml)}
-          <div class="disclaimer" style="margin-top:24px">${YMYL_DISCLAIMER}</div>
-        </div>
-        <aside style="position:sticky;top:88px">
-          <div class="card">
-            ${raw(priceBlock)}
-            <a class="btn btn-cta" href="/catalogo" style="width:100%;margin-top:16px"
-              >Matricular-se</a
-            >
-            <a
-              class="btn btn-wa"
-              href="${ORG.whatsapp}"
-              rel="noopener nofollow"
-              style="width:100%;margin-top:10px"
-              >Tirar dúvidas</a
-            >
-            <ul
-              style="list-style:none;padding:0;margin:18px 0 0;display:grid;gap:9px;font-size:14px;color:var(--ink-soft)"
-            >
-              <li>✓ Acesso no seu ritmo</li>
-              <li>✓ Certificado digital</li>
-              <li>✓ Suporte por canais oficiais</li>
-            </ul>
-          </div>
-          ${raw(instructorHtml)}
-        </aside>
+
+    <section class="curso-layout">
+      <div class="curso-corpo">
+        ${raw(tldrHtml)} ${raw(sobreHtml)} ${raw(duasColunasHtml)} ${raw(ementaHtml)}
+        ${raw(destaquesHtml)} ${raw(secoesHtml)} ${raw(jornadaHtml)} ${raw(faqHtml)}
+        ${raw(miudoHtml)}
       </div>
+
+      <aside class="curso-matricula">
+        <div class="caixa">
+          ${raw(caixaPrecoHtml)}
+          <div class="curso-perks">${raw(perks)}</div>
+        </div>
+        <div class="curso-arrependimento">Direito de arrependimento em até 7 dias corridos.</div>
+        ${raw(instructorHtml)}
+      </aside>
     </section>
   `;
   return c.html(
