@@ -668,7 +668,7 @@ publicSite.get('/', async (c) => {
           certificado digital, ética e o reconhecimento da ${ORG.rntp}.
         </p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px">
-          <a class="btn btn-primary" href="/formacoes">Ver cursos</a>
+          <a class="btn btn-cta btn-lg" href="/formacoes">Ver os cursos</a>
           <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow"
             >${ICONE_WHATSAPP} Falar no WhatsApp</a
           >
@@ -737,7 +737,7 @@ publicSite.get('/', async (c) => {
         <p class="lead" style="color:#cfe0dc;margin-bottom:24px">
           Comece sua formação em psicanálise clínica hoje.
         </p>
-        <a class="btn btn-cta" href="/formacoes">Ver cursos e matricular-se</a>
+        <a class="btn btn-cta btn-lg" href="/formacoes">Ver os cursos</a>
       </div>
     </section>
   `;

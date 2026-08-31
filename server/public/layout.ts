@@ -79,6 +79,20 @@ export const ICONE_WHATSAPP = raw(
 );
 
 /**
+ * Ícone do carrinho — o mesmo traço do protótipo do cabeçalho
+ * (`design pagina publicas pco/.../pages/SiteHeader.dc.html`). Pela mesma razão
+ * do WhatsApp acima: aqui havia o emoji `🛒`, que cada sistema desenha de um
+ * jeito, e num deles nem colore. Ícone de compra não pode variar com a máquina
+ * de quem visita.
+ */
+export const ICONE_CARRINHO = raw(
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+    '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>' +
+    '<path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
+);
+
+/**
  * Divisor "pincel": três curvas longas e assimétricas do mesmo tom, em
  * opacidades crescentes, que dissolvem o corte reto entre duas seções.
  *
@@ -147,16 +161,19 @@ function header(active?: string): Html {
                 `<a href="${n.href}"${active === n.key ? ' aria-current="page"' : ''}>${n.label}</a>`,
             ).join(''),
           )}
+          <a class="nav-entrar" href="/login">Entrar</a>
+          <a class="nav-cta" href="/formacoes">Matricular-se</a>
         </nav>
         <div class="header-cta">
           <a class="cart-link" href="/carrinho" aria-label="Carrinho">
-            <span aria-hidden="true">🛒</span>
+            ${raw(ICONE_CARRINHO)}
             <span class="cart-badge" data-count="0" aria-hidden="true">0</span>
           </a>
           <button class="btn-topo" data-theme-toggle type="button" aria-label="Alternar tema">
             ◐
           </button>
           <a class="btn btn-topo-cheio" href="/login">Entrar</a>
+          <a class="btn btn-cta btn-topo-cta" href="/formacoes">Matricular-se</a>
           <button
             class="menu-toggle"
             data-menu-toggle

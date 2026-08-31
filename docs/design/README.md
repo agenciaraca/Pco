@@ -1,5 +1,19 @@
 # Design — a fonte, e por que ela mora aqui
 
+> ⚠️ **Esta pasta é uma cópia PARCIAL e mais VELHA. A fonte é outra.**
+>
+> O pacote completo e atual está em
+> **`design pagina publicas pco/design_handoff_ava_paginas_publicas/`**, na raiz
+> do repositório — e também é versionado. Ele tem 17 artboards (aqui há 9),
+> mais `assets/`, `seo/` e `data/cart.js`, e traz `SiteHeader.dc.html` e
+> `SiteFooter.dc.html`, que **não existem aqui** — justamente as peças que
+> definem botão, carrinho e a CTA do topo.
+>
+> Em 31/ago/2026 o dono atualizou aquele pacote e apontou que os botões e as
+> chamadas não estavam no padrão. Estavam mesmo: o que tinha sido transposto
+> vinha da cópia desta pasta, que é anterior. **Antes de transpor qualquer
+> tela, leia o pacote da raiz**; use esta pasta só para entender o histórico.
+
 O desenho do site **não nasce neste repositório**. Ele vive num projeto do
 Claude Design, criado e aprovado pelo dono:
 

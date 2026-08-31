@@ -90,17 +90,39 @@ p{margin:0}
 .section-tight{padding:clamp(32px,4vw,56px) 0}
 .card{background:var(--raise);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:26px}
 .grid{display:grid;gap:20px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;
-  border-radius:999px;padding:14px 28px;font-weight:700;font-size:15px;cursor:pointer;border:1.5px solid transparent;transition:transform .12s ease,filter .12s ease;font-family:inherit}
+/* Botão — a medida e os cinco estados vêm de docs/design/pages/Componentes.dc.html.
+   Antes daqui existiam três variantes e nenhum estado: desabilitado ficava
+   igual a habilitado, carregando não existia e o foco era o contorno cru do
+   :focus-visible global, em vez do anel macio do desenho. */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:999px;padding:13px 24px;font-weight:700;font-size:15px;cursor:pointer;border:1.5px solid transparent;
+  transition:transform .12s ease,filter .12s ease,background .15s ease,border-color .15s ease,color .15s ease;font-family:inherit}
 .btn:hover{filter:brightness(1.05)}.btn:active{transform:translateY(1px)}
-.btn-primary{background:var(--accent);color:var(--on-accent)}
-.btn-outline{border-color:var(--line);color:var(--ink);background:var(--raise)}
+.btn:focus-visible{outline:3px solid var(--accent-soft);outline-offset:2px}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed;box-shadow:none!important;filter:none;transform:none}
+.btn[data-carregando]{pointer-events:none}
+.btn-spin{width:16px;height:16px;flex:none;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
+  animation:btn-spin 1s linear infinite}
+.btn-outline .btn-spin,.btn-ghost .btn-spin{border-color:var(--line);border-top-color:var(--accent)}
+@keyframes btn-spin{to{transform:rotate(360deg)}}
+.btn-primary{background:var(--accent);color:var(--on-accent);box-shadow:0 8px 22px rgba(0,151,178,.28)}
+.btn-primary:hover{background:var(--accent-ink);filter:none}
+.btn-outline{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent-ink);filter:none}
+/* Ghost: ação terciária. Faltava, e no lugar dela entrava outline — o que dava
+   peso de ação secundária a link de apoio. */
+.btn-ghost{background:transparent;color:var(--accent-ink);padding:13px 16px}
+.btn-ghost:hover{background:var(--accent-soft);filter:none}
 /* CTA de conversão (matrícula, checkout, entrar no AVA): degradê laranja.
    O laranja é detalhe de identidade — usado só onde há decisão de compra. */
-.btn-cta{background:var(--cta-gradient);color:#fff;font-weight:700;box-shadow:0 12px 30px rgba(255,145,77,.35)}
-.btn-cta:hover{filter:brightness(1.04)}
-.btn-wa{background:#25d366;color:#fff;box-shadow:0 10px 26px rgba(37,211,102,.35)}
+.btn-cta{background:var(--cta-gradient);color:#fff;font-weight:700;box-shadow:0 10px 26px rgba(255,145,77,.32)}
+.btn-cta:hover{filter:brightness(1.05)}
+.btn-wa{background:var(--wa);color:#fff;box-shadow:0 8px 22px rgba(37,211,102,.3)}
 .btn-wa svg{width:18px;height:18px;flex:none}
+/* O desenho usa três tamanhos, não um: padrão (13/24), o par de CTAs da página
+   do curso (14/26) e o do herói (17/34), que é o maior da casa. */
+.btn-lg{padding:17px 34px;font-size:16px}
+.btn-cta.btn-lg{box-shadow:0 12px 30px rgba(255,145,77,.4)}
 .tag-categoria{color:var(--brand-orange-ink);text-transform:uppercase;letter-spacing:.06em;font-size:11.5px;font-weight:700;background:var(--brand-orange-soft);border-color:transparent}
 .tag-chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-soft);
   background:var(--surface-2);border:1px solid var(--line-soft);padding:5px 11px;border-radius:8px}
@@ -117,9 +139,17 @@ p{margin:0}
 .nav a:hover{background:rgba(255,255,255,.12);color:#fff}
 .nav a[aria-current="page"]{background:rgba(255,255,255,.2);color:#fff}
 .header-cta{display:flex;align-items:center;gap:8px;flex:none}
-.cart-link{position:relative;display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:9px;font-size:14.5px;color:rgba(255,255,255,.85)}
-.cart-link:hover{background:rgba(255,255,255,.12);color:#fff}
-.cart-badge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--brand-orange);color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center}
+/* Carrinho: botão redondo com contorno, como no protótipo do cabeçalho. Era um
+   emoji num retângulo — e emoji muda de desenho conforme o sistema de quem
+   olha, então nunca é o desenho aprovado. */
+.cart-link{position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);color:#fff}
+.cart-link:hover{background:rgba(255,255,255,.15);color:#fff}
+.cart-link svg{width:19px;height:19px;flex:none}
+/* O protótipo põe a contagem em ciano; aqui a barra JÁ é o degradê ciano, e
+   ciano sobre ciano some. Fica no laranja, que é a cor de comércio da marca. */
+.cart-badge{position:absolute;top:-4px;right:-4px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;
+  background:var(--brand-orange);color:#fff;font-size:11.5px;font-weight:700;display:none;align-items:center;justify-content:center;line-height:1}
 .cart-badge[data-count]:not([data-count="0"]){display:inline-flex}
 /* Botões do topo: vivem sobre o degradê, então não usam as variantes claras. */
 .btn-topo{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;
@@ -128,6 +158,14 @@ p{margin:0}
 .btn-topo-cheio{background:#fff;color:var(--brand-deep);border-radius:999px;padding:9px 20px;
   font-weight:700;font-size:14.5px;border:0}
 .btn-topo-cheio:hover{background:rgba(255,255,255,.9)}
+/* CTA de conversão no topo. O protótipo do cabeçalho traz "Matricular-se" no
+   degradê laranja; aqui ele é o único ponto laranja da barra, e é o que faltava:
+   o topo de toda página levava só para o login, nunca para a compra. Menor que
+   o .btn de corpo de página, para caber ao lado do menu. */
+.btn-topo-cta{padding:10px 20px;font-size:14.5px;box-shadow:0 6px 18px rgba(255,145,77,.35)}
+/* As duas portas — comprar e entrar — dentro do menu aberto, para as telas em
+   que não cabem na barra. Escondidas por padrão; a media query as acende. */
+.nav-cta,.nav-entrar{display:none}
 .menu-toggle{display:none;background:none;border:1px solid rgba(255,255,255,.35);border-radius:9px;padding:8px 10px;cursor:pointer;color:#fff}
 /* ---- hero deep ---- */
 .hero-deep{background:var(--brand-gradient);color:var(--on-deep);position:relative}
@@ -228,6 +266,40 @@ p{margin:0}
   .two-col,.three-col{grid-template-columns:1fr}
   .site-footer .cols{grid-template-columns:1fr 1fr;gap:28px}
   .nav.open{display:flex;position:absolute;top:64px;left:0;right:0;flex-direction:column;align-items:stretch;background:var(--brand-deep);padding:12px 24px;gap:2px}
+  /* No celular a CTA sai da barra e entra no menu aberto — igual ao protótipo,
+     que também não empilha CTA e login lado a lado em tela estreita. */
+  .btn-topo-cta{display:none}
+  .nav.open .nav-cta{display:block;margin-top:12px;text-align:center;background:var(--cta-gradient);
+    color:#fff;font-weight:700;border-radius:999px;padding:13px 14px}
+  .nav.open .nav-cta:hover{background:var(--cta-gradient);filter:brightness(1.05)}
+}
+/* Faixa apertada: o menu inteiro ainda aparece (só some abaixo de 900px), e
+   agora divide a barra com carrinho, tema, "Entrar" e a CTA de matrícula. Em
+   vez de esconder algo, tudo encolhe um degrau — é o que cabe sem cortar. */
+@media (min-width:901px) and (max-width:1120px){
+  .nav a{padding:8px 9px;font-size:13.5px}
+  .btn-topo-cta{padding:9px 16px;font-size:14px}
+  .btn-topo-cheio{padding:9px 15px;font-size:14px}
+  .header-cta{gap:7px}
+  .brand img{height:30px}
+}
+/* Último degrau antes de o menu virar hambúrguer (900px): aqui os seis itens
+   ainda estão na barra e cada pixel conta. Medido: sem isto a barra estoura
+   por 5px em 920. */
+@media (min-width:901px) and (max-width:959px){
+  .nav a{padding:8px 6px;font-size:13px}
+  .btn-topo-cta{padding:9px 13px}
+  .btn-topo-cheio{padding:9px 12px}
+}
+/* Abaixo de 560px a barra não comporta logo + carrinho + tema + "Entrar" +
+   menu: o botão do menu saía pela direita da tela e ficava inalcançável.
+   "Entrar" desce para dentro do menu, junto da CTA. */
+@media (max-width:560px){
+  .site-header .bar{gap:10px}
+  .header-cta{gap:6px}
+  .header-cta .btn-topo-cheio{display:none}
+  .nav.open .nav-entrar{display:block;margin-top:10px;text-align:center;background:#fff;
+    color:var(--brand-deep);font-weight:700;border-radius:999px;padding:12px 14px}
 }
 @media (max-width:860px){.site-footer .cols,.site-footer .cols.cols-2{grid-template-columns:1fr}.rodape-privacidade{text-align:center;align-items:center}}
 
@@ -295,6 +367,7 @@ p{margin:0}
 .curso-secao .sub{font-weight:600;color:var(--accent-ink);font-size:16px;margin-bottom:10px}
 .curso-secao p{font-size:16.5px;line-height:1.7;color:var(--ink-soft);margin:0 0 16px}
 .curso-cta-par{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.curso-cta-par .btn{padding:14px 26px}
 /* jornada */
 .curso-jornada{display:flex;flex-direction:column;gap:18px;margin-bottom:44px}
 .curso-jornada-item{background:var(--raise);border:1px solid var(--line);border-radius:var(--radius);
@@ -412,9 +485,17 @@ p{margin:0}
 .ck-campos{display:flex;flex-direction:column;gap:16px}
 .ck-dupla{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .lbl{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}
-.fi{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;
-  background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit}
-.fi:focus-visible{outline:2.5px solid var(--accent);outline-offset:1px;border-color:transparent}
+/* Campo — mesma fonte do botão: Componentes.dc.html. O foco é anel macio sobre
+   a borda de acento, não contorno que apaga a borda; e faltavam desabilitado e
+   erro, então campo bloqueado e campo com erro ficavam iguais a campo normal.
+   Erro nunca é só cor: a mensagem vai em .fi-erro, ao lado do estado. */
+.fi{width:100%;padding:13px 15px;border:1.5px solid var(--line);border-radius:var(--radius-sm);
+  background:var(--raise);color:var(--ink);font-size:15px;font-family:inherit;
+  transition:border-color .15s ease,box-shadow .15s ease}
+.fi:focus,.fi:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.fi[disabled],.fi[readonly]{background:var(--surface-2);color:var(--ink-faint);cursor:not-allowed}
+.fi.err,.fi[aria-invalid="true"]{border-color:var(--crit);box-shadow:0 0 0 3px var(--crit-bg)}
+.fi-erro{display:block;margin-top:6px;font-size:13px;font-weight:600;color:var(--crit)}
 .fi::placeholder{color:var(--ink-faint)}
 /* Onde o pagamento realmente acontece. */
 .ck-provedor{display:flex;gap:16px;align-items:flex-start;background:var(--paper);

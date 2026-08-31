@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Common commands
 
-Repo root é `C:\ia\dev\pco\` — `package.json`, `.git` e todas as pastas (`src/`, `server/`, `shared/`, `api/`, etc.) ficam aqui. Não existe mais subpasta `Pco/` (consolidado em 2026-05-22).
+Repo root é `H:\ia\dev\pco\` — `package.json`, `.git` e todas as pastas (`src/`, `server/`, `shared/`, `api/`, etc.) ficam aqui. Não existe mais subpasta `Pco/` (consolidado em 2026-05-22).
 
 ```bash
 npm run dev            # concurrent: Vite (5173) + Hono dev server (3001)
@@ -238,8 +238,12 @@ publicado — decisão do dono.
 ## O desenho do site vem de fora do repositório
 
 A referência visual **não é o código**: é um projeto do Claude Design aprovado
-pelo dono ("Inspiração Loyalist College"). Uma cópia dos arquivos que importam
-está em **`docs/design/`** — comece pelo `docs/design/README.md`.
+pelo dono ("Inspiração Loyalist College"). O pacote completo e atual é
+**`design pagina publicas pco/design_handoff_ava_paginas_publicas/`** (17
+artboards, `tokens.css`, `assets/`, `seo/`) — comece pelo `README-HANDOFF.md`
+dele. `docs/design/` é uma cópia **parcial e mais velha** (9 artboards, sem
+`SiteHeader`/`SiteFooter`); em 31/ago/2026 foi ela que fez os botões e as CTAs
+saírem fora do padrão.
 
 Isso está escrito aqui porque já custou: em 30/ago/2026 só o resumo
 (`CHANGELOG-design.md`) foi aplicado, o handoff completo nunca chegou ao
