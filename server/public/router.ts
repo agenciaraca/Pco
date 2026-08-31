@@ -680,86 +680,106 @@ publicSite.get('/formacoes', async (c) => {
   const courses = await listPublicCourses();
 
   /**
-   * Cartão de curso — o desenho vem do `/catalogo` (React), que era a melhor
-   * versão das duas que existiam. A URL é que ficou desta: `/formacoes` tem
-   * histórico na busca, e trocá-la jogaria isso fora.
+   * Linha de curso — transposição de `docs/design/pages/Cursos.dc.html`.
    *
-   * A capa é imagem quando existe e degradê da cor do curso quando não —
-   * nunca um quadrado chapado, que era o que tornava a lista antiga
-   * indistinguível de uma tabela.
+   * A lista era uma grade de cartões (desenho herdado do `/catalogo`). O
+   * protótipo aprovado troca por linhas largas: capa à esquerda; à direita
+   * título, resumo, pastilhas, preço e as duas ações. É aqui que a pessoa
+   * escolhe entre as formações, e cartão pequeno não dá espaço para comparar.
+   *
+   * O protótipo põe "Adicionar ao carrinho" como ação laranja. **Não existe
+   * página de carrinho neste site** — só o contador no topo. Botão que não
+   * leva a lugar nenhum foi exatamente o defeito consertado no
+   * "Matricular-se" da página do curso, então aqui a ação laranja vai direto
+   * ao checkout, e some quando o curso não tem preço.
    */
-  const cartao = (co: (typeof courses)[number]): string => {
+  const linha = (co: (typeof courses)[number]): string => {
     const capa = co.coverImageUrl
-      ? `<img src="${esc(co.coverImageUrl)}" alt="" loading="lazy" decoding="async" class="capa-img" />`
+      ? `<img src="${esc(co.coverImageUrl)}" alt="" loading="lazy" decoding="async" />`
       : '';
-    const fundo = co.coverImageUrl
-      ? 'background:var(--brand-deep)'
-      : `background:linear-gradient(135deg,${esc(co.coverColor || 'var(--accent)')},var(--brand-deep))`;
 
-    const meta = [
+    const chips = [
       co.modules ? `${co.modules} módulo${co.modules === 1 ? '' : 's'}` : '',
       co.lessons ? `${co.lessons} aula${co.lessons === 1 ? '' : 's'}` : '',
-      co.totalHours ? `${co.totalHours}h` : '',
-    ].filter(Boolean);
+      co.totalHours ? `${co.totalHours} horas/aula` : '',
+      'Certificado digital',
+    ]
+      .filter(Boolean)
+      .map((t) => `<span>${esc(t)}</span>`)
+      .join('');
 
-    // Sem preço a linha inteira sai, em vez de mostrar "A partir de" vazio.
+    // Sem preço não se inventa número: fica o rótulo honesto, e a ação laranja
+    // sai de cena — quem decide sem preço fala com gente, na página do curso.
     const preco = co.priceFormatted
       ? `<div>
-           <div class="preco-rotulo">A partir de</div>
-           <div class="preco-valor">${esc(co.priceFormatted)}</div>
+           <div class="curso-linha-preco">${esc(co.priceFormatted)}</div>
            ${
              co.installmentFormatted
-               ? `<div class="preco-parcela">ou 12x ${esc(co.installmentFormatted)}</div>`
+               ? `<div class="curso-linha-parcela">ou ${co.installments}x de ${esc(co.installmentFormatted)}</div>`
                : ''
            }
          </div>`
-      : '<div><div class="preco-rotulo">Investimento</div><div class="preco-consulte">Consulte</div></div>';
+      : `<div>
+           <div class="curso-linha-preco">Matrículas abertas</div>
+           <div class="curso-linha-parcela">condições pelos canais oficiais</div>
+         </div>`;
+
+    const href = `/formacao/${esc(co.slug)}`;
+    const matricular =
+      co.priceCents != null
+        ? `<a class="btn btn-cta" href="/checkout?curso=${esc(co.slug)}">Matricular-se</a>`
+        : '';
 
     return `
-    <a class="curso-cartao" href="/formacao/${esc(co.slug)}">
-      <div class="curso-capa" style="${fundo}">
+    <article class="curso-linha">
+      <a class="curso-linha-capa" href="${href}" aria-label="${esc(co.title)}">
         ${capa}
-        <div class="curso-brilho" aria-hidden="true"></div>
-        ${co.badge ? `<span class="curso-selo">${esc(co.badge)}</span>` : ''}
-        <div class="curso-capa-texto">
-          <span class="curso-etiqueta">${esc(co.shortTitle || co.title)}</span>
-          <h3>${esc(co.title)}</h3>
-        </div>
-      </div>
-      <div class="curso-corpo">
-        <p class="curso-desc">${esc(co.tagline || co.description || '')}</p>
-        ${
-          meta.length
-            ? `<div class="curso-meta">${meta.map((m) => `<span>${m}</span>`).join('')}</div>`
-            : ''
-        }
-        <div class="curso-rodape">
+        ${co.badge ? `<span class="curso-linha-selo">${esc(co.badge)}</span>` : ''}
+      </a>
+      <div class="curso-linha-corpo">
+        <a class="curso-linha-titulo" href="${href}">${esc(co.title)}</a>
+        <p class="curso-linha-resumo">${esc(co.tagline || co.description || '')}</p>
+        <div class="curso-linha-chips">${chips}</div>
+        <div class="curso-linha-rodape">
           ${preco}
-          <span class="curso-acao">Ver curso →</span>
+          <div class="curso-linha-acoes">
+            <a class="btn btn-outline" href="${href}">Ver curso</a>
+            ${matricular}
+          </div>
         </div>
       </div>
-    </a>`;
+    </article>`;
   };
 
   const body = html`
-    <section class="section-tight hero-deep tem-pincel">
-      <div class="wrap">
-        <nav class="breadcrumb" aria-label="Trilha" style="color:#cfe7ee">
-          <a href="/">Início</a><span>›</span><span>Cursos</span>
-        </nav>
-        <span class="eyebrow">Nossos cursos</span>
-        <h1 style="margin:14px 0 12px">Cursos de psicanálise clínica e áreas afins</h1>
-        <p class="lead" style="max-width:56ch">
-          Formações livres, estruturadas e no seu ritmo, com certificado digital.
-        </p>
-      </div>
-      ${pincel('var(--paper)')}
+    <section class="lista-topo">
+      <nav class="lista-trilha" aria-label="Trilha">
+        <a href="/">Início</a> / <span class="atual">Cursos</span>
+      </nav>
+      <span class="eyebrow">Formações online</span>
+      <h1>Escolha a formação certa para o seu momento</h1>
+      <p class="lead">
+        Todas as formações são 100% online, com estudo no seu ritmo, certificado digital e suporte
+        pelos canais oficiais. Cada curso tem uma página com ementa completa e valores.
+      </p>
     </section>
-    <section class="section">
-      <div class="wrap">
-        ${courses.length
-          ? html`<div class="cursos-grade">${raw(courses.map(cartao).join(''))}</div>`
-          : raw('<p style="color:var(--ink-soft)">Em breve novos cursos.</p>')}
+
+    <section class="lista-cursos">
+      ${courses.length
+        ? raw(courses.map(linha).join(''))
+        : raw('<p style="color:var(--ink-soft)">Em breve novos cursos.</p>')}
+    </section>
+
+    <section class="lista-ajuda">
+      <div class="dentro">
+        <h2>Não sabe por onde começar?</h2>
+        <p>
+          Fale com a nossa equipe pelo WhatsApp. Ajudamos você a escolher a formação mais adequada
+          ao seu objetivo — sem compromisso.
+        </p>
+        ${raw(
+          `<a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow">${ICONE_WHATSAPP} Falar no WhatsApp</a>`,
+        )}
       </div>
     </section>
   `;
@@ -1031,63 +1051,132 @@ publicSite.get('/checkout', async (c) => {
   const co = slug ? await getPublicCourseBySlug(slug) : null;
   if (!co) return c.redirect('/formacoes', 302);
   const forSale = co.priceCents != null;
-  const summary = `
-    <div class="card">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);font-weight:600">Sua matrícula</div>
-      <h3 style="font-size:18px;margin:8px 0 10px">${esc(co.title)}</h3>
+
+  /**
+   * Checkout — transposição de `docs/design/pages/Checkout.dc.html`.
+   *
+   * Duas coisas do protótipo NÃO vieram, e a razão é a mesma nas duas:
+   *
+   * 1. **Campos de cartão** (número, validade, CVV). O checkout deste projeto é
+   *    hospedado: o site coleta identificação e consentimento, cria o pedido e
+   *    manda para a página do provedor, que é quem vê o cartão. Copiar os
+   *    campos criaria escopo de PCI que o projeto não tem — e o próprio
+   *    protótipo diz, na nota de integração, que ali é o ponto de plugar o
+   *    gateway real. O passo 2 explica onde o pagamento acontece.
+   * 2. **"Ambiente de demonstração — nenhuma cobrança real é feita."** No
+   *    protótipo é verdade; aqui a cobrança é real. Manter a frase seria a pior
+   *    espécie de tela que mente.
+   */
+  const garantias = [
+    'Acesso imediato após a confirmação',
+    co.certificateAvailable ? 'Certificado digital incluso' : '',
+    'Direito de arrependimento em 7 dias',
+  ]
+    .filter(Boolean)
+    .map((t) => `<div><span class="ok" aria-hidden="true">✓</span><span>${esc(t)}</span></div>`)
+    .join('');
+
+  const resumo = `
+    <aside class="ck-resumo">
+      <h2>Sua matrícula</h2>
       ${
         forSale
-          ? `<div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line-soft);padding-top:12px;margin-top:12px">
-               <span style="color:var(--ink-soft)">Total</span>
-               <span style="font-size:24px;font-weight:800">${esc(co.priceFormatted || '')}</span>
+          ? `<div class="ck-itens">
+               <div class="ck-item">
+                 <span class="nome">${esc(co.title)}</span>
+                 <span class="valor">${esc(co.priceFormatted || '')}</span>
+               </div>
              </div>
-             ${co.installmentFormatted ? `<div style="text-align:right;color:var(--ink-soft);font-size:13px">ou 12x de ${esc(co.installmentFormatted)}</div>` : ''}`
-          : '<p style="color:var(--ink-soft);font-size:14px;margin-top:8px">Este curso ainda não está com matrícula online. Fale com a gente pelo WhatsApp.</p>'
+             <div class="ck-total">
+               <span class="rotulo">Total</span>
+               <span class="valor">${esc(co.priceFormatted || '')}</span>
+             </div>
+             ${
+               co.installmentFormatted
+                 ? `<div style="text-align:right;color:var(--ink-soft);font-size:13px;margin-top:4px">ou ${co.installments}x de ${esc(co.installmentFormatted)}</div>`
+                 : ''
+             }
+             <div class="ck-garantias">${garantias}</div>`
+          : `<p style="color:var(--ink-soft);font-size:14px">Este curso ainda não tem matrícula online. Fale com a gente pelo WhatsApp.</p>`
       }
-    </div>`;
+    </aside>`;
+
+  const CADEADO_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+
   const form = forSale
     ? `
-    <form data-checkout data-slug="${esc(co.slug)}" class="card" style="display:grid;gap:14px">
-      <div>
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Nome completo</label>
-        <input name="name" required minlength="2" autocomplete="name" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit">
-      </div>
-      <div>
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">E-mail</label>
-        <input name="email" type="email" required autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div>
-          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">WhatsApp</label>
-          <input name="whatsapp" autocomplete="tel" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit">
+    <form data-checkout data-slug="${esc(co.slug)}" class="ck-coluna">
+      <div class="ck-bloco">
+        <h2>1. Seus dados</h2>
+        <div class="ck-campos">
+          <div>
+            <label class="lbl" for="ck-nome">Nome completo</label>
+            <input class="fi" id="ck-nome" name="name" required minlength="2" autocomplete="name" placeholder="Seu nome">
+          </div>
+          <div class="ck-dupla">
+            <div>
+              <label class="lbl" for="ck-email">E-mail</label>
+              <input class="fi" id="ck-email" name="email" type="email" required autocomplete="email" placeholder="voce@email.com">
+            </div>
+            <div>
+              <label class="lbl" for="ck-zap">WhatsApp</label>
+              <input class="fi" id="ck-zap" name="whatsapp" autocomplete="tel" placeholder="(00) 00000-0000">
+            </div>
+          </div>
+          <div>
+            <label class="lbl" for="ck-cpf">CPF</label>
+            <input class="fi" id="ck-cpf" name="document" inputmode="numeric" placeholder="000.000.000-00">
+          </div>
         </div>
-        <div>
-          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">CPF</label>
-          <input name="document" inputmode="numeric" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit">
+      </div>
+
+      <div class="ck-bloco">
+        <h2>2. Pagamento</h2>
+        <div class="ck-provedor">
+          <span class="selo">${CADEADO_SVG}</span>
+          <span>
+            O pagamento é feito na página segura do provedor. Ao continuar, você escolhe
+            lá a forma de pagamento disponível — cartão, Pix ou boleto, conforme o provedor.
+            <strong>Nenhum dado de cartão é digitado ou guardado neste site.</strong>
+          </span>
         </div>
       </div>
-      <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--ink-soft);cursor:pointer">
-        <input type="checkbox" name="consent" required style="margin-top:3px">
-        <span>Concordo com os <a href="/termos" style="color:var(--accent)">Termos</a> e a <a href="/privacidade" style="color:var(--accent)">Política de Privacidade</a> (LGPD).</span>
+
+      <label class="ck-lgpd">
+        <input type="checkbox" name="consent" required>
+        <span>Li e concordo com os <a href="/termos">Termos de Uso</a> e a
+          <a href="/privacidade">Política de Privacidade</a>. Autorizo o tratamento dos meus
+          dados conforme a LGPD para fins de matrícula e comunicação.</span>
       </label>
-      <button type="submit" data-checkout-submit class="btn btn-cta" style="width:100%">Ir para o pagamento</button>
-      <p data-checkout-error role="alert" style="display:none;color:var(--crit);font-size:13.5px;margin:0"></p>
-      <p style="color:var(--ink-faint);font-size:12px;margin:0;text-align:center">Pagamento processado com segurança pelo gateway. Você recebe um e-mail para definir sua senha de acesso.</p>
+
+      <p data-checkout-error role="alert" class="ck-erro" style="display:none"></p>
+
+      <button type="submit" data-checkout-submit class="btn btn-cta ck-pagar">Ir para o pagamento</button>
+
+      <p class="ck-nota">
+        Você recebe um e-mail para definir sua senha de acesso. O acesso é liberado após a
+        confirmação do pagamento.
+      </p>
     </form>`
-    : `<a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow" style="width:100%">${ICONE_WHATSAPP} Falar no WhatsApp</a>`;
+    : `<div class="ck-coluna"><div class="ck-bloco">
+         <h2>Matrícula por atendimento</h2>
+         <p style="color:var(--ink-soft);font-size:15px;line-height:1.6;margin-bottom:20px">
+           Este curso ainda não está com matrícula online. Fale com a nossa equipe e a gente
+           conduz sua matrícula pelos canais oficiais.
+         </p>
+         <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow">${ICONE_WHATSAPP} Falar no WhatsApp</a>
+       </div></div>`;
+
   const body = html`
-    <section class="section">
-      <div class="wrap" style="max-width:920px">
-        <nav class="breadcrumb" aria-label="Trilha">
-          <a href="/">Início</a><span>›</span><a href="/formacoes">Formações</a><span>›</span
-          ><a href="/formacao/${co.slug}">${co.shortTitle}</a><span>›</span><span>Checkout</span>
-        </nav>
-        <h1 style="margin:8px 0 24px">Finalizar matrícula</h1>
-        <div style="display:grid;grid-template-columns:1fr 340px;gap:28px;align-items:start">
-          <div>${raw(form)}</div>
-          <aside style="position:sticky;top:88px">${raw(summary)}</aside>
-        </div>
-      </div>
+    <section class="ck-wrap">
+      <nav class="ck-trilha" aria-label="Trilha">
+        <a href="/">Início</a> / <a href="/formacoes">Cursos</a> /
+        <a href="/formacao/${co.slug}">${co.shortTitle}</a> / <span class="atual">Checkout</span>
+      </nav>
+      <h1>Finalizar matrícula</h1>
+      <p class="ck-sub">${co.title}</p>
+      <div class="ck-layout">${raw(form)} ${raw(resumo)}</div>
     </section>
   `;
   return c.html(

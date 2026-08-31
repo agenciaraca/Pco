@@ -332,4 +332,129 @@ p{margin:0}
   .curso-matricula{position:static}
   .curso-duas{grid-template-columns:1fr}
 }
+
+/* ================= LISTA DE FORMACOES (protótipo aprovado) =================
+   Transposição de docs/design/pages/Cursos.dc.html.
+
+   A lista era grade de cartões (o desenho vindo do /catalogo). O protótipo
+   aprovado troca por LINHAS largas: capa à esquerda, e à direita título,
+   resumo, pastilhas, preço e as duas ações. Cabe muito mais informação por
+   curso — que é o ponto, porque é aqui que a pessoa escolhe.
+   As classes .curso-cartao continuam existindo: outras telas ainda as usam. */
+.lista-topo{max-width:1160px;margin:0 auto;padding:60px 28px 20px}
+.lista-trilha{font-size:13px;color:var(--ink-soft);margin-bottom:22px}
+.lista-trilha .atual{color:var(--ink)}
+.lista-topo h1{font-size:clamp(34px,4.6vw,56px);color:var(--ink);margin:14px 0 16px;
+  line-height:1.08;letter-spacing:-.8px;max-width:18ch;text-wrap:balance}
+.lista-topo .lead{font-size:18px;color:var(--ink-soft);line-height:1.6;max-width:640px}
+.lista-cursos{max-width:1160px;margin:0 auto;padding:40px 28px 90px;
+  display:flex;flex-direction:column;gap:26px}
+.curso-linha{background:var(--raise);border:1px solid var(--line-soft);border-radius:24px;
+  overflow:hidden;box-shadow:0 10px 34px var(--accent-soft);display:grid;grid-template-columns:.9fr 1.4fr}
+.curso-linha-capa{min-height:240px;position:relative;display:block;
+  background-color:#0b7486;
+  background-image:linear-gradient(135deg,rgba(0,151,178,.55),rgba(11,116,134,.9)),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 14px,rgba(255,255,255,0) 14px 28px)}
+.curso-linha-capa img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.curso-linha-selo{position:absolute;top:18px;left:18px;z-index:2;background:rgba(255,255,255,.92);
+  color:var(--ink);font-size:12px;font-weight:700;padding:6px 14px;border-radius:999px}
+.curso-linha-corpo{padding:36px}
+.curso-linha-titulo{font-size:28px;font-weight:700;color:var(--ink);line-height:1.15;display:block}
+.curso-linha-titulo:hover{color:var(--accent)}
+.curso-linha-resumo{font-size:16px;color:var(--ink-soft);line-height:1.6;margin:12px 0 18px}
+.curso-linha-chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
+.curso-linha-chips span{font-size:13px;font-weight:600;color:var(--ink);background:var(--accent-soft);
+  padding:7px 14px;border-radius:999px}
+.curso-linha-rodape{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.curso-linha-preco{font-size:26px;font-weight:700;color:var(--ink)}
+.curso-linha-parcela{font-size:13px;color:var(--ink-soft)}
+.curso-linha-acoes{display:flex;gap:10px;flex-wrap:wrap}
+.curso-linha-acoes .btn{padding:13px 24px;font-size:15px}
+/* bloco "Não sabe por onde começar?" */
+.lista-ajuda{background:var(--raise);border-top:1px solid var(--line-soft);padding:70px 28px}
+.lista-ajuda .dentro{max-width:820px;margin:0 auto;text-align:center}
+.lista-ajuda h2{font-size:28px;color:var(--ink);margin-bottom:12px}
+.lista-ajuda p{font-size:16px;color:var(--ink-soft);line-height:1.6;margin-bottom:24px}
+@media (max-width:860px){
+  .curso-linha{grid-template-columns:1fr}
+  .curso-linha-capa{min-height:170px}
+  .curso-linha-corpo{padding:26px}
+}
+
+/* ================= CHECKOUT (protótipo aprovado) =================
+   Transposição de docs/design/pages/Checkout.dc.html — a estrutura e o estilo.
+
+   O protótipo desenha campos de cartão (número, validade, CVV) e se anuncia
+   como "ambiente de demonstração", com uma nota dizendo para plugar o gateway
+   no lugar do finish(). O checkout real deste projeto é HOSPEDADO: o site
+   coleta identificação e consentimento, cria o pedido e manda para a página do
+   provedor. Nenhum dado de cartão passa por aqui, e é assim que fica — trazer
+   os campos do protótipo criaria escopo de PCI que o projeto não tem e não
+   quer. Por isso o passo 2 explica onde o pagamento acontece, em vez de
+   simular um formulário que não é usado. */
+.ck-wrap{max-width:1120px;margin:0 auto;padding:50px 28px 90px}
+.ck-trilha{font-size:13px;color:var(--ink-soft);margin-bottom:18px}
+.ck-trilha .atual{color:var(--ink)}
+.ck-wrap h1{font-size:clamp(30px,4vw,44px);color:var(--ink);letter-spacing:-.6px;margin-bottom:8px}
+.ck-sub{font-size:15px;color:var(--ink-soft);margin-bottom:34px}
+.ck-layout{display:grid;grid-template-columns:1.5fr 1fr;gap:40px;align-items:start}
+.ck-coluna{display:flex;flex-direction:column;gap:28px}
+.ck-bloco{background:var(--raise);border:1px solid var(--line-soft);border-radius:20px;padding:30px}
+.ck-bloco h2{font-size:19px;color:var(--ink);margin-bottom:20px}
+.ck-campos{display:flex;flex-direction:column;gap:16px}
+.ck-dupla{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.fi{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;
+  background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit}
+.fi:focus-visible{outline:2.5px solid var(--accent);outline-offset:1px;border-color:transparent}
+.fi::placeholder{color:var(--ink-faint)}
+/* Onde o pagamento realmente acontece. */
+.ck-provedor{display:flex;gap:16px;align-items:flex-start;background:var(--paper);
+  border-radius:14px;padding:20px;font-size:14px;color:var(--ink-soft);line-height:1.6}
+.ck-provedor .selo{width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:var(--accent-soft);color:var(--accent)}
+.ck-provedor .selo svg{width:22px;height:22px}
+.ck-lgpd{display:flex;gap:12px;align-items:flex-start;font-size:14px;color:var(--ink-soft);
+  line-height:1.5;cursor:pointer}
+.ck-lgpd input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+.ck-lgpd a{color:var(--accent)}
+.ck-erro{background:var(--crit-bg);border:1px solid var(--crit-line);color:var(--crit);
+  border-radius:12px;padding:14px 18px;font-size:14px}
+.ck-pagar{padding:18px;font-size:17px;width:100%}
+.ck-nota{font-size:12px;color:var(--ink-faint);text-align:center;line-height:1.5}
+/* resumo */
+.ck-resumo{position:sticky;top:100px;background:var(--raise);border:1px solid var(--line);
+  border-radius:22px;padding:30px;box-shadow:0 16px 44px var(--accent-soft)}
+.ck-resumo h2{font-size:19px;color:var(--ink);margin-bottom:18px}
+.ck-itens{display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
+.ck-item{display:flex;justify-content:space-between;gap:12px;font-size:15px}
+.ck-item .nome{color:var(--ink-soft)}
+.ck-item .valor{color:var(--ink);font-weight:600;white-space:nowrap}
+.ck-total{border-top:1px solid var(--line-soft);padding-top:16px;display:flex;
+  justify-content:space-between;align-items:baseline}
+.ck-total .rotulo{font-weight:700;color:var(--ink)}
+.ck-total .valor{font-size:26px;font-weight:700;color:var(--ink)}
+.ck-garantias{margin-top:20px;display:flex;flex-direction:column;gap:10px}
+.ck-garantias div{display:flex;gap:10px;font-size:13px;color:var(--ink-soft)}
+.ck-garantias .ok{color:#2e9377}
+@media (max-width:900px){
+  .ck-layout{grid-template-columns:1fr;gap:28px}
+  .ck-resumo{position:static}
+  .ck-dupla{grid-template-columns:1fr}
+}
 `.trim();
+
+/**
+ * O CSS acima é inlinado no <head> de TODA página (é o que evita um request
+ * bloqueante e protege o LCP). Comentário, portanto, viaja junto: os 3,9 KB de
+ * "porquês" que este arquivo carrega chegavam ao navegador de cada visitante.
+ *
+ * Explicação é para quem lê o código, não para quem lê o site. `PUBLIC_CSS`
+ * segue sendo a fonte comentada; quem vai para o HTML é esta versão enxuta.
+ *
+ * Só comentários saem — nenhuma regra é reescrita. Minificar de verdade pedia
+ * uma dependência, e o ganho não paga.
+ */
+export const PUBLIC_CSS_SERVIDO = PUBLIC_CSS.replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\n{2,}/g, '\n')
+  .trim();

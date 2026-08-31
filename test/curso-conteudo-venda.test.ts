@@ -52,6 +52,32 @@ describe('conteúdo de venda versionado', () => {
     }
   });
 
+  it('não publica promoção vencida', () => {
+    // O regulamento chegou do protótipo com vigência de novembro/2025 — já
+    // vencida no dia em que foi transposto. Regulamento vencido no ar não é
+    // detalhe de texto: a oferta obriga o fornecedor (CDC, art. 30), e quem
+    // chega depois do prazo lê uma condição que não vale mais.
+    //
+    // Este teste falha quando a vigência passa. É de propósito: melhor a
+    // suíte reclamar do que o site seguir anunciando sozinho. Para resolver,
+    // atualize as datas em `scripts/conteudo/<slug>.json` ou remova o
+    // `promoNote`.
+    const datas: string[] = (conteudo.promoNote.match(/\d{2}\/\d{2}\/\d{4}/g) ?? []) as string[];
+    expect(datas.length, 'regulamento sem data de vigência').toBeGreaterThan(0);
+
+    const paraData = (br: string) => {
+      const [d, m, a] = br.split('/').map(Number);
+      return new Date(a, m - 1, d);
+    };
+    const fim = datas.map(paraData).reduce((a, b) => (a > b ? a : b));
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    expect(
+      fim >= hoje,
+      `a promoção do curso venceu em ${datas.slice().sort().pop()}. Atualize a vigência em scripts/conteudo/psicanalise-clinica.json ou tire o promoNote.`,
+    ).toBe(true);
+  });
+
   it('rejeita seção sem parágrafos — bloco vazio não vira buraco na página', () => {
     const r = updateCourseSchema.safeParse({
       sections: [{ title: 'Sem corpo', paras: [] }],
