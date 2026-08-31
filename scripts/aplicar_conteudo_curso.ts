@@ -26,6 +26,10 @@
  *
  * Contra produção, exporte antes o `DATABASE_URL` do banco certo.
  */
+// Sem isto o script não enxerga o `.env` e cai no JSON de seed — foi o que
+// aconteceu no primeiro ensaio contra produção, que mediu a base errada e
+// disse que ia gravar. O mesmo tropeço do resolvedor de duração, no mesmo dia.
+import 'dotenv/config';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import * as coursesRepo from '../server/repositories/courses';
