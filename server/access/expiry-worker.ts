@@ -30,6 +30,7 @@ import * as usersStore from '../auth/users-store';
 import * as notificationsRepo from '../repositories/notifications';
 import { sendSafe } from '../notifications/sender';
 import { accessFor } from './course-access';
+import { avisaVencimento } from './situacao-matricula';
 import { origemPublica } from '../origem-publica';
 
 /**
@@ -77,6 +78,8 @@ export interface RunResult {
   enviados: number;
   /** Segurados pelo interruptor `AVISO_VENCIMENTO=off` — nada foi enviado. */
   segurados?: number;
+  /** Pulados por situação (suspensa/cancelada) — não é caso de vencimento. */
+  foraDeSituacao?: number;
   /** Já avisados naquela faixa antes — não recebem de novo. */
   jaAvisados: number;
   erros: number;
@@ -147,6 +150,7 @@ async function tickInterno(opts: { dryRun?: boolean } = {}): Promise<RunResult> 
     elegiveis: 0,
     enviados: 0,
     segurados: 0,
+    foraDeSituacao: 0,
     jaAvisados: 0,
     erros: 0,
     detalhes: [],
@@ -177,6 +181,15 @@ async function tickInterno(opts: { dryRun?: boolean } = {}): Promise<RunResult> 
         },
         agora,
       );
+      // Matrícula suspensa ou cancelada não recebe aviso de vencimento. Quem
+      // teve o pedido estornado lendo "seu acesso expirou" é pior que silêncio:
+      // a mensagem manda renovar o que foi desfeito, e o aviso vira cobrança
+      // de quem já pediu o dinheiro de volta. Ver access/situacao-matricula.ts.
+      if (!avisaVencimento(s.enrollmentStatusByCourse?.[courseId])) {
+        r.foraDeSituacao = (r.foraDeSituacao ?? 0) + 1;
+        continue;
+      }
+
       if (info.expiresAt === null) continue; // vitalício: nada a avisar
       r.comPrazo++;
 

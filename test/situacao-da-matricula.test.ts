@@ -4,6 +4,7 @@ import {
   situacaoDoStatus,
   situacaoMaisForte,
   situacaoDeVarios,
+  avisaVencimento,
 } from '../server/access/situacao-matricula';
 
 /**
@@ -132,5 +133,20 @@ describe('o portão de acesso respeita a situação', () => {
     const r = await courseAccessFor('a-1', CURSO);
     expect(r.reason).toBe('not_enrolled');
     expect(r.enrolled).toBe(false);
+  });
+});
+
+/**
+ * O aviso de vencimento e a situação da matrícula se cruzam num ponto que
+ * custaria caro: o worker manda "seu acesso expirou" olhando só o prazo. Para
+ * quem teve o pedido estornado, essa frase manda renovar o que foi desfeito —
+ * o aviso vira cobrança de quem já pediu o dinheiro de volta.
+ */
+describe('o aviso de vencimento não fala com quem está fora de situação', () => {
+  it('só matrícula ativa (ou sem marca) recebe aviso', () => {
+    expect(avisaVencimento(undefined)).toBe(true); // ausente = ativa
+    expect(avisaVencimento('ativa')).toBe(true);
+    expect(avisaVencimento('suspensa')).toBe(false);
+    expect(avisaVencimento('cancelada')).toBe(false);
   });
 });

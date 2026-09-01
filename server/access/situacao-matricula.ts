@@ -90,3 +90,15 @@ export function situacaoMaisForte(
 export function situacaoDeVarios(situacoes: SituacaoMatricula[]): SituacaoMatricula {
   return situacoes.reduce<SituacaoMatricula>((acc, s) => situacaoMaisForte(acc, s), 'nenhuma');
 }
+
+/**
+ * Esta matrícula deve receber aviso de vencimento?
+ *
+ * Não: suspensa e cancelada não são caso de vencimento. Mandar "seu acesso
+ * expirou" para quem teve o pedido estornado manda renovar o que foi desfeito —
+ * o aviso vira cobrança de quem já pediu o dinheiro de volta. Ausente é `ativa`,
+ * porque o mapa só carrega o que foge do normal.
+ */
+export function avisaVencimento(situacao: SituacaoMatricula | undefined): boolean {
+  return situacao === undefined || situacao === 'ativa';
+}
