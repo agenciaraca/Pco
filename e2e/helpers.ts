@@ -89,18 +89,28 @@ async function garantirMatricula(request: APIRequestContext, email: string): Pro
   const cursos = await fetchCourses(request);
   if (cursos.length === 0) throw new Error('sem curso no catálogo para matricular o aluno da suíte');
 
-  const res = await request.get('/api/admin/students?limit=200', {
+  // Pela lista de CONTAS, não pela de alunos.
+  //
+  // O aluno da suíte nasce de `INITIAL_STUDENT_PASSWORD`: existe como
+  // credencial e não tem ficha, então nunca apareceu em `/admin/students` — a
+  // busca anterior lançava sempre. Como a falha não fica em cache, cada teste
+  // refazia dois logins e a suíte estourava os 5/minuto de `/auth/login`; o
+  // 429 em cascata escondia a causa e deixava o CI vermelho.
+  //
+  // O id que interessa é o da conta: `enrollInCourse` cria a ficha com ele
+  // quando não existe, que é o mesmo caminho de quem compra pelo site.
+  const res = await request.get('/api/admin/users', {
     headers: { Authorization: `Bearer ${admin.token}` },
   });
-  if (!res.ok()) throw new Error(`lista de alunos falhou: HTTP ${res.status()}`);
+  if (!res.ok()) throw new Error(`lista de contas falhou: HTTP ${res.status()}`);
   const corpo = (await res.json()) as
     | { items?: Array<{ id: string; email: string }> }
     | Array<{ id: string; email: string }>;
   const lista = Array.isArray(corpo) ? corpo : (corpo.items ?? []);
-  const aluno = lista.find((a) => a.email?.toLowerCase() === email.toLowerCase());
-  if (!aluno) throw new Error(`aluno ${email} não apareceu na lista do admin`);
+  const conta = lista.find((a) => a.email?.toLowerCase() === email.toLowerCase());
+  if (!conta) throw new Error(`conta ${email} não existe — cheque INITIAL_STUDENT_PASSWORD`);
 
-  await ensureEnrolled(request, admin.token, cursos[0]!.id, aluno.id);
+  await ensureEnrolled(request, admin.token, cursos[0]!.id, conta.id);
 }
 
 export function sessaoCompartilhada(
@@ -203,16 +213,22 @@ export async function ensureEnrolled(
   // ("aluno não encontrado") vão no CORPO, não no status. Conferir só o status
   // fazia o helper dar por feito o que não aconteceu, e a falha só aparecia
   // depois, disfarçada de NOT_ENROLLED na chamada seguinte.
+  // O campo é `alreadyEnrolled`, não `already` — ler o nome errado fazia o
+  // helper concluir "não matriculou ninguém" justamente no caso em que tudo
+  // estava certo: o aluno já matriculado. Como a mensagem de erro imprimia
+  // `errors` e `ineligible`, ambos vazios, o relato não ajudava em nada.
   const resultado = (await res.json().catch(() => ({}))) as {
     enrolled?: number;
-    already?: number;
+    alreadyEnrolled?: number;
     errors?: Array<{ studentId: string; message: string }>;
     ineligible?: Array<{ studentId: string; missing: string[] }>;
   };
-  const ok = (resultado.enrolled ?? 0) + (resultado.already ?? 0) > 0;
+  const ok = (resultado.enrolled ?? 0) + (resultado.alreadyEnrolled ?? 0) > 0;
   if (!ok) {
     throw new Error(
       `enroll-bulk não matriculou ninguém: ${JSON.stringify({
+        enrolled: resultado.enrolled,
+        alreadyEnrolled: resultado.alreadyEnrolled,
         errors: resultado.errors,
         ineligible: resultado.ineligible,
       })}`,

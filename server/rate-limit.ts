@@ -84,14 +84,33 @@ export function summarize(windowMs = 24 * 60 * 60_000): RateLimitSummary {
   };
 }
 
+/**
+ * Cada limitador tem o proprio balde.
+ *
+ * Antes a chave era so `ip:path`, e o limitador global (`app.use('*')`, 120/min)
+ * dividia o balde com o da rota. Duas consequencias em producao, nenhuma
+ * visivel de fora:
+ *
+ * - **`/auth/login` bloqueava na 3a tentativa, nao na 6a.** Cada POST era
+ *   contado duas vezes no mesmo contador, entao `max: 5` valia 2. Quem errava a
+ *   senha duas vezes ficava um minuto fora.
+ * - **Janela curta vencia janela longa.** `/auth/forgot-password` pede 3 por
+ *   5 minutos; o global cria o balde com `resetAt` de 1 minuto e quem chega
+ *   primeiro define a janela, encurtando a protecao para um quinto.
+ *
+ * O contador por instancia resolve os dois sem mudar nenhuma chamada.
+ */
+let sequencia = 0;
+
 export function rateLimit({ windowMs, max, keyFn }: Options) {
+  const escopo = `rl${(sequencia += 1)}`;
   return async (c: Context, next: Next) => {
     const ip =
       c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
       c.req.header('cf-connecting-ip') ||
       c.req.header('x-real-ip') ||
       'unknown';
-    const key = keyFn ? keyFn(c) : `${ip}:${c.req.path}`;
+    const key = `${escopo}:${keyFn ? keyFn(c) : `${ip}:${c.req.path}`}`;
     const now = Date.now();
     let bucket = store.get(key);
     let blocked = false;

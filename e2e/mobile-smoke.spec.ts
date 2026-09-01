@@ -30,8 +30,9 @@ test.describe('Mobile smoke', () => {
   test('catálogo carrega e mostra cursos em mobile', async ({ page }) => {
     await page.goto('/catalogo');
     await page.waitForLoadState('networkidle');
-    // Catálogo público — sem auth requerido
-    await expect(page).toHaveURL(/catalogo/);
+    // Catálogo público — sem auth requerido. `/catalogo` é 301 para
+    // `/formacoes` desde 30/ago/2026; o teste cobrava o endereço antigo.
+    await expect(page).toHaveURL(/formacoes/);
     // Espera ver pelo menos algum cartão ou empty state — tolerante.
     //
     // Os parênteses importam: `length ?? 0 > 100` é lido como

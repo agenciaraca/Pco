@@ -159,7 +159,9 @@ When adding a feature, add tests in the same sprint — the project pattern is 3
 
 ### E2E (Playwright)
 
-Suite smoke em `e2e/` rodada com `npm run e2e` (chromium-only). Pré-requisitos: `npm run e2e:install` (instala chromium) e `npm run build` (gera `dist/` que o `webServer` config serve via `server/dev.ts` em SERVE_STATIC mode, porta 5173 default). Tipos isolados em `e2e/tsconfig.json` para não conflitar com vitest. CI roda como job `e2e` separado, com `continue-on-error: true` enquanto a suite cresce.
+Suite smoke em `e2e/` rodada com `npm run e2e` (chromium-only). Pré-requisitos: `npm run e2e:install` (instala chromium) e `npm run build` (gera `dist/` que o `webServer` config serve via `server/dev.ts` em SERVE_STATIC mode, porta 5173 default). Tipos isolados em `e2e/tsconfig.json` para não conflitar com vitest. CI roda como job `e2e` separado e **bloqueia o merge desde 26/ago/2026** — o
+`continue-on-error: true` que este parágrafo descrevia foi removido lá, e era ele
+que escondia uma suíte que nunca rodava inteira.
 
 ## Deploying production (VPS)
 
@@ -384,6 +386,49 @@ sessão custa conforme a titulação de quem atende, então não há produto que
 descreva. O pedido leva `kind: 'session_pack'` e `refId` do agendamento; o
 webhook `paid` confirma, o estorno devolve para `pending_payment` (cancelar de
 vez é decisão de gente). Ver `docs/sessoes.md`.
+
+## Dois limitadores no mesmo caminho dividiam o contador
+
+`server/rate-limit.ts` guardava o balde na chave `ip:path`. Como existe um
+limitador global (`app.use('*')`, 120/min) por cima dos de rota, os dois
+incrementavam **o mesmo contador**. Duas consequências, ambas em produção e
+nenhuma visível de fora, porque o 429 é o mesmo que o atacante recebe:
+
+- **`/auth/login` bloqueava na 3ª tentativa, não na 6ª.** `max: 5` valia 2, e
+  quem errava a senha duas vezes ficava um minuto fora.
+- **Janela curta vencia janela longa.** `/auth/forgot-password` pede 3 por 5
+  minutos; o global cria o balde com `resetAt` de 1 minuto, e quem chega
+  primeiro define a janela — a proteção durava um quinto do previsto.
+
+Corrigido em 1º/set/2026 com um escopo por instância de limitador. Se for
+empilhar mais um `rateLimit` em cima de rota que já tem o seu, é isto que faz
+os dois conviverem. Coberto por `test/rate-limit.test.ts`.
+
+## O E2E local rodava contra produção
+
+`playwright.config.ts` monta o `webServer` herdando o `process.env` de quem
+chamou — e a máquina de quem desenvolve tem um `.env` com as credenciais reais.
+Sem trava, `npm run e2e` criava matrícula e agendamento **no banco da escola**, e
+`PUBLIC_ORIGIN` fazia o servidor local responder 301 para o domínio de produção,
+travando o Playwright à espera de um servidor que só redirecionava.
+
+Agora `DATABASE_URL` e `PUBLIC_ORIGIN` são fixados em branco no `webServer`. Em
+CI nenhuma das duas existe, então isso não muda nada lá. **Ao acrescentar
+variável nova ao `webServer`, pense se ela também precisa ser neutralizada.**
+
+Três coisas que mantinham a suíte vermelha e foram consertadas junto:
+
+- O aluno da suíte nasce de `INITIAL_STUDENT_PASSWORD` — tem credencial e não
+  tem ficha, então nunca apareceu em `/admin/students`. A busca passou a ser em
+  `/admin/users`, e o id da conta é o que `enrollInCourse` usa para criar a
+  ficha (o mesmo caminho de quem compra pelo site).
+- `enroll-bulk` responde `alreadyEnrolled`; o helper lia `already`, e concluía
+  "não matriculou ninguém" justamente quando estava tudo certo.
+- `/catalogo` é 301 para `/formacoes` desde 30/ago/2026, e dois testes ainda
+  cobravam o endereço antigo.
+
+Com isso a suíte fecha **26 de 26, sem pulados** — rode com `E2E_FRESH=1`
+localmente, senão os 12 testes que dependem de login são pulados em silêncio.
 
 ## Status de pedido manda na matrícula — por um ponto único
 

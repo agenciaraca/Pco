@@ -97,3 +97,51 @@ legítima.
   fecha a questão.
 - **Durações de aula** seguem todas em 15 min (placeholder do import), e
   resolvê-las depende da Vimeo autorizar o domínio.
+
+## Segunda parte: o CI estava vermelho, e não era por causa disto
+
+Ao publicar, o histórico mostrou que o **CI do commit anterior já falhava** — só
+o job de E2E, e desde antes desta sessão. Deploy passava, CI não; main vermelho
+bloqueia PR.
+
+O sintoma era `429 RATE_LIMITED` em cascata. A causa raiz não era o limite:
+
+1. O aluno da suíte (`aluno@pco.local`) nasce de `INITIAL_STUDENT_PASSWORD` —
+   existe como **credencial e sem ficha**. O helper o procurava em
+   `/admin/students`, onde ele nunca esteve, e lançava sempre. Como a falha não
+   fica em cache, cada teste refazia dois logins.
+2. Aí sim o limite estourava — e escondia tudo o mais.
+
+A busca passou a ser em `/admin/users`; o id da conta é o que `enrollInCourse`
+usa para criar a ficha, que é o caminho de quem compra pelo site.
+
+### E o limite estava mesmo errado
+
+`server/rate-limit.ts` guardava o balde em `ip:path`, e o limitador global
+(`app.use('*')`, 120/min) dividia o contador com os de rota. Medido:
+`/auth/login`, com `max: 5`, **bloqueava na terceira tentativa**. Em produção
+isso significa que quem erra a senha duas vezes fica um minuto fora. Pior:
+`/auth/forgot-password` pede 3 por 5 minutos, e o balde criado pelo global tem
+`resetAt` de 1 minuto — a janela valia um quinto do previsto.
+
+Corrigido com escopo por instância. Dois testes novos em `test/rate-limit.test.ts`
+reproduzem o empilhamento exato do produto.
+
+### E o E2E local rodava contra produção
+
+O `webServer` do Playwright herda o `process.env`, e a máquina de quem
+desenvolve tem `.env` com as credenciais reais. `npm run e2e` aqui criava
+matrícula e agendamento **no banco da escola**; e `PUBLIC_ORIGIN` fazia o
+servidor local devolver 301 para o domínio de produção, travando o Playwright à
+espera de um servidor que só redirecionava. `DATABASE_URL` e `PUBLIC_ORIGIN`
+agora são fixados em branco no `webServer` — em CI não existem, então lá nada
+muda.
+
+Mais duas: `enroll-bulk` responde `alreadyEnrolled` e o helper lia `already`
+(concluía "não matriculou ninguém" quando estava tudo certo); e `/catalogo` é
+301 para `/formacoes` desde 30/ago, com dois testes ainda cobrando o endereço
+antigo.
+
+**Resultado: 26 de 26, sem pulados.** Rode local com `E2E_FRESH=1` — sem ele os
+12 testes que dependem de login são pulados em silêncio, que foi como metade da
+suíte passou meses sem rodar.

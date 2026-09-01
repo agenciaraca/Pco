@@ -30,9 +30,13 @@ test.describe('AVA PCO golden path — student journey', () => {
     const courses = await fetchCourses(request);
     expect(courses.length).toBeGreaterThan(0);
 
+    // Entra por `/catalogo` de propósito: desde 30/ago/2026 ele é um 301 para
+    // `/formacoes` (`server/public/rotas-fundidas.ts`), e o endereço antigo
+    // ainda circula em link de fora. Cobrar o destino testa as duas coisas —
+    // o redirecionamento e a página.
     await page.goto('/catalogo');
     await page.waitForLoadState('networkidle');
-    expect(page.url()).toContain('/catalogo');
+    expect(page.url()).toContain('/formacoes');
 
     // O catálogo mostra só o que está publicamente listado — `/api/courses`
     // devolve mais do que isso. Cobrar o PRIMEIRO da lista era cobrar que um

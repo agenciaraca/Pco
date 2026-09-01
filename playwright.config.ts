@@ -81,6 +81,18 @@ export default defineConfig({
       INITIAL_SUPERADMIN_PASSWORD: 'e2e-super-pass',
       JWT_SECRET: 'a'.repeat(48),
       ALLOWED_ORIGINS: BASE_URL,
+      // As duas abaixo são zeradas de propósito, e não é detalhe.
+      //
+      // O `webServer` herda o `process.env` de quem chamou. Na máquina de quem
+      // desenvolve existe um `.env` com as credenciais reais, e sem estas duas
+      // linhas a suíte rodava **contra produção**: `DATABASE_URL` faria os
+      // testes criarem matrícula e agendamento no banco da escola, e
+      // `PUBLIC_ORIGIN` fazia o servidor local devolver 301 para o domínio de
+      // produção — o que trava o Playwright esperando um servidor que só
+      // redireciona. Em CI nenhuma das duas existe, então isto não muda nada
+      // lá e conserta o E2E local.
+      DATABASE_URL: '',
+      PUBLIC_ORIGIN: '',
     },
   },
 });

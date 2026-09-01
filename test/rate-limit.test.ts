@@ -124,3 +124,53 @@ describe('rate-limit middleware', () => {
     expect(s.totalHits).toBeLessThanOrEqual(getHits().length);
   });
 });
+
+/**
+ * Dois limitadores no mesmo caminho não podem dividir o contador.
+ *
+ * É o formato exato do produto: `app.use('*')` com 120/min por cima de
+ * `/auth/login` com 5/min. Enquanto a chave foi só `ip:path`, cada POST contava
+ * nos dois e o login bloqueava na terceira tentativa — quem errava a senha duas
+ * vezes ficava um minuto fora, e ninguém percebia porque o 429 é o mesmo que o
+ * ataque de força bruta recebe.
+ */
+describe('limitadores empilhados', () => {
+  it('o global não consome a cota do limitador da rota', async () => {
+    const app = new Hono();
+    app.use('*', rateLimit({ windowMs: 60_000, max: 120 }));
+    app.post('/auth/login', rateLimit({ windowMs: 60_000, max: 5 }), (c) => c.json({ ok: true }));
+
+    const ip = '10.0.0.77';
+    for (let i = 1; i <= 5; i++) {
+      const res = await app.request('/auth/login', {
+        method: 'POST',
+        headers: { 'x-forwarded-for': ip },
+      });
+      expect(res.status, `tentativa ${i} deveria passar`).toBe(200);
+    }
+    const sexta = await app.request('/auth/login', {
+      method: 'POST',
+      headers: { 'x-forwarded-for': ip },
+    });
+    expect(sexta.status).toBe(429);
+  });
+
+  it('janela longa não é encurtada pela curta do limitador global', async () => {
+    const app = new Hono();
+    app.use('*', rateLimit({ windowMs: 60_000, max: 120 }));
+    // Janela de 5 min, como `/auth/forgot-password`.
+    app.post('/recuperar', rateLimit({ windowMs: 5 * 60_000, max: 3 }), (c) => c.json({ ok: true }));
+
+    const ip = '10.0.0.78';
+    for (let i = 0; i < 3; i++) {
+      await app.request('/recuperar', { method: 'POST', headers: { 'x-forwarded-for': ip } });
+    }
+    const bloqueada = await app.request('/recuperar', {
+      method: 'POST',
+      headers: { 'x-forwarded-for': ip },
+    });
+    expect(bloqueada.status).toBe(429);
+    // Retry-After tem que falar da janela de 5 min, não da de 1.
+    expect(Number(bloqueada.headers.get('Retry-After'))).toBeGreaterThan(60);
+  });
+});
