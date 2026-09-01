@@ -26,6 +26,7 @@
  * Credenciais da loja em `.env.import` (gitignored).
  */
 
+import 'dotenv/config';
 import { promises as fs } from 'node:fs';
 import pg from 'pg';
 import { addMonths } from '../server/access/course-access';
@@ -223,14 +224,20 @@ async function main(): Promise<void> {
       await client.query('COMMIT');
       log('*** COMMIT feito. ***');
       if (contasNovas > 0) {
-        // Este script escreve no Postgres; a credencial de login vive em
-        // `data/users.json`, no VPS. Sem o passo abaixo, essas pessoas aparecem
-        // no admin com matrícula e não conseguem entrar nem recuperar a senha.
+        // Produção usa AUTH_STORE=db desde 19/ago/2026: a credencial mora nas
+        // colunas de `users`, não mais em `data/users.json`. Conta criada aqui
+        // nasce com `password_hash` nulo — e isso é o estado certo, não um
+        // defeito: `bcrypt.compare` contra vazio falha, então ninguém entra sem
+        // definir senha, e o "esqueci minha senha" encontra a conta.
+        //
+        // Nem `provision_missing_logins.ts` (que só escreve o JSON) nem restart
+        // são necessários: `recarregarSeAusente()` em auth/users-store relê a
+        // lista quando o e-mail procurado não está na memória do processo.
         log('');
-        log(`ATENÇÃO: as ${contasNovas} conta(s) criadas ainda NÃO têm credencial de login.`);
-        log('  Rode no VPS, dentro de ~/ava-pco:');
-        log('    npx tsx scripts/provision_missing_logins.ts --apply');
-        log('    pm2 restart ava-pco --update-env');
+        log(`As ${contasNovas} conta(s) criadas nascem SEM senha, de propósito.`);
+        log('  Elas entram pelo "esqueci minha senha" — nada a rodar no VPS.');
+        log('  (Só se AUTH_STORE=db estiver desligado é que a credencial voltaria');
+        log('   a viver em data/users.json e o provisionamento seria preciso.)');
       }
     } else {
       await client.query('ROLLBACK');
