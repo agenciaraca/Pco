@@ -396,6 +396,19 @@ export async function unenrollFromCourse(
   userId: string,
   courseId: string,
 ): Promise<void> {
+  // Faltava o caminho do banco. Em produção esta função escrevia só no
+  // JSON de semente — que não é a fonte de verdade desde 19/ago/2026 — e
+  // devolvia `void`, então ninguém percebia: estornar um pedido e
+  // desmatricular pelo admin diziam "pronto" sem tirar acesso nenhum.
+  const db = getDb();
+  if (db) {
+    await db
+      .delete(schema.enrollments)
+      .where(
+        and(eq(schema.enrollments.studentId, userId), eq(schema.enrollments.courseId, courseId)),
+      );
+    return;
+  }
   await adminStore.modify((rows) => {
     const row = rows.find((s) => s.id === userId);
     if (!row) return;
@@ -406,6 +419,50 @@ export async function unenrollFromCourse(
       row.progressByCourse = next;
     }
   });
+}
+
+/**
+ * Muda a SITUAÇÃO de uma matrícula, sem apagá-la.
+ *
+ * É o contrário de `unenrollFromCourse`, e a diferença importa: desmatricular
+ * é decisão de gente ("esta pessoa não é mais aluna deste curso"); mudar a
+ * situação é consequência do pedido ("o pagamento foi desfeito"). Estorno
+ * cancela, atraso suspende, quitação reativa — e o registro fica, porque o
+ * histórico do aluno vale mais que a linha limpa (ver `enrollmentStatusEnum`).
+ *
+ * Devolve `false` quando não há matrícula para mudar. Quem chama decide se
+ * isso é problema: para estorno de um pedido nunca liberado, não é.
+ */
+export async function setEnrollmentStatus(
+  userId: string,
+  courseId: string,
+  situacao: 'ativa' | 'suspensa' | 'cancelada',
+): Promise<boolean> {
+  const db = getDb();
+  if (db) {
+    const alterada = await db
+      .update(schema.enrollments)
+      .set({ status: situacao })
+      .where(
+        and(eq(schema.enrollments.studentId, userId), eq(schema.enrollments.courseId, courseId)),
+      )
+      .returning({ id: schema.enrollments.id });
+    return alterada.length > 0;
+  }
+
+  let achou = false;
+  await adminStore.modify((rows) => {
+    const row = rows.find((s) => s.id === userId);
+    if (!row || !row.enrolledCourseIds.includes(courseId)) return;
+    achou = true;
+    const mapa = { ...(row.enrollmentStatusByCourse ?? {}) };
+    // Mesma convenção da leitura: só o que foge de `ativa` é guardado, para
+    // que ausente signifique uma coisa só.
+    if (situacao === 'ativa') delete mapa[courseId];
+    else mapa[courseId] = situacao;
+    row.enrollmentStatusByCourse = mapa;
+  });
+  return achou;
 }
 
 /**

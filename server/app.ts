@@ -129,6 +129,7 @@ import { semConteudoDeAula, listaSemConteudoDeAula } from './access/conteudo-aul
 import { accessFor as accessInfoFor } from './access/course-access';
 import { daNavegacao } from './marketing/atribuicao';
 import { simularPrazoDoCurso, darCarencia } from './access/impacto';
+import { situacaoDoStatus, situacaoDeVarios } from './access/situacao-matricula';
 import { AVISO_OPCIONAL, BASE_LEGAL } from './sessions/regra-opcional';
 import * as newsRepo from './repositories/news';
 import * as podcastsRepo from './repositories/podcasts';
@@ -346,15 +347,11 @@ export async function grantAccessForOrder(
  * Revoga o acesso liberado pelo grantAccessForOrder. Inverso simétrico.
  */
 async function revokeAccessForOrder(order: import('./payments/types').Order): Promise<void> {
-  if (order.productSnapshot.kind === 'course' && order.productSnapshot.refId) {
-    await studentsRepo.unenrollFromCourse(order.userId, order.productSnapshot.refId);
-    return;
-  }
-  if (order.productSnapshot.kind === 'bundle') {
-    const ids = await getBundleCourseIds(order.productId);
-    for (const courseId of ids) {
-      await studentsRepo.unenrollFromCourse(order.userId, courseId);
-    }
+  // Cancela, nao apaga. Desmatricular perde a data da compra e o progresso do
+  // curso, e quem foi estornado costuma voltar. `cancelada` fecha o portao do
+  // mesmo jeito (`guard.ts`) e ainda diz por que fechou.
+  for (const courseId of await cursosDoPedido(order)) {
+    await studentsRepo.setEnrollmentStatus(order.userId, courseId, 'cancelada');
   }
   // Estorno de sessão: volta a aguardar pagamento em vez de seguir confirmada.
   // Cancelar de vez é decisão de gente, não consequência automática do estorno.
@@ -363,6 +360,111 @@ async function revokeAccessForOrder(order: import('./payments/types').Order): Pr
     if (booking && booking.status === 'confirmed') {
       await bookingsRepo.update(booking.id, { status: 'pending_payment' });
     }
+  }
+}
+
+/** Os cursos que este pedido libera. Vazio para o que nao e curso nem bundle. */
+async function cursosDoPedido(order: import('./payments/types').Order): Promise<string[]> {
+  if (order.productSnapshot.kind === 'course' && order.productSnapshot.refId) {
+    return [order.productSnapshot.refId];
+  }
+  if (order.productSnapshot.kind === 'bundle') {
+    return getBundleCourseIds(order.productId);
+  }
+  return [];
+}
+
+/**
+ * A situacao que UM pedido implica, ja resolvida a ambiguidade do cancelamento.
+ *
+ * `situacaoDoStatus` devolve `nenhuma` para `canceled` e `failed`, e esta certa:
+ * do status sozinho nao da para saber se houve matricula. Cancelar o que chegou
+ * a ser pago DERRUBA a matricula; cancelar o que nunca foi pago nao tem o que
+ * derrubar. Falta saber qual dos dois.
+ *
+ * **A evidencia e o historico, nao o `paidAt`.** A importacao da loja gravou
+ * `paidAt` igual a data do pedido em TODOS os pedidos, inclusive nos boletos
+ * cancelados que ninguem pagou. Confiar em `paidAt` cancelava a matricula de
+ * cinco alunos de producao que nunca perderam o direito a ela — o ensaio de
+ * `scripts/reconciliar_situacao_matriculas.ts` pegou isso em 1º/set/2026, antes
+ * de aplicar. Um evento `paid` no historico so aparece quando o pagamento
+ * aconteceu de fato.
+ */
+function situacaoDoPedido(
+  order: import('./payments/types').Order,
+  jaFoiPago = false,
+): import('./access/situacao-matricula').SituacaoMatricula {
+  const s = situacaoDoStatus(order.status);
+  if (s !== 'nenhuma') return s;
+  const pagouAlgumDia = jaFoiPago || order.events.some((e) => e.status === 'paid');
+  return pagouAlgumDia ? 'cancelada' : 'nenhuma';
+}
+
+/** Os pedidos desta pessoa que falam deste curso — direto ou dentro de um bundle. */
+async function pedidosDoCurso(
+  pedidos: import('./payments/types').Order[],
+  courseId: string,
+): Promise<import('./payments/types').Order[]> {
+  const out: import('./payments/types').Order[] = [];
+  for (const o of pedidos) {
+    if (o.productSnapshot.kind === 'course' && o.productSnapshot.refId === courseId) {
+      out.push(o);
+    } else if (o.productSnapshot.kind === 'bundle') {
+      const ids = await getBundleCourseIds(o.productId);
+      if (ids.includes(courseId)) out.push(o);
+    }
+  }
+  return out;
+}
+
+/**
+ * O status do pedido mandando na matricula — em UM lugar so.
+ *
+ * A regra e do dono da escola (1/set/2026) e ja morava em
+ * `access/situacao-matricula.ts`, testada e documentada. Faltava alguem
+ * chama-la: por algumas horas so o script de importacao historica usou, e
+ * todo o caminho de runtime passava por fora. O efeito chegou a producao —
+ * lancamento manual pago nao matriculava ninguem, e mudar o status de um
+ * pedido pelo admin nao mexia no acesso.
+ *
+ * **A situacao final nao sai deste pedido, sai de todos.** Quem comprou, foi
+ * estornado e comprou de novo tem dois pedidos vivos para o mesmo curso, e a
+ * mais forte vence (`situacaoDeVarios`). Olhar so para o pedido da vez
+ * trancaria quem pagou duas vezes e foi estornado uma.
+ */
+export async function aplicarSituacaoDoPedido(
+  order: import('./payments/types').Order,
+  statusAnterior: import('./payments/types').OrderStatus | null = null,
+): Promise<void> {
+  const desteAgora = situacaoDoPedido(order, statusAnterior === 'paid');
+
+  // Sessao avulsa nao tem matricula: o efeito e no agendamento, e quem sabe
+  // fazer isso e o par grant/revoke.
+  if (order.productSnapshot.kind === 'session_pack') {
+    if (desteAgora === 'ativa') await grantAccessForOrder(order);
+    else if (desteAgora === 'cancelada') await revokeAccessForOrder(order);
+    return;
+  }
+
+  const cursos = await cursosDoPedido(order);
+  if (cursos.length === 0) return;
+
+  // Pagou: a matricula precisa existir antes de ter situacao.
+  if (desteAgora === 'ativa') await grantAccessForOrder(order);
+
+  const todos = await ordersRepo.listForUser(order.userId);
+  for (const courseId of cursos) {
+    const doCurso = await pedidosDoCurso(todos, courseId);
+    // O pedido da vez entra pela versao que acabou de ser gravada; se por
+    // algum motivo ele nao estiver na lista, entra a mao — nunca decidir o
+    // acesso de alguem ignorando a operacao que disparou a decisao.
+    const situacoes = doCurso.some((o) => o.id === order.id)
+      ? doCurso.map((o) => situacaoDoPedido(o, o.id === order.id && statusAnterior === 'paid'))
+      : [...doCurso.map((o) => situacaoDoPedido(o)), desteAgora];
+    const final = situacaoDeVarios(situacoes);
+    // `nenhuma` = nunca houve matricula por pedido nenhum. Nada a mudar.
+    if (final === 'nenhuma') continue;
+    await studentsRepo.setEnrollmentStatus(order.userId, courseId, final);
   }
 }
 
@@ -4980,6 +5082,16 @@ export function buildApp() {
             nota: `lançamento manual por ${u.email}${d.nota ? ` — ${d.nota}` : ''}`,
           })
         : criado;
+
+    // O lancamento manual e a razao pela qual isto existe: a tela nasceu
+    // "ja pago" e nao matriculava ninguem. Best-effort — o pedido ja esta
+    // gravado, e derrubar a resposta faria o admin lancar duas vezes.
+    try {
+      await aplicarSituacaoDoPedido(final ?? criado, null);
+    } catch (err) {
+      await recordError(c, err, 500);
+      console.error('[aplicarSituacaoDoPedido/create]', err);
+    }
     return c.json(final, 201);
   });
 
@@ -5015,6 +5127,17 @@ export function buildApp() {
       nota: `por ${u.email}${d.nota ? ` — ${d.nota}` : ''}`,
     });
     if (!atualizado) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+
+    // So quando o status muda de fato. Reaplicar a cada edicao de valor
+    // dispararia a conversao do Meta de novo — a compra e uma so.
+    if (d.status && d.status !== atual.status) {
+      try {
+        await aplicarSituacaoDoPedido(atualizado, atual.status);
+      } catch (err) {
+        await recordError(c, err, 500);
+        console.error('[aplicarSituacaoDoPedido/update]', err);
+      }
+    }
     return c.json(atualizado);
   });
 
@@ -5171,12 +5294,21 @@ export function buildApp() {
       return jsonError(c, 400, 'INVALID_STATUS', 'Status inválido (canceled/refunded/failed).');
     }
     const u = c.get('user')!;
+    const antes = await ordersRepo.findById(id);
     const updated = await ordersRepo.updateStatus(
       id,
       status as 'canceled' | 'refunded' | 'failed',
       `Admin ${u.email}: ${typeof body.note === 'string' ? body.note : 'sem nota'}`,
     );
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+    // Estornar ou cancelar por aqui tirava o pedido do lugar e deixava o
+    // acesso de pe. Agora a matricula acompanha.
+    try {
+      await aplicarSituacaoDoPedido(updated, antes?.status ?? null);
+    } catch (err) {
+      await recordError(c, err, 500);
+      console.error('[aplicarSituacaoDoPedido/status]', err);
+    }
     return c.json(updated);
   });
 
@@ -10752,7 +10884,11 @@ export function buildApp() {
         console.error('[coupon increment]', err);
       }
       try {
-        await grantAccessForOrder(updated);
+        // Pelo ponto unico, e nao por grantAccessForOrder direto: quem foi
+        // estornado e comprou de novo tem a matricula `cancelada`, e
+        // `enrollInCourse` nao sobrescreve linha existente — pagava e
+        // continuava sem acesso.
+        await aplicarSituacaoDoPedido(updated, order.status);
         await notificationsRepo.createOne({
           userId: updated.userId,
           title: '✅ Pagamento confirmado',
@@ -10767,7 +10903,7 @@ export function buildApp() {
           authorEmail: 'sistema',
         });
       } catch (err) {
-        console.error('[grantAccessForOrder] erro:', err);
+        console.error('[aplicarSituacaoDoPedido/paid] erro:', err);
       }
       // E-mail de confirmação (best-effort)
       try {
@@ -10827,6 +10963,17 @@ export function buildApp() {
         externalId: updated.externalId,
         reason: event.metadata?.reason ?? null,
       });
+    }
+
+    // Estorno ou cancelamento vindo do gateway mexia so no webhook de saida:
+    // o aluno seguia com acesso ao que foi desfeito. O `paid` ja passou pelo
+    // ponto unico la em cima; aqui entram os demais.
+    if (updated && event.status !== 'paid') {
+      try {
+        await aplicarSituacaoDoPedido(updated, order.status);
+      } catch (err) {
+        console.error('[aplicarSituacaoDoPedido/webhook]', err);
+      }
     }
 
     return c.json({ ok: true });

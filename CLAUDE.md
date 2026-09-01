@@ -232,8 +232,10 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
-O handoff vivo é **`docs/SESSAO-2026-08-31-venda-marketing-sandra.md`**.
-Local, `origin/main` e **produção** no mesmo commit — nada esperando publicação.
+O handoff vivo é **`docs/SESSAO-2026-09-01-matricula-segue-o-pedido.md`**
+(o anterior, `SESSAO-2026-09-01-pedidos-crud.md`, foi escrito no meio de um
+reboot e diz "não houve deploy" — havia, minutos depois, pelo deploy
+automático). Local, `origin/main` e **produção** no mesmo commit.
 
 **O primeiro item da próxima sessão não é código:** os vídeos das aulas são da
 Vimeo com privacidade por domínio, e a lista autoriza só `portalpco.online`. De
@@ -382,6 +384,34 @@ sessão custa conforme a titulação de quem atende, então não há produto que
 descreva. O pedido leva `kind: 'session_pack'` e `refId` do agendamento; o
 webhook `paid` confirma, o estorno devolve para `pending_payment` (cancelar de
 vez é decisão de gente). Ver `docs/sessoes.md`.
+
+## Status de pedido manda na matrícula — por um ponto único
+
+`aplicarSituacaoDoPedido()` em `server/app.ts` é o **único** lugar onde status
+de pedido vira acesso. Chamam-no: criar e editar pedido no admin, mudar status,
+webhook do gateway (pago e não-pago) e o worker da Sandra. A regra em si mora em
+`server/access/situacao-matricula.ts` — pago ativa, estorno e desistência
+cancelam, atraso suspende, e nada disso escapa do prazo (`courseAccessFor`).
+
+Três coisas que já custaram caro e não se inferem lendo um arquivo:
+
+- **A regra existir não é a regra rodar.** Entre a manhã e a tarde de
+  1º/set/2026 ela existiu testada e documentada, chamada só pelo script de
+  importação. Nesse intervalo o lançamento manual "já pago" criava pedido que
+  não matriculava ninguém, e estornar pelo admin deixava o aluno estudando.
+- **A situação sai de TODOS os pedidos da pessoa para o curso**, não do pedido
+  da vez (`situacaoDeVarios`). Quem comprou, foi estornado e comprou de novo
+  fica ativo; um pedido novo em aberto não suspende o acesso já pago.
+- **`paidAt` não prova pagamento.** A importação da loja o preencheu em todo
+  pedido, boleto cancelado incluído. A prova é um evento `paid` no histórico.
+  Confiar em `paidAt` quis cancelar cinco matrículas legítimas de produção;
+  o ensaio de `scripts/reconciliar_situacao_matriculas.ts` pegou antes de
+  aplicar, e o teste que cobra isso é `test/matricula-segue-o-pedido.test.ts`.
+
+Cancelar não apaga: `revokeAccessForOrder` marca `cancelada` e o portão fecha
+por ali, preservando data de compra e progresso. `unenrollFromCourse` continua
+para o desmatricular do admin — e **ganhou o caminho de banco que nunca teve**;
+até 1º/set/2026 ela escrevia só no JSON de semente e era um no-op em produção.
 
 ## `/api/courses` é público — e não pode levar `content`
 

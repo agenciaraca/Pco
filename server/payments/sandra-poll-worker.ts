@@ -13,10 +13,10 @@
  *    chamadas por minuto, por chave) e não descobre nada — quem pagou depois do
  *    vencimento aparece por renegociação, que é caso de gente, não de robô.
  *
- * 2. **Quem libera o acesso é a mesma função do webhook.** `grantAccessForOrder`
- *    é importada de `app.ts`, não reescrita aqui. Duas implementações de "o que
- *    o pagamento libera" divergem em silêncio, e a divergência só aparece
- *    quando um aluno paga e não entra.
+ * 2. **Quem libera o acesso é a mesma função do webhook.**
+ *    `aplicarSituacaoDoPedido` é importada de `app.ts`, não reescrita aqui.
+ *    Duas implementações de "o que o pagamento libera" divergem em silêncio, e
+ *    a divergência só aparece quando um aluno paga e não entra.
  *
  * 3. **Só sobe de pendente para pago.** Pedido cancelado ou estornado não
  *    ressuscita porque a Sandra ainda o lista; mudar esses estados é decisão de
@@ -85,8 +85,11 @@ export async function varrer(): Promise<{ vistos: number; confirmados: number }>
 
       const atualizado = await ordersRepo.updateStatus(pedido.id, 'paid', 'sandra:poll');
       if (atualizado) {
-        const { grantAccessForOrder } = await import('../app');
-        await grantAccessForOrder(atualizado);
+        // Pelo ponto unico, mesmo caminho do webhook: quem volta depois de
+        // um estorno tem a matricula `cancelada`, e so matricular de novo
+        // nao a reativa.
+        const { aplicarSituacaoDoPedido } = await import('../app');
+        await aplicarSituacaoDoPedido(atualizado, pedido.status);
         confirmados++;
       }
     } catch (err) {
