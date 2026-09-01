@@ -8,6 +8,11 @@ coverage
 Thumbs.db
 
 .env
+.env.bak-*
+.env.import.bak-*
+
+# Exportacoes com dado pessoal (pedidos da loja, conversoes). Nunca commitar.
+exportacoes/
 .env.local
 .env.*.local
 .env.import

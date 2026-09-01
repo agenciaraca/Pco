@@ -32,6 +32,24 @@ import { sendSafe } from '../notifications/sender';
 import { accessFor } from './course-access';
 import { origemPublica } from '../origem-publica';
 
+/**
+ * Interruptor de envio. `AVISO_VENCIMENTO=off` faz o worker varrer e contar,
+ * mas não mandar e-mail nem criar notificação.
+ *
+ * Existe por causa de 1º/set/2026: declarar o prazo é retroativo, e o primeiro
+ * cálculo deixou 616 matrículas vencidas de uma vez, para 485 pessoas. O ledger
+ * estava zerado, então a primeira passada mandaria 616 e-mails — acima da cota
+ * diária do provedor, e todos no mesmo minuto. O dono decidiu segurar os avisos
+ * e manter o prazo valendo. Tirar a variável (ou pôr `on`) volta ao normal, e
+ * os avisos saem na passada seguinte, sem repetir quem já foi avisado.
+ *
+ * O prazo NÃO depende deste interruptor: quem venceu está sem acesso de
+ * qualquer forma. Isto governa apenas o aviso.
+ */
+export function avisosLigados(): boolean {
+  return String(process.env.AVISO_VENCIMENTO ?? 'on').toLowerCase() !== 'off';
+}
+
 /** Faixas de aviso, em dias restantes. A ordem importa: da mais folgada à mais apertada. */
 export const FAIXAS_AVISO = [30, 7, 1] as const;
 export type FaixaAviso = (typeof FAIXAS_AVISO)[number] | 0;
@@ -57,6 +75,8 @@ export interface RunResult {
   /** Quantos caíram em alguma faixa de aviso nesta passada. */
   elegiveis: number;
   enviados: number;
+  /** Segurados pelo interruptor `AVISO_VENCIMENTO=off` — nada foi enviado. */
+  segurados?: number;
   /** Já avisados naquela faixa antes — não recebem de novo. */
   jaAvisados: number;
   erros: number;
@@ -126,6 +146,7 @@ async function tickInterno(opts: { dryRun?: boolean } = {}): Promise<RunResult> 
     comPrazo: 0,
     elegiveis: 0,
     enviados: 0,
+    segurados: 0,
     jaAvisados: 0,
     erros: 0,
     detalhes: [],
@@ -181,6 +202,13 @@ async function tickInterno(opts: { dryRun?: boolean } = {}): Promise<RunResult> 
 
       if (opts.dryRun) {
         r.detalhes.push(`enviaria [${faixa}d] ${user.email} — ${cursoNome}`);
+        continue;
+      }
+
+      // Segurado: não envia e NÃO grava no ledger — assim, quando o dono
+      // religar, esta pessoa ainda recebe o aviso que lhe é devido.
+      if (!avisosLigados()) {
+        r.segurados = (r.segurados ?? 0) + 1;
         continue;
       }
 
@@ -260,6 +288,7 @@ export function getStatus() {
   return {
     name: 'access-expiry',
     enabled: interval !== null,
+    avisosLigados: avisosLigados(),
     intervalMs: intervalMsCfg,
     lastRunAt,
     lastRunResult,
