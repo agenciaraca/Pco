@@ -567,7 +567,8 @@
         O dia começou com um painel cheio de travessões: sem o endereço do banco nesta máquina,
         metade das perguntas não tinha resposta. Você colou a credencial — e depois os dois bancos
         de origem. As perguntas viraram números, duas travas antigas caíram, uma decisão sua tirou o
-        acesso de 485 pessoas, e o avanço de <strong>863 matrículas</strong> deixou de ser chute.
+        acesso de 485 pessoas, e cinco anos de venda — <strong>1.845 pedidos, R$ 1,38 milhão</strong>
+        — entraram no AVA pela primeira vez, com a situação de matrícula que cada um implica.
       </p>
     </div>
     <div class="items">
@@ -872,28 +873,73 @@
         </div>
       </div>
 
-      <div class="item open">
+      <div class="item done">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>848 compras antigas que continuam só na loja</h3>
-            <span class="tag warn">decisão de modelo, não de execução</span>
+            <h3>O histórico inteiro da loja entrou — 1.845 pedidos</h3>
+            <span class="tag ok">R$ 1.377.646 em 1.129 pagos</span>
           </div>
           <p>
-            Cruzando pagamento com matrícula sobram <strong>851 pares (pessoa × curso) comprados e
-            sem matrícula</strong>. Três são de 2025–2026 e já foram resolvidos. Os outros
-            <strong>848 são de 2021 a 2024</strong>, e a maioria dessa gente nunca apareceu no
-            portal.
+            O AVA não tinha um único pedido: cinco anos de receita viviam só na loja, e o admin
+            mostrava aluno matriculado sem nunca poder dizer <em>por quê</em>. Agora cada matrícula
+            tem lastro, e cada pedido carrega o status original da loja no próprio histórico —
+            <code>desistente</code> e <code>em-atraso</code> são status que a escola inventou no
+            WooCommerce e não existem no vocabulário do AVA; sem guardá-los, o caso se perderia.
           </p>
           <p>
-            <strong>Matrícula no AVA significa acesso, não compra.</strong> Criar 848 matrículas
-            afirmaria um acesso que talvez nunca tenha existido. O lugar certo dessa informação é
-            <code>payment_orders</code> — que hoje tem zero linhas, porque o checkout próprio começou
-            a vender anteontem.
+            <strong>416 contas novas</strong>, e a maioria surpreende: <strong>366 delas têm pedido
+            pago</strong>. São pessoas que compraram como visitante, nunca viraram conta em lugar
+            nenhum, e por isso não apareciam em auditoria alguma — nem na do portal, nem na de
+            contas da loja.
+          </p>
+          <div class="meta">
+            <span>1.476 → 2.583 matrículas · 1.612 → 2.030 contas</span>
+            <span><code>scripts/importar_historico_loja.ts</code></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Pagamento e acesso deixaram de ser a mesma coisa</h3>
+            <span class="tag ok">238 suspensas · 138 canceladas</span>
+          </div>
+          <p>
+            “Matriculado” era um booleano: o nome estava na lista ou não. Com o histórico dentro,
+            isso parou de bastar — estorno, desistência e boleto em atraso são três coisas
+            diferentes, e <strong>nenhuma delas é “desmatriculado”</strong>. A matrícula ganhou
+            situação: <code>ativa</code>, <code>suspensa</code>, <code>cancelada</code>.
           </p>
           <p>
-            Trazer os 1.859 pedidos para lá daria a visão completa de “pedido e status do aluno”, e
-            também faria <strong>R$ 1,38 milhão de receita histórica aparecer de uma vez</strong> em
-            toda tela de número do admin. É decisão sua, e está esperando.
+            Duas decisões que valem lembrar antes de mexer. <strong>A situação vem antes do
+            prazo</strong> no portão: quem foi estornado não pode ler “seu acesso expirou”, porque
+            essa mensagem manda renovar e renovar não resolve o caso dele. E <strong>estorno não
+            apaga matrícula</strong>: vira <code>cancelada</code>, e a pessoa segue matriculada para
+            efeito de histórico. Some a linha, some a prova de que ela comprou.
+          </p>
+          <div class="meta">
+            <span>migration 0015 · <code>enrollment_status</code></span>
+            <span>9 testes novos · a regra mora em <code>access/situacao-matricula.ts</code></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>E o aviso de vencimento aprendeu a calar</h3>
+            <span class="tag ok">defeito criado e corrigido hoje</span>
+          </div>
+          <p>
+            O worker decide a faixa de aviso olhando <em>só</em> o prazo. Com as 376 matrículas
+            suspensas e canceladas recém-criadas, todas receberiam “seu acesso expirou” quando os
+            avisos forem religados — cobrança para quem já pediu o dinheiro de volta.
+          </p>
+          <p>
+            Corrigido antes de existir, porque os avisos estão segurados. O contador
+            <code>foraDeSituacao</code> aparece em <code>/admin/jobs</code>, para que pular seja
+            visível em vez de silencioso.
           </p>
         </div>
       </div>
@@ -1054,9 +1100,14 @@
         <span class="sub">era 403 em 31/ago · amostra de 6 vídeos</span>
       </div>
       <div class="metric">
-        <span class="n">1.612</span>
+        <span class="n">2.030</span>
         <span class="l">contas em produção</span>
-        <span class="sub">725 fichas · 1.476 matrículas · 1º/set</span>
+        <span class="sub">1.612 fichas · 2.583 matrículas</span>
+      </div>
+      <div class="metric">
+        <span class="n">1.845</span>
+        <span class="l">pedidos no histórico</span>
+        <span class="sub">R$ 1,38 mi · 1.129 pagos · 2021–2026</span>
       </div>
       <div class="metric">
         <span class="n">863</span>
@@ -1857,8 +1908,13 @@
           </tr>
           <tr>
             <td>Contas, fichas e matrículas</td>
-            <td class="num">1.612 · 725 · 1.476</td>
-            <td>contagem direta no Postgres de produção em 1º/set, depois da importação dos dois dumps</td>
+            <td class="num">2.030 · 1.612 · 2.583</td>
+            <td>contagem direta no Postgres de produção em 1º/set, depois da importação dos dois dumps e do histórico de pedidos</td>
+          </tr>
+          <tr>
+            <td>Situação das matrículas</td>
+            <td class="num">2.207 · 238 · 138</td>
+            <td>ativa · suspensa · cancelada — derivadas do status de cada pedido da loja</td>
           </tr>
           <tr>
             <td>Receita da loja</td>
@@ -1876,11 +1932,11 @@
     <div class="audit-grid" style="margin-top: 6px">
       <div class="audit-line">
         <span class="src">produção</span>
-        <span>srv539124 · 195.200.0.253:3035 · banco conectado · pacote <code>index-B1hDCVfy</code> · produto <code>604c37c</code></span>
+        <span>srv539124 · 195.200.0.253:3035 · banco conectado · <code>3d1c163</code> · <code>AVISO_VENCIMENTO=off</code></span>
       </div>
       <div class="audit-line">
         <span class="src">repositório</span>
-        <span><code>19e7cfe</code> — local e GitHub; os dois commits depois do produto são de documentação</span>
+        <span><code>3d1c163</code> — local, GitHub e produção no mesmo commit · 223 arquivos de teste, 2.043 testes, zero falhas</span>
       </div>
       <div class="audit-line">
         <span class="src">máquina</span>
