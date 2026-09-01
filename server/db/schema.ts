@@ -30,6 +30,23 @@ export const studentStatusEnum = pgEnum('student_status', [
   'inativo',
 ]);
 
+/**
+ * Situacao da matricula, separada do prazo de acesso.
+ *
+ * `ativa`     — o normal.
+ * `suspensa`  — pagamento pendurado (boleto em atraso, pedido em espera). O
+ *               acesso para, a matricula e o progresso ficam. Volta sozinha
+ *               quando o pedido e quitado.
+ * `cancelada` — estorno ou desistencia. A compra foi desfeita; o registro
+ *               permanece porque o historico do aluno vale mais que a linha
+ *               limpa.
+ */
+export const enrollmentStatusEnum = pgEnum('enrollment_status', [
+  'ativa',
+  'suspensa',
+  'cancelada',
+]);
+
 export const lessonStatusEnum = pgEnum('lesson_status', [
   'locked',
   'available',
@@ -274,6 +291,11 @@ export const enrollments = pgTable(
      * que estender por compra seja um UPDATE nesta linha.
      */
     expiresAt: timestamp('expires_at', { withTimezone: true }),
+    /**
+     * Situacao da matricula — ver `enrollmentStatusEnum`. Nao confundir com
+     * `expiresAt`: prazo vencido e uma coisa, pagamento desfeito e outra.
+     */
+    status: enrollmentStatusEnum('status').notNull().default('ativa'),
   },
   (t) => ({
     uniq: uniqueIndex('enrollments_student_course_idx').on(t.studentId, t.courseId),

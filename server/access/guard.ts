@@ -19,7 +19,7 @@ export interface CourseAccessResult {
   /** A pergunta que interessa à rota. */
   canStudy: boolean;
   /** Motivo da negativa, pronto para virar código de erro na API. */
-  reason: 'ok' | 'not_enrolled' | 'access_expired';
+  reason: 'ok' | 'not_enrolled' | 'access_expired' | 'enrollment_suspended' | 'enrollment_canceled';
 }
 
 const ALLOWED: CourseAccessResult['reason'] = 'ok';
@@ -45,6 +45,19 @@ export async function courseAccessFor(
     return { enrolled: false, access: null, canStudy: false, reason: 'not_enrolled' };
   }
 
+  // Situação da matrícula vem ANTES do prazo, e por um motivo prático: quem
+  // teve o pedido estornado não deve ler "seu acesso expirou" — a mensagem
+  // manda renovar, e renovar não é o que resolve o caso dele.
+  const situacao = student?.enrollmentStatusByCourse?.[courseId];
+  if (situacao === 'suspensa' || situacao === 'cancelada') {
+    return {
+      enrolled: true,
+      access: null,
+      canStudy: false,
+      reason: situacao === 'suspensa' ? 'enrollment_suspended' : 'enrollment_canceled',
+    };
+  }
+
   const access = accessFor(
     {
       enrolledAt: student?.enrollmentDates?.[courseId] ?? student?.createdAt ?? null,
@@ -66,6 +79,12 @@ export async function courseAccessFor(
  * Mensagem para o aluno. Fala do que ele pode fazer, não do estado interno.
  */
 export function accessDeniedMessage(result: CourseAccessResult): string {
+  if (result.reason === 'enrollment_suspended') {
+    return 'Seu acesso está suspenso porque há um pagamento pendente deste curso. Assim que ele for confirmado, o acesso volta sozinho.';
+  }
+  if (result.reason === 'enrollment_canceled') {
+    return 'A matrícula neste curso foi cancelada. Se isso não confere, fale com a coordenação.';
+  }
   if (result.reason === 'not_enrolled') {
     return 'Você não está matriculado neste curso.';
   }

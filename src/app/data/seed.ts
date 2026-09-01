@@ -422,7 +422,22 @@ export interface AdminStudentRow {
    * `accessMonths` do curso. Ver `server/access/course-access.ts`.
    */
   accessExpiresByCourse?: Record<string, string>;
+  /**
+   * Situacao de cada matricula. Ausente = `ativa`.
+   *
+   * Existe porque pagamento e acesso deixaram de andar juntos quando o
+   * historico da loja entrou (1/set/2026): pedido estornado ou desistencia
+   * derrubam a matricula, e pedido em atraso a suspende — sem apagar nada, que
+   * seria perder o historico da pessoa.
+   *
+   * Diferente de expirar: expirar e o prazo acabando, e volta com renovacao;
+   * suspensa e o pagamento pendurado; cancelada e a compra desfeita.
+   */
+  enrollmentStatusByCourse?: Record<string, EnrollmentStatus>;
 }
+
+/** Situacao de uma matricula. Ver `enrollmentStatusByCourse`. */
+export type EnrollmentStatus = 'ativa' | 'suspensa' | 'cancelada';
 
 export const adminStudents: AdminStudentRow[] = [
   {

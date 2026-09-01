@@ -654,6 +654,11 @@ export async function listAdminStudents(filter: StudentsFilter): Promise<AdminSt
           .filter((e) => e.expiresAt)
           .map((e) => [e.courseId, e.expiresAt!.toISOString()]),
       ),
+      // Só o que não é `ativa`: mandar o mapa cheio de 'ativa' engordaria a
+      // resposta de todo aluno para dizer o que o ausente já diz.
+      enrollmentStatusByCourse: Object.fromEntries(
+        myEnrolls.filter((e) => e.status !== 'ativa').map((e) => [e.courseId, e.status]),
+      ),
       status: r.status,
       riskScore: r.riskScore,
       lastAccessAt: r.lastAccessAt?.toISOString() ?? r.createdAt.toISOString(),
@@ -717,6 +722,9 @@ export async function findAdminStudent(id: string): Promise<AdminStudentDto | nu
     ),
     accessExpiresByCourse: Object.fromEntries(
       matriculas.filter((e) => e.expiresAt).map((e) => [e.courseId, e.expiresAt!.toISOString()]),
+    ),
+    enrollmentStatusByCourse: Object.fromEntries(
+      matriculas.filter((e) => e.status !== 'ativa').map((e) => [e.courseId, e.status]),
     ),
     status: r.status,
     riskScore: r.riskScore,
