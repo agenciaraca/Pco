@@ -18,6 +18,7 @@ import {
   useBulkEnrollInCourse,
   useBulkIssueCertsForCourse,
 } from '../../data/hooks';
+import type { CourseStudentDto } from '../../data/api';
 import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
@@ -31,15 +32,22 @@ export default function AdminCourseStudents() {
   });
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'ativo' | 'em_risco' | 'bloqueado'>(
-    'all',
-  );
+  // O filtro é por situação NO CURSO, não pelo status global da ficha. Filtrar
+  // por 'ativo' global devolvia a base inteira — inclusive quem está vencido há
+  // três anos e quem foi estornado.
+  const [situacaoFilter, setSituacaoFilter] = useState<
+    'todos' | 'ativos' | 'vencidos' | 'suspensa' | 'cancelada'
+  >('todos');
   const [enrollOpen, setEnrollOpen] = useState(false);
 
   const visible = useMemo(() => {
     const list = data?.students ?? [];
     return list.filter((s) => {
-      if (statusFilter !== 'all' && s.status !== statusFilter) return false;
+      if (situacaoFilter === 'ativos' && !s.ativoNoCurso) return false;
+      if (situacaoFilter === 'vencidos' && !(s.situacao === 'ativa' && !s.ativoNoCurso))
+        return false;
+      if (situacaoFilter === 'suspensa' && s.situacao !== 'suspensa') return false;
+      if (situacaoFilter === 'cancelada' && s.situacao !== 'cancelada') return false;
       if (search) {
         const q = search.toLowerCase();
         if (!s.name.toLowerCase().includes(q) && !s.email.toLowerCase().includes(q))
@@ -47,7 +55,7 @@ export default function AdminCourseStudents() {
       }
       return true;
     });
-  }, [data, search, statusFilter]);
+  }, [data, search, situacaoFilter]);
 
   const stats = useMemo(() => {
     const list = data?.students ?? [];
@@ -113,6 +121,30 @@ export default function AdminCourseStudents() {
         </div>
       </div>
 
+      {/* Duas fileiras, e a de cima veio primeiro de propósito: a pergunta que a
+          tela errava era "quem está ativo", não "quem concluiu". */}
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Stat
+          label="Ativos no curso"
+          value={data?.ativosCount ?? 0}
+          icon={<CheckCircle2 size={14} className="text-status-success" />}
+        />
+        <Stat
+          label="Acesso vencido"
+          value={data?.vencidosCount ?? 0}
+          icon={<Clock size={14} className="text-ink-muted" />}
+        />
+        <Stat
+          label="Fora de situação"
+          value={data?.foraDeSituacaoCount ?? 0}
+          icon={<AlertTriangle size={14} className="text-status-danger" />}
+        />
+        <Stat
+          label={data?.accessMonths ? `Prazo do curso` : 'Prazo do curso'}
+          value={data?.accessMonths ? `${data.accessMonths} meses` : '—'}
+        />
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-4">
         <Stat
           label="Concluíram"
@@ -143,16 +175,16 @@ export default function AdminCourseStudents() {
           />
         </div>
         <select
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as typeof statusFilter)
-          }
+          value={situacaoFilter}
+          onChange={(e) => setSituacaoFilter(e.target.value as typeof situacaoFilter)}
           className="pco-input text-sm"
+          aria-label="Situação no curso"
         >
-          <option value="all">Todos status</option>
-          <option value="ativo">Ativos</option>
-          <option value="em_risco">Em risco</option>
-          <option value="bloqueado">Bloqueados</option>
+          <option value="todos">Toda a matrícula ({data?.enrolledCount ?? 0})</option>
+          <option value="ativos">Ativos no curso ({data?.ativosCount ?? 0})</option>
+          <option value="vencidos">Acesso vencido ({data?.vencidosCount ?? 0})</option>
+          <option value="suspensa">Pagamento pendurado</option>
+          <option value="cancelada">Estorno ou desistência</option>
         </select>
       </div>
 
@@ -168,7 +200,7 @@ export default function AdminCourseStudents() {
             <thead className="bg-surface-mute text-ink-muted text-[11px] uppercase">
               <tr>
                 <th className="text-left px-3 py-2">Aluno</th>
-                <th className="text-left px-3 py-2">Status</th>
+                <th className="text-left px-3 py-2">Situação no curso</th>
                 <th className="text-left px-3 py-2">Progresso</th>
                 <th className="text-right px-3 py-2">Última atividade</th>
               </tr>
@@ -186,17 +218,7 @@ export default function AdminCourseStudents() {
                     <div className="text-[11px] text-ink-subtle">{s.email}</div>
                   </td>
                   <td className="px-3 py-2">
-                    <span
-                      className={`pco-badge text-[10px] ${
-                        s.status === 'ativo'
-                          ? 'bg-status-success/10 text-status-success'
-                          : s.status === 'em_risco'
-                            ? 'bg-pco-orange/10 text-pco-orange'
-                            : 'bg-status-danger/15 text-status-danger'
-                      }`}
-                    >
-                      {s.status}
-                    </span>
+                    <SeloSituacao aluno={s} />
                   </td>
                   <td className="px-3 py-2 min-w-[180px]">
                     <div className="flex items-center gap-2">
@@ -416,6 +438,60 @@ function BulkEnrollModal({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * O selo diz uma coisa só: esta pessoa pode estudar este curso agora?
+ *
+ * São dois cortes, nesta ordem — é a ordem que o portão usa (`access/guard.ts`).
+ * Primeiro a situação da matrícula: estorno, desistência e pagamento pendurado
+ * tiram do ar. Depois o prazo. Quem passa nos dois é ativo; o resto ganha o
+ * motivo, porque "inativo" sem motivo não ajuda ninguém a resolver.
+ */
+function SeloSituacao({ aluno }: { aluno: CourseStudentDto }) {
+  if (aluno.situacao === 'cancelada') {
+    return (
+      <span className="pco-badge text-[10px] bg-status-danger/15 text-status-danger">
+        Cancelada
+      </span>
+    );
+  }
+  if (aluno.situacao === 'suspensa') {
+    return (
+      <span className="pco-badge text-[10px] bg-pco-orange/15 text-pco-orange">
+        Suspensa
+      </span>
+    );
+  }
+  if (aluno.ativoNoCurso) {
+    const dias = aluno.acesso.diasRestantes;
+    return (
+      <span
+        className="pco-badge text-[10px] bg-status-success/10 text-status-success"
+        title={
+          aluno.acesso.expiraEm
+            ? `Acesso até ${new Date(aluno.acesso.expiraEm).toLocaleDateString('pt-BR')}`
+            : 'Sem prazo declarado'
+        }
+      >
+        {aluno.acesso.estado === 'expiring' && dias !== null
+          ? `Ativo · ${dias}d`
+          : 'Ativo'}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="pco-badge text-[10px] bg-ink-muted/15 text-ink-muted"
+      title={
+        aluno.acesso.expiraEm
+          ? `Venceu em ${new Date(aluno.acesso.expiraEm).toLocaleDateString('pt-BR')}`
+          : 'Sem acesso'
+      }
+    >
+      Vencido
+    </span>
   );
 }
 

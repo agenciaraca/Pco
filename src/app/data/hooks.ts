@@ -1260,6 +1260,31 @@ export function useAllOrders() {
   });
 }
 
+export function useCreateOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: api.AdminOrderInput) => api.createOrder(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: allOrdersKey }),
+  });
+}
+
+export function useUpdateOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: Partial<api.AdminOrderInput> }) =>
+      api.updateOrder(id, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: allOrdersKey }),
+  });
+}
+
+export function useDeleteOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteOrder(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: allOrdersKey }),
+  });
+}
+
 export function useStartCheckout() {
   const qc = useQueryClient();
   return useMutation({

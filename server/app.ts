@@ -83,6 +83,8 @@ import {
   updateMarketingTagsSchema,
   checkoutSchema,
   publicCheckoutSchema,
+  adminCreateOrderSchema,
+  adminUpdateOrderSchema,
   createCouponSchema,
   updateCouponSchema,
   createSessionServiceSchema,
@@ -125,6 +127,7 @@ import { renderPrimeiroAcesso } from './notifications/templates';
 import { courseAccessFor, accessDeniedCode, accessDeniedMessage } from './access/guard';
 import { semConteudoDeAula, listaSemConteudoDeAula } from './access/conteudo-aula';
 import { accessFor as accessInfoFor } from './access/course-access';
+import { daNavegacao } from './marketing/atribuicao';
 import { simularPrazoDoCurso, darCarencia } from './access/impacto';
 import { AVISO_OPCIONAL, BASE_LEGAL } from './sessions/regra-opcional';
 import * as newsRepo from './repositories/news';
@@ -3865,17 +3868,49 @@ export function buildApp() {
       progressByUser.set(p.userId, cur);
     }
 
+    const mesesDoCurso = (course as unknown as { accessMonths?: number | null }).accessMonths;
+
     const result = enrolled.map((s) => {
       const prog = progressByUser.get(s.id) ?? { done: 0, lastCompletedAt: null };
-      const pct = totalLessons > 0 ? Math.round((prog.done / totalLessons) * 100) : 0;
+
+      // Duas fontes de progresso, e a ordem importa. A contagem de aulas
+      // concluídas é a boa — mas ela só existe para quem estudou DENTRO do AVA.
+      // Quem veio da migração tem o avanço no próprio registro de matrícula, e
+      // mostrar 0% para quem fez 78% do curso no portal é a tela mentindo.
+      const pctAulas = totalLessons > 0 ? Math.round((prog.done / totalLessons) * 100) : 0;
+      const pctImportado = s.progressByCourse?.[courseId] ?? 0;
+      const usaImportado = prog.done === 0 && pctImportado > 0;
+      const pct = usaImportado ? pctImportado : pctAulas;
+
+      // "Ativo no curso" é uma conjunção, não o status global do aluno — que é
+      // o que esta rota devolvia e por isso pintava todo mundo de ativo.
+      // Primeiro corte: o prazo. Segundo: a situação da matrícula (estorno,
+      // desistência e pagamento pendurado tiram do ar tanto quanto vencer).
+      const situacao = s.enrollmentStatusByCourse?.[courseId] ?? 'ativa';
+      const acesso = accessInfoFor({
+        enrolledAt: s.enrollmentDates?.[courseId] ?? s.createdAt ?? null,
+        storedExpiresAt: s.accessExpiresByCourse?.[courseId] ?? null,
+        accessMonths: mesesDoCurso,
+      });
+      const ativoNoCurso = situacao === 'ativa' && acesso.canStudy;
+
       return {
         studentId: s.id,
         name: s.name,
         email: s.email,
+        /** Status global da ficha. Mantido por compatibilidade — não diz nada sobre este curso. */
         status: s.status,
+        situacao,
+        acesso: {
+          estado: acesso.state,
+          expiraEm: acesso.expiresAt,
+          diasRestantes: acesso.daysLeft,
+        },
+        ativoNoCurso,
         lessonsCompleted: prog.done,
         totalLessons,
         progressPct: pct,
+        origemDoProgresso: usaImportado ? ('importado' as const) : ('aulas' as const),
         lastCompletedAt: prog.lastCompletedAt,
         lastAccessAt: s.lastAccessAt,
         riskScore: s.riskScore,
@@ -3883,11 +3918,17 @@ export function buildApp() {
     });
 
     result.sort((a, b) => b.progressPct - a.progressPct);
+    const ativos = result.filter((r) => r.ativoNoCurso).length;
     return c.json({
       courseId,
       courseTitle: course.title,
       totalLessons,
+      accessMonths: mesesDoCurso ?? null,
       enrolledCount: result.length,
+      /** Quantos podem estudar agora. O resto está vencido ou fora de situação. */
+      ativosCount: ativos,
+      vencidosCount: result.filter((r) => r.situacao === 'ativa' && !r.ativoNoCurso).length,
+      foraDeSituacaoCount: result.filter((r) => r.situacao !== 'ativa').length,
       students: result,
     });
   });
@@ -4860,8 +4901,145 @@ export function buildApp() {
     return c.json(await ordersRepo.listForUser(u.sub));
   });
 
-  app.get('/admin/orders', requireAuth('admin', 'superadmin'), async (c) =>
-    c.json(await ordersRepo.listAll()),
+  /**
+   * Lista de pedidos, com o nome de quem comprou.
+   *
+   * O pedido guarda e-mail, não nome — e a tela mostrava o e-mail porque era o
+   * que existia. Nome mora na conta, então a junção é feita aqui, uma vez por
+   * requisição, e não com uma consulta por linha.
+   */
+  app.get('/admin/orders', requireAuth('admin', 'superadmin'), async (c) => {
+    const [pedidos, contas] = await Promise.all([ordersRepo.listAll(), usersStore.listUsers()]);
+    const nomePorEmail = new Map(contas.map((u) => [u.email.toLowerCase(), u.name]));
+    return c.json(
+      pedidos.map((o) => ({
+        ...o,
+        // null, não o e-mail repetido: quem lê a tela precisa distinguir
+        // "comprou sem conta" de "a conta se chama igual ao e-mail".
+        userName: nomePorEmail.get((o.userEmail ?? '').toLowerCase()) ?? null,
+      })),
+    );
+  });
+
+  app.get('/admin/orders/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const o = await ordersRepo.findById(c.req.param('id') as string);
+    if (!o) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+    const conta = o.userEmail ? await usersStore.findUserByEmail(o.userEmail) : null;
+    return c.json({ ...o, userName: conta?.name ?? null });
+  });
+
+  /**
+   * Cria pedido pela mão do admin.
+   *
+   * Serve para registrar venda que aconteceu fora do sistema — transferência,
+   * dinheiro, acordo — e para consertar histórico. **Não chama gateway
+   * nenhum**: nasce com `gatewayProvider: 'manual'`, e o evento inicial diz que
+   * foi lançamento manual e por quem. Pedido que parece cobrança sem ser
+   * cobrança é o tipo de coisa que só se descobre no dia do fechamento.
+   */
+  app.post('/admin/orders', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(adminCreateOrderSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const d = v.data;
+    const u = c.get('user')!;
+
+    const produto = d.productId ? await productsRepo.findById(d.productId) : null;
+    if (d.productId && !produto) return jsonError(c, 404, 'NOT_FOUND', 'Produto não encontrado.');
+    const nome = produto?.name ?? d.productName;
+    if (!nome) {
+      return jsonError(c, 400, 'INVALID_INPUT', 'Informe productId ou productName.');
+    }
+
+    const conta = await usersStore.findUserByEmail(d.userEmail);
+    const criado = await ordersRepo.createOrder({
+      userId: conta?.id ?? '',
+      userEmail: d.userEmail,
+      productId: produto?.id ?? 'manual',
+      productSnapshot: {
+        name: nome,
+        priceCents: d.amountCents,
+        currency: d.currency,
+        kind: produto?.kind ?? 'course',
+        refId: d.refId ?? produto?.refId ?? null,
+      },
+      gatewayId: 'manual',
+      gatewayProvider: 'manual',
+      amountCents: d.amountCents,
+      currency: d.currency,
+      attribution: d.attribution ?? null,
+    });
+
+    // O status pedido pode não ser `pending`: lançamento manual costuma nascer
+    // já pago. Passa por updateOrder para virar evento, não silêncio.
+    const final =
+      d.status !== 'pending'
+        ? await ordersRepo.updateOrder(criado.id, {
+            status: d.status,
+            paidAt: d.status === 'paid' ? new Date().toISOString() : null,
+            nota: `lançamento manual por ${u.email}${d.nota ? ` — ${d.nota}` : ''}`,
+          })
+        : criado;
+    return c.json(final, 201);
+  });
+
+  app.put('/admin/orders/:id', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
+    const body = await c.req.json().catch(() => ({}));
+    const v = validate(adminUpdateOrderSchema, body);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    const d = v.data;
+    const u = c.get('user')!;
+
+    const atual = await ordersRepo.findById(id);
+    if (!atual) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+
+    const snapshot =
+      d.productName || d.refId !== undefined
+        ? {
+            ...atual.productSnapshot,
+            name: d.productName ?? atual.productSnapshot.name,
+            refId: d.refId !== undefined ? d.refId : atual.productSnapshot.refId,
+            priceCents: d.amountCents ?? atual.productSnapshot.priceCents,
+          }
+        : undefined;
+
+    const atualizado = await ordersRepo.updateOrder(id, {
+      status: d.status,
+      amountCents: d.amountCents,
+      currency: d.currency,
+      userEmail: d.userEmail,
+      productSnapshot: snapshot,
+      attribution: d.attribution === undefined ? undefined : d.attribution,
+      paidAt: d.paidAt,
+      nota: `por ${u.email}${d.nota ? ` — ${d.nota}` : ''}`,
+    });
+    if (!atualizado) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+    return c.json(atualizado);
+  });
+
+  /**
+   * Apaga um pedido. É a única rota desta casa que perde informação.
+   *
+   * Não mexe em matrícula: apagar o pedido de quem tem acesso deixa o acesso
+   * sem lastro, e isso precisa ser decisão de quem apaga, não efeito colateral.
+   * A resposta devolve o que foi apagado, para o admin poder recriar.
+   */
+  app.delete(
+    '/admin/orders/:id',
+    requireAuth('admin', 'superadmin'),
+    // Reusa a marca de 'order.refund': a lista de ações bloqueadas durante
+    // personificação é fechada de propósito, e apagar pedido tem o mesmo peso
+    // que estornar — ninguém faz isso "no lugar de" outra pessoa.
+    blockDuringImpersonation('order.refund'),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const antes = await ordersRepo.findById(id);
+      if (!antes) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+      const ok = await ordersRepo.deleteOrder(id);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
+      return c.json({ ok: true, apagado: antes });
+    },
   );
 
   // Admin: dispara refund REAL via gateway (provider.refundPayment)
@@ -10398,6 +10576,11 @@ export function buildApp() {
     const order = await ordersRepo.createOrder({
       userId: user.id,
       userEmail: user.email,
+      // De onde veio esta venda. Chega do navegador e não decide nada — não
+      // muda preço, não libera acesso. Só responde "que campanha converteu",
+      // que é a pergunta que o AVA não sabia responder. Ver
+      // marketing/atribuicao.ts.
+      attribution: daNavegacao(v.data.origem ?? {}, v.data.origem?.referrer ?? null),
       productId: product.id,
       productSnapshot: {
         name: product.name,

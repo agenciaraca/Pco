@@ -52,6 +52,37 @@ export const PUBLIC_JS = `
     var add=e.target.closest('[data-add-cart]');if(add){e.preventDefault();window.pcoCart.add({slug:add.getAttribute('data-slug'),title:add.getAttribute('data-title'),price:Number(add.getAttribute('data-price')||0),href:'/formacao/'+add.getAttribute('data-slug')});return;}
     var acc=e.target.closest('[data-accordion]');if(acc){var panel=acc.nextElementSibling;var open=acc.getAttribute('aria-expanded')==='true';acc.setAttribute('aria-expanded',open?'false':'true');if(panel){panel.style.maxHeight=open?'0px':panel.scrollHeight+'px';}return;}
   });
+  // ---- origem da visita (primeiro toque) ----
+  //
+  // Guardado no PRIMEIRO acesso e nunca sobrescrito: quem chega por um anúncio
+  // e volta dias depois digitando o endereço converteu pelo anúncio, não pelo
+  // acesso direto. Sobrescrever daria todo o crédito ao último clique, que é
+  // justamente o erro que faz campanha boa parecer ruim.
+  //
+  // Não é cookie e não identifica ninguém: é utm/gclid da própria URL, no
+  // localStorage deste navegador, e só viaja junto de uma compra.
+  var ORIGEM_KEY = 'pco_origem';
+  function capturaOrigem() {
+    try {
+      if (localStorage.getItem(ORIGEM_KEY)) return;
+      var p = new URLSearchParams(location.search);
+      var campos = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','utm_id','gclid','fbclid'];
+      var o = {};
+      var achou = false;
+      for (var i = 0; i < campos.length; i++) {
+        var v = p.get(campos[i]);
+        if (v) { o[campos[i]] = String(v).slice(0, 300); achou = true; }
+      }
+      var ref = document.referrer || '';
+      if (ref && ref.indexOf(location.host) === -1) { o.referrer = ref.slice(0, 300); achou = true; }
+      if (achou) localStorage.setItem(ORIGEM_KEY, JSON.stringify(o));
+    } catch (e) {}
+  }
+  function leOrigem() {
+    try { return JSON.parse(localStorage.getItem(ORIGEM_KEY) || 'null') || undefined; } catch (e) { return undefined; }
+  }
+  capturaOrigem();
+
   // ---- checkout público (form -> API -> redirect pro gateway) ----
   document.addEventListener('submit', function (e) {
     var f = e.target.closest('form[data-checkout]');
@@ -64,7 +95,9 @@ export const PUBLIC_JS = `
     var cons = f.querySelector('[name="consent"]');
     var payload = {
       name: g('name'), email: g('email'), whatsapp: g('whatsapp'),
-      document: g('document'), consent: !!(cons && cons.checked)
+      document: g('document'), consent: !!(cons && cons.checked),
+      // De onde a pessoa veio. Não muda preço nem acesso — o servidor só grava.
+      origem: leOrigem()
     };
     // Checkout de carrinho manda a lista; o de um curso só manda o slug.
     // O PRECO nao vai em nenhum dos dois: quem soma e o servidor, a partir dos

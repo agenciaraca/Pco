@@ -12,7 +12,19 @@ export type PaymentProvider =
    * credencial dela. O dinheiro não passa pela Sandra. Ver
    * `providers/sandra.ts`.
    */
-  | 'sandra';
+  | 'sandra'
+  /**
+   * Lançamento manual do admin. Não cobra nada e não tem implementação em
+   * `providers/` de propósito: é o registro de uma venda que aconteceu fora do
+   * sistema — transferência, dinheiro, acordo.
+   */
+  | 'manual'
+  /**
+   * Histórico da loja WooCommerce, importado em 1/set/2026. Também não cobra:
+   * o dinheiro entrou lá, anos atrás. Existe para que o pedido antigo não
+   * minta dizendo que veio de um gateway que nunca o processou.
+   */
+  | 'legado-wp';
 
 export type PaymentMode = 'test' | 'live';
 
@@ -59,6 +71,8 @@ export interface Product {
   updatedAt: string;
 }
 
+import type { Atribuicao } from '../marketing/atribuicao';
+
 // Order = pedido de compra
 export type OrderStatus =
   | 'pending'
@@ -89,6 +103,11 @@ export interface Order {
   // URL de checkout/QR retornado pelo gateway
   checkoutUrl?: string | null;
   qrCode?: string | null;
+  /**
+   * De onde veio esta venda: origem, meio, campanha. `null` quando não se sabe
+   * — e não se sabe é diferente de "direto". Ver `marketing/atribuicao.ts`.
+   */
+  attribution?: Atribuicao | null;
   createdAt: string;
   updatedAt: string;
   paidAt?: string | null;

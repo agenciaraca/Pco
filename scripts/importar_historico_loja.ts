@@ -30,6 +30,10 @@
  *   como pedido e não gera matrícula nenhuma.
  *
  * Fonte: `exportacoes/loja-dump-pedidos.json`, extraído do dump SQL da loja.
+ * A origem de cada venda (campanha, utm, referrer) vem de
+ * `exportacoes/loja-atribuicao.json` — o WooCommerce guardava em
+ * `_wc_order_attribution_*` e o AVA não guardava nada. Ver
+ * `server/marketing/atribuicao.ts`.
  *
  * Uso:
  *   npx tsx scripts/importar_historico_loja.ts             # DRY-RUN
@@ -39,6 +43,7 @@
 import 'dotenv/config';
 import { promises as fs } from 'node:fs';
 import pg from 'pg';
+import { limpa, type Atribuicao } from '../server/marketing/atribuicao';
 import {
   DA_LOJA,
   situacaoMaisForte,
@@ -48,6 +53,7 @@ import {
 
 const COMMIT = process.argv.includes('--commit');
 const ARQUIVO = 'exportacoes/loja-dump-pedidos.json';
+const ARQUIVO_ATRIBUICAO = 'exportacoes/loja-atribuicao.json';
 const log = (m: string) => console.log(`[loja-historico] ${m}`);
 
 interface ItemLoja {
@@ -119,6 +125,15 @@ async function main(): Promise<void> {
   log(`modo: ${COMMIT ? '*** COMMIT (grava) ***' : 'DRY-RUN (nada é gravado)'}`);
   const pedidos = JSON.parse(await fs.readFile(ARQUIVO, 'utf8')) as PedidoLoja[];
   log(`${pedidos.length} pedido(s) no dump da loja`);
+
+  // Atribuição é opcional: se o arquivo não existir, o import roda igual e a
+  // origem fica NULL — que é a resposta honesta para "não sei de onde veio".
+  const atribuicao: Record<string, Atribuicao> = await fs
+    .readFile(ARQUIVO_ATRIBUICAO, 'utf8')
+    .then((t) => JSON.parse(t) as Record<string, Atribuicao>)
+    .catch(() => ({}));
+  const comOrigem = Object.keys(atribuicao).length;
+  log(comOrigem ? `${comOrigem} pedido(s) com origem conhecida` : 'sem arquivo de atribuição — origem fica em branco');
 
   const url = process.env.DATABASE_URL;
   if (!url) {
@@ -255,7 +270,7 @@ async function main(): Promise<void> {
         `insert into payment_orders
            (id, user_id, user_email, product_id, product_snapshot, gateway_id, gateway_provider,
             external_id, status, amount_cents, currency, events, created_at, updated_at, paid_at)
-         values ($1,$2,$3,$4,$5,$6,'legado-wp',$7,$8,$9,$10,$11,$12,$12,$13)
+         values ($1,$2,$3,$4,$5,$6,'legado-wp',$7,$8,$9,$10,$11,$12,$12,$13,$14)
          on conflict (id) do nothing`,
         [
           id,
@@ -285,6 +300,7 @@ async function main(): Promise<void> {
           ]),
           quando(p),
           p.pago_em ? quando(p) : null,
+          atribuicao[p.id] ? JSON.stringify(limpa(atribuicao[p.id])) : null,
         ],
       );
     }
@@ -320,6 +336,20 @@ async function main(): Promise<void> {
       }
       feitas++;
     }
+    // Origem dos pedidos que já estavam no banco de uma execução anterior.
+    // Roda sempre: é o passo que traz a atribuição para quem foi importado
+    // antes de este arquivo existir.
+    let origemPreenchida = 0;
+    for (const [wpId, a] of Object.entries(atribuicao)) {
+      const r = await c.query(
+        `update payment_orders set attribution = $2
+         where id = $1 and attribution is null`,
+        [`loja-wp-${wpId}`, JSON.stringify(limpa(a))],
+      );
+      origemPreenchida += r.rowCount ?? 0;
+    }
+    if (origemPreenchida) log(`origem preenchida em ${origemPreenchida} pedido(s) já existentes`);
+
     await c.query('COMMIT');
     log('');
     log(`*** COMMIT feito. ${novos.length} pedido(s) · ${feitas} matrícula(s) · ${contasNovas} conta(s) nova(s) ***`);

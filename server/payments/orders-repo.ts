@@ -36,6 +36,7 @@ function daLinha(r: Linha): Order {
     amountCents: r.amountCents,
     currency: r.currency,
     events: (r.events ?? []) as Order['events'],
+    attribution: (r.attribution ?? null) as Order['attribution'],
     checkoutUrl: r.checkoutUrl ?? null,
     qrCode: r.qrCode ?? null,
     createdAt: r.createdAt,
@@ -92,6 +93,7 @@ export async function migrarJsonParaBanco(): Promise<{
       events: o.events ?? [],
       checkoutUrl: o.checkoutUrl ?? null,
       qrCode: o.qrCode ?? null,
+      attribution: o.attribution ?? null,
       createdAt: o.createdAt,
       updatedAt: o.updatedAt,
       paidAt: o.paidAt ?? null,
@@ -157,6 +159,8 @@ interface CreateInput {
   gatewayProvider: Order['gatewayProvider'];
   amountCents: number;
   currency: string;
+  /** De onde veio a venda. Ausente vira NULL — não vira "direto". */
+  attribution?: Order['attribution'];
 }
 
 export async function createOrder(input: CreateInput): Promise<Order> {
@@ -174,6 +178,7 @@ export async function createOrder(input: CreateInput): Promise<Order> {
     amountCents: input.amountCents,
     currency: input.currency,
     events: [{ ts: now, status: 'pending', note: 'Order criada' }],
+    attribution: input.attribution ?? null,
     checkoutUrl: null,
     qrCode: null,
     createdAt: now,
@@ -277,4 +282,97 @@ export async function updateStatus(
       };
     },
   );
+}
+
+/**
+ * Edição de um pedido pelo admin.
+ *
+ * Existe porque a tela de pedidos passou a ser CRUD (1/set/2026), e porque
+ * pedido importado do histórico chega com o que o WooCommerce sabia — nem
+ * sempre certo. Campos de gateway (`externalId`, `checkoutUrl`, `qrCode`) não
+ * entram: quem os escreve é a resposta do provedor, e deixar o admin digitá-los
+ * criaria pedido que aponta para cobrança que não existe.
+ *
+ * Toda alteração vira evento, para que a linha do tempo do pedido não tenha
+ * buraco — é ela que explica, meses depois, por que o valor mudou.
+ */
+export interface UpdateInput {
+  status?: OrderStatus;
+  amountCents?: number;
+  currency?: string;
+  userEmail?: string;
+  productSnapshot?: Order['productSnapshot'];
+  attribution?: Order['attribution'];
+  paidAt?: string | null;
+  nota?: string;
+}
+
+export async function updateOrder(id: string, patch: UpdateInput): Promise<Order | null> {
+  const atual = await findById(id);
+  if (!atual) return null;
+  const now = new Date().toISOString();
+
+  const mudou: string[] = [];
+  if (patch.status && patch.status !== atual.status) mudou.push(`status ${atual.status} → ${patch.status}`);
+  if (patch.amountCents !== undefined && patch.amountCents !== atual.amountCents) {
+    mudou.push(`valor ${(atual.amountCents / 100).toFixed(2)} → ${(patch.amountCents / 100).toFixed(2)}`);
+  }
+  if (patch.userEmail && patch.userEmail !== atual.userEmail) mudou.push(`e-mail ${atual.userEmail} → ${patch.userEmail}`);
+
+  const proximo: Order = {
+    ...atual,
+    status: patch.status ?? atual.status,
+    amountCents: patch.amountCents ?? atual.amountCents,
+    currency: patch.currency ?? atual.currency,
+    userEmail: patch.userEmail ?? atual.userEmail,
+    productSnapshot: patch.productSnapshot ?? atual.productSnapshot,
+    attribution: patch.attribution !== undefined ? patch.attribution : atual.attribution,
+    paidAt: patch.paidAt !== undefined ? patch.paidAt : atual.paidAt,
+    updatedAt: now,
+    events: [
+      ...atual.events,
+      {
+        ts: now,
+        status: patch.status ?? atual.status,
+        note: `editado pelo admin${mudou.length ? ': ' + mudou.join(' · ') : ''}${patch.nota ? ` — ${patch.nota}` : ''}`,
+      },
+    ],
+  };
+
+  const db = await bancoSeTabelaExiste('payment_orders');
+  if (db) {
+    await db
+      .update(schema.paymentOrders)
+      .set({
+        status: proximo.status,
+        amountCents: proximo.amountCents,
+        currency: proximo.currency,
+        userEmail: proximo.userEmail,
+        productSnapshot: proximo.productSnapshot,
+        attribution: proximo.attribution ?? null,
+        paidAt: proximo.paidAt ?? null,
+        events: proximo.events,
+        updatedAt: now,
+      })
+      .where(eq(schema.paymentOrders.id, id));
+    return proximo;
+  }
+  return await store.update((o) => o.id === id, () => proximo);
+}
+
+/**
+ * Apaga um pedido.
+ *
+ * Só o admin chega aqui, e é a única operação desta casa que perde informação —
+ * por isso não mexe em matrícula nenhuma. Apagar o pedido de quem tem acesso
+ * deixaria o acesso sem lastro, e é escolha de quem apaga, não efeito
+ * automático de um DELETE.
+ */
+export async function deleteOrder(id: string): Promise<boolean> {
+  const db = await bancoSeTabelaExiste('payment_orders');
+  if (db) {
+    const r = await db.delete(schema.paymentOrders).where(eq(schema.paymentOrders.id, id)).returning({ id: schema.paymentOrders.id });
+    return r.length > 0;
+  }
+  return await store.remove((o) => o.id === id);
 }

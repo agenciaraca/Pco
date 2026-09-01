@@ -592,6 +592,32 @@ export const paymentOrders = pgTable('payment_orders', {
   /** ID do pagamento no gateway. */
   externalId: text('external_id'),
   status: text('status').notNull().default('pending'),
+  /**
+   * De onde veio a pessoa que comprou: origem, meio, campanha.
+   *
+   * Guardado no pedido, não no aluno, porque a pergunta que interessa é "que
+   * campanha converteu esta venda" — e a mesma pessoa pode chegar por um
+   * anúncio hoje e por busca orgânica no ano que vem. Preso ao aluno, o
+   * segundo dado apagaria o primeiro.
+   *
+   * Nasceu do histórico: o WooCommerce guardava isso em
+   * `_wc_order_attribution_*` e o AVA não guardava nada. Ver
+   * `server/marketing/atribuicao.ts`.
+   */
+  attribution: jsonb('attribution').$type<{
+    tipoOrigem?: string;
+    origem?: string;
+    meio?: string;
+    campanha?: string;
+    conteudo?: string;
+    termo?: string;
+    idCampanha?: string;
+    referrer?: string;
+    dispositivo?: string;
+    entrada?: string;
+    gclid?: string;
+    fbclid?: string;
+  }>(),
   amountCents: integer('amount_cents').notNull().default(0),
   currency: text('currency').notNull().default('BRL'),
   events: jsonb('events')

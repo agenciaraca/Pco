@@ -711,6 +711,10 @@ export async function studentSearch(q: string): Promise<StudentSearchHitDto[]> {
 // ---------- Payment gateways (admin) ----------
 
 export type PaymentProviderId =
+  /** Lançamento manual do admin: registro de venda feita fora do sistema. */
+  | 'manual'
+  /** Histórico da loja WooCommerce, importado em 1/set/2026. */
+  | 'legado-wp'
   | 'mock'
   | 'stripe'
   | 'asaas'
@@ -841,10 +845,29 @@ export async function deleteProduct(id: string, confirmName: string): Promise<{ 
 // Orders
 export type OrderStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'canceled' | 'refunded';
 
+/** De onde veio a venda. Todo campo é opcional, e ausente é ausente — não é "direto". */
+export interface AtribuicaoDto {
+  tipoOrigem?: string;
+  origem?: string;
+  meio?: string;
+  campanha?: string;
+  conteudo?: string;
+  termo?: string;
+  idCampanha?: string;
+  referrer?: string;
+  dispositivo?: string;
+  entrada?: string;
+  gclid?: string;
+  fbclid?: string;
+}
+
 export interface OrderDto {
   id: string;
   userId: string;
   userEmail: string;
+  /** Nome de quem comprou, da conta. `null` quando não há conta com esse e-mail. */
+  userName?: string | null;
+  attribution?: AtribuicaoDto | null;
   productId: string;
   productSnapshot: {
     name: string;
@@ -865,6 +888,33 @@ export interface OrderDto {
   createdAt: string;
   updatedAt: string;
   paidAt?: string | null;
+}
+
+export interface AdminOrderInput {
+  userEmail: string;
+  productId?: string;
+  productName?: string;
+  refId?: string | null;
+  amountCents: number;
+  currency?: string;
+  status?: OrderStatus;
+  attribution?: AtribuicaoDto | null;
+  nota?: string;
+}
+
+export async function createOrder(input: AdminOrderInput): Promise<OrderDto> {
+  return http.post<OrderDto>('/admin/orders', input);
+}
+
+export async function updateOrder(
+  id: string,
+  input: Partial<AdminOrderInput> & { paidAt?: string | null },
+): Promise<OrderDto> {
+  return http.put<OrderDto>(`/admin/orders/${encodeURIComponent(id)}`, input);
+}
+
+export async function deleteOrder(id: string): Promise<{ ok: boolean; apagado: OrderDto }> {
+  return http.delete<{ ok: boolean; apagado: OrderDto }>(`/admin/orders/${encodeURIComponent(id)}`);
 }
 
 export async function fetchMyOrders(): Promise<OrderDto[]> {
@@ -4394,10 +4444,25 @@ export interface CourseStudentDto {
   studentId: string;
   name: string;
   email: string;
+  /**
+   * Status global da ficha do aluno. **Não diz nada sobre este curso** — era
+   * ele que a tela mostrava, e por isso todo mundo aparecia como ativo.
+   */
   status: 'ativo' | 'em_risco' | 'bloqueado' | string;
+  /** Situação da matrícula NESTE curso. */
+  situacao: 'ativa' | 'suspensa' | 'cancelada';
+  acesso: {
+    estado: 'active' | 'expiring' | 'expired' | 'lifetime';
+    expiraEm: string | null;
+    diasRestantes: number | null;
+  };
+  /** Pode estudar agora: situação ativa **e** prazo em dia. */
+  ativoNoCurso: boolean;
   lessonsCompleted: number;
   totalLessons: number;
   progressPct: number;
+  /** `aulas` = contado das aulas concluídas aqui; `importado` = veio do portal. */
+  origemDoProgresso: 'aulas' | 'importado';
   lastCompletedAt: string | null;
   lastAccessAt: string | null;
   riskScore: number;
@@ -4407,7 +4472,11 @@ export interface CourseStudentsDto {
   courseId: string;
   courseTitle: string;
   totalLessons: number;
+  accessMonths: number | null;
   enrolledCount: number;
+  ativosCount: number;
+  vencidosCount: number;
+  foraDeSituacaoCount: number;
   students: CourseStudentDto[];
 }
 

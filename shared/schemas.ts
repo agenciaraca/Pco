@@ -205,6 +205,27 @@ export const publicCheckoutSchema = z
     whatsapp: z.string().max(30).optional().or(z.literal('')),
     gatewayId: z.string().min(1).optional(),
     couponCode: z.string().max(40).optional(),
+    /**
+     * De onde a pessoa veio, capturado pelo navegador na primeira visita.
+     *
+     * Chega do cliente e por isso **não decide nada** — não muda preço, não
+     * libera acesso, não escolhe gateway. Serve para responder "que campanha
+     * converteu", e é gravado como veio, limitado em tamanho. O servidor não
+     * confia nele para mais que isso.
+     */
+    origem: z
+      .object({
+        utm_source: z.string().max(300).optional(),
+        utm_medium: z.string().max(300).optional(),
+        utm_campaign: z.string().max(300).optional(),
+        utm_content: z.string().max(300).optional(),
+        utm_term: z.string().max(300).optional(),
+        utm_id: z.string().max(300).optional(),
+        gclid: z.string().max(300).optional(),
+        fbclid: z.string().max(300).optional(),
+        referrer: z.string().max(300).optional(),
+      })
+      .optional(),
     /** Consentimento LGPD obrigatório. */
     consent: z.literal(true),
   })
@@ -942,3 +963,65 @@ export const marketingTagsSchema = z.object({
 export type MarketingTagsInput = z.infer<typeof marketingTagsSchema>;
 
 export const updateMarketingTagsSchema = marketingTagsSchema.partial();
+
+// ---------- Pedidos: CRUD do admin ----------
+
+/**
+ * O que o admin pode escrever num pedido.
+ *
+ * De fora ficam os campos que o gateway escreve (`externalId`, `checkoutUrl`,
+ * `qrCode`): deixar o admin digitá-los criaria pedido apontando para cobrança
+ * que não existe. Editar é para corrigir o que veio torto do histórico ou
+ * registrar o que aconteceu fora do sistema — não para forjar cobrança.
+ */
+export const orderStatusSchema = z.enum([
+  'pending',
+  'processing',
+  'paid',
+  'failed',
+  'canceled',
+  'refunded',
+]);
+
+export const atribuicaoSchema = z.object({
+  tipoOrigem: z.string().max(300).optional(),
+  origem: z.string().max(300).optional(),
+  meio: z.string().max(300).optional(),
+  campanha: z.string().max(300).optional(),
+  conteudo: z.string().max(300).optional(),
+  termo: z.string().max(300).optional(),
+  idCampanha: z.string().max(300).optional(),
+  referrer: z.string().max(300).optional(),
+  dispositivo: z.string().max(300).optional(),
+  entrada: z.string().max(300).optional(),
+  gclid: z.string().max(300).optional(),
+  fbclid: z.string().max(300).optional(),
+});
+
+export const adminCreateOrderSchema = z.object({
+  userEmail: z.string().email().max(160),
+  /** Produto do catálogo. Sem ele, `productName` e `amountCents` descrevem a venda. */
+  productId: z.string().max(120).optional(),
+  productName: z.string().min(2).max(200).optional(),
+  /** Curso a que este pedido se refere, quando houver. */
+  refId: z.string().max(120).optional().nullable(),
+  amountCents: z.number().int().min(0).max(100_000_00),
+  currency: z.string().length(3).default('BRL'),
+  status: orderStatusSchema.default('pending'),
+  attribution: atribuicaoSchema.optional().nullable(),
+  nota: z.string().max(400).optional(),
+});
+export type AdminCreateOrderInput = z.infer<typeof adminCreateOrderSchema>;
+
+export const adminUpdateOrderSchema = z.object({
+  status: orderStatusSchema.optional(),
+  amountCents: z.number().int().min(0).max(100_000_00).optional(),
+  currency: z.string().length(3).optional(),
+  userEmail: z.string().email().max(160).optional(),
+  productName: z.string().min(2).max(200).optional(),
+  refId: z.string().max(120).optional().nullable(),
+  attribution: atribuicaoSchema.optional().nullable(),
+  paidAt: z.string().max(40).optional().nullable(),
+  nota: z.string().max(400).optional(),
+});
+export type AdminUpdateOrderInput = z.infer<typeof adminUpdateOrderSchema>;

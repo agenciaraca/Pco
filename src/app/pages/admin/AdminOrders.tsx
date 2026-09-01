@@ -8,13 +8,21 @@ import {
   AlertCircle,
   Clock,
   Download,
+  Plus,
+  Pencil,
+  Eye,
+  Trash2,
 } from 'lucide-react';
 import * as api from '../../data/api';
 import {
   useAllOrders,
   useAdminUpdateOrderStatus,
   useAdminRefundOrder,
+  useCreateOrder,
+  useUpdateOrder,
+  useDeleteOrder,
 } from '../../data/hooks';
+import { resumoDaOrigem } from '../../../../shared/atribuicao';
 import SavedSearchesBar from '../../components/SavedSearchesBar';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
@@ -69,6 +77,13 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
   const [search, setSearch] = useState('');
   const [refundOrder, setRefundOrder] = useState<OrderDto | null>(null);
+  const [vendo, setVendo] = useState<OrderDto | null>(null);
+  const [editando, setEditando] = useState<OrderDto | null>(null);
+  const [apagando, setApagando] = useState<OrderDto | null>(null);
+  const [criando, setCriando] = useState(false);
+  const criarMut = useCreateOrder();
+  const editarMut = useUpdateOrder();
+  const apagarMut = useDeleteOrder();
 
   const filtered = useMemo(() => {
     let list = data ?? [];
@@ -172,6 +187,10 @@ export default function AdminOrders() {
             <Download size={12} strokeWidth={2} />
             Exportar CSV
           </button>
+          <button onClick={() => setCriando(true)} className="pco-btn-primary text-xs">
+            <Plus size={12} strokeWidth={2} />
+            Novo pedido
+          </button>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
@@ -219,7 +238,7 @@ export default function AdminOrders() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por email, produto ou id..."
+          placeholder="Buscar por nome, e-mail, origem, campanha ou id..."
           className="pco-input flex-1 min-w-[200px] text-sm"
         />
         <select
@@ -282,7 +301,7 @@ export default function AdminOrders() {
                   Aluno
                 </SortableTh>
                 <SortableTh field="product" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
-                  Produto
+                  Origem
                 </SortableTh>
                 <SortableTh field="gateway" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
                   Gateway
@@ -313,11 +332,23 @@ export default function AdminOrders() {
                           strokeWidth={2}
                           className="text-pco-blue shrink-0"
                         />
-                        <span className="font-medium text-pco-deep">{o.userEmail}</span>
+                        {/* Nome na frente, e-mail embaixo. Quem compra como
+                            visitante não tem conta e por isso não tem nome — aí
+                            o e-mail sobe, em vez de a linha ficar vazia. */}
+                        <div className="min-w-0">
+                          <div className="font-medium text-pco-deep truncate max-w-[180px]">
+                            {o.userName ?? o.userEmail}
+                          </div>
+                          {o.userName && (
+                            <div className="text-[10px] text-ink-muted truncate max-w-[180px]">
+                              {o.userEmail}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-xs text-ink-muted truncate max-w-[200px]">
-                      {o.productSnapshot.name}
+                    <td className="px-3 py-2 text-xs max-w-[200px]">
+                      <CelulaOrigem pedido={o} />
                     </td>
                     <td className="px-3 py-2 text-xs text-ink-muted">{o.gatewayProvider}</td>
                     <td className="px-3 py-2 font-semibold text-pco-deep whitespace-nowrap">
@@ -335,26 +366,36 @@ export default function AdminOrders() {
                     <td className="px-3 py-2 text-[11px] text-ink-muted whitespace-nowrap">
                       {new Date(o.createdAt).toLocaleString('pt-BR')}
                     </td>
+                    {/* Só CRUD aqui. Reembolsar e cancelar são ações de
+                        negócio — chamam gateway, mexem em acesso — e passaram
+                        para dentro do detalhe, onde quem clica está olhando o
+                        pedido inteiro em vez de uma linha de tabela. */}
                     <td className="px-3 py-2 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        {o.status === 'paid' && (
-                          <button
-                            onClick={() => setRefundOrder(o)}
-                            className="pco-btn-ghost text-[11px] text-pco-cyan"
-                            title="Reembolsar via gateway"
-                          >
-                            Reembolsar
-                          </button>
-                        )}
-                        {(o.status === 'pending' || o.status === 'processing') && (
-                          <button
-                            onClick={() => setStatus(o, 'canceled')}
-                            className="pco-btn-ghost text-[11px] text-status-danger"
-                            title="Cancelar"
-                          >
-                            Cancelar
-                          </button>
-                        )}
+                      <div className="inline-flex items-center gap-0.5">
+                        <button
+                          onClick={() => setVendo(o)}
+                          className="pco-btn-ghost text-[11px] p-1.5"
+                          title="Ver pedido"
+                          aria-label={`Ver pedido ${o.id}`}
+                        >
+                          <Eye size={13} strokeWidth={2} />
+                        </button>
+                        <button
+                          onClick={() => setEditando(o)}
+                          className="pco-btn-ghost text-[11px] p-1.5"
+                          title="Editar pedido"
+                          aria-label={`Editar pedido ${o.id}`}
+                        >
+                          <Pencil size={13} strokeWidth={2} />
+                        </button>
+                        <button
+                          onClick={() => setApagando(o)}
+                          className="pco-btn-ghost text-[11px] p-1.5 text-status-danger"
+                          title="Apagar pedido"
+                          aria-label={`Apagar pedido ${o.id}`}
+                        >
+                          <Trash2 size={13} strokeWidth={2} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -363,6 +404,77 @@ export default function AdminOrders() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {criando && (
+        <FormularioPedido
+          titulo="Novo pedido"
+          isPending={criarMut.isPending}
+          onClose={() => setCriando(false)}
+          onSalvar={async (dados) => {
+            try {
+              await criarMut.mutateAsync(dados as api.AdminOrderInput);
+              toast.success('Pedido criado');
+              setCriando(false);
+            } catch (err) {
+              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+        />
+      )}
+
+      {editando && (
+        <FormularioPedido
+          titulo={`Editar ${editando.id}`}
+          pedido={editando}
+          isPending={editarMut.isPending}
+          onClose={() => setEditando(null)}
+          onSalvar={async (dados) => {
+            try {
+              await editarMut.mutateAsync({ id: editando.id, input: dados });
+              toast.success('Pedido atualizado');
+              setEditando(null);
+            } catch (err) {
+              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+        />
+      )}
+
+      {apagando && (
+        <ConfirmaExclusao
+          pedido={apagando}
+          isPending={apagarMut.isPending}
+          onClose={() => setApagando(null)}
+          onConfirmar={async () => {
+            try {
+              await apagarMut.mutateAsync(apagando.id);
+              toast.success('Pedido apagado', 'A matrícula não foi tocada.');
+              setApagando(null);
+            } catch (err) {
+              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+            }
+          }}
+        />
+      )}
+
+      {vendo && (
+        <DetalhePedido
+          pedido={vendo}
+          onClose={() => setVendo(null)}
+          onEditar={() => {
+            setEditando(vendo);
+            setVendo(null);
+          }}
+          onReembolsar={() => {
+            setRefundOrder(vendo);
+            setVendo(null);
+          }}
+          onCancelar={async () => {
+            await setStatus(vendo, 'canceled');
+            setVendo(null);
+          }}
+        />
       )}
 
       {refundOrder && (
@@ -388,6 +500,336 @@ export default function AdminOrders() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * A coluna que substituiu "Produto": de onde veio a venda.
+ *
+ * Produto já aparece no valor e no detalhe; o que a lista não sabia dizer era
+ * qual campanha converteu. Sem origem conhecida a célula mostra travessão —
+ * 1.125 dos 1.845 pedidos importados estão nessa situação, e chamá-los de
+ * "direto" seria inventar medição.
+ */
+function CelulaOrigem({ pedido }: { pedido: OrderDto }) {
+  const r = resumoDaOrigem(pedido.attribution);
+  if (!r) {
+    return (
+      <span className="text-ink-muted" title="Origem não registrada neste pedido">
+        —
+      </span>
+    );
+  }
+  return (
+    <div className="min-w-0" title={pedido.productSnapshot.name}>
+      <div className="font-medium text-pco-deep truncate">{r.canal}</div>
+      {r.detalhe && <div className="text-[10px] text-ink-muted truncate">{r.detalhe}</div>}
+    </div>
+  );
+}
+
+function Campo({
+  label,
+  children,
+  dica,
+}: {
+  label: string;
+  children: React.ReactNode;
+  dica?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      {children}
+      {dica && <span className="block text-[10px] text-ink-muted mt-0.5">{dica}</span>}
+    </label>
+  );
+}
+
+/**
+ * Criar e editar usam o mesmo formulário.
+ *
+ * Campos de gateway ficam de fora de propósito: `externalId`, `checkoutUrl` e
+ * `qrCode` são escritos pela resposta do provedor, e deixá-los editáveis
+ * criaria pedido apontando para cobrança que não existe.
+ */
+function FormularioPedido({
+  titulo,
+  pedido,
+  isPending,
+  onClose,
+  onSalvar,
+}: {
+  titulo: string;
+  pedido?: OrderDto;
+  isPending: boolean;
+  onClose: () => void;
+  onSalvar: (dados: Partial<api.AdminOrderInput>) => void;
+}) {
+  const [email, setEmail] = useState(pedido?.userEmail ?? '');
+  const [produto, setProduto] = useState(pedido?.productSnapshot.name ?? '');
+  const [valor, setValor] = useState(((pedido?.amountCents ?? 0) / 100).toFixed(2));
+  const [status, setStatus] = useState<OrderStatus>(pedido?.status ?? 'pending');
+  const [origem, setOrigem] = useState(pedido?.attribution?.origem ?? '');
+  const [campanha, setCampanha] = useState(pedido?.attribution?.campanha ?? '');
+  const [nota, setNota] = useState('');
+
+  const centavos = Math.round(Number(valor.replace(',', '.')) * 100);
+  const valido = email.includes('@') && produto.trim().length >= 2 && Number.isFinite(centavos) && centavos >= 0;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="pco-card w-full max-w-lg p-5 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label={titulo}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-pco-deep">{titulo}</h2>
+          <button onClick={onClose} className="pco-btn-ghost p-1" aria-label="Fechar">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo label="E-mail do aluno">
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pco-input w-full text-sm"
+              type="email"
+            />
+          </Campo>
+          <Campo label="Produto / descrição">
+            <input
+              value={produto}
+              onChange={(e) => setProduto(e.target.value)}
+              className="pco-input w-full text-sm"
+            />
+          </Campo>
+          <Campo label="Valor (R$)">
+            <input
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              className="pco-input w-full text-sm"
+              inputMode="decimal"
+            />
+          </Campo>
+          <Campo label="Status">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as OrderStatus)}
+              className="pco-input w-full text-sm"
+            >
+              <option value="pending">Pendente</option>
+              <option value="processing">Processando</option>
+              <option value="paid">Pago</option>
+              <option value="failed">Falhou</option>
+              <option value="canceled">Cancelado</option>
+              <option value="refunded">Reembolsado</option>
+            </select>
+          </Campo>
+          <Campo label="Origem" dica="google, meta, indicação…">
+            <input
+              value={origem}
+              onChange={(e) => setOrigem(e.target.value)}
+              className="pco-input w-full text-sm"
+              placeholder="—"
+            />
+          </Campo>
+          <Campo label="Campanha">
+            <input
+              value={campanha}
+              onChange={(e) => setCampanha(e.target.value)}
+              className="pco-input w-full text-sm"
+              placeholder="—"
+            />
+          </Campo>
+        </div>
+
+        <Campo label="Nota interna" dica="Fica no histórico do pedido, junto de quem alterou.">
+          <input
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            className="pco-input w-full text-sm"
+          />
+        </Campo>
+
+        {!pedido && (
+          <p className="text-[11px] text-ink-muted">
+            Lançamento manual: <strong>não cobra nada</strong> e não chama gateway. Serve para
+            registrar venda feita fora do sistema.
+          </p>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="pco-btn-ghost text-sm">
+            Cancelar
+          </button>
+          <button
+            disabled={!valido || isPending}
+            onClick={() =>
+              onSalvar({
+                userEmail: email.trim(),
+                productName: produto.trim(),
+                amountCents: centavos,
+                status,
+                // Vazio vira null, não string vazia: a coluna precisa poder
+                // dizer "não sei" em vez de "origem em branco".
+                attribution:
+                  origem.trim() || campanha.trim()
+                    ? { origem: origem.trim() || undefined, campanha: campanha.trim() || undefined }
+                    : null,
+                nota: nota.trim() || undefined,
+              })
+            }
+            className="pco-btn-primary text-sm"
+          >
+            {isPending ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Ver o pedido inteiro — e é daqui que saem as ações de negócio. */
+function DetalhePedido({
+  pedido,
+  onClose,
+  onEditar,
+  onReembolsar,
+  onCancelar,
+}: {
+  pedido: OrderDto;
+  onClose: () => void;
+  onEditar: () => void;
+  onReembolsar: () => void;
+  onCancelar: () => void;
+}) {
+  const r = resumoDaOrigem(pedido.attribution);
+  const linha = (k: string, v: React.ReactNode) => (
+    <div className="flex gap-2 text-xs">
+      <span className="text-ink-muted w-28 shrink-0">{k}</span>
+      <span className="text-pco-deep min-w-0 break-words">{v}</span>
+    </div>
+  );
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="pco-card w-full max-w-xl p-5 space-y-4 max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label={`Pedido ${pedido.id}`}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-pco-deep">Pedido {pedido.id}</h2>
+          <button onClick={onClose} className="pco-btn-ghost p-1" aria-label="Fechar">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="space-y-1.5">
+          {linha('Aluno', pedido.userName ?? '—')}
+          {linha('E-mail', pedido.userEmail)}
+          {linha('Produto', pedido.productSnapshot.name)}
+          {linha(
+            'Valor',
+            (pedido.amountCents / 100).toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: pedido.currency,
+            }),
+          )}
+          {linha('Gateway', pedido.gatewayProvider)}
+          {linha('Origem', r ? `${r.canal}${r.detalhe ? ` · ${r.detalhe}` : ''}` : '—')}
+          {pedido.attribution?.referrer && linha('Veio de', pedido.attribution.referrer)}
+          {linha('Criado', new Date(pedido.createdAt).toLocaleString('pt-BR'))}
+          {pedido.paidAt && linha('Pago em', new Date(pedido.paidAt).toLocaleString('pt-BR'))}
+        </div>
+
+        <div>
+          <h3 className="text-[11px] uppercase tracking-wide text-ink-muted mb-1">Histórico</h3>
+          <ol className="space-y-1">
+            {pedido.events.map((e, i) => (
+              <li key={i} className="text-[11px] text-ink-muted">
+                <span className="font-mono">{new Date(e.ts).toLocaleString('pt-BR')}</span>{' '}
+                <strong className="text-pco-deep">{e.status}</strong>
+                {e.note ? ` — ${e.note}` : ''}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Ações de negócio moram aqui, não na linha da tabela: chamam gateway
+            e mexem em acesso, e quem clica precisa estar vendo o pedido todo. */}
+        <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-surface-mute">
+          {pedido.status === 'paid' && (
+            <button onClick={onReembolsar} className="pco-btn-ghost text-xs text-pco-cyan">
+              Reembolsar via gateway
+            </button>
+          )}
+          {(pedido.status === 'pending' || pedido.status === 'processing') && (
+            <button onClick={onCancelar} className="pco-btn-ghost text-xs text-status-danger">
+              Cancelar pedido
+            </button>
+          )}
+          <button onClick={onEditar} className="pco-btn-primary text-xs">
+            <Pencil size={12} strokeWidth={2} />
+            Editar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmaExclusao({
+  pedido,
+  isPending,
+  onClose,
+  onConfirmar,
+}: {
+  pedido: OrderDto;
+  isPending: boolean;
+  onClose: () => void;
+  onConfirmar: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="pco-card w-full max-w-md p-5 space-y-3"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Apagar pedido"
+      >
+        <h2 className="text-lg font-semibold text-pco-deep">Apagar este pedido?</h2>
+        <p className="text-sm text-ink-muted">
+          <strong>{pedido.productSnapshot.name}</strong> ·{' '}
+          {(pedido.amountCents / 100).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: pedido.currency,
+          })}{' '}
+          · {pedido.userName ?? pedido.userEmail}
+        </p>
+        <p className="text-xs text-status-danger">
+          O pedido some do histórico e não volta. <strong>A matrícula não é tocada</strong> — se
+          esta pessoa tem acesso por causa desta compra, o acesso continua, agora sem lastro.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="pco-btn-ghost text-sm">
+            Manter
+          </button>
+          <button
+            disabled={isPending}
+            onClick={onConfirmar}
+            className="pco-btn-primary text-sm bg-status-danger"
+          >
+            {isPending ? 'Apagando…' : 'Apagar'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
