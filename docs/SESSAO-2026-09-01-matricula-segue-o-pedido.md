@@ -145,3 +145,37 @@ antigo.
 **Resultado: 26 de 26, sem pulados.** Rode local com `E2E_FRESH=1` — sem ele os
 12 testes que dependem de login são pulados em silêncio, que foi como metade da
 suíte passou meses sem rodar.
+
+## Terceira parte: o que estava em aberto e foi fechado
+
+**Delta da loja — aplicado.** `scripts/sync_wc_delta.ts --commit`: dos 20
+pedidos pagos desde 06/jul, 19 já tinham conta e matrícula; faltava **uma
+pessoa**, que agora existe e está matriculada. O doc anterior falava em "4
+contas e 4 matrículas" porque foi medido em 30/ago — o número encolheu sozinho.
+Conferência: rodar o ensaio de novo devolve `0 criada(s) · 20 já existia(m)`.
+A conta nasce sem senha e entra pelo "esqueci minha senha".
+
+**Contas sem ficha — respondido até onde a base permite.** Em produção: 2031
+contas, 1613 fichas, **418 sem ficha**. A origem dessas 418 **não tem resposta
+com os dados de hoje**, e agora o script diz isso: o `external-references.json`
+do servidor é de 16/mai, anterior à recarga v3 de 07/jul, e não conhece nenhum
+id atual. Antes ele imprimia `0 (0,0%)`, que se lê "nenhuma veio da loja" — o
+mesmo pecado de transformar `null` em zero.
+
+Zero matrículas órfãs. A única conta com progresso de aula e sem ficha é
+`admin@psicanaliseclinica.online`: superadmin testando, não aluno que perdeu
+matrícula.
+
+**CI verde.** Main estava vermelho desde antes desta sessão, só no job de E2E.
+Está verde de novo, com a suíte rodando inteira pela primeira vez.
+
+## O que continua aberto
+
+1. **Vimeo** — 105 aulas não tocam de `psicanaliseclinica.online`. Painel da
+   conta "Psicanálise Digital", não código. Segue sendo o primeiro item.
+2. **Durações de aula** — todas em 15 min (placeholder do import). Depende do
+   item 1: sem o domínio autorizado, o provedor não devolve duração.
+3. **Origem das 418 contas sem ficha** — exige um mapa de referências regerado
+   pela carga v3. Enquanto não houver, a resposta honesta é "não dá para saber".
+4. **160 pessoas apagadas na origem** entre julho e agosto seguem em produção
+   com 256 matrículas. Decidir o destino delas é do dono, não do código.

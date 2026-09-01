@@ -551,9 +551,12 @@ esta seção**, antes de mexer em migração.
   256 matrículas, 97 com progresso real. Por isso o loader deixou de fazer
   wipe-and-reload e o dump de 07/jul virou a fonte de verdade — sumir do
   WordPress não é ordem para apagar do AVA. Decidir o destino delas é do dono.
-- **Delta da loja**: `scripts/sync_wc_delta.ts`. Ensaiado em 30/ago/2026 contra
-  produção: 18 pedidos pagos desde 06/jul, **4 contas a criar, 4 matrículas
-  novas, 14 já existentes**. Falta aplicar com `--commit`.
+- ~~**Delta da loja**~~ — **aplicado em 1º/set/2026.** `scripts/sync_wc_delta.ts
+  --commit` criou 1 conta e 1 matrícula; os outros 19 dos 20 pedidos pagos desde
+  06/jul já existiam. Rodar de novo hoje devolve `0 criada(s) · 20 já
+  existia(m)`, que é como se confere. A conta nasce **sem senha** de propósito:
+  entra pelo "esqueci minha senha", e não há nada a provisionar no VPS enquanto
+  `AUTH_STORE=db` estiver ligado.
 - **418 contas com login e sem ficha** (medido em produção em 1º/set/2026:
   2030 contas, 1612 fichas). O `--db` do `scripts/auditar_contas_sem_ficha.ts`
   era citado aqui e no próprio script desde a auditoria e **não existia no
