@@ -239,10 +239,10 @@ O handoff vivo é **`docs/SESSAO-2026-09-01-matricula-segue-o-pedido.md`**
 reboot e diz "não houve deploy" — havia, minutos depois, pelo deploy
 automático). Local, `origin/main` e **produção** no mesmo commit.
 
-**O primeiro item da próxima sessão não é código:** os vídeos das aulas são da
-Vimeo com privacidade por domínio, e a lista autoriza só `portalpco.online`. De
-`psicanaliseclinica.online` a Vimeo responde 403 — **105 aulas não tocam para
-quem já pagou**. Conserto: autorizar o domínio na conta "Psicanalise Digital".
+**O bloqueio dos vídeos foi resolvido em 1º/set/2026** — e não era só a Vimeo.
+O dono autorizou o domínio na conta "Psicanalise Digital"; faltavam ainda o
+`frame-src` da nossa CSP e a política de referer no iframe. Ver
+"Vídeo de aula" mais abaixo antes de reabrir o assunto.
 
 ## Copiar a pasta do projeto não copia o git
 
@@ -342,17 +342,44 @@ cobrança é criada no gateway da **própria escola**, com a credencial dela.
 Configuração fica em `options` do gateway: `baseUrl`, `tenantSlug`, `metodo`.
 Doc de origem: `H:\ia\dev\Sandra\docs\cobranca-api\`.
 
-## Vídeo de aula: a Vimeo restringe por domínio
+## Vídeo de aula: a Vimeo era metade do problema, e a outra metade era nossa
 
-Os vídeos da PCO são `privacy.embed: "whitelist"` e a lista autoriza
-`portalpco.online`. De `psicanaliseclinica.online` a Vimeo devolve **403 no
-player** — a aula não toca — e, no oEmbed, **HTTP 200 com o corpo vazio** e
-`domain_status_code: 403`.
+Os vídeos da PCO são `privacy.embed: "whitelist"`. Por um tempo a lista só
+autorizava `portalpco.online`, e disso saiu o diagnóstico "é a Vimeo" — que
+ficou de pé por dias e escondeu duas causas dentro do próprio código.
 
-Esse 200 vazio é a armadilha: em 31/ago/2026 fez o resolvedor de duração relatar
-"0 de 105 resolvidas" sem erro nenhum, como se os vídeos não tivessem duração.
-O script agora distingue as duas coisas. `VIMEO_REFERER` permite medir de um
-domínio já autorizado — **mas medir não faz a aula tocar**.
+**O domínio foi autorizado pelo dono em 1º/set/2026** e está medido:
+`player.vimeo.com/video/<id>` responde **200 com `Referer` do site** e **403 sem
+ele**; o oEmbed devolve `domain_status_code: 200` e a duração junto.
+
+As duas causas que sobraram, ambas nossas:
+
+1. **A CSP não emitia `frame-src`.** A diretiva só existia quando havia tag de
+   marketing cadastrada; sem tag, caía em `default-src 'self'` — e o site
+   **bloqueava o próprio player**, em toda aula, para todo aluno. Corrigido em
+   `server/public/csp.ts`, que existe separado justamente para poder ser
+   testado (`test/video-da-aula.test.tsx`).
+2. **O `Referer` não chegava à Vimeo.** O site responde com *dois*
+   `Referrer-Policy`: o nosso, `strict-origin-when-cross-origin`, e um
+   `same-origin` posto por um proxy à frente — e o `same-origin` zera o referer
+   para terceiros, que é o mesmo que a Vimeo enxerga como domínio não
+   autorizado. O conserto é a política **por elemento** no iframe
+   (`src/app/components/VideoAula.tsx`), que vence a do documento e é o que o
+   embed oficial da Vimeo já traz.
+
+**A mensagem engana.** "Este conteúdo está bloqueado — entre em contato com o
+proprietário do site" é escrita pela Vimeo e se lê como problema de conta.
+Antes de mexer na conta, meça: `curl -sI -H "Referer: https://<dominio>/"
+https://player.vimeo.com/video/<id>`. 200 ali significa que a Vimeo está certa e
+o problema é daqui.
+
+De quebra, a preview pública montava o embed com `<video src>` — e
+`player.vimeo.com/video/<id>` devolve uma **página**, não um arquivo de mídia.
+Nunca funcionou. As duas telas passaram a usar o mesmo `VideoAula`.
+
+**Durações:** as aulas com vídeo já têm duração real (2 a 14 min). O placeholder
+de 15 min sobrou nas **363 aulas sem vídeo nenhum**, e o resolvedor se recusa a
+inventar duração para elas — corretamente. De 590 aulas, 171 têm vídeo.
 
 ## Reference docs
 

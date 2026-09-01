@@ -8,6 +8,7 @@ import { buildApp } from './app';
 import { publicSite } from './public/router';
 import { getTags, hostsParaCsp } from './marketing/tags-store';
 import { ROTAS_FUNDIDAS } from './public/rotas-fundidas';
+import { montarCsp } from './public/csp';
 import { AUTHOR_IS_PLACEHOLDER } from './public/config';
 import { hostPublico } from './origem-publica';
 
@@ -29,29 +30,9 @@ if (staticRoot) {
   root.use('*', async (c, next) => {
     await next();
     if (!c.res.headers.has('Content-Security-Policy')) {
-      /**
-       * Os hosts das tags de marketing entram **apenas quando há tag
-       * cadastrada** — liberar googletagmanager e facebook "por via das
-       * dúvidas" afrouxaria a política mesmo com ninguém usando nada disso.
-       * Sem tag, a CSP é byte a byte a mesma de antes.
-       *
-       * `script-src` continua sem `'unsafe-inline'`, e é isso que impede que
-       * uma tag de HTML customizado dentro do GTM vire execução arbitrária no
-       * site: o painel do GTM não é uma porta para dentro daqui.
-       */
-      const extras = hostsParaCsp();
-      const mais = (lista: string[]): string => (lista.length ? ' ' + lista.join(' ') : '');
-      c.header(
-        'Content-Security-Policy',
-        "default-src 'self'; " +
-          `script-src 'self'${mais(extras.script)}; ` +
-          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-          `img-src 'self' data: blob: https:${mais(extras.img)}; ` +
-          "font-src 'self' https://fonts.gstatic.com data:; " +
-          `connect-src 'self' https:${mais(extras.connect)}; ` +
-          (extras.frame.length ? `frame-src 'self'${mais(extras.frame)}; ` : '') +
-          "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
-      );
+      // A política mora em `public/csp.ts`, com os porquês — inclusive o do
+      // `frame-src`, que faltava e fazia o site bloquear o próprio player.
+      c.header('Content-Security-Policy', montarCsp(hostsParaCsp()));
     }
     // HSTS **sem** `includeSubDomains` desde 30/ago/2026, e isso é temporário.
     //

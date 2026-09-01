@@ -1,4 +1,5 @@
 import { useParams, Link, Navigate, useNavigate } from 'react-router-dom';
+import VideoAula from '../components/VideoAula';
 import {
   ChevronLeft,
   ChevronRight,
@@ -187,14 +188,7 @@ export default function LMSLesson() {
       {lesson.videoUrl ? (
         <div className="pco-card p-0 overflow-hidden">
           <div className="aspect-video bg-pco-deep">
-            <iframe
-              src={lesson.videoUrl}
-              title={lesson.title}
-              className="w-full h-full"
-              frameBorder={0}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+            <VideoAula url={lesson.videoUrl} titulo={lesson.title} />
           </div>
         </div>
       ) : null}

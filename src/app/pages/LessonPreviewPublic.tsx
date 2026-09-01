@@ -1,5 +1,6 @@
 import { Link, useParams, Navigate } from 'react-router-dom';
 import SiteHeader from '../components/SiteHeader';
+import VideoAula from '../components/VideoAula';
 import { ArrowLeft, BookOpen, Clock, PlayCircle, Sparkles } from 'lucide-react';
 import { useLessonPreview } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
@@ -71,9 +72,7 @@ export default function LessonPreviewPublic() {
 
         {lesson.videoUrl ? (
           <section className="aspect-video bg-black rounded-xl overflow-hidden">
-            <video src={lesson.videoUrl} controls className="w-full h-full" preload="metadata">
-              Seu navegador não suporta o player de vídeo.
-            </video>
+            <VideoAula url={lesson.videoUrl} titulo={lesson.title} />
           </section>
         ) : (
           <section className="aspect-video bg-gradient-to-br from-pco-deep to-pco-blue rounded-xl flex items-center justify-center text-white">
