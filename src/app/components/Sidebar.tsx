@@ -1,5 +1,5 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import {
   Home,
@@ -16,6 +16,7 @@ import {
   Settings as SettingsIcon,
   ChevronDown,
   ChevronsLeft,
+  ChevronUp,
   ChevronsRight,
   type LucideIcon,
 } from 'lucide-react';
@@ -155,11 +156,51 @@ export default function Sidebar({ variant = 'student', groups }: SidebarProps) {
     setExpanded((prev) => ({ ...prev, [title]: !prev[title] }));
   };
 
+  // ---- rolagem própria do menu (só admin) ----
+  //
+  // São 60+ destinos em 9 grupos. Sem isto, alcançar o último exige rolar a
+  // página inteira — e o conteúdo que a pessoa estava lendo sai da tela junto.
+  const navRef = useRef<HTMLElement | null>(null);
+  const [podeSubir, setPodeSubir] = useState(false);
+  const [podeDescer, setPodeDescer] = useState(false);
+
+  const atualizaSetas = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    // 2px de folga: arredondamento de subpixel faria o botão de baixo piscar
+    // no fim da rolagem.
+    setPodeSubir(el.scrollTop > 2);
+    setPodeDescer(el.scrollTop + el.clientHeight < el.scrollHeight - 2);
+  }, []);
+
+  useEffect(() => {
+    atualizaSetas();
+    const el = navRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    // Abrir e fechar grupo muda a altura sem disparar scroll — sem observar,
+    // o botão de baixo some quando ainda há menu embaixo.
+    const ro = new ResizeObserver(atualizaSetas);
+    ro.observe(el);
+    for (const filho of Array.from(el.children)) ro.observe(filho);
+    return () => ro.disconnect();
+  }, [atualizaSetas, expanded, collapsed, items]);
+
+  const rolar = (sentido: 1 | -1) => {
+    const el = navRef.current;
+    if (!el) return;
+    // 70% da altura visível: sobra âncora do que estava na tela, para a pessoa
+    // não perder o fio.
+    el.scrollBy({ top: sentido * el.clientHeight * 0.7, behavior: 'smooth' });
+  };
+
   return (
     <aside
       className={clsx(
         'hidden lg:flex flex-col shrink-0 border-r border-surface-gray bg-white transition-[width] duration-200 ease-smooth',
         collapsed ? 'w-[72px]' : 'w-64',
+        // O menu do admin gruda e rola por dentro; o do aluno é curto e segue
+        // rolando com a página.
+        variant === 'admin' && 'sticky top-0 h-screen',
       )}
       aria-label="Navegação principal"
     >
@@ -200,12 +241,19 @@ export default function Sidebar({ variant = 'student', groups }: SidebarProps) {
         </button>
       </div>
 
-      <nav
-        className={clsx(
-          'flex-1 overflow-y-auto overflow-x-hidden',
-          collapsed ? 'px-1.5 py-3' : 'px-3 py-4',
+      {/* `relative` para os botões flutuarem sobre a lista sem roubar altura. */}
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        {variant === 'admin' && (
+          <BotaoRolar direcao="cima" visivel={podeSubir} onClick={() => rolar(-1)} />
         )}
-      >
+        <nav
+          ref={navRef}
+          onScroll={atualizaSetas}
+          className={clsx(
+            'flex-1 overflow-y-auto overflow-x-hidden',
+            collapsed ? 'px-1.5 py-3' : 'px-3 py-4',
+          )}
+        >
         {items.map((group, groupIndex) => {
           const groupOpen = collapsed ? true : expanded[group.title] !== false;
           const groupHasActive = group.items.some((item) =>
@@ -334,7 +382,11 @@ export default function Sidebar({ variant = 'student', groups }: SidebarProps) {
             </div>
           );
         })}
-      </nav>
+        </nav>
+        {variant === 'admin' && (
+          <BotaoRolar direcao="baixo" visivel={podeDescer} onClick={() => rolar(1)} />
+        )}
+      </div>
 
       {!collapsed && (
         <div className="px-3 py-3 border-t border-surface-gray">
@@ -348,5 +400,55 @@ export default function Sidebar({ variant = 'student', groups }: SidebarProps) {
         </div>
       )}
     </aside>
+  );
+}
+
+/**
+ * Botão de rolar o menu, colado no topo ou no rodapé da lista.
+ *
+ * Aparece só quando há menu naquela direção — botão que não leva a lugar
+ * nenhum ensina a ignorar o botão. E some do fluxo quando escondido
+ * (`pointer-events-none`), para não capturar clique do item que está embaixo.
+ *
+ * O degradê é funcional, não enfeite: ele avisa que o conteúdo continua atrás
+ * do botão, que é a única pista que a pessoa tem de que a lista não acabou.
+ */
+function BotaoRolar({
+  direcao,
+  visivel,
+  onClick,
+}: {
+  direcao: 'cima' | 'baixo';
+  visivel: boolean;
+  onClick: () => void;
+}) {
+  const paraCima = direcao === 'cima';
+  return (
+    <div
+      className={clsx(
+        'absolute inset-x-0 z-10 flex justify-center transition-opacity duration-150',
+        paraCima ? 'top-0 pt-1 pb-4' : 'bottom-0 pb-1 pt-4',
+        paraCima
+          ? 'bg-gradient-to-b from-white via-white/90 to-transparent'
+          : 'bg-gradient-to-t from-white via-white/90 to-transparent',
+        visivel ? 'opacity-100' : 'opacity-0 pointer-events-none',
+      )}
+      aria-hidden={!visivel}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        tabIndex={visivel ? 0 : -1}
+        className="inline-flex h-6 w-12 items-center justify-center rounded-full border border-surface-gray bg-white text-ink-muted shadow-sm hover:bg-pco-blue hover:text-white hover:border-pco-blue transition-colors"
+        aria-label={paraCima ? 'Rolar menu para cima' : 'Rolar menu para baixo'}
+        title={paraCima ? 'Rolar para cima' : 'Rolar para baixo'}
+      >
+        {paraCima ? (
+          <ChevronUp size={14} strokeWidth={2.5} />
+        ) : (
+          <ChevronDown size={14} strokeWidth={2.5} />
+        )}
+      </button>
+    </div>
   );
 }
