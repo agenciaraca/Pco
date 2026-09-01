@@ -230,14 +230,33 @@ Só restart, sem rebuild: `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
   (`scripts/deploy_producao.sh`) continua valendo e é o que confere o hash do
   bundle — use-o quando quiser certeza imediata.
 
+**Quando o deploy automático falhar por rede, não perca tempo relendo o
+workflow.** Em 1º/set/2026 ele falhou com `ssh: connect to host ***: Connection
+timed out` — o runner do GitHub não alcançou o VPS, enquanto o SSH da máquina
+local funcionava no mesmo minuto. Não era código nem chave. O caminho é
+`bash scripts/deploy_producao.sh`, que confere o host, faz backup do `data/` e
+compara o hash do bundle. **Bundle igual antes e depois é esperado** quando o
+commit não toca no frontend — o aviso do script é genérico; confirme pelo
+`git log -1` do servidor.
+
 Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
-O handoff vivo é **`docs/SESSAO-2026-09-01-matricula-segue-o-pedido.md`**
-(o anterior, `SESSAO-2026-09-01-pedidos-crud.md`, foi escrito no meio de um
-reboot e diz "não houve deploy" — havia, minutos depois, pelo deploy
-automático). Local, `origin/main` e **produção** no mesmo commit.
+O handoff vivo é **`docs/SESSAO-2026-09-01-matricula-segue-o-pedido.md`** —
+comece pelo fim dele: "Estado ao fim da sessão", "O que continua aberto" e "Por
+onde começar na volta". (O anterior, `SESSAO-2026-09-01-pedidos-crud.md`, foi
+escrito no meio de um reboot e diz "não houve deploy" — havia, minutos depois,
+pelo deploy automático.)
+
+Local, `origin/main` e **produção** no commit `c6a3e3c`. Árvore limpa, nada
+esperando publicação. Verificação completa passando, incluindo **E2E 26 de 26
+sem pulados** — a primeira vez que aquela suíte roda inteira.
+
+**Nada bloqueia venda ou aula.** O que sobrou é decisão do dono (as 160 pessoas
+apagadas na origem), pergunta sem dado que a responda (a origem das 418 contas
+sem ficha), conteúdo faltando (419 das 590 aulas não têm vídeo) e dívida
+conhecida sem urgência — tudo detalhado no doc.
 
 **O bloqueio dos vídeos foi resolvido em 1º/set/2026** — e não era só a Vimeo.
 O dono autorizou o domínio na conta "Psicanalise Digital"; faltavam ainda o

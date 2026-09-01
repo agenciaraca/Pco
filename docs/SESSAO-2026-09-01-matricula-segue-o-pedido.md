@@ -86,18 +86,6 @@ script fica como auditoria.
 exatamente este: pedido importado com `paidAt` de mentira não derruba matrícula
 legítima.
 
-## O que continua aberto
-
-- **Vimeo, e é o primeiro item.** 105 aulas não tocam de
-  `psicanaliseclinica.online` porque a lista de domínios autoriza só
-  `portalpco.online`. Não é código: é o painel da conta "Psicanálise Digital".
-- **`sync_wc_delta.ts` ainda não foi aplicado com `--commit`** — 18 pedidos
-  pagos desde 06/jul, 4 contas e 4 matrículas a criar.
-- **222 contas com presença no portal e sem ficha** — `auditar_contas_sem_ficha.ts --db`
-  fecha a questão.
-- **Durações de aula** seguem todas em 15 min (placeholder do import), e
-  resolvê-las depende da Vimeo autorizar o domínio.
-
 ## Segunda parte: o CI estava vermelho, e não era por causa disto
 
 Ao publicar, o histórico mostrou que o **CI do commit anterior já falhava** — só
@@ -169,17 +157,6 @@ matrícula.
 **CI verde.** Main estava vermelho desde antes desta sessão, só no job de E2E.
 Está verde de novo, com a suíte rodando inteira pela primeira vez.
 
-## O que continua aberto
-
-1. **Vimeo** — 105 aulas não tocam de `psicanaliseclinica.online`. Painel da
-   conta "Psicanálise Digital", não código. Segue sendo o primeiro item.
-2. **Durações de aula** — todas em 15 min (placeholder do import). Depende do
-   item 1: sem o domínio autorizado, o provedor não devolve duração.
-3. **Origem das 418 contas sem ficha** — exige um mapa de referências regerado
-   pela carga v3. Enquanto não houver, a resposta honesta é "não dá para saber".
-4. **160 pessoas apagadas na origem** entre julho e agosto seguem em produção
-   com 256 matrículas. Decidir o destino delas é do dono, não do código.
-
 ## Quarta parte: os vídeos, e por que a Vimeo levou a culpa
 
 O dono relatou "Este conteúdo está bloqueado. Entre em contato com o
@@ -227,3 +204,64 @@ curl -sI -H "Referer: https://psicanaliseclinica.online/" \
   escapado e a importação gravava assim. Corrigido na entrada
   (`shared/entidades-html.ts`, usado pelo `unwrap()` do conector) e nas 5 linhas
   já gravadas.
+
+---
+
+## Estado ao fim da sessão (1º/set/2026, ~17h30)
+
+**Local, `origin/main` e produção no mesmo commit: `c6a3e3c`.** Árvore limpa,
+nada em stash, nada esperando publicação. PM2 online, `/api/health` com
+`db: connected`.
+
+Verificação completa passando: typecheck, lint (0 erros, warnings
+pré-existentes), **226 arquivos / 2067 testes**, build, e **E2E 26 de 26 sem
+pulados** — a primeira vez que a suíte roda inteira. CI verde em `main`.
+
+Os seis commits, na ordem:
+
+| | |
+|---|---|
+| `78ca130` | o status do pedido voltou a mandar no acesso |
+| `5aaed3d` | dois limitadores dividiam o contador (login travava na 3ª tentativa) |
+| `18f05d1` | o `--db` da auditoria passou a existir, e admite o que não sabe |
+| `b8cef19` | delta da loja aplicado |
+| `636eff1` | o site bloqueava o próprio player de vídeo |
+| `c6a3e3c` | títulos com entidade HTML |
+
+**O deploy automático do último falhou por timeout de SSH** do runner do GitHub
+para o VPS — rede, não código. Subiu por `bash scripts/deploy_producao.sh`, que
+é o caminho a usar quando isso repetir: ele confere o host, faz backup do
+`data/` e compara o hash do bundle. Bundle igual antes e depois é esperado
+quando o commit não toca no frontend.
+
+## O que continua aberto
+
+Nada bloqueando venda ou aula. Por ordem de quem decide:
+
+1. **Decisão do dono — 160 pessoas apagadas na origem** entre julho e agosto
+   seguem em produção com 256 matrículas, 97 com progresso real. Sumir do
+   WordPress não é ordem para apagar do AVA; o destino delas é decisão de gente.
+2. **Sem resposta possível hoje — origem das 418 contas sem ficha.** O
+   `external-references.json` do servidor é de 16/mai, anterior à recarga v3 de
+   07/jul, e não conhece os ids atuais. Precisaria de um mapa regerado pela
+   carga v3. Zero matrículas órfãs; nenhuma evidência de ficha perdida.
+3. **Conteúdo, não código — 419 das 590 aulas não têm vídeo.** É por isso que
+   363 delas ficam com o placeholder de 15 min: o resolvedor se recusa a
+   inventar duração, e está certo. As 171 com vídeo já têm duração real.
+4. **Dívida conhecida, sem urgência:**
+   - `/aula-preview/:id` responde 403 em produção: `isPreview` não tem coluna no
+     banco, então a preview pública de aula está morta. Ou cria-se a coluna, ou
+     remove-se a rota — o meio-termo atual é pior que os dois.
+   - Um `videoUrl` tem `&amp;` escapado na query string (resíduo do mesmo
+     problema dos títulos). Não impede o player, mas os parâmetros vão como
+     lixo.
+   - `scripts/update_vps_pwd.py`, `restart_vps.py`, `sync_data_to_vps.py`,
+     `deploy.sh` e `docs/migration-*.md` ainda apontam para o IP morto
+     `177.7.35.13`.
+
+## Por onde começar na volta
+
+`git fetch && git status` antes de qualquer edição — a regra que o CLAUDE.md
+fixou depois da mudança de `C:` para `H:`. Depois, este doc e a seção "Vídeo de
+aula" do CLAUDE.md, que é onde mora a lição mais cara desta sessão: **a
+mensagem de erro de terceiro pode estar descrevendo um defeito seu.**
