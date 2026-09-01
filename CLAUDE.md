@@ -554,9 +554,21 @@ esta seção**, antes de mexer em migração.
 - **Delta da loja**: `scripts/sync_wc_delta.ts`. Ensaiado em 30/ago/2026 contra
   produção: 18 pedidos pagos desde 06/jul, **4 contas a criar, 4 matrículas
   novas, 14 já existentes**. Falta aplicar com `--commit`.
-- **222 contas com presença no portal e sem ficha** — a dúvida remanescente da
-  auditoria. `scripts/auditar_contas_sem_ficha.ts --db` fecha a questão contra
-  produção; na base local ele responde `INCONCLUSIVO` por falta de progresso.
+- **418 contas com login e sem ficha** (medido em produção em 1º/set/2026:
+  2030 contas, 1612 fichas). O `--db` do `scripts/auditar_contas_sem_ficha.ts`
+  era citado aqui e no próprio script desde a auditoria e **não existia no
+  código** — a função só lia JSON. Agora existe: contas e fichas saem do banco.
+  **Mas a origem dessas 418 continua sem resposta**, e agora o script diz isso
+  em vez de fingir: `external-references.json` em produção é de 16/mai, anterior
+  à recarga v3 de 07/jul, e não conhece nenhum dos ids atuais — "0 da loja"
+  seria mentira, não medição. Para responder é preciso um mapa de referências
+  regerado pela carga v3.
+  O que dá para afirmar hoje: **zero matrículas órfãs**, e a única conta com
+  progresso de aula e sem ficha é `admin@psicanaliseclinica.online` — superadmin
+  testando, não aluno perdido. Referência e progresso não têm tabela; vivem em
+  `data/*.json` e só existem inteiros no servidor, então copie-os para um
+  `DATA_DIR` antes de rodar (o relatório imprime a fonte de cada metade
+  justamente para não repetir a confusão de misturar banco com JSON local).
 - **Durações de aula**: todas gravadas como 15 min (placeholder do import).
   `scripts/resolver_duracoes_aulas.ts` resolve pelo provedor do vídeo e nunca
   inventa duração.
