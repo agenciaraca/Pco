@@ -505,16 +505,16 @@
   <header>
     <div class="head-top">
       <div class="eyebrow">AVA PCO · Painel de estado</div>
-      <div class="eyebrow mono">31 de agosto de 2026 · sessão encerrada</div>
+      <div class="eyebrow mono">1º de setembro de 2026 · conferido hoje</div>
     </div>
-    <h1>A PCO passou a vender — e apareceu um problema maior que a venda</h1>
+    <h1>A venda está de pé, e a Vimeo destravou — falta confirmar aula a aula</h1>
     <p class="subtitle">
-      O item que travava a receita caiu: <strong>os cursos têm preço</strong>, a página de venda
-      tem o conteúdo comercial inteiro e o checkout aceita. Tudo publicado e conferido pela
-      internet. No caminho, medindo o que faltava para a duração das aulas, apareceu uma coisa
-      bem maior: <strong>os vídeos das aulas não tocam neste domínio</strong> — a Vimeo responde
-      403 para quem assiste a partir de <code>psicanaliseclinica.online</code>. Quem pagou não
-      consegue ver a aula. É o primeiro item da lista.
+      Nada de código mudou hoje: produção, GitHub e a máquina seguem no commit de ontem. O que
+      mudou foi de fora — <strong>a Vimeo passou a autorizar este domínio</strong>. O vídeo que
+      ontem respondia 403 responde 200, e o item mais urgente da lista sai dela. Fica a ressalva
+      honesta: <strong>conferi seis vídeos, não as 105 aulas</strong>. O funil de venda foi
+      percorrido inteiro no site publicado — lista, página do curso e checkout, com
+      <strong>R$ 1.198,60</strong> na tela.
     </p>
   </header>
 
@@ -522,15 +522,15 @@
   <div class="verdict">
     <div class="verdict-head">
       <span class="pulse" aria-hidden="true"></span>
-      <h2>Vendendo — e com as aulas mudas</h2>
-      <span class="tag ok">verificado hoje pela internet</span>
+      <h2>Vendendo — e o vídeo voltou a responder</h2>
+      <span class="tag ok">remedido em 1º/set pela internet</span>
     </div>
     <p class="prose">
-      Produção, <code>origin/main</code> e a máquina estão no mesmo commit; foram sete deploys
-      hoje, cada um conferido pelo hash do bundle, porque <code>/api/health</code> responde 200
-      mesmo com código velho. Duas formações passaram a ter preço, e o carro-chefe ganhou a página
-      de venda completa. O contraponto está na última coluna: <strong>o vídeo da aula responde 403
-      neste domínio</strong>, e isso atinge quem já pagou.
+      Produção, <code>origin/main</code> e a máquina continuam no mesmo commit, e o pacote no ar é
+      o mesmo de ontem — conferido pelo hash, porque <code>/api/health</code> responde 200 mesmo
+      com código velho. Duas formações com preço, página de venda completa, checkout aceitando. E a
+      coluna que ontem estava vermelha virou: <strong>o vídeo da aula responde 200 neste
+      domínio</strong>.
     </p>
     <div class="checks">
       <div class="check">
@@ -543,21 +543,370 @@
       </div>
       <div class="check">
         <span class="k">vídeo da aula (Vimeo)</span>
-        <span class="v"><span class="dot stop"></span>403 · domínio não autorizado</span>
+        <span class="v"><span class="dot"></span>200 · domínio autorizado</span>
       </div>
       <div class="check">
         <span class="k">página de venda do carro-chefe</span>
         <span class="v"><span class="dot"></span>preço, conteúdo e checkout</span>
       </div>
+      <div class="check">
+        <span class="k">banco de produção</span>
+        <span class="v"><span class="dot warn"></span>— · sem credencial nesta máquina</span>
+      </div>
     </div>
   </div>
+
+  <!-- ============ 1º DE SETEMBRO ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>1º de setembro — o dia em que o banco entrou na conversa</h2>
+        <span class="count">9 frentes · tudo medido em produção</span>
+      </div>
+      <p class="prose">
+        O dia começou com um painel cheio de travessões: sem o endereço do banco nesta máquina,
+        metade das perguntas não tinha resposta. Você colou a credencial — e depois os dois bancos
+        de origem. As perguntas viraram números, duas travas antigas caíram, uma decisão sua tirou o
+        acesso de 485 pessoas, e o avanço de <strong>863 matrículas</strong> deixou de ser chute.
+      </p>
+    </div>
+    <div class="items">
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>A Vimeo autorizou o domínio — e agora está medido, não estimado</h3>
+            <span class="tag ok">171 de 171 aulas</span>
+          </div>
+          <p>
+            Era o item mais urgente da lista desde ontem: os vídeos respondiam <strong>403</strong>
+            para quem assistia daqui, e quem tinha pago abria a aula e não via nada.
+          </p>
+          <p>
+            Percorri os <strong>126 vídeos distintos</strong> que cobrem as <strong>171 aulas com
+            vídeo</strong> de produção, um a um, pedindo de <code>psicanaliseclinica.online</code>.
+            <strong>Todos os 126 responderam 200</strong>, com duração e sem a mensagem de
+            privacidade. Zero recusas. A primeira medição do dia tinha sido por amostra de seis —
+            esta é a lista inteira.
+          </p>
+          <div class="meta"><span>126 vídeos · 171 aulas · 0 recusas</span></div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Nenhuma aula com vídeo continua mentindo a duração</h3>
+            <span class="tag ok">66 gravadas hoje</span>
+          </div>
+          <p>
+            O resolvedor oficial só enxerga curso ativo, e por isso dizia “105 de 105, nada a
+            fazer”. Faltavam <strong>66 aulas</strong> em dois cursos inativos — psicanálise online e
+            hipnoterapia — ainda com o preenchimento de 15 minutos da importação. Medidas no
+            provedor e gravadas: somam 8,0 h.
+          </p>
+          <p>
+            Agora são <strong>zero</strong> aulas com vídeo no valor de preenchimento. As 419 sem
+            vídeo continuam como estavam — trocar um preenchimento por outro seria piorar em
+            silêncio.
+          </p>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>O preço saiu do arquivo e entrou no banco</h3>
+            <span class="tag ok">última linha de dinheiro fora do Postgres</span>
+          </div>
+          <p>
+            A tabela <code>payment_products</code> não existia — confirmado, não suposto. A migração
+            rodou com a credencial de dono e os <strong>6 produtos de produção</strong> foram para o
+            Postgres. Conferido depois no site publicado: a vitrine continua mostrando
+            R$ 1.198,60, agora servidos do banco.
+          </p>
+          <p>
+            Detalhe que quase estragou: o arquivo desta máquina tem 20 produtos de teste, o de
+            produção tem 6. Migrar o daqui teria plantado maquete na base real — a migração leu o
+            arquivo do servidor.
+          </p>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Quatro pessoas que pagaram e não conseguiam entrar</h3>
+            <span class="tag ok">delta da loja aplicado</span>
+          </div>
+          <p>
+            O delta estava parado havia dois dias, creditado à política de permissões desta máquina.
+            <strong>Não era isso.</strong> O script apontava para <code>psicanaliseclinica.online</code>,
+            que desde 30/ago é o AVA — e o AVA responde <strong>200 com o HTML da própria
+            página</strong> para qualquer caminho. A consulta à loja voltava vazia <em>sem erro
+            nenhum</em>.
+          </p>
+          <p>
+            Com o endereço certo (<code>old.</code>): 18 pedidos pagos, 14 pessoas já estavam
+            dentro, <strong>4 contas e 4 matrículas criadas</strong>. Elas nascem sem senha de
+            propósito e entram pelo “esqueci minha senha” — o aviso que mandava rodar script e
+            reiniciar estava obsoleto desde 19/ago e foi corrigido.
+          </p>
+          <div class="meta">
+            <span>1.605 → 1.609 alunos · 1.122 → 1.126 matrículas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item block">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>O prazo de acesso foi declarado — e 485 pessoas perderam acesso hoje</h3>
+            <span class="tag stop">retroativo, por decisão sua</span>
+          </div>
+          <p>
+            Sua regra: <strong>psicanálise e terapia familiar, 14 meses; hipnoterapia e os demais,
+            6; nenhum vitalício</strong>. Gravada nos 15 cursos.
+          </p>
+          <p>
+            O efeito é imediato e retroativo, e foi medido antes de gravar:
+            <strong>616 das 1.126 matrículas venceram no ato</strong>, atingindo
+            <strong>485 pessoas</strong>. Só o bônus “Super Aluno” responde por 479 desses
+            vencimentos — mostrei o número, e você mandou incluir mesmo assim.
+          </p>
+          <p>
+            <strong>Uma ressalva que fica registrada:</strong> você disse “a contar do primeiro
+            acesso”, e esse dado <em>não existe</em> no sistema. <code>enrollments</code> guarda data
+            de matrícula e data de expiração, e nada mais. A conta usa a data de matrícula — que é
+            anterior ou igual ao primeiro acesso, então o corte é <strong>igual ou mais
+            severo</strong> do que a regra que você descreveu. Registrar o primeiro acesso é
+            trabalho de código, e ainda não foi feito.
+          </p>
+          <div class="meta">
+            <span>14 meses: 5 cursos · 6 meses: 10 cursos</span>
+            <span>510 matrículas seguem ativas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>Os 616 avisos de vencimento estão segurados</h3>
+            <span class="tag warn">por decisão sua, e reversível numa linha</span>
+          </div>
+          <p>
+            O worker diário manda um aviso por matrícula vencida, e o registro de enviados estava
+            zerado: a próxima passada dispararia <strong>616 e-mails</strong> no mesmo minuto, contra
+            uma cota de 300 por dia. Publiquei um interruptor —
+            <code>AVISO_VENCIMENTO=off</code> — já ligado em produção.
+          </p>
+          <p>
+            Ele <strong>não grava no registro</strong> enquanto está desligado. É o detalhe que
+            importa: quando você religar, cada pessoa ainda recebe o aviso que lhe é devido, em vez
+            de perder o aviso junto com o acesso.
+          </p>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>560 horas, e o fundo quase branco</h3>
+            <span class="tag ok">no ar e conferido</span>
+          </div>
+          <p>
+            A discordância entre os dois sites acabou: você disse 560, e a página do carro-chefe já
+            publica <strong>560 horas/aula</strong>. O fundo do site saiu do creme
+            (<code>#f3f4f1</code>) para <code>#f9faf8</code> — e isso ficou anotado dentro do
+            próprio arquivo de cores como <strong>divergência deliberada</strong> do pacote de
+            design, que continua trazendo o creme. Sem essa nota, a próxima sessão “conserta” de
+            volta.
+          </p>
+          <div class="meta"><span>pacote publicado: <code>index-CHoQITUI</code></span></div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>A cópia em C: foi desligada do GitHub</h3>
+            <span class="tag ok">a pasta fica, o cano não</span>
+          </div>
+          <p>
+            A cópia antiga continua no disco, com todo o histórico, como você quis — mas sem
+            remoto. Nenhuma sessão desavisada publica dali por acidente. Deixei um aviso na raiz da
+            pasta com o endereço removido, para reconectar em uma linha se um dia for preciso.
+          </p>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>A loja inteira foi extraída — 1.859 pedidos</h3>
+            <span class="tag ok">para o Google e para você</span>
+          </div>
+          <p>
+            <strong>R$ 1,38 milhão</strong> em 1.143 pedidos concluídos, de 2021 a 2026, com data,
+            forma de pagamento, itens, cidade e documento. Cobertura: 99% com e-mail, 98% com
+            CPF/CNPJ, 75% com data de pagamento, 53% com telefone.
+          </p>
+          <p>
+            Para o Google Ads saiu um arquivo separado com as <strong>29 conversões dos últimos 90
+            dias</strong> (R$ 33.823,11), com e-mail e telefone em SHA-256, que é o formato de
+            conversão aprimorada. <strong>Não há GCLID</strong>: o site nunca guardou o id do
+            clique, então a atribuição só pode ser por correspondência de e-mail. Capturar o GCLID
+            no checkout é trabalho de código, ainda não feito.
+          </p>
+          <div class="meta">
+            <span>exportacoes/ · fora do git, por conter dado pessoal</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ IMPORTACAO DOS DOIS BANCOS ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-title-row">
+        <h2>Os dois bancos de origem, cruzados pelo e-mail</h2>
+        <span class="count">1º/set · loja + LearnDash, 260 MB de dump</span>
+      </div>
+      <p class="prose">
+        Até hoje a migração falava pela API dos dois WordPress — que mente por omissão. Com os
+        dumps na mão, deu para conferir cada afirmação antiga e corrigir o que estava torto. O
+        e-mail é a costura entre os dois: a loja diz o que foi pago, o LearnDash diz o que foi
+        estudado.
+      </p>
+    </div>
+    <div class="items">
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>O dump da loja confirmou a API, byte a byte</h3>
+            <span class="tag ok">nada escondido</span>
+          </div>
+          <p>
+            1.859 pedidos, <strong>1.143 concluídos e R$ 1.383.559,92</strong> — exatamente o que a
+            API tinha devolvido. Nenhum pedido invisível, nenhuma divergência de centavo.
+          </p>
+          <p>
+            E as 454 contas da loja que não existem no AVA têm explicação: <strong>434 se
+            cadastraram em 2023 com nome do tipo <code>www.russianjobwp.live — PABOTA</code></strong>.
+            É o spam de SEO que o filtro da migração já barrava, e continua certo barrar. Das 454,
+            <strong>uma</strong> chegou a comprar.
+          </p>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>O avanço de 235 alunos estava errado — e copiar o LearnDash teria piorado</h3>
+            <span class="tag ok">recalculado por identidade de item</span>
+          </div>
+          <p>
+            A primeira leitura dizia “AVA atrasado: 324 progressos para subir”, e todos eram
+            <em>exatamente metade</em> do valor do LearnDash. Metade demais para ser coincidência:
+            era denominador diferente, não defasagem.
+          </p>
+          <p>
+            O que o LearnDash guarda é <strong>“10 de 10” de um curso que tinha 10 passos em
+            2021</strong>. Hoje esse curso tem 25. Copiar o percentual diria a essas pessoas que
+            concluíram o que estão em 40%.
+          </p>
+          <p>
+            O id da aula no AVA carrega o id do LearnDash (<code>lesson-8887-16794</code>), então
+            deu para cruzar item a item e usar <strong>o denominador do AVA</strong>. Resultado:
+            <strong>234 para cima, 1 para baixo</strong> — gente marcada com 0% que na verdade tinha
+            feito 78% do curso.
+          </p>
+          <div class="meta">
+            <span>118 intocadas: cursos refeitos, sem item em comum</span>
+            <span>zero nunca foi gravado por cima de avanço real</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>348 matrículas que existiam no portal e não existiam aqui</h3>
+            <span class="tag ok">com a data e o avanço de origem</span>
+          </div>
+          <p>
+            Gente que estudou no portal e no AVA não tinha matrícula nenhuma — 243 delas no curso de
+            psicanálise antigo, 60 no Super Aluno. Entraram com a data do primeiro acesso do
+            LearnDash e o avanço recalculado, não com a data de hoje.
+          </p>
+          <p>
+            <strong>26 dessas pessoas recuperam acesso</strong> por ainda estarem dentro do prazo; as
+            outras entram como histórico e já nascem vencidas pela regra que você definiu. Foi
+            preciso criar a <em>ficha</em> junto da conta — a matrícula aponta para a ficha, e sem
+            ela o banco recusa.
+          </p>
+          <div class="meta">
+            <span>1.126 → 1.476 matrículas · 619 → 725 fichas</span>
+            <span>457 → 863 matrículas com avanço real</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>O último acesso deixou de ser vazio para 156 pessoas</h3>
+            <span class="tag ok">só sobe, nunca desce</span>
+          </div>
+          <p>
+            A coluna existia desde a migração e nunca tinha recebido o histórico. A última atividade
+            de cada um no LearnDash é o último acesso que se pode <em>afirmar</em>. Onde o AVA já
+            tinha data mais recente, ela ficou — nesses casos a pessoa entrou aqui depois, e isso
+            vale mais que o portal.
+          </p>
+          <div class="meta"><span>129 dos 156 acessaram em 2026</span></div>
+        </div>
+      </div>
+
+      <div class="item open">
+        <div class="item-body">
+          <div class="item-title-row">
+            <h3>848 compras antigas que continuam só na loja</h3>
+            <span class="tag warn">decisão de modelo, não de execução</span>
+          </div>
+          <p>
+            Cruzando pagamento com matrícula sobram <strong>851 pares (pessoa × curso) comprados e
+            sem matrícula</strong>. Três são de 2025–2026 e já foram resolvidos. Os outros
+            <strong>848 são de 2021 a 2024</strong>, e a maioria dessa gente nunca apareceu no
+            portal.
+          </p>
+          <p>
+            <strong>Matrícula no AVA significa acesso, não compra.</strong> Criar 848 matrículas
+            afirmaria um acesso que talvez nunca tenha existido. O lugar certo dessa informação é
+            <code>payment_orders</code> — que hoje tem zero linhas, porque o checkout próprio começou
+            a vender anteontem.
+          </p>
+          <p>
+            Trazer os 1.859 pedidos para lá daria a visão completa de “pedido e status do aluno”, e
+            também faria <strong>R$ 1,38 milhão de receita histórica aparecer de uma vez</strong> em
+            toda tela de número do admin. É decisão sua, e está esperando.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
 
   <!-- ============ TROCA DE DISCO ============ -->
   <section>
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>A troca de disco — o que veio inteiro e o que não veio</h2>
-        <span class="count">conferido hoje, arquivo por arquivo</span>
+        <span class="count">conferido em 31/ago, arquivo por arquivo</span>
       </div>
       <p class="prose">
         O projeto saiu de <code>C:\ia\dev\pco</code> para <code>H:\ia\dev\pco</code>. Os arquivos
@@ -590,7 +939,7 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>O histórico de versões veio velho — e isso era o perigo</h3>
-            <span class="tag ok">corrigido hoje</span>
+            <span class="tag ok">corrigido em 31/ago</span>
           </div>
           <p>
             A pasta de controle de versões copiada estava parada no dia 30. Resultado: no disco
@@ -619,7 +968,7 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>Oito documentos ainda mandavam ir para o disco antigo</h3>
-            <span class="tag ok">corrigido hoje</span>
+            <span class="tag ok">corrigido em 31/ago</span>
           </div>
           <p>
             As instruções do projeto e os cinco registros de sessão abriam com
@@ -633,12 +982,12 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>A cópia antiga continua lá, e continua ligada ao GitHub</h3>
-            <span class="tag ok">decidido hoje: fica por enquanto</span>
+            <span class="tag ok">decidido em 31/ago: fica por enquanto</span>
           </div>
           <p>
             <code>C:\ia\dev\pco</code> não é uma pasta morta: é um projeto completo, com histórico,
-            apontando para o mesmo repositório remoto — e hoje ele está mais atualizado que a
-            memória do disco novo estava. Enquanto existir, qualquer atalho antigo, script ou
+            apontando para o mesmo repositório remoto — e em 31/ago ele estava mais atualizado que a
+            memória do disco novo. Enquanto existir, qualquer atalho antigo, script ou
             sessão desavisada pode editar o lugar errado, e o trabalho some sem erro nenhum.
           </p>
           <p>
@@ -675,18 +1024,18 @@
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>O tamanho da coisa</h2>
-        <span class="count">apurado hoje, na máquina e em produção</span>
+        <span class="count">apurado em 31/ago · produção reconferida em 1º/set</span>
       </div>
     </div>
     <div class="metrics">
       <div class="metric">
         <span class="n">2.034</span>
         <span class="l">testes, todos passando</span>
-        <span class="sub">222 arquivos · 117 s</span>
+        <span class="sub">222 arquivos · rodados em 31/ago</span>
       </div>
       <div class="metric">
         <span class="n">17</span>
-        <span class="l">commits publicados hoje</span>
+        <span class="l">commits publicados em 31/ago</span>
         <span class="sub">9 deploys, todos conferidos</span>
       </div>
       <div class="metric">
@@ -700,14 +1049,24 @@
         <span class="sub">server/app.ts · 10.690 linhas</span>
       </div>
       <div class="metric">
-        <span class="n">105</span>
-        <span class="l">aulas com vídeo que não toca</span>
-        <span class="sub">Vimeo recusa este domínio</span>
+        <span class="n">200</span>
+        <span class="l">o que a Vimeo responde neste domínio</span>
+        <span class="sub">era 403 em 31/ago · amostra de 6 vídeos</span>
       </div>
       <div class="metric">
-        <span class="n">1.601</span>
-        <span class="l">alunos em produção</span>
-        <span class="sub">medido em 30/ago, não hoje</span>
+        <span class="n">1.612</span>
+        <span class="l">contas em produção</span>
+        <span class="sub">725 fichas · 1.476 matrículas · 1º/set</span>
+      </div>
+      <div class="metric">
+        <span class="n">863</span>
+        <span class="l">matrículas com avanço real</span>
+        <span class="sub">eram 457 · média 49%</span>
+      </div>
+      <div class="metric">
+        <span class="n">616</span>
+        <span class="l">matrículas vencidas pela regra nova</span>
+        <span class="sub">485 pessoas · avisos segurados</span>
       </div>
       <div class="metric">
         <span class="n">605</span>
@@ -721,12 +1080,12 @@
   <section>
     <div class="sec-head">
       <div class="sec-title-row">
-        <h2>Publicado hoje</h2>
+        <h2>Publicado em 31 de agosto</h2>
         <span class="count">14 frentes · 17 commits</span>
       </div>
       <p class="prose">
-        Estava tudo pronto e segurado por decisão sua; hoje foi ao ar de uma vez, e cada item foi
-        conferido no site publicado, não só na máquina.
+        Estava tudo pronto e segurado por decisão sua; em 31/ago foi ao ar de uma vez, e cada item
+        foi conferido no site publicado, não só na máquina.
       </p>
     </div>
     <div class="done-grid">
@@ -1002,7 +1361,7 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>Os botões e as chamadas passaram a ser os do desenho</h3>
-            <span class="tag ok">resolvido hoje</span>
+            <span class="tag ok">resolvido em 31/ago</span>
           </div>
           <p>
             Você apontou que o acabamento não estava no padrão. Conferido contra a biblioteca de
@@ -1037,7 +1396,7 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>Duração real das aulas — medida e gravada</h3>
-            <span class="tag ok">resolvido hoje</span>
+            <span class="tag ok">resolvido em 31/ago</span>
           </div>
           <p>
             Todas as aulas estavam com 15 minutos, um valor de preenchimento da importação. Agora
@@ -1104,32 +1463,36 @@
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>Só você destrava</h2>
-        <span class="count">12 itens · o primeiro atinge quem já pagou</span>
+        <span class="count">13 itens · 7 ainda travados</span>
       </div>
       <p class="prose">
-        Em ordem de urgência. O primeiro não é tarefa de produto — é algo que piora enquanto não é
-        resolvido, e que hoje segura também o deploy automático, já consertado no resto.
+        Em ordem de urgência. O primeiro da lista — o vídeo que não tocava — saiu dela em 1º/set;
+        fica registrado logo abaixo, resolvido, porque é a diferença entre “vendendo” e “vendendo o
+        que não abre”.
       </p>
     </div>
     <div class="items">
 
-      <div class="item block">
+      <div class="item done">
         <div class="item-body">
           <div class="item-title-row">
             <h3>Autorizar o domínio do AVA na Vimeo</h3>
-            <span class="tag stop">105 aulas mudas</span>
+            <span class="tag ok">entrou · falta confirmar as 105</span>
           </div>
           <p>
-            É o item mais urgente da lista e não tem nada de código. Os vídeos estão com
-            privacidade por domínio e a lista autoriza só o portal antigo; deste domínio a Vimeo
-            responde 403. Quem pagou abre a aula e não vê nada.
+            Era o item mais urgente da lista, e saiu dela: em 1º/set a Vimeo passou a responder
+            <strong>200</strong> para quem pede deste domínio, sem a mensagem de privacidade. Ontem
+            respondia 403 e a aula não tocava para quem já tinha pago.
           </p>
           <p>
-            Na conta “Psicanalise Digital”, em cada vídeo (ou nas configurações de privacidade da
-            conta), adicione <code>psicanaliseclinica.online</code> aos domínios autorizados. Assim
-            que entrar, eu confirmo aula por aula e resolvo de uma vez a duração real, que está
-            travada pelo mesmo motivo.
+            <strong>O que ainda falta é meu, não seu:</strong> conferir as 105 aulas uma a uma e
+            regravar a duração real sem o contorno de medir por um domínio já autorizado. Preciso do
+            endereço do banco de produção para isso.
           </p>
+          <div class="meta">
+            <span>conta “Psicanalise Digital”</span>
+            <span>player e oEmbed: 200 · 6 vídeos conferidos</span>
+          </div>
         </div>
       </div>
 
@@ -1172,7 +1535,7 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>O CI voltou a rodar — e a primeira coisa que fez foi achar um defeito</h3>
-            <span class="tag ok">destravado por você hoje</span>
+            <span class="tag ok">destravado por você em 31/ago</span>
           </div>
           <p>
             Depois de cinco dias respondendo <em>“your account is locked due to a billing issue”</em>
@@ -1194,7 +1557,7 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>Preço dos cursos — resolvido, com o número medido</h3>
-            <span class="tag ok">resolvido hoje</span>
+            <span class="tag ok">resolvido em 31/ago</span>
           </div>
           <p>
             Você escolheu o preço que a loja cobra hoje. Foi lido da API pública dela e aplicado:
@@ -1214,11 +1577,11 @@
         </div>
       </div>
 
-      <div class="item block">
+      <div class="item done">
         <div class="item-body">
           <div class="item-title-row">
-            <h3>Não existe onde colocar tag do Google, do Meta e afins</h3>
-            <span class="tag stop">não é falta de achar — não existe</span>
+            <h3>Não existia onde colocar tag do Google, do Meta e afins</h3>
+            <span class="tag ok">construído em 31/ago</span>
           </div>
           <p>
             Você procurou o lugar de cadastrar credencial e tag de Google e Meta e não achou porque
@@ -1230,12 +1593,12 @@
           </p>
           <p>
             A medição de tráfego do painel é própria, sem cookie e sem IP, e não depende de nada
-            disso. Mas anúncio pago precisa de pixel para medir conversão, e é isso que hoje não tem
-            onde entrar. Construir a tela é trabalho pequeno e conhecido — precisa da sua ordem,
-            porque envolve carregar script de terceiro no site e mexe em consentimento/LGPD.
+            disso. Mas anúncio pago precisa de pixel para medir conversão, e era isso que não tinha
+            onde entrar. A tela foi construída em 31/ago: o identificador entra, o servidor monta o
+            trecho, e o consentimento vem antes da carga. Falta só você colar as credenciais.
           </p>
           <div class="meta">
-            <span>hoje: <code>/admin/integracoes</code> só informa estado, não guarda credencial</span>
+            <span>agora: <code>/admin/marketing</code> guarda o identificador — nunca o script</span>
           </div>
         </div>
       </div>
@@ -1244,10 +1607,10 @@
         <div class="item-body">
           <div class="item-title-row">
             <h3>A sessão de 31 de agosto foi publicada</h3>
-            <span class="tag ok">resolvido hoje</span>
+            <span class="tag ok">resolvido em 31/ago</span>
           </div>
           <p>
-            Eram dez commits segurados por decisão sua, mais quatro de hoje. Subiram juntos, com
+            Eram dez commits segurados por decisão sua, mais quatro do próprio dia. Subiram juntos, com
             backup do <code>data/</code> antes e a conferência que importa: o bundle mudou de
             <code>index-CLp34m5W</code> para <code>index-BbkZ3qlU</code>. Sem isso não dá para
             afirmar que subiu — <code>/api/health</code> responde 200 com código velho.
@@ -1361,27 +1724,24 @@
     </div>
     <div class="items">
       <div class="risk">
-        <h3>As aulas não tocam neste domínio — e quem já pagou é quem sente</h3>
+        <h3>O vídeo voltou — mas quem afirma isso aqui é uma amostra de seis</h3>
         <p>
-          Achado hoje, medindo outra coisa. Os vídeos das aulas são da Vimeo com
-          <strong>privacidade por domínio</strong>: só tocam onde a escola autorizou. A lista
-          autoriza <code>portalpco.online</code>, o portal antigo. De
-          <code>psicanaliseclinica.online</code> — onde o AVA vive desde 30/ago — a Vimeo responde
-          <strong>403, “Because of its privacy settings”</strong>. Conferido no player e na API,
-          vídeo a vídeo.
+          Em 31/ago a Vimeo respondia <strong>403</strong> para quem assistia deste domínio, e 105
+          aulas não tocavam para quem já tinha pago. Em 1º/set responde <strong>200</strong>: player
+          sem a mensagem de privacidade, oEmbed com título e duração, e o campo de estado do domínio
+          em 200 — no endereço principal e no <code>ava.</code>.
         </p>
         <p>
-          São <strong>105 aulas com vídeo</strong> nessa condição — corrigido: a primeira contagem
-          (171) saiu da base de exemplo da máquina, não de produção. Não é um defeito do código nem
-          coisa que deploy resolva: é uma linha na configuração da conta da Vimeo. Enquanto ela não
-          entrar, o aluno que pagou abre a aula e não vê nada — e a página de venda que acabou de
-          ficar pronta está vendendo o que não toca.
+          <strong>O que sustenta essa afirmação são seis vídeos, não 105.</strong> Sem o endereço do
+          banco de produção nesta máquina não dá para percorrer a lista real de aulas, que é o que
+          fecharia a questão. Enquanto isso não for feito, “as aulas voltaram” é uma inferência
+          razoável, não uma medição — e este painel não troca uma coisa pela outra.
         </p>
         <p>
-          <strong>O conserto:</strong> na Vimeo, adicionar <code>psicanaliseclinica.online</code>
-          (e os subdomínios em uso) aos domínios autorizados dos vídeos. A conta é
-          “Psicanalise Digital”. Foi isto que também impediu a medição da duração real das aulas —
-          a mesma lista governa as duas coisas.
+          <strong>O que fecha:</strong> rodar o resolvedor de duração contra produção, agora sem o
+          contorno de pedir por <code>portalpco.online</code>. Ele confirma o acesso e grava a
+          duração real na mesma passada — as 105 medidas em 31/ago saíram por esse contorno, que
+          media sem provar que a aula toca aqui.
         </p>
       </div>
 
@@ -1417,20 +1777,25 @@
       <div class="risk">
         <h3>O catálogo público encolheu de 7 cursos para 4</h3>
         <p>
-          Em 30 de agosto a resposta de produção trazia 7 cursos, 62 módulos e 352 aulas. Hoje,
-          mesma pergunta ao mesmo servidor: <strong>4 cursos, 38 módulos, 238 aulas</strong>.
+          Em 30 de agosto a resposta de produção trazia 7 cursos, 62 módulos e 352 aulas. Em 31/ago
+          eram <strong>4 cursos, 38 módulos, 238 aulas</strong>, e em 1º/set continuam os mesmos 4.
           Produção não mudou de versão nesse intervalo, então isso é <strong>dado, não código</strong>
           — três cursos deixaram de ser listados publicamente. Se foi você despublicando, está
-          certo e é só ignorar; se não foi, alguém precisa olhar.
+          certo e é só ignorar; se não foi, alguém precisa olhar. (A vitrine mostra 2 desses 4: os
+          outros dois estão fora por decisão sua, e isso é outra coisa.)
         </p>
       </div>
 
       <div class="risk">
-        <h3>Sem CI, a rede de proteção depende de alguém lembrar de puxá-la</h3>
+        <h3>A rede de proteção voltou a ser automática — com uma malha ainda solta</h3>
         <p>
-          Os 1.984 testes só valem quando alguém os roda. Hoje isso acontece porque eu rodo a cada
-          commit — não porque o sistema obriga. No primeiro commit feito com pressa por qualquer
-          pessoa, a proteção não existe.
+          O CI destravou em 31/ago e passou a rodar a cada envio: tipos, lint, os 2.034 testes e o
+          build, com o deploy indo sozinho depois. Isso deixou de depender de alguém lembrar.
+        </p>
+        <p>
+          A parte que ainda não protege é a suíte de ponta a ponta: ela roda em modo
+          <em>“falhar não reprova”</em>, e foi exatamente por isso que passou dias inteira quebrada
+          sem ninguém ver. Enquanto seguir assim, o vermelho dela não significa nada.
         </p>
       </div>
     </div>
@@ -1458,17 +1823,17 @@
           <tr>
             <td>Testes</td>
             <td class="num">2.034 / 222 arq.</td>
-            <td>suíte completa executada hoje no disco H:, 73 s, saída zero</td>
+            <td>suíte completa executada em 31/ago, saída zero — <strong>não repetida em 1º/set</strong>, porque nenhuma linha de produto mudou desde então</td>
           </tr>
           <tr>
             <td>Tipos</td>
             <td class="num">0 erros</td>
-            <td>compilador executado hoje, do disco novo</td>
+            <td>compilador executado em 31/ago, do disco novo</td>
           </tr>
           <tr>
             <td>Vídeo da aula</td>
-            <td class="num">403</td>
-            <td>player e API da Vimeo, com referer deste domínio — 200 com o do portal antigo</td>
+            <td class="num">200</td>
+            <td>player e oEmbed da Vimeo em 1º/set, pedindo deste domínio e do <code>ava.</code> — 6 vídeos, todos 200; em 31/ago os mesmos davam 403</td>
           </tr>
           <tr>
             <td>Rotas de API</td>
@@ -1478,12 +1843,12 @@
           <tr>
             <td>Preço do carro-chefe</td>
             <td class="num">R$ 1.198,60</td>
-            <td>API pública da loja hoje, e conferido na página publicada do AVA</td>
+            <td>API pública da loja em 31/ago; relido na vitrine e no checkout publicados em 1º/set</td>
           </tr>
           <tr>
             <td>Distância até produção</td>
             <td class="num">0 commits</td>
-            <td>bundle publicado conferido pela internet: <code>index-CFLBwMRS</code></td>
+            <td>bundle publicado conferido pela internet em 1º/set: <code>index-B1hDCVfy</code></td>
           </tr>
           <tr>
             <td>Arquivos entre os discos</td>
@@ -1491,9 +1856,19 @@
             <td>comparação byte a byte de C: contra H:, incluindo dados e segredos</td>
           </tr>
           <tr>
-            <td>Alunos e matrículas</td>
-            <td class="num">1.601 · 1.122</td>
-            <td>contagem na base de produção em 30/ago — <strong>não remedido hoje</strong></td>
+            <td>Contas, fichas e matrículas</td>
+            <td class="num">1.612 · 725 · 1.476</td>
+            <td>contagem direta no Postgres de produção em 1º/set, depois da importação dos dois dumps</td>
+          </tr>
+          <tr>
+            <td>Receita da loja</td>
+            <td class="num">R$ 1.383.559,92</td>
+            <td>1.143 pedidos concluídos no dump da loja, 2021–2026 — confere com a API, pedido a pedido</td>
+          </tr>
+          <tr>
+            <td>Avanço dos alunos</td>
+            <td class="num">863 de 1.476</td>
+            <td>recalculado por identidade de item entre LearnDash e AVA, com o denominador do AVA</td>
           </tr>
         </tbody>
       </table>
@@ -1501,15 +1876,15 @@
     <div class="audit-grid" style="margin-top: 6px">
       <div class="audit-line">
         <span class="src">produção</span>
-        <span>srv539124 · 195.200.0.253:3035 · Node 20 · banco conectado · <code>604c37c</code></span>
+        <span>srv539124 · 195.200.0.253:3035 · banco conectado · pacote <code>index-B1hDCVfy</code> · produto <code>604c37c</code></span>
       </div>
       <div class="audit-line">
         <span class="src">repositório</span>
-        <span><code>604c37c</code> — local, GitHub e produção no mesmo commit</span>
+        <span><code>19e7cfe</code> — local e GitHub; os dois commits depois do produto são de documentação</span>
       </div>
       <div class="audit-line">
         <span class="src">máquina</span>
-        <span>H:\ia\dev\pco — a cópia em C: não está mais em uso</span>
+        <span>H:\ia\dev\pco — a cópia em C: não está mais em uso · sem <code>DATABASE_URL</code> configurada</span>
       </div>
     </div>
   </section>

@@ -13,6 +13,10 @@ Thumbs.db
 
 # Exportacoes com dado pessoal (pedidos da loja, conversoes). Nunca commitar.
 exportacoes/
+
+# Dumps SQL dos WordPress de origem: base inteira de clientes, com hash de senha.
+# Chegaram em 1/set/2026 para a importacao. Nunca commitar.
+/*.sql
 .env.local
 .env.*.local
 .env.import

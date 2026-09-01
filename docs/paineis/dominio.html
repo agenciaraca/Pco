@@ -311,35 +311,37 @@
   <header>
     <div class="head-top">
       <div class="eyebrow">AVA PCO · Plano de domínio</div>
-      <div class="eyebrow">30 de agosto de 2026 · migração concluída</div>
+      <div class="eyebrow">30 de agosto de 2026 · remedido em 1º/set/2026</div>
     </div>
     <h1>Levar o AVA para o endereço principal</h1>
     <p class="subtitle">
-      <strong>Feito.</strong> O AVA responde em <code>psicanaliseclinica.online</code>, com
-      certificado válido, <code>ava.</code> e <code>www.</code> redirecionando em 301, e o
-      <code>&lt;link rel="canonical"&gt;</code> apontando para o principal. O domínio saiu de 18
-      cópias no código para um arquivo só. <strong>O que continua aberto é a loja</strong>, que
-      ainda não tem certificado em <code>old.</code> e por isso segue fora do ar — detalhe abaixo.
+      <strong>Feito, e a última pendência caiu.</strong> O AVA responde em
+      <code>psicanaliseclinica.online</code> com certificado válido; <code>ava.</code> e
+      <code>www.</code> redirecionam em 301; o <code>&lt;link rel="canonical"&gt;</code> aponta para
+      o principal; e o domínio saiu de 18 cópias no código para um arquivo só. <strong>A loja voltou
+      ao ar em <code>old.</code></strong>, com certificado próprio válido até 29/nov/2026 — era o
+      que faltava quando este painel foi escrito.
     </p>
   </header>
 
   <!-- ============ O CONFLITO ============ -->
-  <div class="alert">
+  <div class="alert" style="border-left-color: var(--ok)">
     <div class="alert-head">
-      <h2>O endereço principal é a loja — e a loja está vendendo</h2>
-      <span class="tag stop">decisão de negócio</span>
+      <h2>A loja voltou ao ar — o que travava era um certificado</h2>
+      <span class="tag ok">resolvido em 31/ago</span>
     </div>
     <p class="prose">
-      A loja mudou para <code>old.psicanaliseclinica.online</code>, mas a origem
-      <code>72.60.153.234</code> só apresenta certificado para <code>psicanaliseclinica.online</code>
-      e derruba o handshake quando a Cloudflare pede o nome <code>old.</code> — por isso o erro 525.
-      O WordPress está intacto: pedindo direto à origem, ele responde 200.
+      Quando este painel foi escrito, a loja tinha mudado para
+      <code>old.psicanaliseclinica.online</code> mas a origem <code>72.60.153.234</code> só
+      apresentava certificado para o nome principal e derrubava o handshake — o erro 525. O
+      WordPress estava intacto o tempo todo; quem não conseguia chegar nele era o visitante.
     </p>
     <p class="prose">
-      <strong>Falta emitir o certificado de <code>old.</code> no servidor da loja.</strong> Enquanto
-      isso não acontece, a loja está inacessível — e ela vendeu 18 pedidos nas oito semanas
-      anteriores. Só depois disso eu religo o <code>includeSubDomains</code> do HSTS, que tirei
-      justamente para o navegador não trancar a loja por um ano.
+      Medido em 1º/set: <code>old.</code> responde <strong>200</strong>, com certificado próprio
+      (<code>CN=old.psicanaliseclinica.online</code>) válido de 31/ago a <strong>29/nov/2026</strong>.
+      Fica um item de manutenção que ninguém lembra sozinho: <strong>o
+      <code>includeSubDomains</code> do HSTS continua desligado</strong> — foi tirado para o
+      navegador não trancar a loja por um ano, e religar agora é seguro, mas é decisão consciente.
     </p>
   </div>
 
@@ -362,24 +364,24 @@
         <ul>
           <li class="sim"><b>Feito:</b> centralizar o domínio no código — era 18 cópias, virou uma linha de configuração, com teste que impede a volta.</li>
           <li class="sim"><b>Feito:</b> definir a variável de endereço em produção, com backup do arquivo de configuração.</li>
-          <li>Publicar o código novo no servidor.</li>
-          <li>Configurar o site e emitir o certificado do endereço principal no servidor do AVA.</li>
-          <li>Virar a variável para o endereço novo e reiniciar.</li>
-          <li>Escrever os redirecionamentos do endereço antigo.</li>
-          <li>Conferir tudo depois: rotas protegidas, catálogo, links de e-mail, uma compra inteira.</li>
+          <li class="sim"><b>Feito:</b> publicar o código novo no servidor.</li>
+          <li class="sim"><b>Feito:</b> configurar o site e emitir o certificado do endereço principal — válido até 28/nov/2026.</li>
+          <li class="sim"><b>Feito:</b> virar a variável para o endereço novo e reiniciar.</li>
+          <li class="sim"><b>Feito:</b> redirecionamentos escritos — <code>ava.</code> e <code>www.</code> devolvem 301 para o principal.</li>
+          <li class="sim"><b>Feito:</b> conferido depois — rotas protegidas, catálogo, links de e-mail e o funil de venda percorrido no ar em 1º/set.</li>
         </ul>
       </div>
 
       <div class="card todo">
         <h3>Só você pode fazer</h3>
         <ul>
-          <li class="nao"><b>Decidir o destino da loja</b> — é o que trava tudo. Detalhe logo abaixo.</li>
-          <li class="nao"><b>Apontar o DNS</b> do endereço principal para o servidor do AVA. Hoje ele vai direto para a máquina da loja, sem passar pela Cloudflare. Preciso saber onde o domínio é gerenciado — ou você faz, ou me dá acesso.</li>
+          <li class="sim"><b>Feito — decidido o destino da loja:</b> caminho A. A loja vive em <code>old.</code> e o AVA ficou com o endereço principal.</li>
+          <li class="sim"><b>Feito — DNS apontado:</b> o endereço principal resolve para <code>195.200.0.253</code>, a máquina do AVA.</li>
           <li class="nao"><b>Painéis de pagamento</b> — Stripe, Asaas, MercadoPago, Pagar.me e PayPal: cadastrar o endereço novo nas URLs de retorno e de confirmação. São suas contas.</li>
           <li class="nao"><b>Entrar com Google e Microsoft</b> — autorizar o endereço novo no console de cada um.</li>
           <li class="nao"><b>A loja</b> — mover ou desligar. Ela vive em outro servidor, ao qual não tenho acesso.</li>
           <li class="nao"><b>Search Console</b> — criar a propriedade do endereço novo.</li>
-          <li class="nao"><b>Cobrança do GitHub</b> — sem ela o deploy automático não roda, e toda publicação continua manual.</li>
+          <li class="sim"><b>Feito — cobrança do GitHub regularizada em 31/ago:</b> o fluxo executou, e o deploy automático subiu sozinho pela primeira vez.</li>
         </ul>
       </div>
 
@@ -391,7 +393,7 @@
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>Onde cada endereço aponta hoje</h2>
-        <span class="count">medido agora, por consulta de DNS</span>
+        <span class="count">remedido em 1º/set/2026, por consulta de DNS</span>
       </div>
     </div>
     <div class="tabela-wrap">
@@ -404,33 +406,40 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="destaque">
+          <tr>
             <td class="host">psicanaliseclinica.online</td>
-            <td class="ip">72.60.153.234 · direto</td>
-            <td>A loja WooCommerce — <b>o alvo da mudança</b></td>
+            <td class="ip">195.200.0.253 · direto</td>
+            <td><b>O AVA</b> — 200, certificado até 28/nov/2026</td>
           </tr>
           <tr>
             <td class="host">www.psicanaliseclinica.online</td>
             <td class="ip">Cloudflare</td>
-            <td>Redireciona para o endereço principal</td>
+            <td>301 para o endereço principal</td>
           </tr>
           <tr>
             <td class="host">ava.psicanaliseclinica.online</td>
-            <td class="ip">Cloudflare → 195.200.0.253</td>
-            <td>O AVA, onde ele está hoje</td>
+            <td class="ip">Cloudflare</td>
+            <td>301 para o endereço principal — deixou de ser a casa do AVA</td>
+          </tr>
+          <tr>
+            <td class="host">old.psicanaliseclinica.online</td>
+            <td class="ip">72.60.153.234</td>
+            <td>A loja WooCommerce — 200, certificado próprio até 29/nov/2026</td>
           </tr>
           <tr>
             <td class="host">portalpco.online</td>
             <td class="ip">72.60.153.234</td>
-            <td>O ambiente de cursos antigo, ainda no ar</td>
+            <td>O ambiente de cursos antigo, ainda no ar — e o domínio que a Vimeo autorizava sozinho até 31/ago</td>
           </tr>
         </tbody>
       </table>
     </div>
     <p class="prose">
-      A loja e o portal antigo dividem a mesma máquina; o AVA está em outra, atrás da Cloudflare.
-      O endereço principal é o único dos quatro que <em>não</em> passa pela Cloudflare hoje — isso
-      também muda na virada.
+      A loja e o portal antigo seguem dividindo a mesma máquina; o AVA está em outra. A virada
+      inverteu o quadro: quem vai direto ao servidor do AVA agora é o <strong>endereço
+      principal</strong>, e são <code>ava.</code> e <code>www.</code> que passam pela Cloudflare só
+      para redirecionar. Ou seja, o principal continua <em>sem</em> a Cloudflare na frente — o plano
+      previa colocá-la, e isso não foi feito. Não quebra nada; muda quem absorve pico e ataque.
     </p>
   </section>
 
@@ -439,7 +448,7 @@
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>Três caminhos, e o que cada um custa</h2>
-        <span class="count">a escolha é sua e trava as etapas 4 em diante</span>
+        <span class="count">escolhido em 30/ago: caminho A — registrado aqui como histórico</span>
       </div>
     </div>
     <div class="paths">
@@ -487,9 +496,12 @@
 
     </div>
     <p class="prose">
-      <strong>Minha recomendação é B, usando A como estado intermediário.</strong> A entrega o
-      endereço principal ao AVA rápido e sem risco de receita; B é onde isso deve terminar, quando o
-      catálogo estiver espelhado no checkout próprio.
+      <strong>Foi o A, como planejado — e o B segue sendo o destino.</strong> O AVA ficou com o
+      endereço principal e a loja com <code>old.</code>. Em 31/ago o checkout próprio passou a ter
+      preço e a vender, que era a condição para o B. A loja antiga continua no ar e continua
+      vendendo: até 1º/set eram <strong>1.859 pedidos</strong> e R$ 1,38 milhão em 1.143 pedidos
+      concluídos, de 2021 para cá. Aposentar isso é decisão com receita em jogo, não tarefa
+      técnica.
     </p>
   </section>
 
@@ -573,7 +585,7 @@
     <div class="sec-head">
       <div class="sec-title-row">
         <h2>A ordem</h2>
-        <span class="count">as duas primeiras saíram hoje</span>
+        <span class="count">1º/set: sete das oito concluídas</span>
       </div>
       <p class="prose">A numeração aqui é sequência real: cada etapa depende da anterior ter acontecido.</p>
     </div>
@@ -582,7 +594,7 @@
       <div class="step feito">
         <div class="step-n">✓</div>
         <div class="step-body">
-          <div class="step-title"><h3>Definir a variável de endereço em produção</h3><span class="tag ok">feito hoje</span></div>
+          <div class="step-title"><h3>Definir a variável de endereço em produção</h3><span class="tag ok">feito em 30/ago</span></div>
           <p>Gravada com o valor atual e com backup do arquivo de configuração. Sem mudança visível para ninguém — entra em vigor no próximo reinício, junto com a publicação do código, para não custar duas interrupções.</p>
         </div>
       </div>
@@ -590,57 +602,58 @@
       <div class="step feito">
         <div class="step-n">✓</div>
         <div class="step-body">
-          <div class="step-title"><h3>Centralizar o domínio no código</h3><span class="tag ok">feito hoje</span></div>
+          <div class="step-title"><h3>Centralizar o domínio no código</h3><span class="tag ok">feito em 30/ago</span></div>
           <p>Eram <b>18 cópias</b> espalhadas pelo servidor — 13 que consultavam a variável e <b>5 que escreviam o endereço direto</b>, sem nem olhar para ela: dados estruturados, link de login do e-mail de boas-vindas, link do painel no e-mail de progresso, assinatura de todos os e-mails e a página de erro.</p>
           <p>O perigo não era o trabalho de trocar — era o que sobra ao esquecer um: link morto no e-mail, retorno de pagamento que não volta, busca apontando para o endereço velho. Nada disso quebra teste nem derruba o site; falha em silêncio, com a pessoa do outro lado. Agora existe um teste que varre o servidor e falha se o endereço voltar a ser copiado.</p>
         </div>
       </div>
 
-      <div class="step trava">
-        <div class="step-n">3</div>
+      <div class="step feito">
+        <div class="step-n">✓</div>
         <div class="step-body">
-          <div class="step-title"><h3>Decidir entre A e B</h3><span class="tag stop">trava as seguintes</span></div>
-          <p>O que acontece com a loja: vira subendereço, ou é aposentada em favor do checkout próprio.</p>
+          <div class="step-title"><h3>Decidir entre A e B</h3><span class="tag ok">A, em 30/ago</span></div>
+          <p>A loja virou subendereço em <code>old.</code>. O B — aposentar a loja em favor do checkout próprio — continua sendo o destino, e desde 31/ago o checkout próprio vende de verdade.</p>
         </div>
       </div>
 
-      <div class="step">
-        <div class="step-n">4</div>
+      <div class="step feito">
+        <div class="step-n">✓</div>
         <div class="step-body">
-          <h3>Preparar o endereço principal no servidor do AVA</h3>
-          <p>Configuração do site e certificado emitidos <b>sem</b> apontar o DNS ainda. Nada muda para o público nesta etapa.</p>
+          <div class="step-title"><h3>Preparar o endereço principal no servidor do AVA</h3><span class="tag ok">certificado até 28/nov/2026</span></div>
+          <p>Emitido pela Let's Encrypt e conferido em 1º/set: o endereço principal responde 200 direto de <code>195.200.0.253</code>.</p>
         </div>
       </div>
 
-      <div class="step">
-        <div class="step-n">5</div>
+      <div class="step feito">
+        <div class="step-n">✓</div>
         <div class="step-body">
-          <h3>Publicar a loja no destino escolhido e conferir uma compra</h3>
-          <p>De ponta a ponta, com dinheiro de verdade ou em modo de teste do meio de pagamento — mas a compra inteira, até a confirmação chegar.</p>
+          <div class="step-title"><h3>Publicar a loja no destino escolhido e conferir uma compra</h3><span class="tag ok">com uma emenda</span></div>
+          <p>A loja subiu em <code>old.</code>, mas ficou um dia fora do ar por falta de certificado próprio — o erro 525 descrito lá em cima. Resolvido em 31/ago, certificado válido até 29/nov/2026.</p>
+          <p><b>A compra de ponta a ponta foi conferida no AVA, não na loja:</b> em 1º/set percorri lista → página do curso → checkout no site publicado, com o preço na tela.</p>
         </div>
       </div>
 
       <div class="step">
         <div class="step-n">6</div>
         <div class="step-body">
-          <h3>Cadastrar os dois endereços nos pagamentos e no login social</h3>
-          <p>Aceitar ambos antes da virada é o que evita janela de compra quebrada.</p>
+          <div class="step-title"><h3>Cadastrar os dois endereços nos pagamentos e no login social</h3><span class="tag warn">só você</span></div>
+          <p>É a única etapa da lista que segue aberta, e a que quebra compra em silêncio quando fica para depois: cada painel de pagamento e cada console de login social precisa aceitar o endereço novo.</p>
         </div>
       </div>
 
-      <div class="step">
-        <div class="step-n">7</div>
+      <div class="step feito">
+        <div class="step-n">✓</div>
         <div class="step-body">
-          <h3>Virar o DNS em janela de venda baixa</h3>
-          <p>Com o tempo de propagação já reduzido horas antes, e alguém acompanhando.</p>
+          <div class="step-title"><h3>Virar o DNS em janela de venda baixa</h3><span class="tag ok">feito em 30/ago</span></div>
+          <p>Medido em 1º/set: o principal resolve para a máquina do AVA, e <code>ava.</code> e <code>www.</code> devolvem 301 para ele.</p>
         </div>
       </div>
 
       <div class="step">
         <div class="step-n">8</div>
         <div class="step-body">
-          <h3>Manter os redirecionamentos por seis meses</h3>
-          <p>É o que preserva o que já ranqueia e os links que outras pessoas publicaram ao longo dos anos.</p>
+          <div class="step-title"><h3>Manter os redirecionamentos por seis meses</h3><span class="tag">até mar/2027</span></div>
+          <p>Em vigor desde 30/ago. É o que preserva o que já ranqueia e os links que outras pessoas publicaram ao longo dos anos — e a data de soltar é março de 2027, não antes.</p>
         </div>
       </div>
 
@@ -652,9 +665,15 @@
     <div class="regra">
       <h3>A regra que não pode ser quebrada</h3>
       <p>
-        O AVA não assume o endereço principal enquanto a loja estiver vendendo por lá sem um destino
-        pronto. Dezoito pedidos pagos em oito semanas é a prova de que ela está viva — e nenhum ganho
-        de endereço compensa uma semana de checkout quebrado.
+        Era: o AVA não assume o endereço principal enquanto a loja estiver vendendo por lá sem um
+        destino pronto. <strong>A regra foi respeitada</strong> — a loja ganhou <code>old.</code>
+        antes da virada. O preço de ter faltado o certificado dela foi um dia fora do ar; a regra
+        estava certa, a execução é que deixou uma ponta.
+      </p>
+      <p>
+        A versão de hoje da mesma regra: <strong>a loja continua sendo a caixa registradora</strong>.
+        São R$ 1,38 milhão em 1.143 pedidos pagos desde 2021, contra um checkout próprio que começou
+        a vender em 31/ago. Aposentá-la é decisão de receita, e nada aqui deve forçar essa mão.
       </p>
     </div>
   </section>
