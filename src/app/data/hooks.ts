@@ -1271,8 +1271,15 @@ export function useCreateOrder() {
 export function useUpdateOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Partial<api.AdminOrderInput> }) =>
-      api.updateOrder(id, input),
+    // `paidAt` acompanha `api.updateOrder`: a data do pagamento é editável e o
+    // hook não pode ser mais estreito que o caller que ele embrulha.
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: Partial<api.AdminOrderInput> & { paidAt?: string | null };
+    }) => api.updateOrder(id, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: allOrdersKey }),
   });
 }

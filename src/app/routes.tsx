@@ -104,6 +104,7 @@ const AdminTutorChat = lazy(() => import('./pages/admin/AdminTutorChat'));
 const AdminAchievements = lazy(() => import('./pages/admin/AdminAchievements'));
 const AdminAbout = lazy(() => import('./pages/admin/AdminAbout'));
 const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
+const AdminOrderForm = lazy(() => import('./pages/admin/AdminOrderForm'));
 const ImportsHome = lazy(() => import('./pages/admin/imports/ImportsHome'));
 const ImportWizardCsv = lazy(() => import('./pages/admin/imports/ImportWizardCsv'));
 const ImportJobDetail = lazy(() => import('./pages/admin/imports/ImportJobDetail'));
@@ -278,6 +279,10 @@ export const router = createBrowserRouter([
       { path: 'wishlist', element: <S><AdminWishlist /></S> },
       { path: 'suporte', element: <S><AdminSupport /></S> },
       { path: 'pedidos', element: <S><AdminOrders /></S> },
+      // Cadastro em tela cheia: um pedido tem produto, curso, moeda, data de
+      // pagamento e doze chaves de atribuição — não cabe em popup.
+      { path: 'pedidos/novo', element: <S><AdminOrderForm /></S> },
+      { path: 'pedidos/:id/editar', element: <S><AdminOrderForm /></S> },
       { path: 'email', element: <S><AdminEmail /></S> },
       { path: 'email/templates', element: <S><AdminEmailTemplates /></S> },
       { path: 'email/weekly-report', element: <S><AdminWeeklyReport /></S> },

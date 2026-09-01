@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ShoppingBag,
   RefreshCw,
@@ -18,8 +19,6 @@ import {
   useAllOrders,
   useAdminUpdateOrderStatus,
   useAdminRefundOrder,
-  useCreateOrder,
-  useUpdateOrder,
   useDeleteOrder,
 } from '../../data/hooks';
 import { resumoDaOrigem } from '../../../../shared/atribuicao';
@@ -68,6 +67,7 @@ const statusStyle: Record<OrderStatus, { className: string; label: string; Icon:
   };
 
 export default function AdminOrders() {
+  const navigate = useNavigate();
   const t = useT();
   useDocumentMeta({ title: `${t('admin.nav.orders')} — Admin AVA PCO` });
   const { data, isLoading, isError, refetch, isFetching } = useAllOrders();
@@ -78,11 +78,7 @@ export default function AdminOrders() {
   const [search, setSearch] = useState('');
   const [refundOrder, setRefundOrder] = useState<OrderDto | null>(null);
   const [vendo, setVendo] = useState<OrderDto | null>(null);
-  const [editando, setEditando] = useState<OrderDto | null>(null);
   const [apagando, setApagando] = useState<OrderDto | null>(null);
-  const [criando, setCriando] = useState(false);
-  const criarMut = useCreateOrder();
-  const editarMut = useUpdateOrder();
   const apagarMut = useDeleteOrder();
 
   const filtered = useMemo(() => {
@@ -187,10 +183,10 @@ export default function AdminOrders() {
             <Download size={12} strokeWidth={2} />
             Exportar CSV
           </button>
-          <button onClick={() => setCriando(true)} className="pco-btn-primary text-xs">
+          <Link to="/admin/pedidos/novo" className="pco-btn-primary text-xs">
             <Plus size={12} strokeWidth={2} />
             Novo pedido
-          </button>
+          </Link>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
@@ -380,14 +376,14 @@ export default function AdminOrders() {
                         >
                           <Eye size={13} strokeWidth={2} />
                         </button>
-                        <button
-                          onClick={() => setEditando(o)}
+                        <Link
+                          to={`/admin/pedidos/${encodeURIComponent(o.id)}/editar`}
                           className="pco-btn-ghost text-[11px] p-1.5"
                           title="Editar pedido"
                           aria-label={`Editar pedido ${o.id}`}
                         >
                           <Pencil size={13} strokeWidth={2} />
-                        </button>
+                        </Link>
                         <button
                           onClick={() => setApagando(o)}
                           className="pco-btn-ghost text-[11px] p-1.5 text-status-danger"
@@ -404,41 +400,6 @@ export default function AdminOrders() {
             </tbody>
           </table>
         </div>
-      )}
-
-      {criando && (
-        <FormularioPedido
-          titulo="Novo pedido"
-          isPending={criarMut.isPending}
-          onClose={() => setCriando(false)}
-          onSalvar={async (dados) => {
-            try {
-              await criarMut.mutateAsync(dados as api.AdminOrderInput);
-              toast.success('Pedido criado');
-              setCriando(false);
-            } catch (err) {
-              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
-            }
-          }}
-        />
-      )}
-
-      {editando && (
-        <FormularioPedido
-          titulo={`Editar ${editando.id}`}
-          pedido={editando}
-          isPending={editarMut.isPending}
-          onClose={() => setEditando(null)}
-          onSalvar={async (dados) => {
-            try {
-              await editarMut.mutateAsync({ id: editando.id, input: dados });
-              toast.success('Pedido atualizado');
-              setEditando(null);
-            } catch (err) {
-              toast.error('Falha', err instanceof Error ? err.message : 'Erro');
-            }
-          }}
-        />
       )}
 
       {apagando && (
@@ -463,7 +424,7 @@ export default function AdminOrders() {
           pedido={vendo}
           onClose={() => setVendo(null)}
           onEditar={() => {
-            setEditando(vendo);
+            navigate(`/admin/pedidos/${encodeURIComponent(vendo.id)}/editar`);
             setVendo(null);
           }}
           onReembolsar={() => {
@@ -544,154 +505,6 @@ function Campo({
       {children}
       {dica && <span className="block text-[10px] text-ink-muted mt-0.5">{dica}</span>}
     </label>
-  );
-}
-
-/**
- * Criar e editar usam o mesmo formulário.
- *
- * Campos de gateway ficam de fora de propósito: `externalId`, `checkoutUrl` e
- * `qrCode` são escritos pela resposta do provedor, e deixá-los editáveis
- * criaria pedido apontando para cobrança que não existe.
- */
-function FormularioPedido({
-  titulo,
-  pedido,
-  isPending,
-  onClose,
-  onSalvar,
-}: {
-  titulo: string;
-  pedido?: OrderDto;
-  isPending: boolean;
-  onClose: () => void;
-  onSalvar: (dados: Partial<api.AdminOrderInput>) => void;
-}) {
-  const [email, setEmail] = useState(pedido?.userEmail ?? '');
-  const [produto, setProduto] = useState(pedido?.productSnapshot.name ?? '');
-  const [valor, setValor] = useState(((pedido?.amountCents ?? 0) / 100).toFixed(2));
-  const [status, setStatus] = useState<OrderStatus>(pedido?.status ?? 'pending');
-  const [origem, setOrigem] = useState(pedido?.attribution?.origem ?? '');
-  const [campanha, setCampanha] = useState(pedido?.attribution?.campanha ?? '');
-  const [nota, setNota] = useState('');
-
-  const centavos = Math.round(Number(valor.replace(',', '.')) * 100);
-  const valido = email.includes('@') && produto.trim().length >= 2 && Number.isFinite(centavos) && centavos >= 0;
-
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
-      <div
-        className="pco-card w-full max-w-lg p-5 space-y-4"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label={titulo}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-pco-deep">{titulo}</h2>
-          <button onClick={onClose} className="pco-btn-ghost p-1" aria-label="Fechar">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Campo label="E-mail do aluno">
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pco-input w-full text-sm"
-              type="email"
-            />
-          </Campo>
-          <Campo label="Produto / descrição">
-            <input
-              value={produto}
-              onChange={(e) => setProduto(e.target.value)}
-              className="pco-input w-full text-sm"
-            />
-          </Campo>
-          <Campo label="Valor (R$)">
-            <input
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              className="pco-input w-full text-sm"
-              inputMode="decimal"
-            />
-          </Campo>
-          <Campo label="Status">
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as OrderStatus)}
-              className="pco-input w-full text-sm"
-            >
-              <option value="pending">Pendente</option>
-              <option value="processing">Processando</option>
-              <option value="paid">Pago</option>
-              <option value="failed">Falhou</option>
-              <option value="canceled">Cancelado</option>
-              <option value="refunded">Reembolsado</option>
-            </select>
-          </Campo>
-          <Campo label="Origem" dica="google, meta, indicação…">
-            <input
-              value={origem}
-              onChange={(e) => setOrigem(e.target.value)}
-              className="pco-input w-full text-sm"
-              placeholder="—"
-            />
-          </Campo>
-          <Campo label="Campanha">
-            <input
-              value={campanha}
-              onChange={(e) => setCampanha(e.target.value)}
-              className="pco-input w-full text-sm"
-              placeholder="—"
-            />
-          </Campo>
-        </div>
-
-        <Campo label="Nota interna" dica="Fica no histórico do pedido, junto de quem alterou.">
-          <input
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
-            className="pco-input w-full text-sm"
-          />
-        </Campo>
-
-        {!pedido && (
-          <p className="text-[11px] text-ink-muted">
-            Lançamento manual: <strong>não cobra nada</strong> e não chama gateway. Serve para
-            registrar venda feita fora do sistema.
-          </p>
-        )}
-
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="pco-btn-ghost text-sm">
-            Cancelar
-          </button>
-          <button
-            disabled={!valido || isPending}
-            onClick={() =>
-              onSalvar({
-                userEmail: email.trim(),
-                productName: produto.trim(),
-                amountCents: centavos,
-                status,
-                // Vazio vira null, não string vazia: a coluna precisa poder
-                // dizer "não sei" em vez de "origem em branco".
-                attribution:
-                  origem.trim() || campanha.trim()
-                    ? { origem: origem.trim() || undefined, campanha: campanha.trim() || undefined }
-                    : null,
-                nota: nota.trim() || undefined,
-              })
-            }
-            className="pco-btn-primary text-sm"
-          >
-            {isPending ? 'Salvando…' : 'Salvar'}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
