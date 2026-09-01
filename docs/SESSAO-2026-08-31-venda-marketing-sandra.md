@@ -323,7 +323,7 @@ outra grandeza, não substitui carga horária.)
 ```bash
 cd H:\ia\dev\pco
 git fetch && git status        # ANTES de editar: a lição da troca de disco
-git log --oneline -1           # deve ser 604c37c
+git log --oneline -1           # deve ser 0c665af (produto em 604c37c)
 npm run test                   # 222 arquivos, 2.034 testes
 ```
 
