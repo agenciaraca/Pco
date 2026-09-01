@@ -223,17 +223,40 @@ Só restart, sem rebuild: `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
   `VPS_PORT=22`, `PUBLIC_URL`. O secret `VPS_PASSWORD` foi **removido** — não há
   mais senha guardada. O workflow segue checando `pm2 describe ava-pco` **antes**
   de qualquer pull e falha dizendo o hostname, em vez de trabalhar à toa.
-  ⚠️ **Ainda não rodou de verdade**: a conta do GitHub está travada por cobrança
-  desde 26/ago, então nenhum job é executado. O deploy segue manual até isso ser
-  regularizado — mas o caminho já está correto e testado por SSH.
+  ✅ **Rodou em 31/ago/2026**, depois de a cobrança ser regularizada: tipos, lint,
+  testes e build passaram e o deploy automático subiu sozinho. O deploy manual
+  (`scripts/deploy_producao.sh`) continua valendo e é o que confere o hash do
+  bundle — use-o quando quiser certeza imediata.
 
 Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
-O handoff vivo é **`docs/SESSAO-2026-08-31-design-carrinho-tokens.md`**.
-Produção está em `4c7c1dc`; o repositório, à frente. Nada de 31/ago foi
-publicado — decisão do dono.
+O handoff vivo é **`docs/SESSAO-2026-08-31-venda-marketing-sandra.md`**.
+Local, `origin/main` e **produção** no mesmo commit — nada esperando publicação.
+
+**O primeiro item da próxima sessão não é código:** os vídeos das aulas são da
+Vimeo com privacidade por domínio, e a lista autoriza só `portalpco.online`. De
+`psicanaliseclinica.online` a Vimeo responde 403 — **105 aulas não tocam para
+quem já pagou**. Conserto: autorizar o domínio na conta "Psicanalise Digital".
+
+## Copiar a pasta do projeto não copia o git
+
+Em 31/ago/2026 o repositório mudou de `C:` para `H:`. Os arquivos vieram
+inteiros; o `.git`, não — veio dez commits atrás, e todo o trabalho já publicado
+aparecia como "alteração por salvar". Uma sessão que começasse ali refaria tudo
+ou commitaria por cima. Parte dos objetos veio pela metade: `git log` dava erro.
+
+**Regra:** depois de mover ou copiar o projeto, `git fetch && git status` **antes**
+de qualquer edição. A cópia em `C:\ia\dev\pco` ainda existe, aponta para o mesmo
+remoto e será apagada pelo dono.
+
+## Script de manutenção precisa carregar o `.env`
+
+Dois no mesmo dia miraram o seed em vez do banco por não importarem
+`dotenv/config`: o resolvedor de duração e o aplicador de conteúdo. Ambos
+**diziam o que iam gravar** — na base errada. Rode sempre sem `--commit` /
+`--aplicar` primeiro e confira a linha `[db] conectado ao Postgres`.
 
 ## O desenho do site vem de fora do repositório
 
@@ -271,6 +294,61 @@ de preço, e havia esta segunda causa, que sobreviveria ao cadastro dos preços.
 O mapa de rotas fundidas saiu de dentro do `server/dev.ts` para
 `server/public/rotas-fundidas.ts` justamente para poder ser testado, e
 `test/links-internos.test.ts` cobra o que ninguém cobrava.
+
+## Tags de marketing: só identificador entra, nunca script
+
+`/admin/marketing` (desde 31/ago/2026). O campo "cole aqui o código do Google"
+seria XSS com aparência de recurso: conta de admin comprometida executaria
+JavaScript em toda página, para todo visitante. Então cada campo valida o
+formato do provedor (`GTM-…`, `G-…`, dígitos) e **o servidor monta o trecho**,
+servido de `/_pub/tags.js` — same-origin, porque a CSP é `script-src 'self'`.
+
+Três consequências que valem lembrar antes de mexer:
+
+- **A CSP só afrouxa o que está cadastrado.** Sem tag, é byte a byte a de antes;
+  com GTM libera googletagmanager e não facebook, e vice-versa
+  (`hostsParaCsp()`).
+- **Tag de HTML customizado dentro do GTM continua barrada** pela mesma CSP. É
+  efeito de lado desejado: o painel do GTM não vira porta de execução aqui.
+- **Consentimento nasce ligado.** Nada de terceiro sobe antes do aceite, e o
+  aviso só aparece quando há tag esperando. Sem JS não há como pedir nem
+  respeitar escolha, então o `<noscript>` do pixel só existe quando o site não
+  exige aceite.
+
+A **conversão pelo servidor** (`server/marketing/meta-capi.ts`) manda o
+`Purchase` quando o pedido vira pago — `event_id` é o id do pedido, para o Meta
+deduplicar com o pixel do navegador. PII só em SHA-256 normalizado. Nasce
+desligada; o token é cifrado em repouso e nunca volta para a tela.
+
+## Sandra: o gateway em que o dinheiro não passa pelo gateway
+
+Sétimo provedor (`server/payments/providers/sandra.ts`, desde 31/ago/2026). A
+cobrança é criada no gateway da **própria escola**, com a credencial dela.
+
+- **A chave de repetição é o `orderId`.** Sem ela, retentativa de rede ou duplo
+  clique viram duas cobranças reais. Nunca um id gerado na hora.
+- **CPF/CNPJ é obrigatório**, conferido aqui com dígito verificador antes de
+  chamar — para que erro de formulário volte como erro de formulário.
+- **`502` não é para repetir**: vem com `invoiceId`, a fatura existe e a escola
+  reemite pelo painel.
+- **`charge.paid` ainda não é emitido** (fase 2 na Sandra). Quem confirma é
+  `payments/sandra-poll-worker.ts`, de 5 em 5 min, parando 10 dias depois do
+  pedido. `parseWebhook` já está no contrato documentado e recusa o que não bate.
+
+Configuração fica em `options` do gateway: `baseUrl`, `tenantSlug`, `metodo`.
+Doc de origem: `H:\ia\dev\Sandra\docs\cobranca-api\`.
+
+## Vídeo de aula: a Vimeo restringe por domínio
+
+Os vídeos da PCO são `privacy.embed: "whitelist"` e a lista autoriza
+`portalpco.online`. De `psicanaliseclinica.online` a Vimeo devolve **403 no
+player** — a aula não toca — e, no oEmbed, **HTTP 200 com o corpo vazio** e
+`domain_status_code: 403`.
+
+Esse 200 vazio é a armadilha: em 31/ago/2026 fez o resolvedor de duração relatar
+"0 de 105 resolvidas" sem erro nenhum, como se os vídeos não tivessem duração.
+O script agora distingue as duas coisas. `VIMEO_REFERER` permite medir de um
+domínio já autorizado — **mas medir não faz a aula tocar**.
 
 ## Reference docs
 
