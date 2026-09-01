@@ -36,7 +36,7 @@ export default {
         },
         surface: {
           white: '#ffffff', // --raise
-          off: '#f3f4f1', // --paper
+          off: '#f9faf8', // --paper (era #f3f4f1 ate 1/set/2026)
           gray: '#eaece6', // --surface-2
         },
         ink: {

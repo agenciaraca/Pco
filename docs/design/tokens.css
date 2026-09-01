@@ -5,7 +5,10 @@
    ============================================================ */
 :root {
   /* neutros — viés frio, nunca cinza puro */
-  --paper: #f3f4f1;      /* fundo da página */
+  /* 1/set/2026: o dono pediu o fundo "bem mais claro, quase branco". O handoff
+     original traz #f3f4f1 e continua trazendo — esta divergencia e deliberada,
+     nao erro de transposicao. Nao reverter para casar com o pacote de design. */
+  --paper: #f9faf8;      /* fundo da pagina */
   --surface: #fbfcfa;    /* faixas/seções alternadas */
   --surface-2: #eaece6;  /* recuos, pílulas, fundos de controle */
   --raise: #ffffff;      /* cartões e superfícies elevadas */

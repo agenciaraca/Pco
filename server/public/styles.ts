@@ -8,7 +8,7 @@
 export const PUBLIC_CSS = `
 *,*::before,*::after{box-sizing:border-box}
 :root{
-  --paper:#f3f4f1;--surface:#fbfcfa;--surface-2:#eaece6;--raise:#fff;
+  --paper:#f9faf8;--surface:#fbfcfa;--surface-2:#eaece6;--raise:#fff;
   --ink:#101828;--ink-soft:#575c62;--ink-faint:#868c92;
   --line:#dcdfd8;--line-soft:#e8eae4;
   --accent:#0097b2;--accent-ink:#007a91;--accent-soft:#d9eef4;--on-accent:#ffffff;
