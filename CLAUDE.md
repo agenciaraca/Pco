@@ -603,7 +603,7 @@ esta seção**, antes de mexer em migração.
   `scripts/resolver_duracoes_aulas.ts` resolve pelo provedor do vídeo e nunca
   inventa duração.
 
-### As três causas que já foram corrigidas no código
+### As quatro causas que já foram corrigidas no código
 
 1. `GET /ldlms/v2/cursos/{id}/usuarios` mente quando autenticado como admin —
    devolve **todos** os users do site, não os matriculados. Corrigido iterando
@@ -612,5 +612,12 @@ esta seção**, antes de mexer em migração.
    Corrigido prefixando a origem (`portal:` / `psi:`).
 3. Bots de SEO encheram `display_name` de 436 customers da loja com lixo.
    Corrigido com `filterSpam()`.
+4. O WordPress entrega o título já **renderizado** — escapado para HTML — e o
+   `unwrap()` do conector gravava assim. O React escapa de novo na exibição, e
+   faz certo: quem lia `A psicoterapia pode dar &#8220;errado&#8221;?` na lista
+   de aulas era o aluno. Corrigido na entrada com
+   `shared/entidades-html.ts`; as 5 linhas já gravadas foram acertadas por
+   `scripts/corrigir_entidades_titulos.ts` em 1º/set/2026. **Só título** —
+   descrição e conteúdo são HTML de verdade, e desescapar ali mudaria o texto.
 
 Creds dos dois WP em `.env.import` (gitignored).

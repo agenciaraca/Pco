@@ -179,3 +179,51 @@ Está verde de novo, com a suíte rodando inteira pela primeira vez.
    pela carga v3. Enquanto não houver, a resposta honesta é "não dá para saber".
 4. **160 pessoas apagadas na origem** entre julho e agosto seguem em produção
    com 256 matrículas. Decidir o destino delas é do dono, não do código.
+
+## Quarta parte: os vídeos, e por que a Vimeo levou a culpa
+
+O dono relatou "Este conteúdo está bloqueado. Entre em contato com o
+proprietário do site" no player da aula. Essa mensagem é escrita pela Vimeo e se
+lê como problema de conta — foi assim que o diagnóstico "é a lista de domínios"
+ficou de pé por dias.
+
+Medido, o domínio **estava autorizado**: `player.vimeo.com/video/<id>` responde
+**200 com `Referer` do site** e **403 sem ele**; o oEmbed devolve
+`domain_status_code: 200` e a duração junto. As duas causas eram nossas:
+
+1. **A CSP não emitia `frame-src`.** A diretiva só existia quando havia tag de
+   marketing cadastrada. Sem tag — o caso — caía em `default-src 'self'`, e o
+   site bloqueava o próprio player em toda aula, para todo aluno. A política
+   saiu do `dev.ts` para `server/public/csp.ts` para poder ser testada.
+2. **O `Referer` não chegava.** O site responde com *dois* `Referrer-Policy`: o
+   nosso, `strict-origin-when-cross-origin`, e um `same-origin` posto por um
+   proxy à frente. O `same-origin` zera o referer para terceiros, e sem referer
+   a Vimeo recusa igual a domínio não autorizado. A política **por elemento** no
+   iframe vence a do documento, e é o que o embed oficial da Vimeo já traz.
+3. **A preview pública nunca funcionou.** Usava `<video src>` para uma URL de
+   embed, que devolve página, não mídia. As duas telas passaram a usar
+   `src/app/components/VideoAula.tsx`.
+
+Verificado no navegador, em produção: o player carrega com capa, controles e
+duração. **A aula toca.**
+
+Como diagnosticar da próxima vez, sem passar dias na conta errada:
+
+```bash
+curl -sI -H "Referer: https://psicanaliseclinica.online/" \
+  https://player.vimeo.com/video/<id>
+```
+
+200 ali significa que a Vimeo está certa e o problema é do nosso lado.
+
+### Duas coisas achadas de passagem
+
+- **Durações:** as aulas com vídeo já têm duração real (2 a 14 min). O
+  placeholder de 15 min sobrou nas **363 aulas sem vídeo nenhum**, e o
+  resolvedor se recusa a inventar duração para elas — corretamente. De 590
+  aulas, 171 têm vídeo.
+- **Títulos com entidade HTML:** a lista lateral mostrava
+  `A psicoterapia pode dar &#8220;errado&#8221;?`. O WordPress entrega o título
+  escapado e a importação gravava assim. Corrigido na entrada
+  (`shared/entidades-html.ts`, usado pelo `unwrap()` do conector) e nas 5 linhas
+  já gravadas.

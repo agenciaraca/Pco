@@ -19,6 +19,7 @@ import { paginate, getJson, ConnectorError } from './http';
 import { fetchWpStudents } from './wp';
 import type { ImportConnection } from '../connections-store';
 import { decryptCreds } from '../connections-store';
+import { decodificarEntidades } from '../../../shared/entidades-html';
 
 // ---------- Tipos LearnDash (parcial — só o que usamos) ----------
 
@@ -91,10 +92,15 @@ interface LdGroup {
   date?: string;
 }
 
+/**
+ * O WordPress devolve o título em `rendered` — já escapado para HTML. Guardar
+ * assim fazia o aluno ler `A psicoterapia pode dar &#8220;errado&#8221;?` na
+ * lista de aulas. Título é texto; desescapar é trabalho da entrada.
+ */
 function unwrap(t: LdRendered | string | undefined | null): string {
   if (!t) return '';
-  if (typeof t === 'string') return t;
-  return t.rendered ?? '';
+  if (typeof t === 'string') return decodificarEntidades(t);
+  return decodificarEntidades(t.rendered ?? '');
 }
 
 // ---------- LD slug discovery ----------
