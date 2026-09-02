@@ -268,11 +268,22 @@ O handoff vivo é **`docs/SESSAO-2026-09-02-vazamento-e-checkout.md`** — comec
 pelo fim dele, em "Por onde retomar". O de mais cedo no mesmo dia,
 `SESSAO-2026-09-02-campo-sem-coluna.md`, é independente e continua valendo.
 
-**O vazamento do curso interno está fechado e mergeado** (`aac4f58`), com
-`test/curso-interno-nao-vaza.test.ts` — 15 casos por persona, 8 dos quais
-falham contra o código anterior. Escrever o teste achou uma regressão que a
-branch trazia e ninguém tinha visto: ver "Admin escapa" na seção do
+**Nada ficou pela metade em 2/set/2026.** Sem branch pendente, sem conserto
+esperando teste; `main` local, `origin/main` e produção em `f01588a`.
+
+**O vazamento do curso interno está fechado** (`aac4f58` + `306eb91`), com
+`test/curso-interno-nao-vaza.test.ts` — 18 casos por persona, 8 dos quais falham
+contra o código anterior. Escrever o teste achou duas coisas que ler o código
+não achou: uma regressão que a branch trazia (o editor de curso perderia a URL
+dos vídeos ao salvar) e um quarto caminho de vazamento. Ver a seção do
 `/api/courses`, mais abaixo.
+
+**376 matrículas suspensas ou canceladas não eram comunicadas em tela nenhuma**
+(`e046083`, no ar). O portão sempre esteve certo; quem mentia era a tela — e a
+do admin dizia "No prazo" para quem a coordenação precisa revisar. **A revisão
+dessas pessoas é caso a caso com a equipe, e ninguém deve ser ativado à toa** —
+decisão do dono, em 2/set/2026. Nada do que subiu move estado de matrícula. Ver
+"Status de pedido manda na matrícula".
 
 **A venda estava quebrada e voltou** (commit `a3872c3`, no ar): o Pagar.me
 recusava toda compra feita por dentro do app. Falta a prova que só o dono pode

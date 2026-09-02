@@ -7,9 +7,12 @@ virou cinco problemas distintos.
 
 > **Se você só tem cinco minutos:** as Entregas 1 e 2 estão no ar e
 > verificadas — a venda voltou a passar pelo Pagar.me e o curso interno parou de
-> vazar (de 105 URLs de vídeo abertas a zero). A Entrega 3 — PCNews, Podcasts e
-> Biblioteca — **não começou, e é o que sobrou**. Pule para "Por onde retomar",
-> no fim.
+> vazar (de 105 URLs de vídeo abertas a zero). Depois disso, uma auditoria da
+> experiência do aluno achou um defeito antigo e sem relação: **376 matrículas
+> suspensas ou canceladas sem aviso em tela nenhuma** — corrigido, no ar, e a
+> revisão dessas pessoas é **caso a caso com a equipe, sem ativar ninguém à
+> toa**. A Entrega 3 — PCNews, Podcasts e Biblioteca — **não começou, e é o que
+> sobrou**. Nada ficou pela metade. Pule para "Por onde retomar", no fim.
 
 ## O relato do dono, e o que ele era de verdade
 
@@ -208,10 +211,22 @@ sustentável é hospedar fora, como os vídeos já ficam na Vimeo — o campo
 
 | onde | commit | situação |
 | --- | --- | --- |
-| `main` local, `origin/main` e **produção** | `306eb91` | Entregas 1 e 2 no ar |
-| `entrega-2-vazamento-curso` | `05191ca` | mergeada; pode ser apagada |
+| `main` local, `origin/main` e **produção** | `f01588a` | tudo desta sessão no ar |
+| `entrega-2-vazamento-curso` | — | mergeada e **apagada**, local e no GitHub |
 
-Nada em stash. A árvore fica limpa.
+Nada em stash, árvore limpa, os três em `f01588a` — conferido com
+`git rev-parse HEAD origin/main` e `ssh vps 'cd ~/ava-pco && git log -1'`.
+
+Os commits desta sessão, do mais antigo para o mais novo:
+
+| commit | o que é |
+| --- | --- |
+| `a3872c3` | Entrega 1 — o checkout volta a vender (sessão anterior, já no ar) |
+| `aac4f58` | merge da Entrega 2 — o curso interno para de vazar, com os testes |
+| `306eb91` | o quarto caminho: a ementa saía por `/courses/:id` |
+| `073f403`, `97a05d0` | `.gitignore`: `data/` passou a negar por padrão |
+| `e046083` | as 376 matrículas suspensas/canceladas ganham voz na tela |
+| `162511b`, `bc4561e`, `f89cf9e`, `f01588a` | documentação |
 
 ## Duas armadilhas encontradas hoje, que vão voltar
 
@@ -230,15 +245,75 @@ tocados e uma das reflows chegou a quebrar a indentação de um item de lista do
 
 ## Por onde retomar
 
-1. `git fetch && git status` — a regra que o CLAUDE.md fixou.
-2. **Peça ao dono duas provas que só ele pode dar**, e as duas são de olhar,
-   não de código:
-   - **a compra de ponta a ponta** (Entrega 1), a única que não dá para simular;
-   - **um dos 19 operadores abrindo o Treinamento PCO** e um dos 655 abrindo o
-     Super Aluno (Entrega 2). O risco desta entrega não é vazar de novo: é ter
-     fechado demais, e a conta de aluno de verdade é o que mede isso.
-3. Entrega 3, na ordem PCNews (menor) → Podcasts (**a CSP vem junto, e é o
-   ponto de maior risco**) → Biblioteca.
+**Nada está pela metade.** Não há branch pendente, nem trabalho fora da `main`,
+nem conserto esperando teste. Quem começar a próxima sessão escolhe pelo que
+interessa ao dono, não pelo que ficou aberto.
+
+### 1. Antes de tocar em qualquer coisa
+
+`git fetch && git status` — a regra que o `CLAUDE.md` fixou depois de o repo ter
+mudado de `C:` para `H:` sem o `.git` junto.
+
+### 2. Três provas que só o dono pode dar, e nenhuma dá para simular
+
+Pergunte, não deduza:
+
+- **Uma compra de ponta a ponta** (Entrega 1). O Pagar.me recusava toda venda
+  feita por dentro do app; o conserto está no ar e nunca passou por uma compra
+  real.
+- **Um dos 19 operadores abrindo o Treinamento PCO**, e um dos 655 abrindo o
+  Super Aluno (Entrega 2). O risco aqui **não é vazar de novo** — é ter fechado
+  demais. A auditoria com personas sintéticas passou 48/48, mas conta de aluno
+  de verdade é outra coisa.
+- **Um aluno com matrícula suspensa** abrindo o curso, para ver a mensagem nova.
+  São 376 pessoas que passaram a ler algo onde antes liam silêncio.
+
+### 3. A decisão que NÃO pode ser reinterpretada
+
+As **238 suspensas e 138 canceladas** serão revistas **caso a caso com a equipe
+da escola**. O dono foi explícito: **não ativar ninguém à toa.**
+
+Nada do que subiu move estado de matrícula — `e046083` não tem uma única
+escrita, e `courseAccessFor` não foi tocado. **Não proponha script de
+reconciliação em lote.** Parte desses estados veio da importação, e a importação
+já errou antes (o `paidAt` preenchido em pedido cancelado quis derrubar cinco
+matrículas legítimas). A lista nominal das 376 **não foi levantada** — o dono
+pediu para esperar a equipe marcar. Quando pedir, é só leitura:
+`select status, count(*) from enrollments group by status` foi o que mediu os
+números acima, com `dotenv/config` importado (senão o script mira a semente).
+
+### 4. O que sobrou de trabalho: a Entrega 3
+
+Na ordem, e a ordem tem motivo:
+
+1. **PCNews** — a menor, e é só frontend: rota `/news/:id` e uma página que
+   renderiza o `body` (que já vem no payload) com `sanitizeHtml`; os cards de
+   `News.tsx` viram `Link`.
+2. **Podcasts** — **o ponto de maior risco da entrega, e não é o player.**
+   `server/public/csp.ts` não emite `media-src`: áudio de host externo cai em
+   `default-src 'self'` e é bloqueado **em silêncio**, exatamente como o
+   `frame-src` bloqueava o player de vídeo e custou dias de diagnóstico na conta
+   errada. A diretiva entra junto com o player, com teste em
+   `test/video-da-aula.test.tsx`, que já existe para essa família.
+   Sobre hospedagem: episódio de 30–45 min pesa 30–50 MB, o `saveUpload` tem
+   teto de 5 MB e serve sem `Range` (sem seek). O caminho é hospedar fora, como
+   os vídeos na Vimeo — o campo `audioUrl` do admin já aceita.
+3. **Biblioteca** — `server/uploads/store.ts` só aceita imagem e 5 MB: falta
+   `application/pdf` com teto próprio, e um botão de upload em
+   `AdminLibrary.tsx` reusando `POST /uploads`, que já existe. **Não renomeie
+   `fileMockUrl`** — quebraria o dado gravado; o que muda é passar a haver
+   arquivo.
 
 O plano aprovado, com o detalhamento de cada arquivo, está em
 `C:\Users\Usuario\.claude\plans\reactive-humming-puzzle.md`.
+
+### 5. Duas lições desta sessão que valem para a próxima
+
+- **Escrever o teste achou dois defeitos que a leitura do código não achou** — a
+  regressão do editor de curso e o quarto caminho do vazamento. E rodar o teste
+  novo contra o código **antigo** é o que prova que ele mede alguma coisa: dos
+  18 do vazamento, 8 falham lá.
+- **Cuidado com `git add -A` depois de rodar o E2E.** Ele materializa
+  `data/*.json` no disco, e um deles entrou num commit meu. O `.gitignore` agora
+  nega `data/` por padrão, mas conferir `git status` antes de commitar continua
+  valendo.
