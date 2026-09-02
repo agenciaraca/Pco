@@ -148,7 +148,12 @@ Tailwind CSS 3 with PostCSS. Config in `tailwind.config.js` + `postcss.config.js
 - **Aditivo, não destrutivo.** New features plug in without changing existing public contracts (URLs, schemas, JSON keys). The same goes for repo signatures — add new exports, don't rename.
 - **Server returns HTML for printable docs (certificates, invoices)**; frontend triggers `window.print()` with `@media print` styles. No PDF generation deps.
 - **Workers via `setInterval`, not external cron.** Anything that needs to run periodically goes in a `*Worker` module with `startWorker(intervalMs)` + `getStatus()`.
-- **JSON in `data/*.json` with hashes/secrets is gitignored.** Only explicit seed files commit.
+- **`data/` é ignorado por padrão** (`data/*` no `.gitignore`), com as seis
+  sementes abertas nominalmente por `!`. Semente nova exige acrescentar a linha
+  — de propósito. A lista era por arquivo até 2/set/2026 e **vinte tinham ficado
+  de fora**, inclusive os hashes dos tokens `pcok_*` e o registro de pedidos de
+  exclusão. Versionar um destes sobrescreve a configuração de produção no
+  próximo `git reset --hard` do deploy.
 - **Audit/errors/log buffer** are observability primitives that already exist — wire new sensitive mutations through `auditMiddleware` and surface 5xx via `recordError`.
 
 ## Tests
