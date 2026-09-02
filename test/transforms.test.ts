@@ -73,6 +73,41 @@ describe('transforms pipeline', () => {
     expect(applyTransforms('joão da SILVA', ['titlecase'])).toBe('João Da Silva');
   });
 
+  /**
+   * A URL de vídeo é extraída de dentro de um atributo HTML, e ali `&` vem
+   * escapado. Sem desfazer, `?autopause=0&amp;dnt=true` chega ao player como
+   * os parâmetros `amp;autopause` e `amp;dnt` — que o Vimeo ignora em silêncio:
+   * o vídeo toca e a configuração não vale. Três aulas em produção estavam
+   * assim, e nada na tela denunciava.
+   */
+  describe('extract_video_url', () => {
+    it('desfaz o &amp; que veio do atributo HTML', () => {
+      expect(
+        applyTransforms(
+          '<iframe src="https://player.vimeo.com/video/656716015?autopause=0&amp;dnt=true"></iframe>',
+          ['extract_video_url'],
+        ),
+      ).toBe('https://player.vimeo.com/video/656716015?autopause=0&dnt=true');
+    });
+
+    it('URL já limpa passa intacta', () => {
+      const url = 'https://player.vimeo.com/video/652548705?autopause=0&loop=0';
+      expect(applyTransforms(url, ['extract_video_url'])).toBe(url);
+    });
+
+    it('sem URL de vídeo, devolve o valor original', () => {
+      expect(applyTransforms('nenhum vídeo aqui', ['extract_video_url'])).toBe('nenhum vídeo aqui');
+    });
+
+    it('desescapar acontece depois de casar, não antes', () => {
+      // `&lt;` antes do casamento viraria `<`, e o regex para em `<`: a URL
+      // seria cortada no meio. Depois, ele fica onde está.
+      expect(
+        applyTransforms('src="https://youtu.be/abcdefghijk?x=1&amp;y=2"', ['extract_video_url']),
+      ).toBe('https://youtu.be/abcdefghijk?x=1&y=2');
+    });
+  });
+
   it('DEFAULT_WC_STATUS_MAP cobre status WooCommerce comuns', () => {
     expect(DEFAULT_WC_STATUS_MAP.completed).toBe('active');
     expect(DEFAULT_WC_STATUS_MAP.pending).toBe('pending');

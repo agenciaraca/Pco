@@ -2,6 +2,8 @@
 // Cada transform recebe o valor (sempre string vinda de CSV ou unknown vindo de API)
 // e retorna um valor processado.
 
+import { decodificarEntidades } from '../../../shared/entidades-html';
+
 export type TransformFn = (value: unknown, ctx?: Record<string, unknown>) => unknown;
 
 const transforms: Record<string, TransformFn> = {
@@ -103,7 +105,15 @@ const transforms: Record<string, TransformFn> = {
     const m = v.match(
       /(https?:\/\/[^\s"<>]+\.(mp4|webm|m4v)|https?:\/\/(player\.)?vimeo\.com\/[^\s"<>]+|https?:\/\/(www\.)?youtube\.com\/[^\s"<>]+|https?:\/\/youtu\.be\/[^\s"<>]+)/i,
     );
-    return m?.[1] ?? v;
+    // A URL sai de dentro de um atributo HTML — o regex parar em `"` e `<` é o
+    // sinal disso — e ali `&` vem escapado como `&amp;`. Sem desfazer, uma URL
+    // como `?autopause=0&amp;dnt=true` chega ao player com os parâmetros
+    // `amp;autopause` e `amp;dnt`, que o Vimeo ignora em silêncio: o vídeo toca
+    // e a configuração não vale. Três aulas em produção estavam assim.
+    //
+    // Desescapar **depois** de casar, não antes: `&lt;` viraria `<` e mudaria
+    // onde o regex termina. URL é texto, como título — ver shared/entidades-html.ts.
+    return m?.[1] ? decodificarEntidades(m[1]) : v;
   },
 
   normalize_phone: (v) => {
