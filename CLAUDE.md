@@ -259,18 +259,24 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
-O handoff vivo é **`docs/SESSAO-2026-09-02-campo-sem-coluna.md`** — comece pelo
-fim dele: "Estado ao fim da sessão", "O que continua aberto" e "Por onde começar
-na volta". O anterior, `SESSAO-2026-09-01-matricula-segue-o-pedido.md`, continua
-valendo para tudo que descreve.
+O handoff vivo é **`docs/SESSAO-2026-09-02-vazamento-e-checkout.md`** — comece
+pelo fim dele, em "Por onde retomar". O de mais cedo no mesmo dia,
+`SESSAO-2026-09-02-campo-sem-coluna.md`, é independente e continua valendo.
 
-**A dívida conhecida daquele handoff foi fechada em 2/set/2026** — e um dos três
-itens era maior do que estava escrito: além do `isPreview` sem coluna, o
-`transcripts` estava na mesma situação. Ver "Campo de aula sem coluna" abaixo.
+**Há trabalho salvo fora da `main`.** A branch
+**`entrega-2-vazamento-curso`** (`b02a67b`, publicada no GitHub) fecha o
+vazamento do curso interno e **não tem testes ainda** — por isso não foi
+mergeada nem subiu. Não a mergeie sem escrever
+`test/curso-interno-nao-vaza.test.ts`; o caso que mais importa é o dos **655
+alunos de "Como ser um Super Aluno Online"**, que é `publicListed: false` e
+sumiria da tela deles se o filtro olhasse só para visibilidade.
 
-**Nada bloqueia venda ou aula.** O que sobra é decisão do dono (as 160 pessoas
-apagadas na origem), pergunta sem dado que a responda (a origem das 418 contas
-sem ficha) e conteúdo faltando (419 das 590 aulas não têm vídeo).
+**A venda estava quebrada e voltou** (commit `a3872c3`, no ar): o Pagar.me
+recusava toda compra feita por dentro do app. Falta a prova que só o dono pode
+dar — uma compra de ponta a ponta.
+
+**Três telas seguem incompletas:** PCNews não abre matéria, Podcasts não têm
+player e a Biblioteca não tem upload. Detalhes e ordem no handoff.
 
 **O bloqueio dos vídeos foi resolvido em 1º/set/2026** — e não era só a Vimeo.
 O dono autorizou o domínio na conta "Psicanalise Digital"; faltavam ainda o
@@ -529,7 +535,53 @@ por ali, preservando data de compra e progresso. `unenrollFromCourse` continua
 para o desmatricular do admin — e **ganhou o caminho de banco que nunca teve**;
 até 1º/set/2026 ela escrevia só no JSON de semente e era um no-op em produção.
 
-## `/api/courses` é público — e não pode levar `content`
+## Checkout: duas rotas de compra, e só uma mandava quem estava comprando
+
+`POST /public/checkout` (visitante) sempre coletou nome, CPF e telefone.
+`POST /payments/checkout` (aluno logado) nasceu com três campos e mandava ao
+gateway **só o e-mail**. O Pagar.me então derivava o nome de
+`email.split('@')[0]` — o `"name":"mariadyduda"` que apareceu no erro — e, sem
+documento, recusava a cobrança.
+
+Somado a isso, a API v5 do Pagar.me **recusa o pedido inteiro** quando um método
+está em `accepted_payment_methods` e o bloco de configuração dele não vem junto.
+Pedíamos cartão, boleto e pix e mandávamos zero blocos. Corrigido em 2/set/2026
+montando os dois da mesma lista.
+
+Três coisas que não se inferem lendo o arquivo:
+
+- **Sem CPF, boleto não é oferecido.** Oferecê-lo faz o gateway recusar a compra
+  inteira, e a pessoa perde também cartão e pix.
+- **O CPF é conferido antes de criar o pedido**, para que dígito trocado volte
+  como "confira o número" e não vire pedido órfão em `pending_payment`.
+- **`documentoValido` mora em `shared/documento.ts`**, não mais só na Sandra: o
+  navegador valida e o servidor revalida, e duas cópias da mesma regra acabam
+  discordando — o mesmo motivo de `shared/visibilidade.ts` existir.
+
+## `/api/courses` é público — e não pode levar `content` nem `videoUrl`
+
+> **Metade disto está numa branch, não na `main`** — ver
+> `entrega-2-vazamento-curso`. O que está descrito abaixo sobre `videoUrl` e
+> sobre o filtro de visibilidade **ainda não está no ar**.
+
+Em 2/set/2026 o dono relatou que o **Treinamento PCO**, curso interno de
+operadores, estava visível e cursável por todo aluno. A trava existia e estava
+ligada — o curso já era `publicListed: false`, com só 19 matrículas. **Três
+caminhos ignoravam a marca**, e o pior deles não era tela: um `curl` sem token
+em `/api/courses` baixava o curso inteiro com as 9 URLs de vídeo. Somando os
+quatro cursos ativos, **105 URLs expostas** a quem nem estava logado.
+
+Para um curso feito de podcasts gravados, **o vídeo é o curso** — tirar
+`content` e deixar `videoUrl` protegia a apostila e entregava a aula.
+
+Dois cuidados que qualquer conserto aqui tem de respeitar:
+
+- **Matrícula entra na conta, não só visibilidade.** "Como ser um Super Aluno
+  Online" também é `publicListed: false` e tem **655 alunos legítimos**.
+- **Admin escapa.** São 21 telas de administração lendo deste endpoint, e o
+  editor de curso precisa do `videoUrl` para editá-lo.
+
+## `/api/courses` — o que já estava resolvido antes disso
 
 O catálogo é aberto de propósito (ementa vende), mas `listCourses()` inclui
 `lesson.content`. Até 27/ago/2026 um `curl` sem token baixava o material pago
