@@ -49,65 +49,34 @@ playwright/.cache
 .claude/
 .mcp.json
 
-# Runtime data — contém hashes de senha, audit log, notificações, etc.
-data/users.json
-data/audit-log.json
-data/errors.json
-data/notifications.json
-data/support-tickets.json
-data/sessions.json
-data/uploads/
-data/backups/
+# Runtime data — estado de execução, não código.
+#
+# A lista aqui era **por arquivo**, e crescia à mão: cada store novo tinha de
+# lembrar de se acrescentar. Em 2/set/2026 a conta ficou clara — 50 linhas
+# enumeradas e **20 arquivos esquecidos**, entre eles `data/api-tokens.json`
+# (hashes dos tokens `pcok_*`), `data/deletion-requests.json` (o registro de
+# quem pediu para ser apagado) e `data/marketing-tags.json`, que um `git add -A`
+# depois de rodar o E2E chegou a commitar de fato.
+#
+# **E versionar um destes não é só sujeira:** o deploy faz
+# `git reset --hard origin/main`. Arquivo untracked em produção sobrevive a
+# isso; arquivo rastreado é **sobrescrito** pelo que veio do repositório — a
+# configuração do dono é substituída pelo default vazio de quem commitou.
+#
+# Por isso a regra virou negar por padrão e abrir exceção nominal. Semente nova
+# entra acrescentando um `!` aqui, o que é justamente a decisão que se quer
+# consciente. (`data/*` já cobre as subpastas: `uploads/`, `backups/`,
+# `migration/`, `backup-*/`.)
+data/*
 backups/
-data/certificates.json
-data/students.json
-data/courses.json
-# Sessões: os três primeiros são a semente materializada em disco no primeiro
-# boot (mesma natureza de courses.json). O último guarda agendamento de aluno
-# de verdade — nome, e-mail e horário — e não pode entrar no repositório.
-data/professionals.json
-data/session-services.json
-data/session-price-tiers.json
-data/session-bookings.json
-# Ledger de quem já foi avisado de vencimento — e-mail de aluno, um por linha.
-data/access-expiry-notices.json
-# Semente materializada em disco no primeiro boot — mesma natureza de
-# courses.json. Aparecem sozinhos quando o servidor ou o E2E sobem.
-data/achievements.json
-data/live-sessions.json
-data/mentoring-configs.json
-data/question-bank.json
-data/watch-time.json
-data/zoom-config.json
-# Ledger de lembretes de sessão já enviados.
-data/session-reminders.json
-data/news.json
-data/library.json
-data/podcasts.json
-data/retention-risks.json
-data/webhook-endpoints.json
-data/webhook-deliveries.json
-data/email-configs.json
-data/email-logs.json
-data/import-jobs.json
-data/import-connections.json
-data/external-references.json
-data/payment-gateways.json
-data/products.json
-data/orders.json
-data/coupons.json
-data/admin-digest-config.json
-data/import-schedules.json
-data/payment-products.json
-data/payment-orders.json
-data/admin-students.json
-data/lesson-progress.json
-data/migration/
-data/question-bank-stubs.json
-data/analytics-daily.json
-data/marketing-tags.json
-data/backup-*/
-data/*.bak*
+
+# As sementes que commitam, e só elas.
+!data/admin-weekly-config.json
+!data/course-reviews.json
+!data/login-config.json
+!data/notification-prefs.json
+!data/settings.json
+!data/student-progress-email-config.json
 
 # Saída do Playwright MCP (screenshots e logs de sessão)
 .playwright-mcp/
