@@ -220,6 +220,17 @@ describe('visitante anônimo', () => {
     expect(body).toContain('Aula de Curso Público');
     expect(body).toContain('Ementa de Curso Público');
   });
+
+  it('e a ementa do curso interno NÃO: 404, como se ele não existisse', async () => {
+    // O quarto caminho, que sobrou depois de os outros três serem fechados. Com
+    // o curso fora da lista, fora da tela e o vídeo atrás do portão, um `curl`
+    // por id ainda trazia os 53 títulos de aula do treinamento de operador.
+    //
+    // 404 e não 403: 403 confirmaria que o curso existe.
+    const { status, body } = await pegar('/api/courses/c-interno');
+    expect(status).toBe(404);
+    expect(body).not.toContain('Aula de Treinamento de Operador');
+  });
 });
 
 describe('aluno logado', () => {
@@ -260,6 +271,19 @@ describe('aluno logado', () => {
     );
     expect(status).toBe(403);
     expect(body).not.toContain(VIDEO_INTERNO);
+  });
+
+  it('abre por id o curso não listado em que está matriculado', async () => {
+    // Os 655 entram no curso e fazem quiz por esta rota. Fechá-la por
+    // visibilidade sem olhar matrícula tiraria o curso deles.
+    const { status, body } = await pegar('/api/courses/c-dos-655', tokenAluno);
+    expect(status).toBe(200);
+    expect(body).toContain('Aula de Como ser um Super Aluno');
+  });
+
+  it('e recebe 404 no curso interno, em que não está', async () => {
+    const { status } = await pegar('/api/courses/c-interno', tokenAluno);
+    expect(status).toBe(404);
   });
 
   it('sem token, a rota do conteúdo devolve 401 e nada mais', async () => {

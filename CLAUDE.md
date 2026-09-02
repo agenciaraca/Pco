@@ -589,6 +589,13 @@ Dois cuidados que qualquer conserto aqui tem de respeitar:
   editasse. É a mesma classe do campo sem coluna: salva, responde 200, e o dado
   some em silêncio. Foi escrever o teste que achou isso.
 
+**`GET /courses/:id` segue a mesma regra, e foi o quarto caminho.** Sobrou
+depois de os outros três serem fechados: com o curso fora da lista, fora da tela
+e o vídeo atrás do portão, um `curl` anônimo por id ainda trazia a ementa
+inteira do treinamento de operador. Responde **404**, não 403 — 403 confirmaria
+que o curso existe, mesmo motivo de `/public/checkout`. Quem abre por ali:
+`/curso-preview/:id` (público), o quiz do aluno e duas telas de admin.
+
 O aluno recebe o vídeo pela mesma porta do texto —
 `/me/courses/:c/lessons/:l/content`, atrás de `courseAccessFor`. Repetir o
 portão dentro do catálogo seria repetir regra, e regra repetida diverge.

@@ -2358,12 +2358,38 @@ export function buildApp() {
     });
   });
 
+  /**
+   * Um curso só. Pública, e sujeita à mesma regra do catálogo.
+   *
+   * Era o quarto caminho que ignorava `publicListed: false`, e sobrou depois de
+   * os outros três serem fechados: com o curso fora da lista, fora da tela e
+   * com o vídeo atrás do portão, um `curl` anônimo em `/api/courses/14958`
+   * ainda trazia a ementa inteira do treinamento de operador — 8 módulos e 53
+   * aulas com título. Ementa é pública **por padrão**, não apesar da marca; num
+   * curso marcado como não listado, ela é justamente o que não devia sair.
+   *
+   * **404 e não 403**: 403 confirma que o curso existe, que é o mesmo motivo de
+   * `/public/checkout` responder 404 para curso fora de venda.
+   */
   app.get('/courses/:id', async (c) => {
     const course = await coursesRepo.findCourse(c.req.param('id'));
     if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
     // Drip: usa data de matrícula do aluno logado (se houver) pra
     // computar drip relativo. Visitantes só veem o lock absoluto.
     const me = c.get('user');
+
+    const ehAdmin = !!me && (me.role === 'admin' || me.role === 'superadmin');
+    if (!ehAdmin && !isPubliclyListed(course as unknown as Record<string, unknown>)) {
+      // Matrícula entra na conta, como na lista: `Como ser um Super Aluno
+      // Online` é `publicListed: false` e tem 655 alunos legítimos, que abrem
+      // o curso e fazem quiz por esta rota.
+      const matriculado = me
+        ? ((await studentsRepo.findAdminStudent(me.sub))?.enrolledCourseIds ?? []).includes(
+            course.id,
+          )
+        : false;
+      if (!matriculado) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
+    }
     const enrolledAt = me ? await studentsRepo.getEnrollmentDate(me.sub, course.id) : null;
     const ctx = { enrolledAt };
     const enriched = {
