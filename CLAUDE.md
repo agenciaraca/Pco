@@ -263,13 +263,11 @@ O handoff vivo é **`docs/SESSAO-2026-09-02-vazamento-e-checkout.md`** — comec
 pelo fim dele, em "Por onde retomar". O de mais cedo no mesmo dia,
 `SESSAO-2026-09-02-campo-sem-coluna.md`, é independente e continua valendo.
 
-**Há trabalho salvo fora da `main`.** A branch
-**`entrega-2-vazamento-curso`** (`b02a67b`, publicada no GitHub) fecha o
-vazamento do curso interno e **não tem testes ainda** — por isso não foi
-mergeada nem subiu. Não a mergeie sem escrever
-`test/curso-interno-nao-vaza.test.ts`; o caso que mais importa é o dos **655
-alunos de "Como ser um Super Aluno Online"**, que é `publicListed: false` e
-sumiria da tela deles se o filtro olhasse só para visibilidade.
+**O vazamento do curso interno está fechado e mergeado** (`aac4f58`), com
+`test/curso-interno-nao-vaza.test.ts` — 15 casos por persona, 8 dos quais
+falham contra o código anterior. Escrever o teste achou uma regressão que a
+branch trazia e ninguém tinha visto: ver "Admin escapa" na seção do
+`/api/courses`, mais abaixo.
 
 **A venda estava quebrada e voltou** (commit `a3872c3`, no ar): o Pagar.me
 recusava toda compra feita por dentro do app. Falta a prova que só o dono pode
@@ -560,10 +558,6 @@ Três coisas que não se inferem lendo o arquivo:
 
 ## `/api/courses` é público — e não pode levar `content` nem `videoUrl`
 
-> **Metade disto está numa branch, não na `main`** — ver
-> `entrega-2-vazamento-curso`. O que está descrito abaixo sobre `videoUrl` e
-> sobre o filtro de visibilidade **ainda não está no ar**.
-
 Em 2/set/2026 o dono relatou que o **Treinamento PCO**, curso interno de
 operadores, estava visível e cursável por todo aluno. A trava existia e estava
 ligada — o curso já era `publicListed: false`, com só 19 matrículas. **Três
@@ -574,12 +568,34 @@ quatro cursos ativos, **105 URLs expostas** a quem nem estava logado.
 Para um curso feito de podcasts gravados, **o vídeo é o curso** — tirar
 `content` e deixar `videoUrl` protegia a apostila e entregava a aula.
 
+A resposta passou a depender de quem pergunta:
+
+| quem | quais cursos | com `videoUrl`? |
+| --- | --- | --- |
+| anônimo | só os publicamente listados | não |
+| aluno | os listados **+ aqueles em que tem matrícula** | não |
+| admin | todos | sim |
+
 Dois cuidados que qualquer conserto aqui tem de respeitar:
 
 - **Matrícula entra na conta, não só visibilidade.** "Como ser um Super Aluno
   Online" também é `publicListed: false` e tem **655 alunos legítimos**.
-- **Admin escapa.** São 21 telas de administração lendo deste endpoint, e o
-  editor de curso precisa do `videoUrl` para editá-lo.
+- **Admin escapa — e em `/courses/:id` isso não é conveniência, é o dado.**
+  São 21 telas de administração lendo deste endpoint, e **não existe
+  `GET /admin/courses/:id`**: o editor de curso lê da rota pública, e é dela
+  que prefill o campo "URL do vídeo". Esconder o campo do admin faria o
+  formulário abrir vazio e **gravar o vazio por cima** ao salvar — as 171 aulas
+  com vídeo perderiam a URL uma a uma, sem erro nenhum, à medida que alguém
+  editasse. É a mesma classe do campo sem coluna: salva, responde 200, e o dado
+  some em silêncio. Foi escrever o teste que achou isso.
+
+O aluno recebe o vídeo pela mesma porta do texto —
+`/me/courses/:c/lessons/:l/content`, atrás de `courseAccessFor`. Repetir o
+portão dentro do catálogo seria repetir regra, e regra repetida diverge.
+
+`test/curso-interno-nao-vaza.test.ts` cobra tudo isso **por persona**, não por
+rota: o defeito nunca foi uma rota errada, era a mesma rota respondendo igual
+para quem tem direitos diferentes.
 
 ## `/api/courses` — o que já estava resolvido antes disso
 
