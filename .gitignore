@@ -105,6 +105,7 @@ data/lesson-progress.json
 data/migration/
 data/question-bank-stubs.json
 data/analytics-daily.json
+data/marketing-tags.json
 data/backup-*/
 data/*.bak*
 
