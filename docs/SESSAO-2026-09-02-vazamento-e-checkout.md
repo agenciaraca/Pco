@@ -211,10 +211,17 @@ sustentável é hospedar fora, como os vídeos já ficam na Vimeo — o campo
 
 | onde | commit | situação |
 | --- | --- | --- |
-| `main` local, `origin/main` e **produção** | `f01588a` | tudo desta sessão no ar |
+| `main` local e `origin/main` | `e1feb30` | idênticos |
+| **produção** | `f01588a` | **todo o código está lá** |
 | `entrega-2-vazamento-curso` | — | mergeada e **apagada**, local e no GitHub |
+| `feat/public-site` (só local) | `5ab13fc`, 21/jul | **já contida na `main`**, zero commits exclusivos — resto de sprint, pode apagar |
 
-Nada em stash, árvore limpa, os três em `f01588a` — conferido com
+**Produção estar um commit atrás da `main` é esperado e não é deploy pendente:**
+o que veio depois (`e1feb30`) é só documentação, e documentação não sobe para o
+VPS. O último deploy de código foi o `e046083`, conferido pelo hash do bundle
+(`BlnhwBJr` → `DkMfD1ch`) e por `/api/health` com `db: connected`.
+
+Nada em stash, árvore limpa — conferido com `git status`, `git stash list`,
 `git rev-parse HEAD origin/main` e `ssh vps 'cd ~/ava-pco && git log -1'`.
 
 Os commits desta sessão, do mais antigo para o mais novo:
