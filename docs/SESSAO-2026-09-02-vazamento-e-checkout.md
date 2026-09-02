@@ -5,9 +5,11 @@ anterior (`docs/SESSAO-2026-09-02-campo-sem-coluna.md` — **leia aquele
 primeiro**, é independente deste). A segunda começou com um relato do dono e
 virou cinco problemas distintos.
 
-> **Se você só tem cinco minutos:** a Entrega 1 está no ar e verificada. A
-> Entrega 2 está **numa branch, sem testes, sem merge e sem deploy**. A Entrega
-> 3 não começou. Pule para "Por onde retomar", no fim.
+> **Se você só tem cinco minutos:** as Entregas 1 e 2 estão no ar e
+> verificadas — a venda voltou a passar pelo Pagar.me e o curso interno parou de
+> vazar (de 105 URLs de vídeo abertas a zero). A Entrega 3 — PCNews, Podcasts e
+> Biblioteca — **não começou, e é o que sobrou**. Pule para "Por onde retomar",
+> no fim.
 
 ## O relato do dono, e o que ele era de verdade
 
@@ -92,15 +94,16 @@ existe em produção, e não criei uma só para isso. Testes cobrem o payload e 
 nível da rota; o que ninguém pode simular é o gateway aceitando de verdade.
 **Peça ao dono uma compra de ponta a ponta.**
 
-## Entrega 2 — NA BRANCH, SEM TESTE, SEM MERGE ⚠️
+## Entrega 2 — NO AR e verificada ✅
 
-Branch **`entrega-2-vazamento-curso`**, commit `b02a67b`, já publicada no
-GitHub. Typecheck passa. **Não mergear ainda.**
+Mergeada em `aac4f58`, mais `306eb91`. Deploy conferido: bundle
+`NH5bI7Yv` → `BlnhwBJr`, `/api/health` com `db: connected`, e o servidor em
+`306eb91`.
 
-O que já está escrito:
+O que está no ar:
 
 - `server/access/conteudo-aula.ts` remove `videoUrl` além de `content`.
-- `GET /courses` passa a depender de quem pergunta:
+- `GET /courses` e `GET /courses/:id` passam a depender de quem pergunta:
 
   | quem | quais cursos | com `videoUrl`? |
   | --- | --- | --- |
@@ -112,29 +115,48 @@ O que já está escrito:
   atrás do `courseAccessFor` que já estava lá.
 - `LMSLesson.tsx` monta o player com essa URL.
 - `Courses.tsx`: o ramo final deixa de ser porta aberta.
+- `test/curso-interno-nao-vaza.test.ts`, 18 casos por persona. **8 deles falham
+  contra o código anterior** — foi assim que se conferiu que provam alguma
+  coisa.
 
-### O que falta, e é o que impede o merge
+### A prova em produção
 
-`test/curso-interno-nao-vaza.test.ts` **não existe**. Sem ele nada prova o caso
-que mais assusta: **os 655 alunos do "Como ser um Super Aluno Online"
-continuam vendo o curso deles.** Esse curso também é `publicListed: false`, e
-filtrar só por visibilidade os deixaria sem nada.
+| medida | antes | agora |
+| --- | --- | --- |
+| cursos que `/api/courses` devolve sem token | 4 | **2** |
+| `videoUrl` na resposta anônima | **105** | **0** |
+| `content` na resposta anônima | 0 | 0 |
+| aulas com ementa na resposta anônima | — | 170 (a ementa vende, e continua) |
+| `GET /api/courses/14958` sem token | 200, 53 aulas | **404** |
+| `GET /api/courses/8887` sem token | 200 | **404** |
+| `GET /api/courses/14839` sem token | 200 | 200 |
 
-Casos a cobrir, por persona (o molde é `test/conteudo-aula-pago.test.ts`, que
-já monta `buildApp()` e faz login uma vez só por causa do teto de 5 logins/min):
+### Duas coisas que escrever o teste descobriu
 
-- anônimo **não** recebe curso `publicListed: false`, nem `videoUrl` nenhum;
-- aluno não matriculado idem;
-- **aluno matriculado em curso não listado continua recebendo o curso** ← o dos 655;
-- aluno matriculado recebe o vídeo por `/me/courses/:c/lessons/:l/content`;
-- admin recebe tudo, com `videoUrl` (21 telas de admin dependem disso).
+**1. O admin ia perder a URL dos vídeos, uma aula por vez.** A branch tirava o
+`videoUrl` também de `GET /courses/:id` — e **não existe `GET
+/admin/courses/:id`**. O editor de curso lê da rota pública e é dela que prefill
+o campo "URL do vídeo" (`AdminCourseEditor.tsx:2157`). Com o campo ausente, o
+formulário abriria vazio e **gravaria o vazio por cima** ao salvar. Sem erro,
+sem aviso: as 171 aulas com vídeo perderiam a URL à medida que alguém editasse.
+É a mesma classe do campo sem coluna — salva, responde 200, e o dado some em
+silêncio. Corrigido com a escapatória de admin, e fixado pelo último caso do
+arquivo de teste.
 
-Depois: `npm run lint`, `npm run test`, `npm run build`, merge, deploy, e a
-prova em produção descrita no plano.
+**2. Havia um quarto caminho, e ele só apareceu depois dos outros três.** Com o
+curso fora do catálogo, sem botão na tela e com o vídeo atrás do portão, um
+`curl` anônimo em `/api/courses/14958` ainda trazia a ementa inteira do
+treinamento de operador: 8 módulos, 53 títulos de aula. Ementa é pública **por
+padrão**, não apesar da marca. Agora responde 404 — e não 403, que confirmaria
+a existência do curso, mesmo motivo de `/public/checkout`.
+
+Consumidores da rota, todos conferidos antes de fechá-la: `/curso-preview/:id`
+(público, já mostra "Curso não encontrado"), `Quiz.tsx` (aluno matriculado),
+`AdminCourseEditor` e `AdminQuestions` (admin escapa).
 
 ## Entrega 3 — NÃO COMEÇOU
 
-Levantada, planejada, nada escrito.
+Levantada, planejada, nada escrito. **É o que sobrou.**
 
 - **PCNews.** `News.tsx` tem **zero** `Link`, `onClick` ou `href` em 137 linhas,
   e não existe rota `/news/:id`. As 77 matérias têm `body` completo no payload
@@ -162,8 +184,8 @@ sustentável é hospedar fora, como os vídeos já ficam na Vimeo — o campo
 
 | onde | commit | situação |
 | --- | --- | --- |
-| `main` local, `origin/main` e **produção** | `a3872c3` + o commit de docs | Entrega 1 no ar |
-| `entrega-2-vazamento-curso` (local e no GitHub) | `b02a67b` | WIP, sem teste, sem merge |
+| `main` local, `origin/main` e **produção** | `306eb91` | Entregas 1 e 2 no ar |
+| `entrega-2-vazamento-curso` | `05191ca` | mergeada; pode ser apagada |
 
 Nada em stash. A árvore fica limpa.
 
@@ -185,13 +207,14 @@ tocados e uma das reflows chegou a quebrar a indentação de um item de lista do
 ## Por onde retomar
 
 1. `git fetch && git status` — a regra que o CLAUDE.md fixou.
-2. **Peça ao dono a compra de ponta a ponta** (Entrega 1). É a única prova que
-   não dá para simular, e destrava saber se a venda voltou mesmo.
-3. `git checkout entrega-2-vazamento-curso` e escreva
-   `test/curso-interno-nao-vaza.test.ts` — começando pelo caso dos 655 alunos,
-   que é o de maior risco. Verificação completa, merge, deploy.
-4. Entrega 3, na ordem PCNews (menor) → Podcasts (**a CSP vem junto**) →
-   Biblioteca.
+2. **Peça ao dono duas provas que só ele pode dar**, e as duas são de olhar,
+   não de código:
+   - **a compra de ponta a ponta** (Entrega 1), a única que não dá para simular;
+   - **um dos 19 operadores abrindo o Treinamento PCO** e um dos 655 abrindo o
+     Super Aluno (Entrega 2). O risco desta entrega não é vazar de novo: é ter
+     fechado demais, e a conta de aluno de verdade é o que mede isso.
+3. Entrega 3, na ordem PCNews (menor) → Podcasts (**a CSP vem junto, e é o
+   ponto de maior risco**) → Biblioteca.
 
 O plano aprovado, com o detalhamento de cada arquivo, está em
 `C:\Users\Usuario\.claude\plans\reactive-humming-puzzle.md`.

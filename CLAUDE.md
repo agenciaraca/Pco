@@ -273,8 +273,10 @@ branch trazia e ninguém tinha visto: ver "Admin escapa" na seção do
 recusava toda compra feita por dentro do app. Falta a prova que só o dono pode
 dar — uma compra de ponta a ponta.
 
-**Três telas seguem incompletas:** PCNews não abre matéria, Podcasts não têm
-player e a Biblioteca não tem upload. Detalhes e ordem no handoff.
+**Três telas seguem incompletas, e são o que sobrou:** PCNews não abre matéria,
+Podcasts não têm player e a Biblioteca não tem upload. Detalhes e ordem no
+handoff — e a CSP vem junto com o player de áudio, pelo mesmo motivo que o
+`frame-src` faltava para o vídeo.
 
 **O bloqueio dos vídeos foi resolvido em 1º/set/2026** — e não era só a Vimeo.
 O dono autorizou o domínio na conta "Psicanalise Digital"; faltavam ainda o
