@@ -154,6 +154,30 @@ Consumidores da rota, todos conferidos antes de fechá-la: `/curso-preview/:id`
 (público, já mostra "Curso não encontrado"), `Quiz.tsx` (aluno matriculado),
 `AdminCourseEditor` e `AdminQuestions` (admin escapa).
 
+## Depois da Entrega 2: o que a auditoria do aluno achou
+
+Rodado o agente `aluno` sobre o que tinha acabado de subir. **Nenhuma regressão
+de acesso legítimo** — 48 requisições sobre 9 personas sintéticas (inclusive
+matrícula expirada, suspensa, cancelada e conta sem ficha), todas com o
+resultado esperado, mais os 18 testes do arquivo do vazamento.
+
+O que ele achou foi outra coisa, **pré-existente e não causada pela mudança**:
+matrícula suspensa ou cancelada não era comunicada em tela nenhuma. Conferido no
+banco de produção antes de virar código: **238 suspensas e 138 canceladas**,
+contra 2208 ativas.
+
+O portão sempre esteve certo. As duas rotas que descrevem o acesso para a
+interface olhavam só a data, então a linha chegava `state: 'active'` para quem o
+portão barrava — e a tela do admin dizia "No prazo" exatamente para quem a
+coordenação precisa revisar. Corrigido em `e046083`, no ar. Detalhes em
+"Status de pedido manda na matrícula" no `CLAUDE.md`.
+
+**Decisão do dono, registrada:** as suspensas e canceladas serão revistas **caso
+a caso com a equipe**, e **ninguém deve ser ativado à toa**. O commit não move
+estado de matrícula nenhum — não há escrita nele —, só faz a tela parar de
+contradizer o portão. A lista nominal das 376 para a reunião **não foi
+levantada**; o dono pediu para deixar para quando a equipe marcar.
+
 ## Entrega 3 — NÃO COMEÇOU
 
 Levantada, planejada, nada escrito. **É o que sobrou.**

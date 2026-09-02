@@ -535,6 +535,27 @@ Três coisas que já custaram caro e não se inferem lendo um arquivo:
   o ensaio de `scripts/reconciliar_situacao_matriculas.ts` pegou antes de
   aplicar, e o teste que cobra isso é `test/matricula-segue-o-pedido.test.ts`.
 
+**O portão estar certo não é a tela dizer a verdade.** Até 2/set/2026 as duas
+rotas que descrevem o acesso para a interface (`/me/course-access` e
+`/admin/students/:id/course-access`) olhavam **só a data**, nunca
+`enrollmentStatusByCourse` — então matrícula suspensa chegava como
+`state: 'active'`. Em produção são **238 suspensas e 138 canceladas**: 376
+pessoas com card normal na estante, sem aviso na página do curso, e um *"Conteúdo
+desta aula ainda não disponível"* no lugar do 403 explicado (a tela nunca lia
+`isError`). A tela do admin dizia **"No prazo"** justamente para quem a
+coordenação precisa revisar caso a caso.
+
+`accessForEnrollment` (em `server/access/course-access.ts`) compõe situação e
+prazo, e **as duas rotas passam por ela**. A situação vence o prazo; `expiresAt`
+e `daysLeft` seguem preenchidos, porque é com eles que o admin decide a
+reativação. O texto mora em `shared/mensagens-acesso.ts`, lido pelo servidor e
+pelo React — a mesma frase em dois lugares acabaria discordando, e discordar
+aqui deixa o aluno sem saber o que fazer.
+
+**Isso não move ninguém de estado.** Nenhuma escrita, `courseAccessFor`
+intocado. Ativar ou reativar matrícula é decisão de gente, caso a caso — o dono
+foi explícito quanto a isso em 2/set/2026.
+
 Cancelar não apaga: `revokeAccessForOrder` marca `cancelada` e o portão fecha
 por ali, preservando data de compra e progresso. `unenrollFromCourse` continua
 para o desmatricular do admin — e **ganhou o caminho de banco que nunca teve**;
