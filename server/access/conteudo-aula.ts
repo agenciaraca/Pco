@@ -13,18 +13,27 @@
  * para quem soubesse a URL. Não era conteúdo de demonstração: era o material
  * pelo qual o aluno paga.
  *
+ * ## E o vídeo, que ficou de fora por mais uma semana
+ *
+ * `content` saiu em 27/ago; `videoUrl` continuou saindo até 2/set/2026. Para
+ * um curso feito de podcasts gravados — o Treinamento PCO é isso — **o vídeo é
+ * o curso**: quem tinha a URL assistia inteiro sem matrícula, sem login e sem
+ * pagar. Eram 105 URLs expostas nos quatro cursos ativos.
+ *
  * ## O que ficou público, e por quê
  *
  * O catálogo continua devolvendo título, descrição, duração, ordem e
  * obrigatoriedade de cada aula. Isso é a **ementa**, e ementa vende: sem ela o
- * visitante não sabe o que está comprando. O que sai é `content`, e só ele.
+ * visitante não sabe o que está comprando. O que sai é o material: `content` e
+ * `videoUrl`.
  *
  * ## Onde o aluno pega o conteúdo
  *
  * `GET /me/courses/:courseId/lessons/:lessonId/content`, que passa por
- * `courseAccessFor` — matrícula **e** prazo de acesso. Aula marcada como
- * preview continua livre pela rota que já existia (`/lessons/:id/preview`):
- * essa é teaser de marketing, e é deliberada.
+ * `courseAccessFor` — matrícula **e** prazo de acesso — e devolve o `content` e
+ * o `videoUrl` juntos. Aula marcada como preview continua livre pela rota que
+ * já existia (`/lessons/:id/preview`): essa é teaser de marketing, e é
+ * deliberada.
  */
 
 /**
@@ -36,17 +45,22 @@ type ComAulas = { lessons?: unknown[] };
 type ComModulos = { modules?: ComAulas[] };
 
 function aulaSemCorpo(l: unknown): unknown {
-  if (!l || typeof l !== 'object' || !('content' in l)) return l;
-  const { content: _corpo, ...resto } = l as { content?: unknown };
+  if (!l || typeof l !== 'object') return l;
+  if (!('content' in l) && !('videoUrl' in l)) return l;
+  const { content: _corpo, videoUrl: _video, ...resto } = l as {
+    content?: unknown;
+    videoUrl?: unknown;
+  };
   return resto;
 }
 
 /**
- * Devolve o curso sem o corpo das aulas.
+ * Devolve o curso sem o material das aulas: sem `content` e sem `videoUrl`.
  *
  * Remove a chave em vez de esvaziá-la: `content: ''` faria a tela do aluno
- * cair no ramo "sem conteúdo" e mostrar a descrição como se fosse a aula,
- * enquanto a ausência é o mesmo estado de uma aula que nunca teve corpo.
+ * cair no ramo "sem conteúdo" e mostrar a descrição como se fosse a aula, e
+ * `videoUrl: ''` faria a aula parecer não ter vídeo. A ausência é o mesmo
+ * estado de uma aula que nunca teve nenhum dos dois.
  *
  * `isPreview` é preservado — quem decide o teaser é a rota de preview.
  */

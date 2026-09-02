@@ -65,6 +65,12 @@ export default function LMSLesson() {
   // existe mais na resposta do catálogo — ver server/access/conteudo-aula.ts.
   const conteudoQ = useConteudoDaAula(courseId, lessonId, isEnrolled);
   const corpoDaAula = conteudoQ.data?.content ?? null;
+  // O vídeo vem pela mesma rota autenticada que o texto.
+  //
+  // Antes vinha do catálogo, junto com a aula, e o player era montado
+  // incondicionalmente: quem abrisse `/curso/:id/aula/:id` sem matrícula
+  // assistia. Para um curso feito de podcasts gravados isso é o curso inteiro.
+  const videoDaAula = conteudoQ.data?.videoUrl ?? null;
   useLessonWatchHeartbeat({
     lessonId,
     courseId,
@@ -185,10 +191,10 @@ export default function LMSLesson() {
         </div>
       </header>
 
-      {lesson.videoUrl ? (
+      {videoDaAula ? (
         <div className="pco-card p-0 overflow-hidden">
           <div className="aspect-video bg-pco-deep">
-            <VideoAula url={lesson.videoUrl} titulo={lesson.title} />
+            <VideoAula url={videoDaAula} titulo={lesson.title} />
           </div>
         </div>
       ) : null}

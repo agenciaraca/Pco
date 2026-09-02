@@ -2534,6 +2534,14 @@ export interface ConteudoDaAula {
   lessonId: string;
   courseId: string;
   content: string | null;
+  /**
+   * O vídeo vem por aqui desde 2/set/2026, e não mais pelo catálogo.
+   *
+   * Enquanto vinha de lá, o player era montado com a mesma URL que um visitante
+   * anônimo também recebia: o curso interno tocava inteiro para quem não estava
+   * matriculado.
+   */
+  videoUrl: string | null;
 }
 
 export async function fetchConteudoDaAula(
