@@ -173,10 +173,26 @@ O `~/.ssh/config` local já tem o atalho `vps` (root, chave `enlevo_vps195`), qu
 a via de acesso que funciona — o usuário `avapco` não aceita essa chave, então
 comandos da app vão via `sudo -u avapco -i`.
 
-> **O IP `177.7.35.13` que aparecia aqui e em vários docs/scripts está morto** — a
-> app migrou para o 195 e a porta 22 do host antigo não responde de lugar nenhum.
-> `scripts/update_vps_pwd.py`, `restart_vps.py`, `sync_data_to_vps.py`, `deploy.sh`
-> e `docs/migration-*.md` ainda apontam pro host antigo e precisam de revisão.
+> **O IP `177.7.35.13` está morto** — a app migrou para o 195 e a porta 22 do host
+> antigo não responde de lugar nenhum. Onde ele ainda aparece hoje, aparece
+> **dito morto**: nos docs, num comentário do `deploy.sh` e nos logs de migração,
+> que são registro histórico e ficam como estão.
+>
+> **A revisão dos scripts foi feita em 2/set/2026, e o problema deles não era o
+> IP** — os três leem o host de variável de ambiente e nunca tiveram IP fixo.
+> Era o PM2: `restart_vps.py`, `update_vps_pwd.py` e o bloco final do
+> `sync_data_to_vps.py` são anteriores a ele e subiam a app com
+> `setsid nohup npx tsx`, **por fora** do processo gerenciado. O
+> `sync_data_to_vps.py` ainda dava `pkill` antes — o PM2 reergue o que foi
+> morto, os dois disputam a 3035, e produção fica em laço de reinício. Os dois
+> primeiros agora **recusam** rodar sem `SEI_O_QUE_FACO=1` e dizem qual é o
+> caminho; o terceiro passou a reiniciar via `pm2 restart ava-pco`.
+>
+> **O `AGENTS.md` era o pior deles**, e não é script: mandava, com todas as
+> letras, rodar `restart_vps.py` quando o usuário pedisse "atualize a produção".
+> Era uma cópia congelada deste arquivo (195 linhas contra 642) e virou um
+> ponteiro para cá. Instrução errada em arquivo escrito para agente não é doc
+> desatualizado — é ordem que alguém executa.
 
 **Acesso SSH resolvido em 27/ago/2026:** a chave está instalada no usuário
 `avapco` (pelo painel da Hostinger), e o atalho `vps` aponta para ele. Como o
@@ -243,20 +259,18 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
-O handoff vivo é **`docs/SESSAO-2026-09-01-matricula-segue-o-pedido.md`** —
-comece pelo fim dele: "Estado ao fim da sessão", "O que continua aberto" e "Por
-onde começar na volta". (O anterior, `SESSAO-2026-09-01-pedidos-crud.md`, foi
-escrito no meio de um reboot e diz "não houve deploy" — havia, minutos depois,
-pelo deploy automático.)
+O handoff vivo é **`docs/SESSAO-2026-09-02-campo-sem-coluna.md`** — comece pelo
+fim dele: "Estado ao fim da sessão", "O que continua aberto" e "Por onde começar
+na volta". O anterior, `SESSAO-2026-09-01-matricula-segue-o-pedido.md`, continua
+valendo para tudo que descreve.
 
-Local, `origin/main` e **produção** no commit `c6a3e3c`. Árvore limpa, nada
-esperando publicação. Verificação completa passando, incluindo **E2E 26 de 26
-sem pulados** — a primeira vez que aquela suíte roda inteira.
+**A dívida conhecida daquele handoff foi fechada em 2/set/2026** — e um dos três
+itens era maior do que estava escrito: além do `isPreview` sem coluna, o
+`transcripts` estava na mesma situação. Ver "Campo de aula sem coluna" abaixo.
 
-**Nada bloqueia venda ou aula.** O que sobrou é decisão do dono (as 160 pessoas
+**Nada bloqueia venda ou aula.** O que sobra é decisão do dono (as 160 pessoas
 apagadas na origem), pergunta sem dado que a responda (a origem das 418 contas
-sem ficha), conteúdo faltando (419 das 590 aulas não têm vídeo) e dívida
-conhecida sem urgência — tudo detalhado no doc.
+sem ficha) e conteúdo faltando (419 das 590 aulas não têm vídeo).
 
 **O bloqueio dos vídeos foi resolvido em 1º/set/2026** — e não era só a Vimeo.
 O dono autorizou o domínio na conta "Psicanalise Digital"; faltavam ainda o
@@ -400,6 +414,17 @@ Nunca funcionou. As duas telas passaram a usar o mesmo `VideoAula`.
 de 15 min sobrou nas **363 aulas sem vídeo nenhum**, e o resolvedor se recusa a
 inventar duração para elas — corretamente. De 590 aulas, 171 têm vídeo.
 
+**A URL do vídeo também vinha escapada** (corrigido em 2/set/2026). Ela é
+extraída de dentro de um atributo HTML — o regex de `extract_video_url` parar em
+`"` e `<` é o sinal disso — e ali `&` vem como `&amp;`. Três aulas em produção
+tinham `?color&amp;autopause=0&amp;dnt=true`, o que a Vimeo lê como os
+parâmetros `amp;autopause` e `amp;dnt` e ignora sem reclamar: o vídeo toca e a
+configuração não vale, inclusive o "não rastreie este espectador". Corrigido na
+entrada (`server/imports/pipeline/transforms.ts`, desescapando **depois** de
+casar o regex, senão `&lt;` viraria `<` e cortaria a URL) e nas 3 linhas por
+`scripts/corrigir_entidades_video.ts`. Mesmo caso do título: valor lido de
+dentro de HTML não é o valor.
+
 ## Reference docs
 
 `docs/` has deeper notes per subsystem when you need them:
@@ -530,6 +555,31 @@ Duas regras que valem para qualquer tela de número deste projeto:
   10.205 matrículas" num sistema com 785 alunos denuncia o problema sozinho.
 
 Detalhes em `docs/analytics.md`.
+
+## Campo de aula sem coluna: o defeito que não dá erro
+
+Três vezes o mesmo padrão, e nenhuma delas apareceu em teste: um campo existia
+no `createLessonSchema`, no editor do admin e nas telas do produto — e **não
+tinha coluna na tabela `lessons`**. O caminho de banco, que é produção,
+descartava o valor ao gravar e devolvia `undefined` ao ler.
+
+| campo         | até         | o que o admin via                                      | o que acontecia                                                                                               |
+| ------------- | ----------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `content`     | 21/ago/2026 | aula salva                                             | 309 aulas terminavam no meio da frase                                                                         |
+| `isPreview`   | 2/set/2026  | caixa "aula de demonstração" marcada                   | `/lessons/:id/preview` dava 403 em **toda** aula; o selo "tem aula grátis" do catálogo nunca aparecia         |
+| `transcripts` | 2/set/2026  | painel de três idiomas, com botão de copiar entre eles | as duas rotas de transcrição respondiam `NO_TRANSCRIPT` sempre — e isso se lia como "ninguém cadastrou ainda" |
+
+**O que une os três é a ausência de erro.** O formulário salva, a API responde
+200, e o dado se perde em silêncio. `test/courses-repo-fields.test.ts` não pega
+porque roda sobre o `JsonStore` — o caminho que sempre funcionou.
+
+`test/aula-cabe-no-banco.test.ts` compara `createLessonSchema` com as colunas de
+`lessons` e falha na hora se divergirem. **Campo novo de aula passa por ali
+antes de existir.**
+
+A migration `0017` criou `is_preview` e `transcripts`. Ela é aditiva, mas o
+código **não sobe antes dela**: o Drizzle seleciona coluna a coluna, então a
+app nova contra o banco velho quebra toda consulta a `lessons`.
 
 ## Aulas: `description` é resumo, `content` é o corpo
 
