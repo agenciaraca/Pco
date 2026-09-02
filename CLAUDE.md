@@ -563,7 +563,8 @@ Três coisas que não se inferem lendo o arquivo:
 Em 2/set/2026 o dono relatou que o **Treinamento PCO**, curso interno de
 operadores, estava visível e cursável por todo aluno. A trava existia e estava
 ligada — o curso já era `publicListed: false`, com só 19 matrículas. **Três
-caminhos ignoravam a marca**, e o pior deles não era tela: um `curl` sem token
+caminhos ignoravam a marca** — e um quarto só apareceu depois que os três
+fecharam, ver abaixo. O pior deles não era tela: um `curl` sem token
 em `/api/courses` baixava o curso inteiro com as 9 URLs de vídeo. Somando os
 quatro cursos ativos, **105 URLs expostas** a quem nem estava logado.
 
