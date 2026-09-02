@@ -117,6 +117,8 @@ async function loadFromDb(): Promise<Course[]> {
             description: l.description ?? undefined,
             content: l.content ?? undefined,
             isMandatory: l.isMandatory,
+            isPreview: l.isPreview,
+            transcripts: l.transcripts ?? undefined,
             order: l.order,
           }));
         const assessment = assessments.find((a) => a.moduleId === m.id);
@@ -663,6 +665,8 @@ export async function createLesson(
     description: input.description ?? null,
     content: input.content ?? null,
     isMandatory: input.isMandatory,
+    isPreview: input.isPreview ?? false,
+    transcripts: input.transcripts ?? null,
     order: input.order,
   });
   return {
@@ -674,6 +678,8 @@ export async function createLesson(
     videoUrl: input.videoUrl || undefined,
     description: input.description,
     isMandatory: input.isMandatory,
+    isPreview: input.isPreview ?? false,
+    transcripts: input.transcripts,
     order: input.order,
   };
 }
@@ -706,6 +712,8 @@ export async function updateLesson(
   if (patch.description !== undefined) update.description = patch.description ?? null;
   if (patch.content !== undefined) update.content = patch.content ?? null;
   if (patch.isMandatory !== undefined) update.isMandatory = patch.isMandatory;
+  if (patch.isPreview !== undefined) update.isPreview = patch.isPreview;
+  if (patch.transcripts !== undefined) update.transcripts = patch.transcripts ?? null;
   if (patch.order !== undefined) update.order = patch.order;
 
   if (Object.keys(update).length === 0) {
@@ -756,6 +764,8 @@ function rowToLesson(r: typeof schema.lessons.$inferSelect): Lesson {
     description: r.description ?? undefined,
     content: r.content ?? undefined,
     isMandatory: r.isMandatory,
+    isPreview: r.isPreview,
+    transcripts: r.transcripts ?? undefined,
     order: r.order,
   };
 }

@@ -249,6 +249,30 @@ export const lessons = pgTable(
      */
     content: text('content'),
     isMandatory: boolean('is_mandatory').notNull().default(true),
+    /**
+     * Aula liberada como teaser: qualquer visitante vê o vídeo sem matrícula.
+     *
+     * A coluna faltava, e a falta era silenciosa nos dois sentidos. O editor do
+     * admin sempre teve a caixa "aula de demonstração", e o caminho de banco
+     * descartava o campo ao gravar; a leitura devolvia sempre `undefined`.
+     * Resultado em produção: marcar a caixa não fazia nada, `/lessons/:id/preview`
+     * respondia 403 para toda aula, e o selo "tem aula grátis" do catálogo nunca
+     * aparecia. Quem administra não tinha como perceber — o formulário salvava
+     * sem erro.
+     */
+    isPreview: boolean('is_preview').notNull().default(false),
+    /**
+     * Transcrição por idioma (`{ pt, es, en }`), do mesmo jeito que o editor
+     * do admin já pedia.
+     *
+     * Faltava a coluna, com a mesma consequência silenciosa do `is_preview`:
+     * o painel de transcrição do editor — três idiomas, com botão de copiar de
+     * um para outro — salvava sem erro e o texto se perdia no caminho do banco.
+     * As duas rotas que a servem (`/lessons/:id/transcript` e o download)
+     * respondiam `NO_TRANSCRIPT` para toda aula, porque em produção nenhuma
+     * aula jamais teve transcrição gravada.
+     */
+    transcripts: jsonb('transcripts').$type<Record<string, string | undefined>>(),
     order: integer('order').notNull(),
   },
   (t) => ({
