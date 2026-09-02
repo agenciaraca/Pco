@@ -76,41 +76,16 @@ export function lerOpcoes(options: Record<string, unknown> | undefined): Require
 }
 
 /**
- * Só dígitos, e com dígito verificador plausível.
+ * A regra do dígito verificador mudou para `shared/documento.ts` quando o
+ * checkout de dentro do app passou a pedir CPF: o formulário valida no
+ * navegador e o servidor revalida, e os dois têm de concordar. Duas cópias da
+ * mesma regra acabam discordando.
  *
- * A Sandra confere o DV antes de chamar o gateway justamente para que CPF
- * digitado errado volte como "corrija este campo" e não como "o sistema
- * falhou". Conferir aqui também poupa uma ida à rede e dá a mesma mensagem.
+ * Continua exportada daqui porque este caminho já era importado — acrescentar,
+ * não renomear.
  */
-export function documentoValido(bruto: string): boolean {
-  const d = bruto.replace(/\D/g, '');
-  if (d.length === 11) return cpfValido(d);
-  if (d.length === 14) return cnpjValido(d);
-  return false;
-}
-
-function cpfValido(d: string): boolean {
-  if (/^(\d)\1{10}$/.test(d)) return false;
-  const calc = (ate: number): number => {
-    let soma = 0;
-    for (let i = 0; i < ate; i++) soma += Number(d[i]) * (ate + 1 - i);
-    const r = (soma * 10) % 11;
-    return r === 10 ? 0 : r;
-  };
-  return calc(9) === Number(d[9]) && calc(10) === Number(d[10]);
-}
-
-function cnpjValido(d: string): boolean {
-  if (/^(\d)\1{13}$/.test(d)) return false;
-  const calc = (ate: number): number => {
-    const pesos = ate === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-    let soma = 0;
-    for (let i = 0; i < ate; i++) soma += Number(d[i]) * pesos[i]!;
-    const r = soma % 11;
-    return r < 2 ? 0 : 11 - r;
-  };
-  return calc(12) === Number(d[12]) && calc(13) === Number(d[13]);
-}
+import { documentoValido } from '../../../shared/documento';
+export { documentoValido };
 
 /** `AAAA-MM-DD` daqui a N dias. Hoje vale; ontem, não. */
 export function vencimentoEm(dias: number, agora = new Date()): string {

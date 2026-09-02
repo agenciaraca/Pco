@@ -1299,11 +1299,17 @@ export function useStartCheckout() {
       productId,
       gatewayId,
       couponCode,
+      name,
+      document,
+      whatsapp,
     }: {
       productId: string;
       gatewayId?: string;
       couponCode?: string;
-    }) => api.startCheckout(productId, gatewayId, couponCode),
+      name?: string;
+      document?: string;
+      whatsapp?: string;
+    }) => api.startCheckout(productId, gatewayId, couponCode, { name, document, whatsapp }),
     onSuccess: () => qc.invalidateQueries({ queryKey: myOrdersKey }),
   });
 }

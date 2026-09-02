@@ -925,15 +925,30 @@ export async function fetchAllOrders(): Promise<OrderDto[]> {
   return http.get<OrderDto[]>('/admin/orders');
 }
 
+/**
+ * Dados de quem compra, além do produto.
+ *
+ * Enquanto esta rota mandava só o id do produto, o gateway recebia apenas o
+ * e-mail do aluno: o Pagar.me derivava o nome de `email.split('@')[0]` e, sem
+ * CPF, recusava a cobrança inteira. O checkout público sempre mandou isto.
+ */
+export interface CheckoutComprador {
+  name?: string;
+  document?: string;
+  whatsapp?: string;
+}
+
 export async function startCheckout(
   productId: string,
   gatewayId?: string,
   couponCode?: string,
+  comprador?: CheckoutComprador,
 ): Promise<OrderDto> {
   return http.post<OrderDto>('/payments/checkout', {
     productId,
     gatewayId,
     couponCode,
+    ...comprador,
   });
 }
 

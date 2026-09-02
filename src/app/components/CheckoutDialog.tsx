@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Tag, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, Tag, X, CheckCircle2, AlertCircle, User, FileText } from 'lucide-react';
 import { useCheckCoupon, useStartCheckout } from '../data/hooks';
+import { useAuth } from '../auth/AuthContext';
 import { useToast } from './Toast';
 import type { CouponCheckResultDto, ProductDto } from '../data/api';
+import { documentoValido, formatarDocumento } from '../../../shared/documento';
 
 export interface CheckoutDialogProps {
   product: ProductDto;
@@ -22,7 +24,17 @@ export default function CheckoutDialog({
   const startCheckout = useStartCheckout();
   const toast = useToast();
 
+  const { user } = useAuth();
   const [code, setCode] = useState('');
+  // Nome e CPF do comprador.
+  //
+  // Não eram pedidos aqui, e o gateway recebia só o e-mail: o Pagar.me montava
+  // o nome com `email.split('@')[0]` e, sem documento, recusava a cobrança —
+  // nenhuma compra por dentro do app se concluía. O checkout público sempre
+  // pediu os dois; esta tela ficou para trás.
+  const [nome, setNome] = useState('');
+  const [documento, setDocumento] = useState('');
+  const [erroDoc, setErroDoc] = useState<string | null>(null);
   const [validation, setValidation] = useState<
     | { kind: 'idle' }
     | { kind: 'ok'; data: CouponCheckResultDto }
@@ -33,8 +45,15 @@ export default function CheckoutDialog({
     if (!open) {
       setCode('');
       setValidation({ kind: 'idle' });
+      setErroDoc(null);
     }
   }, [open]);
+
+  // O nome já cadastrado entra preenchido — quem compra o segundo curso não
+  // deve redigitar o que a escola já sabe.
+  useEffect(() => {
+    if (open && !nome && user?.name) setNome(user.name);
+  }, [open, user?.name, nome]);
 
   if (!open) return null;
 
@@ -59,11 +78,24 @@ export default function CheckoutDialog({
   }
 
   async function handleConfirm() {
+    // Barrar aqui é o que faz um dígito trocado voltar como "confira o número"
+    // em vez de "falha no pagamento". O servidor revalida com a mesma função.
+    if (!nome.trim() || nome.trim().length < 2) {
+      setErroDoc('Informe o nome de quem está comprando.');
+      return;
+    }
+    if (!documentoValido(documento)) {
+      setErroDoc('CPF ou CNPJ inválido — confira o número digitado.');
+      return;
+    }
+    setErroDoc(null);
     try {
       const r = await startCheckout.mutateAsync({
         productId: product.id,
         couponCode:
           validation.kind === 'ok' ? validation.data.coupon.code : undefined,
+        name: nome.trim(),
+        document: documento,
       });
       onSuccess?.(r);
       onClose();
@@ -112,6 +144,51 @@ export default function CheckoutDialog({
           <div className="text-sm font-semibold text-pco-deep mt-0.5">
             {product.name}
           </div>
+        </div>
+
+        <div>
+          <label className="text-[11px] uppercase tracking-wide text-ink-muted flex items-center gap-1">
+            <User size={11} strokeWidth={2} />
+            Nome completo
+          </label>
+          <input
+            value={nome}
+            onChange={(e) => {
+              setNome(e.target.value);
+              setErroDoc(null);
+            }}
+            placeholder="Como está no documento"
+            maxLength={120}
+            autoComplete="name"
+            className="pco-input text-sm mt-1"
+          />
+        </div>
+
+        <div>
+          <label className="text-[11px] uppercase tracking-wide text-ink-muted flex items-center gap-1">
+            <FileText size={11} strokeWidth={2} />
+            CPF ou CNPJ
+          </label>
+          <input
+            value={documento}
+            onChange={(e) => {
+              setDocumento(formatarDocumento(e.target.value));
+              setErroDoc(null);
+            }}
+            placeholder="000.000.000-00"
+            inputMode="numeric"
+            maxLength={18}
+            className="pco-input text-sm font-mono mt-1"
+          />
+          <p className="mt-1 text-[10px] text-ink-subtle">
+            Exigido pelo meio de pagamento para emitir a cobrança.
+          </p>
+          {erroDoc && (
+            <p className="mt-1 text-[11px] text-status-danger flex items-center gap-1">
+              <AlertCircle size={10} />
+              {erroDoc}
+            </p>
+          )}
         </div>
 
         <div>

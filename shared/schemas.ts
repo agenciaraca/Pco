@@ -173,10 +173,28 @@ export const updateProductSchema = createProductSchema.partial();
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
 // Checkout
+/**
+ * Checkout de dentro do app (aluno logado).
+ *
+ * Nasceu com três campos, e por isso mandava ao gateway **só o e-mail**: o
+ * Pagar.me recebia `name` derivado de `email.split('@')[0]` e nenhum documento,
+ * e recusava a cobrança. O checkout público, logo abaixo, sempre pediu nome,
+ * CPF e telefone — duas rotas de compra com contratos diferentes, e só uma
+ * funcionava.
+ *
+ * Os campos são opcionais **aqui** de propósito: quem exige documento é o
+ * provider (a Sandra sempre exigiu, o Pagar.me passou a exigir com boleto), e
+ * marcá-los obrigatórios no schema quebraria as chamadas que já existem.
+ */
 export const checkoutSchema = z.object({
   productId: z.string().min(1),
   gatewayId: z.string().min(1).optional(), // se omitido, usa o ativo
   couponCode: z.string().max(40).optional(),
+  /** Nome de quem compra. Sem ele o gateway inventa um a partir do e-mail. */
+  name: z.string().min(2).max(120).optional(),
+  /** CPF/CNPJ. Obrigatório para boleto; validado por `shared/documento.ts`. */
+  document: z.string().max(20).optional().or(z.literal('')),
+  whatsapp: z.string().max(30).optional().or(z.literal('')),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

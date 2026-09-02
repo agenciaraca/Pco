@@ -14,6 +14,19 @@ import { origemPublica } from '../../origem-publica';
 
 const API_BASE = 'https://api.pagar.me/core/v5';
 
+/** Uma hora para concluir o checkout, e o mesmo para o QR do Pix expirar. */
+const CHECKOUT_EXPIRA_EM_SEGUNDOS = 3600;
+const PIX_EXPIRA_EM_SEGUNDOS = 3600;
+/** Boleto tem prazo em dias, não em segundos: três dias úteis de folga. */
+const BOLETO_DIAS_PARA_VENCER = 3;
+
+/** Vencimento do boleto em ISO, que é o formato que a v5 aceita em `due_at`. */
+function vencimentoDoBoleto(agora = new Date()): string {
+  return new Date(
+    agora.getTime() + BOLETO_DIAS_PARA_VENCER * 24 * 60 * 60 * 1000,
+  ).toISOString();
+}
+
 function basicAuth(secretKey: string): string {
   return `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`;
 }
@@ -36,6 +49,40 @@ export const pagarmeProvider: PaymentProviderImpl = {
     if (!creds.apiKey) {
       throw new PaymentProviderError('NO_KEY', 'Pagar.me apiKey ausente.');
     }
+    // Métodos aceitos e seus blocos de configuração andam juntos.
+    //
+    // A API v5 recusa o pedido inteiro quando um método está em
+    // `accepted_payment_methods` e o bloco correspondente não veio:
+    //
+    //   payments[0].checkout.boleto: The boleto field is required when
+    //   boleto payment is accepted
+    //
+    // Foi exatamente o que aconteceu em produção: pedíamos cartão, boleto e
+    // pix, mandávamos zero blocos, e **nenhuma venda passava**. Montar os dois
+    // a partir da mesma lista impede que voltem a divergir.
+    const metodos: string[] = ['credit_card', 'pix'];
+    // Boleto exige documento do comprador; sem CPF/CNPJ ele nem é oferecido,
+    // porque a alternativa é o gateway recusar a compra inteira no fim.
+    const documento = (input.customerDocument ?? '').replace(/\D/g, '');
+    if (documento) metodos.push('boleto');
+
+    const configPorMetodo: Record<string, unknown> = {
+      credit_card: {
+        installments: [{ number: 1, total: input.amountCents }],
+      },
+      pix: { expires_in: PIX_EXPIRA_EM_SEGUNDOS },
+      boleto: {
+        due_at: vencimentoDoBoleto(),
+        instructions: 'Pagar até o vencimento.',
+      },
+    };
+    const checkout: Record<string, unknown> = {
+      expires_in: CHECKOUT_EXPIRA_EM_SEGUNDOS,
+      accepted_payment_methods: metodos,
+      success_url: `${origemPublica()}/perfil?payment=success`,
+    };
+    for (const m of metodos) checkout[m] = configPorMetodo[m];
+
     const res = await fetch(`${API_BASE}/orders`, {
       method: 'POST',
       headers: {
@@ -51,18 +98,20 @@ export const pagarmeProvider: PaymentProviderImpl = {
           },
         ],
         customer: {
-          name: input.customerName ?? input.customerEmail.split('@')[0],
+          // O nome vinha de `email.split('@')[0]` quando a rota não mandava
+          // nome — e mandava-se assim a partir do checkout de dentro do app.
+          // O comprovante saía com "mariadyduda" no lugar da pessoa.
+          name: input.customerName || input.customerEmail.split('@')[0],
           email: input.customerEmail,
-          type: 'individual',
+          type: documento.length === 14 ? 'company' : 'individual',
+          ...(documento
+            ? { document: documento, document_type: documento.length === 14 ? 'CNPJ' : 'CPF' }
+            : {}),
         },
         payments: [
           {
             payment_method: 'checkout',
-            checkout: {
-              expires_in: 3600,
-              accepted_payment_methods: ['credit_card', 'boleto', 'pix'],
-              success_url: `${publicOrigin()}/perfil?payment=success`,
-            },
+            checkout,
           },
         ],
         metadata: input.metadata,

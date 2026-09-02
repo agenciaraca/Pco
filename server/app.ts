@@ -116,6 +116,7 @@ import {
 import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
 import { isPubliclyListed } from './public/projections';
+import { documentoValido } from '../shared/documento';
 import { podeEntrar, MENSAGEM_SEM_MATRICULA } from './access/portao-de-entrada';
 import {
   segmentar as segmentarConvite,
@@ -10472,6 +10473,23 @@ export function buildApp() {
       const v = validate(checkoutSchema, body);
       if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
 
+      // CPF errado é erro de formulário, e volta como erro de formulário.
+      //
+      // Conferir aqui, antes de criar o pedido, evita duas coisas ruins: um
+      // pedido órfão em `pending_payment` para uma cobrança que o gateway
+      // nunca aceitou, e a pessoa lendo "falha no pagamento" quando o que
+      // houve foi um dígito trocado. Mesma regra que o navegador aplicou —
+      // ver `shared/documento.ts`.
+      const documentoInformado = (v.data.document ?? '').trim();
+      if (documentoInformado && !documentoValido(documentoInformado)) {
+        return jsonError(
+          c,
+          400,
+          'INVALID_DOCUMENT',
+          'O CPF/CNPJ informado não é válido — confira o número digitado.',
+        );
+      }
+
       const product = await productsRepo.findById(v.data.productId);
       if (!product || !product.active) {
         return jsonError(c, 404, 'PRODUCT_NOT_FOUND', 'Produto inexistente ou inativo.');
@@ -10552,6 +10570,13 @@ export function buildApp() {
           description:
             discountCents > 0 ? `${product.name} (cupom ${appliedCouponCode})` : product.name,
           customerEmail: u.email,
+          // Nome, documento e telefone param aqui — como já param no
+          // `/public/checkout`. Enquanto não paravam, o gateway recebia só o
+          // e-mail: o Pagar.me derivava o nome de `email.split('@')[0]`, não
+          // tinha CPF para emitir boleto, e recusava a cobrança inteira.
+          customerName: v.data.name || undefined,
+          customerDocument: documentoInformado || undefined,
+          customerPhone: v.data.whatsapp || undefined,
           metadata: { orderId: order.id, userId: u.sub },
         });
         const updated = await ordersRepo.attachGatewayResult(order.id, {
