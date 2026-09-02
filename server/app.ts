@@ -2094,14 +2094,64 @@ export function buildApp() {
   // ---------- Courses ----------
 
   /**
-   * O catálogo. Público, e por isso **sem o corpo das aulas**.
+   * O catálogo. A resposta depende de quem pergunta.
+   *
+   * ## Duas correções sobrepostas, e a segunda demorou uma semana
    *
    * Até 27/ago/2026 devolvia o curso inteiro, e `listCourses()` inclui
-   * `lesson.content`: um `curl` sem token baixava o material pago de todos os
-   * cursos. Ementa (título, descrição, duração, ordem) continua saindo — é
-   * ela que vende. Ver `server/access/conteudo-aula.ts`.
+   * `lesson.content`: um `curl` sem token baixava o material pago. Saiu o
+   * `content` — e o `videoUrl` continuou saindo até 2/set/2026. Para o
+   * Treinamento PCO, que é um curso interno feito de podcasts gravados, **o
+   * vídeo é o curso**: eram 105 URLs, dos quatro cursos ativos, ao alcance de
+   * quem não estava nem logado.
+   *
+   * ## E a rota ignorava a trava de visibilidade
+   *
+   * O Treinamento PCO já estava marcado `publicListed: false`, e a marca não
+   * fazia efeito aqui: `isPubliclyListed` era aplicada no site público, no
+   * checkout e na prateleira do SPA — em toda parte, menos na rota que serve
+   * todas elas. A trava existia, estava ligada, e este endpoint passava por
+   * cima.
+   *
+   * ## A regra
+   *
+   * | quem | quais cursos | com `videoUrl`? |
+   * |---|---|---|
+   * | anônimo | só os publicamente listados | não |
+   * | aluno | os listados **+ aqueles em que tem matrícula** | não |
+   * | admin | todos | sim |
+   *
+   * Duas coisas que parecem detalhe e não são:
+   *
+   * - **Matrícula entra na conta.** `Como ser um Super Aluno Online` é
+   *   `publicListed: false` e tem 655 alunos legítimos. Filtrar só por
+   *   visibilidade tiraria o curso deles.
+   * - **O aluno recebe o vídeo por outra porta**, a mesma do texto:
+   *   `/me/courses/:c/lessons/:l/content`, atrás de `courseAccessFor`
+   *   (matrícula **e** prazo). Mandar `videoUrl` aqui exigiria repetir o
+   *   portão dentro do catálogo, e portão repetido é portão que diverge.
+   * - **Admin escapa** — como em `/lessons/:id/complete` e na rota de
+   *   transcrição. São 21 telas de administração lendo deste endpoint, e o
+   *   editor de curso precisa do `videoUrl` para poder editá-lo.
    */
-  app.get('/courses', async (c) => c.json(listaSemConteudoDeAula(await coursesRepo.listCourses())));
+  app.get('/courses', async (c) => {
+    const u = c.get('user');
+    const todos = await coursesRepo.listCourses();
+
+    if (u && (u.role === 'admin' || u.role === 'superadmin')) {
+      return c.json(todos);
+    }
+
+    const matriculados = u
+      ? new Set((await studentsRepo.findAdminStudent(u.sub))?.enrolledCourseIds ?? [])
+      : new Set<string>();
+
+    const visiveis = todos.filter(
+      (co) =>
+        isPubliclyListed(co as unknown as Record<string, unknown>) || matriculados.has(co.id),
+    );
+    return c.json(listaSemConteudoDeAula(visiveis));
+  });
   /**
    * Endpoint público: retorna o conteúdo de uma lesson SE ela estiver marcada
    * como isPreview=true. Caso contrário 403. Usado pra player aberto a
@@ -2358,6 +2408,13 @@ export function buildApp() {
       lessonId,
       courseId,
       content: (lesson as unknown as { content?: string }).content ?? null,
+      // O vídeo sai por aqui desde 2/set/2026, e não mais pelo catálogo.
+      //
+      // Enquanto saía de lá, `LMSLesson` montava o player com a URL que
+      // qualquer visitante anônimo também recebia — o portão existia e o vídeo
+      // passava ao lado dele. Servir os dois pela mesma rota é o que garante
+      // que a resposta a "posso estudar isto?" seja uma só.
+      videoUrl: (lesson as unknown as { videoUrl?: string }).videoUrl ?? null,
     });
   });
 

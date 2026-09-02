@@ -265,6 +265,22 @@ export default function Courses() {
                         </div>
                       );
                     }
+                    // Sem matrícula e sem produto à venda: nada a oferecer.
+                    //
+                    // Este ramo era a porta aberta. Ele existia como "senão,
+                    // entre no curso", e curso interno — que por definição não
+                    // tem produto ativo — caía exatamente aqui: todo aluno via
+                    // um botão "Começar" para o Treinamento PCO, que é material
+                    // de operador. Dizer que não está disponível é honesto e é
+                    // o que evita o clique.
+                    if (!isEnrolled) {
+                      return (
+                        <p className="text-[11px] text-ink-subtle text-center py-1.5">
+                          Este curso não está disponível para matrícula.
+                        </p>
+                      );
+                    }
+
                     return (
                       <div className="flex gap-2">
                         <Link
