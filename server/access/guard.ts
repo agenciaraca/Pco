@@ -10,6 +10,7 @@
 import * as studentsRepo from '../repositories/students';
 import * as coursesRepo from '../repositories/courses';
 import { accessFor, type AccessInfo } from './course-access';
+import { mensagemDeAcesso } from '../../shared/mensagens-acesso';
 
 export interface CourseAccessResult {
   /** A matrícula existe? Expirar não desmatricula, então isto segue true. */
@@ -79,11 +80,14 @@ export async function courseAccessFor(
  * Mensagem para o aluno. Fala do que ele pode fazer, não do estado interno.
  */
 export function accessDeniedMessage(result: CourseAccessResult): string {
+  // As duas frases moram em `shared/mensagens-acesso.ts` porque as telas do
+  // aluno passaram a dizer o mesmo, e ler "pagamento pendente" numa tela e
+  // outra coisa na seguinte, sobre o mesmo estado, é pior do que não avisar.
   if (result.reason === 'enrollment_suspended') {
-    return 'Seu acesso está suspenso porque há um pagamento pendente deste curso. Assim que ele for confirmado, o acesso volta sozinho.';
+    return mensagemDeAcesso('suspended').corpo;
   }
   if (result.reason === 'enrollment_canceled') {
-    return 'A matrícula neste curso foi cancelada. Se isso não confere, fale com a coordenação.';
+    return mensagemDeAcesso('canceled').corpo;
   }
   if (result.reason === 'not_enrolled') {
     return 'Você não está matriculado neste curso.';

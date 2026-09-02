@@ -15,7 +15,7 @@
 
 import { getDb, schema } from '../db/client';
 import { eq, and } from 'drizzle-orm';
-import { accessFor, type AccessState } from './course-access';
+import { accessFor, type AccessStateDePrazo } from './course-access';
 import * as studentsRepo from '../repositories/students';
 
 export interface ImpactoAcesso {
@@ -102,7 +102,9 @@ export function contarImpacto(
   meses: number | null,
   agora: Date = new Date(),
 ): ImpactoAcesso {
-  const contagem: Record<AccessState, number> = {
+  // Só os estados de prazo: esta simulação responde "o que acontece se o curso
+  // passar a dar N meses", e situação de matrícula não entra na pergunta.
+  const contagem: Record<AccessStateDePrazo, number> = {
     lifetime: 0,
     active: 0,
     expiring: 0,

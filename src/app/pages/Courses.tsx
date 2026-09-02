@@ -12,6 +12,7 @@ import {
   useRemoveFromWishlist,
   useMyCourseAccess,
 } from '../data/hooks';
+import { mensagemDeAcesso } from '../../../shared/mensagens-acesso';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
@@ -178,6 +179,21 @@ export default function Courses() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold uppercase tracking-wider">
                           {course.shortTitle}
                         </span>
+                        {/* Situação da matrícula, antes do prazo — quem foi
+                            estornado não precisa saber que também venceria. O
+                            card era o único sinal que a pessoa tinha, e não
+                            dizia nada: curso normal, botão "Continuar", e um
+                            403 mudo do outro lado. */}
+                        {prazoPorCurso.get(course.id) === 'suspended' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-warning text-white text-[10px] font-semibold uppercase tracking-wider">
+                            {mensagemDeAcesso('suspended').selo}
+                          </span>
+                        )}
+                        {prazoPorCurso.get(course.id) === 'canceled' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-danger text-white text-[10px] font-semibold uppercase tracking-wider">
+                            {mensagemDeAcesso('canceled').selo}
+                          </span>
+                        )}
                         {prazoPorCurso.get(course.id) === 'expired' && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-danger text-white text-[10px] font-semibold uppercase tracking-wider">
                             Acesso vencido

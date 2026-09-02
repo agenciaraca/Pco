@@ -127,7 +127,7 @@ import { consultarCota as consultarCotaEmail } from './notifications/cota';
 import { renderPrimeiroAcesso } from './notifications/templates';
 import { courseAccessFor, accessDeniedCode, accessDeniedMessage } from './access/guard';
 import { semConteudoDeAula, listaSemConteudoDeAula } from './access/conteudo-aula';
-import { accessFor as accessInfoFor } from './access/course-access';
+import { accessFor as accessInfoFor, accessForEnrollment } from './access/course-access';
 import { daNavegacao } from './marketing/atribuicao';
 import { simularPrazoDoCurso, darCarencia } from './access/impacto';
 import { situacaoDoStatus, situacaoDeVarios } from './access/situacao-matricula';
@@ -1363,13 +1363,18 @@ export function buildApp() {
     const now = new Date();
     const courses = (student.enrolledCourseIds ?? []).map((courseId) => {
       const course = allCourses.find((co) => co.id === courseId);
-      const info = accessInfoFor(
+      // A situação da matrícula entra junto com o prazo. Até 2/set/2026 esta
+      // rota olhava só a data, e o aluno com matrícula suspensa recebia
+      // `state: 'active'` enquanto o portão lhe dava 403 — 376 pessoas em
+      // produção vendo o curso normal e batendo em silêncio.
+      const info = accessForEnrollment(
         {
           enrolledAt: student.enrollmentDates?.[courseId] ?? student.createdAt,
           storedExpiresAt: student.accessExpiresByCourse?.[courseId] ?? null,
           accessMonths: (course as unknown as { accessMonths?: number | null } | undefined)
             ?.accessMonths,
         },
+        student.enrollmentStatusByCourse?.[courseId],
         now,
       );
       return {
@@ -7592,12 +7597,16 @@ export function buildApp() {
           courseTitle: course?.title ?? courseId,
           enrolledAt: student.enrollmentDates?.[courseId] ?? null,
           accessMonths,
-          ...accessInfoFor(
+          // Mesma regra da rota do aluno, pelo mesmo caminho: o admin que vai
+          // decidir a reativação precisa enxergar o mesmo estado que a pessoa
+          // do outro lado enxerga.
+          ...accessForEnrollment(
             {
               enrolledAt: student.enrollmentDates?.[courseId] ?? student.createdAt,
               storedExpiresAt: student.accessExpiresByCourse?.[courseId] ?? null,
               accessMonths,
             },
+            student.enrollmentStatusByCourse?.[courseId],
             now,
           ),
         };

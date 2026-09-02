@@ -2914,7 +2914,14 @@ export interface CourseAccessRow {
   courseTitle: string;
   enrolledAt: string | null;
   accessMonths: number | null;
-  state: 'lifetime' | 'active' | 'expiring' | 'expired';
+  /**
+   * `suspended` e `canceled` vêm da situação da matrícula, não do prazo, e
+   * ganham precedência sobre ele — ver `server/access/course-access.ts`.
+   *
+   * Até 2/set/2026 esta linha só sabia de data, e matrícula suspensa chegava
+   * como `active`: a tela do admin dizia "No prazo" para quem o portão barrava.
+   */
+  state: 'lifetime' | 'active' | 'expiring' | 'expired' | 'suspended' | 'canceled';
   expiresAt: string | null;
   daysLeft: number | null;
   canStudy: boolean;

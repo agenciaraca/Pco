@@ -16,8 +16,25 @@
  *    concedido quando o curso muda de política depois.
  */
 
-/** Estado do acesso de um aluno a um curso, num instante. */
-export type AccessState = 'lifetime' | 'active' | 'expiring' | 'expired';
+/**
+ * Estado do acesso de um aluno a um curso, num instante.
+ *
+ * `suspended` e `canceled` não são prazo: vêm da situação da matrícula
+ * (`server/access/situacao-matricula.ts`), que segue o pedido. Estão aqui
+ * porque são a **mesma pergunta** do ponto de vista de quem lê — "posso
+ * estudar isto agora, e se não, por quê?" — e separá-los em dois campos foi
+ * exatamente o que deixou 376 matrículas sem aviso nenhum: o portão dizia não
+ * e a tela dizia "no prazo".
+ */
+export type AccessState = AccessStateDePrazo | 'suspended' | 'canceled';
+
+/**
+ * Os quatro estados que saem **só da data**. Existem separados porque há conta
+ * que só pode ver estes — a simulação de impacto de prazo
+ * (`server/access/impacto.ts`) é um histograma sobre eles, e um `Record` que
+ * incluísse `suspended` pediria uma casa que nunca é preenchida.
+ */
+export type AccessStateDePrazo = 'lifetime' | 'active' | 'expiring' | 'expired';
 
 export interface AccessInfo {
   state: AccessState;
@@ -95,11 +112,16 @@ export function resolveExpiry(input: {
   return computeExpiry(enrolledAt, accessMonths);
 }
 
+/** O que sai de `describeAccess`: nunca `suspended` nem `canceled`. */
+export interface AccessInfoDePrazo extends AccessInfo {
+  state: AccessStateDePrazo;
+}
+
 /** Traduz um prazo em estado utilizável pela API e pela interface. */
 export function describeAccess(
   expiresAt: string | null,
   now: Date = new Date(),
-): AccessInfo {
+): AccessInfoDePrazo {
   if (!expiresAt) {
     return { state: 'lifetime', expiresAt: null, daysLeft: null, canStudy: true };
   }
@@ -126,6 +148,50 @@ export function describeAccess(
 export function accessFor(
   input: Parameters<typeof resolveExpiry>[0],
   now: Date = new Date(),
-): AccessInfo {
+): AccessInfoDePrazo {
   return describeAccess(resolveExpiry(input), now);
+}
+
+/**
+ * O acesso de uma matrícula considerando **também** a situação dela.
+ *
+ * ## Por que isto existe
+ *
+ * O portão de verdade (`courseAccessFor`, em `guard.ts`) sempre olhou os dois:
+ * matrícula suspensa ou cancelada não estuda, tenha o prazo que tiver. As
+ * rotas que descrevem o acesso para a **tela** olhavam só o prazo — então o
+ * aluno com matrícula suspensa recebia `state: 'active'`, via o curso normal na
+ * estante, clicava numa aula e batia num 403 silencioso. Em produção são
+ * **238 suspensas e 138 canceladas**: 376 pessoas para quem o produto não
+ * explicava nada.
+ *
+ * Duas rotas montam essa linha — a do aluno (`/me/course-access`) e a do admin
+ * (`/admin/students/:id/course-access`). Elas passam por aqui para não
+ * divergirem: regra repetida em dois lugares acaba discordando, que é o motivo
+ * de `shared/visibilidade.ts` e de `shared/documento.ts` existirem.
+ *
+ * ## A ordem, e por que ela é esta
+ *
+ * A situação vence o prazo. Quem teve o pedido estornado não precisa saber que
+ * o acesso também venceria em 40 dias — precisa saber que foi cancelado. E
+ * `canStudy` passa a bater com o que o portão de fato faz, que é a única forma
+ * de a tela parar de mentir.
+ *
+ * `expiresAt` e `daysLeft` do prazo são preservados: o admin continua vendo até
+ * quando a matrícula ia, o que é o dado que ele usa para decidir a reativação.
+ */
+export function accessForEnrollment(
+  input: Parameters<typeof resolveExpiry>[0],
+  situacao: 'ativa' | 'suspensa' | 'cancelada' | 'nenhuma' | undefined,
+  now: Date = new Date(),
+): AccessInfo {
+  const doPrazo = accessFor(input, now);
+  if (situacao === 'suspensa' || situacao === 'cancelada') {
+    return {
+      ...doPrazo,
+      state: situacao === 'suspensa' ? 'suspended' : 'canceled',
+      canStudy: false,
+    };
+  }
+  return doPrazo;
 }

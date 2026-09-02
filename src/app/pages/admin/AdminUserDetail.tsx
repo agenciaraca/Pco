@@ -564,6 +564,12 @@ function AccessPane({ studentId }: { studentId: string }) {
     active: { texto: 'No prazo', classe: 'bg-status-success/10 text-status-success' },
     expiring: { texto: 'Vence em breve', classe: 'bg-status-warning/10 text-status-warning' },
     expired: { texto: 'Vencido', classe: 'bg-status-danger/10 text-status-danger' },
+    // Situação da matrícula, não prazo. Esta tela é onde a coordenação decide
+    // caso a caso o que fazer com cada pessoa — e até 2/set/2026 ela mostrava
+    // "No prazo" para as 238 suspensas e as 138 canceladas, que é o oposto do
+    // que a pessoa vive do outro lado.
+    suspended: { texto: 'Suspensa', classe: 'bg-status-warning/10 text-status-warning' },
+    canceled: { texto: 'Cancelada', classe: 'bg-status-danger/10 text-status-danger' },
   };
 
   return (

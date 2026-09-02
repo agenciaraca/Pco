@@ -31,6 +31,7 @@ import LessonComments from '../components/LessonComments';
 import AchievementCelebration from '../components/AchievementCelebration';
 import MarkdownLite from '../components/MarkdownLite';
 import { sanitizeHtml } from '../lib/sanitizeHtml';
+import { ApiError } from '../data/client';
 import { useLessonWatchHeartbeat } from '../hooks/useLessonWatchHeartbeat';
 import { useState, useEffect, useMemo } from 'react';
 import type { NewAchievementDto } from '../data/api';
@@ -211,6 +212,25 @@ export default function LMSLesson() {
           {conteudoQ.isLoading ? (
             <div className="pco-card">
               <p className="text-sm text-ink-subtle">Carregando o conteúdo da aula…</p>
+            </div>
+          ) : conteudoQ.isError ? (
+            /*
+              O 403 sempre teve a explicação, e nenhuma tela a lia.
+              A rota devolve o motivo por extenso — acesso vencido, matrícula
+              suspensa, matrícula cancelada — e esta tela nunca olhou
+              `isError`: o erro caía no ramo "sem conteúdo" e o aluno lia
+              "Conteúdo desta aula ainda não disponível", que soa como falha da
+              escola em cadastrar a aula, não como pendência dele.
+            */
+            <div className="pco-card border border-status-warning/30 bg-status-warning/5">
+              <h3 className="text-base font-semibold text-pco-deep mb-2">
+                Esta aula não está liberada para você agora
+              </h3>
+              <p className="text-sm text-ink-muted leading-relaxed">
+                {conteudoQ.error instanceof ApiError
+                  ? conteudoQ.error.message
+                  : 'Não consegui carregar o conteúdo desta aula. Tente de novo em instantes.'}
+              </p>
             </div>
           ) : corpoDaAula ? (
             <div className="pco-card">
