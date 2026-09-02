@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Update rápido por SENHA SSH: git pull + build + restart no VPS."""
+"""Update por SENHA SSH num VPS SEM PM2: git pull + build + restart — legado."""
 import os, sys, time
 import paramiko
 
@@ -9,6 +9,35 @@ try:
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 except Exception:
     pass
+
+# ---------------------------------------------------------------------------
+# Este script é anterior ao PM2, e roda por SENHA.
+#
+# Duas coisas mudaram desde que ele foi escrito e não dá para inferir lendo o
+# código: a app em produção é gerenciada pelo PM2 (`ava-pco`), e a senha de SSH
+# deixou de existir — o acesso é por chave desde 30/ago/2026. O bloco de subida
+# aqui usa `setsid nohup npx tsx`, isto é, sobe um processo POR FORA do PM2:
+# ou ele não consegue a porta 3035, ou vence a disputa e deixa o PM2 em laço
+# de reinício. Em produção, sem aviso.
+#
+# O caminho de hoje:
+#   restart só:  ssh vps 'pm2 restart ava-pco'
+#   deploy:      bash scripts/deploy_producao.sh
+#
+# Fica aqui porque serve de referência para um host sem PM2. Para rodar assim
+# mesmo, passe SEI_O_QUE_FACO=1 — o mesmo portão de sync_data_to_vps.py.
+# ---------------------------------------------------------------------------
+if not os.environ.get('SEI_O_QUE_FACO'):
+    print(__doc__)
+    print('RECUSADO: este script sobe a app por fora do PM2, que é quem')
+    print('gerencia `ava-pco` em produção — rodar aqui deixa o app em laço')
+    print('de reinício disputando a porta 3035.')
+    print()
+    print("  restart só:  ssh vps 'pm2 restart ava-pco'")
+    print('  deploy:      bash scripts/deploy_producao.sh')
+    print()
+    print('Para rodar assim mesmo (host sem PM2), passe SEI_O_QUE_FACO=1.')
+    sys.exit(1)
 
 host = os.environ['HOST']
 user = os.environ['USER_NAME']

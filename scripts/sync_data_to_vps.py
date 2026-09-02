@@ -234,16 +234,13 @@ def main() -> None:
         if SKIP_RESTART:
             print('[*] SKIP_RESTART=1 — nao reinicia app. Voce roda manualmente.')
         else:
-            print('[*] Reiniciando app...')
-            run(c, "pkill -f 'tsx server/dev.ts' 2>/dev/null || true", check=False)
-            run(c, "pkill -f 'node.*server/dev' 2>/dev/null || true", check=False)
-            time.sleep(2)
-            run(
-                c,
-                f'cd {REMOTE_APP} && '
-                f"setsid nohup npx tsx server/dev.ts > app.log 2>&1 < /dev/null &",
-                check=False,
-            )
+            # Quem manda no processo é o PM2 (app `ava-pco`), e este bloco é
+            # anterior a ele: dava `pkill` no processo gerenciado e subia um
+            # segundo por fora. O PM2 reergue o que foi morto, os dois disputam
+            # a porta 3035, e o que sobra é uma app em laço de reinício — em
+            # produção, no fim de um script cujo nome fala em copiar arquivo.
+            print('[*] Reiniciando app via PM2...')
+            run(c, 'pm2 restart ava-pco --update-env', check=False)
             time.sleep(4)
             print('[*] Health check:')
             run(c, 'curl -s -o /dev/null -w "HTTP %{http_code}\\n" http://127.0.0.1:3035/api/health', check=False)
