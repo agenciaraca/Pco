@@ -2377,6 +2377,14 @@ export function buildApp() {
     };
     // Mesmo motivo da lista: esta rota é pública. O corpo da aula sai por
     // `/me/courses/:courseId/lessons/:lessonId/content`, que exige matrícula.
+    //
+    // **Admin escapa, e aqui isso não é conveniência — é o dado.** Não existe
+    // `GET /admin/courses/:id`: o editor de curso lê desta rota, e é daqui que
+    // ele prefill o campo "URL do vídeo". Servir o curso sem `videoUrl` ao
+    // admin faria o formulário abrir com o campo vazio e **gravar o vazio por
+    // cima** ao salvar — as 171 aulas com vídeo perderiam a URL uma a uma, sem
+    // erro nenhum, que é a mesma classe de defeito de campo sem coluna.
+    if (me && (me.role === 'admin' || me.role === 'superadmin')) return c.json(enriched);
     return c.json(semConteudoDeAula(enriched));
   });
 
