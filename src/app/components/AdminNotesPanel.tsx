@@ -51,7 +51,7 @@ export default function AdminNotesPanel({ studentId }: { studentId: string }) {
         <MessageSquare size={14} className="text-pco-blue" strokeWidth={1.75} />
         Notas privadas (admin)
       </h3>
-      <p className="text-[11px] text-ink-muted">
+      <p className="text-xs text-ink-muted">
         Anotações internas sobre este aluno. Não visíveis ao próprio aluno. Use para
         registrar contatos, observações pedagógicas, exceções administrativas, etc.
       </p>
@@ -132,7 +132,7 @@ export default function AdminNotesPanel({ studentId }: { studentId: string }) {
                 <>
                   <div className="text-sm text-pco-deep whitespace-pre-wrap">{n.body}</div>
                   <div className="mt-2 flex items-center justify-between flex-wrap gap-2">
-                    <div className="text-[10px] text-ink-subtle">
+                    <div className="text-xs text-ink-subtle">
                       por {n.authorEmail} · {new Date(n.createdAt).toLocaleString('pt-BR')}
                       {n.updatedAt !== n.createdAt && ' (editada)'}
                     </div>
@@ -146,7 +146,7 @@ export default function AdminNotesPanel({ studentId }: { studentId: string }) {
                             patch: { pinned: !n.pinned },
                           })
                         }
-                        className="pco-btn-ghost text-[11px]"
+                        className="pco-btn-ghost text-xs"
                         title={n.pinned ? 'Desafixar' : 'Fixar'}
                       >
                         {n.pinned ? (
@@ -158,7 +158,7 @@ export default function AdminNotesPanel({ studentId }: { studentId: string }) {
                       <button
                         type="button"
                         onClick={() => setEditing({ id: n.id, body: n.body })}
-                        className="pco-btn-ghost text-[11px]"
+                        className="pco-btn-ghost text-xs"
                         title="Editar"
                       >
                         <Edit3 size={10} strokeWidth={2} />
@@ -170,7 +170,7 @@ export default function AdminNotesPanel({ studentId }: { studentId: string }) {
                             del.mutate({ studentId, noteId: n.id });
                           }
                         }}
-                        className="pco-btn-ghost text-[11px] text-status-danger"
+                        className="pco-btn-ghost text-xs text-status-danger"
                         title="Excluir"
                       >
                         <Trash2 size={10} strokeWidth={2} />

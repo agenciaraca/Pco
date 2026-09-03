@@ -51,7 +51,7 @@ export default function AdminLoginModels() {
             <div className={`relative h-40 bg-gradient-to-br ${m.gradient}`}>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.2),transparent_60%)]" />
               {m.selected && (
-                <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-white/95 text-pco-blue text-[10px] font-semibold px-2 py-0.5">
+                <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-white/95 text-pco-blue text-xs font-semibold px-2 py-0.5">
                   <Check size={10} strokeWidth={3} />
                   Em uso
                 </span>

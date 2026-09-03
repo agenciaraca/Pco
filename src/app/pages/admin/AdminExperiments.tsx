@@ -184,11 +184,11 @@ function ExperimentCard({
               {STATUS_LABEL[experiment.status]}
             </span>
           </div>
-          <div className="text-[11px] text-ink-subtle font-mono">{experiment.id}</div>
+          <div className="text-xs text-ink-subtle font-mono">{experiment.id}</div>
           {experiment.description && (
             <p className="text-xs text-ink-muted mt-1">{experiment.description}</p>
           )}
-          <div className="text-[11px] text-ink-muted mt-1">
+          <div className="text-xs text-ink-muted mt-1">
             {experiment.variants.length} variantes · traffic {experiment.traffic}%
           </div>
         </div>
@@ -219,12 +219,12 @@ function ExperimentCard({
 
       {resultsQ.data && resultsQ.data.rows.length > 0 && (
         <div className="border-t border-surface-gray pt-3">
-          <h4 className="text-[11px] uppercase tracking-wider text-ink-subtle font-semibold mb-2">
+          <h4 className="text-xs uppercase tracking-wider text-ink-subtle font-semibold mb-2">
             Resultados
           </h4>
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-ink-subtle text-[10px] uppercase tracking-wider">
+              <tr className="text-ink-subtle text-xs uppercase tracking-wider">
                 <th className="text-left py-1.5 font-medium">Variante</th>
                 <th className="text-right py-1.5 font-medium">Atribuídos</th>
                 <th className="text-right py-1.5 font-medium">Conversões</th>
@@ -286,7 +286,7 @@ function CreateExperimentModal({
       <div className="relative pco-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Novo
             </div>
             <h2 className="text-lg font-bold text-pco-deep">Experimento A/B</h2>
@@ -328,7 +328,7 @@ function CreateExperimentModal({
               onChange={(e) => setVariantsRaw(e.target.value)}
               className="pco-input min-h-[96px] font-mono text-xs"
             />
-            <p className="text-[10px] text-ink-subtle mt-1">
+            <p className="text-xs text-ink-subtle mt-1">
               Atual: {variants.length} variantes
             </p>
           </label>

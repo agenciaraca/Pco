@@ -316,28 +316,28 @@ function CommentRow({
       </td>
       <td className="px-3 py-2">
         <div className="font-semibold text-pco-deep">{comment.authorName}</div>
-        <div className="text-[10px] text-ink-subtle">{comment.authorRole}</div>
+        <div className="text-xs text-ink-subtle">{comment.authorRole}</div>
       </td>
       <td className="px-3 py-2 max-w-md">
         <div className={comment.hidden ? 'text-ink-subtle line-through' : ''}>
           {comment.body}
         </div>
         {comment.parentId && (
-          <div className="text-[10px] text-ink-subtle mt-0.5">↳ resposta</div>
+          <div className="text-xs text-ink-subtle mt-0.5">↳ resposta</div>
         )}
       </td>
       <td className="px-3 py-2">
         {comment.hidden ? (
-          <span className="pco-badge text-[10px] bg-surface-gray text-ink-muted">
+          <span className="pco-badge text-xs bg-surface-gray text-ink-muted">
             <EyeOff size={9} className="inline" /> escondido
           </span>
         ) : (
-          <span className="pco-badge text-[10px] bg-status-success/10 text-status-success">
+          <span className="pco-badge text-xs bg-status-success/10 text-status-success">
             <Eye size={9} className="inline" /> visível
           </span>
         )}
         {comment.pinned && (
-          <span className="pco-badge text-[10px] bg-pco-blue/10 text-pco-blue ml-1">
+          <span className="pco-badge text-xs bg-pco-blue/10 text-pco-blue ml-1">
             fixado
           </span>
         )}
@@ -467,7 +467,7 @@ function ReviewCard({
             <span className="text-sm font-semibold text-pco-deep">
               {review.userName}
             </span>
-            <span className="text-[11px] text-ink-subtle">
+            <span className="text-xs text-ink-subtle">
               {review.userEmail}
             </span>
             <span className="ml-auto flex items-center gap-0.5">
@@ -489,7 +489,7 @@ function ReviewCard({
               {review.comment}
             </p>
           )}
-          <div className="text-[11px] text-ink-subtle mt-1">
+          <div className="text-xs text-ink-subtle mt-1">
             {new Date(review.createdAt).toLocaleDateString('pt-BR')} · curso{' '}
             <code>{review.courseId}</code>
           </div>

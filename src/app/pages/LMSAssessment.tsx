@@ -30,7 +30,7 @@ export default function LMSAssessment() {
         >
           ← Voltar ao módulo
         </Link>
-        <div className="mt-2 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-pco-orange">
+        <div className="mt-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-pco-orange">
           <ScrollText size={12} strokeWidth={2} />
           Avaliação do módulo
         </div>
@@ -92,7 +92,7 @@ function Stat({
   return (
     <div className="rounded-xl bg-surface-off p-4">
       <div className="text-pco-blue mb-1">{icon}</div>
-      <div className="text-[10px] uppercase tracking-wider text-ink-subtle">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-ink-subtle">{label}</div>
       <div className="text-base font-semibold text-pco-deep">{value}</div>
     </div>
   );

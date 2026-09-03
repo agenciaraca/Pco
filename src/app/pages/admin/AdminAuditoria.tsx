@@ -153,7 +153,7 @@ export default function AdminAuditoria() {
 
       <div className="pco-card p-4 space-y-3">
         <div>
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Filtros rápidos
           </span>
           <div className="flex flex-wrap gap-1.5 mt-1.5">
@@ -173,7 +173,7 @@ export default function AdminAuditoria() {
                   key={c.value}
                   type="button"
                   onClick={() => setActionFilter(active ? '' : c.value)}
-                  className={`text-[11px] px-2 py-1 rounded-full border transition-colors ${
+                  className={`text-xs px-2 py-1 rounded-full border transition-colors ${
                     active
                       ? 'bg-pco-blue text-white border-pco-blue'
                       : 'bg-white text-ink-muted border-pco-border hover:border-pco-blue/40'
@@ -187,7 +187,7 @@ export default function AdminAuditoria() {
               <button
                 type="button"
                 onClick={() => setActionFilter('')}
-                className="text-[11px] px-2 py-1 rounded-full bg-status-danger/10 text-status-danger hover:bg-status-danger/20"
+                className="text-xs px-2 py-1 rounded-full bg-status-danger/10 text-status-danger hover:bg-status-danger/20"
               >
                 Limpar ✕
               </button>
@@ -197,7 +197,7 @@ export default function AdminAuditoria() {
 
         <div className="grid gap-3 md:grid-cols-3">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">Ação contém</span>
+            <span className="text-xs uppercase tracking-wide text-ink-muted">Ação contém</span>
             <input
               type="text"
               value={actionFilter}
@@ -207,7 +207,7 @@ export default function AdminAuditoria() {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">Tipo de alvo</span>
+            <span className="text-xs uppercase tracking-wide text-ink-muted">Tipo de alvo</span>
             <select
               value={targetType}
               onChange={(e) => setTargetType(e.target.value)}
@@ -222,7 +222,7 @@ export default function AdminAuditoria() {
             </select>
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Buscar (autor / IP / ID)
             </span>
             <div className="relative mt-1">
@@ -243,7 +243,7 @@ export default function AdminAuditoria() {
         </div>
         <div className="grid gap-3 md:grid-cols-3 border-t border-surface-mute pt-3">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">De</span>
+            <span className="text-xs uppercase tracking-wide text-ink-muted">De</span>
             <input
               type="date"
               value={since}
@@ -252,7 +252,7 @@ export default function AdminAuditoria() {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">Até</span>
+            <span className="text-xs uppercase tracking-wide text-ink-muted">Até</span>
             <input
               type="date"
               value={until}
@@ -327,12 +327,12 @@ export default function AdminAuditoria() {
             <table className="w-full text-xs">
               <thead className="bg-surface-mute text-ink-muted">
                 <tr>
-                  <SortableTh field="ts" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Quando</SortableTh>
-                  <SortableTh field="actor" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Autor</SortableTh>
-                  <SortableTh field="action" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Ação</SortableTh>
-                  <SortableTh field="target" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Alvo</SortableTh>
-                  <SortableTh field="ip" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">IP</SortableTh>
-                  <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Status</SortableTh>
+                  <SortableTh field="ts" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Quando</SortableTh>
+                  <SortableTh field="actor" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Autor</SortableTh>
+                  <SortableTh field="action" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Ação</SortableTh>
+                  <SortableTh field="target" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Alvo</SortableTh>
+                  <SortableTh field="ip" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">IP</SortableTh>
+                  <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Status</SortableTh>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-mute">
@@ -350,14 +350,14 @@ export default function AdminAuditoria() {
                       </div>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
-                      <code className="text-[11px] text-pco-blue">{actionLabel(e.action)}</code>
+                      <code className="text-xs text-pco-blue">{actionLabel(e.action)}</code>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {e.targetType ? (
                         <span>
                           <span className="text-ink-muted">{e.targetType}</span>
                           {e.targetId ? (
-                            <code className="ml-1 text-[11px]">{e.targetId}</code>
+                            <code className="ml-1 text-xs">{e.targetId}</code>
                           ) : null}
                         </span>
                       ) : (
@@ -367,11 +367,11 @@ export default function AdminAuditoria() {
                     <td className="px-3 py-2 whitespace-nowrap text-ink-muted">{e.ip ?? '—'}</td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {e.status === 'ok' ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-status-success/15 px-2 py-0.5 text-[10px] text-status-success">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-status-success/15 px-2 py-0.5 text-xs text-status-success">
                           <CheckCircle2 size={10} strokeWidth={2} /> ok
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-status-danger/15 px-2 py-0.5 text-[10px] text-status-danger">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-status-danger/15 px-2 py-0.5 text-xs text-status-danger">
                           <AlertTriangle size={10} strokeWidth={2} /> erro
                         </span>
                       )}

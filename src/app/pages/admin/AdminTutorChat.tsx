@@ -84,12 +84,12 @@ export default function AdminTutorChat() {
                     <div className="text-sm font-semibold text-pco-deep">
                       {t.userName}
                     </div>
-                    <div className="text-[10px] text-ink-subtle">
+                    <div className="text-xs text-ink-subtle">
                       {t.userEmail}
                     </div>
                   </div>
                 </div>
-                <div className="text-[11px] text-ink-subtle text-right">
+                <div className="text-xs text-ink-subtle text-right">
                   <div>{new Date(t.ts).toLocaleString('pt-BR')}</div>
                   {(t.provider || t.model) && (
                     <div className="font-mono">
@@ -101,7 +101,7 @@ export default function AdminTutorChat() {
 
               <div className="space-y-2 text-xs">
                 <div className="bg-pco-blue/5 border-l-2 border-pco-blue p-2 rounded">
-                  <div className="text-[10px] uppercase tracking-wide text-pco-blue font-semibold mb-0.5">
+                  <div className="text-xs uppercase tracking-wide text-pco-blue font-semibold mb-0.5">
                     Pergunta do aluno
                   </div>
                   <div className="text-pco-deep whitespace-pre-wrap">
@@ -109,7 +109,7 @@ export default function AdminTutorChat() {
                   </div>
                 </div>
                 <div className="bg-status-success/5 border-l-2 border-status-success p-2 rounded">
-                  <div className="text-[10px] uppercase tracking-wide text-status-success font-semibold mb-0.5">
+                  <div className="text-xs uppercase tracking-wide text-status-success font-semibold mb-0.5">
                     Resposta do tutor
                   </div>
                   <div className="text-pco-deep whitespace-pre-wrap">

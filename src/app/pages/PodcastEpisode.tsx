@@ -93,7 +93,7 @@ export default function PodcastEpisode() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.15),transparent_60%)]" />
           <div className="absolute bottom-5 left-6 right-6 flex items-end justify-between gap-4">
             <div className="text-white">
-              <div className="text-[10px] uppercase tracking-[0.3em] font-semibold opacity-80">
+              <div className="text-xs uppercase tracking-[0.3em] font-semibold opacity-80">
                 PCO POD
               </div>
               <h1 className="mt-1 text-2xl lg:text-3xl font-bold leading-tight max-w-2xl">
@@ -137,7 +137,7 @@ export default function PodcastEpisode() {
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="flex items-center justify-between text-[11px] font-mono text-ink-muted">
+            <div className="flex items-center justify-between text-xs font-mono text-ink-muted">
               <span>{fmt(currentSeconds)}</span>
               <span>{fmt(totalSeconds)}</span>
             </div>

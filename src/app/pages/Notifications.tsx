@@ -112,13 +112,13 @@ export default function Notifications() {
                           <span className="ml-2 inline-block h-1.5 w-1.5 rounded-full bg-pco-orange" />
                         )}
                       </div>
-                      <div className="text-[11px] text-ink-subtle shrink-0">
+                      <div className="text-xs text-ink-subtle shrink-0">
                         {timeAgo(n.createdAt)}
                       </div>
                     </div>
                     <p className="text-xs text-ink-muted mt-0.5">{n.body}</p>
                     {n.authorEmail && (
-                      <p className="text-[10px] text-ink-subtle mt-1">de {n.authorEmail}</p>
+                      <p className="text-xs text-ink-subtle mt-1">de {n.authorEmail}</p>
                     )}
                   </Wrapper>
                 </li>

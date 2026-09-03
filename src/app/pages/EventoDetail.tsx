@@ -78,7 +78,7 @@ export default function EventoDetail() {
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h1 className="text-xl font-bold text-pco-deep">{session.title}</h1>
               <span
-                className={`pco-badge text-[10px] ${
+                className={`pco-badge text-xs ${
                   isLive
                     ? 'bg-status-success/10 text-status-success'
                     : isScheduled

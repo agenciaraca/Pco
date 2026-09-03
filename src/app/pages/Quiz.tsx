@@ -8,6 +8,7 @@ import {
   Loader2,
   HelpCircle,
   RotateCcw,
+  Clock,
 } from 'lucide-react';
 import { useCourse } from '../data/hooks';
 import * as api from '../data/api';
@@ -35,13 +36,17 @@ export default function Quiz() {
   const [answers, setAnswers] = useState<Record<string, Set<string>>>({});
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<QuizGradeResultDto | null>(null);
+  /** Nota de corte da avaliação, vinda do servidor. 70 é só o padrão. */
+  const [passingScore, setPassingScore] = useState(70);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
     if (!courseId) return;
     let cancelled = false;
     api
-      .fetchQuiz(courseId, { max: 10, moduleId })
+      // Sem `max`: quem decide o tamanho é a avaliação do módulo. O 10 fixo
+      // daqui ignorava o `questionCount` que o admin cadastrava.
+      .fetchQuiz(courseId, { moduleId })
       .then((r) => {
         if (cancelled) return;
         if (r.questions.length === 0) {
@@ -51,6 +56,7 @@ export default function Quiz() {
           setAnswers(
             Object.fromEntries(r.questions.map((q) => [q.id, new Set<string>()])),
           );
+          setPassingScore(r.passingScore ?? 70);
           setPhase('taking');
         }
       })
@@ -95,7 +101,9 @@ export default function Quiz() {
     });
     if (unanswered.length > 0) {
       const ok = confirm(
-        `Você deixou ${unanswered.length} questão(ões) em branco. Enviar mesmo assim?`,
+        unanswered.length === 1
+          ? 'Você deixou 1 questão em branco. Enviar mesmo assim?'
+          : `Você deixou ${unanswered.length} questões em branco. Enviar mesmo assim?`,
       );
       if (!ok) return;
     }
@@ -110,7 +118,7 @@ export default function Quiz() {
           selectedOptionIds: Array.from(answers[q.id] ?? []),
         };
       });
-      const r = await api.submitQuiz(courseId, payload);
+      const r = await api.submitQuiz(courseId, payload, moduleId);
       setResult(r);
       setPhase('result');
     } catch (err) {
@@ -122,10 +130,16 @@ export default function Quiz() {
   function retry() {
     setResult(null);
     setAnswers({});
+    // `textAnswers` também. Sem isto, as dissertativas da tentativa anterior
+    // ficavam no estado e eram **reenviadas** junto com as questões novas.
+    setTextAnswers({});
     setPhase('loading');
     // Re-trigger effect
     setTimeout(() => {
-      api.fetchQuiz(courseId!, { max: 10 }).then((r) => {
+      // `moduleId` tem de vir junto: sem ele, refazer a avaliação do Módulo 3
+      // sorteava do curso inteiro — inclusive de módulos que o drip ainda
+      // bloqueia para este aluno.
+      api.fetchQuiz(courseId!, { moduleId }).then((r) => {
         if (r.questions.length === 0) {
           setPhase('empty');
         } else {
@@ -133,6 +147,7 @@ export default function Quiz() {
           setAnswers(
             Object.fromEntries(r.questions.map((q) => [q.id, new Set<string>()])),
           );
+          setPassingScore(r.passingScore ?? 70);
           setPhase('taking');
         }
       });
@@ -174,7 +189,11 @@ export default function Quiz() {
   }
 
   if (phase === 'result' && result) {
-    const passed = result.pct >= 70;
+    // Quem aprova é o servidor, com a nota de corte cadastrada. O `>= 70` fixo
+    // daqui fazia a tela anunciar 80% e o resultado aprovar com 70.
+    const corte = result.passingScore ?? passingScore;
+    const passed = result.passed ?? result.pct >= corte;
+    const pendentes = result.pendentes ?? 0;
     return (
       <div className="space-y-6">
         <Link
@@ -193,14 +212,22 @@ export default function Quiz() {
         >
           <div className="text-6xl font-bold text-pco-deep">{result.pct}%</div>
           <div className="text-base text-ink-muted mt-2">
-            {result.score} de {result.total} corretas
+            {result.score} de {result.total}{' '}
+            {result.total === 1 ? 'correta' : 'corretas'}
           </div>
+          {pendentes > 0 && (
+            <p className="text-xs text-ink-muted mt-2">
+              {pendentes === 1
+                ? '1 questão dissertativa ficou aguardando correção e não entrou nesta nota.'
+                : `${pendentes} questões dissertativas ficaram aguardando correção e não entraram nesta nota.`}
+            </p>
+          )}
           <p
             className={`text-sm font-semibold mt-3 ${
               passed ? 'text-status-success' : 'text-pco-orange'
             }`}
           >
-            {passed ? '🎉 Aprovado!' : 'Quase lá — refaça pra fixar.'}
+            {passed ? '🎉 Aprovado!' : `Quase lá — a aprovação é com ${corte}%.`}
           </p>
           <button
             type="button"
@@ -219,12 +246,17 @@ export default function Quiz() {
             return (
               <li key={q.id} className="pco-card p-4">
                 <div className="flex items-start gap-2 mb-2">
-                  {r?.correct ? (
+                  {r?.correct === true ? (
                     <CheckCircle2
                       size={18}
                       className="text-status-success shrink-0 mt-0.5"
                       strokeWidth={2}
                     />
+                  ) : r?.correct === null ? (
+                    // Aguardando correção. Marcar com ✗ vermelho seria dizer ao
+                    // aluno que ele errou por uma configuração que falta do
+                    // lado da escola.
+                    <Clock size={18} className="text-ink-subtle shrink-0 mt-0.5" strokeWidth={2} />
                   ) : (
                     <XCircle
                       size={18}
@@ -271,7 +303,7 @@ export default function Quiz() {
                           </span>
                           <span>{o.text}</span>
                           {wasMine && !isCorrect && (
-                            <span className="text-[10px] text-ink-subtle">
+                            <span className="text-xs text-ink-subtle">
                               (sua resposta)
                             </span>
                           )}

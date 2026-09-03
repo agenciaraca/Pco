@@ -107,13 +107,13 @@ function KpisHeader() {
           <div key={c.label} className="pco-card p-4">
             <div className="flex items-center gap-2">
               <Icon size={14} strokeWidth={2} className={c.color} />
-              <span className="text-[11px] uppercase tracking-wider text-ink-muted">
+              <span className="text-xs uppercase tracking-wider text-ink-muted">
                 {c.label}
               </span>
             </div>
             <div className="text-2xl font-bold text-pco-deep mt-1.5">{c.value}</div>
-            <div className="text-[11px] text-ink-subtle mt-1">{c.sub}</div>
-            {c.delta && <div className="text-[11px] font-semibold mt-1">{c.delta}</div>}
+            <div className="text-xs text-ink-subtle mt-1">{c.sub}</div>
+            {c.delta && <div className="text-xs font-semibold mt-1">{c.delta}</div>}
           </div>
         );
       })}
@@ -129,12 +129,12 @@ function CompletionsCard() {
     <div className="pco-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-pco-deep">Aulas concluídas</h3>
-        <span className="text-[10px] text-ink-subtle">últimos {data.days} dias</span>
+        <span className="text-xs text-ink-subtle">últimos {data.days} dias</span>
       </div>
       <div className="flex items-end gap-3">
         <div>
           <div className="text-2xl font-bold text-pco-deep">{data.total}</div>
-          <div className="text-[11px] text-ink-subtle">
+          <div className="text-xs text-ink-subtle">
             total · hoje: <strong className="text-pco-blue">{today}</strong>
           </div>
         </div>
@@ -177,7 +177,7 @@ function HealthMiniCard() {
     <div className="pco-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-pco-deep">Saúde do sistema</h3>
-        <span className="text-[10px] text-ink-subtle">
+        <span className="text-xs text-ink-subtle">
           {data.db === 'connected' ? 'DB conectado' : 'JSON fallback'} · node {data.nodeVersion}
         </span>
       </div>
@@ -188,7 +188,7 @@ function HealthMiniCard() {
             <div key={it.label} className="rounded-lg bg-surface-mute/40 p-3">
               <div className="flex items-center gap-1.5">
                 <Icon size={12} strokeWidth={2} className={it.color} />
-                <span className="text-[10px] uppercase tracking-wide text-ink-muted">
+                <span className="text-xs uppercase tracking-wide text-ink-muted">
                   {it.label}
                 </span>
               </div>
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
             <div className="text-sm font-bold text-pco-deep">
               {alertsQ.data.total} alerta{alertsQ.data.total !== 1 ? 's' : ''} requer{alertsQ.data.total !== 1 ? 'em' : ''} atenção
             </div>
-            <div className="text-[11px] text-ink-muted mt-0.5">
+            <div className="text-xs text-ink-muted mt-0.5">
               {alertsQ.data.error > 0 && (
                 <span className="text-status-danger font-semibold">
                   {alertsQ.data.error} erro{alertsQ.data.error !== 1 ? 's' : ''}
@@ -344,7 +344,7 @@ export default function AdminDashboard() {
           return (
             <div key={k.label} className="pco-card">
               <div className="flex items-center justify-between">
-                <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+                <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
                   {k.label}
                 </div>
                 <div className={`h-8 w-8 rounded-lg grid place-items-center ${c.bg}`}>
@@ -354,7 +354,7 @@ export default function AdminDashboard() {
               <div className="mt-2 text-2xl font-bold tracking-tight text-pco-deep">
                 {k.value}
               </div>
-              {k.sub && <div className="text-[11px] text-ink-subtle mt-0.5">{k.sub}</div>}
+              {k.sub && <div className="text-xs text-ink-subtle mt-0.5">{k.sub}</div>}
             </div>
           );
         })}
@@ -382,9 +382,9 @@ export default function AdminDashboard() {
                     <span className="font-semibold text-pco-deep truncate">
                       {e.actorEmail ?? 'sistema'}
                     </span>
-                    <code className="text-[11px] text-pco-blue truncate">{e.action}</code>
+                    <code className="text-xs text-pco-blue truncate">{e.action}</code>
                     {e.targetId && (
-                      <span className="text-[11px] text-ink-muted truncate">
+                      <span className="text-xs text-ink-muted truncate">
                         · {e.targetId}
                       </span>
                     )}
@@ -425,7 +425,7 @@ export default function AdminDashboard() {
             ].map((b) => (
               <div key={b.label} className={`rounded-xl p-4 ${b.color}`}>
                 <div className="text-2xl font-bold">{b.value}</div>
-                <div className="text-[11px] mt-1">{b.label}</div>
+                <div className="text-xs mt-1">{b.label}</div>
               </div>
             ))}
           </div>
@@ -452,7 +452,7 @@ export default function AdminDashboard() {
                   <div className="text-sm font-semibold text-pco-deep truncate">
                     {r.studentName}
                   </div>
-                  <div className="text-[11px] text-ink-subtle truncate">
+                  <div className="text-xs text-ink-subtle truncate">
                     {r.reasons[0]}
                   </div>
                 </div>

@@ -32,7 +32,7 @@ export default function LMSCourse() {
     <div className="space-y-6">
       <CourseAccessNotice courseId={course.id} />
       <header>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-pco-blue">
+        <div className="text-xs font-semibold uppercase tracking-wider text-pco-blue">
           Curso
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-pco-deep">{course.title}</h1>
@@ -52,7 +52,7 @@ export default function LMSCourse() {
       <div className="pco-card p-5">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[200px]">
-            <div className="flex justify-between text-[11px] text-ink-muted mb-1">
+            <div className="flex justify-between text-xs text-ink-muted mb-1">
               <span>Progresso</span>
               <span className="font-semibold text-pco-deep">{pct}%</span>
             </div>
@@ -92,7 +92,7 @@ export default function LMSCourse() {
               <li key={idx} className="text-sm">
                 <div className="flex items-baseline gap-2 mb-0.5">
                   <span className="font-bold text-pco-deep">{c.version}</span>
-                  <span className="text-[11px] text-ink-subtle">
+                  <span className="text-xs text-ink-subtle">
                     {new Date(c.date).toLocaleDateString('pt-BR', {
                       day: '2-digit',
                       month: 'short',
@@ -105,7 +105,7 @@ export default function LMSCourse() {
             ))}
           </ul>
           {course.changelog!.length > 5 && (
-            <div className="text-[11px] text-ink-subtle mt-3">
+            <div className="text-xs text-ink-subtle mt-3">
               + {course.changelog!.length - 5} entry(ies) anteriores
             </div>
           )}
@@ -153,7 +153,7 @@ export default function LMSCourse() {
                     <h3 className="text-sm font-semibold text-pco-deep">
                       {module.title}
                     </h3>
-                    <span className="text-[11px] font-bold text-pco-deep">
+                    <span className="text-xs font-bold text-pco-deep">
                       {isLocked ? `Libera ${lockedDateLabel}` : `${modulePct}%`}
                     </span>
                   </div>
@@ -172,7 +172,7 @@ export default function LMSCourse() {
                       style={{ width: `${isLocked ? 0 : modulePct}%` }}
                     />
                   </div>
-                  <div className="mt-1 text-[11px] text-ink-subtle">
+                  <div className="mt-1 text-xs text-ink-subtle">
                     {isLocked
                       ? `Disponível em ${new Date(module.lockedUntil ?? '').toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`
                       : `${moduleDone}/${moduleTotal} aulas concluídas`}
@@ -233,7 +233,7 @@ export default function LMSCourse() {
                     <div className="text-xs text-ink-muted">{m.description}</div>
                   )}
                   {m.durationMinutes && (
-                    <div className="text-[10px] text-ink-subtle">{m.durationMinutes} min</div>
+                    <div className="text-xs text-ink-subtle">{m.durationMinutes} min</div>
                   )}
                 </div>
                 <a

@@ -182,7 +182,7 @@ export default function ImportJobDetail() {
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="mt-1 text-[11px] text-ink-subtle">
+        <div className="mt-1 text-xs text-ink-subtle">
           {data.stats.totalRead} lidos · {progress}% processado · {data.stats.durationMs}ms
           {etaText && (
             <span className="ml-2 text-pco-blue font-semibold">{etaText}</span>
@@ -256,7 +256,7 @@ export default function ImportJobDetail() {
       {data.notes.length > 0 && (
         <section>
           <h3 className="text-sm font-semibold text-pco-deep mb-2">Logs</h3>
-          <div className="pco-card p-3 max-h-60 overflow-auto font-mono text-[11px] space-y-0.5">
+          <div className="pco-card p-3 max-h-60 overflow-auto font-mono text-xs space-y-0.5">
             {data.notes.map((n, i) => (
               <div
                 key={i}
@@ -324,7 +324,7 @@ function Stat({
 }) {
   return (
     <div className="pco-card p-3">
-      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-ink-muted">
+      <div className="flex items-center gap-1 text-xs uppercase tracking-wide text-ink-muted">
         {icon}
         {label}
       </div>

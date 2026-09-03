@@ -301,6 +301,18 @@ export const providerIdSchema = z.enum([
 ]);
 export type ProviderId = z.infer<typeof providerIdSchema>;
 
+/**
+ * Os módulos de IA configuráveis. **Esta lista tem de casar com o `aiModuleEnum`
+ * de `server/db/schema.ts`** — e não casava.
+ *
+ * Até 3/set/2026 o banco declarava oito e este schema seis: `grading` e
+ * `question_generation` existiam como coluna e como tipo interno, mas não no
+ * schema que valida a escrita de configuração nem na tela `/admin/ias`. Não
+ * havia caminho para ligar a correção por IA — e, como `gradeOpenEndedWithAi`
+ * devolvia `null`, **toda resposta dissertativa era marcada errada**, valia 0 e
+ * ainda somava 100 ao denominador do quiz. Um aluno que acertasse tudo podia
+ * ler "0% — quase lá, refaça pra fixar".
+ */
 export const aiModuleSchema = z.enum([
   'tutor',
   'recovery_plan',
@@ -308,6 +320,8 @@ export const aiModuleSchema = z.enum([
   'recommendations',
   'support',
   'summaries',
+  'grading',
+  'question_generation',
 ]);
 export type AiModule = z.infer<typeof aiModuleSchema>;
 
@@ -344,6 +358,20 @@ export const tutorAskSchema = z.object({
 export type TutorAskInput = z.infer<typeof tutorAskSchema>;
 
 // ---- Course writes ----
+
+/**
+ * Corpo do estorno pelo admin.
+ *
+ * Era a **única mutação financeira da casa sem validação Zod**: `amountCents` e
+ * `reason` iam do JSON do cliente direto para o provider, sem teto e sem tipo.
+ * Um valor maior que o pedido, ou negativo, ou uma string, chegavam ao gateway.
+ */
+export const refundOrderSchema = z.object({
+  /** Ausente = estorno total. Presente = parcial, e nunca maior que o pedido. */
+  amountCents: z.number().int().positive().optional(),
+  reason: z.string().max(500).optional(),
+});
+export type RefundOrderInput = z.infer<typeof refundOrderSchema>;
 
 export const createCourseSchema = z.object({
   title: z.string().min(2).max(200),

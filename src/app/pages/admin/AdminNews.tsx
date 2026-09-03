@@ -186,7 +186,7 @@ export default function AdminNews() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-off">
-                <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                <tr className="text-xs uppercase tracking-wider text-ink-subtle">
                   <SortableTh field="title" current={sortField} direction={sortDirection} onSort={toggleSort}>Artigo</SortableTh>
                   <SortableTh field="category" current={sortField} direction={sortDirection} onSort={toggleSort}>Categoria</SortableTh>
                   <SortableTh field="course" current={sortField} direction={sortDirection} onSort={toggleSort}>Curso</SortableTh>
@@ -211,7 +211,7 @@ export default function AdminNews() {
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-ink-subtle line-clamp-1 max-w-md">
+                          <div className="text-xs text-ink-subtle line-clamp-1 max-w-md">
                             {a.excerpt}
                           </div>
                         </div>
@@ -362,7 +362,7 @@ function NewsEditor({ article, courses, submitting, onClose, onSubmit }: NewsEdi
       <div className="relative pco-card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               {isNew ? 'Novo artigo' : 'Editar artigo'}
             </div>
             <h2 className="text-lg font-bold text-pco-deep">PCO News</h2>
@@ -430,7 +430,7 @@ function NewsEditor({ article, courses, submitting, onClose, onSubmit }: NewsEdi
                   }`}
                 >
                   <div className={`h-10 bg-gradient-to-br ${p.value}`} />
-                  <div className="px-2 py-1 text-[10px] text-pco-deep">{p.label}</div>
+                  <div className="px-2 py-1 text-xs text-pco-deep">{p.label}</div>
                 </button>
               ))}
             </div>

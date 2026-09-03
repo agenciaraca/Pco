@@ -182,7 +182,7 @@ export default function AdminCertificates() {
               <option value="available">Disponíveis</option>
               <option value="in_progress">Em curso</option>
             </select>
-            <span className="text-[11px] text-ink-muted">
+            <span className="text-xs text-ink-muted">
               {filtered.length}/{(certs.data ?? []).length}
             </span>
           </div>
@@ -206,7 +206,7 @@ export default function AdminCertificates() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-surface-off">
-                    <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                    <tr className="text-xs uppercase tracking-wider text-ink-subtle">
                       <SortableTh field="student" current={sortField} direction={sortDirection} onSort={toggleSort}>
                         Aluno
                       </SortableTh>
@@ -263,7 +263,7 @@ export default function AdminCertificates() {
                             : '—'}
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-mono text-[11px] text-pco-deep">
+                          <span className="font-mono text-xs text-pco-deep">
                             {c.validationCode}
                           </span>
                         </td>
@@ -271,10 +271,10 @@ export default function AdminCertificates() {
                           {(() => {
                             const v = validationByCode.get(c.validationCode);
                             if (!v) {
-                              return <span className="text-[11px] text-ink-subtle">0</span>;
+                              return <span className="text-xs text-ink-subtle">0</span>;
                             }
                             return (
-                              <div className="text-[11px]">
+                              <div className="text-xs">
                                 <span className="font-semibold text-pco-deep">{v.count}</span>
                                 <span className="ml-1 text-ink-muted">
                                   · última {new Date(v.lastAt).toLocaleDateString('pt-BR')}
@@ -513,7 +513,7 @@ function Stat({
 }) {
   return (
     <div className="pco-card">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+      <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
         {label}
       </div>
       <div

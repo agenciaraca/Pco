@@ -149,7 +149,7 @@ export default function AdminReengagementAuto() {
 
       <section className="pco-card p-4 space-y-3">
         <h2 className="text-sm font-semibold text-pco-deep">Mensagem</h2>
-        <p className="text-[11px] text-ink-muted">
+        <p className="text-xs text-ink-muted">
           Variáveis disponíveis: <code>{'{{name}}'}</code>, <code>{'{{lastAccess}}'}</code>,{' '}
           <code>{'{{loginUrl}}'}</code>
         </p>
@@ -242,7 +242,7 @@ export default function AdminReengagementAuto() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       <div className="mt-1">{children}</div>
     </label>
   );

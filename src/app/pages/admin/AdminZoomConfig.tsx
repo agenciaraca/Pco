@@ -119,7 +119,7 @@ export default function AdminZoomConfig() {
             </div>
 
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="text-xs uppercase tracking-wide text-ink-muted">
                 SDK Key (Client ID)
               </span>
               <input
@@ -132,7 +132,7 @@ export default function AdminZoomConfig() {
             </label>
 
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="text-xs uppercase tracking-wide text-ink-muted">
                 SDK Secret (Client Secret)
               </span>
               <div className="relative mt-1">
@@ -193,7 +193,7 @@ export default function AdminZoomConfig() {
           <li>Preencha o <strong>Meeting Number</strong> e a senha (opcional) da reuniao Zoom</li>
           <li>Os alunos vao entrar na reuniao diretamente dentro da plataforma</li>
         </ol>
-        <p className="text-[11px] text-ink-subtle">
+        <p className="text-xs text-ink-subtle">
           Custo: gratuito. O Meeting SDK funciona com qualquer plano Zoom (Basic, Pro, Business).
         </p>
       </div>

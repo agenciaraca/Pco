@@ -67,7 +67,7 @@ export default function AdminErros() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-sm font-semibold text-pco-deep">Erros por dia</h3>
-              <span className="text-[11px] text-ink-subtle">
+              <span className="text-xs text-ink-subtle">
                 {stats.data.totalServer} servidor · {stats.data.totalClient} client (últimos {stats.data.days}d)
               </span>
             </div>
@@ -133,9 +133,9 @@ export default function AdminErros() {
                       <span className="text-sm font-semibold text-pco-deep break-all">
                         {e.message}
                       </span>
-                      <span className="text-[11px] text-ink-muted">{formatTs(e.ts)}</span>
+                      <span className="text-xs text-ink-muted">{formatTs(e.ts)}</span>
                     </div>
-                    <div className="mt-0.5 text-[11px] text-ink-muted flex flex-wrap gap-x-3 gap-y-0.5">
+                    <div className="mt-0.5 text-xs text-ink-muted flex flex-wrap gap-x-3 gap-y-0.5">
                       <span>
                         <code className="text-pco-blue">{e.method}</code> {e.path}
                       </span>
@@ -146,7 +146,7 @@ export default function AdminErros() {
                   </div>
                 </button>
                 {openId === e.id && e.stack && (
-                  <pre className="ml-5 mt-2 text-[11px] bg-surface-mute/40 rounded-lg p-3 overflow-auto max-h-72 whitespace-pre-wrap break-all">
+                  <pre className="ml-5 mt-2 text-xs bg-surface-mute/40 rounded-lg p-3 overflow-auto max-h-72 whitespace-pre-wrap break-all">
                     {e.stack}
                   </pre>
                 )}

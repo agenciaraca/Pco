@@ -37,7 +37,7 @@ export default function Tabs({ items, active, onChange, variant = 'underline' }:
               {t.badge !== undefined && (
                 <span
                   className={clsx(
-                    'pco-badge text-[10px]',
+                    'pco-badge text-xs',
                     isActive ? 'bg-pco-blue/10 text-pco-blue' : 'bg-surface-gray text-ink-muted',
                   )}
                 >
@@ -72,7 +72,7 @@ export default function Tabs({ items, active, onChange, variant = 'underline' }:
               {t.badge !== undefined && (
                 <span
                   className={clsx(
-                    'pco-badge text-[10px]',
+                    'pco-badge text-xs',
                     isActive
                       ? 'bg-pco-blue/10 text-pco-blue'
                       : 'bg-surface-gray text-ink-muted',

@@ -111,7 +111,7 @@ export default function AdminDigest() {
         </label>
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Hora de envio (UTC; BRT = UTC-3)
           </span>
           <input
@@ -122,14 +122,14 @@ export default function AdminDigest() {
             onChange={(e) => setHourUtc(Number(e.target.value))}
             className="pco-input mt-1 text-sm w-32"
           />
-          <span className="ml-2 text-[11px] text-ink-subtle">
+          <span className="ml-2 text-xs text-ink-subtle">
             {String(effHour).padStart(2, '0')}:00 UTC ={' '}
             {String((effHour - 3 + 24) % 24).padStart(2, '0')}:00 BRT
           </span>
         </label>
 
         <div>
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Destinatários
           </span>
           <div className="mt-1 flex gap-3 flex-wrap">
@@ -152,7 +152,7 @@ export default function AdminDigest() {
 
         <div className="flex items-center gap-2 justify-end">
           {dirty && (
-            <span className="text-[11px] text-pco-orange">Alterações não salvas</span>
+            <span className="text-xs text-pco-orange">Alterações não salvas</span>
           )}
           <button
             type="button"
@@ -175,7 +175,7 @@ export default function AdminDigest() {
           <Send size={14} strokeWidth={2} />
           Disparar agora (manual)
         </h2>
-        <p className="text-[11px] text-ink-muted">
+        <p className="text-xs text-ink-muted">
           Útil para testar o conteúdo. Dry-run não envia, só conta destinatários.
         </p>
         <div className="flex items-center gap-2">
@@ -216,7 +216,7 @@ export default function AdminDigest() {
           <div className="text-sm text-ink-muted">Gerando...</div>
         ) : preview.data ? (
           <>
-            <div className="text-[11px] text-ink-subtle">
+            <div className="text-xs text-ink-subtle">
               <strong>Assunto:</strong> {preview.data.subject}
             </div>
             <div className="rounded border border-pco-border overflow-hidden">
@@ -230,7 +230,7 @@ export default function AdminDigest() {
               <summary className="text-xs text-pco-blue cursor-pointer">
                 Dados crus
               </summary>
-              <pre className="text-[10px] bg-surface-mute p-2 rounded mt-1 overflow-auto">
+              <pre className="text-xs bg-surface-mute p-2 rounded mt-1 overflow-auto">
                 {JSON.stringify(preview.data.data, null, 2)}
               </pre>
             </details>

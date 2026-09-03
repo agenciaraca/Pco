@@ -172,7 +172,7 @@ function StatCard({
 }) {
   return (
     <div className="pco-card p-4">
-      <div className="flex items-center gap-2 text-[10px] uppercase text-ink-muted">
+      <div className="flex items-center gap-2 text-xs uppercase text-ink-muted">
         {icon}
         {label}
       </div>

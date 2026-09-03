@@ -125,7 +125,7 @@ export default function AdminNotificacoes() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-pco-deep">{b.title}</div>
                     <p className="mt-0.5 text-xs text-ink-muted line-clamp-2">{b.body}</p>
-                    <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-ink-subtle">
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-ink-subtle">
                       <span>{new Date(b.firstAt).toLocaleString('pt-BR')}</span>
                       {b.authorEmail && <span>· por {b.authorEmail}</span>}
                       <span>· categoria {b.category}</span>
@@ -136,10 +136,10 @@ export default function AdminNotificacoes() {
                       <Users size={12} strokeWidth={2} />
                       {b.recipientsCount}
                     </div>
-                    <div className="text-[10px] text-ink-subtle">
+                    <div className="text-xs text-ink-subtle">
                       {b.readCount} leu{b.readCount === 1 ? '' : 'ram'}
                     </div>
-                    <div className="text-[10px] text-ink-subtle">
+                    <div className="text-xs text-ink-subtle">
                       {b.recipientsCount > 0
                         ? Math.round((b.readCount / b.recipientsCount) * 100)
                         : 0}

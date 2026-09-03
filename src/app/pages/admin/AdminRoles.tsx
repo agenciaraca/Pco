@@ -272,7 +272,7 @@ export default function AdminRoles() {
                     <span className="text-base font-semibold text-pco-deep">
                       {role.name}
                     </span>
-                    <code className="text-[11px] bg-surface-mute px-1.5 py-0.5 rounded text-ink-muted">
+                    <code className="text-xs bg-surface-mute px-1.5 py-0.5 rounded text-ink-muted">
                       {role.slug}
                     </code>
                     {role.slug === 'superadmin' && (
@@ -293,7 +293,7 @@ export default function AdminRoles() {
                   {role.description && (
                     <p className="text-xs text-ink-muted mt-1">{role.description}</p>
                   )}
-                  <div className="text-[11px] text-ink-subtle mt-2">
+                  <div className="text-xs text-ink-subtle mt-2">
                     {role.permissions.length} permissão(ões)
                     {typeof role.userCount === 'number' && (
                       <> · {role.userCount} usuário{role.userCount === 1 ? '' : 's'} atribuído{role.userCount === 1 ? '' : 's'}</>
@@ -305,13 +305,13 @@ export default function AdminRoles() {
                         <span
                           key={p}
                           title={p}
-                          className="text-[11px] bg-surface-off px-2 py-0.5 rounded text-ink-muted border border-pco-border"
+                          className="text-xs bg-surface-off px-2 py-0.5 rounded text-ink-muted border border-pco-border"
                         >
                           {permLabel(p)}
                         </span>
                       ))}
                       {role.permissions.length > 12 && (
-                        <span className="text-[11px] text-ink-subtle px-2 py-0.5">
+                        <span className="text-xs text-ink-subtle px-2 py-0.5">
                           +{role.permissions.length - 12} mais
                         </span>
                       )}
@@ -383,7 +383,7 @@ export default function AdminRoles() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <span className="text-xs uppercase tracking-wide text-ink-muted">
                     Slug (identificador)
                   </span>
                   <input
@@ -400,7 +400,7 @@ export default function AdminRoles() {
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <span className="text-xs uppercase tracking-wide text-ink-muted">
                     Nome
                   </span>
                   <input
@@ -417,7 +417,7 @@ export default function AdminRoles() {
                 </label>
               </div>
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                <span className="text-xs uppercase tracking-wide text-ink-muted">
                   Descrição
                 </span>
                 <textarea
@@ -433,7 +433,7 @@ export default function AdminRoles() {
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                <span className="text-xs uppercase tracking-wide text-ink-muted">
                   Tier de auth (nível de acesso)
                 </span>
                 <select
@@ -461,7 +461,7 @@ export default function AdminRoles() {
                     Superadmin (acesso total)
                   </option>
                 </select>
-                <p className="mt-1 text-[11px] text-ink-subtle">
+                <p className="mt-1 text-xs text-ink-subtle">
                   Determina o que o middleware aceita em rotas protegidas.
                   Para "atendentes" e "operadores" geralmente é Admin.
                   Roles base (student/admin/superadmin) têm tier fixo.
@@ -469,7 +469,7 @@ export default function AdminRoles() {
               </label>
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <div className="text-xs uppercase tracking-wide text-ink-muted">
                     Permissões ({editing.permissions.size} selecionada{editing.permissions.size === 1 ? '' : 's'} de {allPerms.length})
                   </div>
                 </div>
@@ -486,7 +486,7 @@ export default function AdminRoles() {
                       >
                         <legend className="px-2 text-xs font-semibold text-pco-deep flex items-center gap-2">
                           {group.name}
-                          <span className="text-[10px] text-ink-subtle font-normal">
+                          <span className="text-xs text-ink-subtle font-normal">
                             ({selectedInGroup}/{group.items.length})
                           </span>
                           <button
@@ -496,7 +496,7 @@ export default function AdminRoles() {
                                 ? clearAllInGroup(group.items)
                                 : selectAllInGroup(group.items)
                             }
-                            className="text-[10px] text-pco-blue hover:underline ml-2 font-normal"
+                            className="text-xs text-pco-blue hover:underline ml-2 font-normal"
                           >
                             {allSelected ? 'Limpar todos' : 'Marcar todos'}
                           </button>
@@ -519,7 +519,7 @@ export default function AdminRoles() {
                                   {item.label}
                                 </span>
                                 {item.description && (
-                                  <span className="block text-[10px] text-ink-subtle mt-0.5">
+                                  <span className="block text-xs text-ink-subtle mt-0.5">
                                     {item.description}
                                   </span>
                                 )}
@@ -534,7 +534,7 @@ export default function AdminRoles() {
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-ink-subtle mt-3">
+                <p className="text-xs text-ink-subtle mt-3">
                   Hoje as permissões servem como <strong>documentação versionada</strong> —
                   a autorização efetiva continua usando os 3 papéis do sistema
                   (aluno, admin, superadmin). Quando RBAC dinâmico for ativado,
@@ -620,7 +620,7 @@ function PermissionMatrix({
                 className="text-left p-3 font-medium text-ink-strong align-top"
               >
                 <div>{group.name}</div>
-                <div className="text-[10px] text-ink-subtle font-normal mt-0.5">
+                <div className="text-xs text-ink-subtle font-normal mt-0.5">
                   {group.items.length} permissão{group.items.length === 1 ? '' : 'ões'}
                 </div>
               </th>

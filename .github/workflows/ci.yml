@@ -28,12 +28,24 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # NÃO há passo de `format:check` aqui, e isso é decisão, não esquecimento.
+      #
+      # O script existe no `package.json` e o CLAUDE.md o descreve como "CI
+      # dry-run" — mas **684 arquivos do repositório não passam nele hoje**.
+      # Ligá-lo agora reprovaria o build no primeiro push, e a única forma de
+      # destravar seria um `prettier --write` no repo inteiro: um diff de
+      # milhares de linhas que enterraria qualquer mudança de verdade junto.
+      #
+      # Ligar isto é um commit próprio, e nesta ordem: formatar tudo sozinho,
+      # commitar só a formatação, e só então acrescentar o passo aqui.
       - name: Test
         run: npm run test
 
+      # Sem `continue-on-error`. O passo não tinha como reprovar nada de
+      # qualquer forma (não há threshold), mas o `continue-on-error` também
+      # escondia falha do próprio vitest — coverage quebrado passava por verde.
       - name: Test coverage
         run: npx vitest run --coverage
-        continue-on-error: true
 
       - name: Upload coverage report
         if: always()

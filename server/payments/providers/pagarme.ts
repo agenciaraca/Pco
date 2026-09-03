@@ -8,8 +8,8 @@ import type {
   WebhookEvent,
   RefundResult,
 } from './types';
-import crypto from 'node:crypto';
 import { PaymentProviderError } from './types';
+import { comparaSegura } from './compara-segura';
 import { origemPublica } from '../../origem-publica';
 
 const API_BASE = 'https://api.pagar.me/core/v5';
@@ -32,17 +32,6 @@ function basicAuth(secretKey: string): string {
 }
 
 /** Comparação de tempo constante — `!==` em credencial vaza o prefixo certo. */
-function comparaSegura(a: string, b: string): boolean {
-  const ba = Buffer.from(a, 'utf8');
-  const bb = Buffer.from(b, 'utf8');
-  if (ba.length !== bb.length) {
-    // `timingSafeEqual` exige mesmo tamanho; compara contra si mesmo para
-    // gastar o mesmo tempo e devolve false.
-    crypto.timingSafeEqual(ba, ba);
-    return false;
-  }
-  return crypto.timingSafeEqual(ba, bb);
-}
 
 export const pagarmeProvider: PaymentProviderImpl = {
   async createPayment(_gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {

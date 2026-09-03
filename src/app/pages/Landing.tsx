@@ -311,7 +311,7 @@ export default function Landing() {
               </ChatBubble>
               <ChatBubble role="assistant">Boa pergunta. A escuta é a postura ética...</ChatBubble>
             </div>
-            <div className="mt-3 text-[11px] text-ink-subtle">
+            <div className="mt-3 text-xs text-ink-subtle">
               Limite mensal e escopo configurados em /admin/tutor
             </div>
           </div>
@@ -394,7 +394,7 @@ export default function Landing() {
           <div className="pco-card p-0 overflow-hidden order-2 lg:order-1">
             <div className="aspect-[1.41] bg-gradient-to-br from-status-gold/10 via-white to-pco-cyan/10 border-y border-status-gold/30 p-8 flex flex-col justify-between">
               <div className="text-center">
-                <div className="text-[10px] uppercase tracking-[0.3em] text-status-gold font-semibold">
+                <div className="text-xs uppercase tracking-[0.3em] text-status-gold font-semibold">
                   Certificado de Conclusão
                 </div>
                 <div className="mt-2 text-base font-bold text-pco-deep">Psicanálise Clínica</div>
@@ -403,7 +403,7 @@ export default function Landing() {
                 <div className="text-xs text-ink-muted">Concedido a</div>
                 <div className="text-base font-semibold text-pco-deep">[Nome do Aluno]</div>
               </div>
-              <div className="flex items-end justify-between text-[10px] text-ink-subtle">
+              <div className="flex items-end justify-between text-xs text-ink-subtle">
                 <span>QR Code</span>
                 <span className="font-mono">PCO-XXXX-YYYY</span>
               </div>
@@ -586,7 +586,7 @@ function FeatureCard({
 function StatBlock({ label, texto }: { label: string; texto: string }) {
   return (
     <div className="pco-card">
-      <div className="text-[11px] uppercase tracking-wider text-ink-subtle">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-ink-subtle">{label}</div>
       <div className="mt-1.5 text-sm font-medium leading-snug text-pco-deep">{texto}</div>
     </div>
   );
@@ -596,7 +596,7 @@ function ChatBubble({ role, children }: { role: 'user' | 'assistant'; children: 
   return (
     <div className={`flex gap-2 ${role === 'user' ? 'flex-row-reverse' : ''}`}>
       <div
-        className={`h-7 w-7 rounded-lg shrink-0 grid place-items-center text-[11px] font-semibold ${
+        className={`h-7 w-7 rounded-lg shrink-0 grid place-items-center text-xs font-semibold ${
           role === 'user' ? 'bg-pco-blue text-white' : 'bg-pco-blue/10 text-pco-blue'
         }`}
       >

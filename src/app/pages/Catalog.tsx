@@ -95,13 +95,13 @@ export default function Catalog() {
 
         {allTags.length > 0 && (
           <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-1.5 justify-center">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Filtrar:
             </span>
             <button
               type="button"
               onClick={() => setActiveTag('')}
-              className={`text-[11px] px-2.5 py-1 rounded-full border ${
+              className={`text-xs px-2.5 py-1 rounded-full border ${
                 activeTag === ''
                   ? 'bg-pco-blue text-white border-pco-blue'
                   : 'bg-white text-ink-muted border-pco-border hover:border-pco-blue/40'
@@ -114,7 +114,7 @@ export default function Catalog() {
                 key={t}
                 type="button"
                 onClick={() => setActiveTag(activeTag === t ? '' : t)}
-                className={`text-[11px] px-2.5 py-1 rounded-full border capitalize ${
+                className={`text-xs px-2.5 py-1 rounded-full border capitalize ${
                   activeTag === t
                     ? 'bg-pco-blue text-white border-pco-blue'
                     : 'bg-white text-ink-muted border-pco-border hover:border-pco-blue/40'
@@ -193,13 +193,13 @@ export default function Catalog() {
                     )}
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.2),transparent_60%)]" />
                     {course.modules.some((m) => m.lessons.some((l) => l.isPreview)) && (
-                      <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white text-pco-deep text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                      <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white text-pco-deep text-xs font-bold uppercase tracking-wider shadow-sm">
                         <PlayCircle size={10} strokeWidth={2.5} className="text-pco-blue" />
                         Preview livre
                       </span>
                     )}
                     <div className="relative flex flex-col justify-between h-full text-white">
-                      <span className="inline-flex items-center self-start px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold uppercase tracking-wider">
+                      <span className="inline-flex items-center self-start px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-xs font-semibold uppercase tracking-wider">
                         {course.shortTitle}
                       </span>
                       <h3 className="text-xl font-bold leading-tight max-w-xs">
@@ -232,7 +232,7 @@ export default function Catalog() {
                       <div>
                         {price && (
                           <>
-                            <div className="text-[10px] uppercase tracking-wide text-ink-subtle">
+                            <div className="text-xs uppercase tracking-wide text-ink-subtle">
                               A partir de
                             </div>
                             <div className="text-lg font-bold text-pco-deep">

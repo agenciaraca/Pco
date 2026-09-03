@@ -139,7 +139,7 @@ export default function Pedidos() {
                           {style.label}
                         </span>
                       </div>
-                      <div className="mt-0.5 text-[11px] text-ink-subtle">
+                      <div className="mt-0.5 text-xs text-ink-subtle">
                         Pedido <code>{o.id}</code> · {o.gatewayProvider} · criado em{' '}
                         {new Date(o.createdAt).toLocaleString('pt-BR')}
                         {o.paidAt && (
@@ -237,7 +237,7 @@ function PixBlock({
   });
   return (
     <div className="mt-3 pco-card border-pco-cyan/40 bg-pco-cyan/5 p-3">
-      <div className="text-[11px] uppercase tracking-wide text-pco-cyan font-semibold mb-2">
+      <div className="text-xs uppercase tracking-wide text-pco-cyan font-semibold mb-2">
         Pagamento via PIX — {price}
       </div>
       <div className="flex items-start gap-3 flex-wrap">
@@ -250,11 +250,11 @@ function PixBlock({
         )}
         {copyText && (
           <div className="flex-1 min-w-[200px] space-y-2">
-            <p className="text-[11px] text-ink-muted">
+            <p className="text-xs text-ink-muted">
               Use seu app bancário para escanear o QR ou copie o código abaixo.
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-[10px] font-mono break-all bg-white p-2 rounded border border-pco-border max-h-16 overflow-y-auto">
+              <code className="flex-1 text-xs font-mono break-all bg-white p-2 rounded border border-pco-border max-h-16 overflow-y-auto">
                 {copyText}
               </code>
               <button
@@ -274,7 +274,7 @@ function PixBlock({
           </div>
         )}
         {isImage && !copyText && (
-          <p className="text-[11px] text-ink-muted flex-1">
+          <p className="text-xs text-ink-muted flex-1">
             Escaneie com o app do seu banco para concluir o pagamento.
           </p>
         )}

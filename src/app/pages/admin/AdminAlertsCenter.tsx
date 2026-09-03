@@ -147,7 +147,7 @@ export default function AdminAlertsCenter() {
                 ? 'Tudo certo'
                 : `${totalAlerts} item(ns) pedem atenção`}
             </div>
-            <div className="text-[11px] text-ink-muted">
+            <div className="text-xs text-ink-muted">
               Última verificação:{' '}
               {new Date(data.generatedAt).toLocaleString('pt-BR')}
             </div>
@@ -186,7 +186,7 @@ export default function AdminAlertsCenter() {
                   {section.items.map((it, i) => (
                     <li
                       key={i}
-                      className="text-[11px] text-ink-muted border-l-2 border-pco-border pl-2"
+                      className="text-xs text-ink-muted border-l-2 border-pco-border pl-2"
                     >
                       <div className="font-semibold text-pco-deep truncate">
                         {it.title}
@@ -196,7 +196,7 @@ export default function AdminAlertsCenter() {
                   ))}
                 </ul>
               )}
-              <div className="mt-2 text-[10px] text-pco-blue inline-flex items-center gap-0.5">
+              <div className="mt-2 text-xs text-pco-blue inline-flex items-center gap-0.5">
                 Ver detalhes
                 <ChevronRight size={10} />
               </div>

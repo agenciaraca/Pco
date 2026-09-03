@@ -103,7 +103,7 @@ export default function AdminLeaderboard() {
           {data.entries.length > 3 && (
             <div className="pco-card overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-surface-mute text-ink-muted text-[11px] uppercase">
+                <thead className="bg-surface-mute text-ink-muted text-xs uppercase">
                   <tr>
                     <th className="text-left px-3 py-2 w-12">#</th>
                     <th className="text-left px-3 py-2">Aluno</th>
@@ -123,7 +123,7 @@ export default function AdminLeaderboard() {
                         <div className="font-semibold text-pco-deep">
                           {e.userName}
                         </div>
-                        <div className="text-[11px] text-ink-subtle">
+                        <div className="text-xs text-ink-subtle">
                           {e.userEmail}
                         </div>
                       </td>
@@ -148,7 +148,7 @@ export default function AdminLeaderboard() {
         </>
       )}
 
-      <div className="text-[11px] text-ink-subtle">
+      <div className="text-xs text-ink-subtle">
         Período:{' '}
         {data && new Date(data.range.from).toLocaleDateString('pt-BR')} →{' '}
         {data && new Date(data.range.to).toLocaleDateString('pt-BR')} ·{' '}
@@ -175,7 +175,7 @@ function PodiumCard({ entry }: { entry: LeaderboardEntryDto }) {
         <div className="mt-3 text-sm font-bold leading-tight">
           {entry.userName}
         </div>
-        <div className="text-[11px] opacity-80 truncate">{entry.userEmail}</div>
+        <div className="text-xs opacity-80 truncate">{entry.userEmail}</div>
       </div>
       <div className="p-3 grid grid-cols-3 gap-2 text-center">
         <Stat
@@ -195,7 +195,7 @@ function PodiumCard({ entry }: { entry: LeaderboardEntryDto }) {
         />
       </div>
       <div className="px-3 pb-3 text-center">
-        <span className="text-[10px] uppercase tracking-wide text-ink-muted">
+        <span className="text-xs uppercase tracking-wide text-ink-muted">
           score
         </span>
         <div className="text-lg font-bold text-pco-deep">{entry.score}</div>
@@ -215,7 +215,7 @@ function Stat({
 }) {
   return (
     <div className="text-center">
-      <div className="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wide text-ink-muted">
+      <div className="flex items-center justify-center gap-1 text-xs uppercase tracking-wide text-ink-muted">
         {icon}
         {label}
       </div>

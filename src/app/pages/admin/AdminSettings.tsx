@@ -218,12 +218,12 @@ export default function AdminSettings() {
               >
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-pco-deep">{i.nome}</div>
-                  <div className="text-[10px] text-ink-subtle">{i.categoria}</div>
-                  <p className="mt-1 text-[11px] leading-snug text-ink-muted">{i.detalhe}</p>
+                  <div className="text-xs text-ink-subtle">{i.categoria}</div>
+                  <p className="mt-1 text-xs leading-snug text-ink-muted">{i.detalhe}</p>
                   {i.ondeConfigurar && i.estado !== 'conectado' && (
                     <Link
                       to={i.ondeConfigurar}
-                      className="mt-1 inline-block text-[11px] font-medium text-pco-blue underline"
+                      className="mt-1 inline-block text-xs font-medium text-pco-blue underline"
                     >
                       Configurar
                     </Link>

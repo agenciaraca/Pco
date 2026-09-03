@@ -274,7 +274,7 @@ export default function AdminUserDetail() {
                     <div className="text-sm font-semibold text-pco-deep truncate">
                       {c.title}
                     </div>
-                    <div className="text-[11px] text-ink-subtle">
+                    <div className="text-xs text-ink-subtle">
                       {student.progressByCourse[c.id] ?? 0}% concluído
                     </div>
                   </div>
@@ -306,7 +306,7 @@ export default function AdminUserDetail() {
                     <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${c.coverColor}`} />
                     <div>
                       <div className="text-sm font-semibold text-pco-deep">{c.title}</div>
-                      <div className="text-[11px] text-ink-subtle">
+                      <div className="text-xs text-ink-subtle">
                         {c.modules.length} módulos
                       </div>
                     </div>
@@ -345,7 +345,7 @@ export default function AdminUserDetail() {
                   />
                 </div>
                 {divergente && (
-                  <p className="mt-2 text-[11px] text-pco-orange">
+                  <p className="mt-2 text-xs text-pco-orange">
                     O progresso gravado na ficha ({pct}%) não bate com as aulas marcadas (
                     {medido!.completionPct}%). Vale conferir antes de decidir algo com base nele.
                   </p>
@@ -390,7 +390,7 @@ export default function AdminUserDetail() {
             {risk && (
               <div className="mt-5 space-y-3 text-sm">
                 <div>
-                  <div className="text-[11px] uppercase tracking-wider text-ink-subtle mb-1.5">
+                  <div className="text-xs uppercase tracking-wider text-ink-subtle mb-1.5">
                     Motivos
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -582,7 +582,7 @@ function AccessPane({ studentId }: { studentId: string }) {
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
                 <div className="text-sm font-semibold text-pco-deep">{row.courseTitle}</div>
-                <div className="text-[11px] text-ink-subtle mt-0.5">
+                <div className="text-xs text-ink-subtle mt-0.5">
                   {row.enrolledAt
                     ? `Matriculado em ${new Date(row.enrolledAt).toLocaleDateString('pt-BR')}`
                     : 'Data de matrícula desconhecida'}
@@ -617,7 +617,7 @@ function AccessPane({ studentId }: { studentId: string }) {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2 pt-3 border-t border-surface-gray">
-              <span className="text-[11px] uppercase tracking-wide text-ink-subtle mr-1">
+              <span className="text-xs uppercase tracking-wide text-ink-subtle mr-1">
                 Renovar
               </span>
               {[6, 12].map((m) => (
@@ -674,7 +674,7 @@ function Row({
 function Box({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-surface-off p-2.5">
-      <div className="text-[10px] uppercase tracking-wider text-ink-subtle">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-ink-subtle">{label}</div>
       <div className="text-sm font-semibold text-pco-deep">{value}</div>
     </div>
   );
@@ -698,7 +698,7 @@ function ResourceCard({
       </div>
       <div className="text-sm font-semibold text-pco-deep">{title}</div>
       <div className="mt-2 text-xl font-bold text-pco-deep">{value}</div>
-      <div className="text-[11px] text-ink-subtle">{sub}</div>
+      <div className="text-xs text-ink-subtle">{sub}</div>
     </div>
   );
 }
@@ -722,7 +722,7 @@ function Event({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <div className="text-sm font-semibold text-pco-deep">{title}</div>
-          <div className="text-[11px] text-ink-subtle">
+          <div className="text-xs text-ink-subtle">
             {new Date(date).toLocaleDateString('pt-BR')}
           </div>
         </div>
@@ -794,18 +794,18 @@ function CertificadosTab({
                       <div className="text-sm font-semibold text-pco-deep truncate">
                         {c.title}
                       </div>
-                      <div className="text-[11px] text-ink-subtle font-mono">
+                      <div className="text-xs text-ink-subtle font-mono">
                         {cert.validationCode}
                       </div>
                       {cert.issuedAt && (
-                        <div className="text-[10px] text-ink-subtle mt-0.5">
+                        <div className="text-xs text-ink-subtle mt-0.5">
                           Emitido em {new Date(cert.issuedAt).toLocaleDateString('pt-BR')}
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="mt-3">
-                    <div className="text-[11px] text-ink-muted mb-1">
+                    <div className="text-xs text-ink-muted mb-1">
                       {cert.progress}% concluído
                     </div>
                     <div className="h-1.5 rounded-full bg-surface-gray overflow-hidden">
@@ -847,7 +847,7 @@ function CertificadosTab({
                     <div className="text-sm font-medium text-pco-deep truncate">
                       {c.title}
                     </div>
-                    <div className="text-[11px] text-ink-subtle">
+                    <div className="text-xs text-ink-subtle">
                       {progress}% concluído
                       {!certEnabled && (
                         <span className="ml-2 pco-badge bg-status-warning/10 text-status-warning">

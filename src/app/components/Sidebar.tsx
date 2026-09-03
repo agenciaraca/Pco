@@ -273,7 +273,7 @@ export default function Sidebar({ variant = 'student', groups }: SidebarProps) {
                   onClick={() => toggleGroup(group.title)}
                   className={clsx(
                     'group w-full flex items-center justify-between px-3 mb-1 rounded-md py-1 transition-colors',
-                    'text-[10px] font-semibold uppercase tracking-wider',
+                    'text-xs font-semibold uppercase tracking-wider',
                     groupHasActive ? 'text-pco-blue' : 'text-ink-subtle hover:text-ink-muted',
                   )}
                   aria-expanded={groupOpen}
@@ -338,7 +338,7 @@ export default function Sidebar({ variant = 'student', groups }: SidebarProps) {
                             size={20}
                             strokeWidth={1.75}
                           />
-                          <span className="text-[10px] leading-tight text-center font-medium line-clamp-2 break-words w-full px-0.5">
+                          <span className="text-xs leading-tight text-center font-medium line-clamp-2 break-words w-full px-0.5">
                             {item.label}
                           </span>
                           {isActive && (

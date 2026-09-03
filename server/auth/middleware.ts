@@ -13,6 +13,15 @@ declare module 'hono' {
   }
 }
 
+/**
+ * Um token so vira sessao quando NAO carrega marca de escopo restrito.
+ * Hoje a unica marca e `totp: 'pending'`; qualquer outra que venha a existir
+ * deve ser acrescentada aqui, e nao numa lista de rotas.
+ */
+export function ehTicketRestrito(payload: JwtPayload): boolean {
+  return payload.totp === 'pending';
+}
+
 function readBearer(c: Context): string | null {
   const header = c.req.header('authorization') ?? c.req.header('Authorization');
   if (header && header.startsWith('Bearer ')) return header.slice(7).trim();
@@ -23,7 +32,11 @@ export async function attachUser(c: Context, next: Next) {
   const token = readBearer(c);
   if (token) {
     const payload = await verifyToken(token);
-    if (payload) {
+    // Ticket de 2FA nao e sessao. Ele prova a senha, nao o segundo fator, e so
+    // vale em /auth/login/totp — que le a claim por conta propria. Negamos aqui
+    // pela PRESENCA da claim (falha fechada): claim nova de escopo restrito
+    // que ninguem lembrar de listar continua sendo recusada por padrao.
+    if (payload && !ehTicketRestrito(payload)) {
       // Valida tokenVersion — se o user bumpou, esse token é inválido
       const u = await findUserByEmail(payload.email);
       if (u && u.active && (payload.tv ?? 0) === (u.tokenVersion ?? 0)) {

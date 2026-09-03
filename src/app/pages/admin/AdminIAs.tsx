@@ -35,6 +35,8 @@ const moduleLabels: Record<string, string> = {
   recommendations: 'Recomendações',
   support: 'Suporte assistido',
   summaries: 'Resumos & Materiais',
+  grading: 'Correção de dissertativas',
+  question_generation: 'Geração de questões',
 };
 
 const moduleDescriptions: Record<string, string> = {
@@ -44,6 +46,9 @@ const moduleDescriptions: Record<string, string> = {
   recommendations: 'Sugere conteúdo personalizado dentro do AVA.',
   support: 'Assistente de suporte de primeiro atendimento.',
   summaries: 'Resumos automáticos de aulas e materiais longos.',
+  grading:
+    'Corrige as questões dissertativas do quiz contra a rubrica cadastrada. Sem este módulo ativo, a questão fica marcada como "aguardando correção" e não conta na nota.',
+  question_generation: 'Gera rascunhos de questão a partir do conteúdo da aula.',
 };
 
 export default function AdminIAs() {
@@ -115,13 +120,13 @@ export default function AdminIAs() {
                       <Brain size={18} className="text-pco-blue" strokeWidth={1.75} />
                     </div>
                     <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
                         {moduleLabels[c.module]}
                       </div>
                       <h3 className="text-base font-semibold text-pco-deep">
                         {provider?.name ?? c.provider}
                       </h3>
-                      <div className="text-[11px] text-ink-subtle font-mono mt-0.5">
+                      <div className="text-xs text-ink-subtle font-mono mt-0.5">
                         {c.model}
                       </div>
                     </div>
@@ -156,7 +161,7 @@ export default function AdminIAs() {
                 </div>
 
                 <div className="mt-4">
-                  <div className="text-[10px] uppercase tracking-wider text-ink-subtle mb-1">
+                  <div className="text-xs uppercase tracking-wider text-ink-subtle mb-1">
                     Chave API
                   </div>
                   <code
@@ -280,7 +285,7 @@ function ConfigEditor({ config, providers, onClose }: ConfigEditorProps) {
       <div className="relative pco-card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Configuração
             </div>
             <h2 className="text-lg font-bold text-pco-deep">{moduleLabels[config.module]}</h2>
@@ -309,7 +314,7 @@ function ConfigEditor({ config, providers, onClose }: ConfigEditorProps) {
                   }`}
                 >
                   <div className="text-sm font-semibold text-pco-deep">{p.name}</div>
-                  <div className="text-[10px] text-ink-subtle uppercase tracking-wider">
+                  <div className="text-xs text-ink-subtle uppercase tracking-wider">
                     {p.id}
                   </div>
                 </button>
@@ -320,7 +325,7 @@ function ConfigEditor({ config, providers, onClose }: ConfigEditorProps) {
                 href={currentProvider.consoleUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-flex items-center gap-1 text-[11px] text-pco-blue hover:underline"
+                className="mt-2 inline-flex items-center gap-1 text-xs text-pco-blue hover:underline"
               >
                 Console do provider
                 <ExternalLink size={10} strokeWidth={2} />
@@ -343,7 +348,7 @@ function ConfigEditor({ config, providers, onClose }: ConfigEditorProps) {
               ))}
             </select>
             {currentProvider?.models.find((m) => m.id === model)?.recommendedFor && (
-              <p className="mt-1 text-[11px] text-ink-subtle">
+              <p className="mt-1 text-xs text-ink-subtle">
                 {currentProvider.models.find((m) => m.id === model)?.recommendedFor}
               </p>
             )}
@@ -407,7 +412,7 @@ function ConfigEditor({ config, providers, onClose }: ConfigEditorProps) {
                   href={currentProvider.apiKeyDocsUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-[11px] text-pco-blue hover:underline ml-auto"
+                  className="text-xs text-pco-blue hover:underline ml-auto"
                 >
                   Onde encontro a chave?
                 </a>
@@ -513,7 +518,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Box({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-surface-off p-2.5">
-      <div className="text-[10px] uppercase tracking-wider text-ink-subtle">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-ink-subtle">{label}</div>
       <div className="text-sm font-semibold text-pco-deep">{value}</div>
     </div>
   );
@@ -526,6 +531,16 @@ const ALL_MODULES: Array<{ key: string; label: string; description: string }> = 
   { key: 'recommendations', label: 'Recomendações', description: 'Sugere conteúdo personalizado.' },
   { key: 'support', label: 'Suporte', description: 'Assistente de primeiro atendimento.' },
   { key: 'summaries', label: 'Resumos', description: 'Resumos automáticos de aulas longas.' },
+  {
+    key: 'grading',
+    label: 'Correção de dissertativas',
+    description: 'Sem ele, a dissertativa fica "aguardando correção" e sai da nota.',
+  },
+  {
+    key: 'question_generation',
+    label: 'Geração de questões',
+    description: 'Rascunhos de questão a partir do conteúdo da aula.',
+  },
 ];
 
 function ModuleMatrix({
@@ -570,11 +585,11 @@ function ModuleMatrix({
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div>
                   <h3 className="text-sm font-bold text-pco-deep">{mod.label}</h3>
-                  <p className="text-[11px] text-ink-muted mt-0.5">{mod.description}</p>
+                  <p className="text-xs text-ink-muted mt-0.5">{mod.description}</p>
                 </div>
                 {cfg ? (
                   <span
-                    className={`pco-badge text-[10px] ${
+                    className={`pco-badge text-xs ${
                       isReady
                         ? 'bg-status-success/10 text-status-success'
                         : cfg.active
@@ -585,7 +600,7 @@ function ModuleMatrix({
                     {isReady ? 'Ativo' : cfg.active ? 'Sem chave' : 'Desativado'}
                   </span>
                 ) : (
-                  <span className="pco-badge bg-surface-gray text-ink-subtle text-[10px]">
+                  <span className="pco-badge bg-surface-gray text-ink-subtle text-xs">
                     Não configurado
                   </span>
                 )}
@@ -596,7 +611,7 @@ function ModuleMatrix({
                     <div className="font-medium text-pco-deep">
                       {provider?.name ?? cfg.provider}
                     </div>
-                    <div className="text-[11px] text-ink-subtle font-mono">{cfg.model}</div>
+                    <div className="text-xs text-ink-subtle font-mono">{cfg.model}</div>
                   </div>
                   <button
                     onClick={() => onConfigureClick(cfg.id)}
@@ -634,7 +649,7 @@ function ProviderPicker({
   const [modelId, setModelId] = useState<string>(provider?.models[0]?.id ?? '');
 
   if (providers.length === 0)
-    return <p className="text-[11px] text-ink-subtle">Carregando providers...</p>;
+    return <p className="text-xs text-ink-subtle">Carregando providers...</p>;
 
   return (
     <div className="space-y-2 mt-2">

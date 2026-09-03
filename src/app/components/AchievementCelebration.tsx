@@ -70,7 +70,7 @@ export default function AchievementCelebration({
         </button>
 
         <div className="relative">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-status-gold mb-1">
+          <div className="text-xs font-semibold uppercase tracking-wider text-status-gold mb-1">
             🎉 Conquista desbloqueada
           </div>
 

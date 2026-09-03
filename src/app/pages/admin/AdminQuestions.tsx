@@ -357,7 +357,7 @@ export default function AdminQuestions() {
           <option value="active">Ativas</option>
           <option value="inactive">Inativas</option>
         </select>
-        <span className="text-[11px] text-ink-subtle ml-auto">
+        <span className="text-xs text-ink-subtle ml-auto">
           {filtered.length} de {questions.length}
         </span>
       </div>
@@ -414,7 +414,7 @@ export default function AdminQuestions() {
                       {q.tags.map((t) => (
                         <code
                           key={t}
-                          className="text-[10px] bg-surface-off px-1.5 py-0.5 rounded text-ink-muted"
+                          className="text-xs bg-surface-off px-1.5 py-0.5 rounded text-ink-muted"
                         >
                           {t}
                         </code>
@@ -498,7 +498,7 @@ export default function AdminQuestions() {
                 e gerará questões de múltipla escolha e verdadeiro/falso automaticamente.
               </p>
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                <span className="text-xs uppercase tracking-wide text-ink-muted">
                   Quantidade de questões
                 </span>
                 <input
@@ -509,10 +509,10 @@ export default function AdminQuestions() {
                   onChange={(e) => setGenCount(Math.max(1, Math.min(30, Number(e.target.value))))}
                   className="pco-input text-sm mt-1 w-full"
                 />
-                <p className="text-[11px] text-ink-subtle mt-1">Máximo 30 por geração.</p>
+                <p className="text-xs text-ink-subtle mt-1">Máximo 30 por geração.</p>
               </label>
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                <span className="text-xs uppercase tracking-wide text-ink-muted">
                   Módulo (opcional)
                 </span>
                 <select
@@ -527,7 +527,7 @@ export default function AdminQuestions() {
                     </option>
                   ))}
                 </select>
-                <p className="text-[11px] text-ink-subtle mt-1">
+                <p className="text-xs text-ink-subtle mt-1">
                   Filtre por módulo ou gere com base em todo o conteúdo do curso.
                 </p>
               </label>
@@ -603,7 +603,7 @@ export default function AdminQuestions() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <span className="text-xs uppercase tracking-wide text-ink-muted">
                     Tipo
                   </span>
                   <select
@@ -617,7 +617,7 @@ export default function AdminQuestions() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <span className="text-xs uppercase tracking-wide text-ink-muted">
                     Módulo (opcional)
                   </span>
                   <select
@@ -640,7 +640,7 @@ export default function AdminQuestions() {
               </div>
 
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                <span className="text-xs uppercase tracking-wide text-ink-muted">
                   Enunciado
                 </span>
                 <textarea
@@ -657,7 +657,7 @@ export default function AdminQuestions() {
 
               {editing.type === 'open_ended' ? (
                 <label className="block">
-                  <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <span className="text-xs uppercase tracking-wide text-ink-muted">
                     Resposta esperada / rubrica (usada pela IA para corrigir)
                   </span>
                   <textarea
@@ -670,14 +670,14 @@ export default function AdminQuestions() {
                     className="pco-input text-sm mt-1"
                     maxLength={4000}
                   />
-                  <p className="text-[11px] text-ink-subtle mt-1">
+                  <p className="text-xs text-ink-subtle mt-1">
                     A IA compara a resposta do aluno com esta rubrica e atribui nota de 0-100.
                   </p>
                 </label>
               ) : (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                    <span className="text-xs uppercase tracking-wide text-ink-muted">
                       Opções ({editing.options.length}{editing.type === 'multiple_choice' ? '/6' : ''})
                     </span>
                     {editing.type === 'multiple_choice' && (
@@ -725,7 +725,7 @@ export default function AdminQuestions() {
                       </li>
                     ))}
                   </ul>
-                  <p className="text-[11px] text-ink-subtle mt-2">
+                  <p className="text-xs text-ink-subtle mt-2">
                     {editing.type === 'multiple_choice'
                       ? 'Marque uma OU mais opções como corretas (multi-select).'
                       : 'V/F: marque a opção correta. Apenas uma pode ser correta.'}
@@ -734,7 +734,7 @@ export default function AdminQuestions() {
               )}
 
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                <span className="text-xs uppercase tracking-wide text-ink-muted">
                   Explicação (mostrada após resposta)
                 </span>
                 <textarea
@@ -752,7 +752,7 @@ export default function AdminQuestions() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <span className="text-xs uppercase tracking-wide text-ink-muted">
                     Dificuldade ({editing.difficulty}/5)
                   </span>
                   <input
@@ -786,7 +786,7 @@ export default function AdminQuestions() {
               </div>
 
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-ink-muted mb-1">
+                <div className="text-xs uppercase tracking-wide text-ink-muted mb-1">
                   Tags
                 </div>
                 <div className="flex flex-wrap gap-1.5 mb-2">

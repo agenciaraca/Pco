@@ -133,7 +133,7 @@ export default function ImportsHome() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-pco-deep">Modelos CSV</h2>
-          <span className="text-[11px] text-ink-subtle">
+          <span className="text-xs text-ink-subtle">
             Cabeçalho + linha de exemplo + linha em branco
           </span>
         </div>
@@ -152,7 +152,7 @@ export default function ImportsHome() {
                     <div className="text-sm font-semibold text-pco-deep">
                       {entityLabel[t.entity]}
                     </div>
-                    <div className="text-[11px] text-ink-subtle">
+                    <div className="text-xs text-ink-subtle">
                       {t.fields.length} campos · {t.fields.filter((f) => f.required).length}{' '}
                       obrigatórios
                     </div>
@@ -209,7 +209,7 @@ export default function ImportsHome() {
                         </span>
                       )}
                     </div>
-                    <div className="mt-0.5 text-[11px] text-ink-subtle">
+                    <div className="mt-0.5 text-xs text-ink-subtle">
                       por {j.startedBy} ·{' '}
                       {new Date(j.startedAt).toLocaleString('pt-BR')} ·{' '}
                       {j.stats.totalRead} lidos · {j.stats.created} criados ·{' '}

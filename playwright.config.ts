@@ -3,8 +3,23 @@ import { defineConfig, devices } from '@playwright/test';
 // E2E config — chromium-only por padrão (economiza ~400MB de browsers).
 // CI override: cross-browser via --project flag.
 
+import path from 'node:path';
+
 const PORT = Number(process.env.E2E_PORT ?? 5173);
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
+
+/**
+ * Diretório de dados **da suíte**, nunca o do desenvolvedor.
+ *
+ * O `webServer` já neutralizava `DATABASE_URL` e `PUBLIC_ORIGIN` para a suíte
+ * não escrever no banco da escola. Faltava `DATA_DIR`: o `globalSetup` roda no
+ * processo do Playwright, resolve `DATA_DIR ?? cwd/data` e dá `unlink` em
+ * `users.json` — ou seja, `npm run e2e` apagava as contas locais de quem
+ * estivesse desenvolvendo. Fixar aqui fecha a mesma classe de vazamento de
+ * ambiente, no último lugar em que ela ainda existia.
+ */
+const E2E_DATA_DIR = process.env.E2E_DATA_DIR ?? path.resolve(process.cwd(), 'e2e/.data');
+process.env.DATA_DIR = E2E_DATA_DIR;
 
 export default defineConfig({
   testDir: './e2e',
@@ -36,18 +51,27 @@ export default defineConfig({
   },
 
   projects: [
+    // `testIgnore` nos projetos de desktop: sem ele, os casos de
+    // `mobile-smoke.spec.ts` rodavam no projeto `chromium` — que é o que
+    // `npm run e2e` executa — com `devices['Desktop Chrome']`. As asserções de
+    // overflow horizontal e de altura de alvo de toque mediam **uma janela de
+    // desktop**, passavam, e não provavam o que o nome do arquivo promete:
+    // regressão responsiva não era coberta pelo comando padrão.
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /mobile-.*\.spec\.ts$/,
     },
     // Cross-browser opt-in (--project=firefox / --project=webkit).
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      testIgnore: /mobile-.*\.spec\.ts$/,
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      testIgnore: /mobile-.*\.spec\.ts$/,
     },
     // Mobile (--project=mobile-chrome / --project=mobile-safari)
     {
@@ -67,8 +91,11 @@ export default defineConfig({
   webServer: {
     command: 'npm run e2e:server',
     url: BASE_URL,
-    // Reusa local pra dev iterativo, mas o globalSetup limpa users.json
-    // antes do server subir. Em CI sempre fresh.
+    // **Nunca reusa.** O comentário aqui dizia "reusa local pra dev iterativo"
+    // sobre um `false` — comentário que instrui o contrário do código é a
+    // mesma classe de risco do `AGENTS.md` que mandava rodar o script errado.
+    // Servidor sempre novo também é o que garante que o `DATA_DIR` da suíte
+    // valha, já que o store lê as contas para a memória no boot.
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
@@ -93,6 +120,8 @@ export default defineConfig({
       // lá e conserta o E2E local.
       DATABASE_URL: '',
       PUBLIC_ORIGIN: '',
+      // O servidor da suíte escreve no diretório da suíte.
+      DATA_DIR: E2E_DATA_DIR,
     },
   },
 });

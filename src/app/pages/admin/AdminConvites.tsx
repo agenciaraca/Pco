@@ -93,17 +93,17 @@ export default function AdminConvites() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="pco-card">
-          <div className="text-[11px] uppercase tracking-wide text-ink-subtle">Vão receber</div>
+          <div className="text-xs uppercase tracking-wide text-ink-subtle">Vão receber</div>
           <div className="text-3xl font-bold text-status-success mt-1">{seg.elegiveis}</div>
           <div className="text-xs text-ink-muted mt-1">com matrícula ativa e sem convite ainda</div>
         </div>
         <div className="pco-card">
-          <div className="text-[11px] uppercase tracking-wide text-ink-subtle">Ficam de fora</div>
+          <div className="text-xs uppercase tracking-wide text-ink-subtle">Ficam de fora</div>
           <div className="text-3xl font-bold text-pco-deep mt-1">{seg.total - seg.elegiveis}</div>
           <div className="text-xs text-ink-muted mt-1">detalhado abaixo, por motivo</div>
         </div>
         <div className="pco-card">
-          <div className="text-[11px] uppercase tracking-wide text-ink-subtle">Base total</div>
+          <div className="text-xs uppercase tracking-wide text-ink-subtle">Base total</div>
           <div className="text-3xl font-bold text-pco-deep mt-1">{seg.total}</div>
           <div className="text-xs text-ink-muted mt-1">alunos cadastrados</div>
         </div>
@@ -188,7 +188,7 @@ export default function AdminConvites() {
 
         <div className="grid gap-4 sm:grid-cols-2 max-w-lg">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Link vale por (dias)
             </span>
             <input
@@ -199,12 +199,12 @@ export default function AdminConvites() {
               onChange={(e) => setDias(Math.max(1, Number(e.target.value) || 7))}
               className="pco-input mt-1"
             />
-            <span className="text-[11px] text-ink-subtle">
+            <span className="text-xs text-ink-subtle">
               Quem abrir o e-mail depois disso usa "Esqueci minha senha".
             </span>
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">Por lote</span>
+            <span className="text-xs uppercase tracking-wide text-ink-muted">Por lote</span>
             <input
               type="number"
               min={1}
@@ -213,7 +213,7 @@ export default function AdminConvites() {
               onChange={(e) => setPorLote(Math.min(100, Math.max(1, Number(e.target.value) || 25)))}
               className="pco-input mt-1"
             />
-            <span className="text-[11px] text-ink-subtle">
+            <span className="text-xs text-ink-subtle">
               Lotes pequenos evitam que o provedor marque o domínio como spam.
             </span>
           </label>

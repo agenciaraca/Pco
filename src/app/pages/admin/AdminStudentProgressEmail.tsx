@@ -97,7 +97,7 @@ export default function AdminStudentProgressEmail() {
             <CheckCircle2 size={13} className="text-status-success" strokeWidth={2} />
             <span>{new Date(st.lastRunAt).toLocaleString('pt-BR')}</span>
             {st.lastResult && (
-              <span className="text-[11px] text-ink-subtle">
+              <span className="text-xs text-ink-subtle">
                 · {st.lastResult.sent} enviados · {st.lastResult.skipped} pulados (sem
                 e-mail ou sem progresso)
               </span>
@@ -125,7 +125,7 @@ export default function AdminStudentProgressEmail() {
         </label>
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Dia da semana (UTC)
           </span>
           <select
@@ -142,7 +142,7 @@ export default function AdminStudentProgressEmail() {
         </label>
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Hora de envio (UTC; BRT = UTC-3)
           </span>
           <input
@@ -153,20 +153,20 @@ export default function AdminStudentProgressEmail() {
             onChange={(e) => setHour(Number(e.target.value))}
             className="pco-input mt-1 text-sm w-32"
           />
-          <span className="ml-2 text-[11px] text-ink-subtle">
+          <span className="ml-2 text-xs text-ink-subtle">
             {String(effHour).padStart(2, '0')}:00 UTC ={' '}
             {String((effHour - 3 + 24) % 24).padStart(2, '0')}:00 BRT
           </span>
         </label>
 
-        <p className="text-[11px] text-ink-muted">
+        <p className="text-xs text-ink-muted">
           O worker verifica a cada 1h e dispara uma única vez na janela configurada.
           Alunos que optaram por não receber reengajamento ficam de fora automaticamente.
         </p>
 
         <div className="flex items-center gap-2 justify-end">
           {dirty && (
-            <span className="text-[11px] text-pco-orange">Alterações não salvas</span>
+            <span className="text-xs text-pco-orange">Alterações não salvas</span>
           )}
           <button
             type="button"

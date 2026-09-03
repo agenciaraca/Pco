@@ -206,7 +206,7 @@ export default function AdminMessaging() {
                     )}
                   </div>
                   {cfg.lastTestMessage && (
-                    <div className="text-[11px] text-ink-subtle mt-1">
+                    <div className="text-xs text-ink-subtle mt-1">
                       Último teste: {cfg.lastTestMessage}
                     </div>
                   )}
@@ -399,7 +399,7 @@ function MessagingConfigEditor({
       <div className="relative pco-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               {isNew ? 'Novo' : 'Editar'}
             </div>
             <h2 className="text-lg font-bold text-pco-deep">
@@ -511,7 +511,7 @@ function MessagingConfigEditor({
               }
               maxLength={500}
             />
-            <p className="text-[10px] text-ink-subtle mt-1">
+            <p className="text-xs text-ink-subtle mt-1">
               Criptografado em AES-GCM 256 antes de gravar.
             </p>
           </label>

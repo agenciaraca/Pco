@@ -66,11 +66,11 @@ export default function AchievementsPanel() {
               >
                 <div className="text-3xl mb-1">{b.icon}</div>
                 <div className="text-xs font-semibold text-pco-deep">{b.name}</div>
-                <div className="text-[10px] text-ink-muted line-clamp-2 mt-0.5">
+                <div className="text-xs text-ink-muted line-clamp-2 mt-0.5">
                   {b.description}
                 </div>
                 {!earned && (
-                  <div className="text-[10px] text-ink-subtle mt-1">— bloqueado —</div>
+                  <div className="text-xs text-ink-subtle mt-1">— bloqueado —</div>
                 )}
               </div>
             );

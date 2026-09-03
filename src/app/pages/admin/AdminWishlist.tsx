@@ -61,7 +61,7 @@ export default function AdminWishlist() {
       ) : (
         <div className="pco-card overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-surface-mute text-ink-muted text-[11px] uppercase">
+            <thead className="bg-surface-mute text-ink-muted text-xs uppercase">
               <tr>
                 <th className="text-left px-3 py-2 w-12">#</th>
                 <th className="text-left px-3 py-2">Curso</th>
@@ -81,7 +81,7 @@ export default function AdminWishlist() {
                       <div className="font-semibold text-pco-deep">
                         {course?.title ?? `(curso removido)`}
                       </div>
-                      <div className="text-[10px] text-ink-subtle font-mono">
+                      <div className="text-xs text-ink-subtle font-mono">
                         {row.courseId}
                       </div>
                     </td>

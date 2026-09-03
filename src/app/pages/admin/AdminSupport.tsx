@@ -173,20 +173,20 @@ export default function AdminSupport() {
                 <div className="flex items-start gap-3 flex-wrap">
                   <div className="flex-1 min-w-[260px]">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`pco-badge text-[10px] ${STATUS_STYLE[t.status]}`}>
+                      <span className={`pco-badge text-xs ${STATUS_STYLE[t.status]}`}>
                         {STATUS_LABELS[t.status]}
                       </span>
-                      <span className="pco-badge text-[10px] bg-pco-blue/10 text-pco-blue">
+                      <span className="pco-badge text-xs bg-pco-blue/10 text-pco-blue">
                         {CATEGORY_LABELS[t.category]}
                       </span>
-                      <span className="text-[11px] text-ink-subtle">
+                      <span className="text-xs text-ink-subtle">
                         {new Date(t.createdAt).toLocaleString('pt-BR')}
                       </span>
                     </div>
                     <h3 className="text-sm font-bold text-pco-deep mt-1">
                       {t.subject}
                     </h3>
-                    <div className="text-[11px] text-ink-muted mt-0.5">
+                    <div className="text-xs text-ink-muted mt-0.5">
                       Por: <strong>{student?.name ?? '?'}</strong>{' '}
                       <span className="text-ink-subtle">{student?.email}</span>
                     </div>
@@ -270,7 +270,7 @@ function KpiCard({
 }) {
   return (
     <div className="pco-card p-3">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-ink-muted">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted">
         {icon}
         {label}
       </div>
@@ -323,7 +323,7 @@ function RespondModal({
           placeholder="Sua resposta — será enviada como notificação in-app ao aluno..."
           className="pco-input text-sm w-full"
         />
-        <p className="text-[11px] text-ink-subtle">
+        <p className="text-xs text-ink-subtle">
           Após enviar, o ticket muda automaticamente para 'Em andamento'.
         </p>
 

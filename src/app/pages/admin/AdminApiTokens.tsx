@@ -209,13 +209,13 @@ export default function AdminApiTokens() {
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-ink-subtle mt-0.5 font-mono">
+                  <div className="text-xs text-ink-subtle mt-0.5 font-mono">
                     {t.prefix}…
                   </div>
-                  <div className="text-[11px] text-ink-muted mt-0.5">
+                  <div className="text-xs text-ink-muted mt-0.5">
                     {t.scopes.join(', ')}
                   </div>
-                  <div className="text-[11px] text-ink-subtle mt-0.5">
+                  <div className="text-xs text-ink-subtle mt-0.5">
                     criado em {new Date(t.createdAt).toLocaleString('pt-BR')} · {t.usageCount}{' '}
                     uso(s)
                     {t.lastUsedAt && (
@@ -296,7 +296,7 @@ export default function AdminApiTokens() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       <div className="mt-1">{children}</div>
     </label>
   );

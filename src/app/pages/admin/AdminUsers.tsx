@@ -326,7 +326,7 @@ export default function AdminUsers() {
             <Filter size={12} strokeWidth={1.75} />
             Filtros avançados
             {activeFiltersCount > 0 && (
-              <span className="pco-badge bg-pco-blue text-white text-[10px] px-1.5 py-0">
+              <span className="pco-badge bg-pco-blue text-white text-xs px-1.5 py-0">
                 {activeFiltersCount}
               </span>
             )}
@@ -345,7 +345,7 @@ export default function AdminUsers() {
         {filtersOpen && (
           <div className="pt-3 border-t border-surface-gray grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
+              <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
                 Risco entre
               </div>
               <div className="flex items-center gap-2">
@@ -375,7 +375,7 @@ export default function AdminUsers() {
               </div>
             </div>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
+              <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
                 Progresso médio (%)
               </div>
               <div className="flex items-center gap-2">
@@ -405,7 +405,7 @@ export default function AdminUsers() {
               </div>
             </div>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
+              <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
                 Último acesso
               </div>
               <select
@@ -426,7 +426,7 @@ export default function AdminUsers() {
               </select>
             </div>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
+              <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle mb-1.5">
                 Matriculado em ≥
               </div>
               <input
@@ -691,7 +691,7 @@ export default function AdminUsers() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-off">
-                <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                <tr className="text-xs uppercase tracking-wider text-ink-subtle">
                   <th className="px-3 py-3 text-left font-medium w-8">
                     <input
                       type="checkbox"
@@ -770,7 +770,7 @@ export default function AdminUsers() {
                             <div className="font-semibold text-pco-deep whitespace-normal break-words leading-snug">
                               {s.name}
                             </div>
-                            <div className="text-[11px] text-ink-subtle break-all">{s.email}</div>
+                            <div className="text-xs text-ink-subtle break-all">{s.email}</div>
                           </div>
                         </div>
                       </td>
@@ -986,7 +986,7 @@ function StudentEditor({ courses, submitting, onClose, onSubmit }: StudentEditor
       <div className="relative pco-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Cadastro
             </div>
             <h2 className="text-lg font-bold text-pco-deep">Novo aluno</h2>
@@ -1214,7 +1214,7 @@ function SummaryCard({
           : 'text-pco-deep';
   return (
     <div className="pco-card">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+      <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
         {label}
       </div>
       <div className={`mt-1 text-2xl font-bold tracking-tight ${accentText}`}>{value}</div>

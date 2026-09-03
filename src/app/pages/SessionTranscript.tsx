@@ -111,7 +111,7 @@ export default function SessionTranscript() {
           <div className="space-y-2 max-h-[600px] overflow-y-auto">
             {transcript.segments.map((seg, i) => (
               <div key={i} className="flex gap-3 text-sm">
-                <span className="text-[10px] text-ink-subtle font-mono shrink-0 pt-0.5 w-12 text-right">
+                <span className="text-xs text-ink-subtle font-mono shrink-0 pt-0.5 w-12 text-right">
                   {formatTime(seg.start)}
                 </span>
                 <div className="flex-1">

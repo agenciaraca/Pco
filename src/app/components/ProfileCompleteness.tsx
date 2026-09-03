@@ -80,7 +80,7 @@ export default function ProfileCompleteness({ items }: Props) {
                 {item.label}
               </div>
               {item.hint && !item.done && (
-                <div className="text-[11px] text-ink-subtle mt-0.5">{item.hint}</div>
+                <div className="text-xs text-ink-subtle mt-0.5">{item.hint}</div>
               )}
             </div>
           </li>

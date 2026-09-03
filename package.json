@@ -18,7 +18,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "coverage:badge": "vitest run --coverage --reporter=basic && node scripts/update-coverage-badge.mjs",
-    "e2e": "playwright test --project=chromium",
+    "e2e": "playwright test --project=chromium --project=mobile-chrome",
     "e2e:all": "playwright test",
     "e2e:install": "playwright install chromium",
     "e2e:server": "tsx server/dev.ts",

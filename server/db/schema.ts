@@ -217,6 +217,22 @@ export const modules = pgTable(
     description: text('description'),
     order: integer('order').notNull(),
     releaseAt: timestamp('release_at', { withTimezone: true }),
+    /**
+     * Drip relativo: o modulo so abre N dias APOS a matricula daquele aluno.
+     *
+     * Existia em `createModuleSchema`, no editor do admin, no tipo do produto e
+     * no motor de liberacao (`repositories/drip.ts`) — e **nao tinha coluna**
+     * ate 3/set/2026. O caminho JSON gravava; o caminho de banco, que e
+     * producao, descartava no insert, descartava no update e nao devolvia na
+     * leitura. O admin marcava "liberar 30 dias apos a matricula", o formulario
+     * confirmava com 200, e o modulo ficava disponivel na hora, para todos.
+     *
+     * Quarto caso do mesmo padrao (`content`, `isPreview`, `transcripts` foram
+     * os tres anteriores) e o primeiro que falha **abrindo** conteudo em vez de
+     * fechando. `test/schema-cabe-no-banco.test.ts` existe para nao haver
+     * quinto.
+     */
+    releaseAfterEnrollmentDays: integer('release_after_enrollment_days'),
   },
   (t) => ({
     courseIdx: index('modules_course_idx').on(t.courseId),

@@ -335,7 +335,7 @@ export default function AdminMetricas() {
                 <div className="overflow-x-auto -mx-2">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                      <tr className="text-xs uppercase tracking-wider text-ink-subtle">
                         <th className="px-2 py-2 text-left font-medium">Página</th>
                         <th className="px-2 py-2 text-right font-medium">Views</th>
                         <th className="px-2 py-2 text-right font-medium">Tempo</th>
@@ -346,7 +346,7 @@ export default function AdminMetricas() {
                       {rel.topPages.map((p) => (
                         <tr key={p.path} className="border-t border-surface-gray">
                           <td className="px-2 py-2.5">
-                            <span className="font-mono text-[11px] text-pco-deep">{p.path}</span>
+                            <span className="font-mono text-xs text-pco-deep">{p.path}</span>
                           </td>
                           <td className="px-2 py-2.5 text-right text-pco-deep font-semibold">
                             {fmtNumero(p.views)}
@@ -382,7 +382,7 @@ export default function AdminMetricas() {
                       key={n.path}
                       className="flex items-center justify-between rounded-xl bg-surface-off p-3"
                     >
-                      <span className="font-mono text-[11px] text-pco-deep truncate">{n.path}</span>
+                      <span className="font-mono text-xs text-pco-deep truncate">{n.path}</span>
                       <span className="pco-badge bg-pco-orange/10 text-pco-orange shrink-0">
                         {n.hits}
                       </span>
@@ -457,7 +457,7 @@ export default function AdminMetricas() {
                     <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-pco-orange shrink-0" />
                     <span>
                       {f.o_que}
-                      <span className="block text-[11px] text-ink-subtle">
+                      <span className="block text-xs text-ink-subtle">
                         depende de: {f.depende_de}
                       </span>
                     </span>
@@ -513,7 +513,7 @@ function Metric({
   return (
     <div className="pco-card">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+        <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
           {label}
         </div>
         <div className={`h-8 w-8 rounded-lg grid place-items-center ${c.bg}`}>
@@ -524,7 +524,7 @@ function Metric({
         <div className="text-xl font-bold tracking-tight text-pco-deep">{value}</div>
         {delta !== null && (
           <span
-            className={`text-[11px] font-semibold inline-flex items-center gap-0.5 ${
+            className={`text-xs font-semibold inline-flex items-center gap-0.5 ${
               trend === 'up'
                 ? 'text-status-success'
                 : trend === 'down'
@@ -545,7 +545,7 @@ function Metric({
           </span>
         )}
       </div>
-      {nota && <p className="mt-1 text-[10px] text-ink-subtle">{nota}</p>}
+      {nota && <p className="mt-1 text-xs text-ink-subtle">{nota}</p>}
     </div>
   );
 }
@@ -566,7 +566,7 @@ function DeviceRow({
       <div className="flex items-center gap-2 mb-1">
         <span className="text-pco-blue">{icon}</span>
         <span className="text-sm text-ink-muted flex-1">{label}</span>
-        <span className="text-[11px] text-ink-subtle">{fmtNumero(sessions)}</span>
+        <span className="text-xs text-ink-subtle">{fmtNumero(sessions)}</span>
         <span className="text-xs font-semibold text-pco-deep w-11 text-right">{pct}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-surface-gray overflow-hidden">

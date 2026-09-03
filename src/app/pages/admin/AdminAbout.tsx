@@ -113,7 +113,7 @@ export default function AdminAbout() {
       <section className="pco-card p-4 flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-sm font-semibold text-pco-deep">Cache do cliente</h2>
-          <p className="text-[11px] text-ink-muted mt-0.5">
+          <p className="text-xs text-ink-muted mt-0.5">
             Se notar dados desatualizados, force um refresh completo das queries.
           </p>
         </div>

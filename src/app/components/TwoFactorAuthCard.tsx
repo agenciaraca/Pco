@@ -212,11 +212,11 @@ export default function TwoFactorAuthCard({ enabled, onChanged }: Props) {
               <Copy size={11} strokeWidth={2} />
               Copiar
             </button>
-            <p className="text-[11px] text-ink-subtle">
+            <p className="text-xs text-ink-subtle">
               Ou use a URI <code className="break-all">otpauth://...</code> abaixo (cole no
               app):
             </p>
-            <code className="block font-mono text-[10px] bg-white border border-pco-border rounded p-2 break-all select-all">
+            <code className="block font-mono text-xs bg-white border border-pco-border rounded p-2 break-all select-all">
               {setup.uri}
             </code>
           </div>
@@ -310,7 +310,7 @@ export default function TwoFactorAuthCard({ enabled, onChanged }: Props) {
           <p className="text-xs font-semibold text-pco-deep">
             Guarde estes códigos de backup em local seguro
           </p>
-          <p className="text-[11px] text-ink-muted">
+          <p className="text-xs text-ink-muted">
             Cada código pode ser usado uma única vez. Use-os se perder acesso ao seu app
             autenticador.
           </p>

@@ -323,12 +323,27 @@ import('./payments/sandra-poll-worker').then((m) => m.startWorker(5 * 60_000));
 // Rotaciona app.log quando passa de 10MB (verifica a cada 1h)
 import('./services/log-rotator').then((m) => m.startWorker(60 * 60_000));
 
-// Medição de tráfego: descarrega o que está em memória antes de o processo
-// morrer. Sem isto, todo `pm2 restart` joga fora até 5 segundos de contagem —
-// pouco, mas é exatamente o tipo de perda silenciosa que faz um número não
-// fechar com o outro e ninguém saber por quê.
+// Encerramento: descarrega o que está em memória antes de o processo morrer.
+//
+// Duas coisas, e a segunda é a que dói. A medição de tráfego perde até 5
+// segundos de contagem — pouco, mas é o tipo de perda silenciosa que faz um
+// número não fechar com o outro e ninguém saber por quê. Já a **fila de
+// escrita do `JsonStore`** guarda o progresso de aula, os pedidos, os tokens
+// de API e as contas: matá-la no meio de uma gravação deixa JSON truncado no
+// disco, e `pm2 restart` é parte de todo deploy. O `kill_timeout` do PM2 é de
+// 8s, então há folga — mas não infinita, e por isso há teto aqui.
+const ESPERA_MAXIMA_AO_ENCERRAR_MS = 5000;
+
 for (const sinal of ['SIGTERM', 'SIGINT'] as const) {
   process.once(sinal, () => {
-    void import('./analytics/collector').then((m) => m.flush()).finally(() => process.exit(0));
+    const trabalho = (async () => {
+      const [collector, jsonStore] = await Promise.all([
+        import('./analytics/collector'),
+        import('./db/json-store'),
+      ]);
+      await Promise.allSettled([collector.flush(), jsonStore.drenarEscritasPendentes()]);
+    })();
+    const teto = new Promise<void>((r) => setTimeout(r, ESPERA_MAXIMA_AO_ENCERRAR_MS).unref?.());
+    void Promise.race([trabalho, teto]).finally(() => process.exit(0));
   });
 }

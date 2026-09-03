@@ -107,7 +107,7 @@ export default function ImportSchedules() {
                     <div className="flex-1 min-w-[260px]">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
-                          className={`pco-badge text-[10px] ${
+                          className={`pco-badge text-xs ${
                             s.enabled
                               ? 'bg-status-success/10 text-status-success'
                               : 'bg-surface-gray text-ink-muted'
@@ -115,24 +115,24 @@ export default function ImportSchedules() {
                         >
                           {s.enabled ? 'ativo' : 'pausado'}
                         </span>
-                        <span className="pco-badge text-[10px] bg-pco-blue/10 text-pco-blue">
+                        <span className="pco-badge text-xs bg-pco-blue/10 text-pco-blue">
                           {s.dryRun ? 'dry-run' : 'real'}
                         </span>
                         <span className="text-sm font-semibold text-pco-deep">
                           {s.name}
                         </span>
                       </div>
-                      <div className="text-[11px] text-ink-muted mt-1">
+                      <div className="text-xs text-ink-muted mt-1">
                         {conn?.name ?? '(conexão removida)'} ·{' '}
                         {s.frequency === 'daily'
                           ? 'todo dia'
                           : `toda ${WEEKDAY_LABELS[s.weekday ?? 1].toLowerCase()}`}{' '}
                         às {pad(s.hourUtc)}:{pad(s.minute)} UTC
                       </div>
-                      <div className="text-[11px] text-ink-subtle mt-0.5">
+                      <div className="text-xs text-ink-subtle mt-0.5">
                         Entidades: {s.entities.length > 0 ? s.entities.map((e) => ENTITY_LABELS[e] ?? e).join(', ') : '—'}
                       </div>
-                      <div className="text-[11px] text-ink-subtle mt-0.5">
+                      <div className="text-xs text-ink-subtle mt-0.5">
                         {s.lastRunAt && (
                           <>
                             <CheckCircle2 size={9} className="inline" /> última:{' '}
@@ -314,7 +314,7 @@ function ScheduleEditor({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Nome
           </span>
           <input
@@ -325,7 +325,7 @@ function ScheduleEditor({
           />
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Conexão
           </span>
           <select
@@ -345,7 +345,7 @@ function ScheduleEditor({
 
       <div className="grid gap-3 sm:grid-cols-4">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Frequência
           </span>
           <select
@@ -359,7 +359,7 @@ function ScheduleEditor({
         </label>
         {frequency === 'weekly' && (
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Dia da semana
             </span>
             <select
@@ -378,7 +378,7 @@ function ScheduleEditor({
           </label>
         )}
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Hora (UTC)
           </span>
           <input
@@ -391,7 +391,7 @@ function ScheduleEditor({
           />
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Minuto
           </span>
           <input
@@ -406,7 +406,7 @@ function ScheduleEditor({
       </div>
 
       <div>
-        <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+        <span className="text-xs uppercase tracking-wide text-ink-muted">
           Entidades
         </span>
         <div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-3 mt-1">

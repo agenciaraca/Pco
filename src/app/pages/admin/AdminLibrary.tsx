@@ -298,7 +298,7 @@ function Stat({
 }) {
   return (
     <div className="pco-card">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+      <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
         {label}
       </div>
       <div
@@ -357,7 +357,7 @@ function LibraryEditor({ item, courses, submitting, onClose, onSubmit }: Library
       <div className="relative pco-card w-full max-w-xl max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               {isNew ? 'Novo material' : 'Editar material'}
             </div>
             <h2 className="text-lg font-bold text-pco-deep">Biblioteca PCO</h2>

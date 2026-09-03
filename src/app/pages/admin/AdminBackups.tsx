@@ -177,9 +177,9 @@ export default function AdminBackups() {
           <table className="w-full text-sm">
             <thead className="bg-surface-mute text-ink-muted">
               <tr>
-                <SortableTh field="name" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Arquivo</SortableTh>
-                <SortableTh field="size" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Tamanho</SortableTh>
-                <SortableTh field="mtime" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Modificado</SortableTh>
+                <SortableTh field="name" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Arquivo</SortableTh>
+                <SortableTh field="size" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Tamanho</SortableTh>
+                <SortableTh field="mtime" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Modificado</SortableTh>
                 <th className="text-right px-3 py-2 font-medium">Ações</th>
               </tr>
             </thead>
@@ -256,7 +256,7 @@ function Stat({
     <div className="pco-card p-4">
       <div className="flex items-center gap-2">
         <Icon size={14} strokeWidth={2} className={color} />
-        <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+        <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       </div>
       <div className="mt-1 text-xl font-bold text-pco-deep">{value}</div>
     </div>
@@ -275,7 +275,7 @@ function SnapshotsSection() {
       {storage.data && (
         <div className="grid gap-3 sm:grid-cols-4 pt-4 border-t border-pco-border">
           <div className="pco-card p-3">
-            <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <div className="text-xs uppercase tracking-wide text-ink-muted">
               DATA_DIR total
             </div>
             <div className="text-xl font-bold text-pco-deep mt-0.5">
@@ -283,7 +283,7 @@ function SnapshotsSection() {
             </div>
           </div>
           <div className="pco-card p-3">
-            <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <div className="text-xs uppercase tracking-wide text-ink-muted">
               Stores JSON
             </div>
             <div className="text-xl font-bold text-pco-deep mt-0.5">
@@ -291,7 +291,7 @@ function SnapshotsSection() {
             </div>
           </div>
           <div className="pco-card p-3">
-            <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <div className="text-xs uppercase tracking-wide text-ink-muted">
               Snapshots
             </div>
             <div className="text-xl font-bold text-pco-deep mt-0.5">
@@ -299,7 +299,7 @@ function SnapshotsSection() {
             </div>
           </div>
           <div className="pco-card p-3">
-            <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <div className="text-xs uppercase tracking-wide text-ink-muted">
               Uploads
             </div>
             <div className="text-xl font-bold text-pco-deep mt-0.5">
@@ -364,12 +364,12 @@ function SnapshotsSection() {
                     <td className="px-3 py-2 text-ink-muted">
                       {s.files.length} arquivo(s)
                       <details className="mt-1">
-                        <summary className="cursor-pointer text-pco-blue text-[10px]">
+                        <summary className="cursor-pointer text-pco-blue text-xs">
                           ver detalhes
                         </summary>
                         <ul className="mt-1 space-y-0.5">
                           {s.files.map((f) => (
-                            <li key={f.name} className="text-[10px] font-mono">
+                            <li key={f.name} className="text-xs font-mono">
                               {f.name} —{' '}
                               <span className="text-ink-subtle">
                                 {(f.size / 1024).toFixed(1)} kB

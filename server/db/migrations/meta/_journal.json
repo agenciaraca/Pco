@@ -127,6 +127,13 @@
       "when": 1788356400000,
       "tag": "0017_aula_de_demonstracao",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788457901957,
+      "tag": "0018_drip_relativo_no_banco",
+      "breakpoints": true
     }
   ]
 }

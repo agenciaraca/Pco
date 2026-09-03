@@ -242,12 +242,12 @@ export default function AdminModules() {
             <SlidersHorizontal size={14} strokeWidth={2} />
             Filtros avançados
             {activeFilterCount > 0 && (
-              <span className="pco-badge bg-pco-blue/10 text-pco-blue text-[10px]">
+              <span className="pco-badge bg-pco-blue/10 text-pco-blue text-xs">
                 {activeFilterCount} ativo(s)
               </span>
             )}
           </span>
-          <span className="inline-flex items-center gap-2 text-[11px] text-ink-subtle">
+          <span className="inline-flex items-center gap-2 text-xs text-ink-subtle">
             {allModules.length > 0 ? `${filtered.length} de ${allModules.length}` : ''}
             {filtersOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </span>
@@ -257,7 +257,7 @@ export default function AdminModules() {
             id="modulos-filtros-avancados"
             className="border-t border-surface-gray p-4 grid gap-3 md:grid-cols-3 lg:grid-cols-4"
           >
-            <label className="md:col-span-2 lg:col-span-2 text-[11px] text-ink-muted">
+            <label className="md:col-span-2 lg:col-span-2 text-xs text-ink-muted">
               Buscar (título ou descrição)
               <div className="relative mt-1">
                 <Search
@@ -273,7 +273,7 @@ export default function AdminModules() {
                 />
               </div>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Curso
               <select
                 value={filters.courseId}
@@ -288,7 +288,7 @@ export default function AdminModules() {
                 ))}
               </select>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Status
               <select
                 value={filters.status}
@@ -304,7 +304,7 @@ export default function AdminModules() {
                 <option value="locked">Bloqueado</option>
               </select>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Avaliação
               <select
                 value={filters.assessment}
@@ -318,7 +318,7 @@ export default function AdminModules() {
                 <option value="sem">Sem avaliação</option>
               </select>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Drip / lock
               <select
                 value={filters.locked}
@@ -332,7 +332,7 @@ export default function AdminModules() {
                 <option value="sem">Liberado</option>
               </select>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Mín. aulas
               <input
                 type="number"
@@ -413,7 +413,7 @@ export default function AdminModules() {
               aria-label="Selecionar todos visíveis"
               className="ml-1"
             />
-            <span className="text-[11px] uppercase tracking-wider text-ink-subtle font-medium">
+            <span className="text-xs uppercase tracking-wider text-ink-subtle font-medium">
               {filtered.length} módulo(s)
             </span>
           </div>
@@ -436,7 +436,7 @@ export default function AdminModules() {
                   <GripVertical size={14} strokeWidth={1.75} />
                 </button>
                 <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${m.courseColor}`} />
-                <div className="h-7 w-7 rounded-lg bg-pco-blue/10 grid place-items-center text-[11px] font-bold text-pco-blue shrink-0">
+                <div className="h-7 w-7 rounded-lg bg-pco-blue/10 grid place-items-center text-xs font-bold text-pco-blue shrink-0">
                   {m.order}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -446,7 +446,7 @@ export default function AdminModules() {
                       {m.courseShortTitle}
                     </span>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-3 text-[11px] text-ink-subtle">
+                  <div className="mt-0.5 flex items-center gap-3 text-xs text-ink-subtle">
                     <span className="inline-flex items-center gap-1">
                       <Layers size={10} />
                       {m.lessons.length} aulas
@@ -492,7 +492,7 @@ export default function AdminModules() {
         </div>
       )}
 
-      <div className="text-[11px] text-ink-subtle">
+      <div className="text-xs text-ink-subtle">
         A edição completa de cada módulo (aulas, materiais, avaliação, regras) é feita dentro
         do editor do curso correspondente.
       </div>

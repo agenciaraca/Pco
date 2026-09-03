@@ -107,7 +107,7 @@ export default function ImportsHistory() {
           <DateInput value={dateFrom} onChange={setDateFrom} label="De" />
           <DateInput value={dateTo} onChange={setDateTo} label="Até" />
           <label className="block sm:col-span-2">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Busca (id ou usuário)
             </span>
             <div className="relative mt-1">
@@ -162,7 +162,7 @@ function Select({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -189,7 +189,7 @@ function DateInput({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       <input
         type="date"
         value={value}
@@ -254,10 +254,10 @@ function JobRow({ job }: { job: ImportJobDto }) {
           )}
           <span className="pco-badge bg-pco-cyan/10 text-pco-cyan">{job.source}</span>
         </Link>
-        <div className="mt-0.5 text-[11px] text-ink-subtle">
+        <div className="mt-0.5 text-xs text-ink-subtle">
           {new Date(job.startedAt).toLocaleString('pt-BR')} · por {job.startedBy}
         </div>
-        <div className="mt-1 text-[11px] text-ink-muted">
+        <div className="mt-1 text-xs text-ink-muted">
           {job.stats.totalRead} lidos · {job.stats.created} criados · {job.stats.updated}{' '}
           atualizados · {job.stats.errors} erros · {(job.stats.durationMs / 1000).toFixed(1)}s
         </div>

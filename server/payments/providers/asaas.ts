@@ -9,6 +9,7 @@ import type {
   RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
+import { comparaSegura } from './compara-segura';
 
 function apiBase(mode: 'test' | 'live'): string {
   return mode === 'live'
@@ -99,11 +100,21 @@ export const asaasProvider: PaymentProviderImpl = {
   },
 
   async parseWebhook(_gateway, creds, rawBody, headers): Promise<WebhookEvent | null> {
-    // Asaas valida via header asaas-access-token (que deve bater com webhookSecret OU apiKey)
+    // Asaas valida via header `asaas-access-token`, que deve bater com o
+    // `webhookSecret` cadastrado.
+    //
+    // Até 3/set/2026 a guarda era `if (creds.webhookSecret && token !== ...)`:
+    // sem segredo cadastrado ela **não rodava**, e qualquer POST anônimo com um
+    // `externalId` de pedido pendente marcava esse pedido como pago. Falha
+    // aberta num caminho que libera curso. Os outros cinco provedores já
+    // falhavam fechados; este era o único fora do padrão.
+    //
+    // Agora: sem segredo, o webhook é recusado. Configurar o segredo no
+    // `/admin/payments/gateways` é pré-requisito para o Asaas confirmar
+    // qualquer coisa — e é assim que deve ser.
     const token = headers['asaas-access-token'];
-    if (creds.webhookSecret && token !== creds.webhookSecret) {
-      return null;
-    }
+    if (!creds.webhookSecret) return null;
+    if (!token || !comparaSegura(token, creds.webhookSecret)) return null;
     try {
       const evt = JSON.parse(rawBody) as {
         event: string;

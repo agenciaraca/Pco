@@ -178,7 +178,7 @@ export default function CsvFieldMapper({ entity, file, onClose, onConfirm }: Pro
                     <tr>
                       {data.headers.map((h) => (
                         <th key={h} className="text-left px-2 py-1.5 whitespace-nowrap">
-                          <div className="font-mono text-[10px]">{h}</div>
+                          <div className="font-mono text-xs">{h}</div>
                           {mapping[h] && (
                             <div className="text-status-success text-[9px] flex items-center gap-1 mt-0.5">
                               <CheckCircle2 size={9} />

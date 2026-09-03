@@ -228,7 +228,7 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
       <div className="relative pco-card w-full max-w-md max-h-[80vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Atalhos
             </div>
             <h2 className="text-lg font-bold text-pco-deep">Atalhos de teclado</h2>
@@ -244,17 +244,17 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
         <div className="p-6 space-y-1">
           <div className="flex items-center justify-between py-1.5 border-b border-surface-gray">
             <span className="text-sm text-ink-muted">Buscar global</span>
-            <kbd className="px-2 py-0.5 text-[11px] font-mono bg-surface-off rounded border border-surface-gray">
+            <kbd className="px-2 py-0.5 text-xs font-mono bg-surface-off rounded border border-surface-gray">
               Ctrl K
             </kbd>
           </div>
           <div className="flex items-center justify-between py-1.5 border-b border-surface-gray">
             <span className="text-sm text-ink-muted">Mostrar este modal</span>
-            <kbd className="px-2 py-0.5 text-[11px] font-mono bg-surface-off rounded border border-surface-gray">
+            <kbd className="px-2 py-0.5 text-xs font-mono bg-surface-off rounded border border-surface-gray">
               ?
             </kbd>
           </div>
-          <div className="text-[11px] uppercase tracking-wider text-ink-subtle mt-4 mb-1">
+          <div className="text-xs uppercase tracking-wider text-ink-subtle mt-4 mb-1">
             Navegação rápida (sequência "g" + letra)
           </div>
           {ADMIN_SHORTCUTS.map((s) => (
@@ -263,12 +263,12 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
               className="flex items-center justify-between py-1.5 border-b border-surface-gray last:border-0"
             >
               <span className="text-sm text-ink-muted">{s.label}</span>
-              <kbd className="px-2 py-0.5 text-[11px] font-mono bg-surface-off rounded border border-surface-gray">
+              <kbd className="px-2 py-0.5 text-xs font-mono bg-surface-off rounded border border-surface-gray">
                 {s.keys}
               </kbd>
             </div>
           ))}
-          <p className="text-[10px] text-ink-subtle mt-4">
+          <p className="text-xs text-ink-subtle mt-4">
             Atalhos não funcionam quando o foco está em um campo de texto.
           </p>
         </div>

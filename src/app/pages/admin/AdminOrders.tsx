@@ -200,7 +200,7 @@ export default function AdminOrders() {
 
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="pco-card p-4">
-          <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <div className="text-xs uppercase tracking-wide text-ink-muted">
             Receita confirmada
           </div>
           <div className="mt-1 text-2xl font-bold text-status-success">
@@ -211,7 +211,7 @@ export default function AdminOrders() {
           </div>
         </div>
         <div className="pco-card p-4">
-          <div className="text-[11px] uppercase tracking-wide text-ink-muted">Reembolsos</div>
+          <div className="text-xs uppercase tracking-wide text-ink-muted">Reembolsos</div>
           <div className="mt-1 text-2xl font-bold text-pco-cyan">
             {(totalRefunded / 100).toLocaleString('pt-BR', {
               style: 'currency',
@@ -220,11 +220,11 @@ export default function AdminOrders() {
           </div>
         </div>
         <div className="pco-card p-4">
-          <div className="text-[11px] uppercase tracking-wide text-ink-muted">Pendentes</div>
+          <div className="text-xs uppercase tracking-wide text-ink-muted">Pendentes</div>
           <div className="mt-1 text-2xl font-bold text-pco-orange">{counts.pending}</div>
         </div>
         <div className="pco-card p-4">
-          <div className="text-[11px] uppercase tracking-wide text-ink-muted">Total</div>
+          <div className="text-xs uppercase tracking-wide text-ink-muted">Total</div>
           <div className="mt-1 text-2xl font-bold text-pco-deep">{counts.all}</div>
         </div>
       </div>
@@ -250,7 +250,7 @@ export default function AdminOrders() {
           <option value="canceled">Cancelado ({counts.canceled})</option>
           <option value="refunded">Reembolsado ({counts.refunded})</option>
         </select>
-        <span className="text-[11px] text-ink-muted">
+        <span className="text-xs text-ink-muted">
           <Filter size={11} strokeWidth={2} className="inline mr-1" />
           {filtered.length} de {counts.all}
         </span>
@@ -290,25 +290,25 @@ export default function AdminOrders() {
           <table className="w-full text-sm">
             <thead className="bg-surface-mute text-ink-muted">
               <tr>
-                <SortableTh field="id" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                <SortableTh field="id" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
                   Pedido
                 </SortableTh>
-                <SortableTh field="user" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                <SortableTh field="user" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
                   Aluno
                 </SortableTh>
-                <SortableTh field="product" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                <SortableTh field="product" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
                   Origem
                 </SortableTh>
-                <SortableTh field="gateway" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                <SortableTh field="gateway" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
                   Gateway
                 </SortableTh>
-                <SortableTh field="amount" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                <SortableTh field="amount" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
                   Valor
                 </SortableTh>
-                <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
                   Status
                 </SortableTh>
-                <SortableTh field="createdAt" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">
+                <SortableTh field="createdAt" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
                   Quando
                 </SortableTh>
                 <th className="text-right px-3 py-2 font-medium">Ações</th>
@@ -320,7 +320,7 @@ export default function AdminOrders() {
                 const Icon = style.Icon;
                 return (
                   <tr key={o.id} className="hover:bg-surface-mute/40">
-                    <td className="px-3 py-2 font-mono text-[11px] text-pco-deep">{o.id}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-pco-deep">{o.id}</td>
                     <td className="px-3 py-2 text-xs">
                       <div className="flex items-center gap-1.5">
                         <ShoppingBag
@@ -336,7 +336,7 @@ export default function AdminOrders() {
                             {o.userName ?? o.userEmail}
                           </div>
                           {o.userName && (
-                            <div className="text-[10px] text-ink-muted truncate max-w-[180px]">
+                            <div className="text-xs text-ink-muted truncate max-w-[180px]">
                               {o.userEmail}
                             </div>
                           )}
@@ -359,7 +359,7 @@ export default function AdminOrders() {
                         {style.label}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-[11px] text-ink-muted whitespace-nowrap">
+                    <td className="px-3 py-2 text-xs text-ink-muted whitespace-nowrap">
                       {new Date(o.createdAt).toLocaleString('pt-BR')}
                     </td>
                     {/* Só CRUD aqui. Reembolsar e cancelar são ações de
@@ -370,7 +370,7 @@ export default function AdminOrders() {
                       <div className="inline-flex items-center gap-0.5">
                         <button
                           onClick={() => setVendo(o)}
-                          className="pco-btn-ghost text-[11px] p-1.5"
+                          className="pco-btn-ghost text-xs p-1.5"
                           title="Ver pedido"
                           aria-label={`Ver pedido ${o.id}`}
                         >
@@ -378,7 +378,7 @@ export default function AdminOrders() {
                         </button>
                         <Link
                           to={`/admin/pedidos/${encodeURIComponent(o.id)}/editar`}
-                          className="pco-btn-ghost text-[11px] p-1.5"
+                          className="pco-btn-ghost text-xs p-1.5"
                           title="Editar pedido"
                           aria-label={`Editar pedido ${o.id}`}
                         >
@@ -386,7 +386,7 @@ export default function AdminOrders() {
                         </Link>
                         <button
                           onClick={() => setApagando(o)}
-                          className="pco-btn-ghost text-[11px] p-1.5 text-status-danger"
+                          className="pco-btn-ghost text-xs p-1.5 text-status-danger"
                           title="Apagar pedido"
                           aria-label={`Apagar pedido ${o.id}`}
                         >
@@ -485,7 +485,7 @@ function CelulaOrigem({ pedido }: { pedido: OrderDto }) {
   return (
     <div className="min-w-0" title={pedido.productSnapshot.name}>
       <div className="font-medium text-pco-deep truncate">{r.canal}</div>
-      {r.detalhe && <div className="text-[10px] text-ink-muted truncate">{r.detalhe}</div>}
+      {r.detalhe && <div className="text-xs text-ink-muted truncate">{r.detalhe}</div>}
     </div>
   );
 }
@@ -501,9 +501,9 @@ function Campo({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       {children}
-      {dica && <span className="block text-[10px] text-ink-muted mt-0.5">{dica}</span>}
+      {dica && <span className="block text-xs text-ink-muted mt-0.5">{dica}</span>}
     </label>
   );
 }
@@ -563,10 +563,10 @@ function DetalhePedido({
         </div>
 
         <div>
-          <h3 className="text-[11px] uppercase tracking-wide text-ink-muted mb-1">Histórico</h3>
+          <h3 className="text-xs uppercase tracking-wide text-ink-muted mb-1">Histórico</h3>
           <ol className="space-y-1">
             {pedido.events.map((e, i) => (
-              <li key={i} className="text-[11px] text-ink-muted">
+              <li key={i} className="text-xs text-ink-muted">
                 <span className="font-mono">{new Date(e.ts).toLocaleString('pt-BR')}</span>{' '}
                 <strong className="text-pco-deep">{e.status}</strong>
                 {e.note ? ` — ${e.note}` : ''}
@@ -709,7 +709,7 @@ function RefundModal({
 
         {partial && (
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Valor a reembolsar ({order.currency || 'BRL'})
             </span>
             <input
@@ -724,7 +724,7 @@ function RefundModal({
         )}
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Motivo (opcional)
           </span>
           <input
@@ -736,7 +736,7 @@ function RefundModal({
           />
         </label>
 
-        <div className="text-[11px] rounded bg-pco-orange/10 border border-pco-orange/30 p-2 text-pco-orange">
+        <div className="text-xs rounded bg-pco-orange/10 border border-pco-orange/30 p-2 text-pco-orange">
           ⚠ Esta ação chama o gateway real e remove o acesso do aluno (refund total).
           Não é reversível.
         </div>

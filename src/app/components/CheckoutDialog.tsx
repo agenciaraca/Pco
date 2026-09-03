@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Loader2, Tag, X, CheckCircle2, AlertCircle, User, FileText } from 'lucide-react';
 import { useCheckCoupon, useStartCheckout } from '../data/hooks';
 import { useAuth } from '../auth/AuthContext';
@@ -24,6 +24,16 @@ export default function CheckoutDialog({
   const startCheckout = useStartCheckout();
   const toast = useToast();
 
+  // Rotulo precisa de `id` para se ligar ao campo. `useId` evita colisao se
+  // dois dialogos existirem na mesma pagina.
+  const uid = useId();
+  const idNome = `${uid}-nome`;
+  const idDoc = `${uid}-doc`;
+  const idCupom = `${uid}-cupom`;
+  const idTitulo = `${uid}-titulo`;
+  const refNome = useRef<HTMLInputElement | null>(null);
+  const refDoc = useRef<HTMLInputElement | null>(null);
+
   const { user } = useAuth();
   const [code, setCode] = useState('');
   // Nome e CPF do comprador.
@@ -34,6 +44,12 @@ export default function CheckoutDialog({
   // pediu os dois; esta tela ficou para trás.
   const [nome, setNome] = useState('');
   const [documento, setDocumento] = useState('');
+  // **Um erro por campo.** Ate 3/set/2026 o erro do NOME era gravado em
+  // `erroDoc` e renderizado dentro do bloco do CPF: quem esquecia o nome lia
+  // "Informe o nome de quem esta comprando." logo abaixo do campo de CPF, que
+  // estava certo. E o pior tipo de erro de formulario — aponta para o lugar
+  // errado — e acontecia na unica tela de compra do aluno logado.
+  const [erroNome, setErroNome] = useState<string | null>(null);
   const [erroDoc, setErroDoc] = useState<string | null>(null);
   const [validation, setValidation] = useState<
     | { kind: 'idle' }
@@ -45,6 +61,7 @@ export default function CheckoutDialog({
     if (!open) {
       setCode('');
       setValidation({ kind: 'idle' });
+      setErroNome(null);
       setErroDoc(null);
     }
   }, [open]);
@@ -80,15 +97,18 @@ export default function CheckoutDialog({
   async function handleConfirm() {
     // Barrar aqui é o que faz um dígito trocado voltar como "confira o número"
     // em vez de "falha no pagamento". O servidor revalida com a mesma função.
+    setErroNome(null);
+    setErroDoc(null);
     if (!nome.trim() || nome.trim().length < 2) {
-      setErroDoc('Informe o nome de quem está comprando.');
+      setErroNome('Informe o nome de quem está comprando.');
+      refNome.current?.focus();
       return;
     }
     if (!documentoValido(documento)) {
       setErroDoc('CPF ou CNPJ inválido — confira o número digitado.');
+      refDoc.current?.focus();
       return;
     }
-    setErroDoc(null);
     try {
       const r = await startCheckout.mutateAsync({
         productId: product.id,
@@ -122,15 +142,31 @@ export default function CheckoutDialog({
       className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4"
       onClick={onClose}
     >
-      <div
+      {/*
+        E um `<form>`, e nao uma `<div>` com botoes soltos: sem isso, Enter no
+        campo de CPF nao enviava nada — e no celular o teclado mostra "Ir",
+        aperta, e nao acontece. Comportamento aprendido em qualquer outro site,
+        que aqui falhava em silencio, na tela do dinheiro.
+      */}
+      <form
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={idTitulo}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleConfirm();
+        }}
         className="pco-card w-full max-w-md p-5 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-lg font-bold text-pco-deep">Confirmar compra</h2>
+          <h2 id={idTitulo} className="text-lg font-bold text-pco-deep">
+            Confirmar compra
+          </h2>
           <button
             type="button"
             onClick={onClose}
+            aria-label="Fechar"
             className="pco-btn-ghost text-xs"
           >
             <X size={12} strokeWidth={2} />
@@ -138,7 +174,7 @@ export default function CheckoutDialog({
         </div>
 
         <div className="pco-card border-pco-blue/20 bg-pco-blue/5 p-3">
-          <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <div className="text-xs uppercase tracking-wide text-ink-muted">
             Produto
           </div>
           <div className="text-sm font-semibold text-pco-deep mt-0.5">
@@ -147,29 +183,51 @@ export default function CheckoutDialog({
         </div>
 
         <div>
-          <label className="text-[11px] uppercase tracking-wide text-ink-muted flex items-center gap-1">
+          <label
+            htmlFor={idNome}
+            className="text-xs uppercase tracking-wide text-ink-muted flex items-center gap-1"
+          >
             <User size={11} strokeWidth={2} />
             Nome completo
           </label>
           <input
+            id={idNome}
+            ref={refNome}
             value={nome}
             onChange={(e) => {
               setNome(e.target.value);
-              setErroDoc(null);
+              setErroNome(null);
             }}
             placeholder="Como está no documento"
             maxLength={120}
             autoComplete="name"
+            required
+            aria-invalid={erroNome ? true : undefined}
+            aria-describedby={erroNome ? `${idNome}-erro` : undefined}
             className="pco-input text-sm mt-1"
           />
+          {erroNome && (
+            <p
+              id={`${idNome}-erro`}
+              className="mt-1 text-xs text-status-danger flex items-center gap-1"
+            >
+              <AlertCircle size={10} />
+              {erroNome}
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="text-[11px] uppercase tracking-wide text-ink-muted flex items-center gap-1">
+          <label
+            htmlFor={idDoc}
+            className="text-xs uppercase tracking-wide text-ink-muted flex items-center gap-1"
+          >
             <FileText size={11} strokeWidth={2} />
             CPF ou CNPJ
           </label>
           <input
+            id={idDoc}
+            ref={refDoc}
             value={documento}
             onChange={(e) => {
               setDocumento(formatarDocumento(e.target.value));
@@ -178,13 +236,20 @@ export default function CheckoutDialog({
             placeholder="000.000.000-00"
             inputMode="numeric"
             maxLength={18}
+            autoComplete="off"
+            required
+            aria-invalid={erroDoc ? true : undefined}
+            aria-describedby={`${idDoc}-dica${erroDoc ? ` ${idDoc}-erro` : ''}`}
             className="pco-input text-sm font-mono mt-1"
           />
-          <p className="mt-1 text-[10px] text-ink-subtle">
+          <p id={`${idDoc}-dica`} className="mt-1 text-xs text-ink-subtle">
             Exigido pelo meio de pagamento para emitir a cobrança.
           </p>
           {erroDoc && (
-            <p className="mt-1 text-[11px] text-status-danger flex items-center gap-1">
+            <p
+              id={`${idDoc}-erro`}
+              className="mt-1 text-xs text-status-danger flex items-center gap-1"
+            >
               <AlertCircle size={10} />
               {erroDoc}
             </p>
@@ -192,12 +257,16 @@ export default function CheckoutDialog({
         </div>
 
         <div>
-          <label className="text-[11px] uppercase tracking-wide text-ink-muted flex items-center gap-1">
+          <label
+            htmlFor={idCupom}
+            className="text-xs uppercase tracking-wide text-ink-muted flex items-center gap-1"
+          >
             <Tag size={11} strokeWidth={2} />
             Cupom de desconto (opcional)
           </label>
           <div className="mt-1 flex items-stretch gap-2">
             <input
+              id={idCupom}
               value={code}
               onChange={(e) => {
                 setCode(e.target.value.toUpperCase());
@@ -221,13 +290,13 @@ export default function CheckoutDialog({
             </button>
           </div>
           {validation.kind === 'error' && (
-            <p className="mt-1 text-[11px] text-status-danger flex items-center gap-1">
+            <p className="mt-1 text-xs text-status-danger flex items-center gap-1">
               <AlertCircle size={10} />
               {validation.message}
             </p>
           )}
           {validation.kind === 'ok' && (
-            <p className="mt-1 text-[11px] text-status-success flex items-center gap-1">
+            <p className="mt-1 text-xs text-status-success flex items-center gap-1">
               <CheckCircle2 size={10} />
               Cupom aplicado: {fmt(discount)} de desconto
             </p>
@@ -256,8 +325,7 @@ export default function CheckoutDialog({
             Cancelar
           </button>
           <button
-            type="button"
-            onClick={handleConfirm}
+            type="submit"
             disabled={startCheckout.isPending}
             className="pco-btn-primary"
           >
@@ -269,7 +337,7 @@ export default function CheckoutDialog({
             Continuar para pagamento
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

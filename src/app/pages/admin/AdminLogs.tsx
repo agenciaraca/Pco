@@ -139,7 +139,7 @@ export default function AdminLogs() {
                 level === lvl ? 'ring-2 ring-pco-blue border-pco-blue' : ''
               }`}
             >
-              <div className={`text-[10px] uppercase font-bold ${LEVEL_COLORS[lvl]}`}>
+              <div className={`text-xs uppercase font-bold ${LEVEL_COLORS[lvl]}`}>
                 {lvl}
               </div>
               <div className="text-2xl font-bold text-pco-deep mt-1">
@@ -188,10 +188,10 @@ export default function AdminLogs() {
         {(data?.lines ?? []).length === 0 ? (
           <div className="p-6 text-center text-sm text-ink-muted">Sem logs.</div>
         ) : (
-          <ul className="divide-y divide-pco-border max-h-[70vh] overflow-y-auto font-mono text-[11px]">
+          <ul className="divide-y divide-pco-border max-h-[70vh] overflow-y-auto font-mono text-xs">
             {(data?.lines ?? []).map((l, i) => (
               <li key={`${l.ts}-${i}`} className="px-3 py-1.5 flex gap-3 items-start">
-                <span className="text-[10px] text-ink-subtle shrink-0 w-32">
+                <span className="text-xs text-ink-subtle shrink-0 w-32">
                   {new Date(l.ts).toLocaleString('pt-BR', {
                     hour12: false,
                   })}

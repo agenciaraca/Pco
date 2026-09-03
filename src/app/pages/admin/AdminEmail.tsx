@@ -146,13 +146,13 @@ export default function AdminEmail() {
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-ink-subtle mt-0.5">
+                    <div className="text-xs text-ink-subtle mt-0.5">
                       {c.fromEmail}
                       {c.replyToEmail && <> · reply: {c.replyToEmail}</>}
                     </div>
                     {c.lastTestStatus && (
                       <div
-                        className={`text-[11px] mt-0.5 ${
+                        className={`text-xs mt-0.5 ${
                           c.lastTestStatus === 'ok'
                             ? 'text-status-success'
                             : 'text-status-danger'
@@ -330,7 +330,7 @@ export default function AdminEmail() {
                         {l.status}
                       </span>
                       {l.error && (
-                        <span className="block mt-0.5 text-[10px] text-status-danger">
+                        <span className="block mt-0.5 text-xs text-status-danger">
                           {l.error}
                         </span>
                       )}
@@ -427,7 +427,7 @@ function ConfigEditor({
       </h2>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Provider
           </span>
           <select
@@ -630,7 +630,7 @@ function Input({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       <input
         type={type}
         value={value}

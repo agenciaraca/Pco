@@ -113,7 +113,7 @@ export default function AdminBroadcasts() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Audiência
             </span>
             <select
@@ -131,7 +131,7 @@ export default function AdminBroadcasts() {
 
           {audience === 'enrolled_in_course' && (
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="text-xs uppercase tracking-wide text-ink-muted">
                 Curso
               </span>
               <select
@@ -151,7 +151,7 @@ export default function AdminBroadcasts() {
 
           {audience === 'students_inactive' && (
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="text-xs uppercase tracking-wide text-ink-muted">
                 Inativos há (dias)
               </span>
               <input
@@ -190,7 +190,7 @@ export default function AdminBroadcasts() {
         </div>
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Assunto
           </span>
           <input
@@ -203,7 +203,7 @@ export default function AdminBroadcasts() {
         </label>
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             HTML do corpo
           </span>
           <textarea
@@ -245,11 +245,11 @@ export default function AdminBroadcasts() {
             <table className="w-full text-xs">
               <thead className="bg-surface-mute text-ink-muted">
                 <tr>
-                  <SortableTh field="createdAt" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Data</SortableTh>
-                  <SortableTh field="subject" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Assunto</SortableTh>
-                  <SortableTh field="audience" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Audiência</SortableTh>
-                  <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Status</SortableTh>
-                  <SortableTh field="sent" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Enviados / Total</SortableTh>
+                  <SortableTh field="createdAt" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Data</SortableTh>
+                  <SortableTh field="subject" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Assunto</SortableTh>
+                  <SortableTh field="audience" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Audiência</SortableTh>
+                  <SortableTh field="status" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Status</SortableTh>
+                  <SortableTh field="sent" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Enviados / Total</SortableTh>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-mute">

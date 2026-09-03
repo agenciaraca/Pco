@@ -140,7 +140,7 @@ export default function AdminTranscripts() {
               )}
             </div>
             {uploadResult.failed > 0 && (
-              <details className="text-[11px]">
+              <details className="text-xs">
                 <summary className="cursor-pointer text-ink-muted">
                   Ver erros ({uploadResult.failed})
                 </summary>
@@ -150,7 +150,7 @@ export default function AdminTranscripts() {
                     .map((r, i) => (
                       <li
                         key={i}
-                        className="flex items-start gap-2 font-mono text-[11px]"
+                        className="flex items-start gap-2 font-mono text-xs"
                       >
                         <XCircle
                           size={10}
@@ -168,7 +168,7 @@ export default function AdminTranscripts() {
               </details>
             )}
             {uploadResult.ok > 0 && (
-              <div className="inline-flex items-center gap-1 text-[11px] text-status-success">
+              <div className="inline-flex items-center gap-1 text-xs text-status-success">
                 <CheckCircle2 size={10} strokeWidth={2} />
                 Coverage atualizada
               </div>
@@ -184,7 +184,7 @@ export default function AdminTranscripts() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-off">
-                <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                <tr className="text-xs uppercase tracking-wider text-ink-subtle">
                   <th className="px-4 py-3 text-left font-medium">Curso</th>
                   <th className="px-4 py-3 text-right font-medium">Aulas</th>
                   <th className="px-4 py-3 text-right font-medium">PT</th>
@@ -263,7 +263,7 @@ function CourseRow({
             </span>
             <span>
               <div className="font-semibold text-pco-deep">{c.shortTitle}</div>
-              <div className="text-[11px] text-ink-subtle truncate max-w-xs">
+              <div className="text-xs text-ink-subtle truncate max-w-xs">
                 {c.title}
               </div>
             </span>
@@ -315,14 +315,14 @@ function CourseRow({
                     key={l.id}
                     className="flex items-center gap-2 py-1 border-b border-surface-gray/60 last:border-b-0"
                   >
-                    <span className="font-mono text-[10px] text-ink-subtle shrink-0">
+                    <span className="font-mono text-xs text-ink-subtle shrink-0">
                       {l.id}
                     </span>
                     <span className="text-ink-muted shrink-0">{l.moduleTitle} ›</span>
                     <span className="text-pco-deep truncate flex-1">{l.title}</span>
                     <Link
                       to={`/admin/cursos/${c.courseId}`}
-                      className="pco-btn-ghost text-[10px] shrink-0"
+                      className="pco-btn-ghost text-xs shrink-0"
                       title="Editar aula no curso"
                     >
                       Editar
@@ -351,7 +351,7 @@ function Stat({
 }) {
   return (
     <div className="pco-card">
-      <div className="text-[11px] uppercase tracking-wider text-ink-subtle">
+      <div className="text-xs uppercase tracking-wider text-ink-subtle">
         {flag && <span className="mr-1">{flag}</span>}
         {label}
       </div>
@@ -375,7 +375,7 @@ function LangCell({ n, total }: { n: number; total: number }) {
         {n}
       </span>
       {n > 0 && (
-        <span className="text-[10px] text-ink-subtle">/{pct}%</span>
+        <span className="text-xs text-ink-subtle">/{pct}%</span>
       )}
     </div>
   );
@@ -575,7 +575,7 @@ function BulkTranslateButton({
       </button>
       {open && !running && (
         <div className="absolute right-0 top-full mt-1 z-10 pco-card p-2 shadow-lift min-w-[180px]">
-          <div className="text-[10px] text-ink-muted mb-1 px-1">
+          <div className="text-xs text-ink-muted mb-1 px-1">
             Fonte: {bestSource.lang.toUpperCase()} ({bestSource.n} aulas)
           </div>
           {(['pt', 'es', 'en'] as const)
@@ -597,10 +597,10 @@ function BulkTranslateButton({
       )}
       {lastResult && lastResult.failed > 0 && (
         <details className="absolute right-0 top-full mt-1 z-10 pco-card p-2 shadow-lift max-w-xs">
-          <summary className="cursor-pointer text-[10px] text-status-danger">
+          <summary className="cursor-pointer text-xs text-status-danger">
             {lastResult.failed} erro(s)
           </summary>
-          <ul className="mt-1 space-y-0.5 text-[10px] max-h-32 overflow-y-auto">
+          <ul className="mt-1 space-y-0.5 text-xs max-h-32 overflow-y-auto">
             {lastResult.results
               .filter((r) => !r.ok && !r.skipped)
               .map((r, i) => (

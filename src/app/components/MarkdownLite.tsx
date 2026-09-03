@@ -52,7 +52,7 @@ export function renderMarkdownLite(input: string): string {
   };
   const flushCode = () => {
     out.push(
-      `<pre class="bg-surface-mute p-2 rounded text-[11px] font-mono overflow-x-auto"><code>${codeBuf.join('\n')}</code></pre>`,
+      `<pre class="bg-surface-mute p-2 rounded text-xs font-mono overflow-x-auto"><code>${codeBuf.join('\n')}</code></pre>`,
     );
     codeBuf = [];
     inCode = false;

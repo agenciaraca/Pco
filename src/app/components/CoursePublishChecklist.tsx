@@ -102,7 +102,7 @@ export default function CoursePublishChecklist({
             {pct}%
           </span>
         </div>
-        <p className="text-[11px] text-ink-subtle mt-1">
+        <p className="text-xs text-ink-subtle mt-1">
           {completed} de {total} items recomendados
         </p>
       </header>
@@ -132,7 +132,7 @@ export default function CoursePublishChecklist({
                 {it.label}
               </span>
               {it.hint && !it.done && (
-                <div className="text-[10px] text-ink-subtle mt-0.5">
+                <div className="text-xs text-ink-subtle mt-0.5">
                   {it.hint}
                 </div>
               )}

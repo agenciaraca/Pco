@@ -67,15 +67,40 @@ When changing app behavior, edit `server/app.ts`. The two entrypoints stay thin.
 
 Started in `server/dev.ts` via dynamic imports after `serve()` returns:
 
-| Module                                   | Tick                             |
-| ---------------------------------------- | -------------------------------- |
-| `webhooks/dispatcher.startWorker`        | 30s                              |
-| `reengagement/worker.startWorker`        | 24h                              |
-| `imports/schedules-worker.startWorker`   | 60s                              |
-| `notifications/admin-digest.startWorker` | 30min (fires at configured hour) |
-| `db/backup-worker.startWorker`           | 1h tick (snapshot at 04:00 UTC)  |
+São **doze**, e esta tabela listava cinco até 3/set/2026. Quem lia a
+documentação para decidir o que acontece num restart subestimava a superfície
+por mais da metade — e três dos ausentes tocam dinheiro (Sandra), acesso
+(vencimento) e compromisso com aluno (lembrete de sessão).
+
+| Module                                            | Tick                             |
+| ------------------------------------------------- | -------------------------------- |
+| `webhooks/dispatcher.startWorker`                 | 30s                              |
+| `imports/schedules-worker.startWorker`            | 60s                              |
+| `payments/sandra-poll-worker.startWorker`         | 5min                             |
+| `sessions/lembrete-worker.startWorker`            | 15min                            |
+| `notifications/admin-digest.startWorker`          | 30min (fires at configured hour) |
+| `notifications/weekly-report.startWorker`         | 1h                               |
+| `notifications/student-progress-email.startWorker`| 1h                               |
+| `db/backup-worker.startWorker`                    | 1h tick (snapshot at 04:00 UTC)  |
+| `services/log-rotator.startWorker`                | 1h                               |
+| `services/retention-worker.startWorker`           | 6h                               |
+| `reengagement/worker.startWorker`                 | 24h                              |
+| `access/expiry-worker.startWorker`                | 24h                              |
 
 Workers expose `getStatus()` surfaced under `/admin/jobs` / `/admin/saude`. **Vercel Functions don't run these** — long-lived workers are VPS-only.
+
+**Todo `startWorker` é idempotente** (`if (timer) return`). Os dois de
+notificação — relatório semanal e progresso do aluno — não eram, e são
+justamente os que mandam e-mail para aluno: uma segunda chamada criava um
+segundo intervalo e o aluno recebia tudo em duplicata.
+
+**Erro dentro do tick não pode sumir.** Cinco workers têm `.catch()` vazio de
+propósito (falhar um ciclo não derruba o processo), mas o da Sandra é diferente:
+ele é o **único** confirmador de pagamento daquele gateway, porque a Sandra
+ainda não emite `charge.paid`. Enquanto o `catch` era vazio, credencial expirada
+fazia pagamento real deixar de virar matrícula em silêncio, com o `/admin/jobs`
+dizendo que o worker rodava, até a janela de 10 dias fechar sozinha. Hoje ele
+conta `falhasSeguidas`, expõe `saudavel` no status e grita a partir da terceira.
 
 ### Auth model
 
@@ -384,8 +409,15 @@ desligada; o token é cifrado em repouso e nunca volta para a tela.
 Sétimo provedor (`server/payments/providers/sandra.ts`, desde 31/ago/2026). A
 cobrança é criada no gateway da **própria escola**, com a credencial dela.
 
-- **A chave de repetição é o `orderId`.** Sem ela, retentativa de rede ou duplo
-  clique viram duas cobranças reais. Nunca um id gerado na hora.
+- **A chave de repetição é o `orderId`** — e ela sozinha **não** cobre o duplo
+  clique, ao contrário do que este parágrafo afirmou até 3/set/2026. O `orderId`
+  é gerado a cada POST: a chave protege contra repetir *a mesma tentativa*
+  (coisa que o código nunca faz, porque não há laço de retry) e não contra a
+  segunda tentativa, que cria outro pedido e outra cobrança. Quem cobre isso
+  agora é `ordersRepo.acharPendenteEquivalente()`, chamada nos dois checkouts:
+  havendo pedido em aberto da mesma pessoa para o mesmo produto nos últimos 10
+  minutos, ele é reusado. Botão desabilitado no React não substitui — resolve o
+  clique e não a retentativa de rede.
 - **CPF/CNPJ é obrigatório**, conferido aqui com dígito verificador antes de
   chamar — para que erro de formulário volte como erro de formulário.
 - **`502` não é para repetir**: vem com `invoiceId`, a fatura existe e a escola

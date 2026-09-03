@@ -144,7 +144,7 @@ export default function AdminActivity() {
             <button
               type="button"
               onClick={() => setSelectedKinds([])}
-              className="pco-btn-ghost text-[11px]"
+              className="pco-btn-ghost text-xs"
             >
               limpar
             </button>
@@ -173,7 +173,7 @@ export default function AdminActivity() {
                   className="pco-card p-3 flex items-start gap-3 hover:bg-surface-mute"
                 >
                   <span
-                    className={`pco-badge ${meta.color} shrink-0 mt-0.5 text-[10px]`}
+                    className={`pco-badge ${meta.color} shrink-0 mt-0.5 text-xs`}
                   >
                     <Icon size={10} strokeWidth={2} />
                     {meta.label}
@@ -183,9 +183,9 @@ export default function AdminActivity() {
                       {it.label}
                     </div>
                     {it.detail && (
-                      <div className="text-[11px] text-ink-muted truncate">{it.detail}</div>
+                      <div className="text-xs text-ink-muted truncate">{it.detail}</div>
                     )}
-                    <div className="text-[10px] text-ink-subtle mt-0.5">
+                    <div className="text-xs text-ink-subtle mt-0.5">
                       {new Date(it.ts).toLocaleString('pt-BR')}
                       {it.actor && (
                         <>
@@ -204,7 +204,7 @@ export default function AdminActivity() {
                   {it.link && (
                     <a
                       href={it.link}
-                      className="text-[11px] text-pco-blue hover:underline shrink-0"
+                      className="text-xs text-pco-blue hover:underline shrink-0"
                     >
                       Abrir
                     </a>

@@ -143,7 +143,37 @@ leem o mesmo código. `projections.ts` reexporta — import antigo segue
 funcionando. `test/visibilidade-curso.test.ts` compara as duas referências para
 que ninguém reescreva a regra em vez de importá-la.
 
-**`/api/courses` continua devolvendo tudo, e deve.** É a fonte crua que serve
-também o aluno matriculado — e `publicListed: false` existe justamente para
-tirar da vitrine **preservando** o acesso de quem já comprou. Quem filtra é
-cada prateleira.
+**`/api/courses` NÃO devolve tudo.** A resposta depende de quem pergunta, desde
+2/set/2026:
+
+| quem | quais cursos | com `videoUrl`? |
+| --- | --- | --- |
+| anônimo | só os publicamente listados | não |
+| aluno | os listados **+ aqueles em que tem matrícula** | não |
+| admin | todos | sim |
+
+> **Este parágrafo dizia o contrário até 3/set/2026** — "continua devolvendo
+> tudo, e deve" — e continuou dizendo por um dia inteiro depois de a regra por
+> persona entrar. Documentação que contradiz um conserto de vazamento não é doc
+> desatualizada: é instrução para desfazê-lo. Foi a mesma lição do `AGENTS.md`
+> que mandava rodar o script de restart errado.
+>
+> O que a frase antiga acertava, e vale manter: `publicListed: false` tira da
+> vitrine **preservando** o acesso de quem já comprou. É por isso que matrícula
+> entra na conta da tabela acima — "Como ser um Super Aluno Online" é
+> `publicListed: false` e tem 655 alunos legítimos. O que ela errava era supor
+> que filtrar na prateleira bastava: um `curl` sem token não passa por
+> prateleira nenhuma, e baixava o curso interno de operadores com as URLs de
+> vídeo dentro.
+
+A mesma regra vale para `GET /courses/:id` (404, não 403 — 403 confirmaria que o
+curso existe) e, desde 3/set/2026, para as três rotas públicas de aula:
+`/lessons/:id/preview`, `/lessons/:id/transcript` e `/lessons/:id/transcript.:format`.
+Essas três decidiam **só** por `lesson.isPreview` e nunca olhavam o curso pai —
+marcar uma aula do curso interno como demonstração entregava título, duração,
+`videoUrl` e a transcrição inteira a quem não estava logado. Hoje todas passam
+por `requisitantePodeVerCurso`, em `server/app.ts`.
+
+`test/curso-interno-nao-vaza.test.ts` cobra isso **por persona**, não por rota:
+o defeito nunca foi uma rota errada, era a mesma rota respondendo igual para
+quem tem direitos diferentes.

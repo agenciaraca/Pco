@@ -3854,26 +3854,42 @@ export interface QuizQuestionPublicDto {
 export async function fetchQuiz(
   courseId: string,
   options: { moduleId?: string; max?: number } = {},
-): Promise<{ questions: QuizQuestionPublicDto[] }> {
+): Promise<{
+  questions: QuizQuestionPublicDto[];
+  /** Nota de corte cadastrada na avaliação do módulo (padrão 70). */
+  passingScore?: number;
+  moduleId?: string | null;
+  assessmentTitle?: string | null;
+}> {
   const qs = new URLSearchParams();
   if (options.moduleId) qs.set('moduleId', options.moduleId);
+  // Sem `max`, o servidor usa o `questionCount` da avaliação do módulo.
   if (options.max) qs.set('max', String(options.max));
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
   return http.get(`/me/quiz/${encodeURIComponent(courseId)}/start${suffix}`);
 }
 
 export interface QuizGradeResultDto {
+  /** Número de acertos entre as questões que entraram na nota. */
   score: number;
+  /** Quantas questões entraram na nota (exclui as pendentes de correção). */
   total: number;
   pct: number;
+  /** Questões que ficaram aguardando correção e saíram do denominador. */
+  pendentes?: number;
+  /** Quem decide aprovação é o servidor, com a nota de corte cadastrada. */
+  passingScore?: number;
+  passed?: boolean;
   results: Array<{
     questionId: string;
     type?: string;
-    correct: boolean;
+    /** `null` = aguardando correção; não conta como erro. */
+    correct: boolean | null;
     correctOptionIds: string[];
     explanation: string | null;
     aiScore?: number | null;
     aiFeedback?: string | null;
+    pendenteDeCorrecao?: boolean;
   }>;
 }
 
@@ -3886,9 +3902,13 @@ export interface QuizAnswerInput {
 export async function submitQuiz(
   courseId: string,
   answers: QuizAnswerInput[],
+  moduleId?: string,
 ): Promise<QuizGradeResultDto> {
+  // `moduleId` viaja para que o servidor aplique a nota de corte DAQUELA
+  // avaliação, e não um 70 fixo.
   return http.post(`/me/quiz/${encodeURIComponent(courseId)}/grade`, {
     answers,
+    ...(moduleId ? { moduleId } : {}),
   });
 }
 

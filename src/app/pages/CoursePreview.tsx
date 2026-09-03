@@ -104,7 +104,7 @@ export default function CoursePreview() {
                   {!s.completed && s.slug && (
                     <a
                       href={publicCourseUrl({ id: s.courseId, slug: s.slug })}
-                      className="text-[11px] text-pco-blue hover:underline ml-auto"
+                      className="text-xs text-pco-blue hover:underline ml-auto"
                     >
                       ver curso →
                     </a>
@@ -112,7 +112,7 @@ export default function CoursePreview() {
                 </li>
               ))}
             </ul>
-            <p className="text-[11px] text-ink-subtle">
+            <p className="text-xs text-ink-subtle">
               Você ainda pode visualizar o conteúdo do curso aqui, mas a matrícula efetiva exige
               completar os pré-requisitos.
             </p>
@@ -131,7 +131,7 @@ export default function CoursePreview() {
           )}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.2),transparent_60%)]" />
           <div className="relative text-white max-w-2xl">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold uppercase tracking-wider">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-xs font-semibold uppercase tracking-wider">
               {course.shortTitle}
             </span>
             <h1 className="text-3xl md:text-4xl font-bold mt-3 leading-tight">{course.title}</h1>
@@ -218,7 +218,7 @@ export default function CoursePreview() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-pco-deep">{c.name}</div>
                     {c.role && (
-                      <div className="text-[11px] text-pco-blue uppercase tracking-wide font-medium">
+                      <div className="text-xs text-pco-blue uppercase tracking-wide font-medium">
                         {c.role}
                       </div>
                     )}
@@ -284,7 +284,7 @@ export default function CoursePreview() {
                                   )}
                                 </span>
                                 {l.durationMinutes && (
-                                  <span className="text-[10px] text-ink-subtle">
+                                  <span className="text-xs text-ink-subtle">
                                     {l.durationMinutes}min
                                   </span>
                                 )}
@@ -322,7 +322,7 @@ export default function CoursePreview() {
               {price ? (
                 <>
                   <div>
-                    <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
+                    <div className="text-xs uppercase tracking-wide text-ink-subtle">
                       A partir de
                     </div>
                     <div className="text-3xl font-bold text-pco-deep">{price}</div>
@@ -331,7 +331,7 @@ export default function CoursePreview() {
                     <PlayCircle size={14} strokeWidth={2} />
                     Quero estudar
                   </Link>
-                  <p className="text-[11px] text-ink-subtle text-center">
+                  <p className="text-xs text-ink-subtle text-center">
                     Acesso liberado após confirmação do pagamento
                   </p>
                 </>
@@ -343,7 +343,7 @@ export default function CoursePreview() {
               )}
             </div>
             <div className="pco-card p-4 text-xs text-ink-muted space-y-2">
-              <h3 className="text-[11px] uppercase tracking-wide font-semibold text-ink-muted">
+              <h3 className="text-xs uppercase tracking-wide font-semibold text-ink-muted">
                 O que você ganha
               </h3>
               <ul className="space-y-1.5">

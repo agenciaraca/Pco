@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
@@ -85,6 +85,7 @@ import {
   publicCheckoutSchema,
   adminCreateOrderSchema,
   adminUpdateOrderSchema,
+  refundOrderSchema,
   createCouponSchema,
   updateCouponSchema,
   createSessionServiceSchema,
@@ -1127,8 +1128,14 @@ export function buildApp() {
   app.get('/auth/me', async (c) => {
     const jwt = c.get('user');
     if (!jwt) {
-      // Sem token: comportamento legado retorna currentStudent (compatibilidade dev)
-      return c.json(await studentsRepo.getCurrentStudent());
+      // Ate 3/set/2026 aqui havia um "comportamento legado (compatibilidade
+      // dev)" que devolvia `getCurrentStudent()` sem token nenhum. Com banco,
+      // essa funcao monta o perfil REAL da linha `students.id = 'stu-001'` —
+      // nome, e-mail, matriculas e riskScore de uma pessoa — para quem so
+      // apresentou um `curl`. E o inventario de rotas publicas afirmava, em
+      // texto, que esta rota "responde 401 sozinha": o motivo estava escrito e
+      // era falso, porque o teste pulava tudo que estivesse na lista.
+      return jsonError(c, 401, 'UNAUTHORIZED', 'Token ausente ou inválido.');
     }
     const u = await usersStore.findUserById(jwt.sub);
     if (!u) return jsonError(c, 401, 'UNAUTHORIZED', 'Usuário não existe mais.');
@@ -1442,15 +1449,48 @@ export function buildApp() {
     });
   });
 
+  /**
+   * Curso e módulo aos quais uma aula pertence, resolvidos a partir do id da
+   * própria aula. Devolve `null` quando o id não existe em curso nenhum.
+   *
+   * Existe para que nenhuma rota precise confiar no `courseId` que o cliente
+   * mandou: o dado autoritativo é a estrutura do curso, não o corpo do POST.
+   */
+  async function localizarAula(lessonId: string): Promise<{
+    course: Awaited<ReturnType<typeof coursesRepo.listCourses>>[number];
+    module: Awaited<ReturnType<typeof coursesRepo.listCourses>>[number]['modules'][number];
+  } | null> {
+    const todos = await coursesRepo.listCourses();
+    for (const co of todos) {
+      for (const m of co.modules ?? []) {
+        if ((m.lessons ?? []).some((l) => l.id === lessonId)) {
+          return { course: co, module: m };
+        }
+      }
+    }
+    return null;
+  }
+
   app.post('/lessons/:id/complete', requireAuth(), async (c) => {
     const u = c.get('user')!;
     const lessonId = c.req.param('id') as string;
-    const body = await c.req.json().catch(() => ({}));
-    const courseId = typeof body.courseId === 'string' ? body.courseId : '';
-    const moduleId = typeof body.moduleId === 'string' ? body.moduleId : '';
-    if (!courseId || !moduleId) {
-      return jsonError(c, 400, 'INVALID_INPUT', 'courseId e moduleId são obrigatórios');
+
+    // **O curso e o módulo saem do `lessonId`, não do corpo da requisição.**
+    //
+    // Até 3/set/2026 os dois vinham do corpo e não eram conferidos contra a
+    // aula. O portão validava o acesso ao curso *alegado*, e a auto-emissão de
+    // certificado logo abaixo conta linhas de progresso com aquele `courseId` —
+    // sem cruzar com as aulas que o curso realmente tem. Lido junto: um aluno
+    // com **uma** matrícula ativa podia enviar N conclusões com o `courseId`
+    // dele e `lessonId` arbitrários — inclusive ids de aulas de outros cursos,
+    // que o catálogo público entrega — até bater o total, e o servidor emitia
+    // certificado com código de validação e disparava os webhooks.
+    const localizacao = await localizarAula(lessonId);
+    if (!localizacao) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
     }
+    const courseId = localizacao.course.id;
+    const moduleId = localizacao.module.id;
     // Prazo de acesso: marcar aula é avançar no curso, então expirado não passa.
     // Admin escapa para poder testar o conteúdo.
     if (u.role === 'student') {
@@ -1463,8 +1503,8 @@ export function buildApp() {
     }
     // Drip: bloqueia se o módulo da aula ainda não foi liberado
     // (considera tanto data absoluta quanto relativa à matrícula).
-    const courseForLock = await coursesRepo.findCourse(courseId);
-    if (courseForLock) {
+    const courseForLock = localizacao.course;
+    {
       const enrolledAt = await studentsRepo.getEnrollmentDate(u.sub, courseId);
       const found = findModuleLockForLesson(courseForLock, lessonId, Date.now(), { enrolledAt });
       if (found?.lock.locked) {
@@ -1486,11 +1526,30 @@ export function buildApp() {
 
     // Verifica se completou 100% do curso e auto-emite certificado
     try {
-      const course = await coursesRepo.findCourse(courseId);
-      if (course) {
-        const total = course.modules.reduce((s, m) => s + (m.lessons?.length ?? 0), 0);
+      const course = localizacao.course;
+      {
+        // Conclusão = **as aulas obrigatórias deste curso**, distintas, todas
+        // marcadas. Duas mudanças em relação ao que havia:
+        //
+        // 1. O denominador respeita `isMandatory`. O campo tinha coluna, selo
+        //    na tela do aluno e filtro no admin — e não participava de decisão
+        //    nenhuma: marcar uma aula como opcional não mudava nada, e ela
+        //    continuava exigida para o certificado sair.
+        // 2. O numerador cruza com as aulas que existem, em vez de contar
+        //    linhas de progresso com aquele `courseId`. Contar linhas fazia o
+        //    total ser alcançável com ids que não pertencem ao curso; e, se uma
+        //    aula fosse excluída depois, o total caía e o certificado passava a
+        //    ser emitido antes da hora, para todo mundo, sem ninguém perceber.
+        const obrigatorias = new Set(
+          course.modules.flatMap((m) =>
+            (m.lessons ?? []).filter((l) => l.isMandatory !== false).map((l) => l.id),
+          ),
+        );
+        const total = obrigatorias.size;
         const done = await progressRepo.listForUser(u.sub);
-        const doneInThisCourse = done.filter((p) => p.courseId === courseId).length;
+        const doneInThisCourse = new Set(
+          done.filter((p) => obrigatorias.has(p.lessonId)).map((p) => p.lessonId),
+        ).size;
         if (total > 0 && doneInThisCourse >= total) {
           // Já tem cert emitido?
           const allCerts = await certsRepo.listAllCertificates();
@@ -2163,6 +2222,35 @@ export function buildApp() {
    * visitantes não matriculados (teaser de marketing).
    */
   /**
+   * O curso é enxergável por quem está pedindo?
+   *
+   * Mesma regra por persona de `GET /courses/:id`, extraída para não viver em
+   * duas cópias: anônimo só vê o publicamente listado; aluno vê também aquilo
+   * em que tem matrícula; admin vê tudo.
+   *
+   * Existe porque, até 3/set/2026, três rotas públicas de aula decidiam
+   * **só** por `lesson.isPreview` e nunca olhavam o curso pai. Marcar uma aula
+   * do Treinamento PCO (interno, `publicListed: false`) como demonstração
+   * entregava título, descrição, duração, **a URL do vídeo** e a transcrição
+   * inteira a um `curl` sem token. O defeito era novo: `is_preview` só ganhou
+   * coluna na migration 0017, e enquanto o campo era inerte o vazamento estava
+   * mascarado por outro defeito.
+   */
+  async function requisitantePodeVerCurso(
+    c: Context,
+    curso: { id: string; active?: boolean; publicListed?: boolean },
+  ): Promise<boolean> {
+    const me = c.get('user');
+    if (me && (me.role === 'admin' || me.role === 'superadmin')) return true;
+    if (isPubliclyListed(curso)) return true;
+    if (!me) return false;
+    // Matrícula entra na conta: "Como ser um Super Aluno Online" é
+    // `publicListed: false` e tem 655 alunos legítimos.
+    const ids = (await studentsRepo.findAdminStudent(me.sub))?.enrolledCourseIds ?? [];
+    return ids.includes(curso.id);
+  }
+
+  /**
    * Retorna transcrição da aula no idioma solicitado. Aluno deve estar
    * matriculado no curso (ou aula ser preview livre). Idiomas disponíveis
    * vêm da própria lesson.transcripts (apenas os com conteúdo são habilitados).
@@ -2185,6 +2273,11 @@ export function buildApp() {
       if (foundLesson) break;
     }
     if (!foundLesson || !parentCourse) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+    }
+    // 404, não 403: 403 confirmaria que a aula existe. Mesmo motivo de
+    // `/courses/:id` e de `/public/checkout`.
+    if (!(await requisitantePodeVerCurso(c, parentCourse))) {
       return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
     }
     const isPreview = foundLesson.isPreview === true;
@@ -2256,6 +2349,9 @@ export function buildApp() {
       if (foundLesson) break;
     }
     if (!foundLesson || !parentCourse) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+    }
+    if (!(await requisitantePodeVerCurso(c, parentCourse))) {
       return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
     }
     if (!foundLesson.isPreview) {
@@ -2338,6 +2434,9 @@ export function buildApp() {
     if (!foundLesson || !parentCourse || !parentModule) {
       return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
     }
+    if (!(await requisitantePodeVerCurso(c, parentCourse))) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+    }
     if (!foundLesson.isPreview) {
       return jsonError(c, 403, 'NOT_PREVIEW', 'Esta aula não está disponível como preview livre.');
     }
@@ -2383,17 +2482,8 @@ export function buildApp() {
     // computar drip relativo. Visitantes só veem o lock absoluto.
     const me = c.get('user');
 
-    const ehAdmin = !!me && (me.role === 'admin' || me.role === 'superadmin');
-    if (!ehAdmin && !isPubliclyListed(course as unknown as Record<string, unknown>)) {
-      // Matrícula entra na conta, como na lista: `Como ser um Super Aluno
-      // Online` é `publicListed: false` e tem 655 alunos legítimos, que abrem
-      // o curso e fazem quiz por esta rota.
-      const matriculado = me
-        ? ((await studentsRepo.findAdminStudent(me.sub))?.enrolledCourseIds ?? []).includes(
-            course.id,
-          )
-        : false;
-      if (!matriculado) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
+    if (!(await requisitantePodeVerCurso(c, course))) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
     }
     const enrolledAt = me ? await studentsRepo.getEnrollmentDate(me.sub, course.id) : null;
     const ctx = { enrolledAt };
@@ -5151,8 +5241,23 @@ export function buildApp() {
     }
 
     const conta = await usersStore.findUserByEmail(d.userEmail);
+    // **Sem conta, sem pedido.** Até 3/set/2026 isto gravava `userId: ''` e
+    // respondia 201: o admin via "venda lançada", e se o status fosse `pago` a
+    // matrícula falhava com um `console.warn` que ninguém lê — porque
+    // `enrollInCourse('')` não acha aluno nenhum. O aluno ficava sem acesso e
+    // não havia sinal em tela. Pior: `listForUser('')` casa com **todos** os
+    // pedidos órfãos de uma vez.
+    if (!conta) {
+      return jsonError(
+        c,
+        404,
+        'CONTA_INEXISTENTE',
+        `Não existe conta com o e-mail ${d.userEmail}. Crie a conta antes de lançar o pedido — ` +
+          'sem ela o pagamento não matricula ninguém.',
+      );
+    }
     const criado = await ordersRepo.createOrder({
-      userId: conta?.id ?? '',
+      userId: conta.id,
       userEmail: d.userEmail,
       productId: produto?.id ?? 'manual',
       productSnapshot: {
@@ -5263,6 +5368,9 @@ export function buildApp() {
   );
 
   // Admin: dispara refund REAL via gateway (provider.refundPayment)
+  /** Pedidos com estorno sendo processado agora. Ver o comentário na rota. */
+  const estornosEmAndamento = new Set<string>();
+
   app.post(
     '/admin/orders/:id/refund',
     requireAuth('admin', 'superadmin'),
@@ -5270,10 +5378,12 @@ export function buildApp() {
     rateLimit({ windowMs: 60_000, max: 10 }),
     async (c) => {
       const id = c.req.param('id') as string;
-      const body = (await c.req.json().catch(() => ({}))) as {
-        amountCents?: number;
-        reason?: string;
-      };
+      const corpo = await c.req.json().catch(() => ({}));
+      const vr = validate(refundOrderSchema, corpo);
+      if (!vr.ok) {
+        return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', vr.error.flatten());
+      }
+      const body = vr.data;
       const order = await ordersRepo.findById(id);
       if (!order) return jsonError(c, 404, 'NOT_FOUND', 'Pedido não encontrado.');
       if (order.status !== 'paid') {
@@ -5282,6 +5392,33 @@ export function buildApp() {
           400,
           'INVALID_STATE',
           `Apenas pedidos pagos podem ser reembolsados (status atual=${order.status}).`,
+        );
+      }
+      // Entre ler o status e gravar `refunded` não havia trava: dois cliques —
+      // ou dois admins na mesma tela — passavam ambos pela conferência acima e
+      // **chamavam o gateway duas vezes**. Só o MercadoPago manda cabeçalho de
+      // idempotência, e a chave dele inclui `Date.now()`, ou seja, muda a cada
+      // milissegundo e nunca deduplica.
+      //
+      // A trava é em processo, e isso basta **porque o PM2 roda uma instância
+      // só** — o `JsonStore` cacheia em memória e não sobreviveria a duas. Se
+      // um dia houver mais de um processo, esta linha deixa de proteger e o
+      // lugar certo passa a ser um estado no banco.
+      if (estornosEmAndamento.has(id)) {
+        return jsonError(
+          c,
+          409,
+          'REFUND_IN_PROGRESS',
+          'Já existe um estorno em andamento para este pedido.',
+        );
+      }
+      estornosEmAndamento.add(id);
+      if (body.amountCents !== undefined && body.amountCents > order.amountCents) {
+        return jsonError(
+          c,
+          400,
+          'INVALID_INPUT',
+          `O estorno (${body.amountCents}) não pode ser maior que o pedido (${order.amountCents}).`,
         );
       }
       if (!order.externalId) {
@@ -5363,6 +5500,8 @@ export function buildApp() {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return jsonError(c, 502, 'REFUND_FAILED', msg);
+      } finally {
+        estornosEmAndamento.delete(id);
       }
     },
   );
@@ -5382,7 +5521,15 @@ export function buildApp() {
     c.json(await productsRepo.migrarJsonParaBanco()),
   );
 
-  app.put('/admin/orders/:id/status', requireAuth('admin', 'superadmin'), async (c) => {
+  // `blockDuringImpersonation` faltava aqui, e esta rota aceita `refunded` e
+  // `canceled` — que **revogam acesso**, o mesmo efeito prático do `DELETE` e
+  // do `/refund`, que já eram bloqueados. A lista de ações vedadas durante
+  // personificação é fechada de propósito; este caminho a contornava.
+  app.put(
+    '/admin/orders/:id/status',
+    requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('order.refund'),
+    async (c) => {
     const id = c.req.param('id') as string;
     const body = await c.req.json().catch(() => ({}));
     const allowed = new Set(['canceled', 'refunded', 'failed']);
@@ -5407,7 +5554,8 @@ export function buildApp() {
       console.error('[aplicarSituacaoDoPedido/status]', err);
     }
     return c.json(updated);
-  });
+    },
+  );
 
   // Aluno: cancela own pending order
   app.get('/me/orders/:id/invoice', requireAuth(), async (c) => {
@@ -6562,10 +6710,21 @@ export function buildApp() {
       }
     }
     const moduleId = c.req.query('moduleId') || undefined;
-    const max = Math.max(1, Math.min(50, Number(c.req.query('max') ?? '10')));
+    // A avaliação do módulo declara quantas questões e qual a nota de corte.
+    // Até 3/set/2026 nada disso era lido: a tela do módulo anunciava
+    // "Questões: N / Aprovação: X%" e o quiz pedia 10 fixas e aprovava com 70
+    // fixo no cliente. Configurar 80 no admin produzia uma tela que dizia 80 e
+    // um resultado que aprovava com 70 — o instrumento anunciado não era o
+    // aplicado.
+    const avaliacao = await avaliacaoDoModulo(courseId, moduleId);
+    const pedido = c.req.query('max');
+    const max = Math.max(
+      1,
+      Math.min(50, Number(pedido ?? avaliacao?.questionCount ?? 10) || 10),
+    );
     const sampled = await questionBank.sampleForQuiz(courseId, max, moduleId);
     if (sampled.length === 0) {
-      return c.json({ questions: [] });
+      return c.json({ questions: [], passingScore: avaliacao?.passingScore ?? 70 });
     }
     const safe = sampled.map((q) => ({
       id: q.id,
@@ -6575,8 +6734,33 @@ export function buildApp() {
       difficulty: q.difficulty,
       options: q.options.map((o) => ({ id: o.id, text: o.text })),
     }));
-    return c.json({ questions: safe });
+    return c.json({
+      questions: safe,
+      moduleId: moduleId ?? null,
+      passingScore: avaliacao?.passingScore ?? 70,
+      assessmentTitle: avaliacao?.title ?? null,
+    });
   });
+
+  /**
+   * Nota de corte e tamanho da avaliação de um módulo, quando ele tem uma.
+   * Sem avaliação cadastrada, quem chama usa o padrão de 70.
+   */
+  async function avaliacaoDoModulo(
+    courseId: string,
+    moduleId: string | undefined,
+  ): Promise<{ passingScore: number; questionCount: number; title: string } | null> {
+    if (!moduleId) return null;
+    const curso = await coursesRepo.findCourse(courseId);
+    const mod = curso?.modules?.find((m) => m.id === moduleId);
+    const a = mod?.assessment;
+    if (!a) return null;
+    return {
+      passingScore: typeof a.passingScore === 'number' ? a.passingScore : 70,
+      questionCount: typeof a.questionCount === 'number' ? a.questionCount : 10,
+      title: a.title ?? 'Avaliação',
+    };
+  }
 
   /**
    * Aluno submete respostas. Backend grada e retorna resultado por questão
@@ -6595,14 +6779,24 @@ export function buildApp() {
     }
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const answers = Array.isArray(body.answers) ? body.answers : [];
+    const moduleIdDoCorpo = typeof body.moduleId === 'string' ? body.moduleId : undefined;
+    const avaliacaoAplicada = await avaliacaoDoModulo(courseId, moduleIdDoCorpo);
+    const notaDeCorte = avaliacaoAplicada?.passingScore ?? 70;
     const results: Array<{
       questionId: string;
       type: string;
-      correct: boolean;
+      correct: boolean | null;
       correctOptionIds: string[];
       explanation: string | null;
       aiScore?: number | null;
       aiFeedback?: string | null;
+      /**
+       * A questão não pôde ser corrigida agora (correção por IA indisponível).
+       * `correct` vem `null`, e ela **não entra no denominador da nota** —
+       * marcar como errada e ainda somar 100 pontos era dizer ao aluno que ele
+       * não sabe por causa de uma configuração que falta do lado da escola.
+       */
+      pendenteDeCorrecao?: boolean;
     }> = [];
     let score = 0;
     let totalPoints = 0;
@@ -6632,17 +6826,34 @@ export function buildApp() {
           continue;
         }
         const aiResult = await questionBank.gradeOpenEndedWithAi(q, text);
-        const aiScore = aiResult?.score ?? null;
+        if (!aiResult) {
+          // Correção indisponível não é resposta errada. Fica pendente, fora
+          // da nota, e o aluno é informado do motivo — em vez de receber um ✗
+          // e um zero que derrubam o percentual do quiz inteiro.
+          results.push({
+            questionId: q.id,
+            type: q.type,
+            correct: null,
+            correctOptionIds: [],
+            explanation: q.explanation ?? null,
+            aiScore: null,
+            aiFeedback:
+              'Aguardando correção: esta resposta será avaliada e não entra na sua nota agora.',
+            pendenteDeCorrecao: true,
+          });
+          continue;
+        }
+        const aiScore = aiResult.score;
         results.push({
           questionId: q.id,
           type: q.type,
-          correct: (aiScore ?? 0) >= 70,
+          correct: aiScore >= 70,
           correctOptionIds: [],
           explanation: q.explanation ?? null,
           aiScore,
-          aiFeedback: aiResult?.feedback ?? 'Correção automática indisponível.',
+          aiFeedback: aiResult.feedback,
         });
-        score += aiScore ?? 0;
+        score += aiScore;
         totalPoints += 100;
       } else {
         const grade = questionBank.gradeAnswer(q, ans.selectedOptionIds ?? []);
@@ -6657,10 +6868,21 @@ export function buildApp() {
         });
       }
     }
+    const pct = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
+    const corrigidas = results.filter((r) => !r.pendenteDeCorrecao);
+    const acertos = corrigidas.filter((r) => r.correct === true).length;
     return c.json({
-      score: totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0,
-      total: results.length,
-      pct: totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0,
+      // `score` era o **percentual** e `total` era o número de questões, então
+      // a tela imprimia "70 de 10 corretas". Agora `score` é o número de
+      // acertos e `total` o de questões que entraram na nota.
+      score: acertos,
+      total: corrigidas.length,
+      pct,
+      pendentes: results.length - corrigidas.length,
+      // Quem decide aprovação é o servidor, com a nota de corte cadastrada.
+      // O cliente comparava `pct >= 70` fixo, ignorando o que o admin escreveu.
+      passingScore: notaDeCorte,
+      passed: corrigidas.length > 0 && pct >= notaDeCorte,
       results,
     });
   });
@@ -10645,6 +10867,17 @@ export function buildApp() {
         appliedCouponCode = coupon!.code;
       }
 
+      // Duplo clique e retentativa de rede não podem virar duas cobranças.
+      // Se já existe um pedido em aberto desta pessoa para este produto nos
+      // últimos 10 minutos, devolvemos ele — com a `checkoutUrl` que o gateway
+      // já emitiu — em vez de criar outro.
+      const jaPendente = await ordersRepo.acharPendenteEquivalente(u.sub, product.id);
+      if (jaPendente && jaPendente.checkoutUrl) {
+        // 201, igual ao caminho que cria: para quem chama, reusar e criar são
+        // a mesma coisa — um pedido em aberto com uma URL de pagamento.
+        return c.json(jaPendente, 201);
+      }
+
       // Cria order primeiro pra ter o id no metadata
       const order = await ordersRepo.createOrder({
         userId: u.sub,
@@ -10830,6 +11063,24 @@ export function buildApp() {
     const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
     if (!creds) return jsonError(c, 400, 'GATEWAY_MISCONFIGURED', 'Gateway sem credenciais.');
 
+    // Mesma proteção do checkout do aluno: duplo clique ou retentativa de rede
+    // não podem virar dois pedidos e duas cobranças. Aqui pesa mais, porque o
+    // carrinho com mais de um curso **materializa um produto `bundle` adhoc no
+    // banco antes** de chamar o gateway: sem isto, duas tentativas deixavam
+    // dois produtos-fantasma além dos dois pedidos.
+    const pendenteDoVisitante = await ordersRepo.acharPendenteEquivalente(user.id, product.id);
+    if (pendenteDoVisitante && pendenteDoVisitante.checkoutUrl) {
+      // **Mesma forma e mesmo status do caminho novo, de propósito.**
+      // Responder 200 aqui e 201 ali tornaria a resposta distinguível — e
+      // `isNewAccount` sai da resposta pelo mesmo motivo pelo qual saiu em
+      // 27/ago/2026: é enumeração de cadastro. Ver o comentário do retorno de
+      // sucesso, logo abaixo.
+      return c.json(
+        { checkoutUrl: pendenteDoVisitante.checkoutUrl, orderId: pendenteDoVisitante.id },
+        201,
+      );
+    }
+
     const order = await ordersRepo.createOrder({
       userId: user.id,
       userEmail: user.email,
@@ -10979,9 +11230,23 @@ export function buildApp() {
     }
 
     // Localiza order pelo externalId
-    const order = await ordersRepo.findByExternalId(event.externalId);
+    // O gateway da URL autentica; o pedido tem de ser DELE. Busca global aqui
+    // fazia um gateway confirmar pedido de outro.
+    const order = await ordersRepo.findByExternalId(event.externalId, gw.id);
     if (!order) {
-      // Webhook duplicado / unknown — aceita 200 para não retentar indefinidamente
+      // Aceita 200 para o gateway não retentar indefinidamente — mas registra.
+      // Até 3/set/2026 este caminho era silencioso, e é exatamente onde um
+      // descasamento de identidade do `externalId` (o gateway grava um id na
+      // criação e devolve outro no webhook) faz pagamento e estorno deixarem
+      // de reconciliar sem que nada apareça em lugar nenhum.
+      await recordError(
+        c,
+        new Error(
+          `webhook sem pedido correspondente para este gateway: ` +
+            `provider=${gw.provider} gateway=${gw.id} externalId=${event.externalId} status=${event.status}`,
+        ),
+        200,
+      );
       return c.json({ ok: true, ignored: true, reason: 'order-not-found' });
     }
 

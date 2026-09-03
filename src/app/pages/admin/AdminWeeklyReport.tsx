@@ -126,7 +126,7 @@ export default function AdminWeeklyReport() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="text-xs uppercase tracking-wide text-ink-muted">
                 Dia da semana (UTC)
               </span>
               <select
@@ -142,7 +142,7 @@ export default function AdminWeeklyReport() {
               </select>
             </label>
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="text-xs uppercase tracking-wide text-ink-muted">
                 Hora (UTC)
               </span>
               <input
@@ -153,14 +153,14 @@ export default function AdminWeeklyReport() {
                 onChange={(e) => setHour(Number(e.target.value))}
                 className="pco-input text-sm mt-1"
               />
-              <p className="text-[10px] text-ink-subtle mt-1">
+              <p className="text-xs text-ink-subtle mt-1">
                 BRT = UTC-3 (ex: 9 UTC = 6h da manhã BRT)
               </p>
             </label>
           </div>
 
           <div>
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Destinatários
             </span>
             <div className="mt-2 space-y-1.5">
@@ -210,7 +210,7 @@ export default function AdminWeeklyReport() {
             </button>
           </div>
 
-          <p className="text-[11px] text-ink-subtle">
+          <p className="text-xs text-ink-subtle">
             Preview usa dados atuais (últimos 7 dias) sem enviar e-mail.
             Disparo real só acontece no slot configurado, quando ativo.
           </p>
@@ -226,7 +226,7 @@ export default function AdminWeeklyReport() {
           {previewSubject ? (
             <>
               <div className="p-3 bg-surface-mute/30 border-b border-pco-border">
-                <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+                <div className="text-xs uppercase tracking-wide text-ink-muted">
                   Subject
                 </div>
                 <div className="text-sm font-medium text-pco-deep mt-0.5">

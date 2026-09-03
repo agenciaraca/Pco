@@ -173,7 +173,7 @@ export default function CourseReviews({
                   {r.comment}
                 </p>
               )}
-              <div className="text-[10px] text-ink-subtle mt-1">
+              <div className="text-xs text-ink-subtle mt-1">
                 {new Date(r.createdAt).toLocaleDateString('pt-BR')}
               </div>
             </li>

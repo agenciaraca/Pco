@@ -153,7 +153,7 @@ export default function StudyHeatmap({ days, summary }: Props) {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-2 mt-2 text-[10px] text-ink-subtle">
+          <div className="flex items-center gap-2 mt-2 text-xs text-ink-subtle">
             <span>Menos</span>
             <div className="flex gap-[2px]">
               <div className="w-[10px] h-[10px] rounded-[2px] bg-surface-mute" />
@@ -173,7 +173,7 @@ export default function StudyHeatmap({ days, summary }: Props) {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-lg bg-surface-off p-2 text-center">
-      <div className="text-[10px] text-ink-subtle uppercase tracking-wide">{label}</div>
+      <div className="text-xs text-ink-subtle uppercase tracking-wide">{label}</div>
       <div className="text-base font-bold text-pco-deep">{value}</div>
     </div>
   );

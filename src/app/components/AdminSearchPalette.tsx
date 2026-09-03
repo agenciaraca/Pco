@@ -148,7 +148,7 @@ export default function AdminSearchPalette() {
               } hover:bg-pco-blue/5`}
             >
               <span
-                className={`pco-badge ${TYPE_COLORS[h.type]} shrink-0 mt-0.5 text-[10px]`}
+                className={`pco-badge ${TYPE_COLORS[h.type]} shrink-0 mt-0.5 text-xs`}
               >
                 {TYPE_LABELS[h.type]}
               </span>
@@ -157,7 +157,7 @@ export default function AdminSearchPalette() {
                   {h.title}
                 </div>
                 {h.snippet && (
-                  <div className="text-[11px] text-ink-muted truncate">{h.snippet}</div>
+                  <div className="text-xs text-ink-muted truncate">{h.snippet}</div>
                 )}
               </div>
             </button>

@@ -45,17 +45,27 @@ test.describe('Mobile smoke', () => {
     expect(hasContent).toBe(true);
   });
 
-  test('menu mobile abre via toque (não depende de hover)', async ({ page }) => {
-    await page.goto('/login');
-    // O Topbar tem ícone Menu pra mobile. Se existe, testa o toque.
+  test('menu mobile abre via toque e prende o foco', async ({ page }) => {
+    // Este teste terminava em `expect(true).toBe(true)` com o toque dentro de
+    // um `if (isVisible)` — não podia ficar vermelho, e portanto não provava
+    // nada. É a mesma classe que o projeto já corrigiu duas vezes e documentou
+    // no `ci.yml`; esta sobreviveu, protegida por rodar em viewport de desktop,
+    // onde o botão nem aparecia.
+    //
+    // Agora usa uma tela que **tem** menu (a estante do aluno redireciona para
+    // o login, e o login não tem menu — então vamos ao site público, que tem).
+    await page.goto('/');
     const menuBtn = page.getByRole('button', { name: /menu/i }).first();
-    if (await menuBtn.isVisible().catch(() => false)) {
-      await menuBtn.tap();
-      // Sidebar/MobileNav deve abrir
-      await page.waitForTimeout(300);
-    }
-    // Se não houver, tudo bem — login não tem menu admin
-    expect(true).toBe(true);
+    const temMenu = await menuBtn.isVisible().catch(() => false);
+    test.skip(!temMenu, 'Esta página não tem menu mobile — nada a verificar aqui.');
+
+    await menuBtn.tap();
+    // O painel tem de aparecer de fato, e ser um diálogo com nome acessível.
+    const painel = page.getByRole('dialog', { name: /menu/i });
+    await expect(painel).toBeVisible();
+    // E Esc tem de fechar.
+    await page.keyboard.press('Escape');
+    await expect(painel).toBeHidden();
   });
 
   test('rotação landscape: layout não quebra', async ({ page, browserName }) => {

@@ -129,6 +129,7 @@ async function loadFromDb(): Promise<Course[]> {
           description: m.description ?? undefined,
           order: m.order,
           releaseAt: m.releaseAt?.toISOString(),
+          releaseAfterEnrollmentDays: m.releaseAfterEnrollmentDays ?? null,
           lessons: moduleLessons,
           assessment: assessment
             ? ({
@@ -520,6 +521,7 @@ export async function createModule(
     description: input.description ?? null,
     order: input.order,
     releaseAt: input.releaseAt ? new Date(input.releaseAt) : null,
+    releaseAfterEnrollmentDays: input.releaseAfterEnrollmentDays ?? null,
   });
   return {
     id,
@@ -528,6 +530,7 @@ export async function createModule(
     description: input.description,
     order: input.order,
     releaseAt: input.releaseAt,
+    releaseAfterEnrollmentDays: input.releaseAfterEnrollmentDays ?? null,
     lessons: [],
   };
 }
@@ -557,6 +560,8 @@ export async function updateModule(
   if (patch.order !== undefined) update.order = patch.order;
   if (patch.releaseAt !== undefined)
     update.releaseAt = patch.releaseAt ? new Date(patch.releaseAt) : null;
+  if (patch.releaseAfterEnrollmentDays !== undefined)
+    update.releaseAfterEnrollmentDays = patch.releaseAfterEnrollmentDays ?? null;
 
   if (Object.keys(update).length === 0) {
     const rows = await db.select().from(schema.modules).where(eq(schema.modules.id, moduleId));
@@ -568,6 +573,7 @@ export async function updateModule(
       description: rows[0].description ?? undefined,
       order: rows[0].order,
       releaseAt: rows[0].releaseAt?.toISOString(),
+      releaseAfterEnrollmentDays: rows[0].releaseAfterEnrollmentDays ?? null,
       lessons: [],
     };
   }
@@ -586,6 +592,7 @@ export async function updateModule(
     description: r.description ?? undefined,
     order: r.order,
     releaseAt: r.releaseAt?.toISOString(),
+    releaseAfterEnrollmentDays: r.releaseAfterEnrollmentDays ?? null,
     lessons: [],
   };
 }

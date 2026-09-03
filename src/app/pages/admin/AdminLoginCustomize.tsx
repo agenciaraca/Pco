@@ -176,7 +176,7 @@ export default function AdminLoginCustomize() {
                         background: `linear-gradient(135deg, ${p.from}, ${p.via}, ${p.to})`,
                       }}
                     />
-                    <div className="px-2 py-1.5 text-[10px] font-medium text-pco-deep">
+                    <div className="px-2 py-1.5 text-xs font-medium text-pco-deep">
                       {p.name}
                     </div>
                   </button>
@@ -241,7 +241,7 @@ export default function AdminLoginCustomize() {
                     alt="Logo"
                     className="h-10 w-10 rounded-md object-contain bg-surface-off"
                   />
-                  <code className="text-[11px] text-ink-muted truncate flex-1">{logoUrl}</code>
+                  <code className="text-xs text-ink-muted truncate flex-1">{logoUrl}</code>
                   <button
                     type="button"
                     onClick={() => setLogoUrl(null)}
@@ -306,7 +306,7 @@ export default function AdminLoginCustomize() {
                 <h2 className="text-2xl font-extrabold leading-tight">{title}</h2>
                 <p className="text-sm text-white/80 max-w-sm">{subtitle}</p>
               </div>
-              <div className="relative z-10 text-[10px] text-white/60">© AVA PCO</div>
+              <div className="relative z-10 text-xs text-white/60">© AVA PCO</div>
             </section>
 
             <section
@@ -380,7 +380,7 @@ function ColorField({
 }) {
   return (
     <label className="block">
-      <div className="text-[10px] uppercase tracking-wider text-ink-subtle mb-1">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-ink-subtle mb-1">{label}</div>
       <div className="flex items-center gap-1.5 rounded-lg border border-surface-gray bg-white px-2 py-1.5">
         <input
           type="color"
@@ -392,7 +392,7 @@ function ColorField({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full text-[11px] font-mono text-ink-muted bg-transparent focus:outline-none"
+          className="w-full text-xs font-mono text-ink-muted bg-transparent focus:outline-none"
         />
       </div>
     </label>

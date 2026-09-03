@@ -185,7 +185,7 @@ export default function AdminPodcasts() {
                   </div>
                   <h3 className="text-base font-semibold text-pco-deep line-clamp-1">{p.title}</h3>
                   <p className="text-xs text-ink-muted line-clamp-2 mt-0.5">{p.description}</p>
-                  <div className="mt-2 flex items-center gap-3 text-[11px] text-ink-subtle">
+                  <div className="mt-2 flex items-center gap-3 text-xs text-ink-subtle">
                     <span className="inline-flex items-center gap-1">
                       <Clock size={11} />
                       {p.durationMinutes} min
@@ -266,7 +266,7 @@ export default function AdminPodcasts() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="pco-card">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+      <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
         {label}
       </div>
       <div className="mt-1 text-2xl font-bold text-pco-deep">{value}</div>
@@ -321,7 +321,7 @@ function PodcastEditor({ episode, courses, submitting, onClose, onSubmit }: Podc
       <div className="relative pco-card w-full max-w-xl max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               {isNew ? 'Novo episódio' : 'Editar episódio'}
             </div>
             <h2 className="text-lg font-bold text-pco-deep">PCO POD</h2>
@@ -382,7 +382,7 @@ function PodcastEditor({ episode, courses, submitting, onClose, onSubmit }: Podc
                   }`}
                 >
                   <div className={`h-10 bg-gradient-to-br ${p.value}`} />
-                  <div className="px-2 py-1 text-[10px] text-pco-deep">{p.label}</div>
+                  <div className="px-2 py-1 text-xs text-pco-deep">{p.label}</div>
                 </button>
               ))}
             </div>

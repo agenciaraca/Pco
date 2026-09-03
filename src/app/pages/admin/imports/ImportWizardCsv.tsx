@@ -152,7 +152,7 @@ export default function ImportWizardCsv() {
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Data inicial
             </span>
             <select
@@ -168,7 +168,7 @@ export default function ImportWizardCsv() {
             </select>
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Data de expiração
             </span>
             <select
@@ -188,7 +188,7 @@ export default function ImportWizardCsv() {
             </select>
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Duração padrão (dias)
             </span>
             <input
@@ -291,9 +291,9 @@ function EntityFileRow({
         <FileText size={14} className="text-pco-blue shrink-0" strokeWidth={1.75} />
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-pco-deep">{label}</div>
-          <div className="text-[11px] text-ink-subtle">{hint}</div>
+          <div className="text-xs text-ink-subtle">{hint}</div>
           {mapping && (
-            <div className="text-[10px] text-status-success mt-0.5">
+            <div className="text-xs text-status-success mt-0.5">
               ✓ {mappedCount} campo(s) mapeado(s)
             </div>
           )}

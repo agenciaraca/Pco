@@ -146,7 +146,7 @@ export default function AdminRecoveryPlan() {
             </div>
             <div className="mt-3 flex flex-wrap gap-1">
               {risk.reasons.slice(0, 4).map((r) => (
-                <span key={r} className="pco-badge bg-surface-gray text-ink-muted text-[10px]">{r}</span>
+                <span key={r} className="pco-badge bg-surface-gray text-ink-muted text-xs">{r}</span>
               ))}
             </div>
           </div>
@@ -357,7 +357,7 @@ function Row({ label, value }: { label: string; value: string | number }) {
 function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-surface-off p-3">
-      <div className="text-[10px] uppercase tracking-wider text-ink-subtle">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-ink-subtle">{label}</div>
       <div className="text-sm font-semibold text-pco-deep">{value}</div>
     </div>
   );

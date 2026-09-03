@@ -102,7 +102,7 @@ export default function StudentSearchPalette() {
             className="flex-1 bg-transparent outline-none text-sm"
           />
           {isFetching && <Loader2 size={12} className="animate-spin text-ink-muted" />}
-          <kbd className="text-[10px] px-1.5 py-0.5 bg-surface-mute rounded text-ink-muted">
+          <kbd className="text-xs px-1.5 py-0.5 bg-surface-mute rounded text-ink-muted">
             Esc
           </kbd>
         </div>
@@ -137,12 +137,12 @@ export default function StudentSearchPalette() {
                           {hit.title}
                         </div>
                         {hit.snippet && (
-                          <div className="text-[11px] text-ink-subtle line-clamp-1">
+                          <div className="text-xs text-ink-subtle line-clamp-1">
                             {hit.snippet}
                           </div>
                         )}
                       </div>
-                      <span className="text-[10px] text-ink-subtle uppercase tracking-wide shrink-0">
+                      <span className="text-xs text-ink-subtle uppercase tracking-wide shrink-0">
                         {meta.label}
                       </span>
                     </button>
@@ -153,7 +153,7 @@ export default function StudentSearchPalette() {
           )}
         </div>
 
-        <div className="px-4 py-2 border-t border-pco-border text-[10px] text-ink-subtle flex justify-between">
+        <div className="px-4 py-2 border-t border-pco-border text-xs text-ink-subtle flex justify-between">
           <span>
             <kbd className="px-1 bg-surface-mute rounded">↑</kbd>{' '}
             <kbd className="px-1 bg-surface-mute rounded">↓</kbd> navegar

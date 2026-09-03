@@ -187,7 +187,7 @@ export default function Login() {
                   placeholder="000000"
                   required
                 />
-                <p className="mt-2 text-[11px] text-ink-subtle">
+                <p className="mt-2 text-xs text-ink-subtle">
                   Sem o app? Use um <strong>código de backup</strong> (formato XXXX-XXXX).
                 </p>
               </div>
@@ -299,7 +299,7 @@ export default function Login() {
 
           {!totpTicket && (
             <>
-              <div className="mt-6 flex items-center gap-3 text-[11px] uppercase tracking-wider text-ink-subtle">
+              <div className="mt-6 flex items-center gap-3 text-xs uppercase tracking-wider text-ink-subtle">
                 <span className="flex-1 h-px bg-surface-gray" />
                 ou
                 <span className="flex-1 h-px bg-surface-gray" />

@@ -39,6 +39,20 @@ interface Estado {
   confirmados: number;
   erros: number;
   ultimoErro: string | null;
+  /**
+   * Quantas varreduras seguidas falharam **por inteiro** (a função lançou,
+   * nenhuma cobrança foi consultada). Zera na primeira que completa.
+   *
+   * Existe porque este worker é o **único** confirmador de pagamento da
+   * Sandra — o gateway ainda não emite `charge.paid`. Até 3/set/2026 o tick
+   * era `void varrer().catch(() => undefined)`: credencial expirada, mudança
+   * de contrato da API ou DNS fora derrubavam a varredura em silêncio, o
+   * `/admin/jobs` seguia dizendo que o worker rodava, e **pagamento real
+   * deixava de virar matrícula** até a janela de 10 dias fechar sozinha.
+   */
+  falhasSeguidas: number;
+  /** A varredura completou alguma vez desde o boot? */
+  saudavel: boolean;
 }
 
 const estado: Estado = {
@@ -47,7 +61,12 @@ const estado: Estado = {
   confirmados: 0,
   erros: 0,
   ultimoErro: null,
+  falhasSeguidas: 0,
+  saudavel: true,
 };
+
+/** A partir daqui não é soluço de rede: é problema que precisa de gente. */
+const FALHAS_ATE_GRITAR = 3;
 
 export function getStatus(): Estado & { nome: string } {
   return { nome: 'sandra-poll', ...estado };
@@ -55,6 +74,8 @@ export function getStatus(): Estado & { nome: string } {
 
 export async function varrer(): Promise<{ vistos: number; confirmados: number }> {
   estado.ultimaExecucao = new Date().toISOString();
+  estado.falhasSeguidas = 0;
+  estado.saudavel = true;
   let vistos = 0;
   let confirmados = 0;
 
@@ -103,13 +124,43 @@ export async function varrer(): Promise<{ vistos: number; confirmados: number }>
   return { vistos, confirmados };
 }
 
+/**
+ * Roda `varrer()` sem deixar a exceção sumir.
+ *
+ * O tick não pode derrubar o processo, mas também não pode fingir que
+ * funcionou: quem confirma pagamento aqui é este laço, e um erro engolido
+ * significa dinheiro que entrou e matrícula que não saiu.
+ */
+async function tick(): Promise<void> {
+  try {
+    await varrer();
+  } catch (err) {
+    estado.falhasSeguidas++;
+    estado.saudavel = false;
+    estado.erros++;
+    estado.ultimoErro = err instanceof Error ? err.message : String(err);
+    // eslint-disable-next-line no-console
+    console.error(
+      `[sandra-poll] varredura falhou (${estado.falhasSeguidas}ª seguida): ${estado.ultimoErro}`,
+    );
+    if (estado.falhasSeguidas >= FALHAS_ATE_GRITAR) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[sandra-poll] ATENÇÃO: ${estado.falhasSeguidas} varreduras seguidas falharam. ` +
+          'Enquanto isso, cobrança paga na Sandra NÃO está virando matrícula. ' +
+          'Confira a credencial do gateway em /admin/payments/gateways.',
+      );
+    }
+  }
+}
+
 let timer: NodeJS.Timeout | null = null;
 
 /** Intervalo generoso, como a doc da Sandra pede: minutos, não segundos. */
 export function startWorker(intervalMs = 5 * 60_000): void {
   if (timer) return;
   timer = setInterval(() => {
-    void varrer().catch(() => undefined);
+    void tick();
   }, intervalMs);
   // `unref` para que o worker não segure o processo em teste nem no build.
   timer.unref?.();

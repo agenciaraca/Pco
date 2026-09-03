@@ -99,7 +99,7 @@ export default function AdminSetup() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-pco-deep">{item.label}</div>
-                  <div className="text-[11px] text-ink-muted mt-0.5">{item.message}</div>
+                  <div className="text-xs text-ink-muted mt-0.5">{item.message}</div>
                 </div>
                 <Link
                   to={item.link}

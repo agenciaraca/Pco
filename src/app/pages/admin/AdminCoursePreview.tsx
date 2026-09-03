@@ -31,7 +31,7 @@ export default function AdminCoursePreview() {
       </div>
 
       <header>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-pco-blue">
+        <div className="text-xs font-semibold uppercase tracking-wider text-pco-blue">
           Curso · preview
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-pco-deep">{course.title}</h1>
@@ -51,7 +51,7 @@ export default function AdminCoursePreview() {
             {course.tags.map((t) => (
               <span
                 key={t}
-                className="pco-badge bg-pco-blue/10 text-pco-blue text-[10px]"
+                className="pco-badge bg-pco-blue/10 text-pco-blue text-xs"
               >
                 {t}
               </span>
@@ -77,7 +77,7 @@ export default function AdminCoursePreview() {
                 <p className="text-xs text-ink-muted line-clamp-1">
                   {module.description}
                 </p>
-                <div className="mt-1 text-[11px] text-ink-subtle">
+                <div className="mt-1 text-xs text-ink-subtle">
                   {module.lessons.length} aulas
                 </div>
               </div>

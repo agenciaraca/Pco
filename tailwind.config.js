@@ -27,22 +27,52 @@ export default {
        */
       colors: {
         pco: {
-          blue: '#0097b2', // --accent
+          blue: '#0097b2', // --accent — cor de marca, para preenchimento e traço
+          /**
+           * O mesmo azul, escuro o bastante para **texto** e para fundo de
+           * botão com letra branca: 5,09:1 contra o branco, contra 3,46:1 do
+           * `blue` de marca. A separação existe porque `bg-pco-blue text-white`
+           * era o botão mais usado do produto — "Entrar", "Comprar por R$ …",
+           * "Marcar como concluída" — e ficava abaixo do mínimo de texto
+           * normal. Marca continua marca; o que carrega letra usa esta.
+           */
+          'blue-ink': '#00798e',
           cyan: '#0cc0df', // --accent-bright
           'cyan-light': '#5ce1e6', // --accent-light
-          orange: '#ff914d', // --brand-orange
+          orange: '#ff914d', // --brand-orange (2,23:1 — decorativo, nunca texto)
+          /** Laranja legível: 4,91:1 no branco. Para CTA e selo com texto. */
+          'orange-ink': '#b8530c',
           deep: '#063b49', // --brand-petroleo
           graphite: '#101828', // --ink
+          /**
+           * Cor de traço. Existia como `border-pco-border` em ~20 arquivos e
+           * **não estava declarada**: a classe não gerava CSS e as bordas
+           * simplesmente não apareciam.
+           */
+          border: '#e2e6e3',
         },
         surface: {
           white: '#ffffff', // --raise
           off: '#f9faf8', // --paper (era #f3f4f1 ate 1/set/2026)
           gray: '#eaece6', // --surface-2
+          /**
+           * Mesma história de `pco-border`: `bg-surface-mute` era usado como
+           * fundo de chip de código, cabeçalho de tabela e **trilho de barra de
+           * progresso** sem existir no tema — o trilho do quiz era invisível.
+           */
+          mute: '#eef0ec',
         },
         ink: {
           base: '#101828', // --ink
           muted: '#575c62', // --ink-soft
-          subtle: '#868c92', // --ink-faint
+          /**
+           * Era #868c92 (3,40:1) e é aplicado quase sempre em 10–11px. Num
+           * público adulto lendo no celular, isso não é detalhe de padrão.
+           * Agora 4,65:1 — continua visivelmente mais leve que o `muted`.
+           */
+          subtle: '#6f757c',
+          /** `text-ink-strong` era usado e não existia: o texto caía no padrão. */
+          strong: '#101828',
         },
         status: {
           success: '#2f7d4f', // --good

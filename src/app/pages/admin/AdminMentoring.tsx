@@ -146,11 +146,11 @@ export default function AdminMentoring() {
                       <span className="text-sm font-semibold text-pco-deep">
                         {c.instructorName}
                       </span>
-                      <span className="pco-badge bg-pco-blue/10 text-pco-blue text-[10px]">
+                      <span className="pco-badge bg-pco-blue/10 text-pco-blue text-xs">
                         {c.provider}
                       </span>
                       {!c.active && (
-                        <span className="pco-badge bg-surface-gray text-ink-muted text-[10px]">
+                        <span className="pco-badge bg-surface-gray text-ink-muted text-xs">
                           inativo
                         </span>
                       )}
@@ -164,7 +164,7 @@ export default function AdminMentoring() {
                       <p className="text-xs text-ink-subtle mt-1">{c.description}</p>
                     )}
                     {c.durationMinutes && (
-                      <p className="text-[10px] text-ink-subtle mt-0.5">
+                      <p className="text-xs text-ink-subtle mt-0.5">
                         Duracao: {c.durationMinutes} min
                       </p>
                     )}
@@ -215,7 +215,7 @@ export default function AdminMentoring() {
 
             {!editing.id && (
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">Curso</span>
+                <span className="text-xs uppercase tracking-wide text-ink-muted">Curso</span>
                 <select
                   value={editing.courseId}
                   onChange={(e) => setEditing({ ...editing, courseId: e.target.value })}
@@ -229,7 +229,7 @@ export default function AdminMentoring() {
             )}
 
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">Nome do mentor</span>
+              <span className="text-xs uppercase tracking-wide text-ink-muted">Nome do mentor</span>
               <input
                 value={editing.instructorName}
                 onChange={(e) => setEditing({ ...editing, instructorName: e.target.value })}
@@ -239,7 +239,7 @@ export default function AdminMentoring() {
             </label>
 
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">URL de agendamento</span>
+              <span className="text-xs uppercase tracking-wide text-ink-muted">URL de agendamento</span>
               <input
                 type="url"
                 value={editing.bookingUrl}
@@ -251,7 +251,7 @@ export default function AdminMentoring() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">Duracao (min)</span>
+                <span className="text-xs uppercase tracking-wide text-ink-muted">Duracao (min)</span>
                 <input
                   type="number"
                   value={editing.durationMinutes}
@@ -262,7 +262,7 @@ export default function AdminMentoring() {
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">Descricao (opcional)</span>
+                <span className="text-xs uppercase tracking-wide text-ink-muted">Descricao (opcional)</span>
                 <input
                   value={editing.description}
                   onChange={(e) => setEditing({ ...editing, description: e.target.value })}

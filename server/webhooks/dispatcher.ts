@@ -25,20 +25,39 @@ const TIMEOUT_MS = 15_000;
 /**
  * Emite um evento — cria deliveries para cada endpoint inscrito.
  * Não bloqueia: a entrega real acontece via worker.
+ *
+ * **Nunca rejeita.** Todo chamador a invoca com `void`, de propósito: falhar
+ * ao enfileirar um webhook não pode derrubar a matrícula nem o certificado que
+ * acabou de ser emitido. Mas "não derrubar" não é "não contar": até
+ * 3/set/2026 a falha sumia sem deixar nem contador, e desde que o `JsonStore`
+ * passou a propagar erro de escrita ela virava rejeição não tratada. Agora fica
+ * registrada, e a fila de entrega — que já tem retry — cuida do resto.
  */
 export async function emit(
   event: WebhookEventType,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const subscribed = await endpoints.listForEvent(event);
-  for (const e of subscribed) {
-    await deliveries.create({ endpointId: e.id, event, payload });
+  try {
+    const subscribed = await endpoints.listForEvent(event);
+    for (const e of subscribed) {
+      await deliveries.create({ endpointId: e.id, event, payload });
+    }
+  } catch (err) {
+    falhasAoEnfileirar++;
+    ultimaFalhaAoEnfileirar = err instanceof Error ? err.message : String(err);
+    // eslint-disable-next-line no-console
+    console.error(`[webhooks] falha ao enfileirar ${event}: ${ultimaFalhaAoEnfileirar}`);
+    return;
   }
   // Dispara worker (não bloqueia)
   void tickWorker().catch(() => {
     // Engolido — próximo tick vai pegar
   });
 }
+
+/** Quantas vezes nem foi possível ENFILEIRAR (disco, permissão, corrupção). */
+let falhasAoEnfileirar = 0;
+let ultimaFalhaAoEnfileirar: string | null = null;
 
 let workerRunning = false;
 let workerInterval: NodeJS.Timeout | null = null;
@@ -73,6 +92,10 @@ export function getStatus() {
     lastRunProcessed,
     totalTicks,
     enabled: workerInterval !== null,
+    // Aparece em /admin/jobs: evento que nem chegou a entrar na fila não tem
+    // retry para salvá-lo, e é o único caso em que o webhook some de vez.
+    falhasAoEnfileirar,
+    ultimaFalhaAoEnfileirar,
   };
 }
 

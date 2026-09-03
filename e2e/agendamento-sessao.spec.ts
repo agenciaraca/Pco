@@ -11,7 +11,6 @@ import { test, expect } from '@playwright/test';
 import type { APIRequestContext } from '@playwright/test';
 import { sessaoCompartilhada, STUDENT_EMAIL, STUDENT_PASSWORD } from './helpers';
 
-const REQUIRES_FRESH = !process.env.CI && !process.env.E2E_FRESH;
 
 /** Um instante futuro, em hora cheia, para não colidir com o relógio do teste. */
 function daquiADias(dias: number, hora = 15): string {
@@ -76,7 +75,6 @@ test.describe('agendamento de sessão', () => {
   });
 
   test('aluno agenda, vê na própria lista, e o horário fica ocupado', async ({ request }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     const auth = comToken(await obterToken(request));
 
     const servicos = (await (await request.get('/api/sessions/services')).json()) as Array<{
@@ -142,7 +140,6 @@ test.describe('agendamento de sessão', () => {
   });
 
   test('data no passado é recusada', async ({ request }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     const auth = comToken(await obterToken(request));
     const res = await request.post('/api/sessions/bookings', {
       ...auth,
@@ -156,7 +153,6 @@ test.describe('agendamento de sessão', () => {
   });
 
   test('a tela do aluno carrega e nomeia o serviço opcional', async ({ page, request }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     // Reusa o mesmo token: abrir a página não justifica gastar outra tentativa
     // de login contra o rate limit.
     const { token, user: usuario } = await obterSessao(request);

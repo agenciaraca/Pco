@@ -29,7 +29,7 @@ export default function Logo({ collapsed = false, className, variant = 'light' }
           <div className="text-sm font-extrabold tracking-tight text-pco-deep">
             AVA <span className="text-pco-blue">PCO</span>
           </div>
-          <div className="text-[10px] font-medium text-ink-subtle tracking-wide uppercase">
+          <div className="text-xs font-medium text-ink-subtle tracking-wide uppercase">
             Aprendizagem
           </div>
         </div>

@@ -133,7 +133,7 @@ export default function AdminCourseEditor() {
             <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${course.coverColor}`} />
           )}
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Editor de curso
             </div>
             <h1 className="text-2xl font-bold text-pco-deep">{course.title}</h1>
@@ -660,12 +660,12 @@ function GeralPane({ course }: { course: Course }) {
                     />
                     <span className="flex-1 min-w-0">
                       <span className="block text-ink-strong">{c.title}</span>
-                      <code className="text-[10px] text-ink-subtle">{c.slug}</code>
+                      <code className="text-xs text-ink-subtle">{c.slug}</code>
                     </span>
                   </label>
                 ))}
               </div>
-              <p className="text-[11px] text-ink-subtle mt-2">
+              <p className="text-xs text-ink-subtle mt-2">
                 {prereqIds.length === 0
                   ? 'Sem pré-requisitos: aluno pode se matricular livremente.'
                   : `${prereqIds.length} curso(s) selecionado(s). Aluno verá um aviso ao tentar acessar este curso sem completar todos.`}
@@ -722,7 +722,7 @@ function GeralPane({ course }: { course: Course }) {
               Adicionar
             </button>
           </div>
-          <p className="text-[11px] text-ink-subtle mt-2">
+          <p className="text-xs text-ink-subtle mt-2">
             Aparece como destaque na página pública do curso. Recomendamos
             entre 4 e 8 bullets focados em resultados ("Vou conseguir
             X", "Vou entender Y").
@@ -812,7 +812,7 @@ function GeralPane({ course }: { course: Course }) {
               />
             </Field>
           </div>
-          <p className="text-[11px] text-ink-subtle">
+          <p className="text-xs text-ink-subtle">
             Campos vazios usam os defaults globais. Cores devem estar em
             formato #RRGGBB. Use <code>{`{{course}}`}</code> e{' '}
             <code>{`{{hours}}`}</code> no corpo pra inserir título do curso e
@@ -869,7 +869,7 @@ function GeralPane({ course }: { course: Course }) {
               {collaborators.map((c, idx) => (
                 <li key={idx} className="bg-surface-off rounded-lg p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="text-[11px] font-bold text-pco-deep">
+                    <div className="text-xs font-bold text-pco-deep">
                       Co-instrutor {idx + 1}
                     </div>
                     <button
@@ -929,7 +929,7 @@ function GeralPane({ course }: { course: Course }) {
           <legend className="px-2 text-xs font-semibold text-pco-deep">
             Changelog do curso ({changelog.length}/50)
           </legend>
-          <p className="text-[11px] text-ink-subtle">
+          <p className="text-xs text-ink-subtle">
             Histórico de atualizações visível pra alunos no card "Novidades"
             do curso. Use pra avisar sobre módulos novos, correções, etc.
           </p>
@@ -942,7 +942,7 @@ function GeralPane({ course }: { course: Course }) {
               {changelog.map((c, idx) => (
                 <li key={idx} className="bg-surface-off rounded-lg p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="text-[11px] font-bold text-pco-deep">
+                    <div className="text-xs font-bold text-pco-deep">
                       Entry {idx + 1}
                     </div>
                     <button
@@ -1263,7 +1263,7 @@ function Carencia({
           </>
         )}
       </div>
-      <p className="text-[11px] mt-1 opacity-80">
+      <p className="text-xs mt-1 opacity-80">
         Grava o prazo em cada matrícula. Não mexe em quem já tem prazo próprio, e não desfaz
         sozinho — para encurtar depois, use a ficha do aluno.
       </p>
@@ -1404,7 +1404,7 @@ function CourseCoverUploader({ course }: { course: Course }) {
           </button>
         )}
       </div>
-      <p className="text-[10px] text-ink-subtle mt-2">
+      <p className="text-xs text-ink-subtle mt-2">
         JPG, PNG, WEBP ou GIF · até 5MB. Recomendado: 1280×720px. Clique ou arraste.
       </p>
     </div>
@@ -1655,7 +1655,7 @@ function ModulosPane({ course }: { course: Course }) {
         </h3>
         <div className="flex items-center gap-2">
           {savingOrder && (
-            <span className="text-[11px] text-pco-blue inline-flex items-center gap-1">
+            <span className="text-xs text-pco-blue inline-flex items-center gap-1">
               <Loader2 size={11} strokeWidth={2} className="animate-spin" />
               Salvando ordem...
             </span>
@@ -1670,7 +1670,7 @@ function ModulosPane({ course }: { course: Course }) {
         </div>
       </div>
 
-      <p className="text-[11px] text-ink-subtle">
+      <p className="text-xs text-ink-subtle">
         Arraste módulos e aulas para reordenar. Aulas podem ser movidas entre módulos.
         Salva automaticamente.
       </p>
@@ -1862,7 +1862,7 @@ function SortableModule({
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-pco-deep">{module.title}</div>
-          <div className="text-[11px] text-ink-subtle">
+          <div className="text-xs text-ink-subtle">
             {module.lessons.length} aula(s) ·{' '}
             {module.assessment ? '1 avaliação' : 'sem avaliação'}
           </div>
@@ -1895,7 +1895,7 @@ function SortableModule({
       {isOpen && (
         <div className="border-t border-surface-gray bg-surface-off px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[11px] uppercase tracking-wider font-semibold text-ink-subtle">
+            <div className="text-xs uppercase tracking-wider font-semibold text-ink-subtle">
               Aulas do módulo
             </div>
             <button onClick={onAddLesson} className="pco-btn-secondary text-xs">
@@ -1978,7 +1978,7 @@ function SortableLesson({ lesson, onEdit, onDelete }: SortableLessonProps) {
       <Video size={14} className="text-pco-blue shrink-0" strokeWidth={1.75} />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-pco-deep truncate">{lesson.title}</div>
-        <div className="mt-0.5 flex items-center gap-3 text-[11px] text-ink-subtle flex-wrap">
+        <div className="mt-0.5 flex items-center gap-3 text-xs text-ink-subtle flex-wrap">
           <span className="inline-flex items-center gap-1">
             <Clock size={10} />
             {lesson.durationMinutes} min
@@ -2085,7 +2085,7 @@ function ModuleEditor({ module, nextOrder, submitting, onClose, onSubmit }: Modu
             {...register('releaseAt')}
             className="pco-input"
           />
-          <p className="text-[11px] text-ink-subtle mt-1">
+          <p className="text-xs text-ink-subtle mt-1">
             Se preenchido, módulo só libera a partir desta data/hora pra
             todos os alunos (drip absoluto).
           </p>
@@ -2108,7 +2108,7 @@ function ModuleEditor({ module, nextOrder, submitting, onClose, onSubmit }: Modu
             className="pco-input w-32"
             placeholder="Ex: 7"
           />
-          <p className="text-[11px] text-ink-subtle mt-1">
+          <p className="text-xs text-ink-subtle mt-1">
             Drip relativo: cada aluno só vê este módulo N dias após sua
             matrícula no curso. Útil pra cohorts pedagógicas. Se ambos
             (data fixa + dias) forem preenchidos, o módulo só libera
@@ -2228,7 +2228,7 @@ function LessonEditor({
             />
             <span className="text-sm">
               <span className="text-pco-deep font-medium block">Preview livre</span>
-              <span className="text-[11px] text-ink-muted">
+              <span className="text-xs text-ink-muted">
                 Aula visível pra visitantes não matriculados (teaser de marketing).
               </span>
             </span>
@@ -2239,7 +2239,7 @@ function LessonEditor({
             Transcrições da videoaula ({SUPPORTED_TRANSCRIPT_LOCALES.length} idiomas)
           </summary>
           <div className="p-3 space-y-3 border-t border-surface-gray">
-            <p className="text-[11px] text-ink-muted">
+            <p className="text-xs text-ink-muted">
               Preencha apenas os idiomas desejados. O aluno verá no player somente os idiomas configurados aqui.
               {!isNew && lesson && (
                 <>
@@ -2301,7 +2301,7 @@ function LessonEditor({
                           setGeneratingTo(null);
                         }
                       }}
-                      className="text-[10px] pco-btn-ghost py-1 px-2"
+                      className="text-xs pco-btn-ghost py-1 px-2"
                       title="Baixa o vídeo, envia ao OpenAI Whisper, salva transcrição (limite 25MB)"
                     >
                       {generatingTo === lang ? (
@@ -2354,7 +2354,7 @@ function LessonEditor({
                               setTranslatingTo(null);
                             }
                           }}
-                          className="text-[10px] pco-btn-ghost py-1 px-2"
+                          className="text-xs pco-btn-ghost py-1 px-2"
                           title={`Traduzir de ${TRANSCRIPT_LOCALE_LABELS[src]} para ${TRANSCRIPT_LOCALE_LABELS[lang]} via IA configurada`}
                         >
                           {translatingTo === `${src}->${lang}` ? (
@@ -2403,7 +2403,7 @@ function ModalShell({
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
             {subtitle && (
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+              <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
                 {subtitle}
               </div>
             )}
@@ -2536,13 +2536,13 @@ function AvaliacoesPane({ course }: { course: Course }) {
             strokeWidth={1.75}
           />
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               {m.title}
             </div>
             {m.assessment ? (
               <>
                 <div className="text-sm font-semibold text-pco-deep">{m.assessment.title}</div>
-                <div className="text-[11px] text-ink-subtle">
+                <div className="text-xs text-ink-subtle">
                   {m.assessment.questionCount} questões · aprovação {m.assessment.passingScore}%
                   {m.assessment.timeLimitMinutes
                     ? ` · ${m.assessment.timeLimitMinutes} min`
@@ -2988,7 +2988,7 @@ function CertificadoPane({ course }: { course: Course }) {
             totalHours={hours}
             studentName="Maria da Silva (exemplo)"
           />
-          <p className="mt-3 text-[11px] text-ink-subtle">
+          <p className="mt-3 text-xs text-ink-subtle">
             O nome do aluno e código de validação são preenchidos na emissão. A
             pré-visualização usa "Maria da Silva" como exemplo.
           </p>
@@ -3048,7 +3048,7 @@ function CertificatePreview({
           />
         )}
         <div
-          className="text-[10px] uppercase tracking-[0.3em] font-semibold"
+          className="text-xs uppercase tracking-[0.3em] font-semibold"
           style={{ color: accentColor }}
         >
           {orgName}
@@ -3077,7 +3077,7 @@ function CertificatePreview({
         </div>
       </div>
 
-      <div className="flex items-end justify-between text-[10px] text-ink-subtle pl-4 pr-4">
+      <div className="flex items-end justify-between text-xs text-ink-subtle pl-4 pr-4">
         <div className="flex flex-col items-start">
           <span className="font-mono">PCO-XXXX-YYYY</span>
           <span className="opacity-70">código de validação</span>

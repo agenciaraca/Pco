@@ -116,7 +116,7 @@ export default function CompareCourses() {
         <table className="w-full text-sm">
           <thead className="bg-surface-off">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-[11px] uppercase tracking-wider text-ink-subtle w-48">
+              <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider text-ink-subtle w-48">
                 Característica
               </th>
               {courses.map((c) => (
@@ -124,7 +124,7 @@ export default function CompareCourses() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="text-sm font-bold text-pco-deep">{c.shortTitle}</div>
-                      <div className="text-[11px] text-ink-subtle">/{c.slug}</div>
+                      <div className="text-xs text-ink-subtle">/{c.slug}</div>
                     </div>
                     <button
                       type="button"
@@ -294,7 +294,7 @@ function CoursePicker({
     <div className="pco-card">
       <h3 className="text-sm font-semibold text-pco-deep mb-3">
         Adicionar curso à comparação{' '}
-        <span className="text-[11px] text-ink-subtle font-normal">(até {MAX_COMPARE})</span>
+        <span className="text-xs text-ink-subtle font-normal">(até {MAX_COMPARE})</span>
       </h3>
       {maxReached || selected.length >= MAX_COMPARE ? (
         <p className="text-xs text-ink-muted">

@@ -364,12 +364,12 @@ export default function AdminCourses() {
             <SlidersHorizontal size={14} strokeWidth={2} />
             Filtros avançados
             {activeFilterCount > 0 && (
-              <span className="pco-badge bg-pco-blue/10 text-pco-blue text-[10px]">
+              <span className="pco-badge bg-pco-blue/10 text-pco-blue text-xs">
                 {activeFilterCount} ativo(s)
               </span>
             )}
           </span>
-          <span className="inline-flex items-center gap-2 text-[11px] text-ink-subtle">
+          <span className="inline-flex items-center gap-2 text-xs text-ink-subtle">
             {data ? `${visible.length} de ${data.length}` : ''}
             {filtersOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </span>
@@ -379,7 +379,7 @@ export default function AdminCourses() {
             id="cursos-filtros-avancados"
             className="border-t border-surface-gray p-4 grid gap-3 md:grid-cols-3 lg:grid-cols-4"
           >
-            <label className="md:col-span-2 lg:col-span-2 text-[11px] text-ink-muted">
+            <label className="md:col-span-2 lg:col-span-2 text-xs text-ink-muted">
               Buscar (título ou slug)
               <input
                 type="text"
@@ -389,7 +389,7 @@ export default function AdminCourses() {
                 placeholder="ex: psicanálise, hipnoterapia, /slug"
               />
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Pré-requisitos
               <select
                 value={filters.prerequisites}
@@ -403,7 +403,7 @@ export default function AdminCourses() {
                 <option value="sem">Sem pré-req</option>
               </select>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Changelog
               <select
                 value={filters.changelog}
@@ -417,7 +417,7 @@ export default function AdminCourses() {
                 <option value="sem">Sem entries</option>
               </select>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Colaboradores
               <select
                 value={filters.collaborators}
@@ -431,7 +431,7 @@ export default function AdminCourses() {
                 <option value="sem">Só instrutor principal</option>
               </select>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Aulas em preview
               <select
                 value={filters.previewLessons}
@@ -445,7 +445,7 @@ export default function AdminCourses() {
                 <option value="sem">Sem preview</option>
               </select>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Certificado
               <select
                 value={filters.certificate}
@@ -459,7 +459,7 @@ export default function AdminCourses() {
                 <option value="sem">Indisponível</option>
               </select>
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Mín. horas
               <input
                 type="number"
@@ -470,7 +470,7 @@ export default function AdminCourses() {
                 placeholder="ex: 10"
               />
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Mín. módulos
               <input
                 type="number"
@@ -481,7 +481,7 @@ export default function AdminCourses() {
                 placeholder="ex: 3"
               />
             </label>
-            <label className="text-[11px] text-ink-muted">
+            <label className="text-xs text-ink-muted">
               Mín. alunos
               <input
                 type="number"
@@ -598,7 +598,7 @@ export default function AdminCourses() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-off">
-                <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                <tr className="text-xs uppercase tracking-wider text-ink-subtle">
                   <th className="w-10 px-3 py-3 text-left font-medium">
                     <input
                       type="checkbox"
@@ -665,7 +665,7 @@ export default function AdminCourses() {
                             {c.title}
                             {(c.prerequisiteCourseIds?.length ?? 0) > 0 && (
                               <span
-                                className="inline-flex items-center gap-1 pco-badge bg-pco-orange/10 text-pco-orange text-[10px]"
+                                className="inline-flex items-center gap-1 pco-badge bg-pco-orange/10 text-pco-orange text-xs"
                                 title={`Requer ${c.prerequisiteCourseIds!.length} curso(s) antes`}
                               >
                                 <Lock size={9} strokeWidth={2} />
@@ -674,7 +674,7 @@ export default function AdminCourses() {
                             )}
                             {c.modules.some((m) => m.lessons.some((l) => l.isPreview)) && (
                               <span
-                                className="inline-flex items-center gap-1 pco-badge bg-pco-cyan/10 text-pco-cyan text-[10px]"
+                                className="inline-flex items-center gap-1 pco-badge bg-pco-cyan/10 text-pco-cyan text-xs"
                                 title="Tem aulas com preview livre"
                               >
                                 ▶ preview
@@ -682,7 +682,7 @@ export default function AdminCourses() {
                             )}
                             {(c.changelog?.length ?? 0) > 0 && (
                               <span
-                                className="inline-flex items-center gap-1 pco-badge bg-pco-blue/10 text-pco-blue text-[10px]"
+                                className="inline-flex items-center gap-1 pco-badge bg-pco-blue/10 text-pco-blue text-xs"
                                 title={`${c.changelog!.length} entry(ies) no changelog`}
                               >
                                 ✨ {c.changelog!.length}
@@ -690,14 +690,14 @@ export default function AdminCourses() {
                             )}
                             {(c.collaborators?.length ?? 0) > 0 && (
                               <span
-                                className="inline-flex items-center gap-1 pco-badge bg-status-success/10 text-status-success text-[10px]"
+                                className="inline-flex items-center gap-1 pco-badge bg-status-success/10 text-status-success text-xs"
                                 title={`${c.collaborators!.length} co-instrutor(es)`}
                               >
                                 +{c.collaborators!.length} instrutores
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-ink-subtle">/{c.slug}</div>
+                          <div className="text-xs text-ink-subtle">/{c.slug}</div>
                         </div>
                       </div>
                     </td>
@@ -723,7 +723,7 @@ export default function AdminCourses() {
                       {(() => {
                         const sum = summaryMap.get(c.id);
                         if (!sum || sum.enrolledCount === 0) {
-                          return <span className="text-[11px] text-ink-subtle">—</span>;
+                          return <span className="text-xs text-ink-subtle">—</span>;
                         }
                         const pct = sum.avgProgressPct;
                         return (
@@ -738,7 +738,7 @@ export default function AdminCourses() {
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
-                            <span className="text-[11px] font-bold text-pco-deep w-8 text-right">
+                            <span className="text-xs font-bold text-pco-deep w-8 text-right">
                               {pct}%
                             </span>
                           </div>
@@ -908,7 +908,7 @@ function NewCourseModal({
       <div className="relative pco-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Cadastro
             </div>
             <h2 className="text-lg font-bold text-pco-deep">Novo curso</h2>
@@ -957,11 +957,11 @@ function NewCourseModal({
             <div className="text-xs font-medium text-ink-muted mb-1.5 flex items-center gap-1.5">
               Slug (URL)
               {!slugTouched && title.length > 0 && (
-                <span className="text-[10px] text-ink-subtle">auto</span>
+                <span className="text-xs text-ink-subtle">auto</span>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-ink-subtle">/curso/</span>
+              <span className="text-xs text-ink-subtle">/curso/</span>
               <input
                 type="text"
                 value={effectiveSlug}

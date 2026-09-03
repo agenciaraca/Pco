@@ -176,7 +176,7 @@ export default function Courses() {
                   <div className="relative flex flex-col justify-between h-full text-white">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold uppercase tracking-wider">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-xs font-semibold uppercase tracking-wider">
                           {course.shortTitle}
                         </span>
                         {/* Situação da matrícula, antes do prazo — quem foi
@@ -185,22 +185,22 @@ export default function Courses() {
                             dizia nada: curso normal, botão "Continuar", e um
                             403 mudo do outro lado. */}
                         {prazoPorCurso.get(course.id) === 'suspended' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-warning text-white text-[10px] font-semibold uppercase tracking-wider">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-warning text-white text-xs font-semibold uppercase tracking-wider">
                             {mensagemDeAcesso('suspended').selo}
                           </span>
                         )}
                         {prazoPorCurso.get(course.id) === 'canceled' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-danger text-white text-[10px] font-semibold uppercase tracking-wider">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-danger text-white text-xs font-semibold uppercase tracking-wider">
                             {mensagemDeAcesso('canceled').selo}
                           </span>
                         )}
                         {prazoPorCurso.get(course.id) === 'expired' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-danger text-white text-[10px] font-semibold uppercase tracking-wider">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-danger text-white text-xs font-semibold uppercase tracking-wider">
                             Acesso vencido
                           </span>
                         )}
                         {prazoPorCurso.get(course.id) === 'expiring' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-warning text-white text-[10px] font-semibold uppercase tracking-wider">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-status-warning text-white text-xs font-semibold uppercase tracking-wider">
                             Vence em breve
                           </span>
                         )}
@@ -226,7 +226,7 @@ export default function Courses() {
                   </div>
 
                   <div>
-                    <div className="flex justify-between text-[11px] text-ink-muted mb-1">
+                    <div className="flex justify-between text-xs text-ink-muted mb-1">
                       <span>Progresso</span>
                       <span className="font-semibold text-pco-deep">{pct}%</span>
                     </div>
@@ -275,7 +275,7 @@ export default function Courses() {
                               />
                             </button>
                           </div>
-                          <p className="text-[10px] text-ink-subtle text-center">
+                          <p className="text-xs text-ink-subtle text-center">
                             Acesso liberado após confirmação do pagamento
                           </p>
                         </div>
@@ -291,7 +291,7 @@ export default function Courses() {
                     // o que evita o clique.
                     if (!isEnrolled) {
                       return (
-                        <p className="text-[11px] text-ink-subtle text-center py-1.5">
+                        <p className="text-xs text-ink-subtle text-center py-1.5">
                           Este curso não está disponível para matrícula.
                         </p>
                       );

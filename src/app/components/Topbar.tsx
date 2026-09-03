@@ -261,7 +261,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
                               </div>
                             )}
                           </div>
-                          <span className="text-[10px] uppercase tracking-wide text-ink-subtle shrink-0 mt-1">
+                          <span className="text-xs uppercase tracking-wide text-ink-subtle shrink-0 mt-1">
                             {h.type}
                           </span>
                         </Link>
@@ -345,7 +345,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
               <div className="text-xs font-semibold text-pco-deep truncate max-w-[120px]">
                 {name}
               </div>
-              <div className="text-[10px] text-ink-subtle">
+              <div className="text-xs text-ink-subtle">
                 {variant === 'admin' ? 'Admin' : 'Aluno'}
               </div>
             </div>
@@ -356,7 +356,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
               <div className="px-3 py-2 border-b border-surface-gray mb-1">
                 <div className="text-xs font-semibold text-pco-deep truncate">{name}</div>
                 {user?.email && (
-                  <div className="text-[11px] text-ink-subtle truncate">{user.email}</div>
+                  <div className="text-xs text-ink-subtle truncate">{user.email}</div>
                 )}
               </div>
               <Link
@@ -376,7 +376,7 @@ export default function Topbar({ onMenuClick, variant = 'student' }: TopbarProps
                 {t('nav.settings')}
               </Link>
               <div className="md:hidden px-3 py-2 border-t border-pco-border mt-1 pt-2">
-                <div className="text-[10px] uppercase tracking-wider text-ink-subtle mb-1">
+                <div className="text-xs uppercase tracking-wider text-ink-subtle mb-1">
                   {t('profile.language')}
                 </div>
                 <LocaleSwitcher variant="inline" />
@@ -434,7 +434,7 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
       <div className="relative pco-card w-full max-w-md p-6">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Atalhos
             </div>
             <h2 className="text-lg font-bold text-pco-deep">Teclado</h2>
@@ -464,9 +464,9 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-[11px] text-ink-subtle">
-          Em Mac, use <kbd className="px-1.5 rounded bg-surface-gray text-[10px]">⌘</kbd> em
-          vez de <kbd className="px-1.5 rounded bg-surface-gray text-[10px]">Ctrl</kbd>.
+        <p className="mt-4 text-xs text-ink-subtle">
+          Em Mac, use <kbd className="px-1.5 rounded bg-surface-gray text-xs">⌘</kbd> em
+          vez de <kbd className="px-1.5 rounded bg-surface-gray text-xs">Ctrl</kbd>.
         </p>
       </div>
     </div>

@@ -197,7 +197,7 @@ export default function AdminCourseStudents() {
       ) : (
         <div className="pco-card overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-surface-mute text-ink-muted text-[11px] uppercase">
+            <thead className="bg-surface-mute text-ink-muted text-xs uppercase">
               <tr>
                 <th className="text-left px-3 py-2">Aluno</th>
                 <th className="text-left px-3 py-2">Situação no curso</th>
@@ -215,7 +215,7 @@ export default function AdminCourseStudents() {
                     >
                       {s.name}
                     </Link>
-                    <div className="text-[11px] text-ink-subtle">{s.email}</div>
+                    <div className="text-xs text-ink-subtle">{s.email}</div>
                   </td>
                   <td className="px-3 py-2">
                     <SeloSituacao aluno={s} />
@@ -236,7 +236,7 @@ export default function AdminCourseStudents() {
                         {s.progressPct}%
                       </span>
                     </div>
-                    <div className="text-[10px] text-ink-subtle mt-0.5">
+                    <div className="text-xs text-ink-subtle mt-0.5">
                       {s.lessonsCompleted}/{s.totalLessons} aulas
                     </div>
                   </td>
@@ -375,7 +375,7 @@ function BulkEnrollModal({
             placeholder="Buscar aluno..."
             className="pco-input text-sm flex-1"
           />
-          <span className="text-[11px] text-ink-subtle">
+          <span className="text-xs text-ink-subtle">
             {selected.size} selecionado(s)
           </span>
         </div>
@@ -409,7 +409,7 @@ function BulkEnrollModal({
                     </td>
                     <td className="px-3 py-2">
                       <div className="font-semibold text-pco-deep">{s.name}</div>
-                      <div className="text-[10px] text-ink-subtle">{s.email}</div>
+                      <div className="text-xs text-ink-subtle">{s.email}</div>
                     </td>
                   </tr>
                 ))}
@@ -452,14 +452,14 @@ function BulkEnrollModal({
 function SeloSituacao({ aluno }: { aluno: CourseStudentDto }) {
   if (aluno.situacao === 'cancelada') {
     return (
-      <span className="pco-badge text-[10px] bg-status-danger/15 text-status-danger">
+      <span className="pco-badge text-xs bg-status-danger/15 text-status-danger">
         Cancelada
       </span>
     );
   }
   if (aluno.situacao === 'suspensa') {
     return (
-      <span className="pco-badge text-[10px] bg-pco-orange/15 text-pco-orange">
+      <span className="pco-badge text-xs bg-pco-orange/15 text-pco-orange">
         Suspensa
       </span>
     );
@@ -468,7 +468,7 @@ function SeloSituacao({ aluno }: { aluno: CourseStudentDto }) {
     const dias = aluno.acesso.diasRestantes;
     return (
       <span
-        className="pco-badge text-[10px] bg-status-success/10 text-status-success"
+        className="pco-badge text-xs bg-status-success/10 text-status-success"
         title={
           aluno.acesso.expiraEm
             ? `Acesso até ${new Date(aluno.acesso.expiraEm).toLocaleDateString('pt-BR')}`
@@ -483,7 +483,7 @@ function SeloSituacao({ aluno }: { aluno: CourseStudentDto }) {
   }
   return (
     <span
-      className="pco-badge text-[10px] bg-ink-muted/15 text-ink-muted"
+      className="pco-badge text-xs bg-ink-muted/15 text-ink-muted"
       title={
         aluno.acesso.expiraEm
           ? `Venceu em ${new Date(aluno.acesso.expiraEm).toLocaleDateString('pt-BR')}`
@@ -506,7 +506,7 @@ function Stat({
 }) {
   return (
     <div className="pco-card p-3">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-ink-muted">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted">
         {icon}
         {label}
       </div>

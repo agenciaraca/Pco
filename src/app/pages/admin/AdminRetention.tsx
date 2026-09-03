@@ -216,7 +216,7 @@ export default function AdminRetention() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <ul className="mt-3 space-y-1 text-[11px] text-ink-subtle">
+                  <ul className="mt-3 space-y-1 text-xs text-ink-subtle">
                     {rel.cursos.map((c) => (
                       <li key={c.id} className="flex justify-between gap-2">
                         <span className="truncate">{c.nome}</span>
@@ -295,7 +295,7 @@ export default function AdminRetention() {
                   <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-pco-orange shrink-0" />
                   <span>
                     {n.o_que}
-                    <span className="block text-[11px] text-ink-subtle">
+                    <span className="block text-xs text-ink-subtle">
                       por quê: {n.depende_de}
                     </span>
                   </span>
@@ -338,7 +338,7 @@ function Kpi({
   return (
     <div className="pco-card">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+        <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
           {label}
         </div>
         <div className={`h-8 w-8 rounded-lg grid place-items-center ${colorMap.bg}`}>
@@ -346,7 +346,7 @@ function Kpi({
         </div>
       </div>
       <div className="mt-2 text-xl font-bold tracking-tight text-pco-deep">{value}</div>
-      <p className="mt-1 text-[10px] text-ink-subtle">{nota}</p>
+      <p className="mt-1 text-xs text-ink-subtle">{nota}</p>
     </div>
   );
 }

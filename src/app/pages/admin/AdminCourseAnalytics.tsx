@@ -124,7 +124,7 @@ export default function AdminCourseAnalytics() {
                       row.viewers === 0 ? 0 : Math.round(row.totalSeconds / row.viewers);
                     return (
                       <tr key={row.lessonId}>
-                        <td className="px-3 py-2 font-mono text-[10px]">
+                        <td className="px-3 py-2 font-mono text-xs">
                           {row.lessonId}
                         </td>
                         <td className="px-3 py-2 text-right">
@@ -176,12 +176,12 @@ function Card({
 }) {
   return (
     <div className="pco-card p-4">
-      <div className="flex items-center gap-2 text-[10px] uppercase text-ink-muted">
+      <div className="flex items-center gap-2 text-xs uppercase text-ink-muted">
         {icon}
         {label}
       </div>
       <div className="mt-1 text-2xl font-bold text-pco-deep">{value}</div>
-      {hint && <div className="text-[11px] text-ink-subtle mt-0.5">{hint}</div>}
+      {hint && <div className="text-xs text-ink-subtle mt-0.5">{hint}</div>}
     </div>
   );
 }

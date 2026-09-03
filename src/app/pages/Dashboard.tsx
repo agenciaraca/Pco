@@ -168,13 +168,13 @@ export default function Dashboard() {
             <PlayCircle size={22} strokeWidth={1.75} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
+            <div className="text-xs uppercase tracking-wide text-ink-subtle">
               {t('dashboard.continueFromHere')}
             </div>
             <div className="text-base font-bold text-pco-deep truncate">
               {lastLessonQ.data.lessonTitle}
             </div>
-            <div className="text-[11px] text-ink-muted truncate">
+            <div className="text-xs text-ink-muted truncate">
               {lastLessonQ.data.courseTitle} · {lastLessonQ.data.moduleTitle}
             </div>
           </div>
@@ -187,14 +187,14 @@ export default function Dashboard() {
           <div className="pco-card p-4 flex items-center gap-4 bg-gradient-to-r from-pco-orange/10 to-transparent">
             <div className="text-3xl">🔥</div>
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
+              <div className="text-xs uppercase tracking-wide text-ink-subtle">
                 Sequência atual
               </div>
               <div className="text-lg font-bold text-pco-deep">
                 {streakQ.data.current} dia{streakQ.data.current !== 1 ? 's' : ''} estudando
                 seguidos
               </div>
-              <div className="text-[11px] text-ink-muted">
+              <div className="text-xs text-ink-muted">
                 Recorde: {streakQ.data.longest} dia
                 {streakQ.data.longest !== 1 ? 's' : ''}
                 {streakQ.data.lastActiveDay && (
@@ -241,7 +241,7 @@ export default function Dashboard() {
             <PlayCircle size={22} className="text-pco-blue" strokeWidth={2} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
+            <div className="text-xs uppercase tracking-wide text-ink-subtle">
               {aindaNaoComecou ? 'Comece por aqui' : 'Continue de onde parou'}
             </div>
             <div className="mt-1 text-base font-semibold text-pco-deep truncate">
@@ -328,7 +328,7 @@ export default function Dashboard() {
                   )}
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.25),transparent_60%)]" />
                   <div className="absolute bottom-3 left-4 text-white">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
+                    <div className="text-xs font-semibold uppercase tracking-wider opacity-80">
                       Curso
                     </div>
                     <div className="text-base font-bold">{course.shortTitle}</div>
@@ -342,7 +342,7 @@ export default function Dashboard() {
                 <h3 className="text-base font-semibold text-pco-deep">{course.title}</h3>
                 <p className="text-xs text-ink-muted mt-1 line-clamp-2">{course.description}</p>
                 <div className="mt-4">
-                  <div className="flex justify-between text-[11px] text-ink-muted mb-1">
+                  <div className="flex justify-between text-xs text-ink-muted mb-1">
                     <span>Progresso</span>
                     <span className="font-semibold text-pco-deep">{pct}%</span>
                   </div>
@@ -387,7 +387,7 @@ export default function Dashboard() {
         </div>
 
         <div className="pco-card">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle mb-3">
+          <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle mb-3">
             Apoio rápido
           </div>
           <ul className="space-y-2 text-sm">
@@ -398,7 +398,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1">
                   <div className="font-medium text-pco-deep">Tutor Virtual</div>
-                  <div className="text-[11px] text-ink-subtle">Tire dúvidas pedagógicas</div>
+                  <div className="text-xs text-ink-subtle">Tire dúvidas pedagógicas</div>
                 </div>
               </Link>
             </li>
@@ -409,7 +409,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1">
                   <div className="font-medium text-pco-deep">PCO POD</div>
-                  <div className="text-[11px] text-ink-subtle">Conteúdo em áudio</div>
+                  <div className="text-xs text-ink-subtle">Conteúdo em áudio</div>
                 </div>
               </Link>
             </li>
@@ -420,7 +420,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1">
                   <div className="font-medium text-pco-deep">Biblioteca PCO</div>
-                  <div className="text-[11px] text-ink-subtle">Materiais de leitura</div>
+                  <div className="text-xs text-ink-subtle">Materiais de leitura</div>
                 </div>
               </Link>
             </li>
@@ -443,7 +443,7 @@ export default function Dashboard() {
           {(newsQ.data ?? []).slice(0, 2).map((article) => (
             <article key={article.id} className="pco-card pco-card-hover">
               <div className={`h-24 rounded-xl bg-gradient-to-br ${article.coverColor} mb-3`} />
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-pco-blue">
+              <div className="text-xs font-semibold uppercase tracking-wider text-pco-blue">
                 {article.category}
               </div>
               <h3 className="mt-1 text-base font-semibold text-pco-deep line-clamp-2">
@@ -457,7 +457,7 @@ export default function Dashboard() {
               <div className={`h-24 rounded-xl bg-gradient-to-br ${pod.coverColor} mb-3 grid place-items-center`}>
                 <Mic2 size={28} className="text-white" strokeWidth={1.5} />
               </div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-pco-cyan">
+              <div className="text-xs font-semibold uppercase tracking-wider text-pco-cyan">
                 PCO POD
               </div>
               <h3 className="mt-1 text-base font-semibold text-pco-deep line-clamp-2">

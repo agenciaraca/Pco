@@ -2,25 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Estas variáveis são a MESMA paleta do `tailwind.config.js`, por valor.
+ *
+ * Até 3/set/2026 não eram: aqui o laranja era #fe9002 (o config já tinha
+ * migrado para #ff914d), `--ink-subtle` era #98a2b3 (2,58:1 contra o branco) e
+ * os `--status-*` estavam no padrão do Tailwind, não no do desenho aprovado. E
+ * como é este arquivo que alimenta `body`, `::selection`, a barra de rolagem e
+ * **todo o modo escuro**, metade do produto lia uma paleta e metade lia outra.
+ *
+ * Ao mexer numa cor, mexa nos dois lugares — ou o desenho volta a divergir.
+ */
 :root {
   --pco-blue: #0097b2;
+  --pco-blue-ink: #00798e;
   --pco-cyan: #0cc0df;
   --pco-cyan-light: #5ce1e6;
-  --pco-orange: #fe9002;
+  --pco-orange: #ff914d;
+  --pco-orange-ink: #b8530c;
   --pco-deep: #063b49;
   --pco-graphite: #101828;
+  --pco-border: #e2e6e3;
 
   --surface-white: #ffffff;
-  --surface-off: #f8fcfd;
-  --surface-gray: #eef5f7;
+  --surface-off: #f9faf8;
+  --surface-gray: #eaece6;
+  --surface-mute: #eef0ec;
 
   --ink-base: #101828;
-  --ink-muted: #475467;
-  --ink-subtle: #98a2b3;
+  --ink-strong: #101828;
+  --ink-muted: #575c62;
+  --ink-subtle: #6f757c;
 
-  --status-success: #16a34a;
-  --status-danger: #d92d20;
-  --status-warning: #f59e0b;
+  --status-success: #2f7d4f;
+  --status-danger: #b0422f;
+  --status-warning: #9a6a12;
   --status-gold: #d6a84f;
 }
 
@@ -40,8 +56,18 @@ html[data-theme='dark'] {
   --surface-gray: #1c2a30;
 
   --ink-base: #e5edf0;
+  --ink-strong: #e5edf0;
   --ink-muted: #9aa9ae;
-  --ink-subtle: #6b7c82;
+  /* Era #6b7c82 (3,89:1 sobre a superfície escura). Agora 5,02:1. */
+  --ink-subtle: #7d8f96;
+  --surface-mute: #16262c;
+  --pco-border: #24343a;
+  /*
+   * No escuro o azul de marca já dá 4,88:1 — aqui `blue-ink` clareia em vez de
+   * escurecer, porque o que precisa de contraste é a letra sobre fundo escuro.
+   */
+  --pco-blue-ink: #0cc0df;
+  --pco-orange-ink: #ff914d;
 
   color-scheme: dark;
 }
@@ -126,7 +152,14 @@ body,
 }
 
 body {
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /*
+   * Sem 'Inter'. A fonte foi removida do `index.html` para unificar a
+   * tipografia do site e do AVA em system-ui — e esta linha continuava
+   * pedindo Inter, então quem tivesse a fonte instalada localmente via a
+   * letra mudar ao atravessar o login. A pilha é a mesma de
+   * `server/public/styles.ts`.
+   */
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--surface-off);
   color: var(--ink-base);
   -webkit-font-smoothing: antialiased;
@@ -142,10 +175,11 @@ body {
     @apply hover:shadow-lift;
   }
   .pco-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pco-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-off disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pco-blue-ink focus-visible:ring-offset-2 focus-visible:ring-offset-surface-off disabled:opacity-50 disabled:cursor-not-allowed;
   }
+  /* Fundo com letra branca usa o azul legível (5,09:1), não o de marca. */
   .pco-btn-primary {
-    @apply pco-btn bg-pco-blue text-white hover:bg-[#007a92] active:bg-[#006578];
+    @apply pco-btn bg-pco-blue-ink text-white hover:bg-[#00697b] active:bg-[#005a6a];
   }
   .pco-btn-secondary {
     @apply pco-btn bg-white text-pco-deep border border-surface-gray hover:border-pco-blue hover:text-pco-blue;
@@ -154,10 +188,16 @@ body {
     @apply pco-btn bg-transparent text-ink-muted hover:bg-surface-gray hover:text-pco-deep;
   }
   .pco-btn-accent {
-    @apply pco-btn bg-pco-orange text-white hover:bg-[#e07e00];
+    @apply pco-btn bg-pco-orange-ink text-white hover:bg-[#9d460a];
   }
+  /*
+   * O anel de foco era `ring-pco-blue/20` — 20% de opacidade, algo perto de
+   * 1,3:1 contra o branco. O que sobrava de sinal era a mudança de cor da
+   * borda. Agora o anel é opaco e escuro, e usa `focus-visible` para não
+   * aparecer em clique de mouse.
+   */
   .pco-input {
-    @apply w-full rounded-xl border border-surface-gray bg-white px-4 py-2.5 text-sm text-ink-base placeholder:text-ink-subtle focus:outline-none focus:border-pco-blue focus:ring-2 focus:ring-pco-blue/20 transition-all duration-150 ease-smooth;
+    @apply w-full rounded-xl border border-surface-gray bg-white px-4 py-2.5 text-sm text-ink-base placeholder:text-ink-subtle focus:outline-none focus:border-pco-blue-ink focus-visible:ring-2 focus-visible:ring-pco-blue-ink transition-all duration-150 ease-smooth;
   }
   .pco-badge {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
@@ -238,4 +278,26 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--pco-blue);
+}
+
+/*
+ * Quem pede menos movimento recebe menos movimento.
+ *
+ * Não havia uma única consulta `prefers-reduced-motion` no produto, e há
+ * `animate-pulse`, `animate-spin` em todo carregamento, transições de 200–500ms
+ * e uma celebração de conquista que dispara sozinha ao concluir a aula. Para
+ * quem tem enxaqueca vestibular ou distúrbio de atenção, isso não é enfeite.
+ *
+ * `0.01ms` em vez de `none`: mantém o disparo de `transitionend`/`animationend`
+ * que algum componente pode estar esperando, sem movimento perceptível.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

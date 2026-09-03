@@ -94,7 +94,7 @@ export default function Library() {
         </div>
         {allTags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
-            <span className="text-[11px] text-ink-subtle uppercase mr-1">Tags:</span>
+            <span className="text-xs text-ink-subtle uppercase mr-1">Tags:</span>
             <button
               type="button"
               onClick={() => setActiveTag(null)}
@@ -122,7 +122,7 @@ export default function Library() {
             ))}
           </div>
         )}
-        <div className="flex items-center gap-1 text-[11px] text-ink-muted">
+        <div className="flex items-center gap-1 text-xs text-ink-muted">
           <Filter size={11} strokeWidth={2} />
           {filtered.length} item{filtered.length === 1 ? '' : 's'} de {libraryItems.length}
         </div>
@@ -155,7 +155,7 @@ export default function Library() {
                   <h3 className="text-sm font-semibold text-pco-deep">{item.title}</h3>
                   <p className="mt-0.5 text-xs text-ink-muted">por {item.author}</p>
                   {item.theme && (
-                    <p className="mt-0.5 text-[11px] text-ink-subtle">{item.theme}</p>
+                    <p className="mt-0.5 text-xs text-ink-subtle">{item.theme}</p>
                   )}
                 </div>
               </div>

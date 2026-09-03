@@ -27,15 +27,25 @@ test.describe('AVA PCO smoke', () => {
     // Aceita qualquer landing — login, marketing ou catálogo.
     await page.waitForLoadState('networkidle');
 
-    // Filtra ruídos esperados (Sentry init falhando sem DSN, 404 de favicon).
-    const realErrors = errors.filter(
-      (e) =>
-        !/favicon/i.test(e) &&
-        !/sentry/i.test(e) &&
-        !/404/i.test(e) &&
-        !/Failed to load resource/i.test(e),
-    );
-    expect(realErrors).toEqual([]);
+    // Filtra ruídos esperados — e **só** eles.
+    //
+    // O filtro antigo descartava tudo que casasse `/404/i` ou
+    // `/Failed to load resource/i`. A segunda é como o Chromium relata
+    // **qualquer** requisição falha, 500 e 429 inclusive: a home podia carregar
+    // com a API inteira quebrada e este teste passava. O que ele provava era
+    // "o HTML renderiza e não houve exceção de JS" — não "renderiza sem erro".
+    const ruidoEsperado = [
+      /favicon/i,
+      /sentry/i,
+      // 404 de recurso opcional (imagem de capa ausente no seed, por exemplo).
+      /Failed to load resource.*40[34]/i,
+    ];
+    const realErrors = errors.filter((e) => !ruidoEsperado.some((r) => r.test(e)));
+    expect(
+      realErrors,
+      'A home carregou com erro de console. 5xx e 429 falham aqui de propósito: ' +
+        'antes eram engolidos pelo filtro.',
+    ).toEqual([]);
   });
 
   test('rota /login mostra formulário', async ({ page }) => {

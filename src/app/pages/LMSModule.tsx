@@ -42,7 +42,7 @@ export default function LMSModule() {
         >
           ← {course.shortTitle}
         </Link>
-        <div className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+        <div className="mt-2 text-xs font-semibold uppercase tracking-wider text-ink-subtle">
           Módulo {module.order}
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-pco-deep">{module.title}</h1>
@@ -52,7 +52,7 @@ export default function LMSModule() {
       <div className="pco-card p-5">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[200px]">
-            <div className="flex justify-between text-[11px] text-ink-muted mb-1">
+            <div className="flex justify-between text-xs text-ink-muted mb-1">
               <span>Aulas concluídas</span>
               <span className="font-semibold text-pco-deep">
                 {completed}/{module.lessons.length}
@@ -101,7 +101,7 @@ export default function LMSModule() {
                     {lesson.title}
                     {lessonsWithNotes.has(lesson.id) && (
                       <span
-                        className="inline-flex items-center gap-1 pco-badge bg-pco-cyan/10 text-pco-cyan text-[10px]"
+                        className="inline-flex items-center gap-1 pco-badge bg-pco-cyan/10 text-pco-cyan text-xs"
                         title="Você tem uma anotação nesta aula"
                       >
                         <StickyNote size={9} strokeWidth={2} />
@@ -109,7 +109,7 @@ export default function LMSModule() {
                       </span>
                     )}
                   </div>
-                  <div className="mt-0.5 flex items-center gap-3 text-[11px] text-ink-subtle">
+                  <div className="mt-0.5 flex items-center gap-3 text-xs text-ink-subtle">
                     <span className="inline-flex items-center gap-1">
                       <Clock size={11} strokeWidth={2} />
                       {lesson.durationMinutes} min

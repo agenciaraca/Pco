@@ -280,7 +280,7 @@ export default function AdminUsuarios() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-off">
-                <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+                <tr className="text-xs uppercase tracking-wider text-ink-subtle">
                   <th className="px-3 py-3 text-left">
                     <input
                       type="checkbox"
@@ -340,10 +340,10 @@ export default function AdminUsuarios() {
                             <div className="font-semibold text-pco-deep">
                               {u.name}
                               {isMe && (
-                                <span className="ml-2 text-[10px] text-pco-blue">(você)</span>
+                                <span className="ml-2 text-xs text-pco-blue">(você)</span>
                               )}
                             </div>
-                            <div className="text-[11px] text-ink-subtle">{u.email}</div>
+                            <div className="text-xs text-ink-subtle">{u.email}</div>
                           </div>
                         </Link>
                       </td>
@@ -523,7 +523,7 @@ function Stat({
             : 'text-pco-deep';
   return (
     <div className="pco-card">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+      <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
         {label}
       </div>
       <div className={`mt-1 text-2xl font-bold ${color}`}>{value}</div>
@@ -662,14 +662,14 @@ function UserEditor({ user, isSuperadmin, allRoles, submitting, onClose, onSubmi
             ))}
           </select>
           {!isSuperadmin && (
-            <p className="mt-1 text-[11px] text-ink-subtle">
+            <p className="mt-1 text-xs text-ink-subtle">
               Apenas superadmin pode atribuir o papel "Superadmin".
             </p>
           )}
           {selectedRoleSlug !== 'student' &&
             selectedRoleSlug !== 'admin' &&
             selectedRoleSlug !== 'superadmin' && (
-              <p className="mt-1 text-[11px] text-ink-subtle">
+              <p className="mt-1 text-xs text-ink-subtle">
                 Papéis criados em /admin/papeis hoje funcionam como documentação:
                 a autorização efetiva continua usando "Aluno" como base. RBAC
                 dinâmico ativa o enforcement em sprint futuro.
@@ -693,7 +693,7 @@ function UserEditor({ user, isSuperadmin, allRoles, submitting, onClose, onSubmi
                 <button
                   type="button"
                   onClick={() => setValue('password' as 'password', genStrongPassword())}
-                  className="text-[10px] text-pco-blue hover:underline px-2"
+                  className="text-xs text-pco-blue hover:underline px-2"
                   title="Gerar nova senha"
                 >
                   Gerar
@@ -709,7 +709,7 @@ function UserEditor({ user, isSuperadmin, allRoles, submitting, onClose, onSubmi
               </div>
             </div>
             {passwordValue && (
-              <p className="mt-1 text-[11px] text-ink-subtle">
+              <p className="mt-1 text-xs text-ink-subtle">
                 Anote esta senha — ela não será mostrada de novo.
               </p>
             )}
@@ -771,7 +771,7 @@ function PasswordResetter({ user, submitting, onClose, onSubmit }: PasswordReset
               <button
                 type="button"
                 onClick={() => setValue('password', genStrongPassword())}
-                className="text-[10px] text-pco-blue hover:underline px-2"
+                className="text-xs text-pco-blue hover:underline px-2"
               >
                 Gerar
               </button>
@@ -784,7 +784,7 @@ function PasswordResetter({ user, submitting, onClose, onSubmit }: PasswordReset
               </button>
             </div>
           </div>
-          <p className="mt-1 text-[11px] text-ink-subtle">
+          <p className="mt-1 text-xs text-ink-subtle">
             Mínimo 8 caracteres. Anote — não será exibida novamente.
           </p>
         </Field>
@@ -828,7 +828,7 @@ function ModalShell({
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
             {subtitle && (
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+              <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
                 {subtitle}
               </div>
             )}

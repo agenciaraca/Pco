@@ -90,7 +90,7 @@ export default function AdminSaude() {
                       ? 'Atenção em alguns módulos'
                       : 'Falha crítica'}
                 </div>
-                <div className="text-[11px] text-ink-subtle mt-1">
+                <div className="text-xs text-ink-subtle mt-1">
                   Atualizado em {new Date(data.generatedAt).toLocaleString('pt-BR')}
                 </div>
               </div>

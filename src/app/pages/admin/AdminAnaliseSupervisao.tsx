@@ -106,7 +106,7 @@ function AvisoVendaCasada() {
           {data?.aviso ??
             'Análise, supervisão e orientação são opcionais e não são requisito para nenhum curso.'}
         </p>
-        {data?.baseLegal && <p className="text-[11px] text-ink-muted">{data.baseLegal}</p>}
+        {data?.baseLegal && <p className="text-xs text-ink-muted">{data.baseLegal}</p>}
       </div>
     </div>
   );
@@ -419,7 +419,7 @@ function ProfissionaisPane() {
                     {p.available ? 'Disponível' : 'Sem agenda'}
                   </button>
                 </div>
-                <p className="text-[11px] text-ink-subtle mt-0.5">{p.credentials}</p>
+                <p className="text-xs text-ink-subtle mt-0.5">{p.credentials}</p>
                 <p className="text-xs text-ink-muted line-clamp-2 mt-1">{p.bio}</p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {p.specialties.map((sp) => (
@@ -428,7 +428,7 @@ function ProfissionaisPane() {
                     </span>
                   ))}
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-ink-subtle">
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-subtle">
                   <span className="inline-flex items-center gap-1">
                     <Mail size={11} />
                     {p.email}
@@ -445,7 +445,7 @@ function ProfissionaisPane() {
                   segundo o deixava valendo R$ 0,00.
                 */}
                 {(p.serviceIds.length === 0 || p.precoIndefinido) && (
-                  <div className="mt-2 rounded-lg bg-pco-orange/10 px-2.5 py-2 text-[11px] text-pco-orange">
+                  <div className="mt-2 rounded-lg bg-pco-orange/10 px-2.5 py-2 text-xs text-pco-orange">
                     Não aparece para o aluno:{' '}
                     {p.serviceIds.length === 0
                       ? 'nenhum serviço marcado'
@@ -696,7 +696,7 @@ function AgendaPane() {
           {diasSemana.map((d, i) => (
             <div
               key={`${d}-${i}`}
-              className="text-[11px] uppercase tracking-wider text-ink-subtle text-center py-1"
+              className="text-xs uppercase tracking-wider text-ink-subtle text-center py-1"
             >
               {d}
             </div>
@@ -748,7 +748,7 @@ function AgendaPane() {
           <ul className="space-y-2">
             {proximas.map((b) => (
               <li key={b.id} className="rounded-xl bg-surface-off p-3">
-                <div className="text-[11px] font-semibold text-pco-blue">
+                <div className="text-xs font-semibold text-pco-blue">
                   {new Date(b.scheduledFor).toLocaleString('pt-BR', {
                     day: '2-digit',
                     month: '2-digit',
@@ -757,7 +757,7 @@ function AgendaPane() {
                   })}
                 </div>
                 <div className="text-sm font-semibold text-pco-deep">{b.userEmail}</div>
-                <div className="text-[11px] text-ink-subtle">
+                <div className="text-xs text-ink-subtle">
                   {b.serviceName} · {b.professionalName}
                 </div>
               </li>
@@ -840,7 +840,7 @@ function ValoresPane() {
               >
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-pco-deep">{f.label}</div>
-                  <div className="text-[11px] text-ink-muted">
+                  <div className="text-xs text-ink-muted">
                     {f.description}
                     {quantos > 0 && (
                       <>
@@ -921,7 +921,7 @@ function IntegracoesPane() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div className="text-sm font-semibold text-pco-deep">Zoom</div>
-            <div className="text-[11px] text-ink-subtle">
+            <div className="text-xs text-ink-subtle">
               {zoomConfigurado
                 ? 'Configurado — sessões ao vivo podem usar o SDK do Zoom.'
                 : 'Não configurado.'}
@@ -1026,7 +1026,7 @@ function AgendamentosPane() {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-surface-off">
-            <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+            <tr className="text-xs uppercase tracking-wider text-ink-subtle">
               <th className="px-4 py-3 text-left font-medium">Aluno</th>
               <th className="px-4 py-3 text-left font-medium">Serviço</th>
               <th className="px-4 py-3 text-left font-medium">Profissional</th>
@@ -1140,7 +1140,7 @@ function PoliticasPane() {
           <li>O certificado sai igual para quem contrata e para quem não contrata.</li>
           <li>Pacote com desconto continua sendo compra avulsa — nunca condição.</li>
         </ul>
-        <p className="text-[11px] text-ink-subtle">
+        <p className="text-xs text-ink-subtle">
           Este aviso aparece nas telas do aluno e antes de qualquer agendamento.
         </p>
       </div>
@@ -1153,7 +1153,7 @@ function PoliticasPane() {
       */}
       <div className="pco-card space-y-3">
         <h3 className="text-base font-semibold text-pco-deep">Políticas adicionais</h3>
-        <p className="rounded-lg bg-pco-orange/10 px-3 py-2 text-[11px] text-pco-orange">
+        <p className="rounded-lg bg-pco-orange/10 px-3 py-2 text-xs text-pco-orange">
           Ainda não implementadas. Hoje o aluno pode cancelar ou remarcar até a hora da
           sessão, sem prazo mínimo — e é isso que o sistema faz, independentemente do que
           for escolhido aqui.
@@ -1185,7 +1185,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-surface-off p-2">
-      <div className="text-[10px] uppercase tracking-wider text-ink-subtle">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-ink-subtle">{label}</div>
       <div className="text-sm font-semibold text-pco-deep">{value}</div>
     </div>
   );

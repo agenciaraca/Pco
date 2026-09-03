@@ -275,21 +275,21 @@ function UsoPane() {
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="pco-card p-4">
-          <div className="text-[11px] uppercase tracking-wide text-ink-muted">Perguntas</div>
+          <div className="text-xs uppercase tracking-wide text-ink-muted">Perguntas</div>
           <div className="mt-1 text-2xl font-bold text-pco-deep">{data.totalTurns}</div>
-          <div className="text-[11px] text-ink-subtle">últimos {data.days} dias</div>
+          <div className="text-xs text-ink-subtle">últimos {data.days} dias</div>
         </div>
         <div className="pco-card p-4">
-          <div className="text-[11px] uppercase tracking-wide text-ink-muted">Alunos únicos</div>
+          <div className="text-xs uppercase tracking-wide text-ink-muted">Alunos únicos</div>
           <div className="mt-1 text-2xl font-bold text-pco-deep">{data.uniqueUsers}</div>
-          <div className="text-[11px] text-ink-subtle">interagiram com o Tutor</div>
+          <div className="text-xs text-ink-subtle">interagiram com o Tutor</div>
         </div>
         <div className="pco-card p-4">
-          <div className="text-[11px] uppercase tracking-wide text-ink-muted">Média/aluno</div>
+          <div className="text-xs uppercase tracking-wide text-ink-muted">Média/aluno</div>
           <div className="mt-1 text-2xl font-bold text-pco-deep">
             {data.uniqueUsers > 0 ? (data.totalTurns / data.uniqueUsers).toFixed(1) : 0}
           </div>
-          <div className="text-[11px] text-ink-subtle">perguntas/aluno</div>
+          <div className="text-xs text-ink-subtle">perguntas/aluno</div>
         </div>
       </div>
 
@@ -315,7 +315,7 @@ function UsoPane() {
                     {u.name ?? u.email ?? u.userId}
                   </div>
                   {u.email && (
-                    <div className="text-[11px] text-ink-subtle truncate">{u.email}</div>
+                    <div className="text-xs text-ink-subtle truncate">{u.email}</div>
                   )}
                 </div>
                 <div className="text-sm font-bold text-pco-blue">{u.count}</div>

@@ -223,7 +223,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">Selo</span>
+            <span className="text-xs uppercase tracking-wide text-ink-muted">Selo</span>
             <input
               {...register('badge')}
               placeholder="Curso principal"
@@ -231,7 +231,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Nível exibido
             </span>
             <input
@@ -243,7 +243,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
         </div>
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Frase de efeito
           </span>
           <input
@@ -254,7 +254,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
         </label>
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">Resumo curto</span>
+          <span className="text-xs uppercase tracking-wide text-ink-muted">Resumo curto</span>
           <textarea
             {...register('tldr')}
             rows={3}
@@ -262,7 +262,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
             placeholder="Em duas ou três frases: o que é, para quem serve e o que a pessoa consegue fazer ao final."
             className="pco-input mt-1 text-sm resize-none"
           />
-          <span className="text-[11px] text-ink-subtle">
+          <span className="text-xs text-ink-subtle">
             Vira a descrição da página nos resultados de busca e o primeiro trecho que assistentes
             de IA leem. Responda logo na primeira frase.
           </span>
@@ -270,7 +270,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">Idioma</span>
+            <span className="text-xs uppercase tracking-wide text-ink-muted">Idioma</span>
             <input
               {...register('language')}
               placeholder="pt-BR"
@@ -278,7 +278,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Acesso mín. (meses)
             </span>
             <input
@@ -290,7 +290,7 @@ export default function CoursePublicPane({ course }: { course: Course }) {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Acesso máx. (meses)
             </span>
             <input
@@ -425,7 +425,7 @@ function ListSection<T>({ title, hint, items, onAdd, onRemove, render }: ListSec
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-pco-deep">{title}</h3>
-          <p className="text-[11px] text-ink-muted mt-0.5 max-w-lg">{hint}</p>
+          <p className="text-xs text-ink-muted mt-0.5 max-w-lg">{hint}</p>
         </div>
         <button type="button" onClick={onAdd} className="pco-btn-secondary text-xs shrink-0">
           <Plus size={11} strokeWidth={2} />

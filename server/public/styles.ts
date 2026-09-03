@@ -9,7 +9,7 @@ export const PUBLIC_CSS = `
 *,*::before,*::after{box-sizing:border-box}
 :root{
   --paper:#f9faf8;--surface:#fbfcfa;--surface-2:#eaece6;--raise:#fff;
-  --ink:#101828;--ink-soft:#575c62;--ink-faint:#868c92;
+  --ink:#101828;--ink-soft:#575c62;--ink-faint:#6f757c;
   --line:#dcdfd8;--line-soft:#e8eae4;
   --accent:#0097b2;--accent-ink:#007a91;--accent-soft:#d9eef4;--on-accent:#ffffff;
   /* Ciano claro e petróleo: existiam só no lado do aplicativo. Agora os dois

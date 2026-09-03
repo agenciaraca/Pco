@@ -130,12 +130,12 @@ function Stat({
 }) {
   return (
     <div className="pco-card p-3">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase text-ink-muted">
+      <div className="flex items-center gap-1.5 text-xs uppercase text-ink-muted">
         {icon}
         {label}
       </div>
       <div className="mt-1 text-xl font-bold text-pco-deep">{value}</div>
-      {hint && <div className="text-[10px] text-ink-subtle mt-0.5">{hint}</div>}
+      {hint && <div className="text-xs text-ink-subtle mt-0.5">{hint}</div>}
     </div>
   );
 }

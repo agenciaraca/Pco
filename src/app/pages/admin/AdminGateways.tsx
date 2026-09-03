@@ -153,7 +153,7 @@ export default function AdminGateways() {
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 text-[11px] text-ink-subtle">
+                      <div className="mt-1 text-xs text-ink-subtle">
                         API key: {g.hasApiKey ? '✓ configurada' : '— vazia'}
                         {' · '}
                         secret: {g.hasApiSecret ? '✓' : '—'}
@@ -296,7 +296,7 @@ function GatewayEditor({ editing, providers, submitting, onClose, onSubmit }: Ed
       <div className="relative pco-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-0">
         <div className="sticky top-0 bg-white border-b border-surface-gray px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Gateway
             </div>
             <h2 className="text-lg font-bold text-pco-deep">
@@ -404,7 +404,7 @@ function GatewayEditor({ editing, providers, submitting, onClose, onSubmit }: Ed
                   <option value="debit">Cartão de débito</option>
                 </select>
               </Field>
-              <p className="text-[11px] text-ink-subtle">
+              <p className="text-xs text-ink-subtle">
                 A chave de API precisa do escopo <code>charges:write</code>, e no servidor da Sandra
                 a variável <code>PUBLIC_CHARGES</code> tem de estar ligada — em <code>off</code> a
                 rota responde 404. Enquanto ela não avisa o pagamento, quem confirma é a varredura
@@ -453,7 +453,7 @@ function GatewayEditor({ editing, providers, submitting, onClose, onSubmit }: Ed
               <button
                 type="button"
                 onClick={() => setShowSecrets((v) => !v)}
-                className="pco-btn-ghost text-[11px]"
+                className="pco-btn-ghost text-xs"
               >
                 {showSecrets ? <EyeOff size={11} /> : <Eye size={11} />}
                 {showSecrets ? 'Ocultar' : 'Mostrar'}
@@ -545,7 +545,7 @@ function Field({
     <label className="block mb-3">
       <div className="text-xs font-medium text-ink-muted mb-1.5">
         {label}
-        {hint && <span className="ml-1 text-[10px] text-ink-subtle">· {hint}</span>}
+        {hint && <span className="ml-1 text-xs text-ink-subtle">· {hint}</span>}
       </div>
       {children}
     </label>

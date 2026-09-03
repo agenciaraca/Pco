@@ -72,7 +72,7 @@ export default function News() {
             </option>
           ))}
         </select>
-        <span className="text-[11px] text-ink-muted inline-flex items-center gap-1">
+        <span className="text-xs text-ink-muted inline-flex items-center gap-1">
           <Filter size={11} strokeWidth={2} />
           {filtered.length} de {newsArticles.length}
         </span>
@@ -89,7 +89,7 @@ export default function News() {
             <article className="pco-card pco-card-hover overflow-hidden p-0">
               <div className={`h-56 bg-gradient-to-br ${featured.coverColor}`} />
               <div className="p-6">
-                <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-pco-blue">
+                <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-pco-blue">
                   Destaque · {featured.category}
                 </div>
                 <h2 className="mt-2 text-2xl font-bold text-pco-deep">{featured.title}</h2>
@@ -109,7 +109,7 @@ export default function News() {
             {others.map((a) => (
               <article key={a.id} className="pco-card pco-card-hover">
                 <div className={`h-32 rounded-xl bg-gradient-to-br ${a.coverColor} mb-3`} />
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-pco-blue">
+                <div className="text-xs font-semibold uppercase tracking-wider text-pco-blue">
                   {a.category}
                 </div>
                 <h3 className="mt-1 text-base font-semibold text-pco-deep line-clamp-2">
@@ -124,7 +124,7 @@ export default function News() {
                     </span>
                   ))}
                 </div>
-                <div className="mt-3 text-[11px] text-ink-subtle">
+                <div className="mt-3 text-xs text-ink-subtle">
                   {new Date(a.publishedAt).toLocaleDateString('pt-BR')} · {a.authorName}
                 </div>
               </article>

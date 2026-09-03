@@ -94,12 +94,12 @@ export default function AdminLiveSessions() {
                         {s.statusComputed}
                       </span>
                       {s.audience === 'enrolled' && (
-                        <span className="pco-badge bg-pco-cyan/15 text-pco-cyan text-[10px]">
+                        <span className="pco-badge bg-pco-cyan/15 text-pco-cyan text-xs">
                           só matriculados
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-ink-subtle mt-0.5 inline-flex items-center gap-2 flex-wrap">
+                    <div className="text-xs text-ink-subtle mt-0.5 inline-flex items-center gap-2 flex-wrap">
                       <Calendar size={10} strokeWidth={2} />
                       {start.toLocaleString('pt-BR')} · {s.durationMinutes} min
                       {s.hostName && (
@@ -399,7 +399,7 @@ function Editor({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       <div className="mt-1">{children}</div>
     </label>
   );

@@ -232,7 +232,7 @@ export default function AdminEmailTemplates() {
           </header>
 
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Subject
             </span>
             <input
@@ -244,7 +244,7 @@ export default function AdminEmailTemplates() {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Cor primária (#RRGGBB)
             </span>
             <input
@@ -256,7 +256,7 @@ export default function AdminEmailTemplates() {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Logo URL (opcional)
             </span>
             <input
@@ -268,7 +268,7 @@ export default function AdminEmailTemplates() {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Nome da organização
             </span>
             <input
@@ -280,7 +280,7 @@ export default function AdminEmailTemplates() {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Mensagem extra no topo (greeting)
             </span>
             <textarea
@@ -293,7 +293,7 @@ export default function AdminEmailTemplates() {
             />
           </label>
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Nota de rodapé (footer)
             </span>
             <textarea
@@ -307,7 +307,7 @@ export default function AdminEmailTemplates() {
               maxLength={500}
             />
           </label>
-          <p className="text-[11px] text-ink-subtle">
+          <p className="text-xs text-ink-subtle">
             Campos vazios usam o default global do template. Cor inválida
             (não-hex) é ignorada.
           </p>
@@ -316,7 +316,7 @@ export default function AdminEmailTemplates() {
             <summary className="text-xs font-semibold text-pco-deep px-3 py-2 cursor-pointer bg-surface-off hover:bg-surface-gray inline-flex items-center gap-1.5 w-full">
               <Info size={12} strokeWidth={2} />
               Variáveis disponíveis neste template
-              <span className="ml-auto text-[10px] text-ink-subtle font-normal">
+              <span className="ml-auto text-xs text-ink-subtle font-normal">
                 {TEMPLATE_VARS[active]?.length ?? 0} vars
               </span>
             </summary>
@@ -331,7 +331,7 @@ export default function AdminEmailTemplates() {
                         .then(() => toast.success(`{{${v.key}}} copiado`))
                         .catch(() => {});
                     }}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-pco-blue/10 text-pco-blue font-mono text-[11px] hover:bg-pco-blue/20"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-pco-blue/10 text-pco-blue font-mono text-xs hover:bg-pco-blue/20"
                     title="Copiar placeholder"
                   >
                     {`{{${v.key}}}`}
@@ -340,7 +340,7 @@ export default function AdminEmailTemplates() {
                   <span className="text-ink-muted">{v.desc}</span>
                 </div>
               ))}
-              <p className="text-[10px] text-ink-subtle pt-1 border-t border-pco-border mt-2">
+              <p className="text-xs text-ink-subtle pt-1 border-t border-pco-border mt-2">
                 Estas variáveis aparecem automaticamente no corpo do template
                 (sistema). Use os mesmos termos no subject/greeting/footer pra
                 manter consistência visual.
@@ -365,7 +365,7 @@ export default function AdminEmailTemplates() {
           </header>
           {previewSubject && (
             <div className="p-3 bg-surface-mute/30 border-b border-pco-border">
-              <div className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <div className="text-xs uppercase tracking-wide text-ink-muted">
                 Subject
               </div>
               <div className="text-sm font-medium text-pco-deep mt-0.5">

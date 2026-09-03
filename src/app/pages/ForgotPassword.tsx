@@ -50,7 +50,7 @@ export default function ForgotPassword() {
               </p>
               {devToken && (
                 <div className="mt-4 rounded-lg bg-surface-mute p-3 text-left">
-                  <p className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <p className="text-xs uppercase tracking-wide text-ink-muted">
                     Token (modo dev)
                   </p>
                   <code className="block mt-1 break-all text-xs text-pco-deep">{devToken}</code>

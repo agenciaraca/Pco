@@ -100,7 +100,7 @@ export default function Bundles() {
               <div className="relative h-32 bg-gradient-to-br from-pco-blue to-pco-cyan p-5">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.2),transparent_60%)]" />
                 <div className="relative flex flex-col justify-between h-full text-white">
-                  <span className="inline-flex items-center self-start px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold uppercase tracking-wider gap-1">
+                  <span className="inline-flex items-center self-start px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-xs font-semibold uppercase tracking-wider gap-1">
                     <Package size={10} />
                     Pacote · {bundleCourses.length} cursos
                   </span>
@@ -116,7 +116,7 @@ export default function Bundles() {
                 )}
 
                 <div>
-                  <h4 className="text-[11px] uppercase tracking-wide text-ink-muted mb-2 flex items-center gap-1">
+                  <h4 className="text-xs uppercase tracking-wide text-ink-muted mb-2 flex items-center gap-1">
                     <BookOpen size={11} />
                     Cursos inclusos
                   </h4>
@@ -142,7 +142,7 @@ export default function Bundles() {
                   <div className="flex items-end justify-between gap-3">
                     <div>
                       {savings && (
-                        <div className="text-[11px] text-ink-subtle line-through">
+                        <div className="text-xs text-ink-subtle line-through">
                           {(savings.regularSum / 100).toLocaleString('pt-BR', {
                             style: 'currency',
                             currency: bundle.currency,
@@ -153,7 +153,7 @@ export default function Bundles() {
                         {price}
                       </div>
                       {savings && (
-                        <div className="text-[11px] font-semibold text-status-success flex items-center gap-1">
+                        <div className="text-xs font-semibold text-status-success flex items-center gap-1">
                           <Star size={10} className="fill-status-success" />
                           Economia de {savings.pct}%
                         </div>

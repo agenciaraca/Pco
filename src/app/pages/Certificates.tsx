@@ -65,7 +65,7 @@ export default function Certificates() {
                     <Award size={22} className="text-status-gold" strokeWidth={1.75} />
                   </div>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
                       Certificado
                     </div>
                     <h3 className="text-base font-semibold text-pco-deep">{course.title}</h3>
@@ -89,7 +89,7 @@ export default function Certificates() {
               </div>
 
               <div>
-                <div className="flex justify-between text-[11px] text-ink-muted mb-1">
+                <div className="flex justify-between text-xs text-ink-muted mb-1">
                   <span>Progresso para emissão</span>
                   <span className="font-semibold text-pco-deep">{cert.progress}%</span>
                 </div>
@@ -103,16 +103,16 @@ export default function Certificates() {
 
               <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                 <div className="rounded-lg bg-surface-off p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-ink-subtle">
+                  <div className="text-xs uppercase tracking-wider text-ink-subtle">
                     Carga horária
                   </div>
                   <div className="font-semibold text-pco-deep">{course.totalHours}h</div>
                 </div>
                 <div className="rounded-lg bg-surface-off p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-ink-subtle">
+                  <div className="text-xs uppercase tracking-wider text-ink-subtle">
                     Código de validação
                   </div>
-                  <div className="font-mono text-[11px] font-semibold text-pco-deep">
+                  <div className="font-mono text-xs font-semibold text-pco-deep">
                     {cert.validationCode}
                   </div>
                 </div>

@@ -60,7 +60,7 @@ export default function AdminAchievements() {
                     <h3 className="text-sm font-bold text-pco-deep">{b.name}</h3>
                     <span className="text-sm font-bold text-pco-deep">
                       {b.awarded}{' '}
-                      <span className="text-[11px] text-ink-subtle font-normal">
+                      <span className="text-xs text-ink-subtle font-normal">
                         concedido(s)
                       </span>
                     </span>
@@ -96,7 +96,7 @@ export default function AdminAchievements() {
         ) : (
           <div className="pco-card overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-surface-mute text-ink-muted text-[11px] uppercase">
+              <thead className="bg-surface-mute text-ink-muted text-xs uppercase">
                 <tr>
                   <th className="text-left px-3 py-2 w-10">#</th>
                   <th className="text-left px-3 py-2">Aluno</th>
@@ -111,7 +111,7 @@ export default function AdminAchievements() {
                     </td>
                     <td className="px-3 py-2">
                       <div className="font-semibold text-pco-deep">{u.name}</div>
-                      <div className="text-[11px] text-ink-subtle">
+                      <div className="text-xs text-ink-subtle">
                         {u.email}
                       </div>
                     </td>
@@ -140,7 +140,7 @@ function Stat({
 }) {
   return (
     <div className="pco-card p-3">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-ink-muted">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted">
         {icon}
         {label}
       </div>

@@ -190,11 +190,11 @@ export default function AnaliseSupervisao() {
               <p className="mt-1 text-xs text-ink-muted">{s.description}</p>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-lg bg-surface-off p-2">
-                  <div className="text-[10px] text-ink-subtle">Duração</div>
+                  <div className="text-xs text-ink-subtle">Duração</div>
                   <div className="font-semibold text-pco-deep">{s.durationMinutes} min</div>
                 </div>
                 <div className="rounded-lg bg-surface-off p-2">
-                  <div className="text-[10px] text-ink-subtle">Valor</div>
+                  <div className="text-xs text-ink-subtle">Valor</div>
                   <div className="font-semibold text-pco-deep">
                     R$ {s.price.toLocaleString('pt-BR')}
                   </div>
@@ -207,7 +207,7 @@ export default function AnaliseSupervisao() {
                 <Calendar size={12} strokeWidth={2} />
                 Ver horários
               </button>
-              <p className="mt-2 text-[10px] text-ink-subtle text-center">Serviço opcional</p>
+              <p className="mt-2 text-xs text-ink-subtle text-center">Serviço opcional</p>
             </div>
           );
         })}
@@ -287,7 +287,7 @@ export default function AnaliseSupervisao() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-pco-deep">{s.serviceName}</div>
                   <div className="text-xs text-ink-muted">com {s.professionalName}</div>
-                  <div className="mt-1 flex items-center gap-3 text-[11px] text-ink-subtle">
+                  <div className="mt-1 flex items-center gap-3 text-xs text-ink-subtle">
                     <span className="inline-flex items-center gap-1">
                       <Calendar size={11} />
                       {new Date(s.scheduledFor).toLocaleDateString('pt-BR')}
@@ -507,7 +507,7 @@ function ServiceStep({
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-sm font-semibold text-pco-deep">R$ {s.price}</div>
-                  <div className="text-[11px] text-ink-subtle">{s.durationMinutes} min</div>
+                  <div className="text-xs text-ink-subtle">{s.durationMinutes} min</div>
                 </div>
               </div>
             </button>
@@ -559,7 +559,7 @@ function ProfessionalStep({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-pco-deep">{p.name}</div>
-                <div className="text-[11px] text-ink-muted line-clamp-1">
+                <div className="text-xs text-ink-muted line-clamp-1">
                   {p.specialties.join(', ')}
                 </div>
               </div>
@@ -674,10 +674,10 @@ function DateTimeStep({
             })}
           </div>
           {agendaQ.data && (
-            <p className="mt-2 text-[11px] text-ink-subtle">{agendaQ.data.observacao}</p>
+            <p className="mt-2 text-xs text-ink-subtle">{agendaQ.data.observacao}</p>
           )}
           {agendaQ.data && agendaQ.data.slots.every((sl) => !sl.disponivel) && (
-            <p className="mt-1 text-[11px] text-pco-orange">
+            <p className="mt-1 text-xs text-pco-orange">
               Nenhum horário livre neste dia. Escolha outro.
             </p>
           )}
@@ -730,13 +730,13 @@ function ConfirmStep({
           })}`}
         />
       </div>
-      <p className="mt-3 text-[11px] text-ink-subtle">
+      <p className="mt-3 text-xs text-ink-subtle">
         {service.paymentBeforeConfirmation
           ? 'A sessão fica reservada e você paga em seguida, pelo gateway. A confirmação entra assim que o pagamento é aprovado.'
           : 'A confirmação é manual: a coordenação valida a sessão e envia o link da reunião.'}
       </p>
       {erro && (
-        <p className="mt-3 rounded-lg bg-status-danger/10 p-2.5 text-[11px] text-status-danger">
+        <p className="mt-3 rounded-lg bg-status-danger/10 p-2.5 text-xs text-status-danger">
           {erro}
         </p>
       )}

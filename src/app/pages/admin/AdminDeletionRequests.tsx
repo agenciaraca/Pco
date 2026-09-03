@@ -126,14 +126,14 @@ export default function AdminDeletionRequests() {
                 <div className="flex-1 min-w-[260px]">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span
-                      className={`pco-badge text-[10px] ${STATUS_STYLE[r.status]}`}
+                      className={`pco-badge text-xs ${STATUS_STYLE[r.status]}`}
                     >
                       {STATUS_LABELS[r.status]}
                     </span>
                     <span className="text-sm font-bold text-pco-deep">
                       {r.userEmail}
                     </span>
-                    <span className="text-[11px] text-ink-subtle">
+                    <span className="text-xs text-ink-subtle">
                       <Clock size={10} className="inline" />{' '}
                       {new Date(r.requestedAt).toLocaleString('pt-BR')}
                     </span>
@@ -144,7 +144,7 @@ export default function AdminDeletionRequests() {
                     </p>
                   )}
                   {r.resolutionNote && (
-                    <div className="mt-2 text-[11px] text-ink-subtle">
+                    <div className="mt-2 text-xs text-ink-subtle">
                       <strong>Nota:</strong> {r.resolutionNote}
                       {r.resolvedBy && ` · por ${r.resolvedBy}`}
                       {r.resolvedAt &&

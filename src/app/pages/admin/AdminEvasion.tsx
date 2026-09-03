@@ -224,7 +224,7 @@ export default function AdminEvasion() {
                   >
                     {LEVEL_LABEL[lvl]}
                   </span>
-                  <span className="text-[11px] text-ink-subtle font-medium">
+                  <span className="text-xs text-ink-subtle font-medium">
                     {items.length}
                   </span>
                 </header>
@@ -257,7 +257,7 @@ export default function AdminEvasion() {
                               <div className="text-sm font-semibold text-pco-deep truncate">
                                 {r.studentName}
                               </div>
-                              <div className="flex items-center gap-2 text-[10px] text-ink-subtle mt-0.5">
+                              <div className="flex items-center gap-2 text-xs text-ink-subtle mt-0.5">
                                 <span>Score: <strong>{r.score}</strong></span>
                                 <span>·</span>
                                 <span>{Math.round((Date.now() - new Date(r.lastAccessAt).getTime()) / 86400000)}d inativo</span>
@@ -273,21 +273,21 @@ export default function AdminEvasion() {
                                 {r.realProgress}% / {r.expectedProgress}% esperado
                               </div>
                               {r.reasons && r.reasons.length > 0 && (
-                                <div className="text-[10px] text-ink-muted mt-1 line-clamp-2">
+                                <div className="text-xs text-ink-muted mt-1 line-clamp-2">
                                   {r.reasons.slice(0, 2).join(' · ')}
                                 </div>
                               )}
                               <div className="flex items-center gap-2 mt-1.5">
                                 <Link
                                   to={`/admin/plano-retomada-ia?studentId=${r.studentId}`}
-                                  className="text-[10px] text-pco-blue hover:underline inline-flex items-center gap-0.5 font-medium"
+                                  className="text-xs text-pco-blue hover:underline inline-flex items-center gap-0.5 font-medium"
                                 >
                                   <Sparkles size={9} strokeWidth={2} />
                                   Plano IA
                                 </Link>
                                 <Link
                                   to={`/admin/alunos/${r.studentId}`}
-                                  className="text-[10px] text-ink-muted hover:text-pco-blue hover:underline inline-flex items-center gap-0.5"
+                                  className="text-xs text-ink-muted hover:text-pco-blue hover:underline inline-flex items-center gap-0.5"
                                 >
                                   Perfil
                                   <ArrowRight size={8} strokeWidth={2} />
@@ -309,7 +309,7 @@ export default function AdminEvasion() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-off">
-              <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+              <tr className="text-xs uppercase tracking-wider text-ink-subtle">
                 <th className="px-3 py-3 w-8">
                   <input
                     type="checkbox"
@@ -398,7 +398,7 @@ export default function AdminEvasion() {
                           </span>
                         ))}
                         {r.reasons.length > 2 && (
-                          <span className="text-[11px] text-ink-subtle">
+                          <span className="text-xs text-ink-subtle">
                             +{r.reasons.length - 2}
                           </span>
                         )}
@@ -445,7 +445,7 @@ export default function AdminEvasion() {
       </>
       )}
 
-      <div className="text-[11px] text-ink-subtle">
+      <div className="text-xs text-ink-subtle">
         Score calculado a partir de inatividade, progresso esperado vs real, avaliações pendentes
         e uso de Tutor/POD/Biblioteca.
       </div>

@@ -54,7 +54,7 @@ export default function Footer() {
           </Link>
           {ver?.version && (
             <span
-              className="text-[10px] text-ink-subtle"
+              className="text-xs text-ink-subtle"
               title={`Iniciado em ${ver.startedAt} · ${ver.env}`}
             >
               v{ver.version}

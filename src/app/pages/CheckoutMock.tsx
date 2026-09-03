@@ -72,7 +72,7 @@ export default function CheckoutMock() {
 
         <div className="pco-card p-6 space-y-5">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-pco-orange">
+            <div className="text-xs font-semibold uppercase tracking-wider text-pco-orange">
               Sandbox · checkout simulado
             </div>
             <h1 className="text-2xl font-bold text-pco-deep mt-1">Confirmar pagamento</h1>
@@ -148,7 +148,7 @@ function Row({
     <div className="flex justify-between items-center gap-3">
       <dt className="text-xs text-ink-muted">{label}</dt>
       <dd
-        className={`text-right ${highlight ? 'text-base font-bold text-pco-deep' : 'text-sm font-semibold text-pco-deep'} ${mono ? 'font-mono text-[11px]' : ''}`}
+        className={`text-right ${highlight ? 'text-base font-bold text-pco-deep' : 'text-sm font-semibold text-pco-deep'} ${mono ? 'font-mono text-xs' : ''}`}
       >
         {value || '—'}
       </dd>

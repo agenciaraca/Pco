@@ -89,13 +89,13 @@ export default function SuggestedCourses() {
                 <h3 className="text-sm font-semibold text-pco-deep line-clamp-2">
                   {course.title}
                 </h3>
-                <div className="flex items-center justify-between gap-2 text-[11px]">
+                <div className="flex items-center justify-between gap-2 text-xs">
                   <span className="text-ink-subtle">
                     {overlap} tag{overlap > 1 ? 's' : ''} em comum
                   </span>
                   <span className="font-bold text-pco-deep">{price}</span>
                 </div>
-                <span className="inline-flex items-center text-[11px] text-pco-blue">
+                <span className="inline-flex items-center text-xs text-pco-blue">
                   Ver detalhes
                   <ArrowRight size={11} className="ml-0.5" strokeWidth={2} />
                 </span>

@@ -36,15 +36,60 @@ export default function LearningLayout() {
   // iguais para todo mundo e sem relação com o curso aberto nem com o aluno.
   const coursesQ = useCourses();
   const progressQ = useMyProgress();
-  const course =
-    (coursesQ.data ?? []).find((c) => c.id === courseId) ?? (coursesQ.data ?? [])[0];
+  // **Sem fallback para `courses[0]`.** Até 3/set/2026 um id de curso que não
+  // casasse — link velho, curso removido, aula de outro curso — abria a barra
+  // lateral de OUTRO curso, com o nome dele no cabeçalho, sem aviso nenhum. O
+  // aluno concluía que tinha entrado no curso errado, ou que o curso mudou.
+  const course = (coursesQ.data ?? []).find((c) => c.id === courseId);
 
   const doneIds = new Set(progressQ.data?.completedLessonIds ?? []);
 
-  if (!course) {
+  // Falha de rede ou 500 não é "carregando". Até 3/set/2026 esta tela só
+  // distinguia "tem curso" de "não tem curso", então erro de servidor ficava
+  // em "Carregando curso..." **para sempre** — a mesma classe de defeito que a
+  // correção de 2/set fechou uma camada abaixo, na tela de conteúdo da aula.
+  if (coursesQ.isError) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-surface-off px-6">
+        <div className="pco-card max-w-md text-center p-6">
+          <h1 className="text-lg font-bold text-pco-deep">Não consegui carregar seus cursos</h1>
+          <p className="text-sm text-ink-muted mt-2">
+            {coursesQ.error instanceof Error
+              ? coursesQ.error.message
+              : 'A conexão falhou ou o servidor não respondeu.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => void coursesQ.refetch()}
+            className="pco-btn-primary text-sm mt-4"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (coursesQ.isLoading) {
     return (
       <div className="min-h-screen grid place-items-center bg-surface-off text-sm text-ink-muted">
         Carregando curso...
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-surface-off px-6">
+        <div className="pco-card max-w-md text-center p-6">
+          <h1 className="text-lg font-bold text-pco-deep">Curso não encontrado</h1>
+          <p className="text-sm text-ink-muted mt-2">
+            Este curso não existe ou não está na sua estante.
+          </p>
+          <Link to="/cursos" className="pco-btn-primary text-sm mt-4 inline-flex">
+            Ver meus cursos
+          </Link>
+        </div>
       </div>
     );
   }
@@ -55,6 +100,19 @@ export default function LearningLayout() {
     0,
   );
   const progress = totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0;
+
+  /**
+   * A primeira aula ainda não concluída, na ordem do curso. É isto que
+   * "continuar" quer dizer para o aluno — não "voltar à capa".
+   */
+  const proximaAula = (() => {
+    for (const m of course.modules) {
+      for (const l of m.lessons) {
+        if (!doneIds.has(l.id)) return { module: m, lesson: l };
+      }
+    }
+    return null;
+  })();
 
   // A meta semanal estava escrita à mão — "2h / 3h" com a barra fixa em dois
   // terços — e aparecia igual para quem nunca estudou e para quem bateu a meta.
@@ -72,6 +130,18 @@ export default function LearningLayout() {
 
   return (
     <div className="flex min-h-screen bg-surface-off">
+      {/*
+        O `StudentLayout` já tinha este atalho; o modo de estudo — onde o aluno
+        passa o tempo todo, e onde a barra lateral tem uma aula por linha — não
+        tinha. Quem navega por teclado tabulava por todas elas antes de chegar
+        ao conteúdo.
+      */}
+      <a
+        href="#conteudo-da-aula"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-2 focus:rounded-lg focus:bg-pco-blue-ink focus:text-white text-xs"
+      >
+        Pular para o conteúdo
+      </a>
       {!focusMode && (
         <aside className="hidden lg:flex flex-col w-72 shrink-0 border-r border-surface-gray bg-white">
           <div className="px-5 py-4 border-b border-surface-gray">
@@ -86,7 +156,7 @@ export default function LearningLayout() {
               {course.title}
             </h2>
             <div className="mt-3">
-              <div className="flex items-center justify-between text-[11px] text-ink-muted mb-1">
+              <div className="flex items-center justify-between text-xs text-ink-muted mb-1">
                 <span>Progresso</span>
                 <span className="font-semibold text-pco-deep">{progress}%</span>
               </div>
@@ -207,7 +277,10 @@ export default function LearningLayout() {
         </header>
 
         <div className="flex-1 flex">
-          <main className="flex-1 min-w-0 px-4 lg:px-8 py-6 lg:py-8 max-w-[1100px]">
+          <main
+            id="conteudo-da-aula"
+            className="flex-1 min-w-0 px-4 lg:px-8 py-6 lg:py-8 max-w-[1100px]"
+          >
             <Outlet />
           </main>
 
@@ -215,22 +288,48 @@ export default function LearningLayout() {
             <aside className="hidden xl:block w-80 shrink-0 px-5 py-6 border-l border-surface-gray bg-white/40">
               <div className="space-y-4">
                 <div className="pco-card p-5">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle mb-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle mb-2">
                     Próxima ação
                   </div>
-                  <div className="text-sm font-semibold text-pco-deep mb-3">
-                    Continue na próxima aula do módulo atual.
-                  </div>
-                  <Link
-                    to={`/curso/${course.id}`}
-                    className="pco-btn-primary w-full justify-center text-xs"
-                  >
-                    Continuar
-                  </Link>
+                  {/*
+                    Era texto fixo ("Continue na próxima aula do módulo atual")
+                    com um botão que levava à **capa do curso**. Para quem tem
+                    40 aulas feitas, esse era o pior destino possível: o
+                    recurso mais usado de um LMS é a retomada, e ela prometia
+                    retomar e entregava voltar ao início.
+                  */}
+                  {proximaAula ? (
+                    <>
+                      <div className="text-sm font-semibold text-pco-deep mb-1">
+                        {proximaAula.lesson.title}
+                      </div>
+                      <div className="text-xs text-ink-muted mb-3">
+                        {proximaAula.module.title}
+                      </div>
+                      <Link
+                        to={`/curso/${course.id}/aula/${proximaAula.lesson.id}`}
+                        className="pco-btn-primary w-full justify-center text-xs"
+                      >
+                        Continuar de onde parei
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-sm font-semibold text-pco-deep mb-3">
+                        Você concluiu todas as aulas deste curso.
+                      </div>
+                      <Link
+                        to={`/curso/${course.id}`}
+                        className="pco-btn-secondary w-full justify-center text-xs"
+                      >
+                        Rever o curso
+                      </Link>
+                    </>
+                  )}
                 </div>
 
                 <div className="pco-card p-5">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle mb-3">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle mb-3">
                     Apoio
                   </div>
                   <ul className="space-y-2 text-sm">
@@ -274,7 +373,7 @@ export default function LearningLayout() {
                 </div>
 
                 <div className="pco-card p-5">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle mb-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle mb-2">
                     Meta semanal
                   </div>
                   <div className="text-2xl font-bold text-pco-deep">

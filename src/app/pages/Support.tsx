@@ -184,7 +184,7 @@ export default function Support() {
                     </span>
                   </div>
                   <p className="text-xs text-ink-muted line-clamp-2">{t.message}</p>
-                  <div className="mt-2 text-[11px] text-ink-subtle">
+                  <div className="mt-2 text-xs text-ink-subtle">
                     Atualizado em {new Date(t.updatedAt).toLocaleDateString('pt-BR')}
                   </div>
                 </li>

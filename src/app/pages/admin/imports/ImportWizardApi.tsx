@@ -284,10 +284,10 @@ export default function ImportWizardApi() {
                   />
                   <div className="flex-1 min-w-[260px]">
                     <div className="text-sm font-semibold text-pco-deep">{c.name}</div>
-                    <div className="text-[11px] text-ink-subtle break-all">
+                    <div className="text-xs text-ink-subtle break-all">
                       {c.siteUrl}
                     </div>
-                    <div className="text-[11px] text-ink-muted mt-0.5 space-x-2">
+                    <div className="text-xs text-ink-muted mt-0.5 space-x-2">
                       <span
                         className={
                           c.hasWpAppPassword
@@ -312,7 +312,7 @@ export default function ImportWizardApi() {
                     </div>
                     {c.lastTestedAt && c.lastTestStatus && (
                       <div
-                        className={`text-[11px] mt-0.5 ${
+                        className={`text-xs mt-0.5 ${
                           c.lastTestStatus === 'ok'
                             ? 'text-status-success'
                             : 'text-status-danger'
@@ -482,7 +482,7 @@ export default function ImportWizardApi() {
             <div key={group.source} className="pco-card p-3">
               <div className="flex items-center gap-2 mb-2">
                 <span
-                  className={`pco-badge text-[10px] ${SOURCE_BADGE[group.source]}`}
+                  className={`pco-badge text-xs ${SOURCE_BADGE[group.source]}`}
                 >
                   {group.label}
                 </span>
@@ -500,7 +500,7 @@ export default function ImportWizardApi() {
                       ]);
                     }
                   }}
-                  className="text-[11px] text-pco-blue hover:underline ml-auto"
+                  className="text-xs text-pco-blue hover:underline ml-auto"
                 >
                   selecionar tudo
                 </button>
@@ -519,7 +519,7 @@ export default function ImportWizardApi() {
                     />
                     <div className="flex-1">
                       <div className="font-semibold text-pco-deep">{e.label}</div>
-                      <div className="text-ink-subtle font-mono text-[10px]">
+                      <div className="text-ink-subtle font-mono text-xs">
                         {e.hint}
                       </div>
                     </div>
@@ -554,7 +554,7 @@ export default function ImportWizardApi() {
                   className="flex items-center gap-2 p-2 rounded border border-pco-border bg-white"
                 >
                   <GripVertical size={12} className="text-ink-subtle" />
-                  <span className="text-[10px] font-mono w-6 text-ink-muted">
+                  <span className="text-xs font-mono w-6 text-ink-muted">
                     #{i + 1}
                   </span>
                   <span className="flex-1 text-sm text-pco-deep">
@@ -592,7 +592,7 @@ export default function ImportWizardApi() {
           )}
           {ALL_MATCH_KEYS.some((k) => !matchKeys.includes(k)) && (
             <div>
-              <span className="text-[11px] text-ink-muted mr-2">
+              <span className="text-xs text-ink-muted mr-2">
                 Adicionar chave:
               </span>
               {ALL_MATCH_KEYS.filter((k) => !matchKeys.includes(k)).map((k) => (
@@ -609,7 +609,7 @@ export default function ImportWizardApi() {
           )}
 
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Quando aluno não encontrado
             </span>
             <select
@@ -697,7 +697,7 @@ export default function ImportWizardApi() {
         >
           <div className="pco-card p-4 grid gap-3 sm:grid-cols-3">
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="text-xs uppercase tracking-wide text-ink-muted">
                 Data inicial
               </span>
               <select
@@ -715,7 +715,7 @@ export default function ImportWizardApi() {
               </select>
             </label>
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="text-xs uppercase tracking-wide text-ink-muted">
                 Expiração
               </span>
               <select
@@ -735,7 +735,7 @@ export default function ImportWizardApi() {
               </select>
             </label>
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="text-xs uppercase tracking-wide text-ink-muted">
                 Dias padrão
               </span>
               <input
@@ -889,7 +889,7 @@ function DiagnoseLdModal({
         </div>
 
         {result.rawRoutesPreview && result.rawRoutesPreview.length > 0 && (
-          <details className="pco-card border-pco-border p-3 text-[11px]">
+          <details className="pco-card border-pco-border p-3 text-xs">
             <summary className="cursor-pointer text-ink-muted">
               Rotas LD detectadas ({result.rawRoutesPreview.length})
             </summary>
@@ -912,7 +912,7 @@ function DiagnoseLdModal({
               Este site customizou os slugs do REST API. O AVA descobriu e está
               usando os slugs corretos automaticamente.
             </p>
-            <table className="w-full text-[11px]">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="text-ink-subtle border-b border-pco-border">
                   <th className="text-left pb-1">Entidade</th>
@@ -1049,7 +1049,7 @@ function DiagnoseModal({
               </li>
               <li>Atualizar a senha aqui no AVA PCO e diagnosticar de novo</li>
             </ol>
-            <div className="pt-2 text-[10px] text-ink-subtle">
+            <div className="pt-2 text-xs text-ink-subtle">
               Plugins comuns que bloqueiam REST API mesmo com admin role:
               Wordfence Security, iThemes Security, WP Cerber. Verifique se
               algum está limitando "REST API authentication" ou exigindo
@@ -1086,11 +1086,11 @@ function DiagRow({
           {ok ? '✓' : '✗'}
         </span>
         <span className="text-sm font-bold text-pco-deep">{label}</span>
-        <span className="ml-auto text-[11px] font-mono text-ink-muted">
+        <span className="ml-auto text-xs font-mono text-ink-muted">
           {value}
         </span>
       </div>
-      <div className="text-[11px] text-ink-muted mt-1">{detail}</div>
+      <div className="text-xs text-ink-muted mt-1">{detail}</div>
     </div>
   );
 }
@@ -1165,7 +1165,7 @@ function ConflictOption({
         />
         {label}
       </div>
-      <div className="text-[11px] text-ink-muted mt-1 ml-6">{description}</div>
+      <div className="text-xs text-ink-muted mt-1 ml-6">{description}</div>
     </button>
   );
 }
@@ -1216,10 +1216,10 @@ function ConnectionEditor({
       {/* WP + LD (obrigatório) */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className={`pco-badge text-[10px] ${SOURCE_BADGE.wp}`}>
+          <span className={`pco-badge text-xs ${SOURCE_BADGE.wp}`}>
             WordPress + LearnDash
           </span>
-          <span className="text-[11px] text-ink-muted">obrigatório</span>
+          <span className="text-xs text-ink-muted">obrigatório</span>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
@@ -1252,7 +1252,7 @@ function ConnectionEditor({
             placeholder="abcd 1234 efgh 5678"
           />
         </div>
-        <p className="text-[11px] text-ink-subtle">
+        <p className="text-xs text-ink-subtle">
           Application Password se cria em{' '}
           <code>Usuários → Editar → Application Passwords</code> no WordPress.
           LearnDash usa o mesmo login.
@@ -1265,17 +1265,17 @@ function ConnectionEditor({
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className={`pco-badge text-[10px] ${SOURCE_BADGE.wc}`}>
+            <span className={`pco-badge text-xs ${SOURCE_BADGE.wc}`}>
               WooCommerce
             </span>
-            <span className="text-[11px] text-ink-muted">
+            <span className="text-xs text-ink-muted">
               opcional — só se for importar produtos/pedidos
             </span>
           </div>
           <button
             type="button"
             onClick={() => setShowWc((v) => !v)}
-            className="text-[11px] text-pco-blue hover:underline"
+            className="text-xs text-pco-blue hover:underline"
           >
             {showWc ? 'Ocultar' : 'Configurar agora'}
           </button>
@@ -1306,7 +1306,7 @@ function ConnectionEditor({
                 placeholder="cs_..."
               />
             </div>
-            <p className="text-[11px] text-ink-subtle">
+            <p className="text-xs text-ink-subtle">
               Gere as chaves em{' '}
               <code>WooCommerce → Configurações → Avançado → REST API</code>.
             </p>
@@ -1355,7 +1355,7 @@ function Input({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+      <span className="text-xs uppercase tracking-wide text-ink-muted">
         {label}
       </span>
       <input

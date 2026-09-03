@@ -155,7 +155,7 @@ export default function Tutor() {
           <button
             onClick={handleClear}
             disabled={clearHistory.isPending}
-            className="pco-btn-ghost text-[11px] shrink-0"
+            className="pco-btn-ghost text-xs shrink-0"
             title="Limpar histórico"
           >
             <Trash2 size={11} strokeWidth={2} />
@@ -166,7 +166,7 @@ export default function Tutor() {
 
       {usage.data?.configured && usage.data.limit > 0 && (
         <div className="pco-card p-3">
-          <div className="flex justify-between text-[11px] text-ink-muted">
+          <div className="flex justify-between text-xs text-ink-muted">
             <span>Uso mensal</span>
             <span className="font-semibold text-pco-deep">
               {usage.data.used} / {usage.data.limit} perguntas
@@ -187,7 +187,7 @@ export default function Tutor() {
             />
           </div>
           {usage.data.remaining === 0 && (
-            <p className="mt-2 text-[11px] text-status-danger">
+            <p className="mt-2 text-xs text-status-danger">
               Limite mensal atingido. Pacotes adicionais em breve.
             </p>
           )}
@@ -251,7 +251,7 @@ export default function Tutor() {
               )}
             </button>
           </div>
-          <div className="mt-1.5 text-[10px] text-ink-subtle">
+          <div className="mt-1.5 text-xs text-ink-subtle">
             Enter para enviar · Shift+Enter para quebrar linha · {draft.length}/2000
           </div>
         </div>

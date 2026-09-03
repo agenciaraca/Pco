@@ -130,7 +130,7 @@ export default function Jornada() {
                     <Award className="text-status-gold" size={20} strokeWidth={1.75} />
                   </div>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-status-gold">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-status-gold">
                       Final da jornada
                     </div>
                     <h3 className="text-base font-semibold text-pco-deep">Certificado disponível</h3>
@@ -213,7 +213,7 @@ function NodeCard({
           {order}
         </div>
         <div className="flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+          <div className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
             Módulo {order}
           </div>
           <h3 className="text-base font-semibold text-pco-deep">{module.title}</h3>
@@ -259,7 +259,7 @@ function NodeCard({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-surface-off py-2">
-      <div className="text-[10px] uppercase tracking-wider text-ink-subtle">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-ink-subtle">{label}</div>
       <div className="text-xs font-semibold text-pco-deep">{value}</div>
     </div>
   );

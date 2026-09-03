@@ -170,7 +170,7 @@ export default function CourseForum() {
                     </h3>
                   </button>
                   <p className="text-xs text-ink-muted mt-1 line-clamp-2">{t.body}</p>
-                  <div className="mt-2 flex items-center gap-3 text-[11px] text-ink-subtle">
+                  <div className="mt-2 flex items-center gap-3 text-xs text-ink-subtle">
                     <span>{t.authorName.split('@')[0]}</span>
                     <span>·</span>
                     <span>{new Date(t.createdAt).toLocaleDateString('pt-BR')}</span>
@@ -300,7 +300,7 @@ function ThreadDetail({
             <div className="space-y-2 pl-3 border-l-2 border-surface-gray">
               {detailQ.data?.replies.map((r) => (
                 <div key={r.id} className="text-xs">
-                  <div className="flex items-center gap-2 text-[11px] text-ink-subtle">
+                  <div className="flex items-center gap-2 text-xs text-ink-subtle">
                     <span className="font-semibold text-pco-deep">
                       {r.authorName.split('@')[0]}
                     </span>
@@ -436,7 +436,7 @@ function NewThreadModal({
               placeholder="Detalhe sua pergunta, dica ou tópico de discussão..."
               maxLength={3000}
             />
-            <p className="text-[10px] text-ink-subtle mt-1">{body.length}/3000</p>
+            <p className="text-xs text-ink-subtle mt-1">{body.length}/3000</p>
           </label>
           <div className="flex justify-end gap-2 pt-3 border-t border-surface-gray">
             <button

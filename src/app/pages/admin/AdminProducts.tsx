@@ -121,11 +121,11 @@ export default function AdminProducts() {
           <table className="w-full text-sm">
             <thead className="bg-surface-mute text-ink-muted">
               <tr>
-                <SortableTh field="name" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Nome</SortableTh>
-                <SortableTh field="kind" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Tipo</SortableTh>
-                <SortableTh field="refId" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Vínculo</SortableTh>
-                <SortableTh field="price" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Preço</SortableTh>
-                <SortableTh field="active" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-[11px]">Status</SortableTh>
+                <SortableTh field="name" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Nome</SortableTh>
+                <SortableTh field="kind" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Tipo</SortableTh>
+                <SortableTh field="refId" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Vínculo</SortableTh>
+                <SortableTh field="price" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Preço</SortableTh>
+                <SortableTh field="active" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">Status</SortableTh>
                 <th className="px-3 py-2 text-right font-medium">Ações</th>
               </tr>
             </thead>
@@ -138,7 +138,7 @@ export default function AdminProducts() {
                       <span className="font-semibold text-pco-deep">{p.name}</span>
                     </div>
                     {p.description && (
-                      <div className="text-[11px] text-ink-muted mt-0.5 line-clamp-1">
+                      <div className="text-xs text-ink-muted mt-0.5 line-clamp-1">
                         {p.description}
                       </div>
                     )}
@@ -146,7 +146,7 @@ export default function AdminProducts() {
                   <td className="px-3 py-2 text-xs text-ink-muted">{kindLabel[p.kind]}</td>
                   <td className="px-3 py-2 text-xs">
                     {p.refId ? (
-                      <code className="text-[11px] text-pco-blue">{p.refId}</code>
+                      <code className="text-xs text-pco-blue">{p.refId}</code>
                     ) : (
                       <span className="text-ink-subtle">—</span>
                     )}
@@ -360,12 +360,12 @@ function ProductEditor({ editing, courses, submitting, onClose, onSubmit }: Edit
                       className="accent-pco-blue"
                     />
                     <span className="flex-1">{c.title}</span>
-                    <span className="text-ink-subtle text-[10px]">{c.id}</span>
+                    <span className="text-ink-subtle text-xs">{c.id}</span>
                   </label>
                 ))}
               </div>
               {bundleCourseIds.length > 0 && (
-                <div className="text-[11px] text-ink-muted mt-1">
+                <div className="text-xs text-ink-muted mt-1">
                   {bundleCourseIds.length} curso(s) selecionado(s)
                 </div>
               )}
@@ -483,7 +483,7 @@ function Field({
     <label className="block">
       <div className="text-xs font-medium text-ink-muted mb-1.5">
         {label}
-        {hint && <span className="ml-1 text-[10px] text-ink-subtle">· {hint}</span>}
+        {hint && <span className="ml-1 text-xs text-ink-subtle">· {hint}</span>}
       </div>
       {children}
     </label>

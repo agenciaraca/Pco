@@ -39,7 +39,23 @@ export default defineConfig({
     maxWorkers: 8,
     coverage: {
       reporter: ['text', 'html', 'json-summary'],
-      exclude: ['node_modules', 'dist', 'test', '**/*.config.*'],
+      exclude: [
+        'node_modules',
+        'dist',
+        'test',
+        'e2e',
+        'scripts',
+        '**/*.config.*',
+        '**/*.d.ts',
+      ],
+      /**
+       * Sem `all`, o denominador so continha arquivos que algum teste
+       * importou — os 194 arquivos de `src/` que teste nenhum toca ficavam
+       * fora da conta e **inflavam o percentual**. O numero passa a doer, e e
+       * essa a serventia dele.
+       */
+      all: true,
+      include: ['server/**/*.ts', 'shared/**/*.ts', 'src/**/*.{ts,tsx}'],
     },
   },
 });

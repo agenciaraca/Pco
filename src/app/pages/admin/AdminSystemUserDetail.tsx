@@ -224,7 +224,7 @@ export default function AdminSystemUserDetail() {
                 {customRolePermissions.map((p) => (
                   <code
                     key={p}
-                    className="text-[10px] bg-surface-off border border-pco-border rounded px-1.5 py-0.5 text-ink-muted"
+                    className="text-xs bg-surface-off border border-pco-border rounded px-1.5 py-0.5 text-ink-muted"
                   >
                     {p}
                   </code>
@@ -263,9 +263,9 @@ export default function AdminSystemUserDetail() {
                 className="py-2 flex items-start justify-between gap-3 text-sm"
               >
                 <div className="min-w-0 flex-1">
-                  <code className="text-[11px] text-pco-blue">{e.action}</code>
+                  <code className="text-xs text-pco-blue">{e.action}</code>
                   {e.targetId && (
-                    <span className="text-[11px] text-ink-subtle ml-2">
+                    <span className="text-xs text-ink-subtle ml-2">
                       → {e.targetType}/{e.targetId}
                     </span>
                   )}
@@ -275,7 +275,7 @@ export default function AdminSystemUserDetail() {
                     </span>
                   )}
                 </div>
-                <time className="text-[11px] text-ink-subtle shrink-0">
+                <time className="text-xs text-ink-subtle shrink-0">
                   {formatDate(e.ts)}
                 </time>
               </li>

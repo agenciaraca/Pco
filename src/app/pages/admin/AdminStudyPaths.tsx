@@ -181,11 +181,11 @@ export default function AdminStudyPaths() {
               >
                 <div className="absolute inset-0 p-4 text-white flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <code className="text-[10px] bg-white/20 backdrop-blur px-1.5 py-0.5 rounded">
+                    <code className="text-xs bg-white/20 backdrop-blur px-1.5 py-0.5 rounded">
                       {p.slug}
                     </code>
                     {!p.publicVisible && (
-                      <span className="text-[10px] bg-white/20 backdrop-blur px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                      <span className="text-xs bg-white/20 backdrop-blur px-1.5 py-0.5 rounded inline-flex items-center gap-1">
                         <EyeOff size={10} strokeWidth={2} />
                         oculta
                       </span>
@@ -198,7 +198,7 @@ export default function AdminStudyPaths() {
                 {p.description && (
                   <p className="text-xs text-ink-muted line-clamp-2">{p.description}</p>
                 )}
-                <div className="text-[11px] text-ink-subtle">
+                <div className="text-xs text-ink-subtle">
                   {p.courseIds.length} curso{p.courseIds.length === 1 ? '' : 's'}
                 </div>
                 <div className="flex gap-2 mt-2">
@@ -248,7 +248,7 @@ export default function AdminStudyPaths() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <span className="text-xs uppercase tracking-wide text-ink-muted">
                     Slug (URL)
                   </span>
                   <input
@@ -263,7 +263,7 @@ export default function AdminStudyPaths() {
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                  <span className="text-xs uppercase tracking-wide text-ink-muted">
                     Título
                   </span>
                   <input
@@ -278,7 +278,7 @@ export default function AdminStudyPaths() {
                 </label>
               </div>
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                <span className="text-xs uppercase tracking-wide text-ink-muted">
                   Descrição
                 </span>
                 <textarea
@@ -294,7 +294,7 @@ export default function AdminStudyPaths() {
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+                <span className="text-xs uppercase tracking-wide text-ink-muted">
                   Cor de capa
                 </span>
                 <select
@@ -346,7 +346,7 @@ export default function AdminStudyPaths() {
               </div>
 
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-ink-muted mb-2">
+                <div className="text-xs uppercase tracking-wide text-ink-muted mb-2">
                   Cursos da trilha — ordem de estudo
                 </div>
                 {editing.courseIds.length === 0 ? (
@@ -367,7 +367,7 @@ export default function AdminStudyPaths() {
                             className="text-ink-subtle shrink-0"
                             strokeWidth={2}
                           />
-                          <span className="text-[11px] font-bold text-pco-deep w-5">
+                          <span className="text-xs font-bold text-pco-deep w-5">
                             {idx + 1}.
                           </span>
                           <span className="flex-1 text-sm text-ink-strong truncate">
@@ -403,7 +403,7 @@ export default function AdminStudyPaths() {
                   </ol>
                 )}
 
-                <div className="text-[11px] uppercase tracking-wide text-ink-muted mb-1">
+                <div className="text-xs uppercase tracking-wide text-ink-muted mb-1">
                   Adicionar curso
                 </div>
                 <div className="grid gap-1 sm:grid-cols-2 max-h-48 overflow-y-auto pr-1 border border-pco-border rounded-lg p-2">

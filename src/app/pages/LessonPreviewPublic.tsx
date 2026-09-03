@@ -55,7 +55,7 @@ export default function LessonPreviewPublic() {
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-6">
         <section>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pco-blue/10 text-pco-blue text-[10px] font-semibold uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pco-blue/10 text-pco-blue text-xs font-semibold uppercase tracking-wider">
             <PlayCircle size={10} strokeWidth={2.5} />
             Preview livre
           </span>

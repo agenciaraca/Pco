@@ -18,12 +18,20 @@ import {
   SUPERADMIN_PASSWORD,
 } from './helpers';
 
-// NOTE: testes que dependem de auth (login student/admin) precisam de fresh
-// data/users.json pra que INITIAL_*_PASSWORD do playwright.config.ts seja
-// aplicada. O e2e/global-setup.ts apaga users.json mas o JsonStore mantém
-// cache em RAM no webServer reusado localmente. Em CI (fresh container)
-// passam. Pra rodar local: set E2E_FRESH=1 + kill manualmente tsx antes.
-const REQUIRES_FRESH = !process.env.CI && !process.env.E2E_FRESH;
+// Os testes autenticados rodam SEMPRE — não há mais o que pular.
+//
+// Eles nasceram cercados por uma guarda que os desligava fora do CI, porque
+// dependiam de um `data/users.json` novo para que as senhas de
+// `INITIAL_*_PASSWORD` valessem, e o `webServer` reusado localmente mantinha o
+// cache do JsonStore em RAM. Isso deixava **12 dos 26 casos pulados fora do
+// CI** — ou seja, todo o percurso que importa (login, matrícula, marcar aula,
+// progresso, agendar, admin) não corria na máquina de quem desenvolve,
+// enquanto o relatório imprimia um tranquilizador "26/26".
+//
+// As duas causas foram removidas em 3/set/2026: `reuseExistingServer: false`
+// (já era, mas o comentário dizia o contrário) e um `DATA_DIR` próprio da
+// suíte (`e2e/.data`), que o `playwright.config.ts` fixa e passa ao servidor.
+// Servidor novo + diretório limpo a cada execução = as senhas sempre valem.
 
 test.describe('AVA PCO golden path — student journey', () => {
   test('catálogo público lista cursos (sem auth)', async ({ page, request }) => {
@@ -51,7 +59,6 @@ test.describe('AVA PCO golden path — student journey', () => {
   });
 
   test('login student via API + dashboard renderiza', async ({ page }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     await loginAs(page, STUDENT_EMAIL, STUDENT_PASSWORD);
     await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
@@ -67,7 +74,6 @@ test.describe('AVA PCO golden path — student journey', () => {
     page,
     request,
   }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     // 1) Login admin pra preparar matrícula
     const admin = await sessaoCompartilhada(request, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
 
@@ -147,7 +153,6 @@ test.describe('AVA PCO golden path — student journey', () => {
     page,
     request,
   }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     await loginAs(page, STUDENT_EMAIL, STUDENT_PASSWORD);
 
     const courses = await fetchCourses(request);
@@ -163,7 +168,6 @@ test.describe('AVA PCO golden path — student journey', () => {
   });
 
   test('student acessa página de quiz do curso', async ({ page, request }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     await loginAs(page, STUDENT_EMAIL, STUDENT_PASSWORD);
 
     const courses = await fetchCourses(request);
@@ -178,7 +182,6 @@ test.describe('AVA PCO golden path — student journey', () => {
   });
 
   test('student acessa página de eventos', async ({ page }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     await loginAs(page, STUDENT_EMAIL, STUDENT_PASSWORD);
 
     await page.goto('/eventos');
@@ -192,7 +195,6 @@ test.describe('AVA PCO golden path — student journey', () => {
 
 test.describe('AVA PCO golden path — admin journey', () => {
   test('login admin + dashboard renderiza KPIs', async ({ page, request }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     const admin = await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
     await concluirOnboardingAdmin(request, admin.token);
     await page.goto('/admin/dashboard');
@@ -203,7 +205,6 @@ test.describe('AVA PCO golden path — admin journey', () => {
   });
 
   test('admin acessa health check', async ({ page, request }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     const admin = await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
     await concluirOnboardingAdmin(request, admin.token);
     await page.goto('/admin/saude');
@@ -214,7 +215,6 @@ test.describe('AVA PCO golden path — admin journey', () => {
   });
 
   test('admin acessa gestão de cursos', async ({ page, request }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     const admin = await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
     await concluirOnboardingAdmin(request, admin.token);
     await page.goto('/admin/cursos');
@@ -225,7 +225,6 @@ test.describe('AVA PCO golden path — admin journey', () => {
   });
 
   test('admin acessa configuração de Zoom SDK', async ({ page, request }) => {
-    test.skip(REQUIRES_FRESH, 'requer fresh users.json — set E2E_FRESH=1 ou rode em CI');
     const admin = await loginAs(page, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD);
     await concluirOnboardingAdmin(request, admin.token);
     await page.goto('/admin/zoom');

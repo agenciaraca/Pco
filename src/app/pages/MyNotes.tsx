@@ -160,7 +160,7 @@ export default function MyNotes() {
             <li key={`${n.courseId}-${n.lessonId}`} className="pco-card pco-card-hover p-4">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="flex-1 min-w-[260px]">
-                  <div className="text-[11px] uppercase tracking-wide text-ink-subtle">
+                  <div className="text-xs uppercase tracking-wide text-ink-subtle">
                     {n.courseTitle} · {n.moduleTitle}
                   </div>
                   <div className="font-semibold text-pco-deep mt-0.5">
@@ -169,7 +169,7 @@ export default function MyNotes() {
                   <div className="mt-2 text-xs text-ink-muted bg-surface-mute rounded p-2 max-h-40 overflow-y-auto">
                     <MarkdownLite source={highlight(n.content, search)} />
                   </div>
-                  <div className="text-[10px] text-ink-subtle mt-1">
+                  <div className="text-xs text-ink-subtle mt-1">
                     Atualizado em {new Date(n.updatedAt).toLocaleString('pt-BR')}
                   </div>
                 </div>

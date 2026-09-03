@@ -131,7 +131,7 @@ function JobCard({
       </dl>
 
       {!isHealthy && job.enabled && job.lastRunAt && (
-        <div className="text-[11px] text-pco-orange flex items-center gap-1">
+        <div className="text-xs text-pco-orange flex items-center gap-1">
           <Clock size={11} strokeWidth={1.75} />
           Última execução foi há mais de {formatInterval(job.intervalMs * 3)}.
         </div>
@@ -174,7 +174,7 @@ function Stat({
 }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase text-ink-subtle">{label}</dt>
+      <dt className="text-xs uppercase text-ink-subtle">{label}</dt>
       <dd className={`font-semibold ${color ?? 'text-pco-deep'}`}>{value}</dd>
     </div>
   );

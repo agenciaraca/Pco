@@ -128,7 +128,7 @@ export default function AdminUsersImport() {
               className="hidden"
             />
           </label>
-          <span className="text-[11px] text-ink-subtle ml-2">
+          <span className="text-xs text-ink-subtle ml-2">
             ou cole o conteúdo abaixo:
           </span>
         </div>
@@ -140,7 +140,7 @@ export default function AdminUsersImport() {
           className="pco-input text-xs font-mono w-full"
         />
         {parsed.rows.length > 0 && (
-          <div className="text-[11px] text-status-success">
+          <div className="text-xs text-status-success">
             <CheckCircle2 size={11} className="inline" /> {parsed.rows.length}{' '}
             linha(s) detectada(s)
             {parsed.errors.length > 0 && (
@@ -156,7 +156,7 @@ export default function AdminUsersImport() {
         <h2 className="text-sm font-semibold text-pco-deep">
           3. Curso padrão (opcional)
         </h2>
-        <p className="text-[11px] text-ink-muted">
+        <p className="text-xs text-ink-muted">
           Se a coluna course_id estiver vazia, este curso é usado como fallback.
           Deixe vazio se quiser apenas criar contas sem matricular.
         </p>
@@ -226,7 +226,7 @@ export default function AdminUsersImport() {
                 {result.errors.map((err, i) => (
                   <li
                     key={i}
-                    className="font-mono text-[10px] text-ink-muted bg-surface-mute p-2 rounded"
+                    className="font-mono text-xs text-ink-muted bg-surface-mute p-2 rounded"
                   >
                     L{err.row}: {err.email ?? '?'} — {err.message}
                   </li>
@@ -251,7 +251,7 @@ function Stat({
 }) {
   return (
     <div className="pco-card p-2">
-      <div className="text-[10px] uppercase tracking-wide text-ink-muted">
+      <div className="text-xs uppercase tracking-wide text-ink-muted">
         {label}
       </div>
       <div className={`text-lg font-bold ${color}`}>{value}</div>

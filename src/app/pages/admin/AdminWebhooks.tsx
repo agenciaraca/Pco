@@ -111,19 +111,19 @@ export default function AdminWebhooks() {
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-ink-subtle break-all mt-0.5">
+                    <div className="text-xs text-ink-subtle break-all mt-0.5">
                       {e.url}
                     </div>
-                    <div className="text-[11px] text-ink-muted mt-0.5">
+                    <div className="text-xs text-ink-muted mt-0.5">
                       {e.events.join(', ')}
                     </div>
                     {e.lastErrorMessage && (
-                      <div className="text-[11px] mt-0.5 text-status-danger">
+                      <div className="text-xs mt-0.5 text-status-danger">
                         <AlertCircle size={10} className="inline" /> {e.lastErrorMessage}
                       </div>
                     )}
                     {e.lastSuccessAt && !e.lastErrorMessage && (
-                      <div className="text-[11px] mt-0.5 text-status-success">
+                      <div className="text-xs mt-0.5 text-status-success">
                         <CheckCircle2 size={10} className="inline" /> Último sucesso:{' '}
                         {new Date(e.lastSuccessAt).toLocaleString('pt-BR')}
                       </div>
@@ -252,7 +252,7 @@ export default function AdminWebhooks() {
                         {d.status}
                       </span>
                       {d.lastError && (
-                        <div className="text-[10px] text-status-danger mt-0.5 max-w-[260px] truncate">
+                        <div className="text-xs text-status-danger mt-0.5 max-w-[260px] truncate">
                           {d.lastError}
                         </div>
                       )}
@@ -276,7 +276,7 @@ export default function AdminWebhooks() {
                               );
                             }
                           }}
-                          className="pco-btn-ghost text-[11px]"
+                          className="pco-btn-ghost text-xs"
                         >
                           <RefreshCw size={10} strokeWidth={2} />
                           Retry
@@ -332,7 +332,7 @@ function DeliveryDetailDrawer({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-pco-deep">Delivery</h2>
-            <code className="text-[10px] text-ink-subtle">{delivery.id}</code>
+            <code className="text-xs text-ink-subtle">{delivery.id}</code>
           </div>
           <button
             type="button"
@@ -374,7 +374,7 @@ function DeliveryDetailDrawer({
 
         {delivery.lastError && (
           <div className="pco-card border-status-danger/40 bg-status-danger/5 p-3">
-            <div className="text-[11px] uppercase tracking-wide text-status-danger mb-1">
+            <div className="text-xs uppercase tracking-wide text-status-danger mb-1">
               Último erro
             </div>
             <pre className="text-xs whitespace-pre-wrap break-all">
@@ -384,20 +384,20 @@ function DeliveryDetailDrawer({
         )}
 
         <div>
-          <h3 className="text-[11px] uppercase tracking-wide text-ink-muted mb-1">
+          <h3 className="text-xs uppercase tracking-wide text-ink-muted mb-1">
             Payload enviado
           </h3>
-          <pre className="bg-surface-mute p-3 rounded text-[10px] font-mono overflow-x-auto max-h-80">
+          <pre className="bg-surface-mute p-3 rounded text-xs font-mono overflow-x-auto max-h-80">
             {payloadStr}
           </pre>
         </div>
 
         {delivery.lastResponseBody && (
           <div>
-            <h3 className="text-[11px] uppercase tracking-wide text-ink-muted mb-1">
+            <h3 className="text-xs uppercase tracking-wide text-ink-muted mb-1">
               Resposta do destino (truncada)
             </h3>
-            <pre className="bg-surface-mute p-3 rounded text-[10px] font-mono overflow-x-auto max-h-60">
+            <pre className="bg-surface-mute p-3 rounded text-xs font-mono overflow-x-auto max-h-60">
               {delivery.lastResponseBody}
             </pre>
           </div>
@@ -431,11 +431,11 @@ function Field({
 }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide text-ink-muted">
+      <div className="text-xs uppercase tracking-wide text-ink-muted">
         {label}
       </div>
       <div
-        className={`text-pco-deep ${mono ? 'font-mono text-[11px]' : 'font-semibold'}`}
+        className={`text-pco-deep ${mono ? 'font-mono text-xs' : 'font-semibold'}`}
       >
         {value}
       </div>
@@ -512,7 +512,7 @@ function EndpointEditor({
       {!editing && (presetsQ.data?.presets.length ?? 0) > 0 && (
         <div className="bg-pco-blue/5 border border-pco-blue/30 rounded-lg p-3 space-y-2">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-pco-blue font-semibold">
+            <span className="text-xs uppercase tracking-wide text-pco-blue font-semibold">
               Preset (opcional)
             </span>
             <select
@@ -536,7 +536,7 @@ function EndpointEditor({
                 <div className="text-xs text-ink-muted space-y-1">
                   <div>
                     <strong>Cole no campo URL:</strong>{' '}
-                    <code className="bg-white px-1 py-0.5 rounded text-[10px]">
+                    <code className="bg-white px-1 py-0.5 rounded text-xs">
                       {p.urlPlaceholder}
                     </code>
                   </div>
@@ -562,7 +562,7 @@ function EndpointEditor({
       <div className="grid gap-3 sm:grid-cols-2">
         <Input label="Nome" value={name} onChange={setName} placeholder="Ex: Zapier produção" />
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Tipo de canal
           </span>
           <select
@@ -609,7 +609,7 @@ function EndpointEditor({
         </label>
       </div>
       <div>
-        <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+        <span className="text-xs uppercase tracking-wide text-ink-muted">
           Eventos a assinar
         </span>
         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 mt-1">
@@ -672,7 +672,7 @@ function Input({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       <input
         type={type}
         value={value}

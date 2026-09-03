@@ -22,7 +22,13 @@ export default function AdminLessons() {
   const [moduleFilter, setModuleFilter] = useState<string>('todos');
   const [mandatoryOnly, setMandatoryOnly] = useState(false);
   const [search, setSearch] = useState('');
-  const { data: courses, isLoading } = useCourses();
+  // `isError` faltava aqui. Falha de rede ou 500 renderizava a tabela vazia
+  // com a mensagem "Nenhuma aula encontrada com os filtros atuais" — que culpa
+  // o filtro por um erro do servidor, e manda o admin mexer nos filtros para
+  // sempre. Mesma classe de defeito que a correcao de 2/set fechou na tela do
+  // aluno.
+  const coursesQ = useCourses();
+  const { data: courses, isLoading } = coursesQ;
   const updateMut = useUpdateLesson();
   const toast = useToast();
 
@@ -155,7 +161,7 @@ export default function AdminLessons() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-off">
-              <tr className="text-[11px] uppercase tracking-wider text-ink-subtle">
+              <tr className="text-xs uppercase tracking-wider text-ink-subtle">
                 <SortableTh field="title" current={sortField} direction={sortDirection} onSort={toggleSort}>Aula</SortableTh>
                 <SortableTh field="course" current={sortField} direction={sortDirection} onSort={toggleSort}>Curso</SortableTh>
                 <SortableTh field="module" current={sortField} direction={sortDirection} onSort={toggleSort}>Módulo</SortableTh>
@@ -236,7 +242,28 @@ export default function AdminLessons() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {filtered.length === 0 && coursesQ.isError && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-sm">
+                    <p className="font-semibold text-status-danger">
+                      Nao consegui carregar as aulas.
+                    </p>
+                    <p className="mt-1 text-ink-muted">
+                      {coursesQ.error instanceof Error
+                        ? coursesQ.error.message
+                        : 'A conexao falhou ou o servidor nao respondeu.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void coursesQ.refetch()}
+                      className="pco-btn-secondary text-xs mt-3"
+                    >
+                      Tentar de novo
+                    </button>
+                  </td>
+                </tr>
+              )}
+              {filtered.length === 0 && !coursesQ.isError && (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center text-sm text-ink-muted">
                     Nenhuma aula encontrada com os filtros atuais.

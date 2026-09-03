@@ -176,7 +176,7 @@ export default function AdminCoupons() {
                         {c.code}
                       </code>
                       <span
-                        className={`pco-badge text-[10px] ${
+                        className={`pco-badge text-xs ${
                           c.active
                             ? 'bg-status-success/10 text-status-success'
                             : 'bg-surface-gray text-ink-muted'
@@ -185,12 +185,12 @@ export default function AdminCoupons() {
                         {c.active ? 'ativo' : 'inativo'}
                       </span>
                       {expired && (
-                        <span className="pco-badge text-[10px] bg-pco-orange/10 text-pco-orange">
+                        <span className="pco-badge text-xs bg-pco-orange/10 text-pco-orange">
                           expirado
                         </span>
                       )}
                       {exhausted && (
-                        <span className="pco-badge text-[10px] bg-status-danger/10 text-status-danger">
+                        <span className="pco-badge text-xs bg-status-danger/10 text-status-danger">
                           esgotado
                         </span>
                       )}
@@ -200,7 +200,7 @@ export default function AdminCoupons() {
                         {c.description}
                       </div>
                     )}
-                    <div className="text-[11px] text-ink-subtle mt-1 flex items-center gap-2 flex-wrap">
+                    <div className="text-xs text-ink-subtle mt-1 flex items-center gap-2 flex-wrap">
                       <span className="flex items-center gap-1">
                         {c.discount.kind === 'percent' ? (
                           <>
@@ -371,7 +371,7 @@ function CouponEditor({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Código
           </span>
           <input
@@ -383,13 +383,13 @@ function CouponEditor({
             className="pco-input mt-1 text-sm font-mono w-full"
           />
           {!codeValid && code.length > 0 && (
-            <span className="text-[10px] text-status-danger">
+            <span className="text-xs text-status-danger">
               Use letras/números/_-, 2 a 40 chars.
             </span>
           )}
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Descrição (opcional)
           </span>
           <input
@@ -403,7 +403,7 @@ function CouponEditor({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Tipo de desconto
           </span>
           <select
@@ -416,7 +416,7 @@ function CouponEditor({
           </select>
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             {kind === 'percent' ? 'Percentual' : 'Valor (centavos)'}
           </span>
           <input
@@ -429,7 +429,7 @@ function CouponEditor({
           />
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Limite de usos (opcional)
           </span>
           <input
@@ -447,7 +447,7 @@ function CouponEditor({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Válido a partir de (opcional)
           </span>
           <input
@@ -458,7 +458,7 @@ function CouponEditor({
           />
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Válido até (opcional)
           </span>
           <input
@@ -471,10 +471,10 @@ function CouponEditor({
       </div>
 
       <div>
-        <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+        <span className="text-xs uppercase tracking-wide text-ink-muted">
           Produtos aplicáveis
         </span>
-        <p className="text-[11px] text-ink-subtle mb-1">
+        <p className="text-xs text-ink-subtle mb-1">
           Sem nenhum selecionado = vale para todos os produtos.
         </p>
         <div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-3 max-h-40 overflow-y-auto border border-pco-border rounded p-2">
@@ -493,7 +493,7 @@ function CouponEditor({
             </label>
           ))}
           {products.length === 0 && (
-            <span className="text-[11px] text-ink-subtle col-span-full">
+            <span className="text-xs text-ink-subtle col-span-full">
               Nenhum produto cadastrado
             </span>
           )}
@@ -510,7 +510,7 @@ function CouponEditor({
         Cupom ativo
       </label>
 
-      <div className="pco-card border-pco-blue/30 bg-pco-blue/5 p-3 flex gap-2 items-start text-[11px]">
+      <div className="pco-card border-pco-blue/30 bg-pco-blue/5 p-3 flex gap-2 items-start text-xs">
         <AlertCircle size={12} className="text-pco-blue shrink-0 mt-0.5" />
         <div className="text-ink-muted">
           {kind === 'amount' &&
@@ -584,14 +584,14 @@ function BulkEditor({
         <Sparkles size={14} strokeWidth={2} className="text-pco-blue" />
         Gerar lote de cupons
       </h3>
-      <p className="text-[11px] text-ink-muted">
+      <p className="text-xs text-ink-muted">
         Cria N cupons de uma vez. Use prefix+sequencial pra códigos legíveis
         (BLACK01, BLACK02...) ou random pra anti-fraude.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Quantidade (1-1000)
           </span>
           <input
@@ -604,7 +604,7 @@ function BulkEditor({
           />
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Prefixo (opcional)
           </span>
           <input
@@ -616,7 +616,7 @@ function BulkEditor({
           />
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             {sequential ? 'Modo' : 'Tamanho random'}
           </span>
           {sequential ? (
@@ -649,7 +649,7 @@ function BulkEditor({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Tipo
           </span>
           <select
@@ -662,7 +662,7 @@ function BulkEditor({
           </select>
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             {kind === 'percent' ? '%' : 'Centavos'}
           </span>
           <input
@@ -674,7 +674,7 @@ function BulkEditor({
           />
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Usos por cupom
           </span>
           <input
@@ -692,7 +692,7 @@ function BulkEditor({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Descrição (todos)
           </span>
           <input
@@ -703,7 +703,7 @@ function BulkEditor({
           />
         </label>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             Válido até (opcional)
           </span>
           <input
@@ -716,7 +716,7 @@ function BulkEditor({
       </div>
 
       <div>
-        <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+        <span className="text-xs uppercase tracking-wide text-ink-muted">
           Produtos (vazio = todos)
         </span>
         <div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-3 max-h-32 overflow-y-auto border border-pco-border rounded p-2 mt-1">
@@ -780,7 +780,7 @@ function CouponStatCard({
 }) {
   return (
     <div className="pco-card p-3">
-      <div className="text-[10px] uppercase tracking-wider text-ink-muted">
+      <div className="text-xs uppercase tracking-wider text-ink-muted">
         {label}
       </div>
       <div className={`text-2xl font-bold mt-1 tabular-nums ${color}`}>

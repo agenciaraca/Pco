@@ -167,7 +167,7 @@ export default function AdminVendas() {
           <h2 className="text-sm font-semibold text-pco-deep">
             Receita diária ({data.range.days} dias)
           </h2>
-          <span className="text-[11px] text-ink-subtle">
+          <span className="text-xs text-ink-subtle">
             Total: {formatBRL(data.totals.revenueCents)}
           </span>
         </div>
@@ -227,14 +227,14 @@ export default function AdminVendas() {
                   key={p.productId}
                   className="flex items-center gap-3 p-2 rounded hover:bg-surface-mute"
                 >
-                  <span className="h-6 w-6 rounded-full bg-pco-blue/10 text-pco-blue grid place-items-center text-[11px] font-bold shrink-0">
+                  <span className="h-6 w-6 rounded-full bg-pco-blue/10 text-pco-blue grid place-items-center text-xs font-bold shrink-0">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-pco-deep truncate">
                       {p.name}
                     </div>
-                    <div className="text-[11px] text-ink-subtle">
+                    <div className="text-xs text-ink-subtle">
                       {p.orders} pedido(s)
                     </div>
                   </div>
@@ -297,17 +297,17 @@ function KpiCard({
 }) {
   return (
     <div className="pco-card p-4">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-ink-muted mb-1">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted mb-1">
         {icon}
         {label}
       </div>
       <div className="text-2xl font-bold text-pco-deep">{value}</div>
       {subtitle && (
-        <div className="text-[11px] text-ink-subtle mt-0.5">{subtitle}</div>
+        <div className="text-xs text-ink-subtle mt-0.5">{subtitle}</div>
       )}
       {deltaPct !== undefined && deltaPct !== null && (
         <div
-          className={`text-[11px] mt-1 inline-flex items-center gap-1 font-semibold ${
+          className={`text-xs mt-1 inline-flex items-center gap-1 font-semibold ${
             deltaPct > 0
               ? 'text-status-success'
               : deltaPct < 0

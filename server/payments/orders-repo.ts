@@ -12,7 +12,7 @@
  */
 
 import crypto from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { schema } from '../db/client';
 import { bancoSeTabelaExiste } from '../db/tabela-ausente';
 import { JsonStore } from '../db/json-store';
@@ -126,6 +126,38 @@ export async function listForUser(userId: string): Promise<Order[]> {
   return [...(await store.filter((o) => o.userId === userId))].sort(maisNovoPrimeiro);
 }
 
+/**
+ * O pedido em aberto que esta pessoa já criou para este mesmo produto, dentro
+ * de uma janela curta. Serve para **reusar** em vez de criar outro.
+ *
+ * O `CLAUDE.md` dizia, sobre a Sandra: "a chave de repetição é o `orderId`.
+ * Sem ela, retentativa de rede ou duplo clique viram duas cobranças reais.
+ * Nunca um id gerado na hora." A frase estava certa e a proteção não cobria o
+ * caso: o `orderId` **era** gerado na hora, um por requisição HTTP. A chave de
+ * idempotência do gateway protege contra repetir *a mesma tentativa* — coisa
+ * que o código nunca faz, porque não há laço de retry — e não contra o segundo
+ * clique, que é a ameaça descrita.
+ *
+ * Botão desabilitado no React também não resolve: cobre o duplo clique e não a
+ * retentativa do navegador quando a resposta demora e a conexão cai.
+ */
+export async function acharPendenteEquivalente(
+  userId: string,
+  productId: string,
+  janelaMs = 10 * 60_000,
+): Promise<Order | null> {
+  if (!userId || !productId) return null;
+  const limite = Date.now() - janelaMs;
+  const candidatos = (await listForUser(userId)).filter(
+    (o) =>
+      o.productId === productId &&
+      (o.status === 'pending' || o.status === 'processing') &&
+      Date.parse(o.createdAt) >= limite,
+  );
+  // `listForUser` já devolve o mais novo primeiro.
+  return candidatos[0] ?? null;
+}
+
 export async function findById(id: string): Promise<Order | null> {
   const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
@@ -138,16 +170,37 @@ export async function findById(id: string): Promise<Order | null> {
   return await store.findOne((o) => o.id === id);
 }
 
-export async function findByExternalId(externalId: string): Promise<Order | null> {
+/**
+ * Acha o pedido pelo id que o gateway conhece.
+ *
+ * **`gatewayId` não é opcional por conveniência: é a correção de um defeito.**
+ * Até 3/set/2026 a busca era global. O webhook autentica pelo gateway da URL
+ * (`/payments/webhook/:gatewayId`) e depois procurava o `externalId` no acervo
+ * inteiro — de modo que um gateway com verificação fraca confirmava pedido de
+ * qualquer outro. Somado à falha aberta que o Asaas tinha, isso era um caminho
+ * de "marcar como pago" para quem conhecesse um id pendente.
+ *
+ * Chamadas sem `gatewayId` seguem funcionando (busca global) para não quebrar
+ * uso administrativo; quem processa webhook **deve** passar o gateway.
+ */
+export async function findByExternalId(
+  externalId: string,
+  gatewayId?: string,
+): Promise<Order | null> {
   const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
-    const rows = await db
-      .select()
-      .from(schema.paymentOrders)
-      .where(eq(schema.paymentOrders.externalId, externalId));
+    const filtro = gatewayId
+      ? and(
+          eq(schema.paymentOrders.externalId, externalId),
+          eq(schema.paymentOrders.gatewayId, gatewayId),
+        )
+      : eq(schema.paymentOrders.externalId, externalId);
+    const rows = await db.select().from(schema.paymentOrders).where(filtro);
     if (rows[0]) return daLinha(rows[0]);
   }
-  return await store.findOne((o) => o.externalId === externalId);
+  return await store.findOne(
+    (o) => o.externalId === externalId && (!gatewayId || o.gatewayId === gatewayId),
+  );
 }
 
 interface CreateInput {

@@ -210,7 +210,7 @@ export default function AdminOrderForm() {
             placeholder="aluno@exemplo.com"
           />
         </Campo>
-        <p className="text-[11px] text-ink-muted sm:col-span-2">
+        <p className="text-xs text-ink-muted sm:col-span-2">
           Se ainda não houver conta com este e-mail, o pedido é registrado mesmo assim e passa a
           valer quando a conta for criada — não se perde a venda por causa de cadastro.
         </p>
@@ -357,7 +357,7 @@ export default function AdminOrderForm() {
       {editando && pedido && (
         <section className="pco-card p-5">
           <h2 className="text-sm font-semibold text-pco-deep mb-1">Registrado pelo sistema</h2>
-          <p className="text-[11px] text-ink-muted mb-3 flex items-start gap-1.5">
+          <p className="text-xs text-ink-muted mb-3 flex items-start gap-1.5">
             <Info size={12} className="mt-0.5 shrink-0" />
             Escrito pelo gateway e pelo histórico. Não se edita aqui: pedido apontando para cobrança
             inexistente é pior que pedido sem dado.
@@ -422,7 +422,7 @@ function Secao({
   return (
     <section className="pco-card p-5">
       <h2 className="text-sm font-semibold text-pco-deep">{titulo}</h2>
-      {descricao && <p className="text-[11px] text-ink-muted mt-0.5 mb-3">{descricao}</p>}
+      {descricao && <p className="text-xs text-ink-muted mt-0.5 mb-3">{descricao}</p>}
       <div className="grid gap-3 sm:grid-cols-2">{children}</div>
     </section>
   );
@@ -441,12 +441,12 @@ function Campo({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+      <span className="text-xs uppercase tracking-wide text-ink-muted">
         {label}
         {obrigatorio && <span className="text-status-danger ml-0.5">*</span>}
       </span>
       {children}
-      {dica && <span className="block text-[10px] text-ink-muted mt-0.5">{dica}</span>}
+      {dica && <span className="block text-xs text-ink-muted mt-0.5">{dica}</span>}
     </label>
   );
 }

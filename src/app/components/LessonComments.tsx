@@ -266,21 +266,21 @@ function CommentBody({
             {comment.authorName}
           </span>
           {comment.authorRole !== 'student' && (
-            <span className="pco-badge bg-pco-blue/10 text-pco-blue text-[10px]">
+            <span className="pco-badge bg-pco-blue/10 text-pco-blue text-xs">
               {comment.authorRole}
             </span>
           )}
           {comment.pinned && (
-            <span className="pco-badge bg-pco-orange/10 text-pco-orange text-[10px]">
+            <span className="pco-badge bg-pco-orange/10 text-pco-orange text-xs">
               fixado
             </span>
           )}
           {comment.hidden && isAdmin && (
-            <span className="pco-badge bg-status-danger/15 text-status-danger text-[10px]">
+            <span className="pco-badge bg-status-danger/15 text-status-danger text-xs">
               oculto
             </span>
           )}
-          <span className="text-[10px] text-ink-subtle">
+          <span className="text-xs text-ink-subtle">
             {new Date(comment.createdAt).toLocaleString('pt-BR')}
           </span>
         </div>
@@ -291,7 +291,7 @@ function CommentBody({
           <button
             type="button"
             onClick={onReply}
-            className="pco-btn-ghost text-[11px]"
+            className="pco-btn-ghost text-xs"
           >
             <Reply size={11} strokeWidth={2} />
             Responder
@@ -301,7 +301,7 @@ function CommentBody({
           <button
             type="button"
             onClick={() => onPin(!comment.pinned)}
-            className="pco-btn-ghost text-[11px]"
+            className="pco-btn-ghost text-xs"
             title={comment.pinned ? 'Desafixar' : 'Fixar'}
           >
             {comment.pinned ? (
@@ -315,7 +315,7 @@ function CommentBody({
           <button
             type="button"
             onClick={() => onHide(!comment.hidden)}
-            className="pco-btn-ghost text-[11px]"
+            className="pco-btn-ghost text-xs"
             title={comment.hidden ? 'Exibir' : 'Ocultar'}
           >
             {comment.hidden ? (
@@ -329,7 +329,7 @@ function CommentBody({
           <button
             type="button"
             onClick={onDelete}
-            className="pco-btn-ghost text-[11px] text-status-danger"
+            className="pco-btn-ghost text-xs text-status-danger"
             title="Excluir"
           >
             <Trash2 size={11} strokeWidth={2} />

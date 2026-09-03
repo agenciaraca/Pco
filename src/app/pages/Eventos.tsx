@@ -84,7 +84,7 @@ function SessionCard({
           {session.description && (
             <p className="mt-0.5 text-xs text-ink-muted">{session.description}</p>
           )}
-          <div className="mt-1 text-[11px] text-ink-subtle inline-flex items-center gap-2 flex-wrap">
+          <div className="mt-1 text-xs text-ink-subtle inline-flex items-center gap-2 flex-wrap">
             <Calendar size={10} strokeWidth={2} />
             {start.toLocaleString('pt-BR')} · {session.durationMinutes} min
             {session.hostName && (

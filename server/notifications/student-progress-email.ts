@@ -252,12 +252,30 @@ export function getStatus() {
   return { lastRunAt, lastResult };
 }
 
+let timer: NodeJS.Timeout | null = null;
+
+/**
+ * Idempotente: chamar duas vezes não cria dois intervalos.
+ *
+ * Os outros sete workers do projeto já começavam com esta guarda; estes dois
+ * não, e são justamente os que **mandam e-mail para aluno**. Uma segunda
+ * chamada — hot-reload do `tsx watch`, dois pontos de bootstrap, um
+ * `pm2 reload` que não derruba o processo — fazia sair aviso de progresso do aluno em duplicata.
+ */
 export function startWorker(intervalMs = 60 * 60_000): NodeJS.Timeout {
-  return setInterval(() => {
+  if (timer) return timer;
+  timer = setInterval(() => {
     void tickWorker().catch((err) => {
       console.error('[student-progress-email] erro:', err);
     });
   }, intervalMs);
+  timer.unref?.();
+  return timer;
+}
+
+export function stopWorker(): void {
+  if (timer) clearInterval(timer);
+  timer = null;
 }
 
 export async function _resetForTests(): Promise<void> {

@@ -41,6 +41,18 @@ export interface JwtPayload {
     email: string;
     role: Role;
   };
+  /**
+   * Ticket intermediario de 2FA. Quando vale 'pending', a senha foi conferida
+   * mas o segundo fator NAO foi apresentado: o token so serve para chamar
+   * /auth/login/totp, e `attachUser` o recusa em qualquer outra rota.
+   *
+   * Ate 3/set/2026 esta claim era escrita e nunca lida fora do proprio
+   * handler do TOTP. Como o ticket e assinado pela mesma funcao e pelo mesmo
+   * segredo do token de sessao, e carrega sub/email/role/tv completos, ele
+   * passava em `requireAuth('admin')` por 10 minutos — o 2FA virava obstaculo
+   * de tela, nao de autorizacao, justamente nas contas que o ativaram.
+   */
+  totp?: 'pending';
 }
 
 export async function signToken(

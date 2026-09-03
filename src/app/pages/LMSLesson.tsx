@@ -124,12 +124,19 @@ export default function LMSLesson() {
         return;
       }
       if (!lookup) return;
+      // A rota é `/curso/:courseId/aula/:lessonId` — a mesma que os botões
+      // "Aula anterior"/"Próxima aula" desta tela já usavam. Até 3/set/2026
+      // estes dois atalhos navegavam para
+      // `/curso/:c/modulo/:m/aula/:l`, que **não existe** em `routes.tsx`:
+      // caíam no curinga `*` e mostravam 404. E o painel de ajuda (tecla `?`)
+      // anunciava os dois como "Próxima aula" e "Aula anterior" — o produto
+      // documentava um atalho quebrado.
       if (e.key === 'j' && lookup.next) {
         e.preventDefault();
-        navigate(`/curso/${courseId}/modulo/${lookup.module.id}/aula/${lookup.next.id}`);
+        navigate(`/curso/${courseId}/aula/${lookup.next.id}`);
       } else if (e.key === 'k' && lookup.prev) {
         e.preventDefault();
-        navigate(`/curso/${courseId}/modulo/${lookup.module.id}/aula/${lookup.prev.id}`);
+        navigate(`/curso/${courseId}/aula/${lookup.prev.id}`);
       } else if (e.key === 'c') {
         e.preventDefault();
         void handleToggleCompleted();
@@ -262,7 +269,7 @@ export default function LMSLesson() {
                 <StickyNote size={16} className="text-pco-blue" strokeWidth={1.75} />
                 Minhas anotações
               </h3>
-              <div className="flex rounded-lg border border-pco-border overflow-hidden text-[10px]">
+              <div className="flex rounded-lg border border-pco-border overflow-hidden text-xs">
                 <button
                   type="button"
                   onClick={() => setNotePreview(false)}
@@ -307,12 +314,12 @@ export default function LMSLesson() {
                   onChange={(e) => setNoteDraft(e.target.value)}
                   maxLength={10000}
                 />
-                <p className="text-[10px] text-ink-subtle mt-1">
+                <p className="text-xs text-ink-subtle mt-1">
                   Suporta markdown: **bold**, *italic*, `code`, # H1, - lista, &gt; quote, [link](url), ```code block```
                 </p>
               </>
             )}
-            <div className="mt-1 text-[10px] text-ink-subtle text-right">
+            <div className="mt-1 text-xs text-ink-subtle text-right">
               {noteDraft.length}/10000
               {noteQ.data?.updatedAt && (
                 <span className="ml-2">
@@ -448,7 +455,7 @@ export default function LMSLesson() {
               <ShortcutRow keyLabel="?" desc="Mostrar/esconder este painel" />
               <ShortcutRow keyLabel="Esc" desc="Fechar painel" />
             </ul>
-            <p className="text-[11px] text-ink-subtle mt-3">
+            <p className="text-xs text-ink-subtle mt-3">
               Atalhos não funcionam enquanto digita em inputs ou textareas.
             </p>
           </div>
@@ -647,17 +654,26 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
               aria-label={t('common.search')}
             />
             {search && (
-              <span className="text-[11px] text-ink-muted whitespace-nowrap">
+              <span className="text-xs text-ink-muted whitespace-nowrap">
                 {(() => {
                   const re = new RegExp(escapeRegex(search.trim()), 'gi');
                   const m = data.text.match(re);
-                  return `${m?.length ?? 0} ${m && m.length === 1 ? 'match' : 'matches'}`;
+                  const n = m?.length ?? 0;
+                  return `${n} ${n === 1 ? 'ocorrência' : 'ocorrências'}`;
                 })()}
               </span>
             )}
           </div>
           <div className="max-h-[400px] overflow-y-auto border border-surface-gray rounded-lg p-3 bg-white">
-            <article className="prose prose-sm max-w-none whitespace-pre-wrap text-sm text-pco-deep leading-relaxed">
+            {/*
+              `lang` no elemento: a transcrição pode estar em espanhol ou
+              inglês dentro de uma página declarada `pt-BR`. Sem isto, o leitor
+              de tela pronuncia o texto estrangeiro com fonética portuguesa.
+            */}
+            <article
+              lang={data.locale ?? undefined}
+              className="prose prose-sm max-w-none whitespace-pre-wrap text-sm text-pco-deep leading-relaxed"
+            >
               {highlightText(data.text, search).map((part, i) =>
                 part.match ? (
                   <mark
@@ -683,7 +699,7 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
 function ShortcutRow({ keyLabel, desc }: { keyLabel: string; desc: string }) {
   return (
     <li className="flex items-center gap-3">
-      <kbd className="px-2 py-1 text-[11px] font-mono bg-surface-mute text-pco-deep rounded border border-pco-border min-w-8 text-center">
+      <kbd className="px-2 py-1 text-xs font-mono bg-surface-mute text-pco-deep rounded border border-pco-border min-w-8 text-center">
         {keyLabel}
       </kbd>
       <span className="text-ink-muted">{desc}</span>

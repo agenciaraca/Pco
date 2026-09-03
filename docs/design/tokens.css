@@ -14,7 +14,21 @@
   --raise: #ffffff;      /* cartões e superfícies elevadas */
   --ink: #101828;        /* texto principal (grafite oficial) */
   --ink-soft: #575c62;   /* texto secundário */
-  --ink-faint: #868c92;  /* legendas, placeholders */
+  /*
+   * Escurecido de #868c92 para #6f757c em 3/set/2026, por contraste.
+   *
+   * O valor antigo dava 3,40:1 sobre o branco — abaixo do mínimo de 4,5:1 para
+   * texto normal — e este token é aplicado quase sempre em corpo de 10 a 12px:
+   * legendas, contadores, dicas de formulário, o aviso de pagamento. Num
+   * público adulto brasileiro, boa parte lendo no celular, isso não é desvio de
+   * padrão: é a diferença entre ler e não ler. O novo valor dá 4,65:1 e continua
+   * visivelmente mais leve que `--ink-soft`, que é para o que ele serve.
+   *
+   * As cores de MARCA não foram tocadas: `--accent` e `--brand-orange` seguem
+   * como estão, e o aplicativo ganhou `pco.blue-ink` / `pco.orange-ink` para os
+   * casos em que a cor carrega letra (botão primário, link).
+   */
+  --ink-faint: #6f757c;  /* legendas, placeholders */
   --line: #dcdfd8;       /* bordas padrão */
   --line-soft: #e8eae4;  /* bordas sutis/divisores */
 

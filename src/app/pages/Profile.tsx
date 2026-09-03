@@ -341,7 +341,7 @@ export default function Profile() {
           <div>
             <label className="block text-xs font-medium text-ink-muted mb-1.5">E-mail</label>
             <input className="pco-input opacity-60" type="text" value={user.email} disabled />
-            <p className="text-[11px] text-ink-subtle mt-1">
+            <p className="text-xs text-ink-subtle mt-1">
               Para alterar e-mail, contate o administrador.
             </p>
           </div>
@@ -478,7 +478,7 @@ export default function Profile() {
           <h4 className="text-sm font-semibold text-pco-deep mb-1">
             Pausar notificações in-app
           </h4>
-          <p className="text-[11px] text-ink-muted mb-2">
+          <p className="text-xs text-ink-muted mb-2">
             O sininho fica em silêncio. Notificações continuam chegando, mas
             o badge não aparece até a data escolhida.
           </p>
@@ -537,7 +537,7 @@ export default function Profile() {
         </p>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-ink-muted">
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
               Minutos por semana ({Math.round(goalDraft / 60 * 10) / 10}h)
             </span>
             <input
@@ -549,7 +549,7 @@ export default function Profile() {
               onChange={(e) => setGoalDraft(Number(e.target.value))}
               className="w-full mt-2 accent-pco-blue"
             />
-            <div className="flex items-center justify-between text-[10px] text-ink-subtle mt-1">
+            <div className="flex items-center justify-between text-xs text-ink-subtle mt-1">
               <span>15min</span>
               <strong className="text-base text-pco-deep">{goalDraft} min</strong>
               <span>25h</span>
@@ -636,7 +636,7 @@ export default function Profile() {
             <div className="text-xs font-semibold text-pco-orange">
               Solicitação {myDeletionQ.data.status === 'pending' ? 'pendente' : myDeletionQ.data.status}
             </div>
-            <div className="text-[11px] text-ink-muted mt-1">
+            <div className="text-xs text-ink-muted mt-1">
               Enviada em{' '}
               {new Date(myDeletionQ.data.requestedAt).toLocaleString('pt-BR')}
               {myDeletionQ.data.reason && (
@@ -690,7 +690,7 @@ function StatCard({
     <div className="pco-card p-4">
       <div className="flex items-center gap-2">
         <Icon size={14} strokeWidth={2} className={color} />
-        <span className="text-[11px] uppercase tracking-wide text-ink-muted">{label}</span>
+        <span className="text-xs uppercase tracking-wide text-ink-muted">{label}</span>
       </div>
       <div className="mt-1 text-2xl font-bold text-pco-deep">{value}</div>
     </div>
