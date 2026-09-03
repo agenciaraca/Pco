@@ -708,6 +708,50 @@ por `GET /me/courses/:courseId/lessons/:lessonId/content`, que passa por
 `courseAccessFor` (matrícula **e** prazo). A chave é removida, não esvaziada:
 `content: ''` faria a tela mostrar a descrição como se fosse a aula.
 
+## O backup copiava a metade que não importa
+
+`db/backup-worker` roda todo dia às 04:00 UTC e, até 3/set/2026, copiava **só
+`data/*.json`**. Em produção `DATABASE_URL` está definida desde sempre e
+`AUTH_STORE=db` desde 19/ago/2026: contas e credenciais, fichas de aluno,
+matrículas, pedidos, agendamentos, certificados e uso de IA vivem no Postgres —
+e **nenhum worker os copiava**.
+
+O que torna isso o achado mais caro da auditoria não é o tamanho do buraco, é a
+aparência dele: **o backup não estava quebrado, estava incompleto**. Todo dia
+ele copiava dezenas de arquivos, somava quilobytes e reportava zero erros; a
+tela mostrava verde e dizia, corretamente, "Snapshots automáticos (JSON
+stores)". Número que sobe todo dia dá impressão de saúde mais forte que número
+parado, e backup incompleto é indistinguível de backup completo até o dia em que
+alguém precisa dele.
+
+`server/db/backup-db.ts` faz **despejo lógico** — uma linha por tabela, JSON,
+dentro da mesma pasta datada que o upload para S3 já varre. Três coisas que não
+se inferem lendo o arquivo:
+
+- **Não é `pg_dump`, de propósito.** O binário teria de existir no servidor na
+  versão compatível com o servidor de banco — dependência externa que falha em
+  silêncio e só aparece no dia do desastre. Aqui se usa a conexão que a app já
+  tem, e nenhum caminho de código novo no S3.
+- **Não guarda schema, índices nem sequences.** A estrutura vem das migrations,
+  que estão no git. **Restaurar é: migrations primeiro, linhas depois.**
+- **`bancoCoberto` distingue três estados**, e essa é a parte que faltava:
+  `null` (não há banco — modo JSON, e os arquivos já são a base inteira),
+  `true` (as tabelas entraram) e `false` (**há banco e ele não está na
+  snapshot**). O terceiro era o estado real da instalação, e nenhuma tela sabia
+  dizê-lo.
+
+`test/backup-cobre-o-banco.test.ts` cobra os três, e traz a guarda que importa:
+`completo` é `tablesDumped === alvos.length`, que é **trivialmente verdadeiro
+com zero tabelas**. A detecção usa um símbolo interno do Drizzle; se uma versão
+futura o renomear, a lista fica vazia sem erro nenhum e o backup passaria a
+dizer "banco salvo" cobrindo nada. O caso que exige mais de 20 tabelas é o que
+avisa.
+
+**O que continua aberto:** o S3 não tem lifecycle — nunca apaga nada. E o
+despejo carrega hash de senha e colunas cifradas; o que é cifrado usa chave
+derivada de `AI_KEY_ENCRYPTION_SECRET`, que vive no ambiente e **não** entra no
+despejo, mas a pasta e o bucket merecem o mesmo cuidado do banco.
+
 ## Analytics: a medição é própria, sem cookie e sem IP
 
 `server/analytics/` mede o tráfego do site desde 27/ago/2026 — antes disso

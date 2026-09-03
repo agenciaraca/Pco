@@ -118,6 +118,7 @@ import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
 import { isPubliclyListed } from './public/projections';
 import { documentoValido } from '../shared/documento';
+import { nomePublico } from '../shared/nome-publico';
 import { podeEntrar, MENSAGEM_SEM_MATRICULA } from './access/portao-de-entrada';
 import {
   segmentar as segmentarConvite,
@@ -1632,17 +1633,44 @@ export function buildApp() {
         deltaSeconds?: number;
         lessonDurationSeconds?: number;
       };
-      if (!body.courseId) {
-        return jsonError(c, 400, 'INVALID_INPUT', 'courseId é obrigatório');
-      }
       const delta = Number(body.deltaSeconds ?? 0);
       if (!Number.isFinite(delta) || delta < 0) {
         return jsonError(c, 400, 'INVALID_INPUT', 'deltaSeconds inválido');
       }
+
+      // **O curso sai do `lessonId`, não do corpo — e o portão vem antes.**
+      //
+      // Esta é a rota irmã de `/lessons/:id/complete`, e a correção de
+      // 3/set/2026 chegou lá e parou ali: aqui o `courseId` continuava vindo do
+      // corpo, sem conferência contra a aula, e **não havia portão nenhum** —
+      // qualquer conta autenticada acumulava tempo de assistência em qualquer
+      // aula de qualquer curso, inclusive o interno de operadores.
+      //
+      // Não é telemetria inofensiva. `watch_time` alimenta o relatório de
+      // engajamento, o cálculo de risco de evasão e `/admin/lessons/:id/watch-stats`:
+      // aceitar o par (aula, curso) que o cliente alegar deixa qualquer pessoa
+      // logada escrever no número que a coordenação usa para decidir quem está
+      // em risco — e escrever no curso errado.
+      const localizacao = await localizarAula(lessonId);
+      if (!localizacao) {
+        return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada.');
+      }
+      const courseId = localizacao.course.id;
+      // Mesmo critério do `/complete`: admin escapa para poder testar o
+      // conteúdo; aluno precisa de matrícula válida e prazo em dia.
+      if (u.role === 'student') {
+        const acc = await courseAccessFor(u.sub, courseId);
+        if (!acc.canStudy) {
+          return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc), {
+            expiresAt: acc.access?.expiresAt ?? null,
+          });
+        }
+      }
+
       const entry = await watchTimeRepo.addChunk({
         userId: u.sub,
         lessonId,
-        courseId: body.courseId,
+        courseId,
         deltaSeconds: delta,
         lessonDurationSeconds: body.lessonDurationSeconds,
       });
@@ -2555,7 +2583,14 @@ export function buildApp() {
     const u = c.get('user')!;
     const courseId = c.req.param('id') as string;
     const course = await coursesRepo.findCourse(courseId);
-    if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+    // Mesma resposta para "nao existe" e "voce nao pode ver": esta rota
+    // respondia 404 so no primeiro caso, e 200 no segundo, o que a tornava um
+    // oraculo de existencia de curso nao listado — inclusive o interno de
+    // operadores. `requisitantePodeVerCurso` e o mesmo ponto usado por
+    // `/courses/:id`.
+    if (!course || !(await requisitantePodeVerCurso(c, course))) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
+    }
     const required = course.prerequisiteCourseIds ?? [];
     if (required.length === 0) {
       return c.json({ ok: true, missing: [], status: [], required: [] });
@@ -8236,20 +8271,39 @@ export function buildApp() {
   // ---------- Live sessions ----------
 
   // Aluno autenticado vê próximas (limitado a 50). Filtra por audiência.
+  /**
+   * Quem pode assistir a uma sessão ao vivo. **Ponto único** de `/me/live-sessions`
+   * e de `/zoom/signature`.
+   *
+   * A regra já existia, dentro do filtro da listagem, e por isso a assinatura
+   * do Zoom pôde nascer sem ela. Regra que mora dentro de uma rota é regra que
+   * a próxima rota não herda — a mesma forma do fórum, dos comentários de aula
+   * e do `/watch`.
+   *
+   * `audience: 'enrolled'` sem `courseId` **nega**: é sessão marcada como
+   * restrita e sem dizer restrita a quê, e falhar fechado é o único lado
+   * seguro para errar aqui.
+   */
+  async function podeAssistirSessao(
+    u: { sub: string; role: string },
+    s: { audience: 'all' | 'enrolled'; courseId?: string | null },
+  ): Promise<boolean> {
+    if (u.role !== 'student') return true;
+    if (s.audience === 'all') return true;
+    if (s.audience === 'enrolled' && s.courseId) {
+      const ids = (await studentsRepo.findAdminStudent(u.sub))?.enrolledCourseIds ?? [];
+      return ids.includes(s.courseId);
+    }
+    return false;
+  }
+
   app.get('/me/live-sessions', requireAuth(), async (c) => {
     const u = c.get('user')!;
     const upcoming = await liveSessions.listUpcoming(50);
     let result = upcoming;
     if (u.role === 'student') {
-      const student = await studentsRepo.findAdminStudent(u.sub);
-      const enrolledSet = new Set(student?.enrolledCourseIds ?? []);
-      result = upcoming.filter((s) => {
-        if (s.audience === 'all') return true;
-        if (s.audience === 'enrolled' && s.courseId) {
-          return enrolledSet.has(s.courseId);
-        }
-        return false;
-      });
+      const permitidas = await Promise.all(upcoming.map((s) => podeAssistirSessao(u, s)));
+      result = upcoming.filter((_, i) => permitidas[i]!);
     }
     return c.json(
       result.map((s) => ({
@@ -8482,8 +8536,23 @@ export function buildApp() {
    * Transcrição de sessão ao vivo. É aula gravada em texto — mesmo direito.
    *
    * Antes bastava estar logado: um aluno de outro curso lia a transcrição de
-   * qualquer encontro. Sessão sem curso associado continua liberada a quem tem
-   * conta, porque não há a que amarrar o direito.
+   * qualquer encontro. A primeira correção amarrou o direito ao curso da
+   * sessão, e **deixou duas bocas abertas**, que a segunda passada encontrou:
+   *
+   * 1. **Sessão sem `courseId` liberava para toda conta.** Estava escrito como
+   *    escolha ("não há a que amarrar o direito"), mas `audience: 'enrolled'`
+   *    existe justamente para dizer "restrita" — uma sessão marcada restrita e
+   *    sem curso era a mais aberta de todas. É a forma clássica do fail-open:
+   *    o campo que restringe faltando vira ausência de restrição.
+   * 2. **Sessão apagada liberava também.** `findById` devolvendo `null` caía no
+   *    mesmo caminho: bastava a sessão ser removida para a transcrição dela
+   *    virar pública a qualquer conta — e apagar a sessão é exatamente o que
+   *    alguém faz quando ela não deveria mais estar no ar.
+   *
+   * Agora `podeAssistirSessao` — o mesmo ponto de `/me/live-sessions` e de
+   * `/zoom/signature` — decide quem entra, e `courseAccessFor` acrescenta o
+   * prazo quando há curso. Assistir ao vivo e ler a transcrição depois passam
+   * pela mesma régua, que é o que a frase "é aula gravada em texto" promete.
    */
   app.get('/session/:sessionId/transcript', requireAuth(), async (c) => {
     const sessionId = c.req.param('sessionId') as string;
@@ -8494,7 +8563,12 @@ export function buildApp() {
     const isAdmin = u.role === 'admin' || u.role === 'superadmin';
     if (!isAdmin) {
       const sessao = await liveSessions.findById(sessionId);
-      if (sessao?.courseId) {
+      // 404 e não 403: a existência da transcrição de uma sessão que a pessoa
+      // não pode ver já é informação.
+      if (!sessao || !(await podeAssistirSessao(u, sessao))) {
+        return jsonError(c, 404, 'NOT_FOUND', 'Transcrição não encontrada.');
+      }
+      if (sessao.courseId) {
         const acc = await courseAccessFor(u.sub, sessao.courseId);
         if (!acc.canStudy) {
           return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc));
@@ -8506,8 +8580,25 @@ export function buildApp() {
 
   // ---------- Mentoring / booking ----------
 
+  /**
+   * Mentoria do curso — so para quem cursa.
+   *
+   * Tinha `requireAuth()` e mais nada: qualquer conta autenticada lia a
+   * configuracao de mentoria de qualquer curso, que carrega **nome do
+   * instrutor e URL de agendamento**. Para o curso interno de operadores, isso
+   * e a agenda de quem opera a escola, entregue a quem so tem login.
+   *
+   * Responde com lista vazia, nao 403: a tela do aluno so pergunta "ha
+   * mentoria neste curso?", e um 403 aqui confirmaria a existencia da
+   * configuracao para quem nao pode ve-la.
+   */
   app.get('/me/mentoring/:courseId', requireAuth(), async (c) => {
+    const u = c.get('user')!;
     const courseId = c.req.param('courseId') as string;
+    if (u.role === 'student') {
+      const ids = (await studentsRepo.findAdminStudent(u.sub))?.enrolledCourseIds ?? [];
+      if (!ids.includes(courseId)) return c.json({ configs: [] });
+    }
     const configs = await mentoringStore.listByCourse(courseId);
     return c.json({ configs });
   });
@@ -8607,12 +8698,42 @@ export function buildApp() {
     return c.json(zoomConfig.getPublicConfig(cfg));
   });
 
+  /**
+   * A assinatura é a chave da sala. Só sai para sessão que a pessoa pode assistir.
+   *
+   * Até 3/set/2026 esta rota assinava **qualquer** `meetingNumber` que viesse
+   * no corpo, para qualquer conta autenticada. O `/me/live-sessions` filtra por
+   * público-alvo e matrícula com cuidado — e esta rota passava por fora dele:
+   * bastava o número da reunião, que circula em convite, calendário e print de
+   * tela, para entrar numa sessão restrita a uma turma.
+   *
+   * Pior que isso: o número **nem precisava ser de uma sessão nossa**. A
+   * assinatura é gerada com a credencial do SDK da escola, então a rota
+   * funcionava como um oráculo de assinatura para qualquer reunião daquela
+   * conta Zoom, inclusive as que nunca foram cadastradas aqui.
+   *
+   * Agora a sessão tem de existir, tem de ser `zoom_embed`, e a pessoa tem de
+   * passar no **mesmo** critério de `/me/live-sessions` — o `podeAssistirSessao`
+   * abaixo é o ponto único dos dois, para que não voltem a discordar.
+   */
   app.post('/zoom/signature', requireAuth(), async (c) => {
+    const u = c.get('user')!;
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const meetingNumber = String(body.meetingNumber ?? '').trim();
     if (!meetingNumber) {
       return jsonError(c, 400, 'INVALID_INPUT', 'meetingNumber obrigatório.');
     }
+
+    // 404, não 403: confirmar que aquele número é uma sessão nossa já é
+    // informação. Mesmo motivo do fórum e do `/courses/:id`.
+    const todas = await liveSessions.listAll();
+    const sessao = todas.find(
+      (s) => (s.zoomMeetingNumber ?? '').trim() === meetingNumber && s.status !== 'canceled',
+    );
+    if (!sessao || !(await podeAssistirSessao(u, sessao))) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Sessão não encontrada.');
+    }
+
     const cfg = await zoomConfig.getConfig();
     if (!cfg || !cfg.enabled) {
       return jsonError(c, 503, 'ZOOM_NOT_CONFIGURED', 'Zoom SDK não configurado.');
@@ -8716,7 +8837,7 @@ export function buildApp() {
         courseId,
         parentId: parentId ?? null,
         authorId: u.sub,
-        authorName: u.email.split('@')[0]!,
+        authorName: nomePublico(null, u.email),
         authorRole: u.role,
         body: text,
       });
@@ -8769,7 +8890,10 @@ export function buildApp() {
     return c.json(
       list.slice(0, Math.max(1, Math.min(limit, 200))).map((r) => ({
         id: r.id,
-        userName: r.userName,
+        // Saneado tambem na leitura: as linhas gravadas antes de 3/set/2026
+        // trazem o endereco inteiro, e corrigir so a escrita as deixaria
+        // publicadas para sempre.
+        userName: nomePublico(r.userName),
         rating: r.rating,
         comment: r.comment ?? '',
         createdAt: r.createdAt,
@@ -8818,7 +8942,8 @@ export function buildApp() {
           courseId,
           userId: u.sub,
           userEmail: u.email,
-          userName: student.name || u.email,
+          // Nunca o e-mail: `/courses/:id/reviews` e publico e sem token.
+          userName: nomePublico(student.name, u.email),
           rating: Math.round(rating),
           comment,
         });
@@ -10131,7 +10256,18 @@ export function buildApp() {
     const { recordEvent, getExperiment, assignVariant } = await import('./experiments/store');
     const exp = await getExperiment(c.req.param('id') as string);
     if (!exp || exp.status !== 'running') return c.json({ ok: false });
-    const userId = typeof body.userId === 'string' ? body.userId : '';
+    // **O `userId` vem do token, nunca do corpo.**
+    //
+    // A rota e publica de proposito (visitante anonimo tambem participa do
+    // teste, identificado por `sessionId`), mas ate 3/set/2026 ela aceitava
+    // `userId` do corpo **sem autenticacao nenhuma**: qualquer pessoa
+    // atribuia conversao a qualquer aluno, e a atribuicao e o que decide qual
+    // variante "venceu". Quem le o resultado nao tem como desconfiar — os
+    // eventos sao indistinguiveis dos legitimos.
+    //
+    // Anonimo continua funcionando pelo `sessionId`, que nao identifica
+    // ninguem e so serve para manter a mesma variante entre visitas.
+    const userId = c.get('user')?.sub ?? '';
     const sessionId = typeof body.sessionId === 'string' ? body.sessionId : '';
     const eventName = typeof body.eventName === 'string' ? body.eventName : 'converted';
     const key = userId || sessionId;
@@ -10265,7 +10401,7 @@ export function buildApp() {
       // A parte local do e-mail, nunca o e-mail inteiro — é o que o módulo de
       // comentários já faz. Guardar `u.email` aqui publicava o endereço de
       // cada aluno para todo mundo que abrisse o fórum.
-      authorName: u.email.split('@')[0]!,
+      authorName: nomePublico(null, u.email),
       title: body.title.trim(),
       body: body.body.trim(),
       kind,
@@ -10289,7 +10425,7 @@ export function buildApp() {
     const r = await createReply({
       threadId,
       authorId: u.sub,
-      authorName: u.email.split('@')[0]!,
+      authorName: nomePublico(null, u.email),
       body: body.body.trim(),
     });
     if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');

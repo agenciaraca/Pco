@@ -4439,11 +4439,22 @@ export interface BackupSnapshotDto {
   files: Array<{ name: string; size: number }>;
 }
 
+export interface BackupDbDumpDto {
+  enabled: boolean;
+  tablesDumped: number;
+  rowsTotal: number;
+  bytesTotal: number;
+  errors: string[];
+  completo: boolean;
+}
+
 export interface BackupRunResultDto {
   date: string;
   filesBackedUp: number;
   bytesTotal: number;
   errors: string[];
+  /** Ausente = o banco não foi copiado nesta snapshot. */
+  db?: BackupDbDumpDto;
 }
 
 export interface BackupStatusDto {
@@ -4451,6 +4462,16 @@ export interface BackupStatusDto {
   lastRunAt: string | null;
   lastResult: BackupRunResultDto | null;
   keepDays: number;
+  /**
+   * `null` = não há banco (modo JSON, e os arquivos já são a base inteira).
+   * `true` = as tabelas entraram na última snapshot.
+   * `false` = **há banco e ele não está na snapshot** — o estado que pode
+   * custar a base inteira, e que nenhuma tela sabia dizer até 3/set/2026.
+   */
+  bancoCoberto: boolean | null;
+  tabelasEsperadas: number;
+  /** `null` = ainda não rodou. Não medido não é o mesmo que ruim. */
+  saudavel: boolean | null;
 }
 
 export async function fetchBackupSnapshots(): Promise<BackupSnapshotDto[]> {

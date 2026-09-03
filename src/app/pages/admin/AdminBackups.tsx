@@ -270,8 +270,47 @@ function SnapshotsSection() {
   const runMut = useRunBackupSnapshotNow();
   const toast = useToast();
 
+  const db = status.data;
+
   return (
     <section className="space-y-3">
+      {/*
+        O banco é a metade que a snapshot não copiava, e nenhuma tela dizia.
+        Aqui as três situações são distinguíveis: coberto, não coberto, e
+        "não há banco" — que não é falha e não pode ser pintada como uma.
+      */}
+      {db?.bancoCoberto === false && (
+        <div className="rounded-xl border border-status-danger/30 bg-status-danger/5 p-3">
+          <p className="text-sm font-semibold text-status-danger">
+            O banco de dados não está nesta cópia
+          </p>
+          <p className="text-xs text-ink-muted mt-1">
+            Há um Postgres configurado, e a última snapshot não o contém. Contas,
+            fichas de aluno, matrículas, pedidos e certificados vivem lá — os
+            arquivos JSON sozinhos não reconstroem a escola. Rode uma snapshot e
+            confira os erros abaixo.
+          </p>
+        </div>
+      )}
+      {db?.bancoCoberto === true && db.lastResult?.db && (
+        <div className="rounded-xl border border-status-success/30 bg-status-success/5 p-3">
+          <p className="text-sm font-semibold text-status-success">
+            Banco incluído na cópia
+          </p>
+          <p className="text-xs text-ink-muted mt-1">
+            {db.lastResult.db.tablesDumped} de {db.tabelasEsperadas} tabelas ·{' '}
+            {db.lastResult.db.rowsTotal.toLocaleString('pt-BR')} linhas ·{' '}
+            {(db.lastResult.db.bytesTotal / 1024).toFixed(1)} kB. Restaurar exige
+            rodar as migrations antes — a estrutura vem do git, não daqui.
+          </p>
+        </div>
+      )}
+      {db?.bancoCoberto === null && (
+        <p className="text-xs text-ink-subtle">
+          Sem banco configurado: os arquivos JSON já são a base inteira, e a
+          cópia deles é a cópia de tudo.
+        </p>
+      )}
       {storage.data && (
         <div className="grid gap-3 sm:grid-cols-4 pt-4 border-t border-pco-border">
           <div className="pco-card p-3">
@@ -311,11 +350,12 @@ function SnapshotsSection() {
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-base font-bold text-pco-deep">
-            Snapshots automáticos (JSON stores)
+            Snapshots automáticas
           </h2>
           <p className="text-xs text-ink-muted">
-            Cópia diária dos arquivos JSON do DATA_DIR. Roda 04h UTC (1h BRT).
-            Mantém os últimos {status.data?.keepDays ?? 14} dias.
+            Cópia diária dos arquivos JSON do DATA_DIR
+            {db?.bancoCoberto !== null ? ' e das tabelas do Postgres' : ''}. Roda
+            04h UTC (1h BRT). Mantém os últimos {status.data?.keepDays ?? 14} dias.
           </p>
         </div>
         <button
@@ -323,9 +363,14 @@ function SnapshotsSection() {
           onClick={async () => {
             try {
               const r = await runMut.mutateAsync();
+              const parteBanco = r.db?.enabled
+                ? ` · banco: ${r.db.tablesDumped} tabela(s), ${r.db.rowsTotal} linha(s)${
+                    r.db.completo ? '' : ' — INCOMPLETO'
+                  }`
+                : '';
               toast.success(
-                'Snapshot criado',
-                `${r.filesBackedUp} arquivo(s), ${(r.bytesTotal / 1024).toFixed(1)} kB`,
+                'Snapshot criada',
+                `${r.filesBackedUp} arquivo(s), ${(r.bytesTotal / 1024).toFixed(1)} kB${parteBanco}`,
               );
             } catch (err) {
               toast.error('Falha', err instanceof Error ? err.message : 'Erro');

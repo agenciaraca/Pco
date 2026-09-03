@@ -8,6 +8,8 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { uploadSnapshotToS3 } from './backup-s3';
+import { dumpDatabase, totalDeTabelas, type DbDumpResult } from './backup-db';
+import { hasDb } from './client';
 
 function getDataDir(): string {
   return process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
@@ -25,6 +27,11 @@ export interface BackupRunResult {
   filesBackedUp: number;
   bytesTotal: number;
   errors: string[];
+  /**
+   * O despejo do Postgres. **Ausente significa que o banco nao foi copiado**,
+   * e nao "nao ha banco" — sao coisas diferentes, e confundi-las foi o defeito.
+   */
+  db?: DbDumpResult;
   s3?: {
     enabled: boolean;
     uploaded: number;
@@ -94,6 +101,44 @@ export async function runBackup(now: Date = new Date()): Promise<BackupRunResult
     /* ignore */
   }
 
+  // **O banco, antes do upload** — para que os arquivos do despejo entrem na
+  // mesma varredura do S3, sem caminho de codigo novo la.
+  //
+  // Sem `DATABASE_URL` isto devolve `enabled: false` e nao e falha nenhuma: e
+  // o modo JSON, em que `data/*.json` ja e a base inteira.
+  let dbResult: DbDumpResult | undefined;
+  try {
+    dbResult = await dumpDatabase(backupDir);
+    if (dbResult.enabled) {
+      for (const e of dbResult.errors) errors.push(`db/${e}`);
+      // eslint-disable-next-line no-console
+      console.log(
+        `[backup-db] ${dbResult.tablesDumped} tabelas · ${dbResult.rowsTotal} linhas · ` +
+          `${(dbResult.bytesTotal / 1024).toFixed(1)}kB` +
+          (dbResult.completo ? '' : ' · INCOMPLETO'),
+      );
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    errors.push(`db: ${msg}`);
+    // O despejo lancar inteiro e o caso que mais precisa gritar: significa
+    // backup rodando todo dia sem levar o banco, que foi o estado ate
+    // 3/set/2026 — e ele nao aparecia em lugar nenhum.
+    // eslint-disable-next-line no-console
+    console.error(
+      `[backup-db] ATENCAO: o despejo do Postgres falhou por inteiro (${msg}). ` +
+        'A snapshot de hoje NAO contem o banco.',
+    );
+    dbResult = {
+      enabled: true,
+      tablesDumped: 0,
+      rowsTotal: 0,
+      bytesTotal: 0,
+      errors: [msg],
+      completo: false,
+    };
+  }
+
   // Upload remoto (S3) — env-gated. Falhas não invalidam o backup local.
   let s3Result: BackupRunResult['s3'];
   if (filesBackedUp > 0) {
@@ -111,7 +156,7 @@ export async function runBackup(now: Date = new Date()): Promise<BackupRunResult
     }
   }
 
-  return { date, filesBackedUp, bytesTotal, errors, s3: s3Result };
+  return { date, filesBackedUp, bytesTotal, errors, db: dbResult, s3: s3Result };
 }
 
 export interface BackupSnapshot {
@@ -190,6 +235,34 @@ export function stopWorker(): void {
   }
 }
 
+/**
+ * Estado do backup — e, agora, se ele cobre o banco.
+ *
+ * `saudavel` existe porque a tela dizia "backup ok" com contagem de arquivos e
+ * bytes enquanto o Postgres inteiro ficava de fora. Numero que sobe todo dia da
+ * a impressao mais forte de saude que um numero parado; o defeito era invisivel
+ * justamente por isso.
+ *
+ * As tres situacoes que precisam ser distinguiveis na tela:
+ *
+ * - **`bancoCoberto: null`** — nao ha banco (modo JSON). Nao e falha.
+ * - **`bancoCoberto: true`** — as 25 tabelas entraram na ultima snapshot.
+ * - **`bancoCoberto: false`** — ha banco e ele **nao** esta na snapshot. E o
+ *   estado em que a instalacao esteve todo esse tempo, e o unico que pode
+ *   custar a base inteira.
+ */
 export function getStatus() {
-  return { enabled: interval !== null, lastRunAt, lastResult, keepDays: KEEP_DAYS };
+  const db = lastResult?.db;
+  const bancoCoberto = !hasDb() ? null : db?.enabled ? db.completo : false;
+  return {
+    enabled: interval !== null,
+    lastRunAt,
+    lastResult,
+    keepDays: KEEP_DAYS,
+    bancoCoberto,
+    tabelasEsperadas: hasDb() ? totalDeTabelas() : 0,
+    // Nunca rodou ainda nao e "nao saudavel" — e "nao medido". Zero e travessao
+    // sao coisas diferentes, aqui como nas telas de metrica.
+    saudavel: lastRunAt === null ? null : bancoCoberto !== false && (lastResult?.errors.length ?? 0) === 0,
+  };
 }
