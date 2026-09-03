@@ -5412,7 +5412,15 @@ export function buildApp() {
           'Já existe um estorno em andamento para este pedido.',
         );
       }
-      estornosEmAndamento.add(id);
+      // **Toda validação acontece ANTES de pegar a trava.**
+      //
+      // Na primeira versão desta correção o `add` vinha aqui em cima, e havia
+      // quatro `return` entre ele e o `try` que o libera no `finally`. Dois
+      // deles — `NO_EXTERNAL` e `NOT_SUPPORTED` — são os caminhos **normais**
+      // de pedido manual e de gateway sem estorno automático (a Sandra). Uma
+      // única tentativa recusada por ali deixava o id no `Set` para sempre:
+      // aquele pedido respondia 409 até o processo reiniciar. A trava contra
+      // estorno duplo virava trava contra estorno nenhum.
       if (body.amountCents !== undefined && body.amountCents > order.amountCents) {
         return jsonError(
           c,
@@ -5443,6 +5451,7 @@ export function buildApp() {
         );
       }
       const u = c.get('user')!;
+      estornosEmAndamento.add(id);
       try {
         const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
         if (!creds) {
@@ -10189,15 +10198,46 @@ export function buildApp() {
    * já exigia token; ler não exigia nada, e quem soubesse o id do curso lia
    * tudo. A tela que consome já manda token, então nada muda para quem usa.
    */
+  /**
+   * O fórum é do curso, e o curso tem dono.
+   *
+   * Até 3/set/2026 estas rotas tinham `requireAuth()` e mais nada: **qualquer**
+   * conta autenticada lia e escrevia no fórum de **qualquer** curso, incluindo
+   * o Treinamento PCO, que é interno de operadores. O módulo de comentários de
+   * aula, ao lado, já passava por `courseAccessFor` desde 27/ago — a correção
+   * daquele dia chegou aos comentários e parou ali.
+   *
+   * E o teste que deveria ter pego chama-se "ler o fórum e os comentários exige
+   * o mesmo que escrever": para os comentários ele cobra 403/404 **com token de
+   * aluno não matriculado**; para o fórum, cobrava só 401 **sem token** — a
+   * garantia mais fraca, cristalizada num caso com o nome certo.
+   */
+  async function podeVerForumDoCurso(c: Context, courseId: string): Promise<boolean> {
+    const u = c.get('user');
+    if (!u) return false;
+    if (u.role === 'admin' || u.role === 'superadmin') return true;
+    const acc = await courseAccessFor(u.sub, courseId);
+    return acc.canStudy;
+  }
+
   app.get('/courses/:courseId/forum/threads', requireAuth(), async (c) => {
+    const courseId = c.req.param('courseId') as string;
+    if (!(await podeVerForumDoCurso(c, courseId))) {
+      return jsonError(c, 403, 'SEM_ACESSO', 'Este fórum é do curso, e ele não está na sua estante.');
+    }
     const { listThreads } = await import('./forum/store');
-    return c.json(await listThreads(c.req.param('courseId') as string));
+    return c.json(await listThreads(courseId));
   });
 
   app.get('/forum/threads/:id', requireAuth(), async (c) => {
     const { getThread, listReplies } = await import('./forum/store');
     const t = await getThread(c.req.param('id') as string);
+    // 404 antes de qualquer coisa: não confirmamos a existência de thread de
+    // curso que a pessoa não pode ver.
     if (!t) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+    if (!(await podeVerForumDoCurso(c, t.courseId))) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+    }
     const replies = await listReplies(t.id);
     return c.json({ thread: t, replies });
   });
@@ -10213,12 +10253,19 @@ export function buildApp() {
     ) {
       return jsonError(c, 400, 'INVALID_INPUT', 'title e body obrigatórios');
     }
+    const courseId = c.req.param('courseId') as string;
+    if (!(await podeVerForumDoCurso(c, courseId))) {
+      return jsonError(c, 403, 'SEM_ACESSO', 'Este fórum é do curso, e ele não está na sua estante.');
+    }
     const kind = ['pergunta', 'dica', 'discussao'].includes(body.kind) ? body.kind : 'discussao';
     const { createThread } = await import('./forum/store');
     const t = await createThread({
-      courseId: c.req.param('courseId') as string,
+      courseId,
       authorId: u.sub,
-      authorName: u.email,
+      // A parte local do e-mail, nunca o e-mail inteiro — é o que o módulo de
+      // comentários já faz. Guardar `u.email` aqui publicava o endereço de
+      // cada aluno para todo mundo que abrisse o fórum.
+      authorName: u.email.split('@')[0]!,
       title: body.title.trim(),
       body: body.body.trim(),
       kind,
@@ -10232,11 +10279,17 @@ export function buildApp() {
     if (typeof body.body !== 'string' || body.body.trim().length < 3) {
       return jsonError(c, 400, 'INVALID_INPUT', 'body obrigatório (mín 3 chars)');
     }
-    const { createReply } = await import('./forum/store');
+    const { createReply, getThread } = await import('./forum/store');
+    const threadId = c.req.param('id') as string;
+    const alvo = await getThread(threadId);
+    if (!alvo) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+    if (!(await podeVerForumDoCurso(c, alvo.courseId))) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
+    }
     const r = await createReply({
-      threadId: c.req.param('id') as string,
+      threadId,
       authorId: u.sub,
-      authorName: u.email,
+      authorName: u.email.split('@')[0]!,
       body: body.body.trim(),
     });
     if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Thread não encontrada');
@@ -10871,7 +10924,11 @@ export function buildApp() {
       // Se já existe um pedido em aberto desta pessoa para este produto nos
       // últimos 10 minutos, devolvemos ele — com a `checkoutUrl` que o gateway
       // já emitiu — em vez de criar outro.
-      const jaPendente = await ordersRepo.acharPendenteEquivalente(u.sub, product.id);
+      const jaPendente = await ordersRepo.acharPendenteEquivalente(u.sub, {
+        productId: product.id,
+        amountCents,
+        gatewayId: gw.id,
+      });
       if (jaPendente && jaPendente.checkoutUrl) {
         // 201, igual ao caminho que cria: para quem chama, reusar e criar são
         // a mesma coisa — um pedido em aberto com uma URL de pagamento.
@@ -11068,7 +11125,11 @@ export function buildApp() {
     // carrinho com mais de um curso **materializa um produto `bundle` adhoc no
     // banco antes** de chamar o gateway: sem isto, duas tentativas deixavam
     // dois produtos-fantasma além dos dois pedidos.
-    const pendenteDoVisitante = await ordersRepo.acharPendenteEquivalente(user.id, product.id);
+    const pendenteDoVisitante = await ordersRepo.acharPendenteEquivalente(user.id, {
+      productId: product.id,
+      amountCents: product.priceCents,
+      gatewayId: gw.id,
+    });
     if (pendenteDoVisitante && pendenteDoVisitante.checkoutUrl) {
       // **Mesma forma e mesmo status do caminho novo, de propósito.**
       // Responder 200 aqui e 201 ali tornaria a resposta distinguível — e

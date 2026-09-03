@@ -279,6 +279,10 @@ export function stopWorker(): void {
 }
 
 export async function _resetForTests(): Promise<void> {
+  // Para o timer junto. Sem isto, um teste que faca start -> reset -> start
+  // recebe silenciosamente o intervalo da PRIMEIRA chamada, por causa da
+  // guarda de idempotencia.
+  stopWorker();
   await cfgStore.setAll([DEFAULT_CFG]);
   lastFiredKey = '';
   lastRunAt = null;

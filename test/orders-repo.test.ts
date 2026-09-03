@@ -67,7 +67,10 @@ describe('orders-repo CRUD', () => {
       externalId: 'unique-ext-456',
       status: 'pending',
     });
-    const found = await repo.findByExternalId('unique-ext-456');
+    // `gatewayId` passou a ser obrigatorio em 3/set/2026: o webhook autentica
+    // pelo gateway da URL, e buscar no acervo inteiro fazia um gateway
+    // confirmar pedido de outro.
+    const found = await repo.findByExternalId('unique-ext-456', 'gw1');
     expect(found).not.toBeNull();
     expect(found!.id).toBe(o.id);
   });
@@ -83,6 +86,10 @@ describe('orders-repo CRUD', () => {
   it('listForUser filtra por userId', async () => {
     await repo.createOrder({ ...baseInput, userId: 'u-other' });
     const u1Orders = await repo.listForUser('u1');
+    // `every` numa lista vazia é verdadeiro: sem esta linha, o caso passaria
+    // justamente se `listForUser` deixasse de devolver qualquer coisa — que é
+    // a falha que ele existe para pegar.
+    expect(u1Orders.length).toBeGreaterThan(0);
     expect(u1Orders.every((o) => o.userId === 'u1')).toBe(true);
   });
 
@@ -92,5 +99,120 @@ describe('orders-repo CRUD', () => {
     for (let i = 1; i < all.length; i++) {
       expect(all[i - 1]!.createdAt >= all[i]!.createdAt).toBe(true);
     }
+  });
+});
+
+/**
+ * REG-012 · o `externalId` só vale dentro do gateway que o emitiu.
+ *
+ * `externalId` é o id **no gateway**, e nada garante que dois provedores não
+ * usem a mesma string. Buscar no acervo inteiro fazia o webhook de um gateway
+ * confirmar o pedido de outro. A primeira versão desta correção deixou
+ * `gatewayId` opcional "para não quebrar uso administrativo" — uso que não
+ * existe: parâmetro opcional numa guarda é falha aberta esperando o próximo
+ * chamador esquecer.
+ */
+describe('REG-012 · findByExternalId não cruza gateways', () => {
+  it('mesmo externalId em dois gateways devolve o pedido do gateway pedido', async () => {
+    const naGw1 = await repo.createOrder({ ...baseInput, gatewayId: 'gw-um' });
+    const naGw2 = await repo.createOrder({ ...baseInput, gatewayId: 'gw-dois' });
+    // A colisão que o mundo real produz: o mesmo id em provedores diferentes.
+    await repo.attachGatewayResult(naGw1.id, { externalId: 'colisao-1', status: 'pending' });
+    await repo.attachGatewayResult(naGw2.id, { externalId: 'colisao-1', status: 'pending' });
+
+    expect((await repo.findByExternalId('colisao-1', 'gw-um'))!.id).toBe(naGw1.id);
+    expect((await repo.findByExternalId('colisao-1', 'gw-dois'))!.id).toBe(naGw2.id);
+  });
+
+  it('gateway que não emitiu aquele id não encontra nada', async () => {
+    const o = await repo.createOrder({ ...baseInput, gatewayId: 'gw-um' });
+    await repo.attachGatewayResult(o.id, { externalId: 'so-da-gw-um', status: 'pending' });
+    expect(await repo.findByExternalId('so-da-gw-um', 'gw-tres')).toBeNull();
+  });
+});
+
+/**
+ * REG-006 · "equivalente" quer dizer equivalente.
+ *
+ * A proteção contra duplo clique devolve um pedido em aberto em vez de criar
+ * outro. A primeira versão comparava **só o produto** — e o cupom é aplicado
+ * ANTES desta busca. Quem criava um pedido sem cupom, voltava em cinco minutos
+ * e digitava o código recebia de volta o pedido velho: o servidor validava o
+ * cupom com sucesso, respondia 201, e a pessoa **pagava o preço cheio** logo
+ * depois de o sistema ter dito que o desconto valia. O mesmo acontecia ao
+ * trocar de gateway — a pessoa era mandada pagar onde não escolheu.
+ */
+describe('REG-006 · acharPendenteEquivalente compara valor e gateway', () => {
+  const dono = 'u-reuso';
+
+  async function pendente(amountCents: number, gatewayId: string) {
+    return await repo.createOrder({
+      ...baseInput,
+      userId: dono,
+      productId: 'p-reuso',
+      gatewayId,
+      amountCents,
+    });
+  }
+
+  it('reusa o pedido quando produto, valor e gateway batem', async () => {
+    const original = await pendente(10000, 'gw1');
+    const achado = await repo.acharPendenteEquivalente(dono, {
+      productId: 'p-reuso',
+      amountCents: 10000,
+      gatewayId: 'gw1',
+    });
+    expect(achado, 'duplo clique continua sendo um pedido só').not.toBeNull();
+    expect(achado!.id).toBe(original.id);
+  });
+
+  it('NÃO reusa quando o valor mudou — é o caso do cupom', async () => {
+    // O pedido de 100,00 já existe (criado acima). Agora a pessoa digita um
+    // cupom de 20%: o checkout procura por 80,00 e não pode achar o de 100,00.
+    const comDesconto = await repo.acharPendenteEquivalente(dono, {
+      productId: 'p-reuso',
+      amountCents: 8000,
+      gatewayId: 'gw1',
+    });
+    expect(comDesconto, 'cupom aceito não pode devolver pedido sem desconto').toBeNull();
+  });
+
+  it('NÃO reusa quando o gateway mudou', async () => {
+    const outroGateway = await repo.acharPendenteEquivalente(dono, {
+      productId: 'p-reuso',
+      amountCents: 10000,
+      gatewayId: 'gw-outro',
+    });
+    expect(outroGateway, 'ninguém é mandado pagar onde não escolheu').toBeNull();
+  });
+
+  it('NÃO reusa pedido de outra pessoa', async () => {
+    const deOutro = await repo.acharPendenteEquivalente('u-alheio', {
+      productId: 'p-reuso',
+      amountCents: 10000,
+      gatewayId: 'gw1',
+    });
+    expect(deOutro).toBeNull();
+  });
+
+  it('NÃO reusa pedido fora da janela de tempo', async () => {
+    const fora = await repo.acharPendenteEquivalente(
+      dono,
+      { productId: 'p-reuso', amountCents: 10000, gatewayId: 'gw1' },
+      // Janela de 1ms: o pedido criado agora já está velho demais.
+      1,
+    );
+    expect(fora).toBeNull();
+  });
+
+  it('NÃO reusa pedido que já saiu de aberto', async () => {
+    const pago = await pendente(4200, 'gw1');
+    await repo.updateStatus(pago.id, 'paid', 'teste');
+    const achado = await repo.acharPendenteEquivalente(dono, {
+      productId: 'p-reuso',
+      amountCents: 4200,
+      gatewayId: 'gw1',
+    });
+    expect(achado, 'pedido pago não é pedido em aberto').toBeNull();
   });
 });

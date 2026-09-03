@@ -46,7 +46,7 @@ export default function LessonPreviewPublic() {
 
   // Aluno já logado pode ir direto pra rota normal
   if (user) {
-    return <Navigate to={`/curso/${course.id}/modulo/${module.id}/aula/${lesson.id}`} replace />;
+    return <Navigate to={`/curso/${course.id}/aula/${lesson.id}`} replace />;
   }
 
   return (

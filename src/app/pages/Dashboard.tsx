@@ -161,7 +161,7 @@ export default function Dashboard() {
 
       {lastLessonQ.data && (
         <Link
-          to={`/curso/${lastLessonQ.data.courseId}/modulo/${lastLessonQ.data.moduleId}/aula/${lastLessonQ.data.lessonId}`}
+          to={`/curso/${lastLessonQ.data.courseId}/aula/${lastLessonQ.data.lessonId}`}
           className="pco-card pco-card-hover p-4 flex items-center gap-4 bg-gradient-to-r from-pco-blue/5 to-transparent block"
         >
           <div className="h-12 w-12 rounded-xl bg-pco-blue/10 grid place-items-center text-pco-blue shrink-0">

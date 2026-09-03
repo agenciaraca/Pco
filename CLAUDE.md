@@ -289,7 +289,28 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
-O handoff vivo é **`docs/SESSAO-2026-09-02-vazamento-e-checkout.md`** — comece
+> ### 3/set/2026 — o handoff vivo mudou de lugar
+>
+> **Comece por `H:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`**, que fica
+> **fora deste repositório** de propósito (relatório de auditoria com evidência
+> não se mistura a código).
+>
+> Três coisas que aquele arquivo diz e que não podem esperar a leitura:
+>
+> 1. **Há uma ação do dono pendente, e ela é a primeira:** uma Application
+>    Password de administrador do WordPress de `portalpco.online` esteve em
+>    texto puro num arquivo versionado (`server/imports/seeds/portalpco.ts`)
+>    desde 5/mai/2026. Tirei do código; **isso não resolve** — o valor está no
+>    histórico do git. **Revogar no painel do WordPress é o que corta o acesso.**
+> 2. **Existe branch pendente:** `correcoes-auditoria-2026-09-03`, com
+>    `5a828c2` commitado e uma segunda rodada de correções **não commitada**.
+>    `main` e produção seguem em `699bac3`.
+> 3. **A importação por API não está pronta para uso.** Cinco das oito entidades
+>    não chegam a tabela nenhuma, toda matrícula importada nasce com a data de
+>    hoje e todo pedido vira `pending`. Rodá-la contra produção produz estrago
+>    silencioso.
+
+O handoff anterior é **`docs/SESSAO-2026-09-02-vazamento-e-checkout.md`** — comece
 pelo fim dele, em "Por onde retomar". O de mais cedo no mesmo dia,
 `SESSAO-2026-09-02-campo-sem-coluna.md`, é independente e continua valendo.
 
@@ -786,6 +807,32 @@ Migração dos dois sites WP (`portalpco.online` LMS + `psicanaliseclinica.onlin
 loja) para o AVA. O handoff vivo, com slugs, mapeamentos, os três bugs de origem
 e a sequência de comandos correta, é `docs/migration-wp-ld.md` — **leia ele, não
 esta seção**, antes de mexer em migração.
+
+> ### ⛔ A importação por API não está pronta para uso (3/set/2026)
+>
+> Isto vale para o conector de API (`/admin/imports`, os connectors WP /
+> LearnDash / WooCommerce). **Não a rode contra produção.** Ela não falha: ela
+> completa, informa números e deixa a base pior, que é a forma cara de errar.
+>
+> O que a auditoria mediu:
+>
+> - **Cinco das oito entidades não chegam a tabela nenhuma.** `module` e
+>   `lesson` gravam **nada** e mesmo assim contam como importadas; `order`
+>   conta `created` sem criar.
+> - **Toda matrícula importada nasce com a data de hoje** — e prazo de acesso
+>   se conta a partir da matrícula. Ver "Prazo de acesso", acima: declarar
+>   meses é retroativo, então importar assim reescreve o vencimento de quem
+>   entrou em 2021.
+> - **Todo pedido importado vira `pending`**, e status de pedido manda na
+>   matrícula pelo ponto único. Importar pedido pago como pendente é suspender
+>   acesso de quem pagou.
+> - **A colisão de IDs entre os dois WordPress voltou.** A correção (prefixo
+>   `portal:` / `psi:`) está só no script de carga, não no produto — os dois
+>   sites numeram usuários a partir de 1, e o conector funde as duas bases.
+> - `document`, `phone` e `active` são descartados na entrada.
+>
+> O caminho que funciona hoje continua sendo o dos scripts, descrito em
+> `docs/migration-wp-ld.md`, sempre com ensaio antes de `--commit`.
 
 ### O que continua aberto
 

@@ -73,7 +73,7 @@ describe('pedidos sem banco', () => {
     });
     expect(out?.externalId).toBe('ext-9');
     expect(out?.checkoutUrl).toBe('https://pagar.exemplo/9');
-    expect(await orders.findByExternalId('ext-9')).not.toBeNull();
+    expect(await orders.findByExternalId('ext-9', 'gw-1')).not.toBeNull();
   });
 
   it('paidAt é gravado uma vez só — reprocessar webhook não reescreve a data', async () => {

@@ -174,7 +174,7 @@ export default function MyNotes() {
                   </div>
                 </div>
                 <Link
-                  to={`/curso/${n.courseId}/modulo/${n.moduleId}/aula/${n.lessonId}`}
+                  to={`/curso/${n.courseId}/aula/${n.lessonId}`}
                   className="pco-btn-ghost text-xs"
                 >
                   Abrir aula

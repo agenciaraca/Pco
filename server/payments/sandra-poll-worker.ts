@@ -74,8 +74,6 @@ export function getStatus(): Estado & { nome: string } {
 
 export async function varrer(): Promise<{ vistos: number; confirmados: number }> {
   estado.ultimaExecucao = new Date().toISOString();
-  estado.falhasSeguidas = 0;
-  estado.saudavel = true;
   let vistos = 0;
   let confirmados = 0;
 
@@ -121,6 +119,12 @@ export async function varrer(): Promise<{ vistos: number; confirmados: number }>
 
   estado.pendentesVistos = vistos;
   estado.confirmados += confirmados;
+  // Zerar no FIM, não na entrada. Zerando na entrada, o contador voltava a 0
+  // antes de o `tick` conseguir incrementá-lo: `falhasSeguidas` nunca passava
+  // de 1, e o alarme de 3 falhas seguidas era inalcançável — a única mensagem
+  // operacional do único confirmador de pagamento da Sandra nunca sairia.
+  estado.falhasSeguidas = 0;
+  estado.saudavel = true;
   return { vistos, confirmados };
 }
 

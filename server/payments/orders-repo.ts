@@ -143,14 +143,29 @@ export async function listForUser(userId: string): Promise<Order[]> {
  */
 export async function acharPendenteEquivalente(
   userId: string,
-  productId: string,
+  criterio: {
+    productId: string;
+    /** Valor JÁ com desconto aplicado. Reusar pedido de outro valor cobra errado. */
+    amountCents: number;
+    /** Reusar pedido de outro gateway manda a pessoa pagar onde ela não escolheu. */
+    gatewayId: string;
+  },
   janelaMs = 10 * 60_000,
 ): Promise<Order | null> {
-  if (!userId || !productId) return null;
+  if (!userId || !criterio.productId) return null;
   const limite = Date.now() - janelaMs;
   const candidatos = (await listForUser(userId)).filter(
     (o) =>
-      o.productId === productId &&
+      o.productId === criterio.productId &&
+      // **Equivalente quer dizer equivalente.** A primeira versão comparava só
+      // o produto, e o cupom era aplicado ANTES desta busca: quem criava um
+      // pedido sem cupom, voltava em 5 minutos e digitava o código, tinha o
+      // cupom validado com sucesso pelo servidor e recebia de volta o pedido
+      // velho — sem desconto, com 201 e sem aviso. A pessoa pagava cheio
+      // depois de o sistema ter dito que o cupom valia. O mesmo valia para
+      // trocar de gateway.
+      o.amountCents === criterio.amountCents &&
+      o.gatewayId === criterio.gatewayId &&
       (o.status === 'pending' || o.status === 'processing') &&
       Date.parse(o.createdAt) >= limite,
   );
@@ -180,27 +195,29 @@ export async function findById(id: string): Promise<Order | null> {
  * qualquer outro. Somado à falha aberta que o Asaas tinha, isso era um caminho
  * de "marcar como pago" para quem conhecesse um id pendente.
  *
- * Chamadas sem `gatewayId` seguem funcionando (busca global) para não quebrar
- * uso administrativo; quem processa webhook **deve** passar o gateway.
+ * **`gatewayId` é obrigatório.** A primeira versão desta correção o deixou
+ * opcional "para não quebrar uso administrativo" — uso que não existe: o único
+ * chamador de produção é o webhook, e ele já passa o gateway. Parâmetro
+ * opcional numa guarda é falha aberta esperando o próximo chamador esquecer.
  */
 export async function findByExternalId(
   externalId: string,
-  gatewayId?: string,
+  gatewayId: string,
 ): Promise<Order | null> {
   const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
-    const filtro = gatewayId
-      ? and(
+    const rows = await db
+      .select()
+      .from(schema.paymentOrders)
+      .where(
+        and(
           eq(schema.paymentOrders.externalId, externalId),
           eq(schema.paymentOrders.gatewayId, gatewayId),
-        )
-      : eq(schema.paymentOrders.externalId, externalId);
-    const rows = await db.select().from(schema.paymentOrders).where(filtro);
+        ),
+      );
     if (rows[0]) return daLinha(rows[0]);
   }
-  return await store.findOne(
-    (o) => o.externalId === externalId && (!gatewayId || o.gatewayId === gatewayId),
-  );
+  return await store.findOne((o) => o.externalId === externalId && o.gatewayId === gatewayId);
 }
 
 interface CreateInput {

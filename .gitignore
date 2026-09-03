@@ -41,6 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 
 # Playwright
+# Dados da suite E2E — o playwright.config.ts fixa DATA_DIR aqui para nao
+# tocar no data/ de quem desenvolve. Nunca versionar.
+e2e/.data/
 e2e/.test-results
 playwright-report
 playwright/.cache

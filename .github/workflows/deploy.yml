@@ -11,10 +11,24 @@ name: Deploy to VPS
 # Requer secrets: VPS_SSH_KEY (chave privada), VPS_HOST, VPS_USER.
 # Opcionais: VPS_PORT (default 22), PUBLIC_URL.
 
+# **O deploy espera o CI.**
+#
+# Até 3/set/2026 este workflow disparava em `push: branches: [main]`, sem
+# `needs` e sem `workflow_run` — e o `ci.yml` disparava no MESMO push, em
+# paralelo. O CI só bloqueava *pull request*: um push direto para `main` com
+# typecheck quebrado, lint sujo, teste vermelho ou E2E reprovado **subia para
+# produção do mesmo jeito**. Todas as guardas da suíte eram opcionais na
+# prática, e ninguém saberia — porque o deploy também ficava verde.
+#
+# `workflow_run` espera o CI terminar e só segue quando ele conclui com
+# sucesso. `workflow_dispatch` continua permitindo o deploy manual deliberado,
+# que é a válvula para quando se precisa subir sabendo do risco.
 on:
-  push:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
     branches: [main]
-  workflow_dispatch: # permite trigger manual
+  workflow_dispatch: # permite trigger manual, ignorando o gate acima
 
 # Não roda 2 deploys ao mesmo tempo (concurrency lock)
 concurrency:
@@ -25,7 +39,12 @@ jobs:
   deploy:
     name: Pull + Build + Restart no VPS
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'agenciaraca'
+    # Só sobe se o CI passou. No `workflow_dispatch` não há `workflow_run`, e
+    # a segunda condição libera o disparo manual.
+    if: >-
+      github.repository_owner == 'agenciaraca' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.workflow_run.conclusion == 'success')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -122,5 +141,9 @@ jobs:
           PUBLIC_URL: ${{ secrets.PUBLIC_URL }}
         run: |
           URL="${PUBLIC_URL:-https://ava.psicanaliseclinica.online}"
-          NO_AR=$(curl -s -m 10 "$URL/login" | grep -o 'assets/index-[^"]*\.js' | head -1)
+          # `-L` obrigatório: /login responde 301, e sem seguir o
+          # redirecionamento o grep nunca casa — o passo imprimia
+          # "<não encontrado>" sempre, sem afetar o código de saída. Um passo de
+          # verificação que, por construção, não verificava nada.
+          NO_AR=$(curl -sL -m 10 "$URL/login" | grep -o 'assets/index-[^"]*\.js' | head -1)
           echo "bundle no ar: ${NO_AR:-<não encontrado>}"

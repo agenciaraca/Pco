@@ -14,12 +14,38 @@ declare module 'hono' {
 }
 
 /**
- * Um token so vira sessao quando NAO carrega marca de escopo restrito.
- * Hoje a unica marca e `totp: 'pending'`; qualquer outra que venha a existir
- * deve ser acrescentada aqui, e nao numa lista de rotas.
+ * As claims que um token de SESSAO pode carregar. Lista branca.
+ *
+ * `sub`, `email`, `role`, `tv`, `iat` e `exp` sao o token normal de login;
+ * `act` e a personificacao (admin agindo como aluno), que e sessao legitima.
+ * **Qualquer outra claim significa token de proposito especifico**, e token de
+ * proposito especifico nao e sessao.
+ *
+ * ## Por que lista branca, e nao lista negra
+ *
+ * A primeira versao desta funcao, escrita em 3/set/2026 para fechar o buraco do
+ * 2FA, era `payload.totp === 'pending'` — e o comentario dela afirmava negar
+ * "pela PRESENCA da claim, para que claim nova que ninguem lembrar de listar
+ * continue sendo recusada por padrao". O comentario descrevia lista branca; o
+ * codigo era lista negra de um item so.
+ *
+ * E a claim que "ninguem lembrou de listar" **ja existia no repositorio naquele
+ * momento**: `server/notifications/broadcasts.ts` assina, para CADA
+ * destinatario de comunicado, um token com `sub`, `email`, `role: 'student'`,
+ * `tv: 0` e `scope: 'unsubscribe'`, com **TTL de um ano**, e o entrega na query
+ * string do link de descadastro — dentro do e-mail. Como `attachUser` nao o
+ * recusava, `Authorization: Bearer <aquele token>` era uma sessao de aluno
+ * plena por 365 dias, para qualquer pessoa cujo `tokenVersion` fosse 0 (o
+ * padrao de quem nunca trocou a senha). Um token de sessao de um ano em caixa
+ * de e-mail, em historico de navegador e em log de servidor de correio.
+ *
+ * Por isso: acrescentar claim nova aqui e uma decisao explicita. Esquecer de
+ * acrescentar falha fechado, que e o unico lado seguro para errar.
  */
+const CLAIMS_DE_SESSAO = new Set(['sub', 'email', 'role', 'tv', 'iat', 'exp', 'act']);
+
 export function ehTicketRestrito(payload: JwtPayload): boolean {
-  return payload.totp === 'pending';
+  return Object.keys(payload).some((claim) => !CLAIMS_DE_SESSAO.has(claim));
 }
 
 function readBearer(c: Context): string | null {
