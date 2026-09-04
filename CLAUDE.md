@@ -289,7 +289,36 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
-> ### 3/set/2026 — o handoff vivo mudou de lugar
+> ### 4/set/2026 — dois consertos, uma auditoria, e nada publicado
+>
+> **Comece por `H:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`, pelo bloco do
+> fim** (“⏸ Retomar daqui — 4/set”). Ele fica **fora deste repositório** de
+> propósito: relatório de auditoria com evidência não se mistura a código.
+>
+> O que aquele bloco diz e não pode esperar a leitura:
+>
+> 1. **Nada está no ar.** `main` e produção seguem em `699bac3`; a branch
+>    `correcoes-auditoria-2026-09-03` está à frente, árvore limpa, **nada
+>    enviado ao remoto**. Confira com `git rev-list --count main..HEAD`. Quando
+>    o dono abriu `/admin/gateways` em produção e viu o aviso “só o Sandbox está
+>    implementado” e a falta do botão de testar, a causa era essa — as duas
+>    coisas já estão corrigidas na branch.
+> 2. **A migration `0018` é nova nesta branch e roda ANTES do código subir.** O
+>    Drizzle seleciona coluna a coluna: app nova contra banco velho quebra toda
+>    consulta a `lessons`.
+> 3. **Dois gateways estão “Ativo” em produção ao mesmo tempo** (Pagar.me e
+>    Asaas), e o código pega `listActive()[0]` — o primeiro da lista, não “o
+>    ativo”. Deixe só um antes de qualquer teste de compra.
+> 4. **A Application Password do WordPress continua pendente de revogação**, e é
+>    ação do dono: tirar do código não desfaz o histórico do git.
+>
+> A auditoria da passada 003 rodou sobre `04350f4` e **seus achados estão em
+> relatório**, não só em conversa — cinco arquivos em `relatorios/`, com uma
+> seção “Passada 003” cada. O primeiro conserto da próxima sessão é
+> `LMSLesson.tsx`: a correção das telas sem rede pulou justamente a tela que
+> exibe o vídeo, e sem rede o aluno é expulso do meio da aula.
+
+> ### 3/set/2026 — o handoff vivo mudou de lugar (registro anterior)
 >
 > **Comece por `H:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`**, que fica
 > **fora deste repositório** de propósito (relatório de auditoria com evidência
