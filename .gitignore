@@ -74,12 +74,35 @@ data/*
 backups/
 
 # As sementes que commitam, e só elas.
+# Configuração que a aplicação usa como PADRÃO de instalação nova. Versionar
+# estes quatro é deliberado: sem eles, um clone limpo sobe sem nome de escola,
+# sem texto da tela de login e sem horário dos relatórios.
+#
+# **Mas o deploy faz `git reset --hard`**, e isso reverte arquivo versionado.
+# Por isso os dois scripts de deploy restauram estes arquivos a partir do
+# backup logo depois do reset — ver `scripts/deploy_producao.sh` e
+# `.github/workflows/deploy.yml`. Sem essa restauração, toda alteração feita
+# pelo admin em `/admin/settings` volta ao padrão no deploy seguinte, em
+# silêncio.
 !data/admin-weekly-config.json
-!data/course-reviews.json
 !data/login-config.json
-!data/notification-prefs.json
 !data/settings.json
 !data/student-progress-email-config.json
+
+# `data/course-reviews.json` e `data/notification-prefs.json` **saíram desta
+# lista em 3/set/2026**, e não devem voltar.
+#
+# Não eram semente: eram `[]` versionado, e a única coisa que faziam era
+# sobrescrever produção no `git reset --hard` de cada deploy.
+#
+# - `notification-prefs.json` guarda quem pediu para NÃO receber comunicado.
+#   Zerar isso faz o sistema voltar a escrever para quem se descadastrou — é
+#   consentimento revogado que ressuscita sozinho.
+# - `course-reviews.json` guarda as avaliações escritas pelos alunos. Zerar
+#   apaga o texto deles.
+#
+# Os dois nascem vazios sozinhos: o `JsonStore` cria o arquivo com `() => []`
+# na primeira leitura. Não há nada a semear.
 
 # Saída do Playwright MCP (screenshots e logs de sessão)
 .playwright-mcp/

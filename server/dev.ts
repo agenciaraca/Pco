@@ -2,13 +2,14 @@ import 'dotenv/config';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import path from 'node:path';
 import { installConsoleCapture } from './monitoring/log-buffer';
 import { buildApp } from './app';
 import { publicSite } from './public/router';
 import { getTags, hostsParaCsp } from './marketing/tags-store';
 import { ROTAS_FUNDIDAS } from './public/rotas-fundidas';
-import { montarCsp } from './public/csp';
+import { cabecalhosDeSeguranca } from './public/csp';
 import { AUTHOR_IS_PLACEHOLDER } from './public/config';
 import { hostPublico } from './origem-publica';
 
@@ -19,53 +20,37 @@ const port = Number(process.env.PORT ?? 3001);
 const staticRoot = process.env.SERVE_STATIC; // ex.: "./dist"
 const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
 
+/**
+ * O middleware de segurança, aplicado nos DOIS modos.
+ *
+ * Vivia dentro do `if (staticRoot)`, e por isso `npm run dev` — o modo em que
+ * se desenvolve — servia o site público SSR sem CSP, sem HSTS e sem
+ * X-Frame-Options. Foi o que fez o bug do `frame-src` ser irreproduzível
+ * localmente: o player funcionava na máquina de quem programava, porque não
+ * havia política nenhuma para bloqueá-lo.
+ */
+const aplicaSeguranca: MiddlewareHandler = async (c, next) => {
+  await next();
+  for (const [nome, valor] of cabecalhosDeSeguranca({
+    extras: hostsParaCsp(),
+    hstsIncluiSubdominios: process.env.HSTS_INCLUDE_SUBDOMAINS === 'true',
+  })) {
+    // Só define o que ainda não existe: rota que queira endurecer a própria
+    // resposta continua podendo.
+    if (!c.res.headers.has(nome)) c.header(nome, valor);
+  }
+};
+
 let appToServe;
 
 if (staticRoot) {
   const root = new Hono();
   const api = buildApp();
 
-  // Security headers em toda response (HTML + assets + uploads + API)
-  // CSP, HSTS, X-Frame, Permissions-Policy
-  root.use('*', async (c, next) => {
-    await next();
-    if (!c.res.headers.has('Content-Security-Policy')) {
-      // A política mora em `public/csp.ts`, com os porquês — inclusive o do
-      // `frame-src`, que faltava e fazia o site bloquear o próprio player.
-      c.header('Content-Security-Policy', montarCsp(hostsParaCsp()));
-    }
-    // HSTS **sem** `includeSubDomains` desde 30/ago/2026, e isso é temporário.
-    //
-    // Enquanto o AVA respondia só em `ava.`, incluir os subdomínios não custava
-    // nada. Servindo o domínio principal, a diretiva passa a valer para *todos*
-    // os subdomínios — inclusive `old.`, que hospeda a loja e ainda não tem
-    // certificado válido. O efeito é brutal e silencioso: quem abre o site
-    // principal fica um ano sem conseguir acessar a loja, e o navegador não
-    // oferece "continuar assim mesmo" — HSTS não tem escapatória por clique.
-    //
-    // Ligar de volta assim que `old.psicanaliseclinica.online` tiver
-    // certificado próprio. A troca é sentida por quem revisitar o site
-    // principal, porque a política é substituída a cada visita.
-    if (!c.res.headers.has('Strict-Transport-Security')) {
-      const comSubdominios = process.env.HSTS_INCLUDE_SUBDOMAINS === 'true';
-      c.header(
-        'Strict-Transport-Security',
-        `max-age=31536000${comSubdominios ? '; includeSubDomains' : ''}`,
-      );
-    }
-    if (!c.res.headers.has('X-Frame-Options')) {
-      c.header('X-Frame-Options', 'DENY');
-    }
-    if (!c.res.headers.has('Referrer-Policy')) {
-      c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
-    }
-    if (!c.res.headers.has('Permissions-Policy')) {
-      c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-    }
-    if (!c.res.headers.has('X-Content-Type-Options')) {
-      c.header('X-Content-Type-Options', 'nosniff');
-    }
-  });
+  // Security headers em toda response (HTML + assets + uploads + API).
+  // A montagem vive em `public/csp.ts`, com os porquês — e é a MESMA usada no
+  // modo dev, logo abaixo. Ver `cabecalhosDeSeguranca`.
+  root.use('*', aplicaSeguranca);
 
   // /api/* -> API (Hono inteiro com basePath '/api')
   root.all('/api/*', (c) => api.fetch(c.req.raw));
@@ -257,6 +242,10 @@ ${allUrls
   // (src/app/lib/publicUrls.ts) precisam resolver no dev também.
   const api = buildApp();
   const root = new Hono();
+  // **Mesma proteção do modo full-stack.** Sem isto, o site SSR do dev responde
+  // sem CSP, e bug de política de segurança vira irreproduzível localmente —
+  // que foi exatamente o que aconteceu com o `frame-src` do player.
+  root.use('*', aplicaSeguranca);
   root.all('/api/*', (c) => api.fetch(c.req.raw));
   root.route('/', publicSite);
   appToServe = root;

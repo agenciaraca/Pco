@@ -65,6 +65,33 @@ ssh vps bash -lc "'
   git fetch --all -q
   git reset --hard origin/main
   echo \"    commit: \$(git log --oneline -1)\"
+  # **Devolve a configuração de produção que o reset acabou de reverter.**
+  #
+  # Quatro arquivos de `data/` sao versionados de proposito, como padrao de
+  # instalacao nova: nome da escola e contato (settings), texto da tela de
+  # login, e o horario dos dois relatorios por e-mail. Sao tambem, todos,
+  # editaveis em tela — e `git reset --hard` reverte arquivo versionado.
+  #
+  # Sem esta restauracao, tudo que o admin ajustou em /admin/settings volta ao
+  # padrao no deploy seguinte, sem erro e sem aviso: a tela salva, responde
+  # 200, e o valor sobrevive ate o proximo deploy. E a mesma classe do campo
+  # sem coluna, agora com o deploy no papel de quem apaga.
+  #
+  # O tarball e o mais recente de ~/backups-deploy, feito no passo 3 minutos
+  # atras. **Nao da para usar \$CARIMBO aqui**: o passo 3 roda noutra sessao
+  # SSH, e a variavel nao atravessa — a primeira versao desta correcao usava,
+  # e teria falhado em silencio, que e exatamente o defeito que ela conserta.
+  ULTIMO=\$(ls -1t ~/backups-deploy/data-*.tar.gz 2>/dev/null | head -1)
+  if [ -n \"\$ULTIMO\" ]; then
+    for f in settings login-config admin-weekly-config student-progress-email-config; do
+      if tar xzf \"\$ULTIMO\" -C . data/\$f.json 2>/dev/null; then
+        echo \"    restaurado de producao: data/\$f.json\"
+      fi
+    done
+  else
+    echo \"    AVISO: nenhum backup em ~/backups-deploy — a configuracao de\"
+    echo \"    producao NAO foi restaurada e voltou ao padrao do repositorio.\"
+  fi
   npm install --legacy-peer-deps --no-audit --no-fund
   npm run build
 '"

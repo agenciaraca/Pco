@@ -102,8 +102,33 @@ jobs:
           git config --global --add safe.directory "$APP_DIR" || true
           # package-lock modificado no servidor faz o pull abortar
           git checkout -- package-lock.json 2>/dev/null || true
+          # Guarda a configuração de produção ANTES do reset.
+          #
+          # Quatro arquivos de `data/` são versionados de propósito (padrão de
+          # instalação nova: nome da escola, texto da tela de login, horário
+          # dos dois relatórios) e são, todos, editáveis em tela. Como
+          # `git reset --hard` reverte arquivo versionado, sem isto tudo que o
+          # admin ajustou em /admin/settings voltava ao padrão a cada deploy —
+          # sem erro e sem aviso.
+          #
+          # Este workflow, ao contrário do `scripts/deploy_producao.sh`, não
+          # fazia backup nenhum antes do reset: aqui a perda era definitiva.
+          CFG=$(mktemp -d)
+          for f in settings login-config admin-weekly-config student-progress-email-config; do
+            [ -f "data/$f.json" ] && cp "data/$f.json" "$CFG/" || true
+          done
+
           git fetch --all -q
           git reset --hard origin/main
+
+          for f in settings login-config admin-weekly-config student-progress-email-config; do
+            if [ -f "$CFG/$f.json" ]; then
+              cp "$CFG/$f.json" "data/$f.json"
+              echo "  configuração de produção preservada: data/$f.json"
+            fi
+          done
+          rm -rf "$CFG"
+
           npm install --legacy-peer-deps --no-audit --no-fund
           npm run build
           pm2 restart ava-pco --update-env

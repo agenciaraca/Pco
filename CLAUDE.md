@@ -792,6 +792,72 @@ Três coisas que não se inferem lendo o componente:
   tela com aparência de completa. Ausência é lida como "não houve", que é o
   oposto de "não medi" — a mesma regra das telas de métrica.
 
+## Havia duas CSP, e elas discordavam
+
+O projeto tem **dois alvos de deploy**, e cada um trazia a sua política de
+segurança escrita à mão: o VPS (`server/public/csp.ts`, usado por `dev.ts`) e a
+Vercel (`vercel.json`). Divergiram em três pontos, todos na direção insegura —
+corrigido em 3/set/2026:
+
+- **`script-src 'unsafe-inline'` na Vercel.** Derrubava exatamente a defesa que
+  as tags de marketing existem para ter: o servidor monta o trecho e serve de
+  `/_pub/tags.js`, same-origin, **porque** `script-src 'self'` bloqueia inline.
+- **Sem `frame-src`.** O bug do player de vídeo, de novo.
+- **HSTS `includeSubDomains; preload`.** O `dev.ts` gasta doze linhas
+  explicando por que não pode: `old.` hospeda a loja e não tem certificado, e
+  HSTS não tem escapatória por clique. `preload` é pior — sair da lista
+  embutida nos navegadores leva meses.
+
+**A explicação mora em `test/duas-csp-nao-podem-discordar.test.ts` porque JSON
+não aceita comentário.** Arquivo de configuração sem lugar para o porquê é
+arquivo que diverge. O teste não exige políticas idênticas — os alvos são
+diferentes —, exige que as **garantias** sejam as mesmas.
+
+Duas coisas entraram junto:
+
+- **`media-src`**, que não era emitido. Sem ele o áudio cai em
+  `default-src 'self'` — a mesma parede do vídeo, com o mesmo sintoma (o player
+  não toca, sem erro na tela). Entrou **antes** de o player de podcast existir,
+  de propósito: o bug do vídeo custou dias porque a diretiva faltante só
+  apareceu depois de muito procurar na conta da Vimeo.
+- **Os cabeçalhos passaram a valer nos dois modos.** Viviam dentro do
+  `if (staticRoot)` do `dev.ts`, então `npm run dev` — o modo em que se
+  desenvolve — servia o site público SSR **sem CSP, sem HSTS e sem
+  X-Frame-Options**. Era isso que tornava bug de política irreproduzível
+  localmente: o player funcionava na máquina de quem programava porque não
+  havia política para bloqueá-lo.
+
+## Versionar arquivo em `data/` é ordem para apagá-lo em produção
+
+Os dois caminhos de deploy fazem `git reset --hard origin/main`, e isso
+**reverte arquivo versionado**. Todo arquivo de `data/` que estiver no git é,
+na prática, uma instrução para sobrescrever o equivalente em produção no
+próximo deploy.
+
+Em 3/set/2026 duas exceções nominais saíram da lista, e não devem voltar:
+
+- **`data/notification-prefs.json`** guarda quem pediu para **não** receber
+  comunicado. Estava versionado como `[]`: cada deploy zerava a lista e o
+  sistema voltava a escrever para quem se descadastrou — consentimento revogado
+  ressuscitando sozinho.
+- **`data/course-reviews.json`** guarda as avaliações escritas pelos alunos.
+  Também `[]`, também apagado a cada deploy.
+
+Nenhum dos dois precisava existir no repositório: o `JsonStore` cria o arquivo
+com `() => []` na primeira leitura.
+
+**As quatro que ficam são padrão de instalação nova** (nome da escola, texto da
+tela de login, horário dos dois relatórios) — sem elas um clone limpo sobe sem
+nada disso. Mas são igualmente editáveis em tela, então os **dois** scripts de
+deploy passaram a preservá-las: guardam a versão de produção antes do reset e
+devolvem depois. Sem isso, todo ajuste feito em `/admin/settings` voltava ao
+padrão no deploy seguinte, em silêncio — a tela salva, responde 200, e o valor
+só some depois.
+
+`test/semente-nao-atropela-producao.test.ts` cobra as duas metades, e a lista é
+comparada **exatamente**: arquivo novo versionado em `data/` falha o teste, que
+é o momento de perguntar "isto some em produção no próximo deploy?".
+
 ## Analytics: a medição é própria, sem cookie e sem IP
 
 `server/analytics/` mede o tráfego do site desde 27/ago/2026 — antes disso
