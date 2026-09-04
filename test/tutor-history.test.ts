@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -47,8 +48,8 @@ describe('tutor-history', () => {
     });
     const a = await history.listForUser('u-A');
     const b = await history.listForUser('u-B');
-    expect(a.every((t) => t.userId === 'u-A')).toBe(true);
-    expect(b.every((t) => t.userId === 'u-B')).toBe(true);
+    expect(naoVazio(a).every((t) => t.userId === 'u-A')).toBe(true);
+    expect(naoVazio(b).every((t) => t.userId === 'u-B')).toBe(true);
   });
 
   it('listForUser respeita limit', async () => {

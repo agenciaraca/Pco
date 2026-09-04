@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -101,7 +102,7 @@ describe('imports/reports', () => {
     await jobs.setStatus(j2.id, 'failed', true);
 
     const completed = await reports.listJobsFiltered({ status: 'completed' });
-    expect(completed.every((j) => j.status === 'completed')).toBe(true);
+    expect(naoVazio(completed).every((j) => j.status === 'completed')).toBe(true);
     expect(completed.some((j) => j.id === j1.id)).toBe(true);
     expect(completed.some((j) => j.id === j2.id)).toBe(false);
   });
@@ -113,7 +114,7 @@ describe('imports/reports', () => {
       dryRun: false,
     });
     expect(
-      all.every(
+      naoVazio(all).every(
         (j) => j.source === 'wordpress' && j.mode === 'api' && j.dryRun === false,
       ),
     ).toBe(true);

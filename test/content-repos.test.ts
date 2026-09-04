@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -76,7 +77,7 @@ describe('repositories/library', () => {
       relatedModuleIds: [],
     });
     const arts = await library.listLibrary({ type: 'artigo' });
-    expect(arts.every((i) => i.type === 'artigo')).toBe(true);
+    expect(naoVazio(arts).every((i) => i.type === 'artigo')).toBe(true);
     expect(arts.some((i) => i.id === created.id)).toBe(true);
   });
 
@@ -91,7 +92,7 @@ describe('repositories/library', () => {
       relatedModuleIds: [],
     });
     const must = await library.listLibrary({ mandatoryOnly: true });
-    expect(must.every((i) => i.mandatory)).toBe(true);
+    expect(naoVazio(must).every((i) => i.mandatory)).toBe(true);
     expect(must.length).toBeGreaterThan(0);
   });
 
@@ -106,7 +107,7 @@ describe('repositories/library', () => {
       relatedModuleIds: [],
     });
     const r = await library.listLibrary({ courseId: 'c-vinc' });
-    expect(r.every((i) => i.relatedCourseIds?.includes('c-vinc'))).toBe(true);
+    expect(naoVazio(r).every((i) => i.relatedCourseIds?.includes('c-vinc'))).toBe(true);
   });
 
   it('updateLibrary altera campos + deleteLibrary remove', async () => {

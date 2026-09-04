@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -43,7 +44,7 @@ describe('podcast-engagement', () => {
     await pe.upsert('u-A', 'ep-1', { listened: true });
     await pe.upsert('u-B', 'ep-1', { listened: true });
     const a = await pe.listForUser('u-A');
-    expect(a.every((e) => e.userId === 'u-A')).toBe(true);
+    expect(naoVazio(a).every((e) => e.userId === 'u-A')).toBe(true);
   });
 
   it('upsert default vazio cria com listened+favorite=false', async () => {

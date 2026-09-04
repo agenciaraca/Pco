@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -59,7 +60,7 @@ describe('repositories/retention', () => {
     const levels = new Set(all.map((r) => r.level));
     if (levels.has('alto')) {
       const high = await retention.listRetentionRisks('alto');
-      expect(high.every((r) => r.level === 'alto')).toBe(true);
+      expect(naoVazio(high).every((r) => r.level === 'alto')).toBe(true);
     }
   });
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -90,8 +91,8 @@ describe('agenda do dia', () => {
 
   it('dia inteiro no passado não oferece nada', async () => {
     const a = await horarios.agendaDoDia('p-2', '2026-09-01', MANHA);
-    expect(a.slots.every((s) => !s.disponivel)).toBe(true);
-    expect(a.slots.every((s) => s.motivo === 'passado')).toBe(true);
+    expect(naoVazio(a.slots).every((s) => !s.disponivel)).toBe(true);
+    expect(naoVazio(a.slots).every((s) => s.motivo === 'passado')).toBe(true);
   });
 
   it('a observação não promete a agenda pessoal do profissional', async () => {

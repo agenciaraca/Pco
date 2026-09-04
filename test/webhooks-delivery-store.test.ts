@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -58,7 +59,7 @@ describe('webhooks/delivery-store', () => {
       payload: {},
     });
     const a = await store.listByEndpoint('ep-A');
-    expect(a.every((d) => d.endpointId === 'ep-A')).toBe(true);
+    expect(naoVazio(a).every((d) => d.endpointId === 'ep-A')).toBe(true);
   });
 
   it('markAttempt incrementa attempts e ajusta status', async () => {

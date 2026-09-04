@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -85,7 +86,7 @@ describe('gateways-repo', () => {
       active: true,
     });
     const active = await repo.listActive();
-    expect(active.every((g) => g.active)).toBe(true);
+    expect(naoVazio(active).every((g) => g.active)).toBe(true);
     expect(active.length).toBeGreaterThan(0);
   });
 

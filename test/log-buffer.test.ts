@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { installConsoleCapture, query, size } from '../server/monitoring/log-buffer';
 
 describe('monitoring/log-buffer', () => {
@@ -27,7 +28,7 @@ describe('monitoring/log-buffer', () => {
     console.warn('warn-marker-456');
     console.log('log-marker-456');
     const warns = query({ level: 'warn', q: 'marker-456' });
-    expect(warns.every((l) => l.level === 'warn')).toBe(true);
+    expect(naoVazio(warns).every((l) => l.level === 'warn')).toBe(true);
   });
 
   it('limit aplicado', () => {

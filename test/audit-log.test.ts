@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -74,7 +75,7 @@ describe('audit/log', () => {
     await audit.recordAudit(mockCtx(), { action: 'order.cancel' });
     await audit.recordAudit(mockCtx(), { action: 'student.create' });
     const orders = await audit.listAudit({ action: 'order.' });
-    expect(orders.every((e) => e.action.startsWith('order.'))).toBe(true);
+    expect(naoVazio(orders).every((e) => e.action.startsWith('order.'))).toBe(true);
     expect(orders.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -84,7 +85,7 @@ describe('audit/log', () => {
       { action: 'specific.x' },
     );
     const r = await audit.listAudit({ actorId: 'specific-user' });
-    expect(r.every((e) => e.actorId === 'specific-user')).toBe(true);
+    expect(naoVazio(r).every((e) => e.actorId === 'specific-user')).toBe(true);
     expect(r.length).toBeGreaterThanOrEqual(1);
   });
 

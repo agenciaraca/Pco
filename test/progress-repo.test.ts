@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -88,7 +89,7 @@ describe('repositories/progress', () => {
       moduleId: 'm',
     });
     const a = await repo.listForUser('u-A');
-    expect(a.every((p) => p.userId === 'u-A')).toBe(true);
+    expect(naoVazio(a).every((p) => p.userId === 'u-A')).toBe(true);
   });
 
   it('unmarkCompleted remove + retorna true; segunda false', async () => {

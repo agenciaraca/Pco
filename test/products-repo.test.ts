@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -50,7 +51,7 @@ describe('products-repo', () => {
 
   it('listActive retorna apenas active', async () => {
     const all = await repo.listActive();
-    expect(all.every((p) => p.active)).toBe(true);
+    expect(naoVazio(all).every((p) => p.active)).toBe(true);
   });
 
   it('updateProduct altera campos', async () => {

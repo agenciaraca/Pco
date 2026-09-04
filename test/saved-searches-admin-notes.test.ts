@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -48,7 +49,7 @@ describe('saved-searches/store', () => {
       filters: {},
     });
     const a = await savedSearches.listForOwner('a-A');
-    expect(a.every((s) => s.ownerId === 'a-A')).toBe(true);
+    expect(naoVazio(a).every((s) => s.ownerId === 'a-A')).toBe(true);
   });
 
   it('listForOwner filtra por scope', async () => {
@@ -67,7 +68,7 @@ describe('saved-searches/store', () => {
       filters: {},
     });
     const orders = await savedSearches.listForOwner('a-S', 'orders');
-    expect(orders.every((s) => s.scope === 'orders')).toBe(true);
+    expect(naoVazio(orders).every((s) => s.scope === 'orders')).toBe(true);
     expect(orders.length).toBeGreaterThan(0);
   });
 
@@ -171,7 +172,7 @@ describe('admin/notes-store', () => {
       body: 'B',
     });
     const a = await adminNotes.listForStudent('s-A');
-    expect(a.every((n) => n.studentId === 's-A')).toBe(true);
+    expect(naoVazio(a).every((n) => n.studentId === 's-A')).toBe(true);
   });
 
   it('deleteNote remove + retorna false em segunda', async () => {

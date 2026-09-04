@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -62,7 +63,7 @@ describe('repositories/certificates', () => {
     await repo.issueCertificate({ studentId: 's-A', courseId: 'c2' });
     await repo.issueCertificate({ studentId: 's-B', courseId: 'c1' });
     const a = await repo.listCertificatesForStudent('s-A');
-    expect(a.every((c) => c.studentId === 's-A')).toBe(true);
+    expect(naoVazio(a).every((c) => c.studentId === 's-A')).toBe(true);
     expect(a.length).toBeGreaterThanOrEqual(2);
   });
 

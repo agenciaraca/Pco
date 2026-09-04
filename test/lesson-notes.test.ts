@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -42,7 +43,7 @@ describe('lesson-notes', () => {
     await notes.upsertNote('u-A', 'l-2', 'A2');
     await notes.upsertNote('u-B', 'l-1', 'B');
     const a = await notes.listForUser('u-A');
-    expect(a.every((n) => n.userId === 'u-A')).toBe(true);
+    expect(naoVazio(a).every((n) => n.userId === 'u-A')).toBe(true);
     expect(a.length).toBeGreaterThanOrEqual(2);
   });
 

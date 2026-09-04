@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -95,7 +96,7 @@ describe('watch-time addChunk + aggregates', () => {
       deltaSeconds: 10,
     });
     const a = await wt.listForUser('u-A');
-    expect(a.every((e) => e.userId === 'u-A')).toBe(true);
+    expect(naoVazio(a).every((e) => e.userId === 'u-A')).toBe(true);
   });
 
   it('aggregateLesson soma totalSeconds + uniqueViewers', async () => {
@@ -175,11 +176,11 @@ describe('watch-time addChunk + aggregates', () => {
 
   it('listForLesson filtra por lessonId', async () => {
     const list = await wt.listForLesson('l-c-1');
-    expect(list.every((e) => e.lessonId === 'l-c-1')).toBe(true);
+    expect(naoVazio(list).every((e) => e.lessonId === 'l-c-1')).toBe(true);
   });
 
   it('listForCourse filtra por courseId', async () => {
     const list = await wt.listForCourse('c-cur');
-    expect(list.every((e) => e.courseId === 'c-cur')).toBe(true);
+    expect(naoVazio(list).every((e) => e.courseId === 'c-cur')).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -351,6 +352,6 @@ describe('relatório', () => {
     expect(lcp?.status).toBe('desconhecido');
     expect(lcp?.value).toBe('—');
     // Todo item precisa dizer de onde veio.
-    expect(itens.every((i) => i.fonte.length > 0)).toBe(true);
+    expect(naoVazio(itens).every((i) => i.fonte.length > 0)).toBe(true);
   });
 });

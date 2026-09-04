@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -99,7 +100,7 @@ describe('repositories/students', () => {
       weeklyGoalMinutes: 180,
     });
     const r = await repo.listAdminStudents({ status: 'bloqueado' });
-    expect(r.every((s) => s.status === 'bloqueado')).toBe(true);
+    expect(naoVazio(r).every((s) => s.status === 'bloqueado')).toBe(true);
     expect(r.some((s) => s.email === 'bloq@x.com')).toBe(true);
   });
 
@@ -113,7 +114,7 @@ describe('repositories/students', () => {
     });
     const r = await repo.listAdminStudents({ courseId: 'c-special' });
     expect(
-      r.every((s) => s.enrolledCourseIds.includes('c-special')),
+      naoVazio(r).every((s) => s.enrolledCourseIds.includes('c-special')),
     ).toBe(true);
   });
 

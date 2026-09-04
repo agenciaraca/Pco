@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { naoVazio } from './nao-vazio';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -48,8 +49,8 @@ describe('achievements/store', () => {
     await store.grant('user-2', 'streak_7');
     const u1 = await store.listForUser('user-1');
     const u2 = await store.listForUser('user-2');
-    expect(u1.every((b) => b.userId === 'user-1')).toBe(true);
-    expect(u2.every((b) => b.userId === 'user-2')).toBe(true);
+    expect(naoVazio(u1).every((b) => b.userId === 'user-1')).toBe(true);
+    expect(naoVazio(u2).every((b) => b.userId === 'user-2')).toBe(true);
     expect(u2.length).toBe(2);
   });
 

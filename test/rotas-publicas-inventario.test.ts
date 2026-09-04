@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { promises as fs } from 'node:fs';
+import { naoVazio } from './nao-vazio';
 import path from 'node:path';
 import os from 'node:os';
 
@@ -128,6 +129,12 @@ describe('inventário de rotas públicas', () => {
       const k = chave(r);
       if (vistas.has(k)) continue;
       vistas.add(k);
+      // **A isenção pula a verificação, e é por isso que o motivo escrito
+      // precisa ser cobrado em outro lugar.** Ver o describe
+      // "o motivo escrito é verificado" no fim deste arquivo: até 3/set/2026
+      // a garantia de `/sessions/professionals` ("sem e-mail e sem valor-hora")
+      // era uma frase que nada conferia — a rota entrava aqui, o laço a pulava,
+      // e ninguém mais olhava.
       if (PUBLICAS_POR_DECISAO[k]) continue;
 
       const url = `http://local${r.path.replace(/:[^/]+/g, 'x-teste')}`;
@@ -176,5 +183,68 @@ describe('as três que deixaram de ser públicas', () => {
       const res = await app.fetch(new Request(`http://local${rota}`));
       expect(res.status, rota).toBe(401);
     }
+  });
+});
+
+/**
+ * QA2-003 · o motivo escrito é verificado, não só escrito.
+ *
+ * O laço acima **pula** as rotas isentas: `if (PUBLICAS_POR_DECISAO[k]) continue`.
+ * Isso é correto para a pergunta que ele faz ("responde sem token?"), mas
+ * significa que a coluna da direita da lista — o motivo — nunca foi conferida
+ * por ninguém. E dois desses motivos não são justificativas genéricas: são
+ * **afirmações técnicas sobre o que a resposta contém**.
+ *
+ * Uma afirmação técnica que nada verifica é a mesma coisa que este arquivo
+ * inteiro existe para impedir. O caso mais caro da auditoria de 27/ago foi
+ * exatamente esse: `GET /api/auth/me` estava na lista com o motivo "responde
+ * 401 sozinha", o motivo era falso, e a rota devolvia o perfil de uma pessoa
+ * real a quem não apresentasse token.
+ */
+describe('o motivo escrito é verificado', () => {
+  it('"sem e-mail e sem valor-hora" — e a semente tem os dois, senão não prova nada', async () => {
+    const res = await app.fetch(new Request('http://local/api/sessions/professionals'));
+    expect(res.status).toBe(200);
+    const lista = (await res.json()) as Array<Record<string, unknown>>;
+
+    // Sem esta linha o caso passaria com a rota devolvendo `[]` — o mesmo
+    // defeito das 31 asserções vacuosas corrigidas em 3/set/2026.
+    naoVazio(lista, 'a lista pública de profissionais');
+
+    for (const p of lista) {
+      expect(p, 'e-mail de profissional não sai em rota pública').not.toHaveProperty('email');
+      expect(p, 'valor-hora não sai em rota pública').not.toHaveProperty('hourlyRate');
+    }
+
+    // E a prova de que havia o que omitir: a semente traz os dois campos.
+    const repo = await import('../server/repositories/sessions');
+    const cru = naoVazio(await repo.listProfessionals(), 'os profissionais crus');
+    expect(
+      cru.some((p) => Boolean((p as unknown as Record<string, unknown>).email)),
+      'a semente precisa ter e-mail, senão a omissão é trivial',
+    ).toBe(true);
+    expect(
+      cru.some((p) => Boolean((p as unknown as Record<string, unknown>).hourlyRate)),
+      'a semente precisa ter valor-hora, senão a omissão é trivial',
+    ).toBe(true);
+  });
+
+  it('/sessions/available omite os mesmos campos — é a mesma projeção', async () => {
+    const res = await app.fetch(new Request('http://local/api/sessions/available'));
+    expect(res.status).toBe(200);
+    const corpo = (await res.json()) as { profissionais: Array<Record<string, unknown>> };
+    // Aqui a lista PODE vir vazia legitimamente (ninguém disponível agora), e
+    // por isso a asserção é sobre a forma de cada item, não sobre haver itens.
+    for (const p of corpo.profissionais) {
+      expect(p).not.toHaveProperty('email');
+      expect(p).not.toHaveProperty('hourlyRate');
+    }
+  });
+
+  it('a rota de admin, essa sim, traz os campos — senão o painel perde o dado', async () => {
+    // Guarda contra "consertar" removendo o campo na origem: quem administra
+    // precisa do e-mail e do valor-hora, e é de lá que a tela lê.
+    const res = await app.fetch(new Request('http://local/api/admin/sessions/professionals'));
+    expect(res.status, 'e continua exigindo token').toBe(401);
   });
 });
