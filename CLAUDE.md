@@ -663,6 +663,40 @@ por ali, preservando data de compra e progresso. `unenrollFromCourse` continua
 para o desmatricular do admin — e **ganhou o caminho de banco que nunca teve**;
 até 1º/set/2026 ela escrevia só no JSON de semente e era um no-op em produção.
 
+## Parcelamento: a vitrine e o gateway saem do mesmo módulo
+
+`shared/parcelamento.ts` (4/set/2026). A página do curso, a listagem e o
+carrinho diziam **"ou 12x de R$ X"** enquanto o pedido enviado ao Pagar.me
+levava `installments: [{ number: 1 }]` — uma parcela só. A pessoa decidia
+comprar por uma condição que o checkout não praticava, sobre o item de maior
+ticket do catálogo. O defeito não era um número errado: eram **duas cópias da
+mesma regra**, uma em cada ponta, livres para divergir — e divergiram.
+
+Três coisas que não se inferem lendo um dos lados:
+
+- **É sem juros, e isso é compromisso, não detalhe.** Toda opção manda o mesmo
+  `total`, porque é o que a vitrine já prometia ao dividir o preço por 12: quem
+  paga a taxa do parcelamento é a escola. Cobrar juros exige mudar o texto da
+  vitrine **primeiro** — e os dois lados saem do mesmo arquivo justamente para
+  que não dê para mudar um sem o outro.
+- **O piso por parcela vem antes do teto.** `parcelasPara()` oferece de 1x até
+  o que couber em parcelas de R$ 5 — adquirente recusa parcela de centavos, e
+  "12x de R$ 3" não é oferta. Curso barato é cobrado à vista, e a vitrine passa
+  a anunciar o número real, não 12 fixo.
+- **`1x` está sempre na lista.** Quem quer pagar à vista tem de conseguir.
+
+`test/vitrine-e-gateway-nao-podem-discordar.test.ts` monta o pedido com `fetch`
+simulado e compara o que sai para o gateway com o número que a vitrine imprime,
+nos dois preços reais do catálogo. Os dois últimos casos são a guarda que
+importa: eles falham se alguém voltar a escrever o número solto em qualquer uma
+das pontas.
+
+**O que este conserto NÃO cobre:** o Mercado Pago não recebe cap de parcelas
+(a preferência dele usa o padrão da conta, e "sem juros" ali depende de
+configuração no painel do MP, que código nenhum daqui garante). Enquanto o
+gateway ativo for o Pagar.me, isso não aparece — se o MP for ativado, o texto da
+vitrine volta a poder discordar do checkout, agora pelo outro lado.
+
 ## Checkout: duas rotas de compra, e só uma mandava quem estava comprando
 
 `POST /public/checkout` (visitante) sempre coletou nome, CPF e telefone.

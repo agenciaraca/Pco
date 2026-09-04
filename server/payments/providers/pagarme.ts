@@ -12,6 +12,7 @@ import { PaymentProviderError } from './types';
 import { pingHttp } from './ping-http';
 import { comparaSegura } from './compara-segura';
 import { origemPublica } from '../../origem-publica';
+import { opcoesDeParcelamento } from '../../../shared/parcelamento';
 
 const API_BASE = 'https://api.pagar.me/core/v5';
 
@@ -58,7 +59,11 @@ export const pagarmeProvider: PaymentProviderImpl = {
 
     const configPorMetodo: Record<string, unknown> = {
       credit_card: {
-        installments: [{ number: 1, total: input.amountCents }],
+        // De 1x até o máximo que couber, sem juros — as mesmas opções que a
+        // vitrine anuncia, do mesmo módulo. Mandar só `1x` aqui enquanto a
+        // página do curso dizia "12x de ..." era prometer uma condição que o
+        // checkout não oferecia.
+        installments: opcoesDeParcelamento(input.amountCents),
       },
       pix: { expires_in: PIX_EXPIRA_EM_SEGUNDOS },
       boleto: {

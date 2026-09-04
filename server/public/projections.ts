@@ -14,6 +14,7 @@
  */
 
 import { isPubliclyListed } from '../../shared/visibilidade';
+import { parcelasPara, valorDaParcelaCents } from '../../shared/parcelamento';
 import * as coursesRepo from '../repositories/courses';
 import * as productsRepo from '../payments/products-repo';
 import * as newsRepo from '../repositories/news';
@@ -138,7 +139,10 @@ export interface PublicCourse extends PublicCourseSummary {
 /** Projeta um curso + produto no sumário público (whitelist). */
 function toSummary(c: Row, product: Product | undefined): PublicCourseSummary {
   const priceCents = product ? (num((product as unknown as Row).priceCents) ?? null) : null;
-  const installments = priceCents != null ? 12 : null;
+  // O número de parcelas sai de `shared/parcelamento.ts`, que é o mesmo módulo
+  // lido pelo gateway. Era `12` fixo aqui, enquanto o pedido enviado ao
+  // Pagar.me oferecia só 1x — a vitrine prometia o que o checkout não fazia.
+  const installments = priceCents != null ? parcelasPara(priceCents) : null;
 
   // A origem varia: às vezes o curso traz os módulos como lista, às vezes só a
   // contagem já somada. Contar a lista quando ela existe, e cair no número
@@ -169,7 +173,9 @@ function toSummary(c: Row, product: Product | undefined): PublicCourseSummary {
     priceFormatted: priceCents != null ? fmtBRL(priceCents) : null,
     installments,
     installmentFormatted:
-      priceCents != null && installments ? fmtBRL(Math.round(priceCents / installments)) : null,
+      priceCents != null && installments
+        ? fmtBRL(valorDaParcelaCents(priceCents, installments))
+        : null,
     priceNote: str(c.priceNote) ?? 'condições no ato da matrícula',
     modules: modulos,
     lessons: aulas,
