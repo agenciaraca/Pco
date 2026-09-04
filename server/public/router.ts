@@ -576,13 +576,15 @@ publicSite.get('/blog/:slug', async (c) => {
  * ajuste apenas de UX/UI e sem perder o desenho aprovado. Então a estrutura,
  * os componentes e os tokens são os do protótipo; as palavras são as dele.
  *
- * **Os três números do final são declarados pelo dono, não medidos pelo
- * sistema** — "+800 alunos formados", "+100 aulas exclusivas" e "96,6% de
- * índice de satisfação" vêm do site antigo. O projeto tem a regra de que número
- * em página de venda anda com a medição, e ela vale para o que o SISTEMA
- * afirma: a barra de números medidos continua existindo mais acima, separada, e
- * some sozinha quando não há o que medir. Estes três são afirmação da escola,
- * marcados como tal no código para que ninguém os confunda com contagem.
+ * **Os números do final eram três, declarados pelo dono e vindos do site
+ * antigo** — "+800 alunos formados", "+100 aulas exclusivas" e "96,6% de
+ * índice de satisfação". Depois da auditoria de 3/set/2026 são dois, e por
+ * motivos diferentes: "+800" continua sendo afirmação histórica da escola (o
+ * AVA é mais novo que a PCO e não tem como medir isso); as aulas passaram a
+ * ser CONTADAS, porque a alegação estava abaixo da realidade; e a satisfação
+ * saiu, porque não existe pesquisa de onde tirá-la — a regra está escrita em
+ * `projections.ts` e citada em `test/home-do-dono.test.ts`, junto com como
+ * reverter, caso o dono decida o contrário.
  * Ver `numerosDoSite()` para o que é medido de verdade.
  */
 publicSite.get('/', async (c) => {
@@ -744,13 +746,40 @@ publicSite.get('/', async (c) => {
     .join('');
 
   /**
-   * Números do site antigo, DECLARADOS pela escola — não medidos aqui.
-   * Ficam separados da barra medida e assumidos como afirmação da PCO.
+   * O que a escola AFIRMA, ao lado do que o sistema MEDE — e nada inventado.
+   *
+   * Este bloco tinha três números do site antigo, e a auditoria de 3/set/2026
+   * achou dois problemas neles:
+   *
+   * 1. **Contradiziam a si mesmos.** O quadro dizia "+800 Alunos Formados" e o
+   *    parágrafo logo abaixo, na mesma seção, dizia "mais de 1000 alunos". Um
+   *    visitante que lesse os dois via a escola discordar de si própria a dois
+   *    centímetros de distância.
+   * 2. **"96,6% de Índice de Satisfação" contradizia o próprio código.**
+   *    `projections.ts` diz, por escrito, que esse número "não entra: não
+   *    existe pesquisa de satisfação neste sistema", citando que afirmação de
+   *    resultado a quem ainda vai comprar é publicidade enganosa (CDC,
+   *    art. 37). A regra estava escrita num arquivo e violada no arquivo ao
+   *    lado — o mesmo padrão de "a regra existir não é a regra rodar" que esta
+   *    auditoria persegue no código.
+   *
+   * O que ficou:
+   *
+   * - **Alunos formados** continua sendo afirmação da escola, do histórico
+   *   dela. É dado que o sistema não tem (o AVA existe há menos tempo que a
+   *   PCO) e é do dono afirmar. Só deixou de brigar com o parágrafo.
+   * - **Aulas** passou a ser MEDIDO. É o caso raro em que a honestidade
+   *   também vende melhor: a alegação era "+100" e a contagem real passa de
+   *   500.
+   * - **Satisfação saiu.** Não há de onde tirar. Se um dia houver pesquisa,
+   *   este é o lugar de trazê-la de volta — com a base junto, como a avaliação
+   *   já faz ("4,8 · 37 avaliações").
    */
   const numerosDeclarados: Array<[string, string]> = [
     ['+800', 'Alunos Formados'],
-    ['+100', 'Aulas Exclusivas'],
-    ['96,6%', 'Índice de Satisfação'],
+    ...(numeros.aulas
+      ? ([[`+${numeros.aulas}`, 'Aulas Exclusivas']] as Array<[string, string]>)
+      : []),
   ];
   const declaradosHtml = numerosDeclarados
     .map(([v, r]) => `<div><div class="valor">${esc(v)}</div><div class="rotulo">${esc(r)}</div></div>`)
@@ -925,12 +954,13 @@ publicSite.get('/', async (c) => {
       <div class="wrap">
         <div class="numeros-declarados">${raw(declaradosHtml)}</div>
         <p class="declarados-nota">
-          Com orgulho, celebramos a formação de mais de 1000 alunos que escolheram trilhar a jornada
-          do Curso de Psicanálise Clínica Online conosco. Oferecemos mais de 100 aulas exclusivas,
-          proporcionando um aprendizado abrangente e de qualidade. Nosso compromisso com a
-          excelência reflete no impressionante índice de satisfação de mais de 96%, demonstrando a
-          confiança e a satisfação dos nossos alunos. Junte-se a nós e faça parte dessa comunidade
-          de sucesso na Psicanálise Clínica Online!
+          Com orgulho, celebramos a formação de mais de 800 alunos que escolheram trilhar a jornada
+          do Curso de Psicanálise Clínica Online conosco.${
+            numeros.aulas
+              ? ` São ${numeros.aulas} aulas exclusivas, proporcionando um aprendizado abrangente e de qualidade.`
+              : ''
+          }
+          Junte-se a nós e faça parte dessa comunidade de sucesso na Psicanálise Clínica Online!
         </p>
       </div>
     </section>

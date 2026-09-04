@@ -112,16 +112,65 @@ describe('a home carrega o texto que o dono entregou', () => {
     expect(h).toContain('/img/selo-rntp');
   });
 
-  it('os três números do rodapé são os declarados pela escola', async () => {
+  /**
+   * ## Eram três números; são dois. A mudança é deliberada — leia antes de reverter.
+   *
+   * Este caso cobrava `+800 Alunos Formados`, `+100 Aulas Exclusivas` e
+   * `96,6% Índice de Satisfação`, os três do site antigo, entregues pelo dono
+   * em 31/ago/2026. A auditoria de 3/set/2026 achou três problemas, e cada um
+   * teve um destino diferente:
+   *
+   * 1. **`+800` fica como está.** É afirmação histórica da escola, e é dela.
+   *    O sistema não tem como medir: o AVA existe há menos tempo que a PCO,
+   *    então quem se formou antes dele não tem certificado emitido aqui.
+   *
+   * 2. **`+100 Aulas` virou contagem real.** O número era do site antigo e
+   *    estava **abaixo** da realidade — são mais de 500 aulas. Este é o caso
+   *    raro em que medir também vende melhor, então a home passou a exibir a
+   *    contagem das aulas dos cursos publicamente listados.
+   *
+   * 3. **`96,6% de Índice de Satisfação` saiu.** Este é o único ponto em que o
+   *    texto aprovado pelo dono colide com uma regra escrita do próprio
+   *    projeto: `server/public/projections.ts` diz, com todas as letras, que
+   *    esse número "não entra: não existe pesquisa de satisfação neste
+   *    sistema", e o motivo dado ali é que afirmação de resultado a quem ainda
+   *    vai comprar é publicidade enganosa (CDC, art. 37). Não é que o número
+   *    seja alto demais — é que **não há de onde tirá-lo**: nunca houve
+   *    pesquisa. Enquanto não houver, ele não pode voltar; quando houver, o
+   *    lugar de trazê-lo é junto da base, como a avaliação já faz
+   *    ("4,8 · 37 avaliações").
+   *
+   * **Como reverter, se o dono decidir que fica:** acrescente
+   * `['96,6%', 'Índice de Satisfação']` de volta a `numerosDeclarados` em
+   * `server/public/router.ts` e inventarie o número em
+   * `test/numeros-do-site.test.ts` com o motivo. Os dois testes voltam a
+   * passar juntos — e é de propósito que exija escrever o motivo.
+   */
+  it('os números do rodapé são os declarados pela escola', async () => {
     const h = await home();
-    for (const [valor, rotulo] of [
-      ['+800', 'Alunos Formados'],
-      ['+100', 'Aulas Exclusivas'],
-      ['96,6%', 'Índice de Satisfação'],
-    ]) {
+    for (const [valor, rotulo] of [['+800', 'Alunos Formados']]) {
       expect(contem(h, valor), `sumiu o número ${valor}`).toBe(true);
       expect(contem(h, rotulo), `sumiu o rótulo ${rotulo}`).toBe(true);
     }
+  });
+
+  it('a contagem de aulas é medida, e some quando não há o que contar', async () => {
+    // A fixture deste arquivo tem `courses.json` vazio: sem aula, o bloco
+    // inteiro não aparece — travessão, não zero. "0 Aulas Exclusivas" numa
+    // página de venda é pior do que não mostrar nada.
+    const h = await home();
+    // Asserção no MARKUP do quadro, não no texto solto: a página tem
+    // "aulas exclusivas" numa descrição de recurso ("Vasto material de estudo
+    // em vídeo com aulas exclusivas..."), e o `contem` normaliza caixa e
+    // acento — a primeira versão deste caso casava com aquela frase e falhava
+    // por motivo errado.
+    expect(h, 'sem curso, o número não se inventa').not.toContain('>Aulas Exclusivas<');
+  });
+
+  it('nenhum índice de satisfação, porque não existe pesquisa', async () => {
+    const h = await home();
+    expect(contem(h, 'Índice de Satisfação')).toBe(false);
+    expect(contem(h, '96,6%')).toBe(false);
   });
 
   it('a barra medida continua separada da declarada, e diz que é medição', async () => {

@@ -258,6 +258,10 @@ export { isPubliclyListed };
  * - **96% de satisfação** não entra: não existe pesquisa de satisfação neste
  *   sistema. Número sem medição não vira meta; vira travessão, e em página de
  *   venda vira ausência.
+ * - **aulas** conta as aulas dos cursos publicamente listados. Entrou em
+ *   3/set/2026 porque a home afirmava "+100 aulas exclusivas" — número do site
+ *   antigo, e **menor que a realidade**: são 590 aulas. Medir aqui é o caso
+ *   raro em que a honestidade também vende melhor.
  */
 export interface NumerosDoSite {
   /** Média e base das avaliações; null quando ninguém avaliou ainda. */
@@ -266,6 +270,8 @@ export interface NumerosDoSite {
   formados: number | null;
   /** Anos completos desde a fundação. */
   anos: number | null;
+  /** Aulas nos cursos publicamente listados; null quando não há nenhuma. */
+  aulas: number | null;
 }
 
 export async function numerosDoSite(fundadoEm?: string): Promise<NumerosDoSite> {
@@ -298,7 +304,30 @@ export async function numerosDoSite(fundadoEm?: string): Promise<NumerosDoSite> 
   const anos =
     Number.isFinite(ano) && ano > 1900 ? Math.max(0, new Date().getFullYear() - ano) : null;
 
-  return { avaliacao, formados, anos };
+  const aulas = await safe(
+    'lessons',
+    async () => {
+      // Só o que o visitante pode de fato encontrar no site: contar o curso
+      // interno de operadores inflaria o número com material que ninguém
+      // compra.
+      const cursos = (await coursesRepo.listCourses()) as unknown as Row[];
+      const total = cursos
+        .filter(isPubliclyListed)
+        .reduce(
+          (soma, c) =>
+            soma +
+            ((c.modules as Array<{ lessons?: unknown[] }> | undefined) ?? []).reduce(
+              (s, m) => s + (m.lessons?.length ?? 0),
+              0,
+            ),
+          0,
+        );
+      return total > 0 ? total : null;
+    },
+    null as number | null,
+  );
+
+  return { avaliacao, formados, anos, aulas };
 }
 
 /** Mapa courseId -> produto 'course' ativo. */
