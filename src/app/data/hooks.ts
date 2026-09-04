@@ -1199,6 +1199,15 @@ export function useDeletePaymentGateway() {
   });
 }
 
+export function useTestPaymentGateway() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.testPaymentGateway,
+    // Invalida para a tela mostrar o carimbo do último teste sem recarregar.
+    onSuccess: () => qc.invalidateQueries({ queryKey: paymentGatewaysKey }),
+  });
+}
+
 const productsKey = ['products'] as const;
 const adminProductsKey = ['admin', 'products'] as const;
 

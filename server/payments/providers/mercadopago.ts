@@ -9,6 +9,7 @@ import type {
   RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
+import { pingHttp } from './ping-http';
 import { origemPublica } from '../../origem-publica';
 
 const API_BASE = 'https://api.mercadopago.com';
@@ -124,6 +125,17 @@ export const mercadopagoProvider: PaymentProviderImpl = {
       refundedCents: Math.round((r.amount ?? 0) * 100),
       status: r.status === 'approved' ? 'refunded' : 'pending',
     };
+  },
+  /** Identifica a conta dona do access_token. Leitura, e não cria preferência. */
+  async ping(_gateway, creds) {
+    if (!creds.apiKey) {
+      return { ok: false, alcancou: false, message: 'Mercado Pago: access_token ausente.' };
+    }
+    return await pingHttp(
+      `${API_BASE}/users/me`,
+      { headers: { Authorization: `Bearer ${creds.apiKey}` } },
+      'Mercado Pago',
+    );
   },
 };
 

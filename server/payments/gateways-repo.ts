@@ -140,3 +140,20 @@ export async function getDecryptedCredentials(
     webhookSecret: g.webhookSecret ? decryptApiKey(g.webhookSecret) : '',
   };
 }
+
+/** Guarda o resultado do último teste de conexão. Não mexe em credencial. */
+export async function recordTest(
+  id: string,
+  status: 'ok' | 'error',
+  message: string,
+): Promise<void> {
+  await store.update(
+    (g) => g.id === id,
+    (g) => ({
+      ...g,
+      lastTestedAt: new Date().toISOString(),
+      lastTestStatus: status,
+      lastTestMessage: message,
+    }),
+  );
+}

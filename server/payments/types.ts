@@ -41,6 +41,14 @@ export interface PaymentGateway {
   publicKey?: string | null; // p/ providers tipo Stripe que precisam expor pk_test/pk_live
   // Configurações específicas (mock pode usar autoApproveAfterMs)
   options?: Record<string, unknown>;
+  /**
+   * Resultado do último "testar conexão". Fica no gateway, e não só na resposta
+   * da rota, para que a tela diga o estado sem obrigar o admin a testar de novo
+   * — credencial que parou de valer não avisa ninguém sozinha.
+   */
+  lastTestedAt?: string;
+  lastTestStatus?: 'ok' | 'error';
+  lastTestMessage?: string;
   createdAt: string;
   updatedAt: string;
 }

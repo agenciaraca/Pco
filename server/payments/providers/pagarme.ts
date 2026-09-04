@@ -9,6 +9,7 @@ import type {
   RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
+import { pingHttp } from './ping-http';
 import { comparaSegura } from './compara-segura';
 import { origemPublica } from '../../origem-publica';
 
@@ -217,6 +218,15 @@ export const pagarmeProvider: PaymentProviderImpl = {
       refundedCents: data.amount ?? amountCents ?? 0,
       status: data.status === 'refunded' || data.status === 'canceled' ? 'refunded' : 'pending',
     };
+  },
+  /** Lê um pedido — o mesmo recurso que `createPayment` cria. */
+  async ping(_gateway, creds) {
+    if (!creds.apiKey) return { ok: false, alcancou: false, message: 'Pagar.me: apiKey ausente.' };
+    return await pingHttp(
+      `${API_BASE}/orders?size=1`,
+      { headers: { Authorization: basicAuth(creds.apiKey) } },
+      'Pagar.me',
+    );
   },
 };
 

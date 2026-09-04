@@ -59,4 +59,15 @@ export const mockProvider: PaymentProviderImpl = {
       status: 'refunded',
     };
   },
+  /**
+   * Não fala com ninguém — e diz isso. Responder "OK" aqui sem ressalva faria
+   * o sandbox parecer prova de que a integração real funciona.
+   */
+  async ping() {
+    return {
+      ok: true,
+      alcancou: true,
+      message: 'Sandbox local: não há gateway externo para consultar.',
+    };
+  },
 };

@@ -9,6 +9,7 @@ import type {
   RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
+import { pingHttp } from './ping-http';
 import { comparaSegura } from './compara-segura';
 
 function apiBase(mode: 'test' | 'live'): string {
@@ -171,5 +172,14 @@ export const asaasProvider: PaymentProviderImpl = {
       refundedCents: Math.round((r.value ?? 0) * 100),
       status: r.status === 'REFUNDED' ? 'refunded' : 'pending',
     };
+  },
+  /** Lê um cliente — `createPayment` começa criando um, então é a mesma chave. */
+  async ping(gateway, creds) {
+    if (!creds.apiKey) return { ok: false, alcancou: false, message: 'Asaas: apiKey ausente.' };
+    return await pingHttp(
+      `${apiBase(gateway.mode)}/customers?limit=1`,
+      { headers: { access_token: creds.apiKey } },
+      `Asaas (${gateway.mode})`,
+    );
   },
 };

@@ -432,6 +432,37 @@ A **conversão pelo servidor** (`server/marketing/meta-capi.ts`) manda o
 deduplicar com o pixel do navegador. PII só em SHA-256 normalizado. Nasce
 desligada; o token é cifrado em repouso e nunca volta para a tela.
 
+## Gateway de pagamento agora tem botão de testar — e ele não cobra ninguém
+
+`POST /admin/payments/gateways/:id/test`, botão **Testar** em `/admin/gateways`
+(3/set/2026). Existia para e-mail, para os conectores de importação, para os
+webhooks de saída e para a IA; faltava justamente em pagamento, o único desses
+domínios em que credencial vencida custa dinheiro — e o modo de falha já é
+conhecido daqui, ver a Sandra logo abaixo.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **Todo `ping` é leitura.** Testar conexão não pode criar cobrança, nem em
+  `live` nem em `test`. `test/gateway-responde.test.ts` percorre os providers e
+  cobra `GET` em todos — a única exceção é o PayPal, cujo `client_credentials`
+  é a própria conferência da credencial e não cria pedido.
+- **Cada ping lê o mesmo recurso que o checkout escreve** (sessão no Stripe,
+  pedido no Pagar.me, cliente no Asaas, cobrança no tenant da Sandra). Chave que
+  enxerga o recurso consegue criá-lo; o contrário não vale para chave restrita,
+  e um ping que consulta outra coisa diria "OK" para credencial que não vende.
+- **`alcancou` separa duas falhas que pedem ações opostas.** 401/403 é o gateway
+  respondendo que a chave não vale (ir ao painel dele); erro de rede é não ter
+  dado para falar com ele (esperar, olhar a rede). A tela não pode achatar os
+  dois em "falhou", e configuração faltando — Sandra sem `baseUrl`/`tenantSlug`
+  — nem chega a sair da máquina.
+- **Provider sem `ping` não responde "OK".** `manual` e `legado-wp` registram
+  venda feita fora do sistema e não têm o que consultar; dizem isso. Provider
+  novo sem ping falha o teste, que é o momento de escrever o dele.
+
+O resultado fica gravado no gateway (`lastTestedAt`/`lastTestStatus`/
+`lastTestMessage`) e aparece no card: credencial que parou de valer não avisa
+ninguém sozinha.
+
 ## Sandra: o gateway em que o dinheiro não passa pelo gateway
 
 Sétimo provedor (`server/payments/providers/sandra.ts`, desde 31/ago/2026). A

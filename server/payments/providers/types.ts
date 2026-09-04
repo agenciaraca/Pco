@@ -43,6 +43,19 @@ export interface RefundResult {
   status: 'refunded' | 'partial' | 'pending';
 }
 
+export interface PingResult {
+  ok: boolean;
+  /**
+   * O gateway chegou a responder alguma coisa? Separa "a chave não vale" de
+   * "não deu para falar com ele" — são duas ações diferentes de quem lê a
+   * tela: uma é ir ao painel do gateway, a outra é esperar/olhar a rede.
+   * Credencial vencida em silêncio é exatamente o modo de falha que já custou
+   * pagamento confirmado neste projeto (ver o worker da Sandra).
+   */
+  alcancou: boolean;
+  message: string;
+}
+
 export interface PaymentProviderImpl {
   /** Cria um payment no gateway. Retorna externalId + URL/QR para finalizar. */
   createPayment(
@@ -72,6 +85,17 @@ export interface PaymentProviderImpl {
     externalId: string,
     amountCents?: number,
   ): Promise<RefundResult>;
+
+  /**
+   * Confere, **sem cobrar ninguém**, se o gateway responde e ainda aceita esta
+   * credencial. Opcional: provider que não tenha leitura barata simplesmente
+   * não implementa, e a tela diz "não dá para testar" — que é diferente de
+   * dizer que está tudo bem.
+   */
+  ping?(
+    gateway: PaymentGateway,
+    credentials: { apiKey: string; apiSecret: string; webhookSecret: string },
+  ): Promise<PingResult>;
 }
 
 export class PaymentProviderError extends Error {

@@ -47,6 +47,7 @@ import type {
   WebhookEvent,
 } from './types';
 import { PaymentProviderError } from './types';
+import { pingHttp } from './ping-http';
 
 /** Métodos aceitos pela Sandra. Não há padrão — de propósito, do lado dela. */
 export type MetodoSandra = 'pix' | 'boleto' | 'credit' | 'debit';
@@ -267,6 +268,29 @@ export const sandraProvider: PaymentProviderImpl = {
       status: traduzirStatus(cobranca.status ?? 'pending'),
       rawPayload: corpo,
     };
+  },
+  /**
+   * Lê a lista de cobranças do tenant — o mesmo caminho que o worker de
+   * sondagem percorre de 5 em 5 minutos. Como a Sandra ainda não emite
+   * `charge.paid`, esse worker é o **único** confirmador de pagamento dela:
+   * credencial vencida aqui significa venda paga que não vira matrícula, em
+   * silêncio. É o gateway em que este botão mais importa.
+   */
+  async ping(gateway, creds) {
+    const o = lerOpcoes(gateway.options);
+    if (!creds.apiKey) return { ok: false, alcancou: false, message: 'Sandra: chave ausente.' };
+    if (!o.baseUrl || !o.tenantSlug) {
+      return {
+        ok: false,
+        alcancou: false,
+        message: 'Sandra: faltam `baseUrl` e `tenantSlug` nas opções do gateway.',
+      };
+    }
+    return await pingHttp(
+      `${o.baseUrl}/api/v1/tenants/${encodeURIComponent(o.tenantSlug)}/charges?limit=1`,
+      { headers: { authorization: `Bearer ${creds.apiKey}` } },
+      'Sandra',
+    );
   },
 };
 

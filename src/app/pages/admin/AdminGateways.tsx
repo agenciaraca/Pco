@@ -11,6 +11,8 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  CheckCircle2,
+  Wifi,
 } from 'lucide-react';
 import {
   usePaymentProviders,
@@ -18,6 +20,7 @@ import {
   useCreatePaymentGateway,
   useUpdatePaymentGateway,
   useDeletePaymentGateway,
+  useTestPaymentGateway,
 } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
@@ -35,6 +38,7 @@ export default function AdminGateways() {
   const createMut = useCreatePaymentGateway();
   const updateMut = useUpdatePaymentGateway();
   const deleteMut = useDeletePaymentGateway();
+  const testMut = useTestPaymentGateway();
   const toast = useToast();
 
   const [editing, setEditing] = useState<PaymentGatewayDto | null>(null);
@@ -47,6 +51,20 @@ export default function AdminGateways() {
     try {
       await updateMut.mutateAsync({ id: g.id, patch: { active: !g.active } });
       toast.success(g.active ? 'Gateway desativado' : 'Gateway ativado');
+    } catch (err) {
+      toast.error('Falha', err instanceof Error ? err.message : 'Erro');
+    }
+  }
+
+  async function handleTest(g: PaymentGatewayDto) {
+    try {
+      const r = await testMut.mutateAsync(g.id);
+      if (r.ok) toast.success('Conexão OK', r.message);
+      // Gateway que respondeu recusando a chave é problema no painel dele;
+      // gateway que não respondeu é problema de rede. A mensagem já separa os
+      // dois, e o título não pode achatar isso em "falhou".
+      else if (r.alcancou) toast.error('Credencial recusada', r.message);
+      else toast.error('Sem resposta do gateway', r.message);
     } catch (err) {
       toast.error('Falha', err instanceof Error ? err.message : 'Erro');
     }
@@ -88,9 +106,10 @@ export default function AdminGateways() {
         <div>
           <p className="text-pco-deep font-semibold mb-0.5">Modo de operação</p>
           <p>
-            Atualmente apenas o provider <strong>Sandbox (mock)</strong> está implementado para
-            testes. Stripe, Asaas, Pagar.me, PayPal e Mercado Pago entrarão no Sprint 4. Você
-            pode cadastrar credenciais agora — elas serão usadas quando os SDKs forem habilitados.
+            Apenas o gateway <strong>ativo</strong> é usado em checkouts novos. Use{' '}
+            <strong>Testar</strong> antes de ativar um: ele consulta o gateway de verdade, com a
+            credencial gravada, <strong>sem cobrar ninguém</strong>. Credencial que deixa de valer
+            não avisa — o sintoma é venda paga que não vira matrícula.
           </p>
         </div>
       </div>
@@ -161,9 +180,42 @@ export default function AdminGateways() {
                         webhook: {g.hasWebhookSecret ? '✓' : '—'}
                         {g.publicKey ? ` · public: ${g.publicKey.slice(0, 16)}...` : ''}
                       </div>
+                      {g.lastTestStatus && (
+                        <div
+                          className={`mt-0.5 text-xs ${
+                            g.lastTestStatus === 'ok' ? 'text-status-success' : 'text-status-danger'
+                          }`}
+                        >
+                          {g.lastTestStatus === 'ok' ? (
+                            <CheckCircle2 size={10} className="inline" />
+                          ) : (
+                            <AlertCircle size={10} className="inline" />
+                          )}{' '}
+                          {g.lastTestMessage}
+                          {g.lastTestedAt && (
+                            <span className="text-ink-subtle">
+                              {' · '}
+                              {new Date(g.lastTestedAt).toLocaleString('pt-BR')}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleTest(g)}
+                      disabled={testMut.isPending}
+                      className="pco-btn-ghost text-xs px-2.5"
+                      title="Testar conexão — só leitura, não cobra ninguém"
+                    >
+                      {testMut.isPending && testMut.variables === g.id ? (
+                        <Loader2 size={12} strokeWidth={1.75} className="animate-spin" />
+                      ) : (
+                        <Wifi size={12} strokeWidth={1.75} />
+                      )}
+                      Testar
+                    </button>
                     <button
                       onClick={() => handleToggleActive(g)}
                       className="pco-btn-ghost text-xs px-2.5"

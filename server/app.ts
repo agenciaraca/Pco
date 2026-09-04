@@ -155,6 +155,7 @@ import * as lessonNotesRepo from './repositories/lesson-notes';
 import * as podcastEngagementRepo from './repositories/podcast-engagement';
 import * as certValidationsRepo from './repositories/cert-validations';
 import * as gatewaysRepo from './payments/gateways-repo';
+import { pingGateway } from './payments/ping';
 import * as productsRepo from './payments/products-repo';
 import * as ordersRepo from './payments/orders-repo';
 import * as couponsRepo from './payments/coupons-repo';
@@ -5233,6 +5234,24 @@ export function buildApp() {
       const ok = await gatewaysRepo.deleteGateway(id);
       if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado');
       return c.json({ ok: true });
+    },
+  );
+
+  /**
+   * Testa a conexão com o gateway sem cobrar ninguém — a leitura de um recurso
+   * que a chave do checkout precisa enxergar. Existe pelo mesmo motivo que o
+   * teste de e-mail: credencial que parou de valer não avisa, e no caso de
+   * pagamento o sintoma é venda que não vira matrícula.
+   */
+  app.post(
+    '/admin/payments/gateways/:id/test',
+    requireAuth('admin', 'superadmin'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const r = await pingGateway(id);
+      if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Gateway não encontrado');
+      return c.json(r);
     },
   );
 

@@ -11,6 +11,7 @@ import type {
   RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
+import { pingHttp } from './ping-http';
 import { origemPublica } from '../../origem-publica';
 
 const API_BASE = 'https://api.stripe.com/v1';
@@ -168,6 +169,15 @@ export const stripeProvider: PaymentProviderImpl = {
       refundedCents: r.amount,
       status: r.status === 'succeeded' ? 'refunded' : 'pending',
     };
+  },
+  /** Lê uma sessão de checkout — o mesmo recurso que `createPayment` cria. */
+  async ping(_gateway, creds) {
+    if (!creds.apiKey) return { ok: false, alcancou: false, message: 'Stripe: apiKey ausente.' };
+    return await pingHttp(
+      `${API_BASE}/checkout/sessions?limit=1`,
+      { headers: { Authorization: `Bearer ${creds.apiKey}` } },
+      'Stripe',
+    );
   },
 };
 

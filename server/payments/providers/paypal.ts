@@ -9,6 +9,7 @@ import type {
   RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
+import { pingHttp } from './ping-http';
 import { origemPublica } from '../../origem-publica';
 
 function apiBase(mode: 'test' | 'live'): string {
@@ -237,6 +238,33 @@ export const paypalProvider: PaymentProviderImpl = {
         : amountCents ?? 0,
       status: data.status === 'COMPLETED' ? 'refunded' : 'pending',
     };
+  },
+  /**
+   * Pede o token de acesso — que é, literalmente, a conferência da credencial:
+   * é o primeiro passo de toda chamada ao PayPal.
+   */
+  async ping(gateway, creds) {
+    if (!creds.apiKey || !creds.apiSecret) {
+      return {
+        ok: false,
+        alcancou: false,
+        message: 'PayPal: requer apiKey (client_id) e apiSecret (client_secret).',
+      };
+    }
+    const base = apiBase(gateway.mode);
+    const basic = Buffer.from(`${creds.apiKey}:${creds.apiSecret}`).toString('base64');
+    return await pingHttp(
+      `${base}/v1/oauth2/token`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${basic}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'grant_type=client_credentials',
+      },
+      `PayPal (${gateway.mode})`,
+    );
   },
 };
 

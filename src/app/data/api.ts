@@ -741,6 +741,9 @@ export interface PaymentGatewayDto {
   hasApiKey: boolean;
   hasApiSecret: boolean;
   hasWebhookSecret: boolean;
+  lastTestedAt?: string;
+  lastTestStatus?: 'ok' | 'error';
+  lastTestMessage?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -783,6 +786,17 @@ export async function updatePaymentGateway(
   patch: UpdateGatewayInput,
 ): Promise<PaymentGatewayDto> {
   return http.put<PaymentGatewayDto>(`/admin/payments/gateways/${encodeURIComponent(id)}`, patch);
+}
+
+export interface GatewayPingDto {
+  ok: boolean;
+  /** O gateway respondeu? `false` = nem deu para falar com ele. */
+  alcancou: boolean;
+  message: string;
+}
+
+export async function testPaymentGateway(id: string): Promise<GatewayPingDto> {
+  return http.post<GatewayPingDto>(`/admin/payments/gateways/${encodeURIComponent(id)}/test`, {});
 }
 
 export async function deletePaymentGateway(id: string): Promise<{ ok: true }> {
