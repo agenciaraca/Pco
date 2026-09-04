@@ -302,9 +302,16 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >    texto puro num arquivo versionado (`server/imports/seeds/portalpco.ts`)
 >    desde 5/mai/2026. Tirei do código; **isso não resolve** — o valor está no
 >    histórico do git. **Revogar no painel do WordPress é o que corta o acesso.**
-> 2. **Existe branch pendente:** `correcoes-auditoria-2026-09-03`, com
->    `5a828c2` commitado e uma segunda rodada de correções **não commitada**.
->    `main` e produção seguem em `699bac3`.
+> 2. **Existe branch pendente:** `correcoes-auditoria-2026-09-03`, com **nove
+>    commits**, árvore limpa e **nada enviado ao remoto**. `main` e produção
+>    seguem em `699bac3`. Publicar é decisão do dono — e há duas decisões de
+>    conteúdo dentro dela que merecem um olhar antes (os números da home e o
+>    que a exportação de dados passou a entregar).
+>
+>    **Para rodar a suíte nesta máquina:** `npx vitest run --maxWorkers=1`.
+>    Referência: 242 arquivos / 2275 testes. Sem o `--maxWorkers=1` a execução
+>    morre no meio por falta de memória, e o sintoma engana (testes `.ts`
+>    passam, `.tsx` falham no arranque).
 > 3. **A importação por API não está pronta para uso.** Cinco das oito entidades
 >    não chegam a tabela nenhuma, toda matrícula importada nasce com a data de
 >    hoje e todo pedido vira `pending`. Rodá-la contra produção produz estrago
