@@ -752,6 +752,46 @@ despejo carrega hash de senha e colunas cifradas; o que é cifrado usa chave
 derivada de `AI_KEY_ENCRYPTION_SECRET`, que vive no ambiente e **não** entra no
 despejo, mas a pasta e o bucket merecem o mesmo cuidado do banco.
 
+## Sem rede não é "não existe": `isLoading` mente offline
+
+No TanStack Query v5, requisição feita **sem conexão** fica com
+`fetchStatus: 'paused'`. Nesse estado **`isLoading` é `false`** — ele é
+`isPending && isFetching`, e nada está sendo buscado — e `isError` também é
+`false`, porque não houve erro: a requisição nem partiu.
+
+Ou seja, o estado mais comum do mundo real (celular no metrô) não é nem
+"carregando" nem "erro". Numa tela que só conhece esses dois, a execução escorre
+até o ramo final. E o ramo final era, em quatro telas do aluno,
+`<Navigate to="/cursos" />`: **o aluno era jogado para fora da aula sem uma
+palavra**. No `LearningLayout` era pior — a tela afirmava *"Este curso não
+existe ou não está na sua estante"* sobre um curso que ele cursa e pagou.
+
+A auditoria de 3/set/2026 achou **76 arquivos** com `isLoading` e sem `isError`
+em lugar nenhum. Os 11 confirmados como danosos estão corrigidos; **os demais
+seguem abertos** e são trabalho mecânico.
+
+**A regra:** use `isPending` ("ainda não tenho dado"), não `isLoading`. E trate
+`fetchStatus === 'paused'` **antes** dele, porque "sem internet" e "o servidor
+falhou" pedem ações diferentes de quem lê. Os três cartões estão em
+`src/app/components/EstadosDeConsulta.tsx` — `SemConexao`, `FalhaAoCarregar`
+(sempre com botão de tentar de novo) e `NaoEncontrado`.
+
+Três coisas que não se inferem lendo o componente:
+
+- **Erro nunca redireciona.** No editor de curso um soluço de rede tirava o
+  admin da tela e levava junto o que ele não tinha salvo. Erro pede "tentar de
+  novo", nunca "sair da tela".
+- **A tela não afirma que o curso não existe, nem no ramo de "não encontrei".**
+  Ela não sabe: há **418 contas com login e sem ficha de aluno** em produção, e
+  para elas o catálogo não devolve as matrículas que a pessoa de fato tem.
+  Dizer "não existe" a quem pagou manda embora justamente quem precisa de
+  ajuda — por isso o texto é "não achei na sua estante" e aponta para a
+  secretaria.
+- **Painel que não carregou diz que não carregou.** Três cartões do
+  `/admin` faziam `if (!data) return null` e simplesmente sumiam, deixando a
+  tela com aparência de completa. Ausência é lida como "não houve", que é o
+  oposto de "não medi" — a mesma regra das telas de métrica.
+
 ## Analytics: a medição é própria, sem cookie e sem IP
 
 `server/analytics/` mede o tráfego do site desde 27/ago/2026 — antes disso

@@ -1,4 +1,4 @@
-import { useParams, Link, Navigate, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
   ArrowLeft,
@@ -42,6 +42,7 @@ import type { CourseAccessRow, ExtendAccessGrant } from '../../data/api';
 import { useToast } from '../../components/Toast';
 import { Plus, Loader2 } from 'lucide-react';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import { SemConexao, FalhaAoCarregar, NaoEncontrado } from '../../components/EstadosDeConsulta';
 
 const statusStyles: Record<string, string> = {
   ativo: 'bg-status-success/10 text-status-success',
@@ -101,12 +102,42 @@ export default function AdminUserDetail() {
     }
   }
 
-  if (studentsQ.isLoading || coursesQ.isLoading) {
+  if (studentsQ.fetchStatus === 'paused' || coursesQ.fetchStatus === 'paused') {
+    return <SemConexao oQue="esta ficha" />;
+  }
+  if (studentsQ.isPending || coursesQ.isPending) {
     return <CardListSkeleton count={4} />;
+  }
+  // Falha de rede mandava o admin de volta para a lista, no meio do
+  // atendimento, sem dizer por quê — e a leitura natural é "este aluno sumiu".
+  if (studentsQ.isError || coursesQ.isError) {
+    return (
+      <FalhaAoCarregar
+        erro={studentsQ.error ?? coursesQ.error}
+        oQue="esta ficha"
+        aoTentarDeNovo={() => {
+          void studentsQ.refetch();
+          void coursesQ.refetch();
+        }}
+      />
+    );
   }
 
   const student = (studentsQ.data ?? []).find((s) => s.id === id);
-  if (!student) return <Navigate to="/admin/alunos" replace />;
+  if (!student)
+    return (
+      <NaoEncontrado
+        titulo="Não achei esta ficha"
+        acao={
+          <Link to="/admin/alunos" className="pco-btn-primary text-sm inline-flex">
+            Voltar para alunos
+          </Link>
+        }
+      >
+        A ficha pode ter sido removida, ou o link pode estar velho. Contas com
+        login e sem ficha existem — são 418 em produção — e não aparecem aqui.
+      </NaoEncontrado>
+    );
 
   const courses = coursesQ.data ?? [];
   const retentionRisks = risksQ.data ?? [];

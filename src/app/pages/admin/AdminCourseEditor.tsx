@@ -1,4 +1,4 @@
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import {
   DndContext,
@@ -50,6 +50,7 @@ import {
   Globe,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { SemConexao, FalhaAoCarregar, NaoEncontrado } from '../../components/EstadosDeConsulta';
 import Tabs from '../../components/Tabs';
 import CoursePublicPane from './CoursePublicPane';
 import {
@@ -104,8 +105,33 @@ export default function AdminCourseEditor() {
   const courseQ = useCourse(id);
   const [active, setActive] = useState('geral');
 
-  if (courseQ.isLoading) return <PageLoadingSkeleton />;
-  if (!courseQ.data) return <Navigate to="/admin/cursos" replace />;
+  if (courseQ.fetchStatus === 'paused') return <SemConexao oQue="este curso" />;
+  if (courseQ.isPending) return <PageLoadingSkeleton />;
+  // **Nada de redirecionar quem está editando.** Um soluço de rede tirava o
+  // admin do editor e o devolvia à lista, sem aviso — e o que ele tivesse
+  // digitado e ainda não salvo ia junto. Erro aqui pede "tentar de novo", nunca
+  // "sair da tela".
+  if (courseQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={courseQ.error}
+        oQue="este curso"
+        aoTentarDeNovo={() => void courseQ.refetch()}
+      />
+    );
+  if (!courseQ.data)
+    return (
+      <NaoEncontrado
+        titulo="Não achei este curso"
+        acao={
+          <Link to="/admin/cursos" className="pco-btn-primary text-sm inline-flex">
+            Voltar para cursos
+          </Link>
+        }
+      >
+        O curso pode ter sido removido, ou o link pode estar velho.
+      </NaoEncontrado>
+    );
 
   const course = courseQ.data;
 

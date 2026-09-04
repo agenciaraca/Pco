@@ -1,4 +1,4 @@
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   ArrowRight,
   CheckCircle2,
@@ -12,20 +12,43 @@ import {
 import { useMemo } from 'react';
 import { useCourses, useMyNotes, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
+import { SemConexao, FalhaAoCarregar, NaoEncontrado } from '../components/EstadosDeConsulta';
 
 export default function LMSModule() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>();
-  const { data: courses = [], isLoading } = useCourses();
+  const coursesQ = useCourses();
+  const courses = coursesQ.data ?? [];
   const progress = useMyProgress();
   const notesQ = useMyNotes();
   const lessonsWithNotes = useMemo(
     () => new Set((notesQ.data ?? []).map((n) => n.lessonId)),
     [notesQ.data],
   );
-  if (isLoading) return <CardListSkeleton count={3} />;
+  if (coursesQ.fetchStatus === 'paused') return <SemConexao oQue="este módulo" />;
+  if (coursesQ.isPending) return <CardListSkeleton count={3} />;
+  if (coursesQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={coursesQ.error}
+        oQue="este módulo"
+        aoTentarDeNovo={() => void coursesQ.refetch()}
+      />
+    );
   const course = courses.find((c) => c.id === courseId);
   const module = course?.modules.find((m) => m.id === moduleId);
-  if (!course || !module) return <Navigate to="/cursos" replace />;
+  if (!course || !module)
+    return (
+      <NaoEncontrado titulo="Não achei este módulo" acao={<>
+            <Link to="/cursos" className="pco-btn-primary text-sm inline-flex">
+              Ver meus cursos
+            </Link>
+            <Link to="/suporte" className="pco-btn-ghost text-sm inline-flex">
+              Falar com a secretaria
+            </Link>
+          </>}>
+        Pode ser um link antigo, ou o módulo pode ter mudado de lugar no curso.
+      </NaoEncontrado>
+    );
 
   const doneIds = new Set(progress.data?.completedLessonIds ?? []);
   const completed = module.lessons.filter(

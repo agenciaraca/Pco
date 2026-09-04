@@ -1,12 +1,23 @@
-import { useParams, Navigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ScrollText, Clock, Trophy, ArrowRight } from 'lucide-react';
 import { useCourses } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
+import { SemConexao, FalhaAoCarregar, NaoEncontrado } from '../components/EstadosDeConsulta';
 
 export default function LMSAssessment() {
   const { courseId, assessmentId } = useParams<{ courseId: string; assessmentId: string }>();
-  const { data: courses = [], isLoading } = useCourses();
-  if (isLoading) return <CardListSkeleton count={2} />;
+  const coursesQ = useCourses();
+  const courses = coursesQ.data ?? [];
+  if (coursesQ.fetchStatus === 'paused') return <SemConexao oQue="esta avaliação" />;
+  if (coursesQ.isPending) return <CardListSkeleton count={2} />;
+  if (coursesQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={coursesQ.error}
+        oQue="esta avaliação"
+        aoTentarDeNovo={() => void coursesQ.refetch()}
+      />
+    );
   const course = courses.find((c) => c.id === courseId);
   let assessment;
   let module;
@@ -19,7 +30,19 @@ export default function LMSAssessment() {
       }
     }
   }
-  if (!course || !assessment || !module) return <Navigate to="/cursos" replace />;
+  if (!course || !assessment || !module)
+    return (
+      <NaoEncontrado titulo="Não achei esta avaliação" acao={<>
+            <Link to="/cursos" className="pco-btn-primary text-sm inline-flex">
+              Ver meus cursos
+            </Link>
+            <Link to="/suporte" className="pco-btn-ghost text-sm inline-flex">
+              Falar com a secretaria
+            </Link>
+          </>}>
+        Pode ser um link antigo, ou a avaliação pode ter saído do módulo.
+      </NaoEncontrado>
+    );
 
   return (
     <div className="space-y-6 max-w-3xl">

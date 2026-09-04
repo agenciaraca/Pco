@@ -34,9 +34,32 @@ function formatUptime(sec: number): string {
   return `${d}d ${h % 24}h`;
 }
 
+/**
+ * Painel que não carregou **diz** que não carregou.
+ *
+ * Os três cartões abaixo faziam `if (!data) return null`: em erro ou sem rede
+ * eles simplesmente desapareciam, e o painel ficava com aparência de completo
+ * sem eles. Um número ausente é lido como "não houve", que é o oposto de "não
+ * medi" — a mesma regra das telas de métrica, aqui aplicada ao cartão inteiro.
+ *
+ * É uma linha, e não um cartão de erro cheio: dentro de uma grade de cartões
+ * pequenos, o aviso tem de caber no lugar do que faltou.
+ */
+function PainelIndisponivel({ titulo }: { titulo: string }) {
+  return (
+    <div className="pco-card p-4">
+      <h3 className="text-sm font-semibold text-pco-deep">{titulo}</h3>
+      <p className="text-xs text-ink-subtle mt-2">
+        Não consegui carregar agora. Atualize a página para tentar de novo.
+      </p>
+    </div>
+  );
+}
+
 function KpisHeader() {
-  const { data, isLoading } = useAdminKpis();
-  if (isLoading) {
+  const q = useAdminKpis();
+  const { data } = q;
+  if (q.isPending) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -48,7 +71,7 @@ function KpisHeader() {
       </div>
     );
   }
-  if (!data) return null;
+  if (!data) return <PainelIndisponivel titulo="Indicadores" />;
   const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: data.revenue.currency });
 
   function delta(pct: number, label = '30d'): React.ReactNode {
@@ -123,7 +146,7 @@ function KpisHeader() {
 
 function CompletionsCard() {
   const { data } = useCompletionsStats(7);
-  if (!data) return null;
+  if (!data) return <PainelIndisponivel titulo="Aulas concluídas" />;
   const today = data.series[data.series.length - 1]?.count ?? 0;
   return (
     <div className="pco-card p-4">
@@ -152,7 +175,7 @@ function CompletionsCard() {
 
 function HealthMiniCard() {
   const { data } = useHealth();
-  if (!data) return null;
+  if (!data) return <PainelIndisponivel titulo="Saúde do sistema" />;
   const lastBackup = data.lastBackupAt
     ? new Date(data.lastBackupAt).toLocaleString('pt-BR', {
         day: '2-digit',

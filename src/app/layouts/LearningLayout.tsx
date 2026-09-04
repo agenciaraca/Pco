@@ -70,7 +70,30 @@ export default function LearningLayout() {
     );
   }
 
-  if (coursesQ.isLoading) {
+  // **Sem rede não é "não existe".**
+  //
+  // No TanStack Query v5, requisição sem conexão fica com
+  // `fetchStatus: 'paused'` — e nesse estado `isLoading` é **false** (ele é
+  // `isPending && isFetching`) e `isError` também é false. Com `isLoading`, os
+  // três blocos desta tela erravam juntos e a execução caía no `!course`: o
+  // aluno sem rede lia **"Este curso não existe"** sobre um curso que ele
+  // cursa. `isPending` é o estado de "ainda não tenho dado", que é o que esta
+  // tela precisa saber.
+  if (coursesQ.fetchStatus === 'paused') {
+    return (
+      <div className="min-h-screen grid place-items-center bg-surface-off px-6">
+        <div className="pco-card max-w-md text-center p-6">
+          <h1 className="text-lg font-bold text-pco-deep">Sem conexão</h1>
+          <p className="text-sm text-ink-muted mt-2">
+            Não consegui falar com o servidor. Seu curso continua aí — assim que a
+            internet voltar, a página carrega sozinha.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (coursesQ.isPending) {
     return (
       <div className="min-h-screen grid place-items-center bg-surface-off text-sm text-ink-muted">
         Carregando curso...
@@ -82,13 +105,30 @@ export default function LearningLayout() {
     return (
       <div className="min-h-screen grid place-items-center bg-surface-off px-6">
         <div className="pco-card max-w-md text-center p-6">
-          <h1 className="text-lg font-bold text-pco-deep">Curso não encontrado</h1>
+          <h1 className="text-lg font-bold text-pco-deep">Não achei este curso na sua estante</h1>
+          {/*
+            **A tela não afirma que o curso não existe, porque não sabe.**
+            Chega-se aqui por pelo menos três caminhos diferentes: link velho ou
+            curso removido; matrícula que existe mas cuja ficha não — são 418
+            contas com login e sem ficha em produção, e para elas o catálogo não
+            devolve as matrículas; e o próprio curso ter saído do ar. Dizer
+            "este curso não existe" a quem pagou por ele manda a pessoa embora
+            em vez de trazê-la ao suporte, e o caso em que mais dói é o único em
+            que a afirmação é falsa.
+          */}
           <p className="text-sm text-ink-muted mt-2">
-            Este curso não existe ou não está na sua estante.
+            Pode ser um link antigo, ou o curso pode não estar ligado à sua conta.
+            Se você comprou este curso, fale com a secretaria — o acesso é
+            resolvido de lá.
           </p>
-          <Link to="/cursos" className="pco-btn-primary text-sm mt-4 inline-flex">
-            Ver meus cursos
-          </Link>
+          <div className="flex gap-2 justify-center mt-4 flex-wrap">
+            <Link to="/cursos" className="pco-btn-primary text-sm inline-flex">
+              Ver meus cursos
+            </Link>
+            <Link to="/suporte" className="pco-btn-ghost text-sm inline-flex">
+              Falar com a secretaria
+            </Link>
+          </div>
         </div>
       </div>
     );

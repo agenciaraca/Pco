@@ -1,3 +1,4 @@
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 import { useState } from 'react';
 import {
   Gauge,
@@ -20,7 +21,8 @@ const WINDOWS = [
 export default function AdminRateLimits() {
   useDocumentMeta({ title: 'Rate limits — Admin' });
   const [windowMs, setWindowMs] = useState(24 * 60 * 60_000);
-  const { data, isLoading, isFetching, refetch } = useRateLimitSummary(windowMs);
+  const q = useRateLimitSummary(windowMs);
+  const { data, isFetching, refetch } = q;
 
   return (
     <div className="space-y-6">
@@ -59,8 +61,17 @@ export default function AdminRateLimits() {
         </div>
       </header>
 
-      {isLoading || !data ? (
+      {q.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os limites de requisição" />
+      ) : q.isPending ? (
         <div className="text-sm text-ink-muted">Carregando...</div>
+      ) : q.isError || !data ? (
+        // Antes isto caía no "Carregando..." acima, para sempre.
+        <FalhaAoCarregar
+          erro={q.error}
+          oQue="os limites de requisição"
+          aoTentarDeNovo={() => void refetch()}
+        />
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-3">

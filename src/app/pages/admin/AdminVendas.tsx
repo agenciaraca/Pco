@@ -24,6 +24,7 @@ import {
   Legend,
 } from 'recharts';
 import { useSalesSummary } from '../../data/hooks';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
@@ -64,11 +65,22 @@ export default function AdminVendas() {
   const t = useT();
   useDocumentMeta({ title: `${t('admin.nav.salesAnalytics')} — Admin AVA PCO` });
   const [days, setDays] = useState(30);
-  const { data, isLoading, refetch, isFetching } = useSalesSummary(days);
+  const q = useSalesSummary(days);
+  const { data, refetch, isFetching } = q;
 
-  if (isLoading || !data) {
-    return <CardListSkeleton count={4} />;
-  }
+  // `isLoading || !data` mandava erro e falta de rede para o mesmo esqueleto,
+  // que então girava para sempre: quem olhava concluía que o sistema estava
+  // lento, e não que a requisição tinha morrido.
+  if (q.fetchStatus === 'paused') return <SemConexao oQue="o resumo de vendas" />;
+  if (q.isPending) return <CardListSkeleton count={4} />;
+  if (q.isError || !data)
+    return (
+      <FalhaAoCarregar
+        erro={q.error}
+        oQue="o resumo de vendas"
+        aoTentarDeNovo={() => void refetch()}
+      />
+    );
 
   const series = data.series.map((p) => ({
     date: new Date(p.date).toLocaleDateString('pt-BR', {

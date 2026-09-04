@@ -15,6 +15,7 @@ import * as api from '../data/api';
 import { useToast } from '../components/Toast';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
+import { SemConexao, FalhaAoCarregar, NaoEncontrado } from '../components/EstadosDeConsulta';
 import EmptyState from '../components/EmptyState';
 import type { QuizQuestionPublicDto, QuizGradeResultDto } from '../data/api';
 
@@ -71,12 +72,33 @@ export default function Quiz() {
   }, [courseId, moduleId]);
 
   if (!courseId) return <Navigate to="/cursos" replace />;
-  if (courseQ.isLoading || phase === 'loading') {
+  if (courseQ.fetchStatus === 'paused') return <SemConexao oQue="este quiz" />;
+  if (courseQ.isPending || phase === 'loading') {
     return <CardListSkeleton count={3} />;
   }
+  if (courseQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={courseQ.error}
+        oQue="este quiz"
+        aoTentarDeNovo={() => void courseQ.refetch()}
+      />
+    );
 
   const course = courseQ.data;
-  if (!course) return <Navigate to="/cursos" replace />;
+  if (!course)
+    return (
+      <NaoEncontrado titulo="Não achei este quiz" acao={<>
+            <Link to="/cursos" className="pco-btn-primary text-sm inline-flex">
+              Ver meus cursos
+            </Link>
+            <Link to="/suporte" className="pco-btn-ghost text-sm inline-flex">
+              Falar com a secretaria
+            </Link>
+          </>}>
+        Pode ser um link antigo, ou o quiz pode ter saído do curso.
+      </NaoEncontrado>
+    );
 
   function toggleOption(questionId: string, optionId: string, type: string) {
     setAnswers((prev) => {

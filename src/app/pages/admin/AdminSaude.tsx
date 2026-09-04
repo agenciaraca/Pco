@@ -9,6 +9,7 @@ import { useHealthSnapshot } from '../../data/hooks';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { HealthCheckItemDto, HealthStatusDto } from '../../data/api';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const styles: Record<
   HealthStatusDto,
@@ -43,7 +44,8 @@ const styles: Record<
 export default function AdminSaude() {
   const t = useT();
   useDocumentMeta({ title: `${t('admin.nav.health')} — Admin AVA PCO` });
-  const { data, isLoading, refetch, isFetching } = useHealthSnapshot();
+  const q = useHealthSnapshot();
+  const { data, refetch, isFetching } = q;
 
   return (
     <div className="space-y-6">
@@ -69,10 +71,19 @@ export default function AdminSaude() {
         </button>
       </header>
 
-      {isLoading ? (
+      {q.fetchStatus === 'paused' ? (
+        <SemConexao oQue="o estado dos módulos" />
+      ) : q.isPending ? (
         <div className="text-sm text-ink-muted">Carregando...</div>
-      ) : !data ? (
-        <div className="text-sm text-status-danger">Falha ao buscar status.</div>
+      ) : q.isError || !data ? (
+        // Esta tela já distinguia a falha — era a única das três —, mas dizia
+        // só "Falha ao buscar status.", sem o motivo e sem como tentar de novo.
+        // Numa tela de saúde, o motivo é o conteúdo.
+        <FalhaAoCarregar
+          erro={q.error}
+          oQue="o estado dos módulos"
+          aoTentarDeNovo={() => void refetch()}
+        />
       ) : (
         <>
           <div className={`pco-card p-4 border-2 ${styles[data.overall].card}`}>

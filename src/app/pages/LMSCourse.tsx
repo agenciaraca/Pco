@@ -1,20 +1,51 @@
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ArrowRight, CalendarCheck, Clock, ExternalLink, Layers, Lock, PlayCircle } from 'lucide-react';
 import { useCourses, useMyProgress, useCurrentStudent, useMyMentoring } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import CourseReviews from '../components/CourseReviews';
 import CourseAccessNotice from '../components/CourseAccessNotice';
+import { SemConexao, FalhaAoCarregar, NaoEncontrado } from '../components/EstadosDeConsulta';
 
 export default function LMSCourse() {
   const { courseId } = useParams<{ courseId: string }>();
-  const { data: courses = [], isLoading } = useCourses();
+  const coursesQ = useCourses();
+  const courses = coursesQ.data ?? [];
   const progress = useMyProgress();
   const { data: student } = useCurrentStudent();
   const mentoringQ = useMyMentoring(courseId);
 
-  if (isLoading) return <CardListSkeleton count={3} />;
+  // Offline e erro vinham cair no `Navigate` abaixo: o aluno era jogado para
+  // fora da aula sem uma palavra, como se o curso tivesse sumido da estante.
+  if (coursesQ.fetchStatus === 'paused') return <SemConexao oQue="este curso" />;
+  if (coursesQ.isPending) return <CardListSkeleton count={3} />;
+  if (coursesQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={coursesQ.error}
+        oQue="este curso"
+        aoTentarDeNovo={() => void coursesQ.refetch()}
+      />
+    );
   const course = courses.find((c) => c.id === courseId);
-  if (!course) return <Navigate to="/cursos" replace />;
+  if (!course)
+    return (
+      <NaoEncontrado
+        titulo="Não achei este curso na sua estante"
+        acao={
+          <>
+            <Link to="/cursos" className="pco-btn-primary text-sm inline-flex">
+              Ver meus cursos
+            </Link>
+            <Link to="/suporte" className="pco-btn-ghost text-sm inline-flex">
+              Falar com a secretaria
+            </Link>
+          </>
+        }
+      >
+        Pode ser um link antigo, ou o curso pode não estar ligado à sua conta. Se
+        você comprou este curso, fale com a secretaria.
+      </NaoEncontrado>
+    );
 
   const doneIds = new Set(progress.data?.completedLessonIds ?? []);
   const totalLessons = course.modules.reduce((s, m) => s + m.lessons.length, 0);
