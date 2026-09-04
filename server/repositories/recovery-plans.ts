@@ -77,7 +77,30 @@ Onde:
 - weeklyGoalMinutes: meta semanal em minutos (30-300)
 - suggestedTutorPrompt: uma pergunta que o aluno poderia fazer ao tutor para retomar
 
-Adapte o tom (acolhedor/direto/motivacional) e a intensidade (leve/media/intensa) conforme solicitado.`;
+Adapte o tom (acolhedor/direto/motivacional) e a intensidade (leve/media/intensa) conforme solicitado.
+
+O aluno e identificado apenas por {{ALUNO}}. Use {{ALUNO}} literalmente onde o
+nome dele deveria aparecer na mensagem — o sistema substitui depois. Nao invente
+um nome, nao chame de "aluno" e nao escreva "Ola," sem nada.`;
+
+/**
+ * O marcador que vai ao provedor no lugar do nome.
+ *
+ * **PRIV2-011.** Ate 3/set/2026 esta funcao mandava `Aluno: <nome real>` junto
+ * do score de risco e das razoes — ou seja, um juizo sobre uma pessoa nomeada,
+ * enviado a um provedor de IA de terceiro, sem que ela tenha pedido nada. A
+ * politica de privacidade do proprio produto diz que IA e usada "quando
+ * solicitada pelo proprio usuario", e aqui quem solicita e a coordenacao,
+ * sobre alguem que nao sabe.
+ *
+ * O tutor de IA ja fazia certo: nao manda identidade. Esta funcao era a que
+ * destoava, e era a que mandava o dado mais sensivel dos dois — nome colado a
+ * "score de risco 82/100" e "razoes: nao acessa ha 40 dias".
+ *
+ * A substituicao acontece **depois** da resposta, aqui dentro. A mensagem que
+ * chega ao aluno continua tendo o nome dele; o provedor e que nunca o ve.
+ */
+const MARCADOR_DE_NOME = '{{ALUNO}}';
 
 export async function generateWithAi(
   input: GenerateInput,
@@ -93,8 +116,9 @@ export async function generateWithAi(
   if (cfg) {
     const provider = getProvider(cfg.provider);
     if (provider) {
+      // O nome NAO vai. Ver `MARCADOR_DE_NOME`.
       const userMessage = [
-        `Aluno: ${input.studentName}`,
+        `Aluno: ${MARCADOR_DE_NOME}`,
         `Score de risco: ${input.riskScore}/100`,
         `Razões: ${input.riskReasons.join('; ')}`,
         `Progresso real: ${input.realProgress}% | Esperado: ${input.expectedProgress}%`,
@@ -118,10 +142,15 @@ export async function generateWithAi(
           weeklyGoalMinutes: number;
           suggestedTutorPrompt?: string;
         };
-        diagnosis = parsed.diagnosis || diagnosis;
-        message = parsed.message || message;
+        // O nome real entra aqui, depois da resposta — nunca antes dela.
+        const comNome = (t: string): string =>
+          t.split(MARCADOR_DE_NOME).join(input.studentName);
+        diagnosis = parsed.diagnosis ? comNome(parsed.diagnosis) : diagnosis;
+        message = parsed.message ? comNome(parsed.message) : message;
         weeklyGoalMinutes = parsed.weeklyGoalMinutes || weeklyGoalMinutes;
-        suggestedTutorPrompt = parsed.suggestedTutorPrompt;
+        suggestedTutorPrompt = parsed.suggestedTutorPrompt
+          ? comNome(parsed.suggestedTutorPrompt)
+          : undefined;
         aiProvider = cfg.provider;
         aiModel = cfg.model;
       } catch (err) {

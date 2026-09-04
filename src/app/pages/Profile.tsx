@@ -608,8 +608,12 @@ export default function Profile() {
           Exportar meus dados
         </h3>
         <p className="mt-2 text-xs text-ink-muted">
-          Baixe um arquivo JSON com todos os seus dados pessoais (perfil, progresso de aulas,
-          anotações, histórico do Tutor, certificados). Direito garantido pela LGPD (Art. 18).
+          Baixe um arquivo JSON com todos os seus dados pessoais: perfil e ficha, matrículas,
+          progresso, anotações, tempo assistido, certificados, pedidos, agendamentos, chamados
+          de suporte, avisos, conquistas, avaliações, mensagens no fórum e histórico do Tutor.
+          Inclui também o que a escola registra <strong>sobre</strong> você e que não aparece em
+          nenhuma outra tela: seu índice de risco de evasão, as anotações da coordenação e os
+          planos de retomada gerados a seu respeito. Direito garantido pela LGPD (Art. 18).
         </p>
         <button
           type="button"

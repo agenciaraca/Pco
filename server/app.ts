@@ -2030,6 +2030,29 @@ export function buildApp() {
     },
   );
 
+  /**
+   * Portabilidade: **tudo** que o sistema guarda sobre quem pede.
+   *
+   * Até 3/set/2026 esta rota entregava **seis** categorias — perfil, progresso,
+   * anotações de aula, engajamento de podcast, histórico do tutor e
+   * certificados — enquanto a tela dizia "todos os seus dados". Faltavam mais
+   * de vinte, e as três que mais faltavam eram exatamente as que o titular
+   * **não vê em nenhum outro lugar do produto**:
+   *
+   * - **risco de evasão** — um score de 0 a 100 com as razões escritas;
+   * - **notas da coordenação** sobre ele;
+   * - **plano de recuperação** gerado a seu respeito.
+   *
+   * São juízos sobre a pessoa, feitos sem que ela saiba, e é precisamente esse
+   * tipo de dado que o direito de acesso existe para alcançar (LGPD, art. 18,
+   * II). Omiti-los enquanto se diz "todos os seus dados" é pior do que não ter
+   * a função: dá ao titular a impressão de que ele já viu tudo.
+   *
+   * **A lista é conferida por `test/exportacao-e-completa.test.ts`**, que
+   * compara as chaves daqui com um inventário nomeado. Categoria nova de dado
+   * pessoal precisa entrar nos dois — ou ser declarada, com o motivo, como
+   * fora do escopo.
+   */
   app.get('/me/export', requireAuth(), async (c) => {
     const u = c.get('user')!;
     const profile = await usersStore.findUserById(u.sub);
@@ -2040,14 +2063,62 @@ export function buildApp() {
     const allCerts = await certsRepo.listAllCertificates();
     const certs = allCerts.filter((cert) => cert.studentId === u.sub);
 
+    // A ficha de aluno, e o que pende dela. `findAdminStudent` devolve null
+    // para as 418 contas sem ficha — e nesse caso as categorias abaixo saem
+    // vazias, que é a verdade, e não um erro.
+    const ficha = await studentsRepo.findAdminStudent(u.sub);
+    const [
+      pedidos,
+      agendamentos,
+      chamados,
+      avisos,
+      conquistas,
+      tempoDeAssistencia,
+      comentarios,
+      avaliacoes,
+      riscos,
+      notasDaCoordenacao,
+      planosDeRecuperacao,
+    ] = await Promise.all([
+      ordersRepo.listForUser(u.sub),
+      bookingsRepo.listForUser(u.sub),
+      supportRepo.listTicketsForStudent(u.sub),
+      notificationsRepo.listForUser(u.sub, 1000),
+      achievementsStore.listForUser(u.sub),
+      watchTimeRepo.listForUser(u.sub),
+      discussions
+        .listAll()
+        .then((todos) => todos.filter((d) => d.authorId === u.sub)),
+      courseReviews.listAll().then((todas) => todas.filter((r) => r.userId === u.sub)),
+      // **As três que faltavam, e são as que mais importam.**
+      retentionRepo.listRetentionRisks().then((rs) => rs.filter((r) => r.studentId === u.sub)),
+      adminNotes.listForStudent(u.sub),
+      recoveryPlans.listForStudent(u.sub),
+    ]);
+
     const dump = {
       exportedAt: new Date().toISOString(),
       user: profile,
+      student: ficha,
       progress,
       lessonNotes: notes,
       podcastEngagement: engagement,
       tutorHistory: tutor,
       certificates: certs,
+      // As matrículas e a situação de cada uma já vêm dentro de `student`
+      // (`enrolledCourseIds` e `enrollmentStatusByCourse`) — repetir aqui
+      // criaria duas versões do mesmo fato no mesmo arquivo.
+      orders: pedidos,
+      sessionBookings: agendamentos,
+      supportTickets: chamados,
+      notifications: avisos,
+      achievements: conquistas,
+      watchTime: tempoDeAssistencia,
+      forumAndComments: comentarios,
+      courseReviews: avaliacoes,
+      retentionRisk: riscos,
+      adminNotesAboutMe: notasDaCoordenacao,
+      recoveryPlans: planosDeRecuperacao,
     };
 
     return new Response(JSON.stringify(dump, null, 2), {
