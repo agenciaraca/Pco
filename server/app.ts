@@ -1457,12 +1457,20 @@ export function buildApp() {
    *
    * Existe para que nenhuma rota precise confiar no `courseId` que o cliente
    * mandou: o dado autoritativo é a estrutura do curso, não o corpo do POST.
+   *
+   * **Inclui curso desativado de propósito.** Filtrar por `active` é regra de
+   * descoberta — o que aparece na vitrine e na estante —, não de operação sobre
+   * aula que o aluno já está com a tela aberta. Com `listCourses()` aqui,
+   * desativar um curso para editá-lo congelava conclusão de aula e tempo de
+   * assistência de quem estivesse estudando, com um 404 que se lê como "esta
+   * aula não existe". O portão de acesso continua sendo `courseAccessFor`,
+   * logo abaixo em cada chamador.
    */
   async function localizarAula(lessonId: string): Promise<{
     course: Awaited<ReturnType<typeof coursesRepo.listCourses>>[number];
     module: Awaited<ReturnType<typeof coursesRepo.listCourses>>[number]['modules'][number];
   } | null> {
-    const todos = await coursesRepo.listCourses();
+    const todos = await coursesRepo.listCoursesIncludingInactive();
     for (const co of todos) {
       for (const m of co.modules ?? []) {
         if ((m.lessons ?? []).some((l) => l.id === lessonId)) {

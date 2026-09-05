@@ -69,10 +69,12 @@ const COURSE_BASE_COLUMNS = {
 
 async function selectActiveCourses(
   db: NonNullable<ReturnType<typeof getDb>>,
+  somenteAtivos = true,
 ): Promise<Array<Record<string, unknown>>> {
+  const filtro = somenteAtivos ? eq(schema.courses.active, true) : undefined;
   if (metaColumnAvailable) {
     try {
-      return await db.select().from(schema.courses).where(eq(schema.courses.active, true));
+      return await db.select().from(schema.courses).where(filtro);
     } catch (err) {
       if (!isMissingMetaColumn(err)) throw err;
       metaColumnAvailable = false;
@@ -82,17 +84,14 @@ async function selectActiveCourses(
       );
     }
   }
-  return await db
-    .select(COURSE_BASE_COLUMNS)
-    .from(schema.courses)
-    .where(eq(schema.courses.active, true));
+  return await db.select(COURSE_BASE_COLUMNS).from(schema.courses).where(filtro);
 }
 
-async function loadFromDb(): Promise<Course[]> {
+async function loadFromDb(somenteAtivos = true): Promise<Course[]> {
   const db = getDb();
   if (!db) return [];
 
-  const courses = (await selectActiveCourses(db)) as Array<
+  const courses = (await selectActiveCourses(db, somenteAtivos)) as Array<
     typeof schema.courses.$inferSelect
   >;
   if (courses.length === 0) return [];
@@ -407,6 +406,33 @@ export async function listCourses(): Promise<Course[]> {
     const fromDb = await loadFromDb();
     if (fromDb.length > 0) return fromDb;
   }
+  return await store.getAll();
+}
+
+/**
+ * O catálogo inteiro, inclusive o que está desativado.
+ *
+ * `listCourses()` filtra `active = true`, e isso é regra de **descoberta**:
+ * curso desativado não aparece na vitrine nem na estante. Não é regra de
+ * **operação** sobre uma aula que o aluno já está vendo — e como `deleteCourse`
+ * também é um `active: false`, os dois casos entram pela mesma porta.
+ *
+ * Enquanto não existia esta variante, desativar um curso para editá-lo
+ * congelava, para quem estivesse estudando, a conclusão de aula **e** o tempo
+ * de assistência: as duas rotas resolvem curso e módulo a partir do `lessonId`
+ * (para não confiar no corpo do POST) e as duas devolviam `404 NOT_FOUND` —
+ * indistinguível de "esta aula não existe". O tempo de assistência alimenta o
+ * cálculo de risco de evasão, então os dois sinais pedagógicos paravam juntos,
+ * sem erro para ninguém.
+ *
+ * Use só onde o aluno já tem o conteúdo em mãos. Para listar, `listCourses()`.
+ */
+export async function listCoursesIncludingInactive(): Promise<Course[]> {
+  if (getDb()) {
+    const fromDb = await loadFromDb(false);
+    if (fromDb.length > 0) return fromDb;
+  }
+  // No modo JSON não há filtro nenhum: o store já devolve tudo.
   return await store.getAll();
 }
 
