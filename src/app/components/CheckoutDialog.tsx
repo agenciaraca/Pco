@@ -304,6 +304,14 @@ export default function CheckoutDialog({
                 {exigeDocumento(m) && (
                   <span className="text-[11px] text-ink-subtle ml-auto">exige CPF</span>
                 )}
+                {/*
+                  Aqui não se anuncia número de parcelas.
+                  O diálogo do app não consulta o roteamento, e o número real
+                  depende de qual gateway serve o método — dizer "12x" sem essa
+                  consulta seria repetir, numa tela nova, o defeito que a
+                  vitrine acabou de perder. As condições ficam com a vitrine e
+                  com a página do gateway, que sabem.
+                */}
               </label>
             ))}
           </div>

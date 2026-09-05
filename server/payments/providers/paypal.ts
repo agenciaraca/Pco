@@ -41,6 +41,7 @@ export const paypalProvider: PaymentProviderImpl = {
   // O PayPal cobra em cartão e em saldo da carteira; boleto e pix não passam
   // por ele. Do ponto de vista da tabela de roteamento, é um gateway de cartão.
   metodosSuportados: ['credit_card'],
+  parcelasMaximas: { credit_card: 1, boleto: 1, pix: 1 },
 
   async createPayment(gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey || !creds.apiSecret) {

@@ -14,7 +14,7 @@
  */
 
 import { isPubliclyListed } from '../../shared/visibilidade';
-import { parcelasPara, valorDaParcelaCents } from '../../shared/parcelamento';
+import { condicoesDePagamento, type CondicaoDePagamento } from '../payments/condicoes';
 import * as coursesRepo from '../repositories/courses';
 import * as productsRepo from '../payments/products-repo';
 import * as newsRepo from '../repositories/news';
@@ -68,8 +68,19 @@ export interface PublicCourseSummary {
   tagline?: string;
   priceCents: number | null;
   priceFormatted: string | null;
+  /**
+   * Parcelas no cartão. Mantido porque três telas e o JSON-LD já o liam.
+   * Para o texto completo, `condicoesFormatted`.
+   */
   installments: number | null;
   installmentFormatted: string | null;
+  /**
+   * O que se pode prometer, por meio de pagamento — já cruzado com o gateway
+   * que vai cobrar. Ver `server/payments/condicoes.ts`.
+   */
+  condicoes: Array<{ metodo: string; parcelas: number; valorFormatado: string }>;
+  /** "12x de R$ 99,88 no cartão ou 6x de R$ 199,77 no boleto". */
+  condicoesFormatted: string | null;
   priceNote?: string;
   /**
    * Contagens, não conteúdo. Subiram do curso completo para o resumo em
@@ -137,12 +148,20 @@ export interface PublicCourse extends PublicCourseSummary {
 }
 
 /** Projeta um curso + produto no sumário público (whitelist). */
-function toSummary(c: Row, product: Product | undefined): PublicCourseSummary {
+function toSummary(
+  c: Row,
+  product: Product | undefined,
+  condicoesDe: (valorCents: number) => CondicaoDePagamento[] = () => [],
+): PublicCourseSummary {
   const priceCents = product ? (num((product as unknown as Row).priceCents) ?? null) : null;
-  // O número de parcelas sai de `shared/parcelamento.ts`, que é o mesmo módulo
-  // lido pelo gateway. Era `12` fixo aqui, enquanto o pedido enviado ao
-  // Pagar.me oferecia só 1x — a vitrine prometia o que o checkout não fazia.
-  const installments = priceCents != null ? parcelasPara(priceCents) : null;
+  // As condições saem de `server/payments/condicoes.ts`, que cruza a política
+  // da escola com o que o gateway roteado sabe fazer. Era `12` fixo aqui,
+  // enquanto o pedido enviado ao Pagar.me oferecia só 1x — a vitrine prometia
+  // o que o checkout não fazia. Depois passou a ler a política, que ainda não é
+  // a mesma coisa: o Pagar.me não parcela boleto.
+  const condicoes = priceCents != null ? condicoesDe(priceCents) : [];
+  const noCartao = condicoes.find((x) => x.metodo === 'credit_card');
+  const installments = noCartao ? noCartao.parcelas : null;
 
   // A origem varia: às vezes o curso traz os módulos como lista, às vezes só a
   // contagem já somada. Contar a lista quando ela existe, e cair no número
@@ -172,10 +191,13 @@ function toSummary(c: Row, product: Product | undefined): PublicCourseSummary {
     priceCents,
     priceFormatted: priceCents != null ? fmtBRL(priceCents) : null,
     installments,
-    installmentFormatted:
-      priceCents != null && installments
-        ? fmtBRL(valorDaParcelaCents(priceCents, installments))
-        : null,
+    installmentFormatted: noCartao ? fmtBRL(noCartao.valorParcelaCents) : null,
+    condicoes: condicoes.map((x) => ({
+      metodo: x.metodo,
+      parcelas: x.parcelas,
+      valorFormatado: fmtBRL(x.valorParcelaCents),
+    })),
+    condicoesFormatted: textoDasCondicoes(condicoes),
     priceNote: str(c.priceNote) ?? 'condições no ato da matrícula',
     modules: modulos,
     lessons: aulas,
@@ -183,11 +205,15 @@ function toSummary(c: Row, product: Product | undefined): PublicCourseSummary {
 }
 
 /** Projeta um curso na página pública completa (whitelist estendido). */
-function toFull(c: Row, product: Product | undefined): PublicCourse {
+function toFull(
+  c: Row,
+  product: Product | undefined,
+  condicoesDe: (valorCents: number) => CondicaoDePagamento[] = () => [],
+): PublicCourse {
   const faqsRaw = Array.isArray(c.faqs) ? (c.faqs as Row[]) : [];
   const currRaw = Array.isArray(c.curriculum) ? (c.curriculum as Row[]) : [];
   return {
-    ...toSummary(c, product),
+    ...toSummary(c, product, condicoesDe),
     tldr: str(c.tldr),
     level: str(c.level) ?? 'Formação profissional',
     language: str(c.language) ?? 'pt-BR',
@@ -336,6 +362,46 @@ export async function numerosDoSite(fundadoEm?: string): Promise<NumerosDoSite> 
   return { avaliacao, formados, anos, aulas };
 }
 
+/**
+ * As condições formatadas, do jeito que a vitrine fala.
+ *
+ * "12x de R$ 99,88 no cartão ou 6x de R$ 199,77 no boleto". Método à vista não
+ * vira "1x de R$ X" — isso não é condição, é o preço, e repeti-lo só ocupa a
+ * linha. Pix entra como "à vista no Pix" só quando é o único meio.
+ */
+function textoDasCondicoes(condicoes: CondicaoDePagamento[]): string | null {
+  const parceladas = condicoes.filter((x) => x.parcelas > 1);
+  if (parceladas.length === 0) return null;
+  const partes = parceladas.map(
+    (x) => `${x.parcelas}x de ${fmtBRL(x.valorParcelaCents)} ${ONDE[x.metodo] ?? ''}`.trim(),
+  );
+  return partes.length === 1 ? partes[0]! : partes.join(' ou ');
+}
+
+const ONDE: Record<string, string> = {
+  credit_card: 'no cartão',
+  boleto: 'no boleto',
+  pix: 'no Pix',
+};
+
+/**
+ * Condições por preço, calculadas uma vez por requisição.
+ *
+ * A listagem projeta N cursos e os preços se repetem; cada cálculo lê a tabela
+ * de roteamento e os gateways. Memoizar aqui evita transformar uma página de
+ * catálogo em dezenas de leituras iguais.
+ */
+async function tabelaDeCondicoes(
+  precos: Array<number | null | undefined>,
+): Promise<(valorCents: number) => CondicaoDePagamento[]> {
+  const unicos = [...new Set(precos.filter((p): p is number => typeof p === 'number' && p > 0))];
+  const mapa = new Map<number, CondicaoDePagamento[]>();
+  for (const preco of unicos) {
+    mapa.set(preco, await condicoesDePagamento(preco));
+  }
+  return (valorCents: number) => mapa.get(valorCents) ?? [];
+}
+
 /** Mapa courseId -> produto 'course' ativo. */
 async function activeCourseProducts(): Promise<Map<string, Product>> {
   const products = await productsRepo.listActive();
@@ -360,9 +426,14 @@ export async function listPublicCourses(): Promise<PublicCourseSummary[]> {
       ]);
       // Produto/preço é opcional: se houver produto ativo vinculado, exibe
       // preço; senão, o curso aparece sem preço.
-      return (courses as unknown as Row[])
-        .filter(isPubliclyListed)
-        .map((c) => toSummary(c, productMap.get(String(c.id))));
+      const visiveis = (courses as unknown as Row[]).filter(isPubliclyListed);
+      const condicoesDe = await tabelaDeCondicoes(
+        visiveis.map((c) => {
+          const p = productMap.get(String(c.id)) as unknown as Row | undefined;
+          return p ? num(p.priceCents) : null;
+        }),
+      );
+      return visiveis.map((c) => toSummary(c, productMap.get(String(c.id)), condicoesDe));
     },
     [],
   );
@@ -381,7 +452,11 @@ export async function getPublicCourseBySlug(slug: string): Promise<PublicCourse 
         (c) => (str(c.slug) ?? String(c.id)) === slug && isPubliclyListed(c),
       );
       if (!match) return null;
-      return toFull(match, productMap.get(String(match.id)));
+      const produto = productMap.get(String(match.id));
+      const condicoesDe = await tabelaDeCondicoes([
+        produto ? num((produto as unknown as Row).priceCents) : null,
+      ]);
+      return toFull(match, produto, condicoesDe);
     },
     null,
   );

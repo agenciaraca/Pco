@@ -25,6 +25,10 @@ export const stripeProvider: PaymentProviderImpl = {
   // manda `payment_method_types[0] = 'card'` fixo — declarar mais do que se
   // honra é o que a tabela de roteamento existe para impedir.
   metodosSuportados: ['credit_card'],
+  // À vista. O Stripe tem parcelado no Brasil, mas este código não envia
+  // `payment_method_options[card][installments]` — declarar 12 aqui seria a
+  // vitrine prometendo o que o checkout não faz.
+  parcelasMaximas: { credit_card: 1, boleto: 1, pix: 1 },
 
   async createPayment(_gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey) {

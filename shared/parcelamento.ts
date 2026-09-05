@@ -12,13 +12,24 @@
 // Quem mudar a política de parcelas muda **este** arquivo, e os dois lados
 // mudam juntos.
 
+import type { MetodoPagamento } from './metodos-pagamento';
+
 /**
- * Até quantas vezes a compra pode ser dividida.
+ * Até quantas vezes a escola aceita dividir, por meio de pagamento.
  *
- * É uma decisão comercial, não técnica: mudá-la aqui muda o que a vitrine
- * anuncia e o que o gateway aceita, na mesma linha.
+ * É decisão comercial, não técnica. **Mas ser política não basta para virar
+ * promessa**: o que a vitrine anuncia é o mínimo entre isto e o que o gateway
+ * que vai cobrar sabe fazer — ver `server/payments/condicoes.ts`. O Pagar.me
+ * não parcela boleto (a API v5 não tem campo para isso); o Asaas parcela, e o
+ * que ele emite é um carnê de N boletos.
+ *
+ * Pix é sempre à vista: não existe pix parcelado.
  */
-export const PARCELAS_MAXIMAS = 12;
+export const PARCELAS_MAXIMAS_POR_METODO: Record<MetodoPagamento, number> = {
+  credit_card: 12,
+  boleto: 6,
+  pix: 1,
+};
 
 /**
  * Piso por parcela. Existe porque adquirente recusa parcela de centavos, e
@@ -28,13 +39,16 @@ export const PARCELAS_MAXIMAS = 12;
 export const VALOR_MINIMO_DA_PARCELA_CENTS = 500;
 
 /**
- * Quantas parcelas cabem num valor. Produto barato demais para o piso é
- * cobrado à vista — nunca devolve 0, porque "0x" não existe.
+ * Quantas parcelas cabem num valor, respeitando um teto.
+ *
+ * O teto é o que o gateway realmente honra — não a política. Produto barato
+ * demais para o piso é cobrado à vista, e nunca devolve 0, porque "0x" não
+ * existe.
  */
-export function parcelasPara(valorCents: number): number {
+export function parcelasPara(valorCents: number, teto: number): number {
   if (!Number.isFinite(valorCents) || valorCents <= 0) return 1;
   const cabem = Math.floor(valorCents / VALOR_MINIMO_DA_PARCELA_CENTS);
-  return Math.min(PARCELAS_MAXIMAS, Math.max(1, cabem));
+  return Math.min(Math.max(1, Math.trunc(teto)), Math.max(1, cabem));
 }
 
 /** Valor de cada parcela, para exibição. */
@@ -51,8 +65,11 @@ export function valorDaParcelaCents(valorCents: number, parcelas: number): numbe
  * "12x de <preço ÷ 12>" — quem paga a taxa do parcelamento é a escola. Cobrar
  * juros exige mudar o texto da vitrine primeiro, e os dois lados saem daqui.
  */
-export function opcoesDeParcelamento(valorCents: number): Array<{ number: number; total: number }> {
-  const maximo = parcelasPara(valorCents);
+export function opcoesDeParcelamento(
+  valorCents: number,
+  teto: number,
+): Array<{ number: number; total: number }> {
+  const maximo = parcelasPara(valorCents, teto);
   return Array.from({ length: maximo }, (_, i) => ({
     number: i + 1,
     total: valorCents,

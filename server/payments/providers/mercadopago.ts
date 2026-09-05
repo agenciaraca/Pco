@@ -32,6 +32,15 @@ const EXCLUIR_PARA: Record<MetodoPagamento, string[]> = {
 
 export const mercadopagoProvider: PaymentProviderImpl = {
   metodosSuportados: ['pix', 'boleto', 'credit_card'],
+  /**
+   * À vista, por enquanto.
+   *
+   * A preferência do MP usa o parcelamento configurado na conta, e este código
+   * não manda `installments` nem `default_installments`. Enquanto não mandar,
+   * a vitrine não pode prometer parcela por ele — o número exibido tem de ser
+   * o que o checkout pratica, não o que a conta talvez ofereça.
+   */
+  parcelasMaximas: { credit_card: 1, boleto: 1, pix: 1 },
 
   async createPayment(_gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey) {

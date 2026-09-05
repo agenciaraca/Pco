@@ -47,6 +47,7 @@ function providerDeTeste(
 ): PaymentProviderImpl {
   return {
     metodosSuportados: ['pix', 'boleto', 'credit_card'],
+    parcelasMaximas: { credit_card: 12, boleto: 6, pix: 1 },
     async createPayment() {
       chamadas.push(nome);
       if (falha === 'explode') throw new Error('socket hang up');
@@ -250,6 +251,7 @@ describe('o reserva só entra quando é certo que nada foi cobrado', () => {
     let recebido: string | undefined;
     vi.spyOn(registry, 'getPaymentProvider').mockImplementation(() => ({
       metodosSuportados: ['pix', 'boleto', 'credit_card'],
+      parcelasMaximas: { credit_card: 12, boleto: 6, pix: 1 },
       async createPayment(_g, _c, input) {
         recebido = input.metodo;
         return { externalId: 'ext', status: 'pending' as const };
@@ -260,5 +262,90 @@ describe('o reserva só entra quando é certo que nada foi cobrado', () => {
     }));
     await cobranca.cobrar({ metodo: 'boleto', candidatos: [principal], input: entrada });
     expect(recebido).toBe('boleto');
+  });
+});
+
+/**
+ * O que a vitrine pode prometer sai de quem vai cobrar.
+ *
+ * "12x no cartão ou 6x no boleto" é a política da escola. Ela **não** é uma
+ * promessa até alguém saber quem cobra: o Pagar.me não parcela boleto, o Asaas
+ * parcela. Anunciar a política sem olhar o gateway é a mesma classe de defeito
+ * que o 12x fantasma — só que num método diferente.
+ */
+describe('a vitrine promete o que o gateway roteado faz', () => {
+  const PRECO = 119_980; // R$ 1.198,60, o preço real do curso maior
+  let condicoes: typeof import('../server/payments/condicoes');
+  let asaas: string;
+  let pagarme: string;
+
+  beforeAll(async () => {
+    condicoes = await import('../server/payments/condicoes');
+    const a = await repo.createGateway({
+      provider: 'asaas',
+      displayName: 'Asaas (carnê)',
+      mode: 'live',
+      apiKey: 'a',
+      active: true,
+    });
+    const p = await repo.createGateway({
+      provider: 'pagarme',
+      displayName: 'Pagar.me',
+      mode: 'live',
+      apiKey: 'p',
+      active: true,
+    });
+    asaas = a.id;
+    pagarme = p.id;
+  });
+
+  it('boleto no Asaas: 6x, porque ele emite carnê', async () => {
+    await roteamento.salvarRota('boleto', { principalId: asaas, fallbackId: null });
+    expect(await condicoes.tetoDeParcelas('boleto')).toBe(6);
+  });
+
+  it('boleto no Pagar.me: à vista, porque a API v5 não tem o campo', async () => {
+    await roteamento.salvarRota('boleto', { principalId: pagarme, fallbackId: null });
+    expect(await condicoes.tetoDeParcelas('boleto')).toBe(1);
+  });
+
+  it('com reserva que não parcela, a promessa cai para o que o reserva faz', async () => {
+    // **A regra do mínimo, e é a que se esquece.** Se o principal faz 6x e o
+    // reserva faz 1x, anunciar 6x é prometer uma condição que parte das compras
+    // não recebe — e quem cai no reserva só descobre na tela do gateway, depois
+    // de ter decidido comprar.
+    await roteamento.salvarRota('boleto', { principalId: asaas, fallbackId: pagarme });
+    expect(await condicoes.tetoDeParcelas('boleto')).toBe(1);
+  });
+
+  it('cartão no Pagar.me: 12x, e o valor da parcela sai junto', async () => {
+    await roteamento.salvarRota('credit_card', { principalId: pagarme, fallbackId: null });
+    await roteamento.salvarRota('boleto', { principalId: asaas, fallbackId: null });
+    const lista = await condicoes.condicoesDePagamento(PRECO);
+
+    const cartao = lista.find((x) => x.metodo === 'credit_card');
+    expect(cartao).toMatchObject({ parcelas: 12, valorParcelaCents: 9998 });
+
+    const boleto = lista.find((x) => x.metodo === 'boleto');
+    expect(boleto).toMatchObject({ parcelas: 6 });
+    // R$ 1.198,60 ÷ 6 = R$ 199,77 (o arredondamento é de exibição; o total
+    // cobrado fecha no preço porque o Asaas recebe `totalValue`).
+    expect(boleto!.valorParcelaCents).toBe(19_997);
+  });
+
+  it('método sem gateway nenhum não é anunciado', async () => {
+    // Zero não é "à vista": é "não oferecemos". Anunciar um meio de pagamento
+    // que o checkout vai recusar é pior do que não o oferecer.
+    // Todo gateway ativo que saiba cobrar pix sai do ar — inclusive os que
+    // entrariam pelo caminho de compatibilidade, quando não há rota gravada.
+    const suportamPix = (await repo.listAll()).filter(
+      (g) => g.active && (registry.getPaymentProvider(g.provider)?.metodosSuportados ?? []).includes('pix'),
+    );
+    for (const gw of suportamPix) await repo.updateGateway(gw.id, { active: false });
+    expect(await condicoes.tetoDeParcelas('pix')).toBe(0);
+    expect((await condicoes.condicoesDePagamento(PRECO)).some((x) => x.metodo === 'pix')).toBe(
+      false,
+    );
+    for (const gw of suportamPix) await repo.updateGateway(gw.id, { active: true });
   });
 });

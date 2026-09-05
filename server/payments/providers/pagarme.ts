@@ -45,6 +45,14 @@ const METODO_PAGARME: Record<MetodoPagamento, string> = {
 
 export const pagarmeProvider: PaymentProviderImpl = {
   metodosSuportados: ['pix', 'boleto', 'credit_card'],
+  /**
+   * Cartão parcela; boleto **não**.
+   *
+   * O objeto `boleto` da API v5 não tem campo de parcelamento — conferido na
+   * referência do provedor. "6x no boleto" pelo Pagar.me exigiria emitir seis
+   * cobranças, que é outro produto. Quem faz carnê aqui é o Asaas.
+   */
+  parcelasMaximas: { credit_card: 12, boleto: 1, pix: 1 },
 
   async createPayment(_gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey) {
@@ -92,7 +100,14 @@ export const pagarmeProvider: PaymentProviderImpl = {
         // vitrine anuncia, do mesmo módulo. Mandar só `1x` aqui enquanto a
         // página do curso dizia "12x de ..." era prometer uma condição que o
         // checkout não oferecia.
-        installments: opcoesDeParcelamento(input.amountCents),
+        //
+        // O teto vem de `parcelasMaximas` deste provider, e não da política da
+        // escola: é o que este código sabe enviar. Quem junta os dois é
+        // `server/payments/condicoes.ts`, que é de onde a vitrine lê.
+        installments: opcoesDeParcelamento(
+          input.amountCents,
+          pagarmeProvider.parcelasMaximas.credit_card,
+        ),
       },
       pix: { expires_in: PIX_EXPIRA_EM_SEGUNDOS },
       boleto: {

@@ -78,6 +78,23 @@ export interface PaymentProviderImpl {
    */
   metodosSuportados: MetodoPagamento[];
 
+  /**
+   * Em quantas vezes **este provider** sabe dividir cada método.
+   *
+   * Declarativo e obrigatório, pelo mesmo motivo de `metodosSuportados`: é o
+   * que a vitrine consulta antes de prometer. A política comercial da escola
+   * (`PARCELAS_MAXIMAS_POR_METODO`) é um **teto de intenção**; o que vale é o
+   * mínimo entre ela e isto.
+   *
+   * Os números não são opinião — são o que o código deste provider envia:
+   * o Pagar.me manda `installments` no cartão e nada no boleto, porque a API
+   * v5 não tem campo de parcelamento para boleto; o Asaas manda
+   * `installmentCount`, e o que sai é um carnê de N boletos.
+   *
+   * `1` quer dizer "à vista", nunca "não sei".
+   */
+  parcelasMaximas: Record<MetodoPagamento, number>;
+
   /** Cria um payment no gateway. Retorna externalId + URL/QR para finalizar. */
   createPayment(
     gateway: PaymentGateway,

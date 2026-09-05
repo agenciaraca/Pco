@@ -7,6 +7,12 @@
  * Próximas sprints adicionam /cursos, /curso/:slug, /blog, /carrinho, /checkout, /.
  */
 import { Hono } from 'hono';
+import {
+  ROTULO_METODO,
+  METODOS_PAGAMENTO,
+  type MetodoPagamento,
+} from '../../shared/metodos-pagamento';
+import { tetoDeParcelas } from '../payments/condicoes';
 import { html, raw } from 'hono/html';
 import { ORG, AUTHOR, AUTHOR_IS_PLACEHOLDER, YMYL_DISCLAIMER } from './config';
 import { renderPage, pincel, ICONE_WHATSAPP } from './layout';
@@ -1062,7 +1068,7 @@ publicSite.get('/formacoes', async (c) => {
            <div class="curso-linha-preco">${esc(co.priceFormatted)}</div>
            ${
              co.installmentFormatted
-               ? `<div class="curso-linha-parcela">ou ${co.installments}x de ${esc(co.installmentFormatted)}</div>`
+               ? `<div class="curso-linha-parcela">ou ${esc(co.condicoesFormatted ?? `${co.installments}x de ${co.installmentFormatted}`)}</div>`
                : ''
            }
          </div>`
@@ -1331,7 +1337,7 @@ publicSite.get('/formacao/:slug', async (c) => {
   const caixaPrecoHtml = temPreco
     ? `<div class="curso-invest">Investimento · à vista</div>
        <div class="curso-preco">${esc(co.priceFormatted || '')}</div>
-       ${co.installmentFormatted ? `<div class="curso-parcela">ou ${co.installments}x de ${esc(co.installmentFormatted)}</div>` : ''}
+       ${co.condicoesFormatted ? `<div class="curso-parcela">ou ${esc(co.condicoesFormatted)}</div>` : ''}
        ${co.priceNote ? `<div class="curso-preco-nota">${esc(co.priceNote)}</div>` : ''}
        <a class="btn btn-cta" href="${destinoCompra}">Matricular-se agora</a>
        <button type="button" class="btn btn-outline" data-add-cart
@@ -1416,7 +1422,53 @@ publicSite.get('/formacao/:slug', async (c) => {
 const CADEADO_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 
-function formularioCheckout(modo: { tipo: 'curso'; slug: string } | { tipo: 'carrinho' }): string {
+/** Quantas parcelas cada método aceita agora, pelo gateway que o serve. */
+async function tetosDePagamento(): Promise<Record<MetodoPagamento, number>> {
+  const pares = await Promise.all(
+    METODOS_PAGAMENTO.map(async (m) => [m, await tetoDeParcelas(m)] as const),
+  );
+  return Object.fromEntries(pares) as Record<MetodoPagamento, number>;
+}
+
+/**
+ * As opções de pagamento oferecidas na tela, e só as que existem de verdade.
+ *
+ * Os tetos vêm de `tetoDeParcelas`, que cruza a política da escola com o que o
+ * gateway roteado sabe fazer. Duas consequências que valem mais do que a
+ * aparência: método sem gateway **não aparece** (oferecer o que o checkout vai
+ * recusar é pior do que não oferecer), e o texto de cada opção diz o número
+ * real — se o boleto estiver roteado para um gateway que não faz carnê, ele se
+ * anuncia à vista, em vez de prometer 6x que ninguém honra.
+ */
+function opcoesDeMetodo(tetos: Record<MetodoPagamento, number>): string {
+  const textos: Record<MetodoPagamento, (teto: number) => string> = {
+    credit_card: (n) =>
+      n > 1
+        ? `Em até ${n}x sem juros, conforme o valor do curso.`
+        : 'Pagamento à vista no cartão.',
+    boleto: (n) =>
+      n > 1
+        ? `Em até ${n}x — um boleto por parcela. <strong>Exige CPF</strong>, preenchido acima.`
+        : 'Boleto à vista. <strong>Exige CPF</strong>, preenchido acima.',
+    pix: () => 'Confirmação em minutos. O acesso é liberado assim que o pagamento cair.',
+  };
+  const ordem: MetodoPagamento[] = ['credit_card', 'pix', 'boleto'];
+  const disponiveis = ordem.filter((m) => (tetos[m] ?? 0) > 0);
+  return disponiveis
+    .map(
+      (m, i) => `
+          <label class="ck-metodo">
+            <input type="radio" name="metodo" value="${m}"${i === 0 ? ' checked' : ''}>
+            <span><b>${esc(ROTULO_METODO[m])}</b>${textos[m](tetos[m]!)}</span>
+          </label>`,
+    )
+    .join('');
+}
+
+function formularioCheckout(
+  modo: { tipo: 'curso'; slug: string } | { tipo: 'carrinho' },
+  tetos: Record<MetodoPagamento, number>,
+): string {
   const atrs =
     modo.tipo === 'curso'
       ? `data-checkout data-slug="${esc(modo.slug)}"`
@@ -1450,19 +1502,7 @@ function formularioCheckout(modo: { tipo: 'curso'; slug: string } | { tipo: 'car
       <div class="ck-bloco">
         <h2>2. Como você quer pagar</h2>
         <fieldset class="ck-metodos">
-          <legend class="sr-only">Meio de pagamento</legend>
-          <label class="ck-metodo">
-            <input type="radio" name="metodo" value="credit_card" checked>
-            <span><b>Cartão de crédito</b>Parcelamento sem juros, conforme o valor do curso.</span>
-          </label>
-          <label class="ck-metodo">
-            <input type="radio" name="metodo" value="pix">
-            <span><b>Pix</b>Confirmação em minutos. O acesso é liberado assim que o pagamento cair.</span>
-          </label>
-          <label class="ck-metodo">
-            <input type="radio" name="metodo" value="boleto">
-            <span><b>Boleto</b>Compensa em até 3 dias úteis. <strong>Exige CPF</strong> — preencha o campo acima.</span>
-          </label>
+          <legend class="sr-only">Meio de pagamento</legend>${opcoesDeMetodo(tetos)}
         </fieldset>
         <div class="ck-provedor">
           <span class="selo">${CADEADO_SVG}</span>
@@ -1604,7 +1644,7 @@ publicSite.get('/checkout', async (c) => {
         <h1>Finalizar matrícula</h1>
         <p class="ck-sub">Formações escolhidas no seu carrinho.</p>
         <div class="ck-layout">
-          ${raw(formularioCheckout({ tipo: 'carrinho' }))}
+          ${raw(formularioCheckout({ tipo: 'carrinho' }, await tetosDePagamento()))}
           <aside class="ck-resumo">
             <h2>Sua matrícula</h2>
             <div data-carrinho-vazio style="display:none">
@@ -1694,7 +1734,7 @@ publicSite.get('/checkout', async (c) => {
              </div>
              ${
                co.installmentFormatted
-                 ? `<div style="text-align:right;color:var(--ink-soft);font-size:13px;margin-top:4px">ou ${co.installments}x de ${esc(co.installmentFormatted)}</div>`
+                 ? `<div style="text-align:right;color:var(--ink-soft);font-size:13px;margin-top:4px">ou ${esc(co.condicoesFormatted ?? `${co.installments}x de ${co.installmentFormatted}`)}</div>`
                  : ''
              }
              <div class="ck-garantias">${garantias}</div>`
@@ -1703,7 +1743,7 @@ publicSite.get('/checkout', async (c) => {
     </aside>`;
 
   const form = forSale
-    ? formularioCheckout({ tipo: 'curso', slug: co.slug })
+    ? formularioCheckout({ tipo: 'curso', slug: co.slug }, await tetosDePagamento())
     : `<div class="ck-coluna"><div class="ck-bloco">
          <h2>Matrícula por atendimento</h2>
          <p style="color:var(--ink-soft);font-size:15px;line-height:1.6;margin-bottom:20px">

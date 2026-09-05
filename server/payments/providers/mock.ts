@@ -20,6 +20,9 @@ export const mockProvider: PaymentProviderImpl = {
   // cobrar. Ele ignora `metodo` de propósito: é o único provider autorizado a
   // fazer isso, e é o que o teste de roteamento usa dos dois lados.
   metodosSuportados: ['pix', 'boleto', 'credit_card'],
+  // O sandbox finge o melhor caso, para que o caminho parcelado seja
+  // exercitável sem gateway real.
+  parcelasMaximas: { credit_card: 12, boleto: 6, pix: 1 },
 
   async createPayment(_gateway, _creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     const externalId = `mock_${crypto.randomBytes(8).toString('hex')}`;

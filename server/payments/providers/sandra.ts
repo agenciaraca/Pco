@@ -138,6 +138,8 @@ const METODO_SANDRA: Record<MetodoPagamento, MetodoSandra> = {
 
 export const sandraProvider: PaymentProviderImpl = {
   metodosSuportados: ['pix', 'boleto', 'credit_card'],
+  // A cobrança da Sandra tem `method` e `dueAt`, e nada de parcelas.
+  parcelasMaximas: { credit_card: 1, boleto: 1, pix: 1 },
 
   async createPayment(gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     const o = lerOpcoes(gateway.options);

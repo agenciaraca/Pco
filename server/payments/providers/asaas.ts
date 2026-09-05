@@ -10,6 +10,7 @@ import type {
 } from './types';
 import { PaymentProviderError } from './types';
 import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
+import { parcelasPara } from '../../../shared/parcelamento';
 import { pingHttp } from './ping-http';
 import { comparaSegura } from './compara-segura';
 
@@ -28,6 +29,17 @@ const BILLING_TYPE: Record<MetodoPagamento, string> = {
 
 export const asaasProvider: PaymentProviderImpl = {
   metodosSuportados: ['pix', 'boleto', 'credit_card'],
+  /**
+   * Boleto parcelado — o carnê.
+   *
+   * `installmentCount` + `totalValue` fazem o Asaas emitir **N boletos**, um
+   * por parcela, agrupados por um id de parcelamento. A resposta traz a
+   * primeira cobrança; as demais vencem mês a mês.
+   *
+   * Cartão fica em 1x porque este código não manda `installmentCount` no
+   * cartão — e o que se declara aqui é o que o código faz.
+   */
+  parcelasMaximas: { credit_card: 1, boleto: 6, pix: 1 },
 
   async createPayment(gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey) {
@@ -69,6 +81,13 @@ export const asaasProvider: PaymentProviderImpl = {
       .toISOString()
       .slice(0, 10); // 3 dias
 
+    // Quantas parcelas, pelo que ESTE provider sabe fazer e pelo que cabe no
+    // piso da parcela. A vitrine leu o mesmo número antes de anunciar — ver
+    // `server/payments/condicoes.ts`.
+    const parcelas = input.metodo
+      ? parcelasPara(input.amountCents, asaasProvider.parcelasMaximas[input.metodo])
+      : 1;
+
     const paymentRes = await fetch(`${base}/payments`, {
       method: 'POST',
       headers: {
@@ -82,6 +101,18 @@ export const asaasProvider: PaymentProviderImpl = {
         dueDate,
         description: input.description,
         externalReference: input.metadata.orderId ?? '',
+        // Carnê: `installmentCount` + `totalValue` fazem o Asaas emitir N
+        // boletos, um por parcela, agrupados por um id de parcelamento. A
+        // resposta traz a **primeira** cobrança — é ela que o pedido guarda, e
+        // é o pagamento dela que confirma a matrícula.
+        //
+        // `totalValue` em vez de `installmentValue` de propósito: assim o Asaas
+        // fecha o arredondamento na última parcela, e a soma das parcelas é
+        // exatamente o preço anunciado. Dividir aqui deixaria centavos sobrando
+        // ou faltando contra a vitrine.
+        ...(parcelas > 1
+          ? { installmentCount: parcelas, totalValue: input.amountCents / 100 }
+          : {}),
       }),
     });
     if (!paymentRes.ok) {
