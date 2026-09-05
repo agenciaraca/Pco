@@ -110,6 +110,21 @@ export const asaasProvider: PaymentProviderImpl = {
         // fecha o arredondamento na última parcela, e a soma das parcelas é
         // exatamente o preço anunciado. Dividir aqui deixaria centavos sobrando
         // ou faltando contra a vitrine.
+        //
+        // ⚠️ **O que o carnê ainda NÃO faz, e é decisão de gente.**
+        // Cada parcela é uma cobrança própria, com id próprio, e o pedido
+        // guarda o id da **primeira**. `findByExternalId` casa o webhook por
+        // esse id — então o `paid` da parcela 1 libera o acesso (certo), e os
+        // eventos das parcelas 2 a N **não encontram pedido nenhum** e são
+        // ignorados. Consequência prática: quem para de pagar no meio do carnê
+        // continua estudando, e o AVA não fica sabendo.
+        //
+        // O elo existe: o Asaas devolve `installment` (o id do parcelamento) e
+        // o repete em todas as parcelas. Ligar `PAYMENT_OVERDUE` daquele
+        // parcelamento a `aplicarSituacaoDoPedido` fecharia o buraco — a regra
+        // "atraso suspende" já existe em `server/access/situacao-matricula.ts`.
+        // O que falta não é código, é a decisão: suspender o acesso de quem
+        // atrasou um boleto por dois dias é política comercial da escola.
         ...(parcelas > 1
           ? { installmentCount: parcelas, totalValue: input.amountCents / 100 }
           : {}),
