@@ -1,4 +1,15 @@
-// Notas privadas que admins escrevem sobre alunos (não visíveis ao aluno).
+// Notas que admins escrevem sobre alunos.
+//
+// **Não aparecem em tela nenhuma do aluno** — nem na estante, nem no perfil,
+// nem em resposta de API do produto. Mas o corpo da nota **sai na exportação
+// de dados** (`GET /me/export`): é juízo sobre a pessoa, feito sem que ela
+// saiba, e é exatamente o que o direito de acesso existe para alcançar (LGPD,
+// art. 18, II). O que não sai é `authorId`/`authorEmail`, que são dado pessoal
+// do funcionário que escreveu.
+//
+// Este comentário dizia apenas "não visíveis ao aluno" e ficou em contradição
+// com a rota por um dia — a auditoria registrou as duas afirmações lado a lado.
+// Quem escrever uma nota aqui deve saber que ela é legível pelo titular.
 
 import crypto from 'node:crypto';
 import { JsonStore } from '../db/json-store';

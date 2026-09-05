@@ -2126,7 +2126,18 @@ export function buildApp() {
       forumAndComments: comentarios,
       courseReviews: avaliacoes,
       retentionRisk: riscos,
-      adminNotesAboutMe: notasDaCoordenacao,
+      // **O que a coordenação anotou, sem quem anotou.**
+      //
+      // O conteúdo da nota é sobre o titular, e é por isso que ele sai daqui —
+      // não há outra tela em que a pessoa possa vê-lo. Já a identidade de quem
+      // escreveu é dado pessoal de um terceiro, o funcionário: o direito de
+      // acesso alcança o que se diz a respeito de alguém, não quem disse. E o
+      // efeito prático de entregar o e-mail é conhecido — nota franca sobre
+      // inadimplência ou desempenho vira, para quem lê, o nome de um colega
+      // para cobrar.
+      adminNotesAboutMe: notasDaCoordenacao.map(
+        ({ authorId: _a, authorEmail: _e, ...resto }) => resto,
+      ),
       recoveryPlans: planosDeRecuperacao,
     };
 

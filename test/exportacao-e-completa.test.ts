@@ -35,6 +35,7 @@ import os from 'node:os';
  */
 
 let tmpDir: string;
+let alunoId: string;
 let app: { fetch: (req: Request) => Response | Promise<Response> };
 let token: string;
 
@@ -86,6 +87,11 @@ beforeAll(async () => {
     }),
   );
   token = ((await res.json()) as { token: string }).token;
+  // O id da conta é o `sub` do próprio token — é ele que a rota usa para
+  // procurar as notas, e não há outro caminho para descobri-lo aqui.
+  alunoId = JSON.parse(
+    Buffer.from(token.split('.')[1], 'base64url').toString('utf8'),
+  ).sub as string;
 });
 
 afterAll(async () => {
@@ -140,6 +146,32 @@ describe('a exportação entrega o que a tela promete', () => {
         chave,
       );
     }
+  });
+
+  it('a nota da coordenação sai sem o e-mail de quem escreveu', async () => {
+    // PRIV3-702. O conteúdo da nota é sobre o titular e por isso sai. A
+    // identidade de quem escreveu é dado pessoal de um terceiro — o
+    // funcionário —, e o direito de acesso alcança o que se diz a respeito de
+    // alguém, não quem disse. O efeito prático de entregar o e-mail também é
+    // conhecido: nota franca sobre inadimplência ou desempenho vira, para quem
+    // lê, o nome de um colega para cobrar.
+    const notas = await import('../server/admin/notes-store');
+    await notas.createNote({
+      studentId: alunoId,
+      authorId: 'user-coord',
+      authorEmail: 'coordenacao@psicanaliseclinica.online',
+      body: 'Aluno pediu prazo extra por motivo de saúde.',
+    });
+
+    const dump = (await exportar()) as Record<string, unknown>;
+    const saiu = dump.adminNotesAboutMe as Array<Record<string, unknown>>;
+    expect(saiu.length).toBeGreaterThan(0);
+    // O que a pessoa tem direito de ler.
+    expect(saiu[0].body).toContain('prazo extra');
+    // O que não é dela.
+    expect(saiu[0]).not.toHaveProperty('authorEmail');
+    expect(saiu[0]).not.toHaveProperty('authorId');
+    expect(JSON.stringify(dump)).not.toContain('coordenacao@psicanaliseclinica.online');
   });
 
   it('todo motivo é uma frase, não um carimbo', () => {
