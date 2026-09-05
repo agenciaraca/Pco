@@ -13,6 +13,7 @@ import { useMemo } from 'react';
 import { useCourses, useMyNotes, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import { SemConexao, FalhaAoCarregar, NaoEncontrado } from '../components/EstadosDeConsulta';
+import CourseAccessNotice from '../components/CourseAccessNotice';
 
 export default function LMSModule() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>();
@@ -58,6 +59,14 @@ export default function LMSModule() {
 
   return (
     <div className="space-y-6">
+      {/*
+        O mesmo aviso que a página do curso mostra desde 2/set/2026.
+        Ele faltava aqui, e esta é a tela de onde se clica para a aula: quem
+        entrasse pelo módulo — que é o caminho de quem já está estudando, e o
+        que os e-mails de retomada linkam — só descobria a matrícula suspensa
+        ao bater no 403 da aula seguinte. São 376 pessoas em produção.
+      */}
+      <CourseAccessNotice courseId={course.id} />
       <header>
         <Link
           to={`/curso/${course.id}`}

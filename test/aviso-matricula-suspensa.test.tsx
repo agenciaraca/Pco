@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type React from 'react';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import CourseAccessNotice from '../src/app/components/CourseAccessNotice';
+import LMSCourse from '../src/app/pages/LMSCourse';
+import LMSModule from '../src/app/pages/LMSModule';
 import { mensagemDeAcesso } from '../shared/mensagens-acesso';
 import type { CourseAccessRow } from '../src/app/data/api';
 
@@ -22,8 +25,57 @@ import type { CourseAccessRow } from '../src/app/data/api';
 
 const acessos = vi.hoisted(() => ({ rows: [] as CourseAccessRow[] }));
 
+const pronta = {
+  data: undefined as unknown,
+  error: null,
+  isPending: false,
+  isLoading: false,
+  isError: false,
+  fetchStatus: 'idle' as const,
+  refetch: () => {},
+};
+
 vi.mock('../src/app/data/hooks', () => ({
   useMyCourseAccess: () => ({ data: acessos.rows }),
+  // O resto é o que as duas telas pedem para chegar até o aviso.
+  useCourses: () => ({ ...pronta, data: [CURSO] }),
+  useMyProgress: () => ({ data: { completedLessonIds: [] } }),
+  useMyNotes: () => ({ data: [] }),
+  useCurrentStudent: () => ({ data: null }),
+  useMyMentoring: () => ({ data: { configs: [] } }),
+}));
+
+vi.mock('../src/app/components/CourseReviews', () => ({ default: () => null }));
+
+const CURSO = vi.hoisted(() => ({
+  id: 'c-1',
+  slug: 'c-1',
+  title: 'Curso de Psicanálise',
+  shortTitle: 'Psicanálise',
+  description: '',
+  coverColor: 'from-pco-blue to-pco-cyan',
+  totalHours: 4,
+  certificateAvailable: false,
+  modules: [
+    {
+      id: 'm-1',
+      courseId: 'c-1',
+      title: 'Módulo 1',
+      description: '',
+      order: 1,
+      lessons: [
+        {
+          id: 'l-1',
+          courseId: 'c-1',
+          moduleId: 'm-1',
+          title: 'Aula 1',
+          durationMinutes: 10,
+          order: 1,
+          isMandatory: false,
+        },
+      ],
+    },
+  ],
 }));
 
 function linha(state: CourseAccessRow['state']): CourseAccessRow {
@@ -132,5 +184,37 @@ describe('e nada muda para quem está em dia', () => {
       </MemoryRouter>,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+/**
+ * ALU4-004 · o aviso tem de estar em toda tela de onde se clica para a aula.
+ *
+ * A página do curso ganhou o aviso em 2/set/2026; a **do módulo, não** — e ela
+ * é o caminho de quem já está estudando, além de ser para onde os e-mails de
+ * retomada apontam. Quem entrasse por ali só descobria a suspensão ao bater no
+ * 403 da aula seguinte, que é exatamente o silêncio que este componente existe
+ * para acabar.
+ */
+describe('onde o aviso aparece', () => {
+  function montarTela(Tela: React.ComponentType, rota: string, caminho: string) {
+    acessos.rows = [linha('suspended')];
+    return render(
+      <MemoryRouter initialEntries={[rota]}>
+        <Routes>
+          <Route path={caminho} element={<Tela />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it('a página do curso avisa', () => {
+    montarTela(LMSCourse, '/curso/c-1', '/curso/:courseId');
+    expect(screen.getByText(new RegExp(mensagemDeAcesso('suspended').titulo, 'i'))).toBeInTheDocument();
+  });
+
+  it('a página do módulo também — é de onde se clica para a aula', () => {
+    montarTela(LMSModule, '/curso/c-1/modulo/m-1', '/curso/:courseId/modulo/:moduleId');
+    expect(screen.getByText(new RegExp(mensagemDeAcesso('suspended').titulo, 'i'))).toBeInTheDocument();
   });
 });
