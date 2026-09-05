@@ -297,7 +297,8 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > Publicar segue sendo decisão do dono, e as três pendências dele não mudaram:
 > revogar a Application Password do WordPress, escolher **um** gateway ativo
 > (Pagar.me e Asaas estão os dois "Ativo" em produção, e o código pega
-> `listActive()[0]`), e rodar a migration `0018` **antes** de o código subir.
+> `listActive()[0]` — **e isso agora tem tela**, ver o roteamento por método),
+> e rodar as migrations `0018` e `0019` **antes** de o código subir.
 >
 > O que entrou, em ordem:
 >
@@ -317,6 +318,12 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >    da auditoria da experiência do aluno rodada no mesmo dia). Ver a seção
 >    "`active` é regra de descoberta", abaixo — é a que mais provavelmente
 >    volta a morder.
+> 8. **Roteamento de pagamento por método**, com principal e reserva — o dono
+>    abriu `/admin/gateways` em produção e viu dois gateways "Ativo" ao mesmo
+>    tempo. Não havia roteamento nenhum: quem cobrava era o primeiro da lista,
+>    que é o último cadastrado. Ver a seção própria, abaixo. **A migration
+>    `0019` é nova nesta branch e roda antes do código subir, junto com a
+>    `0018`.**
 >
 > **O que segue aberto**, em ordem de custo/benefício:
 >
@@ -583,6 +590,49 @@ Quatro coisas que qualquer mexida aqui tem de respeitar:
 O resultado fica gravado no gateway (`lastTestedAt`/`lastTestStatus`/
 `lastTestMessage`) e aparece no card: credencial que parou de valer não avisa
 ninguém sozinha.
+
+## Roteamento de pagamento: quem cobra sai da escolha, não da posição
+
+`server/payments/roteamento.ts` (5/set/2026). Antes, os três checkouts faziam
+
+```
+gw = body.gatewayId ? findById(body.gatewayId) : listActive()[0]
+```
+
+e `listActive()[0]` é **o primeiro da lista**, não "o ativo" — a tela dizia, no
+singular, "apenas o gateway ativo é usado", e nada impedia dois estarem ativos.
+Em produção estavam: Pagar.me e Asaas. E como `createGateway` faz `unshift`, o
+primeiro da lista é o **último cadastrado**: cadastrar um gateway novo e já
+ativo tomava na hora todas as vendas da escola, sem ninguém escolher e sem nada
+na tela dizendo que o adquirente mudou.
+
+Cinco coisas que qualquer mexida aqui tem de respeitar:
+
+- **O método é um dado nosso, e vem antes do gateway.** Era o problema de
+  fundo: cada provider decidia sozinho (o Asaas cobrava **PIX** por omissão) e,
+  enquanto o método só existisse dentro do provider, não havia onde pendurar
+  roteamento. Hoje `metodo` atravessa `shared/metodos-pagamento.ts`, o corpo do
+  checkout, `CreatePaymentInput`, cada provider e a coluna `metodo` do pedido
+  (migration `0019`).
+- **`metodosSuportados` é obrigatório no contrato do provider.** Provider novo
+  não compila sem declarar o que sabe cobrar, e a tela só oferece o que ele
+  declara — é o que impede rotear boleto para o Stripe e descobrir na venda.
+- **O reserva só entra quando é certo que nada foi cobrado.**
+  `PaymentProviderError.criouCobranca` tem `'talvez'` como **padrão**: erro não
+  classificado não autoriza retentativa, erro de rede não autoriza (a
+  requisição pode ter chegado) e o 502 da Sandra não autoriza (vem com
+  `invoiceId` — a fatura existe). Venda perdida se refaz; cobrança dobrada se
+  devolve com dor.
+- **Quando o reserva cobra, o pedido passa a ser dele.** Não é cosmético:
+  `findByExternalId` casa o webhook por `externalId` **e** `gatewayId`, então
+  pedido cobrado no gateway B e marcado com o A nunca receberia o `paid` — a
+  pessoa pagaria e não entraria no curso.
+- **`acharPendenteEquivalente` chaveia pelo método, não pelo gateway.** Com o
+  gateway podendo mudar depois da criação, chavear por ele faria cada
+  retentativa criar um pedido novo — a cobrança dobrada pela porta dos fundos.
+
+Sem rota configurada e sem método, vale o comportamento antigo (primeiro ativo)
+— compatibilidade, não desenho. A tela de saúde é que cobra a configuração.
 
 ## Sandra: o gateway em que o dinheiro não passa pelo gateway
 
