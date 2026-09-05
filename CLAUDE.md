@@ -289,6 +289,52 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
+> ### 5/set/2026 — a fila de consertos da auditoria foi ao fim, e nada publicado
+>
+> **Sete consertos**, cada um com teste que falha contra o código anterior. A
+> branch `correcoes-auditoria-2026-09-03` está agora bem à frente de `main`, e
+> **nada foi enviado ao remoto** — confira com `git rev-list --count main..HEAD`.
+> Publicar segue sendo decisão do dono, e as três pendências dele não mudaram:
+> revogar a Application Password do WordPress, escolher **um** gateway ativo
+> (Pagar.me e Asaas estão os dois "Ativo" em produção, e o código pega
+> `listActive()[0]`), e rodar a migration `0018` **antes** de o código subir.
+>
+> O que entrou, em ordem:
+>
+> 1. **A tela da aula sem rede** (TELA3-003) — era a única das cinco irmãs que
+>    ficara de fora, e a única que exibe o vídeo.
+> 2. **Três defeitos do próprio botão de testar gateway** (SEC3-703, DATA3-011,
+>    DATA3-013) mais a paridade das duas listas de provider (QA3-003).
+> 3. **Rebaixar de papel não invalidava o token** (SEC3-705) — até 7 dias de
+>    acesso administrativo depois do desligamento.
+> 4. **Curso desativado congelava conclusão e tempo de assistência**
+>    (LEARN3-001).
+> 5. **A exportação de dados entregava o e-mail de quem escreveu a nota**
+>    (PRIV3-702).
+> 6. **A rota mais sensível do produto não deixava rastro** (PRIV3-707): a busca
+>    em todas as conversas com o tutor de IA, mais a exportação CSV de alunos.
+> 7. **Despublicar um curso o apagava de quem já tinha pago** (ALU4-001 a 004,
+>    da auditoria da experiência do aluno rodada no mesmo dia). Ver a seção
+>    "`active` é regra de descoberta", abaixo — é a que mais provavelmente
+>    volta a morder.
+>
+> **O que segue aberto**, em ordem de custo/benefício:
+>
+> - **O backup do banco não tem restaurador** (ARCH3-006). O despejo existe
+>   desde 3/set; caminho de volta, não — e `docs/deploy.md` ensina a restaurar
+>   um `.tar.gz` que o código não produz, com `pkill` de um processo que hoje é
+>   gerenciado por PM2. **É o maior aberto.**
+> - **As três telas incompletas** (PCNews sem página de matéria, Podcasts com
+>   player 100% simulado que nunca lê `episode.audioUrl`, Biblioteca sem
+>   upload), e quatro telas do aluno que ainda dizem "vazio" quando é "sem
+>   conexão".
+> - **O expurgo de dados não existe** (PRIV2-001, meio verificado): o pedido de
+>   exclusão vira `completed` sem chamar rotina de expurgo nenhuma.
+> - Achados menores da passada do aluno (`ALU4-007` a `ALU4-009`) no relatório.
+>
+> Relatórios: `H:/ia/dev/auditoria-ava-pco/relatorios/` — a passada do aluno
+> está em `aluno-passada-004.md`.
+
 > ### 4/set/2026 — dois consertos, uma auditoria, e nada publicado
 >
 > **Comece por `H:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`, pelo bloco do
@@ -380,6 +426,41 @@ handoff — e a CSP vem junto com o player de áudio, pelo mesmo motivo que o
 O dono autorizou o domínio na conta "Psicanalise Digital"; faltavam ainda o
 `frame-src` da nossa CSP e a política de referer no iframe. Ver
 "Vídeo de aula" mais abaixo antes de reabrir o assunto.
+
+## `active` é regra de descoberta, nunca de operação
+
+`courses.active` decide **o que aparece** — vitrine, estante, listagem. Não
+decide o que acontece com quem já está com a aula aberta. `listCourses()` filtra
+por ele no caminho de banco; `listCoursesIncludingInactive()` e
+`findCourseIncludingInactive()` existem para o outro lado.
+
+Isso custou dois consertos em dois dias, e o segundo só apareceu porque uma
+auditoria foi atrás do primeiro:
+
+- **4/set:** `localizarAula` varria a lista filtrada, e desativar um curso
+  congelava conclusão de aula e tempo de assistência de quem estava estudando —
+  com `404 NOT_FOUND`, que se lê como "esta aula não existe".
+- **5/set:** as rotas de **leitura** tinham o mesmo defeito, e pior. Despublicar
+  um curso — ou "excluir", que é o mesmo `active: false`, porque a exclusão é
+  lógica — tirava o conteúdo e o vídeo da aula de quem tinha matrícula e prazo,
+  sumia com o certificado de quem já se formou (a tela casa cada certificado com
+  o curso de origem) e apagava o curso da lista do **admin**, que não tem outra
+  rota para listar curso e ficava sem caminho de volta pela interface.
+
+Quatro rotas passaram a ler a lista inteira, e **quem separa é a regra por
+persona que já existia**: `isPubliclyListed` é
+`active !== false && publicListed !== false`. Para isso, `active` precisou
+passar a ser copiado no caminho de banco — o mapeamento montava o curso campo a
+campo e não o trazia, porque nunca precisou. **Sem esse campo o conserto vira
+vazamento**, porque a regra lê `undefined` e deixa passar.
+
+`courseAccessFor` entrou junto, por um motivo diferente: é do curso que sai o
+`accessMonths`, e com a busca filtrada um curso despublicado voltava `null` — o
+prazo sumia com ele, e a matrícula virava vitalícia em silêncio.
+
+De quebra, a tela do admin voltou a funcionar como foi escrita: `AdminCourses`
+**já** tinha o selo "Despublicado" e a ação em massa de publicar; o dado é que
+nunca chegava.
 
 ## Copiar a pasta do projeto não copia o git
 

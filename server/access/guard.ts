@@ -38,7 +38,11 @@ export async function courseAccessFor(
 ): Promise<CourseAccessResult> {
   const [student, course] = await Promise.all([
     studentsRepo.findAdminStudent(userId),
-    coursesRepo.findCourse(courseId),
+    // Inclui curso desativado: é do curso que sai o `accessMonths`, e com a
+    // busca filtrada um curso despublicado voltava `null` — o prazo sumia
+    // junto, e a matrícula virava vitalícia em silêncio. Aqui não se decide
+    // visibilidade; decide-se o acesso de quem já está matriculado.
+    coursesRepo.findCourseIncludingInactive(courseId),
   ]);
 
   const enrolled = (student?.enrolledCourseIds ?? []).includes(courseId);

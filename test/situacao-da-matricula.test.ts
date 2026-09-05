@@ -25,7 +25,13 @@ vi.mock('../server/repositories/students', () => ({
   findAdminStudent: vi.fn(),
 }));
 vi.mock('../server/repositories/courses', () => ({
+  // O portão lê o curso pela variante que **enxerga curso desativado**: é dele
+  // que sai o `accessMonths`, e com a busca filtrada um curso despublicado
+  // voltava `null` — o prazo sumia junto e a matrícula virava vitalícia em
+  // silêncio. Aqui não se decide visibilidade, decide-se acesso de quem já
+  // está matriculado.
   findCourse: vi.fn(),
+  findCourseIncludingInactive: vi.fn(),
 }));
 
 import * as studentsRepo from '../server/repositories/students';
@@ -52,7 +58,7 @@ function alunoCom(situacao?: 'suspensa' | 'cancelada') {
 }
 
 beforeEach(() => {
-  vi.mocked(coursesRepo.findCourse).mockResolvedValue({
+  vi.mocked(coursesRepo.findCourseIncludingInactive).mockResolvedValue({
     id: CURSO,
     // sem accessMonths: prazo não interfere, o teste é sobre situação
   } as never);
