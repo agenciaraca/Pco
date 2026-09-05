@@ -5209,26 +5209,27 @@ export async function deleteLessonComment(
 
 // ---------- Jobs / cron viewer ----------
 
+/**
+ * Um worker, na forma que `server/jobs/inventario.ts` normaliza.
+ *
+ * Antes cada worker chegava com a forma dele — uns com `name`, o da Sandra com
+ * `nome`; uns com `totalTicks`, outros sem —, e a tela imprimia `undefined` e
+ * `NaN dia(s)` para os que não encaixavam. O que é específico de cada um vive
+ * em `detalhes`, e a tela mostra o que reconhece.
+ */
 export interface JobStatusDto {
   name: string;
+  rotulo: string;
+  descricao: string;
   enabled: boolean;
   intervalMs: number;
   lastRunAt: string | null;
-  totalTicks: number;
-  // webhooks
-  running?: boolean;
-  lastRunProcessed?: number;
-  pending?: number;
-  totalDeliveries?: number;
-  // reengagement
-  lastRunResult?: {
-    scanned: number;
-    inactive: number;
-    sent: number;
-    skipped: number;
-    errors: number;
-  } | null;
-  recentEmails24h?: number;
+  /** `null` = este worker não conta ticks. Não é zero. */
+  totalTicks: number | null;
+  podeRodarAgora: boolean;
+  /** `null` = não medido. Não é "saudável". */
+  saudavel: boolean | null;
+  detalhes: Record<string, unknown>;
 }
 
 export async function fetchJobs(): Promise<{ jobs: JobStatusDto[] }> {

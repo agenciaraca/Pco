@@ -464,6 +464,25 @@ export async function tickWorker(now: Date = new Date()): Promise<{
 }
 
 let timer: NodeJS.Timeout | null = null;
+let lastRunAt: string | null = null;
+
+/**
+ * Estado para `/admin/jobs`.
+ *
+ * Este worker era o **único dos doze sem `getStatus()`** — ele mandava
+ * relatório para a administração e não tinha como dizer que estava vivo.
+ * `lastRunAt` marca o tick, não o envio: o tick roda de hora em hora e só
+ * dispara e-mail no dia e hora configurados, então "rodou" e "enviou" são
+ * coisas diferentes e a tela precisa da primeira para saber que o worker está
+ * de pé.
+ */
+export function getStatus(): {
+  enabled: boolean;
+  lastRunAt: string | null;
+  lastFiredKey: string | null;
+} {
+  return { enabled: timer !== null, lastRunAt, lastFiredKey: lastFiredKey || null };
+}
 
 /**
  * Idempotente: chamar duas vezes não cria dois intervalos.
@@ -476,6 +495,7 @@ let timer: NodeJS.Timeout | null = null;
 export function startWorker(intervalMs = 60 * 60_000): NodeJS.Timeout {
   if (timer) return timer;
   timer = setInterval(() => {
+    lastRunAt = new Date().toISOString();
     void tickWorker().catch((err) => {
       console.error('[weekly-report] erro:', err);
     });

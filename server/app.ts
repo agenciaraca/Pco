@@ -161,6 +161,7 @@ import * as ordersRepo from './payments/orders-repo';
 import * as couponsRepo from './payments/coupons-repo';
 import { ALL_PROVIDERS, getPaymentProvider } from './payments/providers/registry';
 import { cobrar, escolherCandidatos } from './payments/cobranca';
+import { listarJobs } from './jobs/inventario';
 import * as roteamentoPagamento from './payments/roteamento';
 import { metodoPagamentoSchema } from '../shared/metodos-pagamento';
 import * as importJobs from './imports/job-store';
@@ -7833,6 +7834,15 @@ export function buildApp() {
 
   // ---------- Cron / jobs viewer ----------
 
+  /**
+   * Os workers que rodam dentro do servidor.
+   *
+   * A lista sai de `server/jobs/inventario.ts`, que conhece os **doze**. Esta
+   * rota montava cinco à mão, e os sete de fora não apareciam em tela nenhuma
+   * — entre eles o backup, a rotação de log e o sondador da Sandra, que é o
+   * único confirmador de pagamento daquele gateway. Quem abria o painel para
+   * saber o que acontece num restart via menos da metade do que existe.
+   */
   app.get('/admin/jobs', requireAuth('admin', 'superadmin'), async (c) => {
     const [whPending, whAll, eqlogs] = await Promise.all([
       webhookDeliveries.pending(),
@@ -7841,22 +7851,21 @@ export function buildApp() {
     ]);
     const cutoff24h = Date.now() - 24 * 60 * 60_000;
     const recentEmails = eqlogs.filter((l) => new Date(l.ts).getTime() >= cutoff24h).length;
-    return c.json({
-      jobs: [
-        {
-          ...webhooksDispatcher.getStatus(),
-          pending: whPending.length,
-          totalDeliveries: whAll.length,
-        },
-        {
-          ...reengagementWorker.getStatus(),
-          recentEmails24h: recentEmails,
-        },
-        expiryWorker.getStatus(),
-        lembreteWorker.getStatus(),
-        sandraPoll.getStatus(),
-      ],
+    const jobs = listarJobs().map((j) => {
+      // Dois números que não moram no worker: eles vêm dos stores, e a tela
+      // sempre os mostrou junto do job a que pertencem.
+      if (j.name === 'webhooks') {
+        return {
+          ...j,
+          detalhes: { ...j.detalhes, pending: whPending.length, totalDeliveries: whAll.length },
+        };
+      }
+      if (j.name === 'reengagement') {
+        return { ...j, detalhes: { ...j.detalhes, recentEmails24h: recentEmails } };
+      }
+      return j;
     });
+    return c.json({ jobs });
   });
 
   app.post(
