@@ -93,6 +93,57 @@ describe('auth/users-store CRUD', () => {
     expect(updated!.tokenVersion).toBe(1);
   });
 
+  /**
+   * SEC3-705 · rebaixar de papel também tem de encerrar as sessões vivas.
+   *
+   * O middleware autoriza pela claim `role` **do token** e só consulta o banco
+   * para `active` e `tv`. Com TTL de 7 dias, tirar o "admin" de alguém deixava
+   * o acesso administrativo dele de pé por até uma semana — e a tela não dizia
+   * isso a quem acabara de fazer o rebaixamento. É o cenário de desligamento
+   * de funcionário: a conta continua ativa, só o papel muda.
+   */
+  it('updateUser rebaixando de papel bumpa tokenVersion', async () => {
+    const u = await store.createUser({
+      email: 'tv-role@x.com',
+      name: 'TV Papel',
+      role: 'admin',
+      password: 'pwd',
+    });
+    expect(u.tokenVersion).toBe(0);
+    const rebaixado = await store.updateUser(u.id, { role: 'student' });
+    expect(rebaixado!.role).toBe('student');
+    expect(rebaixado!.tokenVersion).toBe(1);
+  });
+
+  it('updateUser trocando o papel custom bumpa tokenVersion', async () => {
+    // O papel custom carrega permissões próprias, e a claim vai no token do
+    // mesmo jeito. Trocar de "coordenação" para "secretaria" sem invalidar
+    // deixaria a permissão antiga valendo pelo resto do TTL.
+    const u = await store.createUser({
+      email: 'tv-custom@x.com',
+      name: 'TV Custom',
+      role: 'admin',
+      password: 'pwd',
+    });
+    const a = await store.updateUser(u.id, { customRoleSlug: 'coordenacao' });
+    expect(a!.tokenVersion).toBe(1);
+    const b = await store.updateUser(u.id, { customRoleSlug: 'secretaria' });
+    expect(b!.tokenVersion).toBe(2);
+  });
+
+  it('salvar sem mudar o papel não desloga ninguém', async () => {
+    // A guarda do outro lado: bumpar à toa expulsa quem está trabalhando a
+    // cada gravação de formulário. Só a mudança de fato conta.
+    const u = await store.createUser({
+      email: 'tv-noop@x.com',
+      name: 'TV Noop',
+      role: 'admin',
+      password: 'pwd',
+    });
+    const mesmo = await store.updateUser(u.id, { role: 'admin', name: 'TV Noop 2' });
+    expect(mesmo!.tokenVersion).toBe(0);
+  });
+
   it('updateUser email duplicado lança', async () => {
     const a = await store.createUser({
       email: 'aa@x.com',

@@ -425,6 +425,17 @@ export async function updateUser(
   // Desativar conta também invalida tokens vivos
   const willDeactivate =
     patch.active === false && users[i].active === true;
+  // E rebaixar de papel, pelo mesmo motivo — que é menos óbvio.
+  //
+  // O middleware autoriza pela claim `role` **do token** e só consulta o banco
+  // para `active` e `tv` (`server/auth/middleware.ts`). Com TTL de 7 dias, tirar
+  // o "admin" de alguém não encerrava o acesso administrativo dele por até uma
+  // semana — e nada na tela dizia isso ao operador, que sai da página achando
+  // que desligou o acesso. Cenário de desligamento de funcionário.
+  const mudouDePapel =
+    (patch.role !== undefined && patch.role !== users[i].role) ||
+    (patch.customRoleSlug !== undefined &&
+      (patch.customRoleSlug ?? null) !== (users[i].customRoleSlug ?? null));
   users[i] = {
     ...users[i],
     ...(patch.email !== undefined ? { email: patch.email } : {}),
@@ -438,7 +449,9 @@ export async function updateUser(
     ...(patch.onboardingCompletedAt !== undefined
       ? { onboardingCompletedAt: patch.onboardingCompletedAt }
       : {}),
-    ...(willDeactivate ? { tokenVersion: (users[i].tokenVersion ?? 0) + 1 } : {}),
+    ...(willDeactivate || mudouDePapel
+      ? { tokenVersion: (users[i].tokenVersion ?? 0) + 1 }
+      : {}),
     updatedAt: new Date().toISOString(),
   };
   await queueWrite();
