@@ -3843,6 +3843,15 @@ export function buildApp() {
       ];
       rows.push(cells.map((v) => (v.includes(',') ? `"${v}"` : v)).join(','));
     }
+    // Baixar a base inteira de alunos — nome, e-mail e score de risco — é a
+    // outra leitura em massa de dado pessoal deste servidor, e também não
+    // deixava rastro. Registra-se o filtro e a contagem; as linhas, não.
+    await recordAudit(c, {
+      action: 'student.export.csv',
+      targetType: 'student',
+      targetId: null,
+      meta: { filtros: filters, linhas: list.length },
+    });
     return new Response(rows.join('\n'), {
       status: 200,
       headers: {
@@ -9139,6 +9148,24 @@ export function buildApp() {
   });
 
   /** Lista conversas do tutor IA (admin auditoria). */
+  /**
+   * Histórico do tutor de IA, para a administração.
+   *
+   * **É a rota mais sensível do produto**, e era a menos rastreável: conversa
+   * de aluno com um tutor de psicanálise clínica é material de foro íntimo, e
+   * aqui ela sai integral, correlacionada a nome e e-mail, com busca livre por
+   * palavra-chave sobre a base inteira.
+   *
+   * O controle de acesso existia; o que não existia era como detectar abuso
+   * **depois do fato**. O `auditMiddleware` é global, mas por desenho só
+   * registra mutação — e esta é uma leitura. Daí o `recordAudit` explícito
+   * abaixo, com o termo e a contagem, **nunca o conteúdo**: um log que copia a
+   * conversa para poder provar quem a leu é o mesmo vazamento com outro nome.
+   *
+   * Buscar dentro da conversa de **um** aluno e varrer a base inteira são ações
+   * diferentes, e ficam com nomes diferentes no log — quem audita o log precisa
+   * conseguir separar as duas sem abrir cada linha.
+   */
   app.get('/admin/tutor/history', requireAuth('admin', 'superadmin'), async (c) => {
     const search = c.req.query('search')?.toLowerCase().trim();
     const userId = c.req.query('userId');
@@ -9171,6 +9198,20 @@ export function buildApp() {
           ts: t.ts,
         };
       });
+    const varredura = Boolean(search) && !userId;
+    await recordAudit(c, {
+      action: varredura ? 'tutor.history.sweep' : 'tutor.history.read',
+      targetType: 'tutor_history',
+      targetId: userId ?? null,
+      meta: {
+        // O termo buscado é do investigador, não do aluno — e é o que diz o
+        // que a pessoa foi procurar. Limitado porque campo de query é livre.
+        termo: search ? search.slice(0, 120) : null,
+        escopo: userId ? 'um-aluno' : 'base-inteira',
+        resultados: filtered.length,
+        limite: limit,
+      },
+    });
     return c.json(filtered);
   });
 
