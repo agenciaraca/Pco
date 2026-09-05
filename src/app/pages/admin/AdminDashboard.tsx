@@ -94,9 +94,19 @@ function KpisHeader() {
       Icon: TrendingUp,
     },
     {
-      label: 'Alunos ativos',
+      /*
+        "Contas", não "alunos ativos".
+
+        Este card e o de fichas, dois centímetros abaixo, mostravam **2028** e
+        **1613** sob o mesmo rótulo "Alunos ativos". Os dois números estão
+        certos e contam coisas diferentes: aqui são contas com papel de aluno e
+        acesso liberado; ali, fichas de aluno com matrícula e progresso. Rótulo
+        igual sobre números diferentes é a tela discordando de si mesma na mesma
+        dobra — o mesmo defeito que a home teve.
+      */
+      label: 'Contas de aluno',
       value: String(data.students.active),
-      sub: `${data.students.new30Days} novo(s) em 30d`,
+      sub: `podem entrar · ${data.students.new30Days} criada(s) em 30d`,
       delta: delta(data.students.deltaPct),
       color: 'text-pco-cyan',
       Icon: Users,
@@ -246,6 +256,9 @@ function formatTs(iso: string): string {
 export default function AdminDashboard() {
   const t = useT();
   const { data: retentionRisks = [] } = useRetentionRisks();
+  // Mesma chave do card de contas lá em cima: o TanStack devolve o cache, não
+  // faz uma segunda requisição. É o que permite comparar os dois números aqui.
+  const kpisQ = useAdminKpis();
   const studentsQ = useAdminStudents({ status: 'todos', sortBy: 'name' });
   const coursesQ = useCourses();
   const certsQ = useAllCertificates();
@@ -259,6 +272,10 @@ export default function AdminDashboard() {
   const audit = auditQ.data ?? [];
 
   const activeStudents = students.filter((s) => s.status === 'ativo').length;
+  // Contas com papel de aluno que não têm ficha. `kpis` vem do servidor e conta
+  // contas; `students` vem do catálogo de fichas.
+  const contasDeAluno = kpisQ.data?.students.active ?? 0;
+  const semFicha = Math.max(0, contasDeAluno - students.length);
   const atRisk = students.filter((s) => s.status === 'em_risco').length;
   const blocked = students.filter((s) => s.status === 'bloqueado').length;
   const issuedCerts = certs.filter((c) => c.status === 'issued').length;
@@ -266,9 +283,19 @@ export default function AdminDashboard() {
   const dynamicKpis = [
     {
       icon: Users,
-      label: 'Alunos ativos',
+      /*
+        A ficha é o que tem matrícula, progresso e prazo de acesso. A conta é
+        só o login. A diferença entre as duas não é ruído: são pessoas que
+        conseguem entrar e para quem o catálogo não devolve matrícula nenhuma —
+        eram 418 em produção quando isso foi medido pela primeira vez. Mostrar
+        a diferença aqui é mais útil do que repetir o total.
+      */
+      label: 'Fichas de aluno',
       value: String(activeStudents),
-      sub: `${students.length} cadastrados`,
+      sub:
+        semFicha > 0
+          ? `${semFicha} conta(s) sem ficha`
+          : `de ${students.length} cadastrada(s)`,
       color: 'blue' as const,
     },
     {

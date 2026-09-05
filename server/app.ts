@@ -2893,8 +2893,10 @@ export function buildApp() {
     rateLimit({ windowMs: 60_000, max: 5 }),
     async (c) => {
       const { recomputeAllRisks } = await import('./services/retention-calculator');
-      // carga horária real por curso (default 30h se desconhecido)
-      const courses = await coursesRepo.listCourses();
+      // Carga horária real por curso (default 30h se desconhecido). Inclui
+      // despublicado: curso fora da vitrine continua tendo alunos dentro, e
+      // cair no default de 30h distorceria o risco de evasão deles.
+      const courses = await coursesRepo.listCoursesIncludingInactive();
       const hoursById = new Map(courses.map((co) => [co.id, co.totalHours ?? 30]));
       const summary = await recomputeAllRisks({
         courseHours: (id) => hoursById.get(id) ?? 30,
@@ -9571,7 +9573,9 @@ export function buildApp() {
 
   app.get('/admin/wishlist/export.csv', requireAuth('admin', 'superadmin'), async () => {
     const agg = await wishlistStore.aggregateByCourse();
-    const courses = await coursesRepo.listCourses();
+    // Resolver título é operação, não descoberta — ver a seção "`active` é
+    // regra de descoberta" no CLAUDE.md.
+    const courses = await coursesRepo.listCoursesIncludingInactive();
     const titleMap = new Map(courses.map((co) => [co.id, co.title]));
     const rows = ['rank,course_id,course_title,total,added_last_week'];
     agg.forEach((row, i) => {

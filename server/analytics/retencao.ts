@@ -129,7 +129,11 @@ function matriculadoEm(
 export async function montaRetencao(agora = new Date()): Promise<RelatorioRetencao> {
   const [alunos, cursos] = await Promise.all([
     studentsRepo.listAdminStudents({ limit: 100_000 } as never),
-    coursesRepo.listCourses(),
+    // Inclui curso despublicado: aqui se resolve **nome**, não visibilidade.
+    // Com a lista filtrada, nove dos doze cursos caíam no `?? id` e a tela do
+    // admin mostrava `8495`, `12245`, `16098` no lugar do título — em produção,
+    // medido em 5/set/2026.
+    coursesRepo.listCoursesIncludingInactive(),
   ]);
 
   const nomeDoCurso = new Map(cursos.map((c) => [c.id, c.shortTitle || c.title]));

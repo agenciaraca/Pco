@@ -143,6 +143,26 @@ describe('as duas rotas de operação usam a variante sem filtro', () => {
    * princípio — e levou junto o filtro que ela já carregava. De um chamador
    * para dois, sem que ninguém tivesse escrito a regra em lugar nenhum.
    */
+  it('quem resolve NOME de curso para o admin não usa a lista filtrada', async () => {
+    /*
+      Medido em produção em 5/set/2026: `/admin/retencao` mostrava `8495`,
+      `12245`, `16098` — o id do WordPress — no lugar do título, em **nove dos
+      doze** cursos. Os cursos existem e têm nome; o que faltava era enxergá-los,
+      porque estão despublicados e a lista filtrada não os traz.
+
+      Resolver nome é operação, não descoberta. O mesmo valia para a carga
+      horária usada no cálculo de risco (curso fora da lista caía no default de
+      30h e distorcia o risco de quem está dentro dele) e para o título no CSV
+      da lista de desejos.
+    */
+    const retencao = await fs.readFile(
+      path.join(process.cwd(), 'server', 'analytics', 'retencao.ts'),
+      'utf8',
+    );
+    expect(retencao).toContain('listCoursesIncludingInactive()');
+    expect(retencao).not.toMatch(/coursesRepo\.listCourses\(\)/);
+  });
+
   it('localizarAula não volta a varrer o catálogo filtrado', async () => {
     const fonte = await fs.readFile(
       path.join(process.cwd(), 'server', 'app.ts'),
