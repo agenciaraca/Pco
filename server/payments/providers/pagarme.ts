@@ -13,6 +13,7 @@ import { pingHttp } from './ping-http';
 import { comparaSegura } from './compara-segura';
 import { origemPublica } from '../../origem-publica';
 import { opcoesDeParcelamento } from '../../../shared/parcelamento';
+import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 
 const API_BASE = 'https://api.pagar.me/core/v5';
 
@@ -35,10 +36,19 @@ function basicAuth(secretKey: string): string {
 
 /** Comparação de tempo constante — `!==` em credencial vaza o prefixo certo. */
 
+/** Nosso método, no vocabulário da API v5. */
+const METODO_PAGARME: Record<MetodoPagamento, string> = {
+  pix: 'pix',
+  boleto: 'boleto',
+  credit_card: 'credit_card',
+};
+
 export const pagarmeProvider: PaymentProviderImpl = {
+  metodosSuportados: ['pix', 'boleto', 'credit_card'],
+
   async createPayment(_gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey) {
-      throw new PaymentProviderError('NO_KEY', 'Pagar.me apiKey ausente.');
+      throw new PaymentProviderError('NO_KEY', 'Pagar.me apiKey ausente.', 'nao');
     }
     // Métodos aceitos e seus blocos de configuração andam juntos.
     //
@@ -51,11 +61,30 @@ export const pagarmeProvider: PaymentProviderImpl = {
     // Foi exatamente o que aconteceu em produção: pedíamos cartão, boleto e
     // pix, mandávamos zero blocos, e **nenhuma venda passava**. Montar os dois
     // a partir da mesma lista impede que voltem a divergir.
-    const metodos: string[] = ['credit_card', 'pix'];
     // Boleto exige documento do comprador; sem CPF/CNPJ ele nem é oferecido,
     // porque a alternativa é o gateway recusar a compra inteira no fim.
     const documento = (input.customerDocument ?? '').replace(/\D/g, '');
-    if (documento) metodos.push('boleto');
+
+    // Com método escolhido, o checkout do Pagar.me abre **só** nele.
+    //
+    // Sem método — que é como o checkout antigo chamava — mantém-se a lista
+    // inteira e quem escolhe é o comprador, lá dentro. Os dois comportamentos
+    // convivem porque a escolha na nossa página é nova: nenhum link antigo
+    // deixa de funcionar por causa dela.
+    let metodos: string[];
+    if (input.metodo) {
+      if (input.metodo === 'boleto' && !documento) {
+        throw new PaymentProviderError(
+          'PAGARME_BOLETO_SEM_DOCUMENTO',
+          'Boleto exige CPF ou CNPJ do comprador.',
+          'nao',
+        );
+      }
+      metodos = [METODO_PAGARME[input.metodo]];
+    } else {
+      metodos = ['credit_card', 'pix'];
+      if (documento) metodos.push('boleto');
+    }
 
     const configPorMetodo: Record<string, unknown> = {
       credit_card: {
@@ -114,9 +143,12 @@ export const pagarmeProvider: PaymentProviderImpl = {
     });
     if (!res.ok) {
       const j = await res.json().catch(() => null);
+      // O Pagar.me respondeu recusando o pedido: nada foi criado, e o
+      // próximo gateway da rota pode ser tentado.
       throw new PaymentProviderError(
         'PAGARME_CREATE_FAILED',
         JSON.stringify(j) || `HTTP ${res.status}`,
+        'nao',
       );
     }
     const order = (await res.json()) as {

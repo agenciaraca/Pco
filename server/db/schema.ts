@@ -658,6 +658,19 @@ export const paymentOrders = pgTable('payment_orders', {
     gclid?: string;
     fbclid?: string;
   }>(),
+  /**
+   * Pix, boleto ou cartão — o que a pessoa escolheu na nossa página.
+   *
+   * Nulo nos pedidos anteriores a 5/set/2026, quando o método não era um dado
+   * nosso: cada gateway decidia sozinho, e o Asaas cobrava pix por padrão sem
+   * ninguém ter escolhido. Nulo aqui quer dizer "não se sabe", que é diferente
+   * de "cartão".
+   *
+   * É por ele que a busca por pedido pendente equivalente se orienta, e não
+   * mais pelo gateway: com roteamento e fallback, o gateway do pedido pode
+   * mudar entre a criação e a cobrança — o método, não.
+   */
+  metodo: text('metodo'),
   amountCents: integer('amount_cents').notNull().default(0),
   currency: text('currency').notNull().default('BRL'),
   events: jsonb('events')

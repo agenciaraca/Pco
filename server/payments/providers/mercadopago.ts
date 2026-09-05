@@ -11,13 +11,31 @@ import type {
 import { PaymentProviderError } from './types';
 import { pingHttp } from './ping-http';
 import { origemPublica } from '../../origem-publica';
+import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 
 const API_BASE = 'https://api.mercadopago.com';
 
+/**
+ * Restringir a preferência a um método é subtrativo no Mercado Pago: manda-se
+ * o que **não** se aceita. Pix, para o MP, é `bank_transfer`.
+ *
+ * **Não foi exercitado contra a API real** — o MP não é o gateway ativo desta
+ * escola, e o teste confere o que se envia, não o que o MP faz com isso. Está
+ * escrito aqui para que a próxima pessoa saiba o que precisa conferir antes de
+ * ativá-lo, em vez de descobrir na primeira venda.
+ */
+const EXCLUIR_PARA: Record<MetodoPagamento, string[]> = {
+  credit_card: ['ticket', 'bank_transfer', 'debit_card', 'atm'],
+  boleto: ['credit_card', 'debit_card', 'bank_transfer', 'atm'],
+  pix: ['credit_card', 'debit_card', 'ticket', 'atm'],
+};
+
 export const mercadopagoProvider: PaymentProviderImpl = {
+  metodosSuportados: ['pix', 'boleto', 'credit_card'],
+
   async createPayment(_gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey) {
-      throw new PaymentProviderError('NO_KEY', 'Mercado Pago access_token ausente.');
+      throw new PaymentProviderError('NO_KEY', 'Mercado Pago access_token ausente.', 'nao');
     }
     const res = await fetch(`${API_BASE}/checkout/preferences`, {
       method: 'POST',
@@ -43,13 +61,22 @@ export const mercadopagoProvider: PaymentProviderImpl = {
           pending: `${publicOrigin()}/perfil?payment=pending`,
         },
         auto_return: 'approved',
+        ...(input.metodo
+          ? {
+              payment_methods: {
+                excluded_payment_types: EXCLUIR_PARA[input.metodo].map((id) => ({ id })),
+              },
+            }
+          : {}),
       }),
     });
     if (!res.ok) {
       const j = await res.json().catch(() => null);
+      // Preferência recusada: não existe cobrança do outro lado.
       throw new PaymentProviderError(
         'MP_CREATE_FAILED',
         JSON.stringify(j) || `HTTP ${res.status}`,
+        'nao',
       );
     }
     const pref = (await res.json()) as { id: string; init_point: string };

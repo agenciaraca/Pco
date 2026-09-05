@@ -160,6 +160,9 @@ import * as productsRepo from './payments/products-repo';
 import * as ordersRepo from './payments/orders-repo';
 import * as couponsRepo from './payments/coupons-repo';
 import { ALL_PROVIDERS, getPaymentProvider } from './payments/providers/registry';
+import { cobrar, escolherCandidatos } from './payments/cobranca';
+import * as roteamentoPagamento from './payments/roteamento';
+import { metodoPagamentoSchema } from '../shared/metodos-pagamento';
 import * as importJobs from './imports/job-store';
 import {
   CSV_TEMPLATES,
@@ -3197,7 +3200,11 @@ export function buildApp() {
         }
       }
 
-      const gw = (await gatewaysRepo.listActive())[0] ?? null;
+      // Sessão não passa por seletor de método: quem agenda vem da agenda, não
+      // da vitrine. Sem método, o roteamento devolve os ativos que sabem cobrar
+      // — que é o comportamento antigo, agora sem depender da ordem do arquivo.
+      const candidatos = await escolherCandidatos({});
+      const gw = candidatos[0];
       if (!gw) {
         return jsonError(
           c,
@@ -3206,17 +3213,6 @@ export function buildApp() {
           'Nenhum gateway de pagamento ativo configurado.',
         );
       }
-      const provider = getPaymentProvider(gw.provider);
-      if (!provider) {
-        return jsonError(
-          c,
-          501,
-          'PROVIDER_NOT_IMPLEMENTED',
-          `Provider ${gw.provider} ainda não tem implementação.`,
-        );
-      }
-      const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
-      if (!creds) return jsonError(c, 500, 'INTERNAL', 'Falha ao ler credenciais do gateway.');
 
       const nome = `${booking.serviceName} com ${booking.professionalName}`;
       const order = await ordersRepo.createOrder({
@@ -3239,18 +3235,23 @@ export function buildApp() {
       await bookingsRepo.update(booking.id, { orderId: order.id });
 
       try {
-        const result = await provider.createPayment(gw, creds, {
-          amountCents: booking.priceCents,
-          currency: 'BRL',
-          description: nome,
-          customerEmail: u.email,
-          metadata: { orderId: order.id, userId: u.sub, bookingId: booking.id },
+        const { gateway, resultado: result } = await cobrar({
+          candidatos,
+          input: {
+            amountCents: booking.priceCents,
+            currency: 'BRL',
+            description: nome,
+            customerEmail: u.email,
+            metadata: { orderId: order.id, userId: u.sub, bookingId: booking.id },
+          },
         });
         const updated = await ordersRepo.attachGatewayResult(order.id, {
           externalId: result.externalId,
           checkoutUrl: result.checkoutUrl,
           qrCode: result.qrCode,
           status: result.status,
+          gatewayId: gateway.id,
+          gatewayProvider: gateway.provider,
         });
         await recordAudit(c, {
           action: 'session.booking.checkout',
@@ -5306,6 +5307,61 @@ export function buildApp() {
       return c.json(r);
     },
   );
+
+  /**
+   * Roteamento por método de pagamento.
+   *
+   * Substitui `listActive()[0]` — "o primeiro do arquivo" — por uma escolha
+   * explícita de gente: para cada método, quem cobra e quem é o reserva. A
+   * resposta traz também, por gateway, quais métodos ele sabe cobrar: é o que
+   * permite a tela oferecer só o possível, em vez de deixar configurar boleto
+   * no Stripe e descobrir na venda.
+   */
+  app.get('/admin/payments/routing', requireAuth('admin', 'superadmin'), async (c) => {
+    const [rotas, gateways] = await Promise.all([
+      roteamentoPagamento.listarRotas(),
+      gatewaysRepo.listAll(),
+    ]);
+    return c.json({
+      rotas,
+      gateways: gateways.map((g) => ({
+        id: g.id,
+        displayName: g.displayName,
+        provider: g.provider,
+        active: g.active,
+        mode: g.mode,
+        metodos: getPaymentProvider(g.provider)?.metodosSuportados ?? [],
+      })),
+    });
+  });
+
+  app.put('/admin/payments/routing/:metodo', requireAuth('admin', 'superadmin'), async (c) => {
+    const metodo = c.req.param('metodo');
+    const v = validate(metodoPagamentoSchema, metodo);
+    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Método de pagamento desconhecido.');
+    const body = (await c.req.json().catch(() => ({}))) as {
+      principalId?: string | null;
+      fallbackId?: string | null;
+    };
+    try {
+      const rota = await roteamentoPagamento.salvarRota(v.data, {
+        principalId: body.principalId ?? null,
+        fallbackId: body.fallbackId ?? null,
+      });
+      await recordAudit(c, {
+        action: 'payment.routing.update',
+        targetType: 'payment_routing',
+        targetId: v.data,
+        meta: { principalId: rota.principalId, fallbackId: rota.fallbackId },
+      });
+      return c.json(rota);
+    } catch (err) {
+      if (err instanceof roteamentoPagamento.RotaInvalida) {
+        return jsonError(c, 400, 'ROTA_INVALIDA', err.message);
+      }
+      throw err;
+    }
+  });
 
   // ---------- Products (admin CRUD + público lista ativos) ----------
 
@@ -11180,38 +11236,30 @@ export function buildApp() {
         return jsonError(c, 404, 'PRODUCT_NOT_FOUND', 'Produto inexistente ou inativo.');
       }
 
-      // Seleciona gateway: explícito > qualquer ativo (1º)
-      let gw = null;
+      // Quem cobra sai da tabela de roteamento, pelo método escolhido — não
+      // mais de `listActive()[0]`, que era o primeiro do arquivo.
+      let explicito = null;
       if (v.data.gatewayId) {
-        gw = await gatewaysRepo.findById(v.data.gatewayId);
-        if (!gw || !gw.active) {
+        explicito = await gatewaysRepo.findById(v.data.gatewayId);
+        if (!explicito || !explicito.active) {
           return jsonError(c, 400, 'GATEWAY_INACTIVE', 'Gateway selecionado inativo.');
         }
-      } else {
-        const actives = await gatewaysRepo.listActive();
-        gw = actives[0] ?? null;
       }
+      const candidatos = await escolherCandidatos({
+        metodo: v.data.metodo,
+        gatewayExplicito: explicito,
+      });
+      const gw = candidatos[0];
       if (!gw) {
         return jsonError(
           c,
           400,
           'NO_ACTIVE_GATEWAY',
-          'Nenhum gateway de pagamento ativo configurado.',
+          v.data.metodo
+            ? 'Nenhum gateway configurado para este meio de pagamento.'
+            : 'Nenhum gateway de pagamento ativo configurado.',
         );
       }
-
-      const provider = getPaymentProvider(gw.provider);
-      if (!provider) {
-        return jsonError(
-          c,
-          501,
-          'PROVIDER_NOT_IMPLEMENTED',
-          `Provider ${gw.provider} ainda não tem implementação. Use o sandbox 'mock' ou aguarde Sprint 4.`,
-        );
-      }
-
-      const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
-      if (!creds) return jsonError(c, 500, 'INTERNAL', 'Falha ao ler credenciais do gateway.');
 
       // Aplica cupom se informado
       let amountCents = product.priceCents;
@@ -11237,7 +11285,7 @@ export function buildApp() {
       const jaPendente = await ordersRepo.acharPendenteEquivalente(u.sub, {
         productId: product.id,
         amountCents,
-        gatewayId: gw.id,
+        metodo: v.data.metodo ?? null,
       });
       if (jaPendente && jaPendente.checkoutUrl) {
         // 201, igual ao caminho que cria: para quem chama, reusar e criar são
@@ -11259,31 +11307,40 @@ export function buildApp() {
         },
         gatewayId: gw.id,
         gatewayProvider: gw.provider,
+        metodo: v.data.metodo ?? null,
         amountCents,
         currency: product.currency,
       });
 
       try {
-        const result = await provider.createPayment(gw, creds, {
-          amountCents,
-          currency: product.currency,
-          description:
-            discountCents > 0 ? `${product.name} (cupom ${appliedCouponCode})` : product.name,
-          customerEmail: u.email,
-          // Nome, documento e telefone param aqui — como já param no
-          // `/public/checkout`. Enquanto não paravam, o gateway recebia só o
-          // e-mail: o Pagar.me derivava o nome de `email.split('@')[0]`, não
-          // tinha CPF para emitir boleto, e recusava a cobrança inteira.
-          customerName: v.data.name || undefined,
-          customerDocument: documentoInformado || undefined,
-          customerPhone: v.data.whatsapp || undefined,
-          metadata: { orderId: order.id, userId: u.sub },
+        const { gateway, resultado: result } = await cobrar({
+          metodo: v.data.metodo,
+          candidatos,
+          input: {
+            amountCents,
+            currency: product.currency,
+            description:
+              discountCents > 0 ? `${product.name} (cupom ${appliedCouponCode})` : product.name,
+            customerEmail: u.email,
+            // Nome, documento e telefone param aqui — como já param no
+            // `/public/checkout`. Enquanto não paravam, o gateway recebia só o
+            // e-mail: o Pagar.me derivava o nome de `email.split('@')[0]`, não
+            // tinha CPF para emitir boleto, e recusava a cobrança inteira.
+            customerName: v.data.name || undefined,
+            customerDocument: documentoInformado || undefined,
+            customerPhone: v.data.whatsapp || undefined,
+            metadata: { orderId: order.id, userId: u.sub },
+          },
         });
         const updated = await ordersRepo.attachGatewayResult(order.id, {
           externalId: result.externalId,
           checkoutUrl: result.checkoutUrl,
           qrCode: result.qrCode,
           status: result.status,
+          // Quem cobrou de fato. Sem isto o webhook do reserva não casaria com
+          // o pedido, e o pagamento confirmado não viraria matrícula.
+          gatewayId: gateway.id,
+          gatewayProvider: gateway.provider,
         });
         if (appliedCouponId) {
           await ordersRepo.updateStatus(
@@ -11418,17 +11475,19 @@ export function buildApp() {
       return jsonError(c, 500, 'PROVISION_FAILED', 'Não foi possível preparar a matrícula.');
     }
 
-    // Gateway: explícito > primeiro ativo.
-    const gw = v.data.gatewayId
-      ? await gatewaysRepo.findById(v.data.gatewayId)
-      : ((await gatewaysRepo.listActive())[0] ?? null);
-    if (!gw || !gw.active) {
+    // Gateway: explícito > o que a tabela de roteamento diz para este método.
+    const explicito = v.data.gatewayId ? await gatewaysRepo.findById(v.data.gatewayId) : null;
+    if (v.data.gatewayId && (!explicito || !explicito.active)) {
       return jsonError(c, 400, 'NO_ACTIVE_GATEWAY', 'Pagamento indisponível no momento.');
     }
-    const provider = getPaymentProvider(gw.provider);
-    if (!provider) return jsonError(c, 501, 'NOT_IMPLEMENTED', 'Provider indisponível.');
-    const creds = await gatewaysRepo.getDecryptedCredentials(gw.id);
-    if (!creds) return jsonError(c, 400, 'GATEWAY_MISCONFIGURED', 'Gateway sem credenciais.');
+    const candidatos = await escolherCandidatos({
+      metodo: v.data.metodo,
+      gatewayExplicito: explicito,
+    });
+    const gw = candidatos[0];
+    if (!gw) {
+      return jsonError(c, 400, 'NO_ACTIVE_GATEWAY', 'Pagamento indisponível no momento.');
+    }
 
     // Mesma proteção do checkout do aluno: duplo clique ou retentativa de rede
     // não podem virar dois pedidos e duas cobranças. Aqui pesa mais, porque o
@@ -11438,7 +11497,7 @@ export function buildApp() {
     const pendenteDoVisitante = await ordersRepo.acharPendenteEquivalente(user.id, {
       productId: product.id,
       amountCents: product.priceCents,
-      gatewayId: gw.id,
+      metodo: v.data.metodo ?? null,
     });
     if (pendenteDoVisitante && pendenteDoVisitante.checkoutUrl) {
       // **Mesma forma e mesmo status do caminho novo, de propósito.**
@@ -11470,29 +11529,36 @@ export function buildApp() {
       },
       gatewayId: gw.id,
       gatewayProvider: gw.provider,
+      metodo: v.data.metodo ?? null,
       amountCents: product.priceCents,
       currency: product.currency,
     });
 
     try {
-      const result = await provider.createPayment(gw, creds, {
-        amountCents: product.priceCents,
-        currency: product.currency,
-        description: product.name,
-        customerEmail: user.email,
-        // Nome, documento e telefone vêm do formulário e param aqui — antes
-        // paravam no cadastro do usuário e o gateway recebia só o e-mail. A
-        // Sandra exige CPF/CNPJ para emitir, então sem isto a cobrança nem sai.
-        customerName: v.data.name,
-        customerDocument: v.data.document || undefined,
-        customerPhone: v.data.whatsapp || undefined,
-        metadata: { orderId: order.id, userId: user.id, source: 'public' },
+      const { gateway, resultado: result } = await cobrar({
+        metodo: v.data.metodo,
+        candidatos,
+        input: {
+          amountCents: product.priceCents,
+          currency: product.currency,
+          description: product.name,
+          customerEmail: user.email,
+          // Nome, documento e telefone vêm do formulário e param aqui — antes
+          // paravam no cadastro do usuário e o gateway recebia só o e-mail. A
+          // Sandra exige CPF/CNPJ para emitir, então sem isto a cobrança nem sai.
+          customerName: v.data.name,
+          customerDocument: v.data.document || undefined,
+          customerPhone: v.data.whatsapp || undefined,
+          metadata: { orderId: order.id, userId: user.id, source: 'public' },
+        },
       });
       const updated = await ordersRepo.attachGatewayResult(order.id, {
         externalId: result.externalId,
         checkoutUrl: result.checkoutUrl,
         qrCode: result.qrCode,
         status: result.status,
+        gatewayId: gateway.id,
+        gatewayProvider: gateway.provider,
       });
       // Conta nova: e-mail para definir senha (best-effort).
       if (isNewAccount) {

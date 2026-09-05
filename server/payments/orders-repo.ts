@@ -31,6 +31,7 @@ function daLinha(r: Linha): Order {
     productSnapshot: r.productSnapshot as Order['productSnapshot'],
     gatewayId: r.gatewayId,
     gatewayProvider: r.gatewayProvider as Order['gatewayProvider'],
+    metodo: (r.metodo ?? null) as Order['metodo'],
     externalId: r.externalId ?? null,
     status: r.status as OrderStatus,
     amountCents: r.amountCents,
@@ -147,8 +148,18 @@ export async function acharPendenteEquivalente(
     productId: string;
     /** Valor JÁ com desconto aplicado. Reusar pedido de outro valor cobra errado. */
     amountCents: number;
-    /** Reusar pedido de outro gateway manda a pessoa pagar onde ela não escolheu. */
-    gatewayId: string;
+    /**
+     * O método escolhido — pix, boleto ou cartão.
+     *
+     * **Era o gateway**, e a razão escrita era boa: reusar pedido de outro
+     * gateway manda a pessoa pagar onde ela não escolheu. Com roteamento a
+     * pessoa não escolhe mais o gateway, escolhe o método — e o gateway do
+     * pedido pode mudar depois da criação, quando o fallback entra. Chavear
+     * pelo gateway passaria a criar um pedido novo a cada retentativa que
+     * caísse noutro gateway, que é exatamente a cobrança dobrada que esta
+     * função existe para impedir.
+     */
+    metodo?: Order['metodo'];
   },
   janelaMs = 10 * 60_000,
 ): Promise<Order | null> {
@@ -165,7 +176,7 @@ export async function acharPendenteEquivalente(
       // depois de o sistema ter dito que o cupom valia. O mesmo valia para
       // trocar de gateway.
       o.amountCents === criterio.amountCents &&
-      o.gatewayId === criterio.gatewayId &&
+      (o.metodo ?? null) === (criterio.metodo ?? null) &&
       (o.status === 'pending' || o.status === 'processing') &&
       Date.parse(o.createdAt) >= limite,
   );
@@ -227,6 +238,8 @@ interface CreateInput {
   productSnapshot: Order['productSnapshot'];
   gatewayId: string;
   gatewayProvider: Order['gatewayProvider'];
+  /** Pix, boleto ou cartão. Ausente vira NULL — e NULL é "não se sabe". */
+  metodo?: Order['metodo'];
   amountCents: number;
   currency: string;
   /** De onde veio a venda. Ausente vira NULL — não vira "direto". */
@@ -243,6 +256,7 @@ export async function createOrder(input: CreateInput): Promise<Order> {
     productSnapshot: input.productSnapshot,
     gatewayId: input.gatewayId,
     gatewayProvider: input.gatewayProvider,
+    metodo: input.metodo ?? null,
     externalId: null,
     status: 'pending',
     amountCents: input.amountCents,
@@ -266,7 +280,21 @@ export async function createOrder(input: CreateInput): Promise<Order> {
 
 export async function attachGatewayResult(
   id: string,
-  data: { externalId: string; checkoutUrl?: string; qrCode?: string; status: OrderStatus },
+  data: {
+    externalId: string;
+    checkoutUrl?: string;
+    qrCode?: string;
+    status: OrderStatus;
+    /**
+     * Quem cobrou de verdade, quando o fallback entrou.
+     *
+     * **Não é cosmético.** `findByExternalId` casa o webhook por `externalId`
+     * **e** `gatewayId`: pedido cobrado no gateway B e marcado com o A nunca
+     * receberia o `paid`, e a pessoa pagaria sem entrar no curso.
+     */
+    gatewayId?: string;
+    gatewayProvider?: Order['gatewayProvider'];
+  },
 ): Promise<Order | null> {
   const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
@@ -280,13 +308,18 @@ export async function attachGatewayResult(
         checkoutUrl: data.checkoutUrl ?? null,
         qrCode: data.qrCode ?? null,
         status: data.status,
+        ...(data.gatewayId ? { gatewayId: data.gatewayId } : {}),
+        ...(data.gatewayProvider ? { gatewayProvider: data.gatewayProvider } : {}),
         updatedAt: agora,
         events: [
           ...atual.events,
           {
             ts: agora,
             status: data.status,
-            note: `Gateway respondeu (externalId ${data.externalId})`,
+            note:
+              data.gatewayId && data.gatewayId !== atual.gatewayId
+                ? `Cobrado no gateway ${data.gatewayProvider ?? data.gatewayId} (externalId ${data.externalId})`
+                : `Gateway respondeu (externalId ${data.externalId})`,
           },
         ],
       })
@@ -302,6 +335,8 @@ export async function attachGatewayResult(
       checkoutUrl: data.checkoutUrl ?? null,
       qrCode: data.qrCode ?? null,
       status: data.status,
+      ...(data.gatewayId ? { gatewayId: data.gatewayId } : {}),
+      ...(data.gatewayProvider ? { gatewayProvider: data.gatewayProvider } : {}),
       updatedAt: new Date().toISOString(),
       events: [
         ...o.events,

@@ -1,6 +1,7 @@
 // Interface comum a todos providers de pagamento.
 
 import type { PaymentGateway } from '../types';
+import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 
 export interface CreatePaymentInput {
   amountCents: number;
@@ -16,6 +17,14 @@ export interface CreatePaymentInput {
    */
   customerDocument?: string;
   customerPhone?: string;
+  /**
+   * Pix, boleto ou cartão. **Opcional na interface, e não por preguiça:** o
+   * checkout antigo não mandava método nenhum, e cada provider decidia sozinho.
+   * Ausente, o provider mantém o comportamento que tinha; presente, ele é
+   * obrigado a honrá-lo — é isso que torna possível rotear boleto para um
+   * gateway e cartão para outro.
+   */
+  metodo?: MetodoPagamento;
   // metadata para correlacionar com Order interna
   metadata: Record<string, string>;
   successUrl?: string;
@@ -57,6 +66,18 @@ export interface PingResult {
 }
 
 export interface PaymentProviderImpl {
+  /**
+   * Métodos que este provider sabe cobrar — e que ele **honra** quando
+   * `input.metodo` vem preenchido.
+   *
+   * É obrigatório, e não opcional como `ping`, porque a tabela de roteamento
+   * oferece ao admin só o que o provider declara: sem isso seria possível
+   * mandar boleto para o Stripe, e a venda morreria na hora da cobrança em vez
+   * de morrer na hora de configurar. Provider novo não compila sem responder a
+   * esta pergunta.
+   */
+  metodosSuportados: MetodoPagamento[];
+
   /** Cria um payment no gateway. Retorna externalId + URL/QR para finalizar. */
   createPayment(
     gateway: PaymentGateway,
@@ -98,10 +119,32 @@ export interface PaymentProviderImpl {
   ): Promise<PingResult>;
 }
 
+/**
+ * A cobrança chegou a ser criada no gateway?
+ *
+ * É a única pergunta que autoriza o fallback automático a existir. `'nao'` só
+ * pode ser usado quando o gateway **respondeu recusando** — ou quando a
+ * requisição nem saiu da máquina: aí é certo que não há cobrança, e tentar
+ * outro gateway não pode dobrar nada.
+ *
+ * `'talvez'` cobre dois casos que se parecem e pedem a mesma cautela: a
+ * requisição que partiu e não voltou (tempo esgotado, conexão cortada — pode
+ * ter chegado) e a resposta que diz explicitamente que a cobrança existe
+ * apesar do erro. O 502 da Sandra é o segundo: vem com `invoiceId`, a fatura
+ * está lá, pendente, e reemitir cria a segunda.
+ *
+ * **É o padrão de propósito.** Erro que não se classificou não autoriza
+ * retentativa: no caminho do dinheiro, a falha segura é parar e contar o que
+ * houve, não tentar de novo em outro lugar.
+ */
+export type CriouCobranca = 'nao' | 'talvez';
+
 export class PaymentProviderError extends Error {
   code: string;
-  constructor(code: string, message: string) {
+  criouCobranca: CriouCobranca;
+  constructor(code: string, message: string, criouCobranca: CriouCobranca = 'talvez') {
     super(message);
     this.code = code;
+    this.criouCobranca = criouCobranca;
   }
 }

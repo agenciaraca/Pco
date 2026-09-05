@@ -16,6 +16,11 @@ import type {
 } from './types';
 
 export const mockProvider: PaymentProviderImpl = {
+  // O sandbox aceita os três porque existe para exercitar o caminho, não para
+  // cobrar. Ele ignora `metodo` de propósito: é o único provider autorizado a
+  // fazer isso, e é o que o teste de roteamento usa dos dois lados.
+  metodosSuportados: ['pix', 'boleto', 'credit_card'],
+
   async createPayment(_gateway, _creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     const externalId = `mock_${crypto.randomBytes(8).toString('hex')}`;
     const params = new URLSearchParams({

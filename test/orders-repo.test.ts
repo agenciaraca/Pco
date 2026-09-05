@@ -145,12 +145,13 @@ describe('REG-012 · findByExternalId não cruza gateways', () => {
 describe('REG-006 · acharPendenteEquivalente compara valor e gateway', () => {
   const dono = 'u-reuso';
 
-  async function pendente(amountCents: number, gatewayId: string) {
+  async function pendente(amountCents: number, gatewayId: string, metodo: 'pix' | 'boleto' | 'credit_card' | null = null) {
     return await repo.createOrder({
       ...baseInput,
       userId: dono,
       productId: 'p-reuso',
       gatewayId,
+      metodo,
       amountCents,
     });
   }
@@ -160,7 +161,7 @@ describe('REG-006 · acharPendenteEquivalente compara valor e gateway', () => {
     const achado = await repo.acharPendenteEquivalente(dono, {
       productId: 'p-reuso',
       amountCents: 10000,
-      gatewayId: 'gw1',
+      metodo: null,
     });
     expect(achado, 'duplo clique continua sendo um pedido só').not.toBeNull();
     expect(achado!.id).toBe(original.id);
@@ -172,25 +173,49 @@ describe('REG-006 · acharPendenteEquivalente compara valor e gateway', () => {
     const comDesconto = await repo.acharPendenteEquivalente(dono, {
       productId: 'p-reuso',
       amountCents: 8000,
-      gatewayId: 'gw1',
+      metodo: null,
     });
     expect(comDesconto, 'cupom aceito não pode devolver pedido sem desconto').toBeNull();
   });
 
-  it('NÃO reusa quando o gateway mudou', async () => {
-    const outroGateway = await repo.acharPendenteEquivalente(dono, {
+  it('NÃO reusa quando o método mudou', async () => {
+    // Era o gateway, e virou o método em 5/set/2026: com roteamento, quem
+    // escolhe gateway é a tabela, e o gateway do pedido pode até mudar depois
+    // da criação, quando o reserva cobra. O que a pessoa escolheu — e o que
+    // não pode ser trocado por baixo — é pagar no pix ou no boleto.
+    const outroMetodo = await repo.acharPendenteEquivalente(dono, {
       productId: 'p-reuso',
       amountCents: 10000,
-      gatewayId: 'gw-outro',
+      metodo: 'boleto',
     });
-    expect(outroGateway, 'ninguém é mandado pagar onde não escolheu').toBeNull();
+    expect(outroMetodo, 'ninguém é mandado pagar como não escolheu').toBeNull();
+  });
+
+  it('reusa o pedido do MESMO método, ainda que o gateway seja outro', async () => {
+    // A guarda do fallback: se o principal recusa e o reserva cobra, o pedido
+    // muda de gateway. Chavear pelo gateway faria a retentativa seguinte criar
+    // um segundo pedido — cobrança dobrada pela porta dos fundos.
+    const original = await pendente(7700, 'gw1', 'pix');
+    await repo.attachGatewayResult(original.id, {
+      externalId: 'ext-1',
+      status: 'pending',
+      gatewayId: 'gw-reserva',
+      gatewayProvider: 'mock',
+    });
+    const achado = await repo.acharPendenteEquivalente(dono, {
+      productId: 'p-reuso',
+      amountCents: 7700,
+      metodo: 'pix',
+    });
+    expect(achado?.id).toBe(original.id);
+    expect(achado?.gatewayId, 'o pedido passou a ser do gateway que cobrou').toBe('gw-reserva');
   });
 
   it('NÃO reusa pedido de outra pessoa', async () => {
     const deOutro = await repo.acharPendenteEquivalente('u-alheio', {
       productId: 'p-reuso',
       amountCents: 10000,
-      gatewayId: 'gw1',
+      metodo: null,
     });
     expect(deOutro).toBeNull();
   });
@@ -198,7 +223,7 @@ describe('REG-006 · acharPendenteEquivalente compara valor e gateway', () => {
   it('NÃO reusa pedido fora da janela de tempo', async () => {
     const fora = await repo.acharPendenteEquivalente(
       dono,
-      { productId: 'p-reuso', amountCents: 10000, gatewayId: 'gw1' },
+      { productId: 'p-reuso', amountCents: 10000, metodo: null },
       // Janela de 1ms: o pedido criado agora já está velho demais.
       1,
     );
@@ -211,7 +236,7 @@ describe('REG-006 · acharPendenteEquivalente compara valor e gateway', () => {
     const achado = await repo.acharPendenteEquivalente(dono, {
       productId: 'p-reuso',
       amountCents: 4200,
-      gatewayId: 'gw1',
+      metodo: null,
     });
     expect(achado, 'pedido pago não é pedido em aberto').toBeNull();
   });

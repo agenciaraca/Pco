@@ -31,17 +31,23 @@ async function getAccessToken(
     },
     body: 'grant_type=client_credentials',
   });
-  if (!res.ok) throw new PaymentProviderError('PAYPAL_AUTH_FAILED', `HTTP ${res.status}`);
+  // Falha de credencial acontece **antes** de qualquer pedido existir.
+  if (!res.ok) throw new PaymentProviderError('PAYPAL_AUTH_FAILED', `HTTP ${res.status}`, 'nao');
   const j = (await res.json()) as { access_token: string };
   return j.access_token;
 }
 
 export const paypalProvider: PaymentProviderImpl = {
+  // O PayPal cobra em cartão e em saldo da carteira; boleto e pix não passam
+  // por ele. Do ponto de vista da tabela de roteamento, é um gateway de cartão.
+  metodosSuportados: ['credit_card'],
+
   async createPayment(gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey || !creds.apiSecret) {
       throw new PaymentProviderError(
         'NO_KEY',
         'PayPal requer apiKey (client_id) e apiSecret (client_secret).',
+        'nao',
       );
     }
     const base = apiBase(gateway.mode);
@@ -75,9 +81,11 @@ export const paypalProvider: PaymentProviderImpl = {
     });
     if (!res.ok) {
       const j = await res.json().catch(() => null);
+      // O PayPal respondeu recusando: nenhum pedido foi criado.
       throw new PaymentProviderError(
         'PAYPAL_CREATE_FAILED',
         JSON.stringify(j) || `HTTP ${res.status}`,
+        'nao',
       );
     }
     const order = (await res.json()) as {

@@ -21,9 +21,14 @@ function formEncode(params: Record<string, string>): string {
 }
 
 export const stripeProvider: PaymentProviderImpl = {
+  // Só cartão. A conta brasileira do Stripe tem boleto e pix, mas este código
+  // manda `payment_method_types[0] = 'card'` fixo — declarar mais do que se
+  // honra é o que a tabela de roteamento existe para impedir.
+  metodosSuportados: ['credit_card'],
+
   async createPayment(_gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey) {
-      throw new PaymentProviderError('NO_KEY', 'Stripe apiKey ausente.');
+      throw new PaymentProviderError('NO_KEY', 'Stripe apiKey ausente.', 'nao');
     }
 
     const params: Record<string, string> = {
@@ -57,7 +62,9 @@ export const stripeProvider: PaymentProviderImpl = {
       const msg =
         (j as { error?: { message?: string } })?.error?.message ??
         `Stripe HTTP ${res.status}`;
-      throw new PaymentProviderError('STRIPE_CREATE_FAILED', msg);
+      // O Stripe respondeu recusando: não há sessão criada, e o próximo
+      // gateway da rota pode ser tentado sem risco de cobrar duas vezes.
+      throw new PaymentProviderError('STRIPE_CREATE_FAILED', msg, 'nao');
     }
     const session = (await res.json()) as {
       id: string;

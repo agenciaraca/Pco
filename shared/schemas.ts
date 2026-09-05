@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { metodoPagamentoSchema } from './metodos-pagamento';
 
 // Reutilizáveis
 export const idSchema = z.string().min(1);
@@ -188,7 +189,14 @@ export type UpdateProductInput = z.infer<typeof updateProductSchema>;
  */
 export const checkoutSchema = z.object({
   productId: z.string().min(1),
-  gatewayId: z.string().min(1).optional(), // se omitido, usa o ativo
+  /**
+   * Pix, boleto ou cartão. **Opcional**, e o motivo importa: o checkout antigo
+   * não mandava método nenhum e cada gateway decidia sozinho. Ausente, tudo
+   * segue como era; presente, ele decide qual gateway cobra — ver
+   * `server/payments/roteamento.ts`.
+   */
+  metodo: metodoPagamentoSchema.optional(),
+  gatewayId: z.string().min(1).optional(), // se omitido, usa o roteamento
   couponCode: z.string().max(40).optional(),
   /** Nome de quem compra. Sem ele o gateway inventa um a partir do e-mail. */
   name: z.string().min(2).max(120).optional(),
@@ -222,6 +230,8 @@ export const publicCheckoutSchema = z
     document: z.string().max(20).optional().or(z.literal('')),
     whatsapp: z.string().max(30).optional().or(z.literal('')),
     gatewayId: z.string().min(1).optional(),
+    /** Pix, boleto ou cartão. Ver a nota em `checkoutSchema`. */
+    metodo: metodoPagamentoSchema.optional(),
     couponCode: z.string().max(40).optional(),
     /**
      * De onde a pessoa veio, capturado pelo navegador na primeira visita.

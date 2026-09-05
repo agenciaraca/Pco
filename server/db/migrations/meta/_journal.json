@@ -134,6 +134,13 @@
       "when": 1788457901957,
       "tag": "0018_drip_relativo_no_banco",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788634124867,
+      "tag": "0019_metodo_de_pagamento_no_pedido",
+      "breakpoints": true
     }
   ]
 }

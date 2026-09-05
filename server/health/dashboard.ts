@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import * as gatewaysRepo from '../payments/gateways-repo';
+import { metodoConfigurado } from '../payments/roteamento';
+import { METODOS_PAGAMENTO } from '../../shared/metodos-pagamento';
 import * as emailConfigs from '../notifications/config-store';
 import * as emailLogs from '../notifications/log-store';
 import * as webhookEndpoints from '../webhooks/endpoints-store';
@@ -47,14 +49,29 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
   try {
     const gws = await gatewaysRepo.listAll();
     const active = gws.filter((g) => g.active);
+    // Dois gateways ativos e nenhum roteamento **não é** um estado saudável, e
+    // era o estado de produção: a tela dizia "apenas o gateway ativo é usado",
+    // no singular, enquanto o código pegava `listActive()[0]`. Como o cadastro
+    // faz `unshift`, esse primeiro é o último criado — quem cadastrasse um
+    // gateway novo e ativo levava todas as vendas na hora.
+    const semRota = (
+      await Promise.all(
+        METODOS_PAGAMENTO.map(async (m) => ((await metodoConfigurado(m)) ? null : m)),
+      )
+    ).filter((m): m is (typeof METODOS_PAGAMENTO)[number] => m !== null);
+    const ambiguo = active.length > 1 && semRota.length === METODOS_PAGAMENTO.length;
     checks.push({
       id: 'gateways',
       label: 'Gateways de pagamento',
-      status: active.length === 0 ? 'warn' : 'ok',
+      status: active.length === 0 || ambiguo ? 'warn' : 'ok',
       message:
         active.length === 0
           ? 'Nenhum gateway ativo — checkout não funciona'
-          : `${active.length} ativo(s) de ${gws.length}`,
+          : ambiguo
+            ? `${active.length} gateways ativos e nenhum roteamento: quem cobra é o primeiro da lista, não uma escolha`
+            : semRota.length > 0
+              ? `${active.length} ativo(s) de ${gws.length} · sem roteamento para ${semRota.join(', ')}`
+              : `${active.length} ativo(s) de ${gws.length} · roteamento configurado`,
       metric: active.length,
     });
   } catch (err) {

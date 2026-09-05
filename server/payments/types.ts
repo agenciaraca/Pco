@@ -1,5 +1,7 @@
 // Tipos compartilhados de payment gateways e orders.
 
+import type { MetodoPagamento } from '../../shared/metodos-pagamento';
+
 export type PaymentProvider =
   | 'mock'
   | 'stripe'
@@ -96,8 +98,22 @@ export interface Order {
   userEmail: string;
   productId: string;
   productSnapshot: Pick<Product, 'name' | 'priceCents' | 'currency' | 'kind' | 'refId'>;
+  /**
+   * Gateway que **de fato** emitiu a cobrança.
+   *
+   * Com fallback automático ele pode não ser o que criou o pedido: se o
+   * principal recusar, quem cobra é o seguinte, e este campo é reescrito. Tem
+   * de ser — `findByExternalId` casa o webhook por `externalId` **e**
+   * `gatewayId`, então um pedido cobrado no gateway B e marcado com o A nunca
+   * receberia a confirmação de pagamento. A pessoa pagaria e não entraria.
+   */
   gatewayId: string;
   gatewayProvider: PaymentProvider;
+  /**
+   * Pix, boleto ou cartão — o que a pessoa escolheu. `null` nos pedidos
+   * anteriores a 5/set/2026, e nulo quer dizer "não se sabe".
+   */
+  metodo?: MetodoPagamento | null;
   externalId: string | null; // ID do payment no gateway
   status: OrderStatus;
   amountCents: number;

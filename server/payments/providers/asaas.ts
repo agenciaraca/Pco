@@ -9,6 +9,7 @@ import type {
   RefundResult,
 } from './types';
 import { PaymentProviderError } from './types';
+import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 import { pingHttp } from './ping-http';
 import { comparaSegura } from './compara-segura';
 
@@ -18,10 +19,19 @@ function apiBase(mode: 'test' | 'live'): string {
     : 'https://api-sandbox.asaas.com/v3';
 }
 
+/** Nosso método, no vocabulário do Asaas. */
+const BILLING_TYPE: Record<MetodoPagamento, string> = {
+  pix: 'PIX',
+  boleto: 'BOLETO',
+  credit_card: 'CREDIT_CARD',
+};
+
 export const asaasProvider: PaymentProviderImpl = {
+  metodosSuportados: ['pix', 'boleto', 'credit_card'],
+
   async createPayment(gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey) {
-      throw new PaymentProviderError('NO_KEY', 'Asaas apiKey ausente.');
+      throw new PaymentProviderError('NO_KEY', 'Asaas apiKey ausente.', 'nao');
     }
     const base = apiBase(gateway.mode);
 
@@ -39,15 +49,22 @@ export const asaasProvider: PaymentProviderImpl = {
     });
     if (!customerRes.ok) {
       const j = await customerRes.json().catch(() => null);
+      // Cliente é cadastro, não cobrança: falhar aqui não deixa nada a pagar.
       throw new PaymentProviderError(
         'ASAAS_CUSTOMER_FAILED',
         JSON.stringify(j) || `HTTP ${customerRes.status}`,
+        'nao',
       );
     }
     const customer = (await customerRes.json()) as { id: string };
 
     // Cria payment (PIX por padrão; admin pode escolher outro tipo via metadata)
-    const billingType = (input.metadata.billingType as string) ?? 'PIX';
+    // O método pedido manda. Sem ele, o comportamento antigo — `billingType`
+    // no metadata e, na falta, PIX — que é o padrão silencioso que fazia toda
+    // compra pelo Asaas virar pix sem ninguém ter escolhido.
+    const billingType = input.metodo
+      ? BILLING_TYPE[input.metodo]
+      : ((input.metadata.billingType as string) ?? 'PIX');
     const dueDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10); // 3 dias
@@ -69,9 +86,11 @@ export const asaasProvider: PaymentProviderImpl = {
     });
     if (!paymentRes.ok) {
       const j = await paymentRes.json().catch(() => null);
+      // O Asaas respondeu recusando a cobrança: ela não existe.
       throw new PaymentProviderError(
         'ASAAS_PAYMENT_FAILED',
         JSON.stringify(j) || `HTTP ${paymentRes.status}`,
+        'nao',
       );
     }
     const payment = (await paymentRes.json()) as {

@@ -48,6 +48,7 @@ import type {
 } from './types';
 import { PaymentProviderError } from './types';
 import { pingHttp } from './ping-http';
+import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 
 /** Métodos aceitos pela Sandra. Não há padrão — de propósito, do lado dela. */
 export type MetodoSandra = 'pix' | 'boleto' | 'credit' | 'debit';
@@ -125,14 +126,28 @@ export function traduzirStatus(s: string): WebhookEvent['status'] {
   }
 }
 
+/**
+ * Nosso método, no vocabulário da Sandra. `debit` existe do lado dela e não
+ * tem par aqui — ver `shared/metodos-pagamento.ts`.
+ */
+const METODO_SANDRA: Record<MetodoPagamento, MetodoSandra> = {
+  pix: 'pix',
+  boleto: 'boleto',
+  credit_card: 'credit',
+};
+
 export const sandraProvider: PaymentProviderImpl = {
+  metodosSuportados: ['pix', 'boleto', 'credit_card'],
+
   async createPayment(gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     const o = lerOpcoes(gateway.options);
-    if (!creds.apiKey) throw new PaymentProviderError('NO_KEY', 'Sandra: chave de API ausente.');
+    if (!creds.apiKey)
+      throw new PaymentProviderError('NO_KEY', 'Sandra: chave de API ausente.', 'nao');
     if (!o.baseUrl || !o.tenantSlug) {
       throw new PaymentProviderError(
         'SANDRA_CONFIG',
         'Sandra: faltam `baseUrl` e `tenantSlug` nas opções do gateway.',
+        'nao',
       );
     }
 
@@ -143,6 +158,7 @@ export const sandraProvider: PaymentProviderImpl = {
       throw new PaymentProviderError(
         'SANDRA_SEM_PEDIDO',
         'Sandra: sem orderId não há chave de repetição — o pedido precisa existir antes da cobrança.',
+        'nao',
       );
     }
 
@@ -151,18 +167,23 @@ export const sandraProvider: PaymentProviderImpl = {
       throw new PaymentProviderError(
         'SANDRA_SEM_DOCUMENTO',
         'Sandra: CPF ou CNPJ é obrigatório para emitir a cobrança.',
+        'nao',
       );
     }
     if (!documentoValido(documento)) {
       throw new PaymentProviderError(
         'SANDRA_DOCUMENTO_INVALIDO',
         'Sandra: o CPF/CNPJ informado não é válido — confira o número digitado.',
+        'nao',
       );
     }
 
     const corpo = {
       amount: input.amountCents / 100,
-      method: o.metodo,
+      // O método pedido no checkout vence o configurado no gateway: `metodo`
+      // nas opções deixa de ser "o que a escola cobra" e passa a ser o padrão
+      // de quando ninguém escolheu.
+      method: input.metodo ? METODO_SANDRA[input.metodo] : o.metodo,
       dueAt: vencimentoEm(o.diasParaVencer),
       reference: input.description.slice(0, 200),
       payer: {
@@ -193,6 +214,9 @@ export const sandraProvider: PaymentProviderImpl = {
     // não é falha — é "pergunte de novo". Tratar como falha faria o site abrir
     // outro pedido, que é a duplicidade que a chave existe para impedir.
     if (r.status === 202) {
+      // `talvez`, e é o padrão: existe uma cobrança em voo com esta chave.
+      // Cair para outro gateway aqui é exatamente a cobrança dobrada que a
+      // chave de repetição existe para impedir.
       throw new PaymentProviderError(
         'SANDRA_EM_VOO',
         'Sandra: a cobrança deste pedido está sendo criada agora. Tente em instantes — não crie outra.',
@@ -200,6 +224,7 @@ export const sandraProvider: PaymentProviderImpl = {
     }
     if (!r.ok) {
       if (r.status === 502 && j.invoiceId) {
+        // A fatura EXISTE. Sem fallback, sob nenhuma circunstância.
         throw new PaymentProviderError(
           'SANDRA_GATEWAY_FALHOU',
           `Sandra: o gateway da escola falhou, mas a fatura ${j.invoiceId} FOI criada e está pendente. ` +
@@ -207,9 +232,11 @@ export const sandraProvider: PaymentProviderImpl = {
         );
       }
       const detalhe = j.campo ? ` (${j.campo}: ${j.motivo})` : '';
+      // A Sandra respondeu recusando, e sem `invoiceId`: nada foi criado.
       throw new PaymentProviderError(
         'SANDRA_ERRO',
         `Sandra ${r.status} ${j.error ?? 'erro_desconhecido'}${detalhe}`,
+        'nao',
       );
     }
 
