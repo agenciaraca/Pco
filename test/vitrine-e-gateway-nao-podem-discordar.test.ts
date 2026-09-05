@@ -187,6 +187,38 @@ describe('cada método promete o que o gateway dele faz', () => {
     expect(asaasProvider.parcelasMaximas.boleto).toBe(6);
   });
 
+  it('e parcela cartão em 12x — é o que sustenta a venda sem o Pagar.me', () => {
+    // Entrou em 5/set/2026, às pressas e por um motivo concreto: a conta do
+    // Pagar.me não tem o produto "Checkout" habilitado e recusava toda compra.
+    // Sem isto, mover o cartão para o Asaas salvaria a venda e mataria o 12x.
+    expect(asaasProvider.parcelasMaximas.credit_card).toBe(12);
+  });
+
+  it('cartão parcelado no Asaas manda installmentCount, como o carnê', async () => {
+    const f = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 'pay_c', status: 'PENDING', invoiceUrl: 'https://x' }),
+    })) as unknown as typeof fetch;
+    vi.stubGlobal('fetch', f);
+
+    await asaasProvider.createPayment(
+      { id: 'gw', provider: 'asaas', mode: 'live' } as unknown as PaymentGateway,
+      creds,
+      { ...entrada(119_980), metodo: 'credit_card' },
+    );
+    const chamadas = (f as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+    const [, init] = chamadas[1] as [string, { body: string }];
+    const corpo = JSON.parse(init.body) as {
+      billingType: string;
+      installmentCount?: number;
+      totalValue?: number;
+    };
+    expect(corpo.billingType).toBe('CREDIT_CARD');
+    expect(corpo.installmentCount).toBe(12);
+    expect(corpo.totalValue).toBe(1199.8);
+  });
+
   it('o boleto parcelado sai como carnê, com o total fechando no preço', async () => {
     // `totalValue` em vez de `installmentValue`: assim o arredondamento cai na
     // última parcela e a soma bate com o valor anunciado na vitrine. Dividir

@@ -36,10 +36,15 @@ export const asaasProvider: PaymentProviderImpl = {
    * por parcela, agrupados por um id de parcelamento. A resposta traz a
    * primeira cobrança; as demais vencem mês a mês.
    *
-   * Cartão fica em 1x porque este código não manda `installmentCount` no
-   * cartão — e o que se declara aqui é o que o código faz.
+   * **Cartão parcela pelo mesmo campo** (5/set/2026). No cartão,
+   * `installmentCount` é o parcelado normal do adquirente — não vira carnê. O
+   * motivo de ter entrado às pressas: a conta do Pagar.me não tem o produto
+   * "Checkout" habilitado e recusava **toda** compra com
+   * `The checkout payment method is not available for this account` — 14
+   * pedidos perdidos entre 3 e 5/set, de gente vinda de anúncio pago. Sem isto
+   * aqui, mover o cartão para o Asaas teria salvado a venda e matado o 12x.
    */
-  parcelasMaximas: { credit_card: 1, boleto: 6, pix: 1 },
+  parcelasMaximas: { credit_card: 12, boleto: 6, pix: 1 },
 
   async createPayment(gateway, creds, input: CreatePaymentInput): Promise<CreatePaymentResult> {
     if (!creds.apiKey) {
