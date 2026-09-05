@@ -45,11 +45,17 @@ export async function pingGateway(id: string): Promise<GatewayPingResult | null>
     };
   }
 
-  const creds = await gatewaysRepo.getDecryptedCredentials(id);
-  if (!creds) return null;
-
+  // `getDecryptedCredentials` ficava **fora** deste `try`, e a promessa de
+  // "nunca lança" logo acima era falsa: `decryptApiKey` estoura em quatro
+  // casos — chave-mestra ausente, formato inválido, IV/tag errados e falha de
+  // autenticação AES-GCM depois de girar `AI_KEY_ENCRYPTION_SECRET`. O
+  // resultado era um 500 genérico pelo `app.onError` **sem gravar
+  // `lastTestStatus`**: o card seguia exibindo o último teste bem-sucedido.
+  // Degradação silenciosa exatamente no recurso cujo propósito é diagnosticar.
   let resultado: PingResult;
   try {
+    const creds = await gatewaysRepo.getDecryptedCredentials(id);
+    if (!creds) return null;
     resultado = await provider.ping(gw, creds);
   } catch (err) {
     resultado = {

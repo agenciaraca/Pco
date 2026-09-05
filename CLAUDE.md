@@ -486,7 +486,18 @@ Quatro coisas que qualquer mexida aqui tem de respeitar:
   — nem chega a sair da máquina.
 - **Provider sem `ping` não responde "OK".** `manual` e `legado-wp` registram
   venda feita fora do sistema e não têm o que consultar; dizem isso. Provider
-  novo sem ping falha o teste, que é o momento de escrever o dele.
+  novo sem ping falha o teste, que é o momento de escrever o dele. A garantia
+  depende de `ALL_PROVIDERS` e do `registry` não divergirem — são duas listas à
+  mão, e há um caso que compara as duas.
+- **2xx não basta, e o corpo não é persistido** (4/set/2026). Portal de wi-fi e
+  proxy respondem 200 com HTML: sem olhar o `content-type`, o card ficava verde
+  sobre chave que ninguém conferiu. E `lastTestMessage` é gravado no gateway,
+  entra no despejo do banco e sobe para um bucket **sem lifecycle** — corpo de
+  erro de gateway traz id de conta, `request-id` e, em validação malformada,
+  pedaço da credencial. O corpo vai para o log, que tem rotação; o card recebe
+  rótulo e status. Pela mesma razão, endereço apontado para dentro da rede
+  (`169.254.169.254` e afins) não sai da máquina: só a Sandra monta a URL a
+  partir de campo do admin.
 
 O resultado fica gravado no gateway (`lastTestedAt`/`lastTestStatus`/
 `lastTestMessage`) e aparece no card: credencial que parou de valer não avisa
