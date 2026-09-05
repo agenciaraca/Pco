@@ -5,6 +5,12 @@ import { useAuth } from '../auth/AuthContext';
 import { useToast } from './Toast';
 import type { CouponCheckResultDto, ProductDto } from '../data/api';
 import { documentoValido, formatarDocumento } from '../../../shared/documento';
+import {
+  METODOS_PAGAMENTO,
+  ROTULO_METODO,
+  exigeDocumento,
+} from '../../../shared/metodos-pagamento';
+import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 
 export interface CheckoutDialogProps {
   product: ProductDto;
@@ -36,6 +42,14 @@ export default function CheckoutDialog({
 
   const { user } = useAuth();
   const [code, setCode] = useState('');
+  /**
+   * O meio de pagamento decide **qual gateway cobra** — ver
+   * `server/payments/roteamento.ts`. Enquanto ele não era mandado, cada gateway
+   * decidia sozinho: o Asaas cobrava Pix por omissão, e ninguém tinha escolhido.
+   *
+   * Cartão é o padrão porque é a condição que a vitrine anuncia (12x sem juros).
+   */
+  const [metodo, setMetodo] = useState<MetodoPagamento>('credit_card');
   // Nome e CPF do comprador.
   //
   // Não eram pedidos aqui, e o gateway recebia só o e-mail: o Pagar.me montava
@@ -109,9 +123,17 @@ export default function CheckoutDialog({
       refDoc.current?.focus();
       return;
     }
+    if (exigeDocumento(metodo) && !documento.trim()) {
+      // Boleto sem documento faz o gateway recusar o pedido inteiro — e a
+      // pessoa perde junto o cartão e o Pix na mesma recusa.
+      setErroDoc('Para pagar no boleto, informe o CPF ou CNPJ.');
+      refDoc.current?.focus();
+      return;
+    }
     try {
       const r = await startCheckout.mutateAsync({
         productId: product.id,
+        metodo,
         couponCode:
           validation.kind === 'ok' ? validation.data.coupon.code : undefined,
         name: nome.trim(),
@@ -255,6 +277,37 @@ export default function CheckoutDialog({
             </p>
           )}
         </div>
+
+        <fieldset>
+          <legend className="text-xs uppercase tracking-wide text-ink-muted mb-1">
+            Como você quer pagar
+          </legend>
+          <div className="grid gap-1.5">
+            {METODOS_PAGAMENTO.map((m) => (
+              <label
+                key={m}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2 cursor-pointer text-sm ${
+                  metodo === m
+                    ? 'border-pco-blue bg-pco-blue/5 text-pco-deep'
+                    : 'border-surface-line text-ink-muted'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={`${uid}-metodo`}
+                  value={m}
+                  checked={metodo === m}
+                  onChange={() => setMetodo(m)}
+                  className="accent-pco-blue"
+                />
+                <span>{ROTULO_METODO[m]}</span>
+                {exigeDocumento(m) && (
+                  <span className="text-[11px] text-ink-subtle ml-auto">exige CPF</span>
+                )}
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <div>
           <label

@@ -81,9 +81,23 @@ beforeAll(async () => {
     path.join(tmpDir, 'payment-gateways.json'),
     JSON.stringify(
       [
+        // Primeiro da lista — é quem `listActive()[0]` devolvia, e é por isso
+        // que ele está aqui: para que o teste de roteamento prove que a
+        // escolha vence a posição.
+        {
+          id: 'gw-primeiro',
+          provider: 'mock',
+          displayName: 'Primeiro da lista',
+          label: 'Primeiro da lista',
+          mode: 'test',
+          active: true,
+          createdAt: agora,
+          updatedAt: agora,
+        },
         {
           id: 'gw-mock',
           provider: 'mock',
+          displayName: 'Sandbox',
           label: 'Sandbox',
           mode: 'test',
           active: true,
@@ -91,6 +105,18 @@ beforeAll(async () => {
           updatedAt: agora,
         },
       ],
+      null,
+      2,
+    ),
+    'utf8',
+  );
+
+  // Boleto vai para o segundo da lista. Sem roteamento, ele nunca receberia
+  // nada — quem cobra seria sempre o primeiro.
+  await fs.writeFile(
+    path.join(tmpDir, 'payment-routing.json'),
+    JSON.stringify(
+      [{ metodo: 'boleto', principalId: 'gw-mock', fallbackId: null }],
       null,
       2,
     ),
@@ -206,5 +232,64 @@ describe('checkout com carrinho', () => {
   it('exige pelo menos um curso', async () => {
     const r = await comprar({});
     expect(r.status).toBe(400);
+  });
+});
+
+/**
+ * O método escolhido no formulário decide quem cobra.
+ *
+ * Antes de 5/set/2026 o método não chegava ao servidor: o corpo do checkout não
+ * o tinha, e o gateway era `listActive()[0]` — o primeiro da lista. Estes dois
+ * casos medem as duas metades do conserto no caminho que a escola de fato usa,
+ * o do site público.
+ */
+describe('o meio de pagamento escolhido chega ao pedido', () => {
+  it('grava o método no pedido — antes não se sabia como a pessoa pagou', async () => {
+    const { status, json } = await comprar({
+      courseSlug: 'curso-a',
+      name: 'Quem Paga No Boleto',
+      email: 'boleto@example.com',
+      document: '390.533.447-05',
+      metodo: 'boleto',
+    });
+    expect(status).toBe(201);
+
+    const pedido = (await pedidos()).find(
+      (o) => o.id === (json as { orderId: string }).orderId,
+    );
+    expect(pedido?.metodo).toBe('boleto');
+  });
+
+  it('e manda a cobrança para o gateway roteado, não para o primeiro da lista', async () => {
+    const { status, json } = await comprar({
+      courseSlug: 'curso-b',
+      name: 'Outra Pessoa',
+      email: 'boleto2@example.com',
+      document: '390.533.447-05',
+      metodo: 'boleto',
+    });
+    expect(status).toBe(201);
+
+    const pedido = (await pedidos()).find(
+      (o) => o.id === (json as { orderId: string }).orderId,
+    );
+    expect(pedido?.gatewayId, 'a escolha vence a posição na lista').toBe('gw-mock');
+  });
+
+  it('sem método, segue valendo o comportamento antigo', async () => {
+    // Compatibilidade: nenhum link antigo e nenhum integrador quebra por causa
+    // do campo novo. Sem método, o primeiro ativo cobra, como antes.
+    const { status, json } = await comprar({
+      courseSlug: 'curso-a',
+      name: 'Sem Escolha',
+      email: 'semmetodo@example.com',
+    });
+    expect(status).toBe(201);
+
+    const pedido = (await pedidos()).find(
+      (o) => o.id === (json as { orderId: string }).orderId,
+    );
+    expect(pedido?.metodo).toBeNull();
+    expect(pedido?.gatewayId).toBe('gw-primeiro');
   });
 });

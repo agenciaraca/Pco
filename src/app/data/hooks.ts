@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 import * as api from './api';
 import type { AiProviderInfo } from './api';
 
@@ -1208,6 +1209,31 @@ export function useTestPaymentGateway() {
   });
 }
 
+const roteamentoPagamentoKey = ['admin', 'payments', 'routing'] as const;
+
+export function useRoteamentoPagamento() {
+  return useQuery({ queryKey: roteamentoPagamentoKey, queryFn: api.fetchRoteamentoPagamento });
+}
+
+export function useSalvarRotaPagamento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      metodo,
+      patch,
+    }: {
+      metodo: api.RotaDeMetodoDto['metodo'];
+      patch: { principalId: string | null; fallbackId: string | null };
+    }) => api.salvarRotaPagamento(metodo, patch),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: roteamentoPagamentoKey });
+      // A saúde do painel muda com a rota: "2 gateways ativos e nenhum
+      // roteamento" deixa de ser aviso assim que alguém escolhe.
+      void qc.invalidateQueries({ queryKey: paymentGatewaysKey });
+    },
+  });
+}
+
 const productsKey = ['products'] as const;
 const adminProductsKey = ['admin', 'products'] as const;
 
@@ -1311,6 +1337,7 @@ export function useStartCheckout() {
       name,
       document,
       whatsapp,
+      metodo,
     }: {
       productId: string;
       gatewayId?: string;
@@ -1318,7 +1345,9 @@ export function useStartCheckout() {
       name?: string;
       document?: string;
       whatsapp?: string;
-    }) => api.startCheckout(productId, gatewayId, couponCode, { name, document, whatsapp }),
+      metodo?: MetodoPagamento;
+    }) =>
+      api.startCheckout(productId, gatewayId, couponCode, { name, document, whatsapp, metodo }),
     onSuccess: () => qc.invalidateQueries({ queryKey: myOrdersKey }),
   });
 }

@@ -559,6 +559,16 @@ p{margin:0}
 .fi.err,.fi[aria-invalid="true"]{border-color:var(--crit);box-shadow:0 0 0 3px var(--crit-bg)}
 .fi-erro{display:block;margin-top:6px;font-size:13px;font-weight:600;color:var(--crit)}
 .fi::placeholder{color:var(--ink-faint)}
+/* Escolha do meio de pagamento. É ela que decide qual gateway cobra — ver
+   server/payments/roteamento.ts. Rótulo grande e alvo generoso: metade das
+   compras sai de celular. */
+.ck-metodos{display:grid;gap:10px;margin-bottom:18px}
+.ck-metodo{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);
+  border-radius:14px;padding:14px 16px;cursor:pointer;background:var(--paper)}
+.ck-metodo:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.ck-metodo input{margin-top:2px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+.ck-metodo b{display:block;font-size:15px;color:var(--ink)}
+.ck-metodo span{font-size:13px;color:var(--ink-soft);line-height:1.5}
 /* Onde o pagamento realmente acontece. */
 .ck-provedor{display:flex;gap:16px;align-items:flex-start;background:var(--paper);
   border-radius:14px;padding:20px;font-size:14px;color:var(--ink-soft);line-height:1.6}

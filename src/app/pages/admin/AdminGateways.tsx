@@ -23,6 +23,7 @@ import {
   useTestPaymentGateway,
 } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import RoteamentoPagamento from '../../components/RoteamentoPagamento';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
@@ -87,8 +88,8 @@ export default function AdminGateways() {
         <div>
           <h1 className="text-2xl font-bold text-pco-deep">{t('admin.nav.gateways')}</h1>
           <p className="text-sm text-ink-muted">
-            Configure provedores de pagamento. Apenas o gateway ativo é usado para checkouts
-            novos. Credenciais são encriptadas em disco.
+            Configure provedores de pagamento e escolha quem cobra cada método. Credenciais são
+            encriptadas em disco.
           </p>
         </div>
         <button
@@ -106,13 +107,16 @@ export default function AdminGateways() {
         <div>
           <p className="text-pco-deep font-semibold mb-0.5">Modo de operação</p>
           <p>
-            Apenas o gateway <strong>ativo</strong> é usado em checkouts novos. Use{' '}
-            <strong>Testar</strong> antes de ativar um: ele consulta o gateway de verdade, com a
-            credencial gravada, <strong>sem cobrar ninguém</strong>. Credencial que deixa de valer
-            não avisa — o sintoma é venda paga que não vira matrícula.
+            Quem cobra cada método sai da tabela abaixo — <strong>ativo</strong> quer dizer
+            "disponível para ser escolhido", não "é este que recebe". Use <strong>Testar</strong>{' '}
+            antes de pôr um gateway numa rota: ele consulta o gateway de verdade, com a credencial
+            gravada, <strong>sem cobrar ninguém</strong>. Credencial que deixa de valer não avisa —
+            o sintoma é venda paga que não vira matrícula.
           </p>
         </div>
       </div>
+
+      <RoteamentoPagamento />
 
       {gatewaysQ.isLoading ? (
         <CardListSkeleton count={3} />

@@ -93,12 +93,27 @@ export const PUBLIC_JS = `
     if (errEl) errEl.style.display = 'none';
     var g = function (n) { var el = f.querySelector('[name="' + n + '"]'); return el ? el.value : ''; };
     var cons = f.querySelector('[name="consent"]');
+    // O meio de pagamento decide QUAL gateway cobra — ver
+    // server/payments/roteamento.ts. Antes disto o método não era um dado
+    // nosso: cada gateway decidia sozinho, e o Asaas cobrava Pix por omissão.
+    var metodoEl = f.querySelector('input[name="metodo"]:checked');
+    var metodo = metodoEl ? metodoEl.value : null;
     var payload = {
       name: g('name'), email: g('email'), whatsapp: g('whatsapp'),
       document: g('document'), consent: !!(cons && cons.checked),
+      metodo: metodo,
       // De onde a pessoa veio. Não muda preço nem acesso — o servidor só grava.
       origem: leOrigem()
     };
+    // Boleto sem CPF faz o gateway recusar o pedido INTEIRO — e a pessoa perde
+    // junto o cartão e o Pix na mesma recusa. Barrar aqui devolve um erro que
+    // diz o que fazer, em vez de "falha no pagamento".
+    if (metodo === 'boleto' && !payload.document) {
+      if (errEl) { errEl.textContent = 'Para pagar no boleto, informe o CPF.'; errEl.style.display = 'block'; }
+      var cpfEl = f.querySelector('[name="document"]');
+      if (cpfEl && cpfEl.focus) cpfEl.focus();
+      return;
+    }
     // Checkout de carrinho manda a lista; o de um curso só manda o slug.
     // O PRECO nao vai em nenhum dos dois: quem soma e o servidor, a partir dos
     // produtos ativos. O carrinho vive no localStorage, entao o que ele diz

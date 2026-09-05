@@ -1448,12 +1448,26 @@ function formularioCheckout(modo: { tipo: 'curso'; slug: string } | { tipo: 'car
       </div>
 
       <div class="ck-bloco">
-        <h2>2. Pagamento</h2>
+        <h2>2. Como você quer pagar</h2>
+        <fieldset class="ck-metodos">
+          <legend class="sr-only">Meio de pagamento</legend>
+          <label class="ck-metodo">
+            <input type="radio" name="metodo" value="credit_card" checked>
+            <span><b>Cartão de crédito</b>Parcelamento sem juros, conforme o valor do curso.</span>
+          </label>
+          <label class="ck-metodo">
+            <input type="radio" name="metodo" value="pix">
+            <span><b>Pix</b>Confirmação em minutos. O acesso é liberado assim que o pagamento cair.</span>
+          </label>
+          <label class="ck-metodo">
+            <input type="radio" name="metodo" value="boleto">
+            <span><b>Boleto</b>Compensa em até 3 dias úteis. <strong>Exige CPF</strong> — preencha o campo acima.</span>
+          </label>
+        </fieldset>
         <div class="ck-provedor">
           <span class="selo">${CADEADO_SVG}</span>
           <span>
-            O pagamento é feito na página segura do provedor. Ao continuar, você escolhe
-            lá a forma de pagamento disponível — cartão, Pix ou boleto, conforme o provedor.
+            O pagamento é finalizado na página segura do provedor.
             <strong>Nenhum dado de cartão é digitado ou guardado neste site.</strong>
           </span>
         </div>

@@ -2,6 +2,7 @@
 // Os tipos voltam dos schemas/Zod compartilhados em shared/.
 
 import { http } from './client';
+import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 import type {
   Course,
   Module,
@@ -803,6 +804,41 @@ export async function deletePaymentGateway(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/payments/gateways/${encodeURIComponent(id)}`);
 }
 
+// ---------- Roteamento por método de pagamento ----------
+
+export interface RotaDeMetodoDto {
+  metodo: MetodoPagamento;
+  principalId: string | null;
+  fallbackId: string | null;
+}
+
+export interface RoteamentoDto {
+  rotas: RotaDeMetodoDto[];
+  /** Os gateways e, por gateway, os métodos que o provider dele sabe cobrar. */
+  gateways: Array<{
+    id: string;
+    displayName: string;
+    provider: string;
+    active: boolean;
+    mode: string;
+    metodos: MetodoPagamento[];
+  }>;
+}
+
+export async function fetchRoteamentoPagamento(): Promise<RoteamentoDto> {
+  return http.get<RoteamentoDto>('/admin/payments/routing');
+}
+
+export async function salvarRotaPagamento(
+  metodo: MetodoPagamento,
+  patch: { principalId: string | null; fallbackId: string | null },
+): Promise<RotaDeMetodoDto> {
+  return http.put<RotaDeMetodoDto>(
+    `/admin/payments/routing/${encodeURIComponent(metodo)}`,
+    patch,
+  );
+}
+
 // Products
 export type ProductKind = 'course' | 'session_pack' | 'tutor_pack' | 'bundle';
 
@@ -950,6 +986,8 @@ export interface CheckoutComprador {
   name?: string;
   document?: string;
   whatsapp?: string;
+  /** Pix, boleto ou cartão. É ele que decide qual gateway cobra. */
+  metodo?: MetodoPagamento;
 }
 
 export async function startCheckout(
