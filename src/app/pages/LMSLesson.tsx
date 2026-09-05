@@ -1,4 +1,4 @@
-import { useParams, Link, Navigate, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import VideoAula from '../components/VideoAula';
 import {
   ChevronLeft,
@@ -27,6 +27,7 @@ import { TRANSCRIPT_LOCALE_LABELS } from '../../../shared/schemas';
 import { useT } from '../i18n';
 import { useToast } from '../components/Toast';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
+import { SemConexao, FalhaAoCarregar, NaoEncontrado } from '../components/EstadosDeConsulta';
 import LessonComments from '../components/LessonComments';
 import AchievementCelebration from '../components/AchievementCelebration';
 import MarkdownLite from '../components/MarkdownLite';
@@ -39,7 +40,8 @@ import type { NewAchievementDto } from '../data/api';
 export default function LMSLesson() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const navigate = useNavigate();
-  const { data: courses = [], isLoading } = useCourses();
+  const coursesQ = useCourses();
+  const courses = coursesQ.data ?? [];
   const progressQ = useMyProgress();
   const markMut = useMarkLessonCompleted();
   const unmarkMut = useUnmarkLessonCompleted();
@@ -147,8 +149,39 @@ export default function LMSLesson() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId, lookup?.module.id, lookup?.prev?.id, lookup?.next?.id, isCompleted, showShortcuts]);
 
-  if (isLoading) return <CardListSkeleton count={3} />;
-  if (!lookup) return <Navigate to="/cursos" replace />;
+  // Esta tela ficou de fora da correção de 3/set — e é a única das cinco que
+  // exibe o vídeo. Sem rede, `isLoading` é `false` (a requisição está
+  // `paused`, não em voo) e `lookup` é `null`, então a execução caía no
+  // `Navigate` e **o aluno era expulso do meio da aula sem uma palavra**.
+  if (coursesQ.fetchStatus === 'paused') return <SemConexao oQue="esta aula" />;
+  if (coursesQ.isPending) return <CardListSkeleton count={3} />;
+  if (coursesQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={coursesQ.error}
+        oQue="esta aula"
+        aoTentarDeNovo={() => void coursesQ.refetch()}
+      />
+    );
+  if (!lookup)
+    return (
+      <NaoEncontrado
+        titulo="Não achei esta aula na sua estante"
+        acao={
+          <>
+            <Link to="/cursos" className="pco-btn-primary text-sm inline-flex">
+              Ver meus cursos
+            </Link>
+            <Link to="/suporte" className="pco-btn-ghost text-sm inline-flex">
+              Falar com a secretaria
+            </Link>
+          </>
+        }
+      >
+        Pode ser um link antigo, ou a aula pode ter sido movida de módulo. Se
+        você comprou este curso, fale com a secretaria.
+      </NaoEncontrado>
+    );
   const { course, module, lesson, prev, next } = lookup;
 
   async function handleToggleCompleted() {
@@ -216,7 +249,24 @@ export default function LMSLesson() {
             público — e por isso o material pago saía num `curl` sem token.
             Agora vem de uma rota que verifica matrícula e prazo de acesso.
           */}
-          {conteudoQ.isLoading ? (
+          {conteudoQ.fetchStatus === 'paused' ? (
+            /*
+              Sem rede a consulta fica `paused`: `isLoading` e `isError` são
+              ambos `false` e `corpoDaAula` é `null`. Sem este ramo a execução
+              escorria até "Conteúdo desta aula ainda não disponível" — que
+              culpa a escola por não ter cadastrado a aula, quando o problema é
+              a internet de quem lê.
+            */
+            <div className="pco-card">
+              <p className="text-sm text-ink-muted">
+                Sem conexão para carregar o conteúdo desta aula. Assim que a
+                internet voltar, ele aparece sozinho.
+              </p>
+            </div>
+          ) : /* `isLoading`, e não `isPending`: sem matrícula esta consulta
+                 nasce desabilitada, e desabilitada é `isPending: true` para
+                 sempre — a tela ficaria num "carregando" que nunca termina. */
+          conteudoQ.isLoading ? (
             <div className="pco-card">
               <p className="text-sm text-ink-subtle">Carregando o conteúdo da aula…</p>
             </div>
@@ -531,7 +581,8 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
 
   const data = transcriptQ.data;
   const available = data?.availableLocales ?? [];
-  const noTranscript = !transcriptQ.isLoading && available.length === 0;
+  const semRede = transcriptQ.fetchStatus === 'paused';
+  const noTranscript = !transcriptQ.isPending && !semRede && available.length === 0;
 
   async function handleCopy() {
     if (!data?.text) return;
@@ -633,7 +684,11 @@ function TranscriptPanel({ lessonId }: { lessonId: string }) {
           </button>
         </div>
       </div>
-      {transcriptQ.isLoading ? (
+      {semRede ? (
+        <div className="text-xs text-ink-muted">
+          Sem conexão para carregar a transcrição.
+        </div>
+      ) : transcriptQ.isPending ? (
         <div className="flex items-center gap-2 text-xs text-ink-muted">
           <Loader2 size={12} className="animate-spin" />
           {t('lesson.transcriptLoading')}

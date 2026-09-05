@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import LMSCourse from '../src/app/pages/LMSCourse';
 import LMSModule from '../src/app/pages/LMSModule';
 import LMSAssessment from '../src/app/pages/LMSAssessment';
+import LMSLesson from '../src/app/pages/LMSLesson';
 
 /**
  * REG-016/017 e TELA-005 · sem rede não é "não existe".
@@ -44,6 +45,8 @@ import LMSAssessment from '../src/app/pages/LMSAssessment';
 const consulta = vi.hoisted(() => ({
   cursos: {} as Record<string, unknown>,
   progresso: {} as Record<string, unknown>,
+  conteudo: {} as Record<string, unknown>,
+  transcricao: {} as Record<string, unknown>,
 }));
 
 vi.mock('../src/app/data/hooks', () => ({
@@ -52,6 +55,28 @@ vi.mock('../src/app/data/hooks', () => ({
   useCurrentStudent: () => ({ data: null }),
   useMyMentoring: () => ({ data: { configs: [] } }),
   useMyNotes: () => ({ data: [] }),
+  // A partir daqui, o que a tela da aula precisa. Ela foi a que ficou de fora
+  // em 3/set — e é a única das cinco que exibe o vídeo.
+  useLessonNote: () => ({ data: undefined }),
+  useSaveLessonNote: () => ({ isPending: false, mutateAsync: async () => {} }),
+  useMarkLessonCompleted: () => ({ isPending: false, mutateAsync: async () => ({}) }),
+  useUnmarkLessonCompleted: () => ({ isPending: false, mutateAsync: async () => ({}) }),
+  useLessonTranscript: () => consulta.transcricao,
+  useConteudoDaAula: () => consulta.conteudo,
+}));
+
+// `useToast` lança fora do provider, e o batimento de watch-time dispara
+// timers — nenhum dos dois é o assunto aqui.
+vi.mock('../src/app/components/Toast', () => ({
+  useToast: () => ({ success: () => {}, error: () => {}, info: () => {} }),
+}));
+vi.mock('../src/app/hooks/useLessonWatchHeartbeat', () => ({
+  useLessonWatchHeartbeat: () => {},
+}));
+// Os comentários da aula pedem o AuthProvider inteiro; o assunto aqui é o
+// corpo da aula, não a discussão dela.
+vi.mock('../src/app/components/LessonComments', () => ({
+  default: () => null,
 }));
 
 /** Uma consulta do TanStack v5 em cada um dos estados que importam. */
@@ -99,6 +124,8 @@ const estados = {
 beforeEach(() => {
   consulta.cursos = estados.carregando;
   consulta.progresso = { data: { completedLessonIds: [] } };
+  consulta.conteudo = estados.carregando;
+  consulta.transcricao = estados.carregando;
 });
 
 // Imports estáticos, não `import(`...${tela}`)`: o template literal impede o
@@ -108,6 +135,7 @@ const TELAS = {
   LMSCourse,
   LMSModule,
   LMSAssessment,
+  LMSLesson,
 } as const;
 
 function montar(tela: keyof typeof TELAS) {
@@ -120,7 +148,7 @@ function montar(tela: keyof typeof TELAS) {
 }
 
 describe('sem conexão, a tela diz "sem conexão"', () => {
-  for (const tela of ['LMSCourse', 'LMSModule', 'LMSAssessment'] as const) {
+  for (const tela of ['LMSCourse', 'LMSModule', 'LMSAssessment', 'LMSLesson'] as const) {
     it(`${tela} não empurra o aluno para fora`, () => {
       consulta.cursos = estados.offline;
       montar(tela);
@@ -133,7 +161,7 @@ describe('sem conexão, a tela diz "sem conexão"', () => {
 });
 
 describe('erro de servidor, a tela diz o que houve e oferece saída', () => {
-  for (const tela of ['LMSCourse', 'LMSModule', 'LMSAssessment'] as const) {
+  for (const tela of ['LMSCourse', 'LMSModule', 'LMSAssessment', 'LMSLesson'] as const) {
     it(`${tela} mostra o motivo e um botão de tentar de novo`, () => {
       consulta.cursos = estados.erro;
       montar(tela);
@@ -167,5 +195,77 @@ describe('carregando de verdade continua sendo carregando', () => {
     // Guarda contra "consertar" mostrando erro para quem só está esperando.
     expect(screen.queryByText(/sem conexão/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/não achei/i)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * TELA3-003 · a tela da aula, que a passada 003 achou de fora.
+ *
+ * As quatro irmãs foram corrigidas em 3/set; esta não. É a pior das cinco para
+ * ficar de fora, porque é a única que exibe o **vídeo** — e um curso feito de
+ * podcasts gravados é o vídeo. Sem rede, o aluno era levado para `/cursos` no
+ * meio da aula, sem uma palavra.
+ *
+ * Os dois casos abaixo cobrem o que não se vê olhando só o topo do arquivo: a
+ * consulta do **conteúdo** tem os mesmos três estados, e o ramo final dela
+ * dizia *"Conteúdo desta aula ainda não disponível"* — que culpa a escola por
+ * não ter cadastrado a aula quando o problema é a internet de quem lê.
+ */
+describe('LMSLesson: o conteúdo da aula tem os mesmos três estados', () => {
+  const aula = {
+    id: 'l-1',
+    title: 'Aula 1',
+    durationMinutes: 12,
+    isMandatory: false,
+    description: 'Resumo da aula.',
+  };
+  const catalogo = [
+    {
+      id: 'c-1',
+      shortTitle: 'Curso',
+      modules: [{ id: 'm-1', title: 'Módulo 1', lessons: [aula] }],
+    },
+  ];
+
+  // Aqui os parâmetros de rota importam: é preciso que a aula seja
+  // *encontrada*, para que a execução passe do topo e chegue ao conteúdo.
+  function montarAula() {
+    return render(
+      <MemoryRouter initialEntries={['/curso/c-1/aula/l-1']}>
+        <Routes>
+          <Route path="/curso/:courseId/aula/:lessonId" element={<LMSLesson />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it('sem rede não vira "conteúdo ainda não disponível"', () => {
+    // O catálogo já veio (a aula existe e é encontrada); o que falta é o corpo.
+    consulta.cursos = { ...estados.semOCurso, data: catalogo };
+    consulta.conteudo = estados.offline;
+    montarAula();
+
+    expect(screen.getByText(/sem conexão/i)).toBeInTheDocument();
+    expect(screen.queryByText(/ainda não disponível/i)).not.toBeInTheDocument();
+  });
+
+  it('sem matrícula a consulta nasce desabilitada — e desabilitada não é "carregando"', () => {
+    // Consulta desabilitada tem `isPending: true` para sempre. Trocar o ramo
+    // de carregamento para `isPending` deixaria a tela girando eternamente
+    // para quem não tem matrícula, em vez de mostrar o resumo público.
+    consulta.cursos = { ...estados.semOCurso, data: catalogo };
+    consulta.conteudo = {
+      data: undefined,
+      error: null,
+      isPending: true,
+      isLoading: false, // desabilitada: pendente, mas não em voo
+      isError: false,
+      fetchStatus: 'idle' as const,
+      refetch: () => {},
+    };
+    montarAula();
+
+    expect(screen.getByText(/Resumo da aula/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Carregando o conteúdo/i)).not.toBeInTheDocument();
   });
 });
