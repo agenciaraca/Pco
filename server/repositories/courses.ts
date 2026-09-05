@@ -158,6 +158,13 @@ async function loadFromDb(somenteAtivos = true): Promise<Course[]> {
       modules: courseModules,
       totalHours: c.totalHours,
       certificateAvailable: c.certificateAvailable,
+      // `active` vem junto porque a regra de visibilidade **depende dele**:
+      // `isPubliclyListed` é `active !== false && publicListed !== false`, e
+      // sem o campo no objeto ela lia `undefined` e deixava passar. Enquanto o
+      // catálogo era lido já filtrado por `active`, isso não aparecia; quem
+      // precisa da lista completa (o admin, e o aluno com matrícula) traz
+      // curso inativo junto, e aí é este campo que separa um do outro.
+      active: c.active,
     } as Course;
   });
 }
@@ -438,6 +445,12 @@ export async function listCoursesIncludingInactive(): Promise<Course[]> {
 
 export async function findCourse(id: string): Promise<Course | null> {
   const all = await listCourses();
+  return all.find((c) => c.id === id) ?? null;
+}
+
+/** Como `findCourse`, mas enxerga curso desativado. Ver `listCoursesIncludingInactive`. */
+export async function findCourseIncludingInactive(id: string): Promise<Course | null> {
+  const all = await listCoursesIncludingInactive();
   return all.find((c) => c.id === id) ?? null;
 }
 

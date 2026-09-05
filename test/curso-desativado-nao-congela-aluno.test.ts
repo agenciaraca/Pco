@@ -30,16 +30,53 @@ import os from 'node:os';
 
 const espiao = vi.hoisted(() => ({ filtros: [] as unknown[] }));
 
+/** Uma linha de `courses` como o banco a devolve. */
+const linhaDeCurso = vi.hoisted(() => (id: string, active: boolean) => ({
+  id,
+  slug: id,
+  title: id,
+  shortTitle: id,
+  description: '',
+  coverColor: 'from-pco-blue to-pco-cyan',
+  totalHours: 1,
+  certificateAvailable: false,
+  active,
+  meta: {},
+}));
+
 const bancoFalso = vi.hoisted(() => {
-  const alvo = {
-    // `where(undefined)` é como o Drizzle recebe "sem filtro".
-    where: (filtro: unknown) => {
-      espiao.filtros.push(filtro);
-      return Promise.resolve([] as unknown[]);
-    },
+  const linhas: Record<string, unknown[]> = {
+    courses: [linhaDeCurso('c-ativo', true), linhaDeCurso('c-despublicado', false)],
+    modules: [],
+    lessons: [],
+    assessments: [],
   };
+  /** Toda pgTable carrega o nome neste símbolo — é assim que o despejo acha as tabelas. */
+  function nomeDaTabela(t: object): string {
+    const s = Object.getOwnPropertySymbols(t).find((x) => x.description === 'drizzle:Name');
+    return s ? String((t as Record<symbol, unknown>)[s]) : '?';
+  }
   return {
-    select: () => ({ from: () => alvo }),
+    select: () => ({
+      from: (t: object) => {
+        const nome = nomeDaTabela(t);
+        const rows = linhas[nome] ?? [];
+        return {
+          // `where(undefined)` é como o Drizzle recebe "sem filtro".
+          where: (filtro: unknown) => {
+            espiao.filtros.push(filtro);
+            const r =
+              nome === 'courses' && filtro !== undefined
+                ? rows.filter((x) => (x as { active: boolean }).active)
+                : rows;
+            return Promise.resolve(r);
+          },
+          orderBy: () => Promise.resolve(rows),
+          then: (ok: (v: unknown[]) => unknown, err?: (e: unknown) => unknown) =>
+            Promise.resolve(rows).then(ok, err),
+        };
+      },
+    }),
   };
 });
 
@@ -72,6 +109,30 @@ describe('o catálogo filtra por `active`; a operação sobre a aula, não', () 
     await repo.listCoursesIncludingInactive();
     expect(espiao.filtros).toHaveLength(1);
     expect(espiao.filtros[0]).toBeUndefined();
+  });
+});
+
+describe('`active` chega ao objeto do curso, e é ele que separa as personas', () => {
+  /**
+   * Sem este campo o conserto viraria vazamento: com a lista vindo sem filtro,
+   * quem decide o que o visitante vê é `isPubliclyListed`, que é
+   * `active !== false && publicListed !== false`. Se `active` não estiver no
+   * objeto, ela lê `undefined`, `undefined !== false` é verdade, e o curso
+   * despublicado passa a aparecer na vitrine.
+   *
+   * O caminho de banco montava o objeto campo a campo e **não copiava
+   * `active`** — nunca precisou, porque a consulta já vinha filtrada.
+   */
+  it('o curso despublicado vem marcado como tal', async () => {
+    const todos = await repo.listCoursesIncludingInactive();
+    expect(todos.map((co) => co.id)).toEqual(['c-ativo', 'c-despublicado']);
+    expect(todos.find((co) => co.id === 'c-despublicado')?.active).toBe(false);
+    expect(todos.find((co) => co.id === 'c-ativo')?.active).toBe(true);
+  });
+
+  it('e a lista de descoberta segue trazendo só o ativo', async () => {
+    const todos = await repo.listCourses();
+    expect(todos.map((co) => co.id)).toEqual(['c-ativo']);
   });
 });
 

@@ -37,6 +37,7 @@ import os from 'node:os';
 const VIDEO_PUBLICO = 'https://player.vimeo.com/video/111-do-curso-publico';
 const VIDEO_INTERNO = 'https://player.vimeo.com/video/222-do-treinamento-de-operador';
 const VIDEO_MATRICULADO = 'https://player.vimeo.com/video/333-do-curso-dos-655';
+const VIDEO_DESPUBLICADO = 'https://player.vimeo.com/video/444-do-curso-despublicado';
 
 let tmpDir: string;
 let app: { fetch: (req: Request) => Response | Promise<Response> };
@@ -48,7 +49,13 @@ let tokenAluno: string;
 let tokenAdmin: string;
 let alunoId: string;
 
-function curso(opts: { id: string; titulo: string; video: string; publicListed?: boolean }) {
+function curso(opts: {
+  id: string;
+  titulo: string;
+  video: string;
+  publicListed?: boolean;
+  active?: boolean;
+}) {
   return {
     id: opts.id,
     slug: opts.id,
@@ -58,7 +65,7 @@ function curso(opts: { id: string; titulo: string; video: string; publicListed?:
     coverColor: 'from-pco-blue to-pco-cyan',
     totalHours: 4,
     certificateAvailable: false,
-    active: true,
+    active: opts.active ?? true,
     ...(opts.publicListed === false ? { publicListed: false } : {}),
     tags: [],
     modules: [
@@ -112,6 +119,15 @@ beforeAll(async () => {
           video: VIDEO_MATRICULADO,
           publicListed: false,
         }),
+        // Despublicado (`active: false`) e com aluno dentro. É o caso que
+        // faltava: o curso saiu da vitrine, mas quem pagou continua matriculado
+        // e no prazo.
+        curso({
+          id: 'c-despublicado',
+          titulo: 'Curso Despublicado',
+          video: VIDEO_DESPUBLICADO,
+          active: false,
+        }),
       ],
       null,
       2,
@@ -145,6 +161,19 @@ beforeAll(async () => {
   );
   if (matricula.status !== 200) {
     throw new Error(`matrícula do aluno falhou: ${matricula.status} ${await matricula.text()}`);
+  }
+
+  const matriculaDespublicado = await app.fetch(
+    new Request('http://local/api/admin/courses/c-despublicado/enroll-bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenAdmin}` },
+      body: JSON.stringify({ studentIds: [alunoId] }),
+    }),
+  );
+  if (matriculaDespublicado.status !== 200) {
+    throw new Error(
+      `matrícula no despublicado falhou: ${matriculaDespublicado.status} ${await matriculaDespublicado.text()}`,
+    );
   }
 });
 
@@ -313,5 +342,72 @@ describe('admin', () => {
     const { status, body } = await pegar('/api/courses/c-interno', tokenAdmin);
     expect(status).toBe(200);
     expect(body).toContain(VIDEO_INTERNO);
+  });
+});
+
+/**
+ * Despublicar um curso não pode apagá-lo de quem pagou.
+ *
+ * `active: false` é o que a tela do admin chama de "despublicar" — e é também
+ * o que `deleteCourse` faz, porque a exclusão é lógica. `listCourses()` filtra
+ * por ele no repositório, de modo que o curso sumia **de todo mundo ao mesmo
+ * tempo**: da estante de quem estava estudando, da rota que entrega o texto e
+ * o vídeo da aula, do certificado já emitido (a tela casa cada certificado com
+ * o curso de origem e some com o que não achar) e da própria lista do admin —
+ * que não tem outra rota para listar curso, e por isso ficava sem caminho de
+ * volta pela interface.
+ *
+ * A regra por persona é a mesma de sempre, e é ela que separa: `isPubliclyListed`
+ * já é `active !== false && publicListed !== false`, então o visitante continua
+ * sem ver. Quem tem matrícula, vê.
+ *
+ * **O filtro só existe no caminho de banco.** Em modo JSON o store devolve
+ * tudo, então estes casos passariam mesmo antes do conserto: eles são a guarda
+ * contra "resolver" isto filtrando `active` para todo mundo de novo. A prova do
+ * comportamento em banco está em `test/curso-desativado-nao-congela-aluno.test.ts`,
+ * que observa a consulta montada.
+ */
+describe('curso despublicado', () => {
+  it('some para o visitante anônimo — é isso que despublicar quer dizer', async () => {
+    const { ids } = await catalogo();
+    expect(ids).not.toContain('c-despublicado');
+  });
+
+  it('e por id ele é 404, não 403 — 403 confirmaria que existe', async () => {
+    const { status } = await pegar('/api/courses/c-despublicado');
+    expect(status).toBe(404);
+  });
+
+  it('CONTINUA na estante de quem tem matrícula nele', async () => {
+    const { ids } = await catalogo(tokenAluno);
+    expect(ids).toContain('c-despublicado');
+  });
+
+  it('e o aluno continua recebendo o conteúdo e o vídeo da aula', async () => {
+    // É a rota que entrega o texto **e** o vídeo. Num curso feito de podcasts
+    // gravados, perder isto é perder a aula inteira — e o aluno leria
+    // "curso não encontrado" sobre um curso que ele paga.
+    const { status, body } = await pegar(
+      '/api/me/courses/c-despublicado/lessons/c-despublicado-l1/content',
+      tokenAluno,
+    );
+    expect(status).toBe(200);
+    expect(body).toContain(VIDEO_DESPUBLICADO);
+    expect(body).toContain('Material completo');
+  });
+
+  it('o admin vê o curso — senão não há como republicá-lo', async () => {
+    const { ids } = await catalogo(tokenAdmin);
+    expect(ids).toContain('c-despublicado');
+  });
+
+  it('e a lista do admin diz que ele está despublicado', async () => {
+    // A tela já tinha o selo "Despublicado" e a ação em massa de publicar;
+    // faltava o dado chegar. Sem `active` na resposta, a lista mostraria o
+    // curso como publicado — trocar um sumiço por uma mentira não é conserto.
+    const { body } = await catalogo(tokenAdmin);
+    const lista = JSON.parse(body) as Array<{ id: string; active?: boolean }>;
+    expect(lista.find((co) => co.id === 'c-despublicado')?.active).toBe(false);
+    expect(lista.find((co) => co.id === 'c-publico')?.active).not.toBe(false);
   });
 });

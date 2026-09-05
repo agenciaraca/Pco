@@ -2319,7 +2319,21 @@ export function buildApp() {
    */
   app.get('/courses', async (c) => {
     const u = c.get('user');
-    const todos = await coursesRepo.listCourses();
+    // **Inclui curso desativado, e quem separa é `isPubliclyListed`.**
+    //
+    // `listCourses()` filtra `active = true` no repositório, e isso apagava o
+    // curso de todo mundo ao mesmo tempo: despublicar um curso — ou "excluir",
+    // que é o mesmo `active: false` — tirava-o da estante de quem pagou, junto
+    // com o certificado já emitido (a tela de certificados casa cada um com o
+    // curso de origem e some com o que não achar). E tirava do **admin**
+    // também: são 21 telas lendo desta rota, e não existe outra que liste
+    // curso; o curso desativado ficava sem caminho de volta pela interface.
+    //
+    // Com a lista inteira aqui, a regra por persona é a única a decidir —
+    // `isPubliclyListed` já é `active !== false && publicListed !== false`,
+    // então o visitante continua sem ver, e quem tem matrícula continua vendo o
+    // que é dele.
+    const todos = await coursesRepo.listCoursesIncludingInactive();
 
     if (u && (u.role === 'admin' || u.role === 'superadmin')) {
       return c.json(todos);
@@ -2377,7 +2391,8 @@ export function buildApp() {
   app.get('/lessons/:id/transcript', async (c) => {
     const lessonId = c.req.param('id') as string;
     const lang = (c.req.query('lang') ?? 'pt') as 'pt' | 'es' | 'en';
-    const all = await coursesRepo.listCourses();
+    // Idem: `requisitantePodeVerCurso`, abaixo, é quem decide por persona.
+    const all = await coursesRepo.listCoursesIncludingInactive();
     let foundLesson: (typeof all)[number]['modules'][number]['lessons'][number] | null = null;
     let parentCourse: (typeof all)[number] | null = null;
     for (const co of all) {
@@ -2595,7 +2610,11 @@ export function buildApp() {
    * `/public/checkout` responder 404 para curso fora de venda.
    */
   app.get('/courses/:id', async (c) => {
-    const course = await coursesRepo.findCourse(c.req.param('id'));
+    // Mesma razão da lista: quem separa é `requisitantePodeVerCurso`, logo
+    // abaixo, e ele já trata as três personas. Curso desativado deixa de ser
+    // 404 para quem tem matrícula nele e para o admin — e segue 404 para o
+    // visitante, porque `isPubliclyListed` olha `active`.
+    const course = await coursesRepo.findCourseIncludingInactive(c.req.param('id'));
     if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado');
     // Drip: usa data de matrícula do aluno logado (se houver) pra
     // computar drip relativo. Visitantes só veem o lock absoluto.
@@ -2646,7 +2665,12 @@ export function buildApp() {
       return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc));
     }
 
-    const course = await coursesRepo.findCourse(courseId);
+    // O portão já passou (`courseAccessFor`, acima): esta pessoa tem matrícula
+    // válida e prazo. Filtrar por `active` aqui devolvia 404 — "curso não
+    // encontrado" — para quem estava com a aula aberta, só porque alguém
+    // despublicou o curso para editar. É a rota que entrega o texto **e o
+    // vídeo**: num curso feito de podcasts gravados, some a aula inteira.
+    const course = await coursesRepo.findCourseIncludingInactive(courseId);
     if (!course) return jsonError(c, 404, 'NOT_FOUND', 'Curso não encontrado.');
 
     const lesson = course.modules.flatMap((m) => m.lessons ?? []).find((l) => l.id === lessonId);
