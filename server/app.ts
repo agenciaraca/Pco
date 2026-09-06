@@ -162,6 +162,7 @@ import * as couponsRepo from './payments/coupons-repo';
 import { ALL_PROVIDERS, getPaymentProvider } from './payments/providers/registry';
 import { cobrar, escolherCandidatos } from './payments/cobranca';
 import { listarJobs } from './jobs/inventario';
+import { expurgarTitular } from './privacy/expurgo';
 import * as roteamentoPagamento from './payments/roteamento';
 import { metodoPagamentoSchema } from '../shared/metodos-pagamento';
 import * as importJobs from './imports/job-store';
@@ -2032,6 +2033,26 @@ export function buildApp() {
       if (!['approved', 'rejected', 'completed'].includes(status)) {
         return jsonError(c, 400, 'INVALID_STATUS', 'status inválido.');
       }
+      /*
+        `completed` exige que o expurgo tenha rodado.
+
+        Até 5/set/2026 este status era um carimbo: gravava o campo e a nota, e
+        **nada era apagado em lugar nenhum**. A escola respondia ao titular que
+        a exclusão estava concluída e guardava tudo. Agora "concluída" quer
+        dizer que a rotina rodou — e o relatório dela fica anexado ao pedido,
+        com o que foi apagado, o que foi retido e por quê.
+      */
+      if (status === 'completed') {
+        const atual = (await deletionRequests.listAll()).find((r) => r.id === id);
+        if (!atual?.expurgo?.executadoEm) {
+          return jsonError(
+            c,
+            409,
+            'EXPURGO_NAO_EXECUTADO',
+            'Rode o expurgo antes de concluir: POST /admin/deletion-requests/:id/expurgo?commit=true',
+          );
+        }
+      }
       const r = await deletionRequests.setStatus(
         id,
         status as 'approved' | 'rejected' | 'completed',
@@ -2040,6 +2061,63 @@ export function buildApp() {
       );
       if (!r) return jsonError(c, 404, 'NOT_FOUND', 'Solicitação não encontrada.');
       return c.json(r);
+    },
+  );
+
+  /**
+   * Executa (ou ensaia) o expurgo dos dados do titular.
+   *
+   * **Ensaio é o padrão.** Sem `?commit=true` ele lista o que faria, categoria
+   * por categoria, e não toca em nada — é a operação mais destrutiva do
+   * sistema, e o ensaio é a única forma de alguém conferir antes.
+   *
+   * O relatório fica anexado à solicitação: é ele que distingue "a escola
+   * apagou os dados" de "alguém marcou a caixinha".
+   */
+  app.post(
+    '/admin/deletion-requests/:id/expurgo',
+    requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('lgpd.deletion.confirm'),
+    rateLimit({ windowMs: 60_000, max: 10 }),
+    async (c) => {
+      const id = c.req.param('id') as string;
+      const u = c.get('user')!;
+      const commit = c.req.query('commit') === 'true';
+      const pedido = (await deletionRequests.listAll()).find((r) => r.id === id);
+      if (!pedido) return jsonError(c, 404, 'NOT_FOUND', 'Solicitação não encontrada.');
+      if (pedido.status === 'rejected') {
+        return jsonError(c, 409, 'CONFLICT', 'Solicitação recusada não se expurga.');
+      }
+
+      const r = await expurgarTitular(pedido.userId, { commit });
+      const resumo = {
+        executadoEm: new Date().toISOString(),
+        executadoPor: u.email,
+        completo: r.completo,
+        tratadas: r.itens
+          .filter((i) => !i.erro && i.destino !== 'reter')
+          .map((i) => ({ categoria: i.categoria, destino: i.destino, tratados: i.tratados })),
+        retidas: r.itens
+          .filter((i) => i.destino === 'reter')
+          .map((i) => ({ categoria: i.categoria, motivo: i.motivo ?? '' })),
+        pendentes: r.itens
+          .filter((i) => i.erro)
+          .map((i) => ({ categoria: i.categoria, erro: i.erro! })),
+      };
+      // Só o que rodou de verdade fica registrado: ensaio não vira prova.
+      if (commit) await deletionRequests.registrarExpurgo(id, resumo);
+      await recordAudit(c, {
+        action: commit ? 'lgpd.deletion.purge' : 'lgpd.deletion.purge.dryrun',
+        targetType: 'deletion_request',
+        targetId: id,
+        meta: {
+          userId: pedido.userId,
+          completo: r.completo,
+          tratadas: resumo.tratadas.length,
+          pendentes: resumo.pendentes.length,
+        },
+      });
+      return c.json({ ensaio: !commit, ...resumo, itens: r.itens });
     },
   );
 

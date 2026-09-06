@@ -157,3 +157,17 @@ export async function progressByCourse(
   }
   return out;
 }
+
+/**
+ * Apaga tudo desta pessoa. Usado pelo expurgo de dados (LGPD, art. 18, VI).
+ *
+ * Devolve quantos registros saíram — o expurgo precisa do número para dizer o
+ * que fez, e "0 apagados" é resposta diferente de "não consegui".
+ */
+export async function clearForUser(userId: string): Promise<number> {
+  const all = await store.getAll();
+  const remaining = all.filter((x) => x.userId !== userId);
+  const removed = all.length - remaining.length;
+  if (removed > 0) await store.setAll(remaining);
+  return removed;
+}
