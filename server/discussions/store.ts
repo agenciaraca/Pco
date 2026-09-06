@@ -119,3 +119,26 @@ export async function listAll(filter: ListAllFilter = {}): Promise<LessonComment
   filtered.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
   return filter.limit ? filtered.slice(0, filter.limit) : filtered;
 }
+
+/**
+ * Corta o vínculo com a pessoa e mantém o texto.
+ *
+ * Anonimizar em vez de apagar porque o que está escrito aqui **vale para outra
+ * pessoa**: apagar a pergunta deixa a resposta de outro aluno pendurada no
+ * vazio. O expurgo de dados (LGPD, art. 18, VI) tira o nome e o vínculo; a
+ * conversa da turma continua fazendo sentido.
+ */
+export async function anonimizarParaUsuario(
+  userId: string,
+  marca: { nome: string },
+): Promise<number> {
+  const all = await store.getAll();
+  let tocados = 0;
+  const novos = all.map((x) => {
+    if (x.authorId !== userId) return x;
+    tocados += 1;
+    return { ...x, authorId: `anon-${x.id}`, authorName: marca.nome };
+  });
+  if (tocados > 0) await store.setAll(novos);
+  return tocados;
+}

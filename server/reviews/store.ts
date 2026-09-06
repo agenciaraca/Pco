@@ -107,3 +107,25 @@ export async function deleteReview(id: string): Promise<boolean> {
   await store.setAll(keep);
   return true;
 }
+
+/**
+ * Corta o vínculo com a pessoa e mantém a avaliação.
+ *
+ * Anonimizar em vez de apagar porque a nota **entra na média que os outros
+ * leem**: sumir com ela reescreveria um número público por causa de um pedido
+ * individual. O expurgo tira o nome e o vínculo; a média fica de pé.
+ */
+export async function anonimizarParaUsuario(
+  userId: string,
+  marca: { nome: string },
+): Promise<number> {
+  const all = await store.getAll();
+  let tocados = 0;
+  const novos = all.map((x) => {
+    if (x.userId !== userId) return x;
+    tocados += 1;
+    return { ...x, userId: `anon-${x.id}`, userName: marca.nome };
+  });
+  if (tocados > 0) await store.setAll(novos);
+  return tocados;
+}

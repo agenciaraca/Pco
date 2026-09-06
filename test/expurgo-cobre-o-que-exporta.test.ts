@@ -120,15 +120,26 @@ describe('o ensaio é o padrão da operação mais destrutiva do sistema', () =>
     }
   });
 
-  it('categoria sem rotina de limpeza derruba o "completo"', async () => {
-    // O honesto: dez categorias ainda não têm rotina no repositório delas, e o
-    // expurgo diz isso em vez de reportar sucesso. Enquanto houver uma, a
-    // solicitação não pode virar "concluída" — que era exatamente a mentira
-    // que esta rotina existe para acabar.
+  it('toda categoria tem rotina — nenhuma fica declarada como pendente', async () => {
+    // As dez que faltavam ganharam `clearForUser`/`anonimizarParaUsuario` nos
+    // repositórios delas. Enquanto houvesse uma sem rotina, nenhuma exclusão
+    // poderia fechar como concluída — e concluir sem apagar era exatamente a
+    // mentira que esta rotina existe para acabar.
     const r = await expurgo.expurgarTitular('u-inexistente');
-    expect(r.completo).toBe(false);
-    const semRotina = r.itens.filter((i) => i.erro);
-    expect(semRotina.length).toBeGreaterThan(0);
-    for (const i of semRotina) expect(i.erro).toMatch(/sem rotina/);
+    const pendentes = r.itens.filter((i) => i.erro);
+    expect(
+      pendentes.map((i) => `${i.categoria}: ${i.erro}`),
+      'categoria sem rotina de expurgo',
+    ).toEqual([]);
+    expect(r.completo).toBe(true);
+  });
+
+  it('o que é retido nunca é tratado, nem com commit', async () => {
+    // Retenção é decisão jurídica. Um `commit` não pode passar por cima dela
+    // por acidente — pedido pago é documento fiscal.
+    const r = await expurgo.expurgarTitular('u-inexistente', { commit: true });
+    for (const i of r.itens.filter((x) => x.destino === 'reter')) {
+      expect(i.tratados, `"${i.categoria}" é retida e foi tratada`).toBe(0);
+    }
   });
 });

@@ -38,6 +38,16 @@ import * as lessonNotesRepo from '../repositories/lesson-notes';
 import * as podcastEngagementRepo from '../repositories/podcast-engagement';
 import * as tutorHistory from '../repositories/tutor-history';
 import * as ordersRepo from '../payments/orders-repo';
+import * as bookingsRepo from '../sessions/bookings-repo';
+import * as supportRepo from '../repositories/support';
+import * as notificationsRepo from '../repositories/notifications';
+import * as achievementsStore from '../achievements/store';
+import * as watchTimeRepo from '../repositories/watch-time';
+import * as discussions from '../discussions/store';
+import * as courseReviews from '../reviews/store';
+import * as retentionRepo from '../repositories/retention';
+import * as adminNotes from '../admin/notes-store';
+import * as recoveryPlans from '../repositories/recovery-plans';
 
 export type Destino = 'apagar' | 'anonimizar' | 'reter';
 
@@ -242,28 +252,72 @@ export async function expurgarTitular(
     async () => 0,
   );
 
-  // As categorias abaixo ainda não têm rotina de limpeza no repositório delas.
-  // Declará-las com `encontrados: -1` seria inventar; o honesto é registrar o
-  // erro, que derruba `completo` e impede a solicitação de virar "concluída".
-  for (const categoria of [
-    'sessionBookings',
-    'supportTickets',
-    'notifications',
-    'achievements',
-    'watchTime',
-    'forumAndComments',
-    'courseReviews',
-    'retentionRisk',
-    'adminNotesAboutMe',
-    'recoveryPlans',
-  ]) {
-    itens.push({
-      ...d(categoria),
-      encontrados: 0,
-      tratados: 0,
-      erro: 'sem rotina de expurgo no repositório desta categoria',
-    });
-  }
+  const marca = marcaAnonima(userId);
+
+  await registra(
+    d('sessionBookings'),
+    async () => (await contar(() => bookingsRepo.listForUser(userId))).length,
+    async () => await bookingsRepo.anonimizarParaUsuario(userId, marca),
+  );
+
+  await registra(
+    d('supportTickets'),
+    async () => (await contar(() => supportRepo.listTicketsForStudent(userId))).length,
+    async () => await supportRepo.clearForUser(userId),
+  );
+
+  await registra(
+    d('notifications'),
+    async () => (await contar(() => notificationsRepo.listForUser(userId, 100_000))).length,
+    async () => await notificationsRepo.clearForUser(userId),
+  );
+
+  await registra(
+    d('achievements'),
+    async () => (await contar(() => achievementsStore.listForUser(userId))).length,
+    async () => await achievementsStore.clearForUser(userId),
+  );
+
+  await registra(
+    d('watchTime'),
+    async () => (await contar(() => watchTimeRepo.listForUser(userId))).length,
+    async () => await watchTimeRepo.clearForUser(userId),
+  );
+
+  await registra(
+    d('forumAndComments'),
+    async () =>
+      (await contar(() => discussions.listAll())).filter((x) => x.authorId === userId).length,
+    async () => await discussions.anonimizarParaUsuario(userId, marca),
+  );
+
+  await registra(
+    d('courseReviews'),
+    async () =>
+      (await contar(() => courseReviews.listAll())).filter((x) => x.userId === userId).length,
+    async () => await courseReviews.anonimizarParaUsuario(userId, marca),
+  );
+
+  await registra(
+    d('retentionRisk'),
+    async () =>
+      (await contar(() => retentionRepo.listRetentionRisks())).filter(
+        (x) => x.studentId === userId,
+      ).length,
+    async () => await retentionRepo.clearForUser(userId),
+  );
+
+  await registra(
+    d('adminNotesAboutMe'),
+    async () => (await contar(() => adminNotes.listForStudent(userId))).length,
+    async () => await adminNotes.clearForUser(userId),
+  );
+
+  await registra(
+    d('recoveryPlans'),
+    async () => (await contar(() => recoveryPlans.listForStudent(userId))).length,
+    async () => await recoveryPlans.clearForUser(userId),
+  );
 
   return {
     userId,

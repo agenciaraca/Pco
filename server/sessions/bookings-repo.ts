@@ -228,3 +228,25 @@ export async function cancel(id: string, reason: string): Promise<SessionBooking
 export async function _resetParaTeste(): Promise<void> {
   await store.setAll([]);
 }
+
+/**
+ * Corta o vínculo com a pessoa e mantém o agendamento.
+ *
+ * Anonimizar em vez de apagar porque o agendamento **vale para o
+ * profissional**: é a agenda dele, e o histórico de atendimento não é só do
+ * titular. O nome e o vínculo saem; o horário e o valor combinados ficam.
+ */
+export async function anonimizarParaUsuario(
+  userId: string,
+  marca: { nome: string },
+): Promise<number> {
+  const all = await store.getAll();
+  let tocados = 0;
+  const novos = all.map((x) => {
+    if (x.userId !== userId) return x;
+    tocados += 1;
+    return { ...x, userId: `anon-${x.id}`, studentName: marca.nome };
+  });
+  if (tocados > 0) await store.setAll(novos);
+  return tocados;
+}

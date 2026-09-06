@@ -109,3 +109,26 @@ export async function createTicket(input: CreateInput): Promise<SupportTicket> {
     updatedAt: r.updatedAt.toISOString(),
   };
 }
+
+/**
+ * Apaga os chamados desta pessoa. Expurgo de dados (LGPD, art. 18, VI).
+ *
+ * **Os dois caminhos** — em produção há banco, e limpar só o JSON diria
+ * "apagado" sem apagar.
+ */
+export async function clearForUser(studentId: string): Promise<number> {
+  const db = getDb();
+  let removidos = 0;
+  if (db) {
+    const r = await db
+      .delete(schema.supportTickets)
+      .where(eq(schema.supportTickets.studentId, studentId))
+      .returning();
+    removidos += r.length;
+  }
+  const all = await store.getAll();
+  const remaining = all.filter((x) => x.studentId !== studentId);
+  removidos += all.length - remaining.length;
+  if (all.length !== remaining.length) await store.setAll(remaining);
+  return removidos;
+}

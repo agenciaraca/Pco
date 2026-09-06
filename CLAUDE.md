@@ -289,6 +289,48 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
+> ### 5/set/2026, fim do dia — tudo publicado, e a venda religada
+>
+> **`main`, `origin/main` e produção estão no mesmo commit.** O dia teve três
+> blocos, e o do meio é o que importa.
+>
+> **1. Publicação.** Os 29 commits da auditoria subiram, com as migrations
+> `0018` e `0019` aplicadas antes do código. Uma parada salvou a vitrine: com
+> dois gateways ativos e nenhum roteamento, a regra do mínimo derrubava todos os
+> métodos para 1x e a linha "ou 12x de R$ 99,88" **sumiria do site**. A tabela de
+> rotas foi escrita antes do deploy, e o código antigo a ignora — sem janela.
+>
+> **2. A venda estava quebrada desde 3/set, e ninguém sabia.** `/admin/pedidos`
+> mostrou nove tentativas da mesma pessoa, hoje, todas falhando com
+> `The checkout payment method is not available for this account` — **a conta do
+> Pagar.me não tem o produto Checkout habilitado**. 14 pedidos perdidos entre 3 e
+> 5/set, 4 pessoas distintas, tráfego de anúncio pago (`Exatas-Otimizada-2025`).
+> Em setembro: 18 falhas, 1 pago — e esse um foi lançamento manual.
+>
+> **Religada roteando tudo para o Asaas**, que parcela cartão pelo mesmo campo do
+> carnê. Provado com uma compra de teste real: `CREDIT_CARD`, `value: 99.88`,
+> parcela 1 de 12 — e a cobrança de teste foi apagada depois. **Habilitar o
+> Checkout no painel do Pagar.me é ação do dono**; quando habilitarem, é um
+> seletor em `/admin/gateways`.
+>
+> **3. Modo autônomo.** Percorri dez dashboards em produção pelo Chrome e
+> consertei o que achei: `/admin/jobs` mostrava **5 workers de 12** (e um card
+> sem nome, com `NaN dia(s)`); `/admin/retencao` chamava nove cursos de `8495`;
+> o painel dizia "Alunos ativos" duas vezes com números diferentes. Depois, os
+> dois maiores abertos da auditoria: **o backup ganhou restaurador** (ARCH3-006)
+> e **o expurgo de dados passou a existir** (PRIV2-001).
+>
+> **O que segue aberto**, em ordem:
+>
+> 1. **Dez categorias do expurgo não têm rotina de limpeza.** O expurgo declara
+>    cada uma como pendente, e por isso nenhuma exclusão fecha como completa.
+> 2. **A inadimplência no carnê**: quem para de pagar no meio dos 6 boletos
+>    continua estudando. O elo técnico existe; falta a decisão comercial.
+> 3. **As três telas incompletas** (PCNews, player de podcast, upload da
+>    biblioteca) e o resto dos `isLoading` sem `isError`.
+> 4. **O S3 do backup não tem lifecycle** — nunca apaga nada.
+> 5. **Revogar a Application Password do WordPress** — sexta sessão registrando.
+
 > ### 5/set/2026 — a fila de consertos da auditoria foi ao fim, e nada publicado
 >
 > **Sete consertos**, cada um com teste que falha contra o código anterior. A
@@ -468,6 +510,34 @@ prazo sumia com ele, e a matrícula virava vitalícia em silêncio.
 De quebra, a tela do admin voltou a funcionar como foi escrita: `AdminCourses`
 **já** tinha o selo "Despublicado" e a ação em massa de publicar; o dado é que
 nunca chegava.
+
+## Expurgo de dados: "concluída" só pode significar que a rotina rodou
+
+`server/privacy/expurgo.ts` (5/set/2026). Antes, marcar a solicitação de
+exclusão como `completed` gravava um campo e uma nota — **e nada era apagado**.
+Não havia rotina, não havia rota de exclusão de usuário, e `deleteUser()` vivia
+no store sem chamador.
+
+A regra que orienta o arquivo: **o que a exportação entrega é o que o expurgo
+tem de tratar.** As duas respondem à mesma pergunta e não podem discordar;
+`test/expurgo-cobre-o-que-exporta.test.ts` compara as listas nos dois sentidos.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **Três destinos, não dois.** `apagar` é o padrão; `anonimizar` é para quando o
+  registro vale para outra pessoa (comentário apagado deixa a resposta de outro
+  aluno sem a pergunta; avaliação apagada reescreve a média que os outros leem);
+  `reter` é **decisão jurídica** e vem sempre com o motivo escrito — pedido pago
+  é documento fiscal (art. 16, I) e certificado é declaração a terceiros.
+- **Retenção sem justificativa é retenção indevida**, e o teste cobra isso — e
+  cobra também que quem não retém não invente motivo.
+- **Dez categorias ainda não apagam**, e o expurgo **declara cada uma como
+  pendente** em vez de reportar sucesso. Enquanto houver pendência, `completo` é
+  falso.
+- **Ensaio é o padrão.** `POST /admin/deletion-requests/:id/expurgo` sem
+  `?commit=true` lista o que faria. E `completed` responde **409** se o expurgo
+  não tiver rodado: o relatório fica anexado ao pedido, e é ele que distingue "a
+  escola apagou" de "alguém marcou a caixinha".
 
 ## Copiar a pasta do projeto não copia o git
 

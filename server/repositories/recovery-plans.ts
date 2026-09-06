@@ -185,3 +185,17 @@ export async function generateWithAi(
 export async function _resetForTests(): Promise<void> {
   await store.setAll([]);
 }
+
+/**
+ * Apaga tudo desta pessoa. Usado pelo expurgo de dados (LGPD, art. 18, VI).
+ *
+ * Devolve quantos registros saíram — "0 apagados" é resposta diferente de
+ * "não consegui", e o relatório do expurgo precisa distinguir as duas.
+ */
+export async function clearForUser(studentId: string): Promise<number> {
+  const all = await store.getAll();
+  const remaining = all.filter((x) => x.studentId !== studentId);
+  const removed = all.length - remaining.length;
+  if (removed > 0) await store.setAll(remaining);
+  return removed;
+}

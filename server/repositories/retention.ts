@@ -46,3 +46,27 @@ export async function listRetentionRisks(level?: string): Promise<RetentionRisk[
     recommendedAction: r.recommendedAction,
   }));
 }
+
+/**
+ * Apaga o cálculo de risco desta pessoa. Expurgo de dados (LGPD, art. 18, VI).
+ *
+ * **Os dois caminhos**, e isso não é zelo: em produção há banco, e uma limpeza
+ * que só mexesse no JSON diria "apagado" sem apagar nada — o defeito que este
+ * projeto já pagou quatro vezes com campo sem coluna.
+ */
+export async function clearForUser(studentId: string): Promise<number> {
+  const db = getDb();
+  let removidos = 0;
+  if (db) {
+    const r = await db
+      .delete(schema.retentionRisks)
+      .where(eq(schema.retentionRisks.studentId, studentId))
+      .returning();
+    removidos += r.length;
+  }
+  const all = await store.getAll();
+  const remaining = all.filter((x) => x.studentId !== studentId);
+  removidos += all.length - remaining.length;
+  if (all.length !== remaining.length) await store.setAll(remaining);
+  return removidos;
+}
