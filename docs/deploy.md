@@ -261,30 +261,76 @@ HOST=... USER_NAME=avapco PORT=22 SSH_PASSWORD='...' python scripts/restart_vps.
 
 ## Backup e restore
 
-### Backup automático
+> Esta seção descreveu por meses um formato que o código **não produz**:
+> `snap-YYYY-MM-DD.tar.gz` extraído com `tar xzf`, e o processo parado com
+> `pkill -f 'tsx server/dev.ts'` — que hoje é gerenciado por PM2. Quem seguisse
+> o passo a passo no dia do desastre não restauraria nada. Corrigido em
+> 5/set/2026, junto com a escrita do restaurador, que também não existia.
 
-Worker em background snapshot diário em `data/backups/snap-YYYY-MM-DD.tar.gz`. Mantém os últimos 30 dias.
+### O que o worker grava
 
-### Backup manual
+`db/backup-worker` roda de hora em hora e faz **uma pasta datada por dia**:
 
-```bash
-cd ~/ava-pco
-tar czf data/backups/manual-$(date +%Y%m%d-%H%M).tar.gz data/*.json
+```
+data/backups/2026-09-05/
+├── users.json              ← cópia dos JSON stores do DATA_DIR
+├── courses.json
+├── ... (~60 arquivos)
+├── db-users.json           ← uma linha por tabela do Postgres
+├── db-enrollments.json
+└── ... (uma por tabela do schema)
 ```
 
-### Restore
+Pasta, não `.tar.gz`. Os `db-*.json` só existem quando há `DATABASE_URL` — e
+**é a metade que importa**: contas, fichas, matrículas, pedidos e certificados
+vivem no Postgres. `/admin/backups` diz "o banco de dados não está nesta cópia"
+quando a última snapshot não os contém.
 
-1. Pare o processo: `pkill -f 'tsx server/dev.ts'`
-2. Extraia: `tar xzf data/backups/snap-AAAA-MM-DD.tar.gz -C ~/ava-pco/`
-3. Reinicie pelo deploy script ou `setsid nohup ... &`
+Retenção: `BACKUP_KEEP_DAYS` (padrão **14**). Com `S3_BUCKET` e as chaves
+configuradas, a pasta sobe para o S3 — **sem lifecycle**, ou seja, nada é
+apagado de lá.
 
-### Backup remoto (recomendado, não-implementado)
+### Restaurar
 
-Atualmente backups ficam só no VPS. Para DR completo, configure cron pra copiar `data/backups/*.tar.gz` para S3 ou outro VPS:
+**Ordem: migrations primeiro, linhas depois.** O despejo é lógico — não guarda
+schema, índices nem sequences; a estrutura vem das migrations, que estão no git.
 
 ```bash
-# Exemplo cron (não automatizado pelo AVA)
-0 4 * * * aws s3 sync ~/ava-pco/data/backups/ s3://ava-pco-backup/$(hostname)/
+# 1. Estrutura
+DATABASE_URL=<owner> npx tsx server/db/migrate.ts
+
+# 2. ENSAIO — não grava nada, lista o que faria e em qual banco
+DATABASE_URL=<owner> npx tsx scripts/restaurar_banco.ts data/backups/2026-09-05
+
+# 3. Só depois de ler o ensaio:
+DATABASE_URL=<owner> npx tsx scripts/restaurar_banco.ts data/backups/2026-09-05 --commit
+```
+
+O ensaio imprime **usuário, host e base** antes de qualquer coisa (nunca a
+senha): dois scripts de manutenção deste projeto já miraram na base errada por
+não carregarem o `.env`.
+
+Três coisas que o relatório mostra e valem ser lidas antes de declarar a base
+recuperada:
+
+- **`FALHOU`** por tabela — restaurar substitui, então tabela que não gravou
+  ficou vazia;
+- **arquivo de tabela que o schema não conhece mais** — não é restaurado, de
+  propósito, e derruba o "completo";
+- **tabela do schema sem arquivo na snapshot** — normal quando a tabela nasceu
+  depois do backup, e é exatamente o que alguém precisa ver para não achar que
+  voltou tudo.
+
+Os arquivos JSON (`data/*.json`) são cópia direta: pare a aplicação
+(`pm2 stop ava-pco`), copie os arquivos da pasta datada por cima do `DATA_DIR`
+e suba de volta (`pm2 start ava-pco`).
+
+### Backup manual, agora
+
+```bash
+# pela tela: /admin/backups → "Backup agora"
+# ou, no servidor:
+ssh vps 'cd ~/ava-pco && npx tsx -e "import(\"./server/db/backup-worker\").then(m=>m.runBackup())"'
 ```
 
 ## Health checks
@@ -349,10 +395,12 @@ E reinicie.
 ### `data/users.json` corrompido
 
 ```bash
-# Restaurar do último backup
+# O backup é uma PASTA datada, não um .tar.gz — ver "Backup e restore".
 cd ~/ava-pco
 ls -t data/backups/ | head -3
-tar xzf data/backups/snap-YYYY-MM-DD.tar.gz -C .
+pm2 stop ava-pco
+cp data/backups/2026-09-05/users.json data/users.json
+pm2 start ava-pco
 ```
 
 ### Build falhou (Vite OOM)
@@ -370,8 +418,9 @@ sudo swapon /swapfile
 
 ```bash
 ss -tlnp | grep 3035
-# Mata o processo conflitante
-pkill -f 'tsx server/dev.ts'
+# A app é gerenciada por PM2. `pkill` aqui é armadilha: o PM2 reergue o que foi
+# morto, os dois disputam a 3035 e produção entra em laço de reinício.
+pm2 stop ava-pco
 ```
 
 ## Rollback rápido
@@ -379,18 +428,27 @@ pkill -f 'tsx server/dev.ts'
 Se um deploy quebrou produção:
 
 ```bash
-# No VPS:
+# No VPS. **Nada de `pkill` + `setsid nohup`**: a app é gerenciada por PM2, o
+# PM2 reergue o que for morto, e os dois disputando a 3035 deixam produção em
+# laço de reinício. Reverter é `git` + `build` + `pm2 restart`.
+ssh vps
 cd ~/ava-pco
 git log --oneline -5    # encontre o commit estável anterior
+git checkout -- package-lock.json
 git reset --hard <commit-anterior>
-npm install --legacy-peer-deps
+npm install --legacy-peer-deps --no-audit --no-fund
 npm run build
-pkill -f 'tsx server/dev.ts'
-setsid nohup bash -c '
-  export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
-  cd ~/ava-pco && npx tsx server/dev.ts
-' </dev/null > app.log 2>&1 &
+pm2 restart ava-pco --update-env
+
+# Confirme pelo hash do bundle, não pelo /api/health — ele responde 200 com
+# código velho.
+curl -s http://127.0.0.1:3035/api/health
 ```
+
+**Se o commit revertido tiver migration**, lembre que reverter código não
+reverte banco: coluna criada continua lá (aditiva, inofensiva), mas coluna que
+o código antigo não conhece e que virou `NOT NULL` quebra a escrita. As
+migrations deste projeto são aditivas e nuláveis justamente por isso.
 
 ## Monitoramento contínuo (recomendações)
 
