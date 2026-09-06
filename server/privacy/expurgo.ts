@@ -35,6 +35,7 @@ import { createHash } from 'node:crypto';
 import * as usersStore from '../auth/users-store';
 import * as studentsRepo from '../repositories/students';
 import * as progressRepo from '../repositories/progress';
+import * as quizAttempts from '../repositories/quiz-attempts';
 import * as lessonNotesRepo from '../repositories/lesson-notes';
 import * as podcastEngagementRepo from '../repositories/podcast-engagement';
 import * as tutorHistory from '../repositories/tutor-history';
@@ -113,7 +114,10 @@ export const DECISOES: DecisaoDeCategoria[] = [
     destino: 'reter',
     motivo:
       'Pedido pago é documento fiscal. LGPD art. 16, I: guarda-se o que outra lei obriga ' +
-      'a guardar, e a obrigação fiscal é de cinco anos.',
+      'a guardar, e a obrigação fiscal é de cinco anos. ATENÇÃO: o pedido retido guarda o ' +
+      'e-mail do titular em texto claro e o mesmo id de conta — a anonimização da conta NÃO ' +
+      'o alcança. Quem responder ao titular precisa dizer isso, e não que os dados foram ' +
+      'todos removidos.',
   },
   { categoria: 'sessionBookings', destino: 'anonimizar' },
   { categoria: 'supportTickets', destino: 'apagar' },
@@ -153,6 +157,12 @@ export const DECISOES: DecisaoDeCategoria[] = [
       'inclusive que este expurgo foi executado, por quem e quando. Apagá-lo destruiria a ' +
       'evidência da própria exclusão, e a retenção de log de segurança é interesse legítimo ' +
       '(LGPD art. 7º, IX, e art. 16, II).',
+  },
+  {
+    categoria: 'quizAttempts',
+    destino: 'apagar',
+    // Desempenho em avaliação é dado da pessoa, e não vale para terceiro: o
+    // certificado, que é o que fica para o mundo, é retido à parte.
   },
   { categoria: 'retentionRisk', destino: 'apagar' },
   { categoria: 'adminNotesAboutMe', destino: 'apagar' },
@@ -356,6 +366,12 @@ export async function expurgarTitular(
     async () =>
       (await contar(() => courseReviews.listAll())).filter((x) => x.userId === userId).length,
     async () => await courseReviews.anonimizarParaUsuario(userId, marca),
+  );
+
+  await registra(
+    d('quizAttempts'),
+    async () => (await contar(() => quizAttempts.listForUser(userId))).length,
+    async () => await quizAttempts.clearForUser(userId),
   );
 
   await registra(

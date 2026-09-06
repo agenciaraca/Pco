@@ -2671,6 +2671,20 @@ export function useExpurgarSolicitacao() {
   });
 }
 
+/**
+ * O histórico de avaliações do aluno num curso.
+ *
+ * `enabled` amarrado ao `courseId` porque a tela do quiz é montada antes de o
+ * curso estar resolvido, e uma consulta sem id devolveria erro em vez de nada.
+ */
+export function useMyQuizAttempts(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ['me', 'quiz', courseId, 'attempts'],
+    queryFn: () => api.fetchMyQuizAttempts(courseId!),
+    enabled: Boolean(courseId),
+  });
+}
+
 export function useAdminCoursesSummary() {
   return useQuery({
     queryKey: ['admin', 'courses-summary'],

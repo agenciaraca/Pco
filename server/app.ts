@@ -258,6 +258,7 @@ import { computeModuleLock, findModuleLockForLesson } from './repositories/drip'
 import * as studyPaths from './repositories/study-paths';
 import { computePathProgress } from './repositories/study-paths';
 import * as questionBank from './repositories/question-bank';
+import * as quizAttempts from './repositories/quiz-attempts';
 import { checkPrerequisites, computeCompletedCourseIds } from './repositories/prerequisites';
 
 /**
@@ -2230,6 +2231,7 @@ export function buildApp() {
       planosDeRecuperacao,
       emailsRecebidos,
       registrosDeAuditoria,
+      avaliacoesFeitas,
     ] = await Promise.all([
       ordersRepo.listForUser(u.sub),
       bookingsRepo.listForUser(u.sub),
@@ -2248,6 +2250,7 @@ export function buildApp() {
       recoveryPlans.listForStudent(u.sub),
       emailLogStore.listForEmail(u.email ?? ''),
       auditLogStore.listAudit({ targetId: u.sub, limit: 1000 }),
+      quizAttempts.listForUser(u.sub),
     ]);
 
     const dump = {
@@ -2290,6 +2293,8 @@ export function buildApp() {
       recoveryPlans: planosDeRecuperacao,
       // Que e-mails a escola mandou para esta pessoa, e quando.
       emailLogs: emailsRecebidos,
+      // As avaliações que ela fez: nota, aprovação e resultado por questão.
+      quizAttempts: avaliacoesFeitas,
       /*
         O que foi feito **com** os dados dela, e por quem.
 
@@ -7303,6 +7308,43 @@ export function buildApp() {
     const pct = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
     const corrigidas = results.filter((r) => !r.pendenteDeCorrecao);
     const acertos = corrigidas.filter((r) => r.correct === true).length;
+    const passou = corrigidas.length > 0 && pct >= notaDeCorte;
+
+    /*
+      **A tentativa fica registrada, e até 6/set/2026 não ficava.**
+
+      Esta rota corrigia a prova, devolvia a nota e não gravava nada. A escola
+      não tinha como responder se alguém foi avaliado — para nenhum aluno, em
+      nenhum curso, desde sempre. O aluno que fechasse a aba perdia a nota. E
+      não havia dado sobre o qual apoiar o certificado, mesmo querendo.
+
+      Grava-se toda tentativa, inclusive a reprovada e a repetida: guardar só a
+      melhor apagaria o histórico de esforço, que é o que mostra quem está
+      travado. O **texto** da dissertativa não entra — o registro existe para
+      provar que houve avaliação e com que desempenho, e guardar a redação
+      aumentaria a superfície de dado pessoal sem servir a isso.
+
+      Falha ao gravar não pode derrubar a correção: o aluno já respondeu, e
+      perder a nota dele por causa do registro seria trocar um problema por um
+      pior. Vai para o log, e a rota responde.
+    */
+    await quizAttempts
+      .registrar({
+        userId: grader.sub,
+        courseId,
+        moduleId: moduleIdDoCorpo ?? null,
+        pct,
+        passingScore: notaDeCorte,
+        passed: passou,
+        total: corrigidas.length,
+        acertos,
+        pendentes: results.length - corrigidas.length,
+        questoes: results.map((r) => ({ questionId: r.questionId, correct: r.correct })),
+      })
+      .catch((err) => {
+        console.error('[quiz] falhou ao registrar tentativa:', err);
+      });
+
     return c.json({
       // `score` era o **percentual** e `total` era o número de questões, então
       // a tela imprimia "70 de 10 corretas". Agora `score` é o número de
@@ -7314,8 +7356,45 @@ export function buildApp() {
       // Quem decide aprovação é o servidor, com a nota de corte cadastrada.
       // O cliente comparava `pct >= 70` fixo, ignorando o que o admin escreveu.
       passingScore: notaDeCorte,
-      passed: corrigidas.length > 0 && pct >= notaDeCorte,
+      passed: passou,
       results,
+    });
+  });
+
+  /**
+   * O histórico de avaliações do próprio aluno.
+   *
+   * Ele responde a prova e, até então, a nota vivia só na tela: fechou a aba,
+   * perdeu. Isto é dado dele sobre ele — e é a mesma informação que a
+   * coordenação passa a ver, o que evita a conversa em que aluno e escola
+   * discordam sobre o que aconteceu.
+   */
+  app.get('/me/quiz/:courseId/attempts', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const courseId = c.req.param('courseId') as string;
+    const attempts = await quizAttempts.listForUserAndCourse(u.sub, courseId);
+    return c.json({ attempts });
+  });
+
+  /**
+   * As avaliações de um curso, para a coordenação.
+   *
+   * `?studentId=` filtra uma pessoa. Sem ele, vem o curso inteiro — é o que
+   * responde "quem foi avaliado e como", que era uma pergunta sem resposta
+   * possível antes de as tentativas existirem.
+   */
+  app.get('/admin/courses/:id/quiz-attempts', requireAuth('admin', 'superadmin'), async (c) => {
+    const courseId = c.req.param('id') as string;
+    const studentId = c.req.query('studentId');
+    const todas = await quizAttempts.listForCourse(courseId);
+    const attempts = studentId ? todas.filter((a) => a.userId === studentId) : todas;
+    return c.json({
+      attempts,
+      // Contagens que a tela não deve ter de recalcular — e que dizem, de uma
+      // vez, se o curso tem avaliação acontecendo.
+      total: attempts.length,
+      alunosAvaliados: new Set(attempts.map((a) => a.userId)).size,
+      aprovacoes: attempts.filter((a) => a.passed).length,
     });
   });
 

@@ -3982,6 +3982,35 @@ export async function submitQuiz(
   });
 }
 
+/**
+ * Uma tentativa de avaliação já feita.
+ *
+ * Antes de 6/set/2026 nada disto existia: o quiz corrigia, mostrava a nota e a
+ * conversa acabava ali — quem fechasse a aba perdia o resultado, e a escola não
+ * tinha como dizer se alguém foi avaliado.
+ */
+export interface QuizAttemptDto {
+  id: string;
+  courseId: string;
+  moduleId: string | null;
+  pct: number;
+  /** A nota de corte que valia **no momento da tentativa**. */
+  passingScore: number;
+  passed: boolean;
+  total: number;
+  acertos: number;
+  pendentes: number;
+  questoes: Array<{ questionId: string; correct: boolean | null }>;
+  createdAt: string;
+}
+
+export async function fetchMyQuizAttempts(courseId: string): Promise<QuizAttemptDto[]> {
+  const r = await http.get<{ attempts: QuizAttemptDto[] }>(
+    `/me/quiz/${encodeURIComponent(courseId)}/attempts`,
+  );
+  return r.attempts;
+}
+
 // ---------- System user detail ----------
 
 export async function fetchSystemUser(id: string): Promise<SystemUser> {

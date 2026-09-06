@@ -328,7 +328,10 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >    problema estrutural, não uma configuração pendente.
 > 6. **O resto dos `isLoading` sem `isError`** — trabalho mecânico em `/admin`.
 > 7. **O certificado ainda sai de contagem de cliques** — nenhuma nota, nenhum
->    tempo assistido, nenhum quiz participa. Decisão de produto.
+>    tempo assistido, nenhum quiz participa. Segue decisão de produto, mas
+>    deixou de ser a única opção possível: **as tentativas de quiz passaram a
+>    ser registradas** (6/set/2026), e antes disso não havia dado nenhum sobre
+>    o qual apoiar outra regra. Ver a seção do quiz.
 > 8. Nada mais de acessibilidade no player — seek, volume e transcrição
 >    entraram (A11Y4-001, 002 e 004). **A migration `0021` roda antes do código
 >    subir**: ela cria `podcasts.transcript`.
@@ -1572,6 +1575,77 @@ defeito, não como gotejamento.
 cliques em aula obrigatória — nenhuma nota, nenhum tempo assistido, nenhum quiz
 participa (`server/repositories/certificates.ts` grava `progress: 100` fixo).
 Isso é decisão de produto, e está aberta.
+
+## O quiz corrigia a prova e não guardava nada
+
+`server/repositories/quiz-attempts.ts` (6/set/2026). Até então,
+`POST /me/quiz/:courseId/grade` calculava a nota, devolvia `passed` e a conversa
+acabava ali. **Nenhuma tentativa era registrada** — para nenhum aluno, em nenhum
+curso, desde sempre.
+
+O que isso significava, e nada disso aparecia como erro:
+
+- **A escola não conseguia responder se alguém foi avaliado.** Num LMS.
+- O aluno que fechasse a aba perdia a nota. E o botão "Refazer com novas
+  questões", que sempre existiu, piorava: cada refação apagava na prática a
+  anterior.
+- **É a razão técnica de o certificado ser contagem de cliques.** Ninguém podia
+  apoiá-lo em desempenho nem querendo — não havia dado. Isso continua sendo
+  decisão de produto, mas agora existe sobre o que decidir, e a decisão não
+  precisa inventar histórico retroativo.
+- O `/me/export` da LGPD não entregava avaliação nenhuma, corretamente: não
+  havia o que entregar.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **O texto da resposta dissertativa NÃO é guardado.** Fica o resultado por
+  questão — acertou, não acertou, ou ficou pendente de correção. O registro
+  existe para provar que houve avaliação e com que desempenho; arquivar a
+  redação aumenta a superfície de dado pessoal sem servir a isso. Passar a
+  guardá-la é decisão nova, com retenção declarada.
+- **Toda tentativa fica**, inclusive a reprovada e a repetida. Guardar só a
+  melhor apagaria o histórico de esforço, que é o que mostra quem está travado.
+  `melhorDe()` calcula na hora de exibir.
+- **A nota de corte gravada é a da época.** O admin pode mudá-la depois, e
+  recalcular a aprovação com a regra nova reescreveria uma prova já feita.
+- **Falhar ao gravar não derruba a correção.** O aluno já respondeu; perder a
+  nota dele por causa do registro seria trocar um problema por um pior. Vai
+  para o log e a rota responde.
+
+`correct: null` sobrevive no registro: é "não deu para corrigir" (IA
+indisponível), que é diferente de errou — ela não entrou no denominador da nota,
+e achatar em `false` diria ao aluno que ele não sabe por causa de uma
+configuração que falta do lado da escola.
+
+Duas rotas de leitura: `GET /me/quiz/:courseId/attempts` (o aluno reencontra a
+própria nota) e `GET /admin/courses/:id/quiz-attempts` (a coordenação vê quem
+foi avaliado e como). A tela do quiz mostra o histórico **abaixo** do resultado
+e só a partir da segunda tentativa — uma lista de uma linha repetindo o que está
+logo acima é ruído.
+
+## `/admin/roles` mostra um controle que não existe
+
+As permissões marcadas ali são gravadas, listadas de volta e desenhadas na
+tela — e **nenhuma rota do servidor as consulta**. Quem decide o acesso é o
+campo `role` da conta (`student` / `admin` / `superadmin`), lido do token por
+`requireAuth`. Conta marcada como admin alcança todo `/admin/*`, qualquer que
+seja o papel atribuído a ela.
+
+O `tier` do papel também é gravado e nunca lido — e nem chega a ser gravável:
+nem `POST` nem `PUT /admin/roles` repassam o campo do corpo, então todo papel
+custom nasce e permanece `student`. **A ausência de escalonamento é real, e é
+acidental** — o que impede são duas linhas que não foram escritas.
+
+Isso ganhou um aviso na tela, e não uma implementação, porque autorização por
+permissão significa declarar uma permissão em cada rota de administração:
+decisão de produto, com risco real de trancar o operador para fora enquanto se
+acerta o mapa. O que não podia continuar é a tela **implicar** um controle que
+não existe — quem marca três caixinhas e sai achando que limitou o acesso de
+alguém tomou uma decisão de segurança com base em informação falsa.
+
+`test/papeis-nao-prometem-o-que-nao-cumprem.test.ts` trava as duas metades: que
+nenhuma rota lê `permissions`, e que o aviso está lá. No dia em que a
+autorização por permissão existir, o teste falha — que é quando o aviso sai.
 
 ## Prazo de acesso — declarar os meses é RETROATIVO
 

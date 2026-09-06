@@ -10,7 +10,7 @@ import {
   RotateCcw,
   Clock,
 } from 'lucide-react';
-import { useCourse } from '../data/hooks';
+import { useCourse, useMyQuizAttempts } from '../data/hooks';
 import * as api from '../data/api';
 import { useToast } from '../components/Toast';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
@@ -260,6 +260,8 @@ export default function Quiz() {
             Refazer com novas questões
           </button>
         </section>
+
+        <HistoricoDeTentativas courseId={courseId} />
         <h2 className="text-lg font-bold text-pco-deep">Revisão</h2>
         <ul className="space-y-3">
           {questions.map((q, idx) => {
@@ -447,5 +449,61 @@ export default function Quiz() {
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * As tentativas anteriores desta pessoa neste curso.
+ *
+ * Até 6/set/2026 o quiz não gravava nada: quem fechasse a aba perdia a nota, e
+ * a única prova de que a avaliação aconteceu era a memória de quem a fez. O
+ * botão "Refazer" logo acima existia desde sempre e piorava isso — cada
+ * refação apagava, na prática, a anterior.
+ *
+ * Aparece **abaixo** do resultado atual, e só quando há mais de uma tentativa:
+ * na primeira vez não há histórico, e uma lista com uma linha só repetindo o
+ * que está logo acima é ruído.
+ */
+function HistoricoDeTentativas({ courseId }: { courseId: string }) {
+  const q = useMyQuizAttempts(courseId);
+  const tentativas = q.data ?? [];
+
+  // Silêncio quando não há o que mostrar: erro aqui não vale um cartão
+  // vermelho, porque o resultado que a pessoa acabou de fazer está logo acima
+  // e não depende desta consulta.
+  if (tentativas.length < 2) return null;
+
+  return (
+    <section className="pco-card">
+      <h2 className="text-sm font-semibold text-pco-deep mb-3">
+        Suas tentativas neste curso
+      </h2>
+      <ul className="divide-y divide-border-subtle">
+        {tentativas.map((t, i) => (
+          <li key={t.id} className="flex items-center gap-3 py-2 text-sm">
+            <span className="text-xs text-ink-subtle w-20 shrink-0">
+              {i === 0 ? 'agora' : new Date(t.createdAt).toLocaleDateString('pt-BR')}
+            </span>
+            <span className="font-semibold text-pco-deep tabular-nums w-12">{t.pct}%</span>
+            <span
+              className={`pco-badge ${
+                t.passed
+                  ? 'bg-status-success/10 text-status-success'
+                  : 'bg-pco-orange/10 text-pco-orange'
+              }`}
+            >
+              {t.passed ? 'aprovado' : 'não atingiu'}
+            </span>
+            <span className="text-xs text-ink-subtle">
+              {t.acertos} de {t.total}
+              {/* A nota de corte da época, e não a de hoje: o admin pode
+                  mudá-la depois, e recalcular reescreveria uma prova já feita. */}
+              {' · corte '}
+              {t.passingScore}%
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

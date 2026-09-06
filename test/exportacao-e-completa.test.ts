@@ -72,6 +72,10 @@ const CATEGORIAS: Record<string, string> = {
   adminNotesAboutMe:
     'O que a coordenação anotou a respeito dele. Mesmo motivo do risco: é sobre a pessoa, ' +
     'e ela não tem outro caminho para ver.',
+  quizAttempts:
+    'As avaliações que ela fez: nota, nota de corte da época, aprovação e o resultado por ' +
+    'questão. **O texto da resposta dissertativa não é guardado** — o registro existe para ' +
+    'provar que houve avaliação, não para arquivar a redação.',
   emailLogs:
     'Os e-mails que a escola mandou para ela: assunto, quando e se chegou. A fila é chaveada ' +
     'pelo endereço, não pelo id — quem escreve ali é o remetente, que só conhece o e-mail.',

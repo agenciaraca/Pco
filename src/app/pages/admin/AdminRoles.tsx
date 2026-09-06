@@ -203,9 +203,47 @@ export default function AdminRoles() {
           </h1>
           <p className="text-sm text-ink-muted mt-1">
             Catálogo único de papéis. Você pode criar, editar e excluir papéis
-            livremente — apenas o <strong>superadmin</strong> é imutável (sempre
-            tem todas as permissões), e <strong>student</strong>/<strong>admin</strong>
-            não podem ser deletados (auth do sistema depende deles).
+            livremente — apenas o <strong>superadmin</strong> é imutável, e{' '}
+            <strong>student</strong>/<strong>admin</strong> não podem ser
+            deletados (a autenticação do sistema depende deles).
+          </p>
+
+          {/*
+            **A tela precisa dizer o que ela é, porque o que ela parece é outra
+            coisa.**
+
+            As permissões marcadas aqui são gravadas e listadas — e **nenhuma
+            rota do servidor as consulta**. Quem decide o acesso é o campo
+            `role` da conta (`student` / `admin` / `superadmin`), lido do token
+            por `requireAuth`. Um papel "atendente" com três permissões marcadas
+            não restringe nada: se a conta é `admin`, ela alcança todo
+            `/admin/*`.
+
+            Isso é uma frase na tela, e não uma correção de código, porque
+            implementar autorização por permissão significa declarar uma
+            permissão em cada rota de administração — decisão de produto, com
+            risco real de trancar o operador para fora enquanto se acerta o
+            mapa. O que não pode continuar é a tela **implicar** um controle que
+            não existe: quem marca três caixinhas e sai achando que limitou o
+            acesso de alguém tomou uma decisão de segurança com base numa
+            informação falsa.
+
+            `test/papeis-nao-prometem-o-que-nao-cumprem.test.ts` trava as duas
+            metades: que nenhuma rota lê `permissions`, e que este aviso está
+            aqui. No dia em que a autorização por permissão for implementada, o
+            teste falha — e o aviso sai junto.
+          */}
+          <p className="mt-3 rounded-lg border border-status-warning/30 bg-status-warning/5 px-3 py-2 text-xs text-ink-muted">
+            <strong className="text-pco-deep">
+              As permissões abaixo são descritivas, não restritivas.
+            </strong>{' '}
+            Elas documentam o que se espera de cada papel e{' '}
+            <strong>não são verificadas pelo servidor</strong>. Quem decide o
+            acesso hoje é o tipo da conta — <strong>aluno</strong>,{' '}
+            <strong>admin</strong> ou <strong>superadmin</strong> —, e qualquer
+            conta marcada como admin alcança todo o painel, independentemente do
+            papel atribuído a ela. Para limitar de verdade o que alguém faz,
+            hoje o caminho é não dar admin a ela.
           </p>
         </div>
         <div className="flex gap-2 items-center">
