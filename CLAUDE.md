@@ -289,6 +289,52 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
+> ### 5/set/2026, noite — a auditoria auditou o que subiu de manhã
+>
+> A passada 004 rodou sobre `26cb33c` — o primeiro HEAD desta série que está
+> **em produção, com aluno dentro e dinheiro passando**. Os relatórios estão em
+> `H:/ia/dev/auditoria-ava-pco/relatorios/`, com uma seção "Passada 004" cada.
+>
+> **O que ela achou foi o código escrito naquela mesma manhã**, e os cinco
+> defeitos do expurgo têm todos a mesma forma: a rotina rodava, contava e
+> reportava sucesso. Ver a seção do expurgo, mais abaixo — o resumo é que o CPF
+> sobrevivia à anonimização, o fórum não estava nem na exportação nem no
+> expurgo, e um store fora do ar era impresso como "nada a apagar" no ensaio que
+> o operador lê antes de autorizar.
+>
+> **Tudo isso está corrigido, com testes.** O que **não** está, e é decisão:
+>
+> 1. **`orders.userEmail` continua em claro depois do expurgo**, e o `userId` do
+>    pedido continua o mesmo da conta anonimizada. Ou é dado fiscal — e então é
+>    retido *declarado como tal* —, ou é conveniência de exibição e deve ir para
+>    a marca anônima. Hoje o relatório lista `user: anonimizar` entre as
+>    tratadas, e a dissociação é parcial.
+> 2. **Decidir se atraso no carnê suspende o acesso** (`CARNE_ATRASO_SUSPENDE`,
+>    desligada). Segue sendo a pendência de maior alavancagem: hoje o acesso é
+>    liberado integral na parcela 1 de 6, e nada o reverte automaticamente.
+> 3. **Lifecycle do bucket S3** — ação no provedor. Agrava o item 1: snapshot
+>    sem expiração guarda o titular indefinidamente depois do expurgo.
+> 4. **Revogar a Application Password do WordPress** — sétima sessão registrando.
+> 5. **Habilitar o produto Checkout no painel do Pagar.me.** Enquanto não for,
+>    ele não pode voltar à rota. Quando for, ligá-lo como **reserva do cartão**
+>    é ganho sem custo (os dois declaram 12x); como reserva do **boleto**,
+>    derrubaria a promessa de 6x para 1x — o Asaas é o único provider
+>    implementado que parcela boleto, e isso torna o gateway único do boleto um
+>    problema estrutural, não uma configuração pendente.
+> 6. **Alerta por taxa de falha de checkout.** A venda ficou dois dias fora do
+>    ar com campanha paga rodando, e a detecção foi alguém abrir
+>    `/admin/pedidos`. O botão de testar gateway não pega esse caso: ele lê
+>    credencial, e "produto não habilitado" só aparece na cobrança real.
+> 7. **O resto dos `isLoading` sem `isError`** — trabalho mecânico em `/admin`.
+> 8. **O certificado ainda sai de contagem de cliques** — nenhuma nota, nenhum
+>    tempo assistido, nenhum quiz participa. Decisão de produto.
+>
+> **Também entrou hoje à noite:** o drip passou a trancar a aula, e não só o
+> botão de concluir (ver a seção do drip); `/admin/pedidos` ganhou coluna
+> **Método** com marcador de carnê; e `/admin/vendas` ganhou **receita paga por
+> método**, que era a base numérica que a decisão de roteamento exigia e não
+> existia em tela nenhuma.
+
 > ### 5/set/2026, fim do dia — tudo publicado, e a venda religada
 >
 > **`main`, `origin/main` e produção estão no mesmo commit.** O dia teve três
@@ -548,6 +594,72 @@ Quatro coisas que qualquer mexida aqui tem de respeitar:
   `?commit=true` lista o que faria. E `completed` responde **409** se o expurgo
   não tiver rodado: o relatório fica anexado ao pedido, e é ele que distingue "a
   escola apagou" de "alguém marcou a caixinha".
+
+### A auditoria do mesmo dia achou cinco buracos nesta rotina
+
+Ela nasceu de manhã e foi auditada à tarde. Os cinco valem lembrar porque
+**nenhum deles dava erro** — a rotina rodava, contava e reportava sucesso:
+
+- **O CPF sobrevivia, e não por esquecimento.** A anonimização chamava
+  `updateUser`, cujo `UpdateInput` **não declara `document`** — passar o campo
+  não compilaria. Depois de a escola registrar a exclusão como concluída,
+  `findUserByDocument` ainda achava a conta, exibindo "Titular removido" **ao
+  lado do CPF real**. Hoje quem anonimiza é `usersStore.anonimizarConta()`,
+  função à parte de propósito: alargar o `UpdateInput` daria à tela de edição do
+  admin um caminho para gravar CPF que ela não tem. Ela limpa também
+  `passwordHash` e o material de TOTP — `active: false` fecha o portão, e fechar
+  acesso não é apagar dado.
+- **O pseudônimo carregava o id.** Era
+  `removido-${userId.slice(-6)}@invalido.local`: seis caracteres do
+  identificador que a anonimização existe para dissociar. Hoje é hash. Continua
+  estável, que é o requisito real — o e-mail é único na tabela e duas execuções
+  não podem criar dois "titulares".
+- **O agendamento não tinha caminho de banco.** Era a **única** função do
+  `bookings-repo` sem `bancoSeTabelaExiste` — e produção tem banco. A linha de
+  `session_bookings` seguia com `user_email` do titular em texto puro, ligada ao
+  horário, ao profissional e ao valor. Gravava ainda um `studentName` que não
+  existe no tipo nem na coluna.
+- **O fórum não estava em ponta nenhuma.** `forumAndComments` lia só
+  `discussions` (comentário de aula); `server/forum/store.ts` é outro store, com
+  `authorId` **e** `authorName`, e ficou fora do `/me/export` e do expurgo. O
+  teste que deveria pegar isso **não pegava por construção**: ele compara as
+  duas listas entre si, e as duas erravam junto. Hoje `forum` é categoria
+  própria — juntá-las sob um nome só foi exatamente como o fórum sumiu. A
+  varredura tira o titular de `likedBy` de conteúdo **de terceiros** e reconta
+  `likes`, senão o número fica um a mais para sempre.
+- **Erro virava zero.** `contar()` tinha `catch { return [] }` e envolvia a fase
+  de *encontrar* de dez categorias. Store fora do ar produzia `encontrados: 0`
+  **sem `erro`**, e `completo` dizia `true`: no ensaio, "não consegui olhar" era
+  impresso igual a "não havia nada" — e é sobre o ensaio que alguém decide
+  autorizar a execução. Mesma regra das telas de métrica, aplicada tarde ao
+  relatório da operação mais destrutiva do sistema.
+
+**Executar exige `approved`; ensaiar, não.** O ensaio é leitura pura e é
+justamente o que ajuda a decidir — negá-lo antes da aprovação faria aprovar às
+cegas. Apagar sem aprovação transformaria a aprovação em etiqueta, e ela é o
+único ponto em que uma pessoa confere que o pedido é do titular daquela conta.
+
+**Treze rotinas usavam `getAll()` + `setAll()`.** `getAll` devolve a lista viva,
+mas o par monta um array novo fora dela e o instala por cima; entre as duas
+chamadas há `await`, e qualquer escrita concorrente no mesmo store é perdida sem
+erro. Todas passaram a `JsonStore.modify`, que muta a lista viva.
+
+**A tela acompanha:** `/admin/exclusoes` tem "Ensaiar expurgo" (leitura pura,
+mostra o relatório categoria a categoria, com o motivo de cada retenção) e
+"Executar expurgo", que só aparece depois do ensaio e da aprovação. "Marcar
+concluída" só aparece depois do expurgo — antes, ela perguntava *"confirmar que
+os dados foram REMOVIDOS?"* e não removia nada.
+
+**O que segue aberto, e é decisão:** `orders.userEmail` continua em claro e o
+`userId` do pedido continua o mesmo da conta anonimizada. Ou é dado fiscal — e
+então é retido **declarado como tal** —, ou é conveniência de exibição e deve ir
+para a marca anônima. E as snapshots de backup em S3 não têm lifecycle: elas
+guardam o titular indefinidamente depois do expurgo.
+
+`test/expurgo-apaga-de-verdade.test.ts` é o que faltava:
+`expurgo-cobre-o-que-exporta` roda sobre `'u-inexistente'`, então `encontrados` é
+0 em tudo e uma rotina que não fizesse nada passaria igual. O novo cria uma
+pessoa com dado real em cada canto e afirma sobre o que **sobrou**.
 
 ## Copiar a pasta do projeto não copia o git
 
@@ -1269,6 +1381,47 @@ terminavam no meio da frase. Corrigido pela migration 0008 +
 
 O `slice(0,500)` continua nos scripts de importação — reimportar cortaria de
 novo. Ver `docs/migration-wp-ld.md`.
+
+## Drip: trancar o botão de concluir não é trancar a aula
+
+A migration `0018` fez `releaseAfterEnrollmentDays` ser gravado de verdade, e o
+gate correspondente foi plugado em **uma** rota: `POST /lessons/:id/complete`.
+Essa rota registra a conclusão — ela não entrega nada.
+
+Quem entrega o texto **e a URL do vídeo** é
+`GET /me/courses/:c/lessons/:l/content`, e ela não checava. O heartbeat de
+tempo assistido, também não. E o `lessonId` de aula trancada **já está com o
+aluno**: `semConteudoDeAula` tira `content` e `videoUrl` da resposta do catálogo
+e mantém a lista de aulas inteira, módulos trancados incluídos.
+
+Resultado, sem esperteza nenhuma: link salvo, histórico do navegador ou URL
+montada à mão abriam a aula completa antes da data. O que ficava trancado era o
+botão de dizer "concluí" — e, como o certificado sai de contagem de cliques em
+aula obrigatória, ele também não saía cedo. **O drip protegia a cerimônia de
+conclusão, não a aprendizagem.**
+
+Três coisas que a correção fixou e que valem para qualquer trava futura:
+
+- **A checagem vai onde o dado sai, não onde ele é registrado.** Rota que
+  entrega conteúdo é a que precisa do portão; rota que carimba progresso é
+  consequência.
+- **`423`, não `403`.** O conteúdo é dele e existe — só não abriu ainda, e a
+  resposta diz quando (`lockedUntil` no corpo). `403` se lê como "você não tem
+  direito a isto", que é outra conversa e outra ação de quem lê.
+- **A data sai legível.** `dataDeLiberacao()` existe porque o aluno lia
+  `liberação em 2026-09-19T03:00:00.000Z`. O campo cru continua no corpo, para a
+  tela que quiser formatar sozinha.
+
+**A tela do módulo não sabia do lock.** `LMSModule.tsx` não tinha uma única
+ocorrência de `locked` e desenhava toda aula como `<Link>` — só `LMSCourse.tsx`
+respeitava. Agora aula de módulo trancado é `<div aria-disabled>` com cadeado, e
+a tela diz quando abre: fila de linhas apagadas sem uma frase se lê como
+defeito, não como gotejamento.
+
+**O que isso NÃO corrige:** o gatilho do certificado continua sendo contagem de
+cliques em aula obrigatória — nenhuma nota, nenhum tempo assistido, nenhum quiz
+participa (`server/repositories/certificates.ts` grava `progress: 100` fixo).
+Isso é decisão de produto, e está aberta.
 
 ## Prazo de acesso — declarar os meses é RETROATIVO
 

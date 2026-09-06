@@ -928,6 +928,14 @@ export interface OrderDto {
   };
   gatewayId: string;
   gatewayProvider: PaymentProviderId;
+  /**
+   * Pix, boleto ou cartão. **`undefined` é "não se sabe"**, não "à vista" —
+   * pedido anterior a 5/set/2026 nasceu antes do campo existir, e a tela tem
+   * de dizer travessão em vez de inventar um método.
+   */
+  metodo?: MetodoPagamento | null;
+  /** Id do parcelamento no gateway quando é carnê. Ausente = à vista. */
+  gatewayInstallmentId?: string | null;
   externalId: string | null;
   status: OrderStatus;
   amountCents: number;
@@ -1192,6 +1200,16 @@ export interface SalesSummaryDto {
     orders: number;
   }>;
   statusDistribution: Record<OrderStatus, number>;
+  /** Faturamento pago por método. `semMetodo` é pedido anterior ao campo. */
+  porMetodo: {
+    itens: Array<{
+      metodo: MetodoPagamento;
+      revenueCents: number;
+      orders: number;
+      carnes: number;
+    }>;
+    semMetodo: { revenueCents: number; orders: number };
+  };
   comparison: {
     previousRange: { from: string; to: string };
     revenuePctChange: number | null;
@@ -4655,6 +4673,53 @@ export interface DeletionRequestDto {
   resolvedAt?: string;
   resolvedBy?: string;
   resolutionNote?: string;
+  /**
+   * O expurgo que de fato rodou. Ausente = não rodou.
+   *
+   * É este campo que distingue "a escola apagou os dados" de "alguém marcou a
+   * caixinha" — antes de 5/set/2026 `completed` era só um carimbo.
+   */
+  expurgo?: {
+    executadoEm: string;
+    executadoPor: string;
+    completo: boolean;
+    tratadas: Array<{ categoria: string; destino: string; tratados: number }>;
+    retidas: Array<{ categoria: string; motivo: string }>;
+    pendentes: Array<{ categoria: string; erro: string }>;
+  };
+}
+
+export interface ExpurgoResultadoDto {
+  /** `true` = ensaio: nada foi tocado. */
+  ensaio: boolean;
+  completo: boolean;
+  tratadas: Array<{ categoria: string; destino: string; tratados: number }>;
+  retidas: Array<{ categoria: string; motivo: string }>;
+  pendentes: Array<{ categoria: string; erro: string }>;
+  itens: Array<{
+    categoria: string;
+    destino: string;
+    encontrados: number;
+    tratados: number;
+    motivo?: string;
+    erro?: string;
+  }>;
+}
+
+/**
+ * Ensaia ou executa o expurgo de um titular.
+ *
+ * `commit: false` é o padrão de propósito: é a operação mais destrutiva do
+ * sistema, e o ensaio é a única forma de alguém conferir antes.
+ */
+export async function expurgarSolicitacao(
+  id: string,
+  commit: boolean,
+): Promise<ExpurgoResultadoDto> {
+  return http.post<ExpurgoResultadoDto>(
+    `/admin/deletion-requests/${encodeURIComponent(id)}/expurgo?commit=${commit ? 'true' : 'false'}`,
+    {},
+  );
 }
 
 export async function fetchMyDeletionRequest(): Promise<DeletionRequestDto | null> {

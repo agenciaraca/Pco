@@ -463,6 +463,54 @@ export async function updateUser(
  * Bumpa tokenVersion (invalida todos tokens — força re-login em outros devices).
  * Retorna 'ok' | 'wrong-password' | 'not-found'.
  */
+/**
+ * Anonimiza a conta para o expurgo da LGPD — e é função à parte de propósito.
+ *
+ * O primeiro conserto disto passou `name`/`email`/`active` para `updateUser` e
+ * deu por encerrado. Não estava: `UpdateInput` **não declara `document`**, e o
+ * corpo de `updateUser` copia campo a campo — passar o CPF ali nem compilaria.
+ * Resultado: depois de a escola registrar a exclusão como concluída,
+ * `findUserByDocument` ainda achava a conta, e ela exibia "Titular removido"
+ * **ao lado do CPF real**. CPF reidentifica um brasileiro sozinho; anonimizar
+ * preservando-o é trocar o rótulo, não anonimizar.
+ *
+ * Vão junto o hash de senha e o material de 2FA. `active: false` fecha o
+ * portão no middleware, e fechar acesso não é apagar dado — o titular pediu a
+ * segunda coisa. Hash de senha é derivado de um segredo que a pessoa
+ * provavelmente reusa em outros serviços; a semente TOTP é material
+ * criptográfico do aparelho dela.
+ *
+ * Não entra em `updateUser` porque essa é a porta do CRUD do admin: alargá-la
+ * para aceitar `document` daria à tela de edição de usuário um caminho para
+ * gravar CPF que ela não tem hoje.
+ */
+export async function anonimizarConta(
+  id: string,
+  marca: { nome: string; email: string },
+): Promise<boolean> {
+  await loadUsers();
+  const i = users.findIndex((u) => u.id === id);
+  if (i === -1) return false;
+  users[i] = {
+    ...users[i],
+    name: marca.nome,
+    email: marca.email,
+    document: null,
+    passwordHash: '',
+    avatarUrl: null,
+    lastLoginAt: undefined,
+    totpEnabled: false,
+    totpSecretEncrypted: undefined,
+    totpBackupCodes: undefined,
+    active: false,
+    // Derruba token vivo: a conta deixou de ser de alguém.
+    tokenVersion: (users[i].tokenVersion ?? 0) + 1,
+    updatedAt: new Date().toISOString(),
+  };
+  await queueWrite();
+  return true;
+}
+
 export async function verifyAndChangePassword(
   id: string,
   currentPassword: string,

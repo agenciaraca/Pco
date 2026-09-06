@@ -8,6 +8,7 @@ import {
   ScrollText,
   StickyNote,
   Languages,
+  Lock,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import { useCourses, useMyNotes, useMyProgress } from '../data/hooks';
@@ -56,6 +57,19 @@ export default function LMSModule() {
     (l) => doneIds.has(l.id),
   ).length;
   const pct = Math.round((completed / module.lessons.length) * 100);
+
+  /*
+    O lock é do **módulo**, e vem calculado do servidor em `GET /courses/:id`.
+    Vale para todas as aulas dele — não há trava por aula.
+  */
+  const travado = module.locked === true;
+  const abreEm = module.lockedUntil
+    ? new Date(module.lockedUntil).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'breve';
 
   return (
     <div className="space-y-6">
@@ -109,18 +123,41 @@ export default function LMSModule() {
         </div>
       </div>
 
+      {travado && (
+        /*
+          Fila de linhas apagadas sem uma frase é a tela não dizendo nada — e
+          "não abriu ainda" se lê como "quebrou" quando ninguém explica.
+        */
+        <div className="pco-card border border-status-warning/30 bg-status-warning/5">
+          <h2 className="text-base font-semibold text-pco-deep mb-1 flex items-center gap-2">
+            <Lock size={15} strokeWidth={2} className="text-status-warning" />
+            Este módulo abre em {abreEm}
+          </h2>
+          <p className="text-sm text-ink-muted">
+            O curso libera os módulos aos poucos. Nada a fazer da sua parte — as aulas
+            aparecem aqui na data.
+          </p>
+        </div>
+      )}
+
       <section>
         <h2 className="text-lg font-semibold text-pco-deep mb-3">Aulas</h2>
         <div className="space-y-2">
           {module.lessons.map((lesson) => {
             const isCompleted = doneIds.has(lesson.id);
             const isInProgress = !isCompleted && lesson.status === 'in_progress';
-            return (
-              <Link
-                key={lesson.id}
-                to={`/curso/${course.id}/aula/${lesson.id}`}
-                className="pco-card pco-card-hover flex items-center gap-4 py-4"
-              >
+            /*
+              **Módulo trancado não vira link.**
+
+              A página do curso já desenhava o módulo trancado sem link desde
+              que o drip existe; esta tela — que é onde se clica para a aula, e
+              para onde os e-mails de retomada apontam — não sabia do lock. O
+              servidor agora responde 423 no conteúdo, então clicar levava a uma
+              aula que abria e dizia que não estava liberada. Melhor não
+              prometer o clique.
+            */
+            const conteudo = (
+              <>
                 {isCompleted ? (
                   <CheckCircle2 size={20} className="text-status-success shrink-0" strokeWidth={2} />
                 ) : isInProgress ? (
@@ -170,7 +207,34 @@ export default function LMSModule() {
                     })()}
                   </div>
                 </div>
-                <ArrowRight size={14} className="text-ink-subtle" strokeWidth={2} />
+                {travado ? (
+                  <Lock size={14} className="text-ink-subtle" strokeWidth={2} />
+                ) : (
+                  <ArrowRight size={14} className="text-ink-subtle" strokeWidth={2} />
+                )}
+              </>
+            );
+
+            if (travado) {
+              return (
+                <div
+                  key={lesson.id}
+                  aria-disabled="true"
+                  className="pco-card flex items-center gap-4 py-4 opacity-60"
+                  title={`Abre em ${abreEm}`}
+                >
+                  {conteudo}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={lesson.id}
+                to={`/curso/${course.id}/aula/${lesson.id}`}
+                className="pco-card pco-card-hover flex items-center gap-4 py-4"
+              >
+                {conteudo}
               </Link>
             );
           })}

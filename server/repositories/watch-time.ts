@@ -146,9 +146,20 @@ export async function aggregateCourse(courseId: string): Promise<{
  * "não consegui", e o relatório do expurgo precisa distinguir as duas.
  */
 export async function clearForUser(userId: string): Promise<number> {
-  const all = await store.getAll();
-  const remaining = all.filter((x) => x.userId !== userId);
-  const removed = all.length - remaining.length;
-  if (removed > 0) await store.setAll(remaining);
-  return removed;
+  /*
+    `modify` em vez de `getAll` + `setAll`.
+
+    `getAll` devolve a lista viva, mas o par lê, monta um array novo fora dela e
+    o instala com `setAll`. Entre as duas chamadas há `await`: qualquer escrita
+    concorrente no mesmo store — um aviso novo, um progresso de aula — entra na
+    lista viva e é jogada fora pelo `setAll`, sem erro nenhum. `modify` faz a
+    volta inteira em cima da lista viva, sem janela entre ler e gravar.
+  */
+  return await store.modify((items) => {
+    const antes = items.length;
+    const restantes = items.filter((x) => x.userId !== userId);
+    items.length = 0;
+    items.push(...restantes);
+    return antes - items.length;
+  });
 }

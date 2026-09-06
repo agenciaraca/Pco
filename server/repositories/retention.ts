@@ -64,9 +64,14 @@ export async function clearForUser(studentId: string): Promise<number> {
       .returning();
     removidos += r.length;
   }
-  const all = await store.getAll();
-  const remaining = all.filter((x) => x.studentId !== studentId);
-  removidos += all.length - remaining.length;
-  if (all.length !== remaining.length) await store.setAll(remaining);
+  // Ver o comentário de `modify` em `server/repositories/progress.ts`: o par
+  // `getAll` + `setAll` perde escrita concorrente ocorrida entre as duas.
+  removidos += await store.modify((items) => {
+    const antes = items.length;
+    const restantes = items.filter((x) => x.studentId !== studentId);
+    items.length = 0;
+    items.push(...restantes);
+    return antes - items.length;
+  });
   return removidos;
 }

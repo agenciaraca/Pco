@@ -241,3 +241,66 @@ export async function deleteReply(id: string): Promise<boolean> {
   );
   return true;
 }
+
+/**
+ * Tudo o que o titular escreveu no fórum — para a exportação e para o expurgo.
+ *
+ * O fórum ficou **fora das duas pontas** até 5/set/2026, e o motivo de ninguém
+ * ter notado é instrutivo: a categoria chamava-se `forumAndComments` e era
+ * alimentada só por `discussions` (comentário de aula, `lesson-comments.json`).
+ * Nome plausível, conteúdo pela metade. E o teste que compara a exportação com
+ * o expurgo passava — porque as duas listas erravam junto.
+ */
+export async function listForUser(
+  userId: string,
+): Promise<{ threads: ForumThread[]; replies: ForumReply[] }> {
+  const [threads, replies] = await Promise.all([threadsStore.getAll(), repliesStore.getAll()]);
+  return {
+    threads: threads.filter((t) => t.authorId === userId),
+    replies: replies.filter((r) => r.authorId === userId),
+  };
+}
+
+/**
+ * Anonimiza autoria e retira o titular das curtidas.
+ *
+ * A pergunta e a resposta continuam de pé — elas são conteúdo do curso para
+ * quem veio depois, e apagar a pergunta arrancaria também a resposta do
+ * professor. O que sai é o vínculo: `authorId`, `authorName` e a presença do
+ * id em `likedBy` de conteúdo **de terceiros** — este último é o que se
+ * esquece, porque é dado do titular guardado em linha que não é dele.
+ */
+export async function anonimizarParaUsuario(
+  userId: string,
+  marca: { nome: string },
+): Promise<number> {
+  const anonimo = `anon-${userId.slice(-8)}`;
+  let tocados = 0;
+
+  const varrer = <T extends { authorId: string; authorName: string; reactions: { likes: number; likedBy: string[] } }>(
+    items: T[],
+  ): number => {
+    let n = 0;
+    for (const x of items) {
+      let mexeu = false;
+      if (x.authorId === userId) {
+        x.authorId = anonimo;
+        x.authorName = marca.nome;
+        mexeu = true;
+      }
+      if (x.reactions.likedBy.includes(userId)) {
+        x.reactions.likedBy = x.reactions.likedBy.filter((u) => u !== userId);
+        // `likes` acompanha: o número é a contagem de quem curtiu, e ficaria
+        // um a mais do que a lista para sempre.
+        x.reactions.likes = x.reactions.likedBy.length;
+        mexeu = true;
+      }
+      if (mexeu) n += 1;
+    }
+    return n;
+  };
+
+  tocados += await threadsStore.modify(varrer);
+  tocados += await repliesStore.modify(varrer);
+  return tocados;
+}

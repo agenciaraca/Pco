@@ -193,6 +193,7 @@ import * as activityFeed from './activity/feed';
 import { buildCsv, csvResponse } from './export/csv';
 import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
+import * as forumStore from './forum/store';
 import { buildSalesSummary } from './payments/sales-analytics';
 import { renderInvoiceHtml } from './payments/invoice';
 import { renderCertificateHtml } from './repositories/certificate-render';
@@ -490,6 +491,20 @@ async function getBundleCourseIds(productId: string): Promise<string[]> {
   const arr = (p.metadata as { courseIds?: unknown } | undefined)?.courseIds;
   if (!Array.isArray(arr)) return [];
   return arr.filter((x): x is string => typeof x === 'string');
+}
+
+/**
+ * A data de liberação escrita para quem lê, não para quem depura.
+ *
+ * `lockedUntil` é ISO, e era ele que ia direto para a mensagem — o aluno via
+ * "liberação em 2026-09-19T03:00:00.000Z". O campo cru continua no corpo do
+ * erro, para a tela que quiser formatar sozinha.
+ */
+function dataDeLiberacao(iso: string | null | undefined): string {
+  if (!iso) return 'breve';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'breve';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 export function buildApp() {
@@ -1537,7 +1552,7 @@ export function buildApp() {
           c,
           423,
           'LOCKED',
-          `Aula bloqueada — liberação em ${found.lock.lockedUntil}`,
+          `Esta aula abre em ${dataDeLiberacao(found.lock.lockedUntil)}.`,
           { lockedUntil: found.lock.lockedUntil },
         );
       }
@@ -1687,6 +1702,19 @@ export function buildApp() {
         if (!acc.canStudy) {
           return jsonError(c, 403, accessDeniedCode(acc), accessDeniedMessage(acc), {
             expiresAt: acc.access?.expiresAt ?? null,
+          });
+        }
+        // E o gotejamento, pelo mesmo motivo da rota de conteúdo: sem isto,
+        // tempo assistido em aula que ainda não abriu entra no cálculo de risco
+        // de evasão — a coordenação passa a decidir com número de aula que,
+        // oficialmente, ninguém podia estar assistindo.
+        const enrolledAt = await studentsRepo.getEnrollmentDate(u.sub, courseId);
+        const trava = findModuleLockForLesson(localizacao.course, lessonId, Date.now(), {
+          enrolledAt,
+        });
+        if (trava?.lock.locked) {
+          return jsonError(c, 423, 'LOCKED', `Esta aula abre em ${dataDeLiberacao(trava.lock.lockedUntil)}.`, {
+            lockedUntil: trava.lock.lockedUntil,
           });
         }
       }
@@ -2098,6 +2126,23 @@ export function buildApp() {
       if (pedido.status === 'rejected') {
         return jsonError(c, 409, 'CONFLICT', 'Solicitação recusada não se expurga.');
       }
+      /*
+        **Executar exige aprovação; ensaiar, não.**
+
+        O ensaio é leitura pura e é justamente o que ajuda a decidir — negá-lo
+        antes da aprovação faria o operador aprovar às cegas. Já apagar sem que
+        alguém tenha aprovado transformaria a aprovação em etiqueta, e ela é o
+        único ponto do fluxo em que uma pessoa confere que o pedido é mesmo do
+        titular daquela conta.
+      */
+      if (commit && pedido.status !== 'approved') {
+        return jsonError(
+          c,
+          409,
+          'NAO_APROVADA',
+          'Aprove a solicitação antes de executar o expurgo.',
+        );
+      }
 
       const r = await expurgarTitular(pedido.userId, { commit });
       const resumo = {
@@ -2177,6 +2222,7 @@ export function buildApp() {
       tempoDeAssistencia,
       comentarios,
       avaliacoes,
+      forumDoAluno,
       riscos,
       notasDaCoordenacao,
       planosDeRecuperacao,
@@ -2191,6 +2237,7 @@ export function buildApp() {
         .listAll()
         .then((todos) => todos.filter((d) => d.authorId === u.sub)),
       courseReviews.listAll().then((todas) => todas.filter((r) => r.userId === u.sub)),
+      forumStore.listForUser(u.sub),
       // **As três que faltavam, e são as que mais importam.**
       retentionRepo.listRetentionRisks().then((rs) => rs.filter((r) => r.studentId === u.sub)),
       adminNotes.listForStudent(u.sub),
@@ -2217,6 +2264,10 @@ export function buildApp() {
       watchTime: tempoDeAssistencia,
       forumAndComments: comentarios,
       courseReviews: avaliacoes,
+      // `forumAndComments` acima são os comentários de aula. O fórum é outro
+      // store, e ficou de fora daqui e do expurgo até 5/set/2026 — a categoria
+      // tinha nome de cobrir os dois e cobria um.
+      forum: forumDoAluno,
       retentionRisk: riscos,
       // **O que a coordenação anotou, sem quem anotou.**
       //
@@ -2767,6 +2818,29 @@ export function buildApp() {
 
     const lesson = course.modules.flatMap((m) => m.lessons ?? []).find((l) => l.id === lessonId);
     if (!lesson) return jsonError(c, 404, 'NOT_FOUND', 'Aula não encontrada neste curso.');
+
+    /*
+      **O gotejamento vale aqui, e não só no botão de concluir.**
+
+      O drip nasceu plugado em `POST /lessons/:id/complete` — e essa rota
+      registra a conclusão, não entrega nada. Esta é a que devolve o texto **e**
+      a URL do vídeo. Enquanto a checagem estivesse só lá, o módulo trancado
+      atrasava o clique de "concluir" e não o acesso à aula: o `lessonId` já sai
+      no catálogo (`semConteudoDeAula` tira `content` e `videoUrl`, mantém a
+      lista), então link salvo, histórico do navegador ou URL montada à mão
+      abriam a aula inteira antes da data. Gotejar a cerimônia de conclusão e
+      não o material é o contrário do que o recurso existe para fazer.
+
+      `423` e não `403`: o conteúdo existe e é dele — só ainda não abriu, e a
+      resposta diz quando.
+    */
+    const enrolledAt = await studentsRepo.getEnrollmentDate(u.sub, courseId);
+    const trava = findModuleLockForLesson(course, lessonId, Date.now(), { enrolledAt });
+    if (trava?.lock.locked) {
+      return jsonError(c, 423, 'LOCKED', `Esta aula abre em ${dataDeLiberacao(trava.lock.lockedUntil)}.`, {
+        lockedUntil: trava.lock.lockedUntil,
+      });
+    }
 
     return c.json({
       lessonId,

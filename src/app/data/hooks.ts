@@ -2652,6 +2652,25 @@ export function useUpdateAdminDeletionRequest() {
   });
 }
 
+/**
+ * Ensaia ou executa o expurgo do titular.
+ *
+ * Só o `commit: true` apaga. O ensaio devolve o mesmo relatório dizendo o que
+ * faria — e é ele que a tela mostra antes de qualquer botão vermelho aparecer.
+ */
+export function useExpurgarSolicitacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, commit }: { id: string; commit: boolean }) =>
+      api.expurgarSolicitacao(id, commit),
+    onSuccess: (_r, v) => {
+      // Só a execução muda a solicitação; o ensaio não mexe em nada e
+      // reinvalidar por ele descartaria o relatório recém-exibido.
+      if (v.commit) void qc.invalidateQueries({ queryKey: adminDeletionsKey });
+    },
+  });
+}
+
 export function useAdminCoursesSummary() {
   return useQuery({
     queryKey: ['admin', 'courses-summary'],

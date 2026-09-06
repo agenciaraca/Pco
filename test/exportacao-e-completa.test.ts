@@ -60,7 +60,11 @@ const CATEGORIAS: Record<string, string> = {
   notifications: 'Os avisos que a escola mandou para ele.',
   achievements: 'As conquistas e medalhas que ele acumulou, com a data de cada uma.',
   watchTime: 'Quanto tempo ele assistiu de cada aula.',
-  forumAndComments: 'O que ele escreveu no fórum e nos comentários de aula.',
+  forumAndComments: 'Os comentários que ele escreveu dentro das aulas.',
+  forum:
+    'As perguntas e respostas dele no fórum dos cursos. É categoria à parte porque é ' +
+    'outro store — e foi por `forumAndComments` ter nome de cobrir os dois que o ' +
+    'fórum ficou fora daqui e do expurgo até 5/set/2026.',
   courseReviews: 'As avaliações e comentários que ele deixou nos cursos.',
   retentionRisk:
     'O índice de risco de evasão e as razões. **Juízo sobre ele, feito sem que ele saiba** ' +

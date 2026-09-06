@@ -236,17 +236,46 @@ export async function _resetParaTeste(): Promise<void> {
  * profissional**: é a agenda dele, e o histórico de atendimento não é só do
  * titular. O nome e o vínculo saem; o horário e o valor combinados ficam.
  */
-export async function anonimizarParaUsuario(
-  userId: string,
-  marca: { nome: string },
-): Promise<number> {
-  const all = await store.getAll();
+export async function anonimizarParaUsuario(userId: string): Promise<number> {
   let tocados = 0;
-  const novos = all.map((x) => {
-    if (x.userId !== userId) return x;
-    tocados += 1;
-    return { ...x, userId: `anon-${x.id}`, studentName: marca.nome };
+
+  /*
+    **Os dois caminhos**, e a falta disto foi achado de auditoria no mesmo dia
+    em que esta função nasceu.
+
+    As outras quatro funções deste arquivo checam `bancoSeTabelaExiste`; esta
+    era a única que não checava. Em produção há banco, então ela reportava a
+    categoria como tratada e a linha real em `session_bookings` continuava com
+    o `user_email` do titular em texto puro, ligado ao horário, ao profissional
+    e ao valor — depois de a escola dizer que a exclusão foi concluída.
+
+    `user_email` é cópia deliberada (o aluno pode trocar de e-mail sem
+    reescrever o histórico), e é justamente por ser cópia que ela sobrevive à
+    anonimização da conta se ninguém a limpar aqui.
+  */
+  const db = await bancoSeTabelaExiste('session_bookings');
+  if (db) {
+    const linhas = await db
+      .update(schema.sessionBookings)
+      .set({ userId: `anon-${userId.slice(-8)}`, userEmail: '' })
+      .where(eq(schema.sessionBookings.userId, userId))
+      .returning();
+    tocados += linhas.length;
+  }
+
+  // `modify` em vez de `getAll` + `setAll`: o segundo lê uma cópia e grava por
+  // cima dela, e uma escrita concorrente no mesmo arquivo entre as duas
+  // chamadas é perdida. `modify` muta a lista viva na mesma volta do laço.
+  tocados += await store.modify((items) => {
+    let n = 0;
+    for (const x of items) {
+      if (x.userId !== userId) continue;
+      n += 1;
+      x.userId = `anon-${x.id}`;
+      x.userEmail = '';
+    }
+    return n;
   });
-  if (tocados > 0) await store.setAll(novos);
+
   return tocados;
 }

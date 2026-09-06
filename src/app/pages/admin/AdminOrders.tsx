@@ -22,6 +22,7 @@ import {
   useDeleteOrder,
 } from '../../data/hooks';
 import { resumoDaOrigem } from '../../../../shared/atribuicao';
+import { ROTULO_METODO } from '../../../../shared/metodos-pagamento';
 import SavedSearchesBar from '../../components/SavedSearchesBar';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
@@ -113,6 +114,10 @@ export default function AdminOrders() {
           return row.productSnapshot.name;
         case 'gateway':
           return row.gatewayId;
+        case 'metodo':
+          // Sem método gravado ordena por último, e não junto com o pix: o
+          // pedido é anterior ao campo, e "não se sabe" não é um valor.
+          return row.metodo ?? 'zzz';
         case 'amount':
           return row.amountCents;
         case 'status':
@@ -302,6 +307,9 @@ export default function AdminOrders() {
                 <SortableTh field="gateway" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
                   Gateway
                 </SortableTh>
+                <SortableTh field="metodo" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
+                  Método
+                </SortableTh>
                 <SortableTh field="amount" current={sortField} direction={sortDirection} onSort={toggleSort} className="text-xs">
                   Valor
                 </SortableTh>
@@ -347,6 +355,9 @@ export default function AdminOrders() {
                       <CelulaOrigem pedido={o} />
                     </td>
                     <td className="px-3 py-2 text-xs text-ink-muted">{o.gatewayProvider}</td>
+                    <td className="px-3 py-2 text-xs">
+                      <CelulaMetodo pedido={o} />
+                    </td>
                     <td className="px-3 py-2 font-semibold text-pco-deep whitespace-nowrap">
                       {(o.amountCents / 100).toLocaleString('pt-BR', {
                         style: 'currency',
@@ -473,6 +484,35 @@ export default function AdminOrders() {
  * 1.125 dos 1.845 pedidos importados estão nessa situação, e chamá-los de
  * "direto" seria inventar medição.
  */
+/**
+ * Pix, boleto ou cartão — e o travessão quando não se sabe.
+ *
+ * O campo existe desde 5/set/2026. Pedido anterior a isso **não tem** método
+ * gravado, e a tela precisa dizer isso em vez de escolher um: mostrar "pix"
+ * onde ninguém mediu é a mesma classe de erro de um painel de métricas que
+ * transforma ausência em zero.
+ *
+ * O carnê aparece aqui porque é a informação que muda o que a coordenação faz:
+ * pedido parcelado segue recebendo aviso de parcela por meses depois de pago,
+ * e é ele que aparece "em atraso" sem o pedido estar falho.
+ */
+function CelulaMetodo({ pedido }: { pedido: OrderDto }) {
+  if (!pedido.metodo) return <span className="text-ink-subtle">—</span>;
+  return (
+    <div className="flex items-center gap-1.5 whitespace-nowrap">
+      <span className="text-pco-deep">{ROTULO_METODO[pedido.metodo]}</span>
+      {pedido.gatewayInstallmentId && (
+        <span
+          className="pco-badge bg-pco-blue/10 text-pco-blue"
+          title="Carnê: as parcelas seguintes têm cobrança própria e chegam por webhook."
+        >
+          carnê
+        </span>
+      )}
+    </div>
+  );
+}
+
 function CelulaOrigem({ pedido }: { pedido: OrderDto }) {
   const r = resumoDaOrigem(pedido.attribution);
   if (!r) {
@@ -556,6 +596,9 @@ function DetalhePedido({
             }),
           )}
           {linha('Gateway', pedido.gatewayProvider)}
+          {linha('Método', pedido.metodo ? ROTULO_METODO[pedido.metodo] : '—')}
+          {pedido.gatewayInstallmentId &&
+            linha('Parcelamento', `carnê · ${pedido.gatewayInstallmentId}`)}
           {linha('Origem', r ? `${r.canal}${r.detalhe ? ` · ${r.detalhe}` : ''}` : '—')}
           {pedido.attribution?.referrer && linha('Veio de', pedido.attribution.referrer)}
           {linha('Criado', new Date(pedido.createdAt).toLocaleString('pt-BR'))}

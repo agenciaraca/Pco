@@ -4,6 +4,7 @@
 
 import * as ordersRepo from './orders-repo';
 import type { Order, OrderStatus } from './types';
+import { METODOS_PAGAMENTO, type MetodoPagamento } from '../../shared/metodos-pagamento';
 
 export interface SalesSummary {
   range: { from: string; to: string; days: number };
@@ -24,6 +25,27 @@ export interface SalesSummary {
     orders: number;
   }>;
   statusDistribution: Record<OrderStatus, number>;
+  /**
+   * Faturamento pago por método, e o que **não se sabe** separado.
+   *
+   * A escola passou a rotear por método em 5/set/2026, e a pergunta que a
+   * decisão de roteamento exige — "quanto do dinheiro entra por cada um?" — não
+   * tinha resposta em tela nenhuma. Sem ela, ligar ou desligar boleto é palpite.
+   *
+   * `semMetodo` é categoria à parte, e não um quarto método: pedido anterior ao
+   * campo não tem método gravado. Diluí-lo no pix inflaria um número que a
+   * coordenação usa para negociar taxa.
+   */
+  porMetodo: {
+    itens: Array<{
+      metodo: MetodoPagamento;
+      revenueCents: number;
+      orders: number;
+      /** Quantos daqueles pedidos são carnê. */
+      carnes: number;
+    }>;
+    semMetodo: { revenueCents: number; orders: number };
+  };
   comparison: {
     previousRange: { from: string; to: string };
     revenuePctChange: number | null; // null se previous === 0
@@ -95,6 +117,10 @@ export async function buildSalesSummary(days = 30): Promise<SalesSummary> {
     string,
     { name: string; revenueCents: number; orders: number }
   >();
+  const metodoAcc = new Map<MetodoPagamento, { revenueCents: number; orders: number; carnes: number }>(
+    METODOS_PAGAMENTO.map((m) => [m, { revenueCents: 0, orders: 0, carnes: 0 }]),
+  );
+  const semMetodo = { revenueCents: 0, orders: 0 };
 
   for (const o of inRange) {
     statusDistribution[o.status]++;
@@ -115,6 +141,19 @@ export async function buildSalesSummary(days = 30): Promise<SalesSummary> {
       acc.revenueCents += o.amountCents;
       acc.orders++;
       productAcc.set(o.productId, acc);
+
+      // Só o que foi pago entra: pedido pendente por método não é receita, e
+      // somá-lo aqui faria o boleto parecer vender o que ele deixa em aberto.
+      const m = o.metodo ?? null;
+      if (m && metodoAcc.has(m)) {
+        const mm = metodoAcc.get(m)!;
+        mm.revenueCents += o.amountCents;
+        mm.orders++;
+        if (o.gatewayInstallmentId) mm.carnes++;
+      } else {
+        semMetodo.revenueCents += o.amountCents;
+        semMetodo.orders++;
+      }
     } else if (o.status === 'refunded') {
       totals.refundedCents += o.amountCents;
       totals.refundedOrders++;
@@ -163,6 +202,10 @@ export async function buildSalesSummary(days = 30): Promise<SalesSummary> {
     totals,
     topProducts,
     statusDistribution,
+    porMetodo: {
+      itens: METODOS_PAGAMENTO.map((m) => ({ metodo: m, ...metodoAcc.get(m)! })),
+      semMetodo,
+    },
     comparison: {
       previousRange: {
         from: new Date(previousFromMs).toISOString(),

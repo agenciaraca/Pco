@@ -29,6 +29,8 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { useT } from '../../i18n';
+import { ROTULO_METODO } from '../../../../shared/metodos-pagamento';
+import type { SalesSummaryDto } from '../../data/api';
 
 const RANGES = [
   { value: 7, label: '7 dias' },
@@ -290,7 +292,98 @@ export default function AdminVendas() {
           )}
         </section>
       </div>
+
+      <PorMetodo dados={data.porMetodo} total={data.totals.revenueCents} />
     </div>
+  );
+}
+
+/**
+ * Quanto do dinheiro entra por cada método.
+ *
+ * A escola roteia gateway **por método** desde 5/set/2026, e a decisão que isso
+ * exige — ligar boleto, negociar taxa de cartão, deixar de oferecer pix — não
+ * tinha número em tela nenhuma para se apoiar.
+ *
+ * Duas regras deste projeto valem aqui e mudam o desenho:
+ *
+ * - **Percentual anda com a base.** "62%" sozinho não deixa ninguém
+ *   desconfiar; "62% de R$ 12.480" denuncia o problema quando o total está
+ *   errado.
+ * - **Ausência não é zero.** Pedido pago antes de o campo `metodo` existir não
+ *   é pix nem cartão: aparece à parte, dito. Diluí-lo inflaria o número que a
+ *   coordenação leva para a negociação com o gateway.
+ */
+function PorMetodo({
+  dados,
+  total,
+}: {
+  dados: SalesSummaryDto['porMetodo'];
+  total: number;
+}) {
+  const comVenda = dados.itens.filter((i) => i.orders > 0);
+  const pct = (v: number) => (total > 0 ? Math.round((v / total) * 1000) / 10 : null);
+
+  return (
+    <section className="pco-card p-4">
+      <h2 className="text-sm font-semibold text-pco-deep mb-1">
+        Receita paga por método
+      </h2>
+      <p className="text-xs text-ink-muted mb-3">
+        Só pedidos pagos. Pendente não é receita — contá-lo aqui faria o boleto
+        parecer vender o que ele deixa em aberto.
+      </p>
+
+      {comVenda.length === 0 && dados.semMetodo.orders === 0 ? (
+        <p className="text-sm text-ink-muted">Sem pagamento no período.</p>
+      ) : (
+        <ul className="space-y-2">
+          {comVenda.map((i) => {
+            const p = pct(i.revenueCents);
+            return (
+              <li key={i.metodo} className="flex items-center gap-3">
+                <span className="text-sm text-pco-deep w-24 shrink-0">
+                  {ROTULO_METODO[i.metodo]}
+                </span>
+                <div className="flex-1 h-2 rounded-full bg-surface-gray overflow-hidden">
+                  <div
+                    className="h-full bg-pco-blue"
+                    style={{ width: `${p ?? 0}%` }}
+                  />
+                </div>
+                <span className="text-xs text-ink-muted w-14 text-right tabular-nums">
+                  {p === null ? '—' : `${p}%`}
+                </span>
+                <span className="text-sm font-bold text-pco-deep w-28 text-right tabular-nums">
+                  {formatBRL(i.revenueCents)}
+                </span>
+                <span className="text-xs text-ink-subtle w-28 text-right">
+                  {i.orders} pedido(s)
+                  {i.carnes > 0 && ` · ${i.carnes} em carnê`}
+                </span>
+              </li>
+            );
+          })}
+
+          {dados.semMetodo.orders > 0 && (
+            <li className="flex items-center gap-3 pt-2 border-t border-border-subtle">
+              <span className="text-sm text-ink-subtle w-24 shrink-0">
+                Não registrado
+              </span>
+              <span className="flex-1 text-xs text-ink-subtle">
+                Pagos antes de 5/set/2026, quando o método passou a ser gravado.
+              </span>
+              <span className="text-sm font-bold text-ink-muted w-28 text-right tabular-nums">
+                {formatBRL(dados.semMetodo.revenueCents)}
+              </span>
+              <span className="text-xs text-ink-subtle w-28 text-right">
+                {dados.semMetodo.orders} pedido(s)
+              </span>
+            </li>
+          )}
+        </ul>
+      )}
+    </section>
   );
 }
 

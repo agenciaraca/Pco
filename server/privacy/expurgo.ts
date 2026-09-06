@@ -31,6 +31,7 @@
 // `reter` sempre vem com o motivo escrito. Retenção sem justificativa é
 // retenção indevida.
 
+import { createHash } from 'node:crypto';
 import * as usersStore from '../auth/users-store';
 import * as studentsRepo from '../repositories/students';
 import * as progressRepo from '../repositories/progress';
@@ -44,6 +45,7 @@ import * as notificationsRepo from '../repositories/notifications';
 import * as achievementsStore from '../achievements/store';
 import * as watchTimeRepo from '../repositories/watch-time';
 import * as discussions from '../discussions/store';
+import * as forum from '../forum/store';
 import * as courseReviews from '../reviews/store';
 import * as retentionRepo from '../repositories/retention';
 import * as adminNotes from '../admin/notes-store';
@@ -122,6 +124,14 @@ export const DECISOES: DecisaoDeCategoria[] = [
     // Apagar deixaria a resposta de outro aluno sem a pergunta que a motivou.
   },
   {
+    categoria: 'forum',
+    destino: 'anonimizar',
+    // Categoria separada de `forumAndComments` porque são dois stores, e
+    // juntá-los sob um nome só foi exatamente como o fórum ficou de fora das
+    // duas pontas por meses: `forumAndComments` lia apenas os comentários de
+    // aula. Nome plausível cobrindo metade é pior do que nome faltando.
+  },
+  {
     categoria: 'courseReviews',
     destino: 'anonimizar',
     // A nota entra na média que os outros leem; sumir com ela reescreve um
@@ -134,18 +144,34 @@ export const DECISOES: DecisaoDeCategoria[] = [
 
 /** O que substitui o dado pessoal na anonimização. */
 function marcaAnonima(userId: string): { nome: string; email: string } {
-  // Sufixo estável e derivado do id: duas anonimizações da mesma pessoa não
-  // criam dois "titulares" diferentes no que sobrou.
-  const curto = userId.slice(-6);
+  /*
+    O sufixo precisa ser **estável** — duas execuções do expurgo da mesma
+    pessoa não podem criar dois "titulares removidos" diferentes no que sobrou,
+    e o e-mail é único na tabela.
+    Estável não quer dizer *derivado por recorte*: a primeira versão usava
+    `userId.slice(-6)`, e aí o próprio pseudônimo carregava seis caracteres do
+    identificador que a anonimização existe para dissociar. Um hash resolve as
+    duas coisas.
+  */
+  const curto = createHash('sha256').update(userId).digest('hex').slice(0, 10);
   return { nome: 'Titular removido', email: `removido-${curto}@invalido.local` };
 }
 
+/*
+  `contar` **não** engole exceção, e isso já foi bug.
+
+  A primeira versão tinha `try { ... } catch { return []; }`. Um store fora do
+  ar produzia `encontrados: 0` **sem** `erro`, e `completo` (que é
+  "nenhum item com erro") dizia `true`. No ensaio, portanto, "não consegui
+  olhar" era impresso exatamente como "não havia nada" — e o operador lia isso
+  antes de autorizar a execução.
+
+  É a regra que este projeto já escreveu para as telas de métrica: zero diz
+  "medi e não houve"; não medir tem de aparecer como não medido. Quem trata o
+  erro é `registra`, que o grava no item e derruba `completo`.
+*/
 async function contar<T>(fn: () => Promise<T[]>): Promise<T[]> {
-  try {
-    return await fn();
-  } catch {
-    return [];
-  }
+  return await fn();
 }
 
 /**
@@ -193,12 +219,9 @@ export async function expurgarTitular(
     d('user'),
     async () => ((await usersStore.findUserById(userId)) ? 1 : 0),
     async () => {
-      const marca = marcaAnonima(userId);
-      const ok = await usersStore.updateUser(userId, {
-        name: marca.nome,
-        email: marca.email,
-        active: false,
-      });
+      // `anonimizarConta`, e não `updateUser`: o CPF, o hash de senha e a
+      // semente de 2FA não são alcançáveis pelo caminho de CRUD do admin.
+      const ok = await usersStore.anonimizarConta(userId, marcaAnonima(userId));
       return ok ? 1 : 0;
     },
   );
@@ -257,7 +280,7 @@ export async function expurgarTitular(
   await registra(
     d('sessionBookings'),
     async () => (await contar(() => bookingsRepo.listForUser(userId))).length,
-    async () => await bookingsRepo.anonimizarParaUsuario(userId, marca),
+    async () => await bookingsRepo.anonimizarParaUsuario(userId),
   );
 
   await registra(
@@ -289,6 +312,15 @@ export async function expurgarTitular(
     async () =>
       (await contar(() => discussions.listAll())).filter((x) => x.authorId === userId).length,
     async () => await discussions.anonimizarParaUsuario(userId, marca),
+  );
+
+  await registra(
+    d('forum'),
+    async () => {
+      const { threads, replies } = await forum.listForUser(userId);
+      return threads.length + replies.length;
+    },
+    async () => await forum.anonimizarParaUsuario(userId, marca),
   );
 
   await registra(

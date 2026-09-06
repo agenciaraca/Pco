@@ -132,13 +132,16 @@ export async function anonimizarParaUsuario(
   userId: string,
   marca: { nome: string },
 ): Promise<number> {
-  const all = await store.getAll();
-  let tocados = 0;
-  const novos = all.map((x) => {
-    if (x.authorId !== userId) return x;
-    tocados += 1;
-    return { ...x, authorId: `anon-${x.id}`, authorName: marca.nome };
+  // Ver o comentário de `modify` em `server/repositories/progress.ts`: o par
+  // `getAll` + `setAll` perde escrita concorrente ocorrida entre as duas.
+  return await store.modify((items) => {
+    let tocados = 0;
+    for (const x of items) {
+      if (x.authorId !== userId) continue;
+      tocados += 1;
+      x.authorId = `anon-${x.id}`;
+      x.authorName = marca.nome;
+    }
+    return tocados;
   });
-  if (tocados > 0) await store.setAll(novos);
-  return tocados;
 }
