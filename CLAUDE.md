@@ -322,14 +322,13 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > **O que segue aberto**, em ordem:
 >
-> 1. **Dez categorias do expurgo não têm rotina de limpeza.** O expurgo declara
->    cada uma como pendente, e por isso nenhuma exclusão fecha como completa.
-> 2. **A inadimplência no carnê**: quem para de pagar no meio dos 6 boletos
+> 1. **A inadimplência no carnê**: quem para de pagar no meio dos 6 boletos
 >    continua estudando. O elo técnico existe; falta a decisão comercial.
-> 3. **As três telas incompletas** (PCNews, player de podcast, upload da
+> 2. **As três telas incompletas** (PCNews, player de podcast, upload da
 >    biblioteca) e o resto dos `isLoading` sem `isError`.
-> 4. **O S3 do backup não tem lifecycle** — nunca apaga nada.
-> 5. **Revogar a Application Password do WordPress** — sexta sessão registrando.
+> 3. **Configurar o lifecycle do bucket S3** — é ação no provedor, não código:
+>    o AVA não apaga backup de propósito.
+> 4. **Revogar a Application Password do WordPress** — sexta sessão registrando.
 
 > ### 5/set/2026 — a fila de consertos da auditoria foi ao fim, e nada publicado
 >
@@ -531,9 +530,11 @@ Quatro coisas que qualquer mexida aqui tem de respeitar:
   é documento fiscal (art. 16, I) e certificado é declaração a terceiros.
 - **Retenção sem justificativa é retenção indevida**, e o teste cobra isso — e
   cobra também que quem não retém não invente motivo.
-- **Dez categorias ainda não apagam**, e o expurgo **declara cada uma como
-  pendente** em vez de reportar sucesso. Enquanto houver pendência, `completo` é
-  falso.
+- **Toda categoria tem rotina**, e as duas que gravam em banco (`support`,
+  `retention`) apagam **nos dois caminhos** — limpar só o JSON diria "apagado"
+  sem apagar em produção, que é a forma exata do defeito de campo sem coluna.
+  Se alguma voltar a ficar sem rotina, o expurgo a declara pendente e `completo`
+  fica falso, o que trava a conclusão do pedido.
 - **Ensaio é o padrão.** `POST /admin/deletion-requests/:id/expurgo` sem
   `?commit=true` lista o que faria. E `completed` responde **409** se o expurgo
   não tiver rodado: o relatório fica anexado ao pedido, e é ele que distingue "a
@@ -1082,8 +1083,14 @@ fixture usava o nome certo. Hoje o despejo grava o nome da tabela e o
 restaurador **aceita os dois**, porque snapshot antiga tem de continuar
 restaurável.
 
-**O que continua aberto:** o S3 não tem lifecycle — nunca apaga nada. E o
-despejo carrega hash de senha e colunas cifradas; o que é cifrado usa chave
+**O S3 não apaga nada, e isso é decisão, não pendência de código.** Quem sobe
+backup não pode ter permissão de apagar backup: credencial de escrita
+comprometida que também apague transforma um incidente em perda total. A
+retenção pertence ao **lifecycle do bucket**, com a credencial do AVA em
+`s3:PutObject` e sem `s3:DeleteObject`. Enquanto a regra não existir, o custo
+cresce e nada se perde — o lado certo para errar.
+
+O despejo carrega hash de senha e colunas cifradas; o que é cifrado usa chave
 derivada de `AI_KEY_ENCRYPTION_SECRET`, que vive no ambiente e **não** entra no
 despejo, mas a pasta e o bucket merecem o mesmo cuidado do banco.
 

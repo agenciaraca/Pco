@@ -4,6 +4,28 @@
 // sobe cada *.json individualmente como
 //   {S3_PREFIX}/{date}/{filename}
 // Ausencia de S3_BUCKET = no-op silencioso.
+//
+// ## Este módulo NÃO apaga nada, e isso é decisão de segurança
+//
+// O bucket cresce para sempre — a auditoria registrou isso como pendência
+// ("o S3 não tem lifecycle"), e a leitura de que faltava código aqui está
+// errada. **Quem sobe backup não pode ter permissão de apagar backup.** Uma
+// credencial de escrita comprometida que também apague transforma um incidente
+// em perda total: o atacante criptografa a base e limpa as cópias.
+//
+// A retenção pertence ao **lifecycle do bucket**, configurado no provedor:
+//
+//   - regra por prefixo (`ava-pco-backups/`), expirando objetos com N dias;
+//   - versionamento ligado + MFA delete, se o provedor oferecer;
+//   - a credencial daqui com `s3:PutObject` e **sem** `s3:DeleteObject`.
+//
+// Enquanto a regra não existir, o custo cresce e nada se perde — que é o lado
+// certo para errar. Ver `docs/deploy.md`, seção "Backup e restore".
+//
+// O que sobe carrega **hash de senha e colunas cifradas** (chaves de gateway,
+// segredos de webhook, sementes de TOTP). O que é cifrado usa chave derivada de
+// `AI_KEY_ENCRYPTION_SECRET`, que vive no ambiente e **não** entra no despejo —
+// mas o bucket merece o mesmo cuidado do banco, e a credencial dele também.
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';

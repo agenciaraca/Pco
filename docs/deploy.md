@@ -286,9 +286,21 @@ Pasta, não `.tar.gz`. Os `db-*.json` só existem quando há `DATABASE_URL` — 
 vivem no Postgres. `/admin/backups` diz "o banco de dados não está nesta cópia"
 quando a última snapshot não os contém.
 
-Retenção: `BACKUP_KEEP_DAYS` (padrão **14**). Com `S3_BUCKET` e as chaves
-configuradas, a pasta sobe para o S3 — **sem lifecycle**, ou seja, nada é
-apagado de lá.
+Retenção **local**: `BACKUP_KEEP_DAYS` (padrão **14**). Com `S3_BUCKET` e as
+chaves configuradas, a pasta sobe para o S3.
+
+**No S3 o AVA não apaga nada, de propósito.** Quem sobe backup não pode ter
+permissão de apagar backup: uma credencial de escrita comprometida que também
+apague transforma um incidente em perda total — o atacante criptografa a base e
+limpa as cópias. A retenção pertence ao bucket:
+
+- regra de lifecycle por prefixo (`ava-pco-backups/`), expirando com N dias;
+- versionamento ligado, e MFA delete se o provedor oferecer;
+- a credencial do AVA com `s3:PutObject` e **sem** `s3:DeleteObject`.
+
+Enquanto a regra não existir, o custo cresce e nada se perde — que é o lado
+certo para errar. **Isto é configuração no provedor, não código**, e por isso
+não aparece como pendência de desenvolvimento.
 
 ### Restaurar
 
