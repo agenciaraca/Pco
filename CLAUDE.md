@@ -324,8 +324,17 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > 1. **A inadimplência no carnê**: quem para de pagar no meio dos 6 boletos
 >    continua estudando. O elo técnico existe; falta a decisão comercial.
-> 2. **As três telas incompletas** (PCNews, player de podcast, upload da
->    biblioteca) e o resto dos `isLoading` sem `isError`.
+> 2. **O resto dos `isLoading` sem `isError`** — 61 arquivos, quase todos em
+>    `/admin`, onde o custo é painel que gira em vez de aluno lendo mentira
+>    sobre si. As quatro telas do aluno que importavam foram corrigidas.
+>
+> **Fechado no fim do dia:** as três telas incompletas. PCNews abre matéria
+> (`/news/:id` — as 77 têm corpo no banco e nenhuma tela mostrava); o player de
+> podcast toca o arquivo de verdade (era um `setInterval` que, aos 80% do
+> progresso inventado, **gravava `listened: true`** — a métrica de engajamento
+> era produzida por uma animação); e a biblioteca ganhou upload, com documento
+> restrito à administração, porque `POST /uploads` é aberto a qualquer aluno e
+> PDF hospedado no domínio da escola é o que phishing procura.
 > 3. **Configurar o lifecycle do bucket S3** — é ação no provedor, não código:
 >    o AVA não apaga backup de propósito.
 > 4. **Revogar a Application Password do WordPress** — sexta sessão registrando.
