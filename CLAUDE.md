@@ -318,7 +318,10 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >    sem expiração guarda o titular indefinidamente depois do expurgo.
 > 4. **Revogar a Application Password do WordPress** — sétima sessão registrando.
 > 5. **Habilitar o produto Checkout no painel do Pagar.me.** Enquanto não for,
->    ele não pode voltar à rota. Quando for, ligá-lo como **reserva do cartão**
+>    ele não pode voltar à rota — e, até 6/set/2026, **estava lá como reserva
+>    das três**, derrubando a promessa do boleto de 6x para 1x sem cobrar nada
+>    em troca. A linha do site dizia só "12x no cartão". Removido; ver a seção
+>    do roteamento. Quando for, ligá-lo como **reserva do cartão**
 >    é ganho sem custo (os dois declaram 12x); como reserva do **boleto**,
 >    derrubaria a promessa de 6x para 1x — o Asaas é o único provider
 >    implementado que parcela boleto, e isso torna o gateway único do boleto um
@@ -855,6 +858,27 @@ Cinco coisas que qualquer mexida aqui tem de respeitar:
 
 Sem rota configurada e sem método, vale o comportamento antigo (primeiro ativo)
 — compatibilidade, não desenho. A tela de saúde é que cobra a configuração.
+
+**Reserva errado custa promessa, e isso aconteceu.** Em 5/set/2026 as três rotas
+de produção foram criadas com o Pagar.me como reserva. Efeito medido no site:
+`ou 12x de R$ 99,88 no cartão` — e **nada sobre boleto**. A regra do mínimo
+estava fazendo o seu trabalho: o Asaas faz 6x no boleto, o Pagar.me faz 1x, e
+`min(6, 1) = 1`. A escola anuncia 6x no boleto e o site não oferecia.
+
+Pior: aquele reserva **não cobra nada** hoje — é a mesma conta sem o produto
+Checkout habilitado que derrubou a venda por dois dias. Ele custava a promessa
+do boleto e não comprava seguro nenhum em troca.
+
+O reserva foi removido das três rotas (6/set/2026), e a linha voltou a ser
+`ou 12x de R$ 99,88 no cartão ou 6x de R$ 199,77 no boleto`. **Quando o Checkout
+do Pagar.me for habilitado, ele volta como reserva do cartão — nunca do
+boleto**, enquanto for o único provider implementado que parcela boleto.
+
+A configuração fica em `data/payment-routing.json` no servidor, e a versão
+anterior está ao lado como `.bak-<data>`.
+
+**Antes de pôr qualquer gateway como reserva, olhe o `parcelasMaximas` dele.**
+O prejuízo não aparece como erro: aparece como uma linha a menos na vitrine.
 
 ## Fallback de pagamento: `!res.ok` não é "não cobrou"
 
