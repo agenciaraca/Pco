@@ -135,7 +135,11 @@ describe('com banco, o despejo grava uma linha por tabela', () => {
       expect(arquivos.every((f) => f.startsWith('db-') && f.endsWith('.json'))).toBe(true);
 
       // As tabelas que doem mais se sumirem — as que a passada 002 nomeou.
-      for (const tabela of ['users', 'students', 'enrollments', 'paymentOrders', 'certificates']) {
+      // **Nome da tabela, não do export.** Até 5/set/2026 o despejo usava
+      // `Object.entries(schema)` e escrevia `db-paymentOrders.json`; este
+      // teste cobrava esse nome e por isso não denunciava nada. Quem abre a
+      // pasta de backup procura a tabela — e o restaurador também.
+      for (const tabela of ['users', 'students', 'enrollments', 'payment_orders', 'certificates']) {
         expect(arquivos, `${tabela} tem de estar na snapshot`).toContain(`db-${tabela}.json`);
       }
 

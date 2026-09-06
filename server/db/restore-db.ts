@@ -62,16 +62,32 @@ export interface RestoreResult {
 
 type Tabela = { nome: string; objeto: unknown };
 
-/** As tabelas do schema, pelo nome que têm no arquivo do despejo. */
-function tabelasDoSchema(): Tabela[] {
-  const out: Tabela[] = [];
-  for (const valor of Object.values(schema) as unknown[]) {
+/**
+ * As tabelas do schema, por **todos** os nomes com que podem aparecer no
+ * arquivo do despejo.
+ *
+ * Até 5/set/2026 o despejo nomeava os arquivos pelo **export** em camelCase
+ * (`db-aiConfigurations.json`); hoje usa o nome da tabela
+ * (`db-ai_configurations.json`). Snapshot antiga precisa continuar restaurável
+ * — backup que só a versão nova do código consegue ler não é backup.
+ */
+function tabelasDoSchema(): Map<string, Tabela> {
+  const porNome = new Map<string, Tabela>();
+  for (const [exportName, valor] of Object.entries(schema) as Array<[string, unknown]>) {
     if (typeof valor !== 'object' || valor === null) continue;
     const s = Object.getOwnPropertySymbols(valor).find((x) => x.description === 'drizzle:Name');
     if (!s) continue;
-    out.push({ nome: String((valor as Record<symbol, unknown>)[s]), objeto: valor });
+    const nome = String((valor as Record<symbol, unknown>)[s]);
+    const t: Tabela = { nome, objeto: valor };
+    porNome.set(nome, t);
+    porNome.set(exportName, t);
   }
-  return out;
+  return porNome;
+}
+
+/** Só os nomes de tabela — é a lista que `semArquivo` compara. */
+function nomesDeTabela(): string[] {
+  return [...new Set([...tabelasDoSchema().values()].map((t) => t.nome))];
 }
 
 /**
@@ -118,7 +134,7 @@ export async function restoreDatabase(
   const arquivos = (await fs.readdir(dir)).filter(
     (f) => f.startsWith('db-') && f.endsWith('.json'),
   );
-  const doSchema = new Map(tabelasDoSchema().map((t) => [t.nome, t]));
+  const doSchema = tabelasDoSchema();
 
   const desconhecidos: string[] = [];
   const pendentes: Array<{ tabela: Tabela; linhas: Record<string, unknown>[] }> = [];
@@ -137,9 +153,9 @@ export async function restoreDatabase(
     pendentes.push({ tabela, linhas });
   }
 
-  const semArquivo = [...doSchema.keys()].filter(
-    (n) => !arquivos.includes(`db-${n}.json`),
-  );
+  // Uma tabela está coberta se veio por qualquer um dos dois nomes.
+  const restauradas = new Set(pendentes.map((p) => p.tabela.nome));
+  const semArquivo = nomesDeTabela().filter((n) => !restauradas.has(n));
 
   const resultado: RestoreResult = {
     gravou: Boolean(opts.commit),

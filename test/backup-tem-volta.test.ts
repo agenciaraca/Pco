@@ -126,6 +126,42 @@ describe('o restaurador e o despejo falam do mesmo conjunto de tabelas', () => {
     const r = await restore.restoreDatabase(dir);
     expect(r.semArquivo.length + r.tabelas.length).toBe(totalDeTabelas());
   });
+
+  it('snapshot antiga, nomeada pelo export em camelCase, ainda restaura', async () => {
+    /*
+      **Achado rodando o backup de verdade contra produção**, não lendo código.
+      O despejo nomeava os arquivos com `Object.entries(schema)`, que dá o nome
+      do *export*: saíam `db-aiConfigurations.json`, `db-analyticsDaily.json`.
+      O restaurador procurava pelo nome da *tabela* — nenhum arquivo casava, e
+      a snapshot inteira seria lida como "tabelas que o schema não conhece".
+
+      O teste não pegava porque a fixture escrevia o nome certo dos dois lados.
+      Hoje o despejo grava o nome da tabela; snapshots antigas continuam
+      restauráveis, porque backup que só a versão nova do código lê não é
+      backup.
+    */
+    const dir = await fs.mkdtemp(path.join(tmpDir, 'antiga-'));
+    await fs.writeFile(
+      path.join(dir, 'db-aiConfigurations.json'),
+      JSON.stringify([{ id: 'a1' }]),
+      'utf8',
+    );
+    const r = await restore.restoreDatabase(dir);
+
+    expect(r.desconhecidos, 'nome antigo não pode virar "tabela desconhecida"').toEqual([]);
+    expect(r.tabelas.map((t) => t.tabela)).toEqual(['ai_configurations']);
+    expect(r.semArquivo).not.toContain('ai_configurations');
+  });
+
+  it('e o despejo de hoje nomeia pelo nome da tabela', async () => {
+    const { totalDeTabelas } = await import('../server/db/backup-db');
+    // `ai_configurations` (tabela) e não `aiConfigurations` (export): quem
+    // abrir a pasta de backup procurando uma tabela acha o arquivo dela.
+    const dir = await snapshot({ ai_configurations: [{ id: 'a1' }] });
+    const r = await restore.restoreDatabase(dir);
+    expect(r.tabelas.map((t) => t.tabela)).toEqual(['ai_configurations']);
+    expect(r.semArquivo.length).toBe(totalDeTabelas() - 1);
+  });
 });
 
 /**

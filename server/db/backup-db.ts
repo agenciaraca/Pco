@@ -56,15 +56,29 @@ export interface DbDumpResult {
   completo: boolean;
 }
 
-/** As tabelas do schema, pelo nome que terão no arquivo. */
+/**
+ * As tabelas do schema, pelo nome que terão no arquivo.
+ *
+ * **O nome é o da tabela no Postgres, não o do export.** Até 5/set/2026 saía
+ * `Object.entries(schema)`, que dá o nome do export em camelCase: os arquivos
+ * eram `db-aiConfigurations.json`, `db-analyticsDaily.json`. Ninguém tinha
+ * notado porque não havia restaurador — e quando ele foi escrito, procurando
+ * pelo nome da tabela, **nenhum arquivo casava**. A snapshot inteira seria
+ * lida como "tabelas que o schema não conhece".
+ *
+ * Achado rodando o backup de verdade contra produção, não lendo o código: o
+ * teste usava fixture com o nome certo e por isso passava dos dois lados.
+ */
 function tabelas(): Array<[string, unknown]> {
-  return Object.entries(schema).filter(
-    ([, valor]) =>
-      typeof valor === 'object' &&
-      valor !== null &&
-      // Toda pgTable carrega este símbolo; enums e tipos auxiliares, não.
-      Object.getOwnPropertySymbols(valor).some((s) => s.description === 'drizzle:Name'),
-  );
+  const out: Array<[string, unknown]> = [];
+  for (const valor of Object.values(schema) as unknown[]) {
+    if (typeof valor !== 'object' || valor === null) continue;
+    // Toda pgTable carrega este símbolo; enums e tipos auxiliares, não.
+    const s = Object.getOwnPropertySymbols(valor).find((x) => x.description === 'drizzle:Name');
+    if (!s) continue;
+    out.push([String((valor as Record<symbol, unknown>)[s]), valor]);
+  }
+  return out;
 }
 
 /**
