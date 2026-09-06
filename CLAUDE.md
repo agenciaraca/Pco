@@ -990,6 +990,28 @@ futura o renomear, a lista fica vazia sem erro nenhum e o backup passaria a
 dizer "banco salvo" cobrindo nada. O caso que exige mais de 20 tabelas é o que
 avisa.
 
+**A volta existe desde 5/set/2026** — `server/db/restore-db.ts` e
+`scripts/restaurar_banco.ts`. Antes disso o despejo não tinha consumidor nenhum
+no repositório, e `docs/deploy.md` ensinava a extrair um `.tar.gz` que o worker
+não produz. Três coisas que qualquer mexida aqui tem de respeitar:
+
+- **Migrations primeiro, linhas depois.** O despejo é lógico; a estrutura vem
+  do git.
+- **Ensaio é o padrão.** Sem `--commit` ele lista o que faria e imprime
+  usuário, host e base — nunca a senha.
+- **FK sem saber a ordem das tabelas:** apaga e insere em várias passadas,
+  repetindo enquanto houver progresso. O atalho
+  (`session_replication_role = 'replica'`) exige superusuário e normalmente não
+  existe em banco gerenciado.
+
+E uma que só apareceu rodando: **o nome do arquivo é o da tabela, não o do
+export**. O despejo usava `Object.entries(schema)` e escrevia
+`db-paymentOrders.json`; o restaurador procura `payment_orders`, e nada casaria
+— backup completo, restauração vazia. O teste passava dos dois lados porque a
+fixture usava o nome certo. Hoje o despejo grava o nome da tabela e o
+restaurador **aceita os dois**, porque snapshot antiga tem de continuar
+restaurável.
+
 **O que continua aberto:** o S3 não tem lifecycle — nunca apaga nada. E o
 despejo carrega hash de senha e colunas cifradas; o que é cifrado usa chave
 derivada de `AI_KEY_ENCRYPTION_SECRET`, que vive no ambiente e **não** entra no
