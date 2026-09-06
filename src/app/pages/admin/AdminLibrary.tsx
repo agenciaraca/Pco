@@ -21,6 +21,7 @@ import {
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState, { ErrorState } from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { uploadFile } from '../../data/api';
 import { useToast } from '../../components/Toast';
 import { createLibrarySchema, type CreateLibraryInput } from '../../../../shared/schemas';
 import { useT } from '../../i18n';
@@ -322,6 +323,8 @@ interface LibraryEditorProps {
 
 function LibraryEditor({ item, courses, submitting, onClose, onSubmit }: LibraryEditorProps) {
   const isNew = item === null;
+  const [enviando, setEnviando] = useState(false);
+  const toast = useToast();
 
   type FormInput = z.input<typeof createLibrarySchema>;
   const {
@@ -389,12 +392,50 @@ function LibraryEditor({ item, courses, submitting, onClose, onSubmit }: Library
                 <option value="artigo">Artigo</option>
               </select>
             </Field>
-            <Field label="URL do arquivo">
-              <input
-                {...register('fileMockUrl')}
-                placeholder="/uploads/arquivo.pdf ou https://..."
-                className="pco-input font-mono text-xs"
-              />
+            <Field label="Arquivo">
+              {/*
+                Havia só o campo de texto — e o nome dele era `fileMockUrl`, com
+                padrão `'#'`. Ou seja: a biblioteca era um catálogo de links que
+                alguém tinha de hospedar em outro lugar. O upload existe no
+                servidor desde sempre (`POST /uploads`); faltava o botão.
+              */}
+              <div className="flex items-center gap-2">
+                <input
+                  {...register('fileMockUrl')}
+                  placeholder="/uploads/arquivo.pdf ou https://..."
+                  className="pco-input font-mono text-xs flex-1"
+                />
+                <label className="pco-btn-secondary text-xs cursor-pointer whitespace-nowrap">
+                  {enviando ? 'Enviando…' : 'Enviar arquivo'}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.epub,.mp3,.m4a,image/*"
+                    disabled={enviando}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setEnviando(true);
+                      try {
+                        const r = await uploadFile(file);
+                        setValue('fileMockUrl', r.url, { shouldDirty: true });
+                        toast.success('Arquivo enviado', r.filename);
+                      } catch (err) {
+                        // A mensagem do servidor é específica (tipo não
+                        // permitido, tamanho); engoli-la deixaria o admin sem
+                        // saber por que o arquivo não subiu.
+                        toast.error(
+                          'Não deu para enviar',
+                          err instanceof Error ? err.message : 'Tente de novo.',
+                        );
+                      } finally {
+                        setEnviando(false);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                </label>
+              </div>
             </Field>
             <Field label="Tema">
               <input {...register('theme')} className="pco-input" placeholder="Ex.: Fundamentos" />

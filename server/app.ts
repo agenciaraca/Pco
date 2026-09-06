@@ -1352,7 +1352,17 @@ export function buildApp() {
       return jsonError(c, 400, 'NO_FILE', 'Campo "file" ausente ou inválido.');
     }
     try {
-      const result = await saveUpload(file);
+      /*
+        Documento (PDF, EPUB, áudio) só para a administração.
+
+        Esta rota é `requireAuth()` — todo aluno alcança —, e imagem é o caso
+        que justifica isso: avatar. Liberar PDF aqui deixaria qualquer aluno
+        hospedar arquivo no domínio da escola, que é o que golpe de phishing
+        procura. Quem decide é a rota, nunca o cliente.
+      */
+      const u = c.get('user');
+      const podeDocumento = u?.role === 'admin' || u?.role === 'superadmin';
+      const result = await saveUpload(file, { permiteDocumento: podeDocumento });
       return c.json(result, 201);
     } catch (err) {
       if (err instanceof UploadError) {
