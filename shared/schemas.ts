@@ -659,6 +659,12 @@ export const createPodcastSchema = z.object({
   publishedAt: z.string().min(8).max(20),
   coverColor: z.string().max(120).default('from-pco-blue to-pco-cyan'),
   audioUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
+  /*
+    Transcrição. O teto é generoso de propósito: uma hora de fala dá algo em
+    torno de 60 mil caracteres, e cortar no meio produziria transcrição
+    truncada — que é pior do que nenhuma, porque parece completa.
+  */
+  transcript: z.string().max(200_000).optional(),
   relatedCourseIds: z.array(z.string().max(40)).max(50).default([]),
   relatedModuleIds: z.array(z.string().max(40)).max(100).default([]),
   tags: z.array(z.string().min(1).max(40)).max(20).optional(),

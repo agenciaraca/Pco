@@ -302,6 +302,7 @@ function PodcastEditor({ episode, courses, submitting, onClose, onSubmit }: Podc
       publishedAt: episode?.publishedAt ?? today,
       coverColor: episode?.coverColor ?? coverPresets[0].value,
       audioUrl: episode?.audioUrl ?? '',
+      transcript: episode?.transcript ?? '',
       relatedCourseIds: episode?.relatedCourseIds ?? [],
       relatedModuleIds: episode?.relatedModuleIds ?? [],
     },
@@ -365,6 +366,22 @@ function PodcastEditor({ episode, courses, submitting, onClose, onSubmit }: Podc
               {...register('audioUrl')}
               className="pco-input font-mono text-xs"
               placeholder="https://..."
+            />
+          </Field>
+
+          {/*
+            Transcrição: é o que dá acesso ao episódio para quem é surdo, e é o
+            único caminho — podcast não tem imagem de onde tirar contexto.
+          */}
+          <Field
+            label="Transcrição (opcional, mas é o que torna o episódio acessível)"
+            error={errors.transcript?.message}
+          >
+            <textarea
+              {...register('transcript')}
+              rows={8}
+              className="pco-input text-xs leading-relaxed"
+              placeholder="Cole aqui o texto do que é falado no episódio."
             />
           </Field>
 

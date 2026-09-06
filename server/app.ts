@@ -194,6 +194,8 @@ import { buildCsv, csvResponse } from './export/csv';
 import * as adminNotes from './admin/notes-store';
 import * as discussions from './discussions/store';
 import * as forumStore from './forum/store';
+import * as emailLogStore from './notifications/log-store';
+import * as auditLogStore from './audit/log';
 import { buildSalesSummary } from './payments/sales-analytics';
 import { renderInvoiceHtml } from './payments/invoice';
 import { renderCertificateHtml } from './repositories/certificate-render';
@@ -2226,6 +2228,8 @@ export function buildApp() {
       riscos,
       notasDaCoordenacao,
       planosDeRecuperacao,
+      emailsRecebidos,
+      registrosDeAuditoria,
     ] = await Promise.all([
       ordersRepo.listForUser(u.sub),
       bookingsRepo.listForUser(u.sub),
@@ -2242,6 +2246,8 @@ export function buildApp() {
       retentionRepo.listRetentionRisks().then((rs) => rs.filter((r) => r.studentId === u.sub)),
       adminNotes.listForStudent(u.sub),
       recoveryPlans.listForStudent(u.sub),
+      emailLogStore.listForEmail(u.email ?? ''),
+      auditLogStore.listAudit({ targetId: u.sub, limit: 1000 }),
     ]);
 
     const dump = {
@@ -2282,6 +2288,24 @@ export function buildApp() {
         ({ authorId: _a, authorEmail: _e, ...resto }) => resto,
       ),
       recoveryPlans: planosDeRecuperacao,
+      // Que e-mails a escola mandou para esta pessoa, e quando.
+      emailLogs: emailsRecebidos,
+      /*
+        O que foi feito **com** os dados dela, e por quem.
+
+        Sai o `action`, o alvo e a hora; **não** sai a identidade de quem
+        operou. É a mesma regra das notas da coordenação: o direito de acesso
+        alcança o que se fez a respeito de alguém, não o nome do funcionário
+        que fez — e entregá-lo transformaria uma decisão da escola no nome de
+        uma pessoa para cobrar.
+      */
+      auditLog: registrosDeAuditoria.map((r) => ({
+        ts: r.ts,
+        action: r.action,
+        targetType: r.targetType,
+        targetId: r.targetId,
+        status: r.status,
+      })),
     };
 
     return new Response(JSON.stringify(dump, null, 2), {
@@ -8066,6 +8090,14 @@ export function buildApp() {
       if (name === 'sandra-poll') {
         const r = await sandraPoll.varrer();
         return c.json({ name, ok: true, ...r });
+      }
+      // `?dryRun=true` mede e não escreve para ninguém — é como se confere o
+      // limiar sem mandar e-mail de alarme para a administração inteira.
+      if (name === 'checkout-alerta') {
+        const dryRun = c.req.query('dryRun') === 'true';
+        const { checarAgora } = await import('./payments/alerta-checkout-worker');
+        const r = await checarAgora({ dryRun });
+        return c.json({ name, ok: true, ...r, dryRun });
       }
       return jsonError(c, 404, 'NOT_FOUND', `Job desconhecido: ${name}`);
     },

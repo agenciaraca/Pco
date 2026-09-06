@@ -67,7 +67,8 @@ When changing app behavior, edit `server/app.ts`. The two entrypoints stay thin.
 
 Started in `server/dev.ts` via dynamic imports after `serve()` returns:
 
-São **doze**, e esta tabela listava cinco até 3/set/2026. Quem lia a
+São **treze** (eram doze até 5/set/2026), e esta tabela listava cinco até
+3/set/2026. Quem lia a
 documentação para decidir o que acontece num restart subestimava a superfície
 por mais da metade — e três dos ausentes tocam dinheiro (Sandra), acesso
 (vencimento) e compromisso com aluno (lembrete de sessão).
@@ -83,6 +84,7 @@ por mais da metade — e três dos ausentes tocam dinheiro (Sandra), acesso
 | `notifications/student-progress-email.startWorker`| 1h                               |
 | `db/backup-worker.startWorker`                    | 1h tick (snapshot at 04:00 UTC)  |
 | `services/log-rotator.startWorker`                | 1h                               |
+| `payments/alerta-checkout-worker.startWorker`     | 15min                            |
 | `services/retention-worker.startWorker`           | 6h                               |
 | `reengagement/worker.startWorker`                 | 24h                              |
 | `access/expiry-worker.startWorker`                | 24h                              |
@@ -321,13 +323,29 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >    derrubaria a promessa de 6x para 1x — o Asaas é o único provider
 >    implementado que parcela boleto, e isso torna o gateway único do boleto um
 >    problema estrutural, não uma configuração pendente.
-> 6. **Alerta por taxa de falha de checkout.** A venda ficou dois dias fora do
->    ar com campanha paga rodando, e a detecção foi alguém abrir
->    `/admin/pedidos`. O botão de testar gateway não pega esse caso: ele lê
->    credencial, e "produto não habilitado" só aparece na cobrança real.
-> 7. **O resto dos `isLoading` sem `isError`** — trabalho mecânico em `/admin`.
-> 8. **O certificado ainda sai de contagem de cliques** — nenhuma nota, nenhum
+> 6. **O resto dos `isLoading` sem `isError`** — trabalho mecânico em `/admin`.
+> 7. **O certificado ainda sai de contagem de cliques** — nenhuma nota, nenhum
 >    tempo assistido, nenhum quiz participa. Decisão de produto.
+> 8. Nada mais de acessibilidade no player — seek, volume e transcrição
+>    entraram (A11Y4-001, 002 e 004). **A migration `0021` roda antes do código
+>    subir**: ela cria `podcasts.transcript`.
+>
+> **Fechados depois do deploy da noite**, e os três primeiros eram os de maior
+> dano:
+> o **fallback de pagamento** deixou de tratar 5xx como "não cobrou" (SEC4-001 —
+> o reserva podia cobrar a mesma pessoa duas vezes); o **restaurador de banco**
+> passou a gravar em transação e a exigir `SEI_O_QUE_FACO=1` (SEC4-002 — ele
+> apagava tudo antes de inserir, sem volta, numa máquina cujo `.env` aponta para
+> produção); e existe **alarme por taxa de falha de checkout**, décimo terceiro
+> worker, que era o que faltava para a venda não ficar dois dias fora do ar de
+> novo. Ver as três seções próprias, mais abaixo.
+>
+> Entrou junto o que faltava de acessibilidade no player de podcast — barra de
+> progresso que é controle de verdade (clique e teclado), volume, e
+> **transcrição** (migration `0021`), que é a única via de acesso a conteúdo
+> só-áudio para quem é surdo. E a área do aluno inteira passou a distinguir
+> "sem rede" de "não existe": a pior era o episódio de podcast, que jogava o
+> ouvinte para fora com `<Navigate>` quando o celular perdia sinal.
 >
 > **Também entrou hoje à noite:** o drip passou a trancar a aula, e não só o
 > botão de concluir (ver a seção do drip); `/admin/pedidos` ganhou coluna
@@ -650,6 +668,18 @@ mostra o relatório categoria a categoria, com o motivo de cada retenção) e
 concluída" só aparece depois do expurgo — antes, ela perguntava *"confirmar que
 os dados foram REMOVIDOS?"* e não removia nada.
 
+**Duas categorias entraram depois**, e uma delas tem armadilha de ordem:
+
+- **`emailLogs` é apagada**, e a fila é chaveada pelo **endereço**, não pelo
+  `userId` — quem escreve nela é o remetente, que só conhece o e-mail. Por isso
+  o e-mail é lido **no começo** de `expurgarTitular`: a categoria `user` troca
+  esse endereço pela marca anônima, e ler depois faria a busca procurar por
+  `removido-…@invalido.local` e não achar nada. O relatório diria "0
+  encontrados" sobre uma fila cheia, e nada denunciaria isso.
+- **`auditLog` é retida**, com o motivo escrito: é o registro que prova o que a
+  escola fez com os dados da pessoa — inclusive que **este expurgo** rodou, por
+  quem e quando. Apagá-lo destruiria a evidência da própria exclusão.
+
 **O que segue aberto, e é decisão:** `orders.userEmail` continua em claro e o
 `userId` do pedido continua o mesmo da conta anonimizada. Ou é dado fiscal — e
 então é retido **declarado como tal** —, ou é conveniência de exibição e deve ir
@@ -825,6 +855,93 @@ Cinco coisas que qualquer mexida aqui tem de respeitar:
 
 Sem rota configurada e sem método, vale o comportamento antigo (primeiro ativo)
 — compatibilidade, não desenho. A tela de saúde é que cobra a configuração.
+
+## Fallback de pagamento: `!res.ok` não é "não cobrou"
+
+`server/payments/providers/criou-cobranca.ts` (5/set/2026). O motor sempre
+esteve certo — só `PaymentProviderError` com `criouCobranca: 'nao'` autoriza o
+próximo gateway, e o padrão do construtor é `'talvez'`. **A falha estava na
+classificação.** Cinco providers faziam
+
+```ts
+if (!res.ok) throw new PaymentProviderError(CODE, msg, 'nao');
+```
+
+com o comentário *"o gateway respondeu recusando: nada foi criado"* — que
+descreve o 400 e o 422, e não o 500, o 502, o 503, o 504 nem o 429.
+
+O caso concreto: o adquirente grava o pedido, o proxy à frente dele estoura o
+tempo e devolve 502. **A cobrança existe.** Com `'nao'`, o reserva cria a
+segunda.
+
+Três coisas que qualquer mexida aqui tem de respeitar:
+
+- **`'nao'` exige que o gateway tenha dito que recusou antes de gravar.** É o
+  4xx de validação e de autorização. Todo o resto é `'talvez'`, e `'talvez'` não
+  autoriza o reserva.
+- **409 e 425 não são `'nao'`.** 409 é quase sempre chave de idempotência já
+  usada — isto é, a cobrança existe. 425 diz que a requisição pode ser repetida
+  pelo cliente, o que não é o mesmo que não ter efeito.
+- **Falha antes de a requisição sair continua `'nao'` no ponto de origem**:
+  credencial ausente, documento inválido, configuração faltando. Ali é certo, e
+  o classificador não deve ser aplicado por simetria.
+
+Isso torna o fallback **mais raro**, e é o lado certo para errar: venda perdida
+se refaz com um e-mail; cobrança dobrada se devolve com dor, e quem paga o prazo
+do estorno é o aluno.
+
+O 502 da Sandra segue fora da regra geral — ele vem com `invoiceId`, a fatura
+existe **por declaração do gateway**, e nenhuma classificação por status pode
+passar por cima disso.
+
+## O alarme que faltava: a venda pode parar sem ninguém notar
+
+`server/payments/saude-do-checkout.ts` + `alerta-checkout-worker.ts`
+(5/set/2026), décimo terceiro worker.
+
+A venda ficou fora do ar de 3 a 5/set com campanha paga rodando, e a detecção
+foi alguém abrir `/admin/pedidos` por outro motivo. **O botão de testar gateway
+não pega esse caso, e não é falha dele**: ele lê credencial, e a credencial
+estava boa — "produto não habilitado na conta" só aparece na cobrança real.
+
+Quatro decisões que qualquer mexida aqui tem de respeitar:
+
+- **Duas condições, não uma.** Taxa de falha **e** mínimo de tentativas. Só a
+  taxa dispara com um pedido abandonado num domingo (1 de 1 = 100%); só a
+  contagem não distingue cinco falhas em cinquenta de cinco em cinco.
+- **`pending` não é falha e `canceled` também não.** Boleto e pix vivem em
+  aberto por dias; desistência é do negócio. Só `failed` conta.
+- **Um aviso por episódio.** Enquanto a condição durar, não se repete; e a
+  **volta também é avisada**, senão quem recebeu o alarme fica conferindo à mão.
+- **Sem base, silêncio.** `taxaFalhaPct` nulo não é `ok` nem `alerta` — na tela
+  de saúde vira `na`, não verde.
+
+O motivo mais comum entre as falhas vai no aviso. É o que transforma "o checkout
+está falhando" em "a conta do Pagar.me não tem o produto Checkout habilitado" —
+sem ele, o alerta manda alguém abrir a tela para descobrir o que o alerta já
+sabia.
+
+## O restaurador não pode piorar o dia do desastre
+
+`server/db/restore-db.ts` grava **dentro de uma transação** desde 5/set/2026.
+Antes, apagava todas as tabelas da snapshot e só depois inseria: falha na
+inserção deixava o banco vazio, sem volta, com o relatório dizendo
+`completo: false` — honesto e inútil, porque o dado já tinha saído.
+
+Três coisas que não se inferem lendo o arquivo:
+
+- **Cada tentativa tem savepoint** (`tx.transaction()`). No Postgres, um comando
+  que falha aborta a transação inteira; o laço de passadas — que é como este
+  módulo resolve FK sem conhecer a ordem das tabelas — depende de tentar,
+  falhar e tentar de novo. As duas coisas só convivem com savepoint.
+- **Pendência desfaz tudo.** Restauração pela metade deixa o banco num estado
+  que ninguém consegue descrever de fora. `desfeito: true` no relatório é a
+  informação que muda o que o operador faz em seguida.
+- **`--commit` exige `SEI_O_QUE_FACO=1`**, no mesmo molde de `restart_vps.py`.
+  O script imprime o banco alvo desde sempre — e **imprimir não é exigir que
+  alguém leia**; o `.env` da máquina de quem desenvolve aponta para produção. O
+  ensaio não exige a variável, porque é leitura pura e é o que se roda para
+  decidir.
 
 ## Sandra: o gateway em que o dinheiro não passa pelo gateway
 
@@ -1239,8 +1356,17 @@ palavra**. No `LearningLayout` era pior — a tela afirmava *"Este curso não
 existe ou não está na sua estante"* sobre um curso que ele cursa e pagou.
 
 A auditoria de 3/set/2026 achou **76 arquivos** com `isLoading` e sem `isError`
-em lugar nenhum. Os 11 confirmados como danosos estão corrigidos; **os demais
-seguem abertos** e são trabalho mecânico.
+em lugar nenhum. **Toda a área do aluno está corrigida** desde 5/set/2026 —
+lista de podcasts, episódio, notícias, biblioteca, eventos, detalhe de evento,
+transcrição de sessão, comparação e pré-visualização de curso, além das cinco
+telas de aula que já tinham sido feitas. **O que sobra é `/admin`**, e é
+trabalho mecânico: lá o custo é painel que gira, não aluno lendo mentira sobre
+si.
+
+A pior das que faltavam era o **episódio de podcast**, e ela é o caso do
+manual: `if (isLoading) …; if (!episode) return <Navigate to="/podcasts" />`.
+Offline, os dois primeiros ramos são falsos e o ouvinte era **jogado para fora
+do episódio sem uma palavra** — no metrô, que é onde se ouve podcast.
 
 **A regra:** use `isPending` ("ainda não tenho dado"), não `isLoading`. E trate
 `fetchStatus === 'paused'` **antes** dele, porque "sem internet" e "o servidor

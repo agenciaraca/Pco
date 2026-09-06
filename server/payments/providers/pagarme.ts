@@ -11,6 +11,7 @@ import type {
 import { PaymentProviderError } from './types';
 import { pingHttp } from './ping-http';
 import { comparaSegura } from './compara-segura';
+import { criouCobrancaPeloStatus } from './criou-cobranca';
 import { origemPublica } from '../../origem-publica';
 import { opcoesDeParcelamento } from '../../../shared/parcelamento';
 import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
@@ -158,12 +159,12 @@ export const pagarmeProvider: PaymentProviderImpl = {
     });
     if (!res.ok) {
       const j = await res.json().catch(() => null);
-      // O Pagar.me respondeu recusando o pedido: nada foi criado, e o
-      // próximo gateway da rota pode ser tentado.
+      // 4xx de validação libera o próximo gateway da rota; 5xx e 429 não,
+      // porque a cobrança pode ter sido gravada antes de a resposta falhar.
       throw new PaymentProviderError(
         'PAGARME_CREATE_FAILED',
         JSON.stringify(j) || `HTTP ${res.status}`,
-        'nao',
+        criouCobrancaPeloStatus(res.status),
       );
     }
     const order = (await res.json()) as {

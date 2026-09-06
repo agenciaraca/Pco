@@ -250,7 +250,32 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     // ignora
   }
 
-  // 10) Disk usage (data dir)
+  /*
+    10) A venda está passando?
+
+    Entre 3 e 5/set/2026 toda compra falhou e ninguém soube por dois dias, com
+    campanha paga rodando. O botão de testar gateway não pega esse caso — ele
+    lê credencial, e a credencial estava boa; "produto não habilitado" só
+    aparece na cobrança real. O único sinal era a fila de pedidos falhando.
+
+    `taxaFalhaPct` nulo é 'na', não 'ok': pouco movimento não é saúde
+    confirmada, e um verde ali diria que se mediu quando não se mediu.
+  */
+  try {
+    const { avaliarCheckout, resumoLegivel } = await import('../payments/saude-do-checkout');
+    const sc = await avaliarCheckout();
+    checks.push({
+      id: 'checkout',
+      label: 'Checkout (24h)',
+      status: sc.taxaFalhaPct === null ? 'na' : sc.alerta ? 'error' : 'ok',
+      message: resumoLegivel(sc),
+      metric: sc.taxaFalhaPct ?? '—',
+    });
+  } catch {
+    // ignora
+  }
+
+  // 11) Disk usage (data dir)
   try {
     const usage = await diskUsage(DATA_DIR);
     checks.push({

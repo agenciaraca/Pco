@@ -16,11 +16,13 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { publicCourseUrl } from '../lib/publicUrls';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 
 export default function CoursePreview() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { data: course, isLoading } = useCourse(id);
+  const courseQ = useCourse(id);
+  const course = courseQ.data;
   const { data: products = [] } = useProducts();
   const rating = useCourseRating(id);
   const prereqQ = useCoursePrereqCheck(user ? id : undefined);
@@ -29,7 +31,18 @@ export default function CoursePreview() {
     description: course?.description,
   });
 
-  if (isLoading) return <CardListSkeleton count={3} />;
+  // A tela não pode afirmar que o curso não existe quando o que houve foi
+  // falta de rede: dizer isso manda embora quem talvez já tenha pago.
+  if (courseQ.fetchStatus === 'paused') return <SemConexao oQue="este curso" />;
+  if (courseQ.isPending) return <CardListSkeleton count={3} />;
+  if (courseQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={courseQ.error}
+        oQue="este curso"
+        aoTentarDeNovo={() => void courseQ.refetch()}
+      />
+    );
   if (!course) {
     return (
       <div className="p-10">

@@ -22,6 +22,7 @@ function rowToEpisode(r: typeof schema.podcasts.$inferSelect): PodcastEpisode {
     publishedAt: r.publishedAt,
     coverColor: r.coverColor,
     audioUrl: r.audioUrl ?? undefined,
+    transcript: r.transcript ?? undefined,
     relatedCourseIds: r.relatedCourseIds ?? [],
     relatedModuleIds: r.relatedModuleIds ?? [],
     tags: r.tags ?? [],
@@ -61,6 +62,7 @@ export async function createPodcast(input: CreatePodcastInput): Promise<PodcastE
     publishedAt: input.publishedAt,
     coverColor: input.coverColor,
     audioUrl: input.audioUrl || undefined,
+    transcript: input.transcript || undefined,
     relatedCourseIds: input.relatedCourseIds,
     relatedModuleIds: input.relatedModuleIds,
     tags: input.tags,
@@ -77,6 +79,7 @@ export async function createPodcast(input: CreatePodcastInput): Promise<PodcastE
     publishedAt: ep.publishedAt,
     coverColor: ep.coverColor,
     audioUrl: ep.audioUrl ?? null,
+    transcript: ep.transcript ?? null,
     tags: ep.tags ?? [],
     relatedCourseIds: ep.relatedCourseIds ?? [],
     relatedModuleIds: ep.relatedModuleIds ?? [],
@@ -103,6 +106,7 @@ export async function updatePodcast(
   if (patch.publishedAt !== undefined) update.publishedAt = patch.publishedAt;
   if (patch.coverColor !== undefined) update.coverColor = patch.coverColor;
   if (patch.audioUrl !== undefined) update.audioUrl = patch.audioUrl || null;
+  if (patch.transcript !== undefined) update.transcript = patch.transcript || null;
   if (patch.tags !== undefined) update.tags = patch.tags;
   if (patch.relatedCourseIds !== undefined) update.relatedCourseIds = patch.relatedCourseIds;
   if (patch.relatedModuleIds !== undefined) update.relatedModuleIds = patch.relatedModuleIds;

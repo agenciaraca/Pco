@@ -48,6 +48,7 @@ import type {
 } from './types';
 import { PaymentProviderError } from './types';
 import { pingHttp } from './ping-http';
+import { criouCobrancaPeloStatus } from './criou-cobranca';
 import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 
 /** Métodos aceitos pela Sandra. Não há padrão — de propósito, do lado dela. */
@@ -234,11 +235,18 @@ export const sandraProvider: PaymentProviderImpl = {
         );
       }
       const detalhe = j.campo ? ` (${j.campo}: ${j.motivo})` : '';
-      // A Sandra respondeu recusando, e sem `invoiceId`: nada foi criado.
+      /*
+        Sem `invoiceId`, a classificação sai do código de status.
+
+        O 502 acima é o caso em que a Sandra **diz** que a fatura existe. Aqui
+        ela não diz nada — e "não disse" não é "não criou": um 503 do gateway da
+        escola pode ter gravado a cobrança e falhado ao responder. Só o 4xx de
+        validação autoriza o reserva.
+      */
       throw new PaymentProviderError(
         'SANDRA_ERRO',
         `Sandra ${r.status} ${j.error ?? 'erro_desconhecido'}${detalhe}`,
-        'nao',
+        criouCobrancaPeloStatus(r.status),
       );
     }
 

@@ -13,6 +13,7 @@ import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 import { parcelasPara } from '../../../shared/parcelamento';
 import { pingHttp } from './ping-http';
 import { comparaSegura } from './compara-segura';
+import { criouCobrancaPeloStatus } from './criou-cobranca';
 
 function apiBase(mode: 'test' | 'live'): string {
   return mode === 'live'
@@ -137,11 +138,16 @@ export const asaasProvider: PaymentProviderImpl = {
     });
     if (!paymentRes.ok) {
       const j = await paymentRes.json().catch(() => null);
-      // O Asaas respondeu recusando a cobrança: ela não existe.
+      /*
+        **Só 4xx de validação prova que nada foi criado.** Antes esta linha era
+        `'nao'` fixo, com o comentário "o Asaas respondeu recusando: ela não
+        existe" — verdade para o 400, falsa para o 502 que chega depois de a
+        cobrança ter sido gravada.
+      */
       throw new PaymentProviderError(
         'ASAAS_PAYMENT_FAILED',
         JSON.stringify(j) || `HTTP ${paymentRes.status}`,
-        'nao',
+        criouCobrancaPeloStatus(paymentRes.status),
       );
     }
     const payment = (await paymentRes.json()) as {

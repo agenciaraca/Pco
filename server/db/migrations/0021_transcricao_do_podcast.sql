@@ -1,0 +1,21 @@
+-- Transcrição do episódio de podcast.
+--
+-- Conteúdo só-áudio sem alternativa textual não tem via de acesso nenhuma para
+-- quem é surdo ou tem deficiência auditiva — e nenhuma para quem está num
+-- lugar onde não pode ouvir. As aulas de vídeo já têm `lessons.transcripts`
+-- desde a migration `0017`; o podcast, que é o formato em que o áudio **é** o
+-- conteúdo, não tinha.
+--
+-- A `description` não substitui: ela é o resumo que aparece no card da lista,
+-- limitada a 2000 caracteres pelo schema. Um episódio de 40 minutos não cabe
+-- ali, e usá-la para as duas coisas quebraria a lista.
+--
+-- Texto puro, um idioma, e não `jsonb` de locales como em `lessons`: o produto
+-- é em português e a estrutura multilíngue de lá nasceu de um caso concreto
+-- (aulas legendadas em três idiomas) que aqui não existe. Estrutura sem caso de
+-- uso é estrutura que ninguém preenche.
+--
+-- Nula em todo episódio existente. **Nulo quer dizer "não transcrito"**, e a
+-- tela diz isso — não inventa que o áudio é o suficiente.
+
+ALTER TABLE "podcasts" ADD COLUMN "transcript" text;

@@ -33,6 +33,7 @@ let expurgo: typeof import('../server/privacy/expurgo');
 let usersStore: typeof import('../server/auth/users-store');
 let forum: typeof import('../server/forum/store');
 let notes: typeof import('../server/repositories/lesson-notes');
+let emailLogs: typeof import('../server/notifications/log-store');
 
 let userId: string;
 const CPF = '39053344705'; // válido no dígito verificador, e de teste
@@ -46,6 +47,7 @@ beforeAll(async () => {
   expurgo = await import('../server/privacy/expurgo');
   forum = await import('../server/forum/store');
   notes = await import('../server/repositories/lesson-notes');
+  emailLogs = await import('../server/notifications/log-store');
 
   const u = await usersStore.createUser({
     email: 'titular@exemplo.test',
@@ -57,6 +59,23 @@ beforeAll(async () => {
   userId = u.id;
 
   await notes.upsertNote(userId, 'l-1', 'anotação minha');
+
+  // Um e-mail enviado para ela, e outro para terceiro — o segundo tem de
+  // sobreviver.
+  await emailLogs.pushLog({
+    configId: 'c1',
+    provider: 'mock',
+    to: 'titular@exemplo.test',
+    subject: 'Sua matrícula foi confirmada',
+    status: 'sent',
+  });
+  await emailLogs.pushLog({
+    configId: 'c1',
+    provider: 'mock',
+    to: 'outra@exemplo.test',
+    subject: 'Nada a ver',
+    status: 'sent',
+  });
 
   await forum.createThread({
     courseId: 'c-1',
@@ -169,6 +188,30 @@ describe('depois do commit, o que reidentifica a pessoa não está mais lá', ()
     // E o `studentName` que estava sendo gravado não existe no tipo nem na
     // coluna: era campo fantasma.
     expect(bloco).not.toContain('studentName');
+  });
+
+  it('a fila de e-mails perde os dele, e só os dele', async () => {
+    /*
+      **A ordem importa, e é o defeito que este caso trava.**
+
+      A fila é chaveada pelo endereço, não pelo `userId` — quem escreve nela é o
+      remetente, que só conhece o e-mail. E a categoria `user` **troca** esse
+      endereço pela marca anônima. Se o expurgo lesse o e-mail depois de
+      anonimizar a conta, procuraria por `removido-...@invalido.local` e não
+      acharia nada: o relatório diria "0 encontrados" sobre uma fila cheia, e
+      ninguém teria como desconfiar.
+    */
+    expect(await emailLogs.listForEmail('titular@exemplo.test')).toHaveLength(0);
+    expect(await emailLogs.listForEmail('outra@exemplo.test')).toHaveLength(1);
+  });
+
+  it('o log de auditoria é retido, e com o motivo escrito', async () => {
+    // Apagá-lo destruiria a prova de que a exclusão foi executada — que é
+    // justamente o documento que o titular pode vir a cobrar.
+    const { DECISOES } = await import('../server/privacy/expurgo');
+    const d = DECISOES.find((x) => x.categoria === 'auditLog');
+    expect(d?.destino).toBe('reter');
+    expect(d?.motivo ?? '').toMatch(/segurança|LGPD/i);
   });
 
   it('rodar de novo é inofensivo, e dá o mesmo pseudônimo', async () => {

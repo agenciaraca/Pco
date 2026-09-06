@@ -223,6 +223,14 @@ export interface PodcastEpisode {
   publishedAt: string;
   coverColor: string;
   audioUrl?: string;
+  /**
+   * Transcrição do episódio. Ausente = não transcrito.
+   *
+   * Conteúdo só-áudio sem alternativa textual não tem via de acesso para quem é
+   * surdo — nem para quem está onde não pode ouvir. `description` é o resumo do
+   * card e não substitui.
+   */
+  transcript?: string;
   relatedCourseIds?: ID[];
   relatedModuleIds?: ID[];
   listened?: boolean;

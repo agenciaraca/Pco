@@ -148,6 +148,13 @@
       "when": 1788656226215,
       "tag": "0020_parcelamento_do_pedido",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788662628955,
+      "tag": "0021_transcricao_do_podcast",
+      "breakpoints": true
     }
   ]
 }

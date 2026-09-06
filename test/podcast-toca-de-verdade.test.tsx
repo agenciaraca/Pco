@@ -59,6 +59,33 @@ describe('o player toca o arquivo, não uma animação', () => {
     expect(s).toContain('disabled={!audioUrl}');
   });
 
+  it('a barra de progresso é um controle, e não um enfeite', async () => {
+    // A11Y4-001: ela era um `<div>` com `width` calculada — não respondia a
+    // clique, a teclado nem a leitor de tela, e os únicos controles de posição
+    // eram ±15s. Chegar ao minuto 40 de um episódio de 60 min exigia ~160
+    // acionamentos, e **nem o mouse** tinha para onde clicar.
+    const s = await fonte();
+    expect(s).toContain('role="slider"');
+    expect(s).toContain('aria-valuenow');
+    expect(s).toContain('aria-valuetext');
+    expect(s).toContain('onKeyDown');
+    // Clique no trilho posiciona.
+    expect(s).toMatch(/getBoundingClientRect\(\)/);
+  });
+
+  it('dá para baixar o volume sem sair do site', async () => {
+    // A11Y4-002: o `<audio>` fica com `display:none` e sem `controls`, então
+    // volume, mudo e taxa de reprodução — que o elemento nativo daria de graça
+    // — precisam ser reconstruídos. Só play/pause e ±15s tinham sido.
+    const s = await fonte();
+    expect(s).toContain('type="range"');
+    expect(s).toContain('aria-label="Volume"');
+    expect(s).toMatch(/aria-label=\{mudo \? 'Reativar som' : 'Silenciar'\}/);
+    // O elemento nativo é quem manda no som; o estado do React só acompanha.
+    expect(s).toMatch(/a\.volume = v;/);
+    expect(s).toMatch(/a\.muted = /);
+  });
+
   it('a CSP permite o áudio — sem `media-src` ele não tocaria', async () => {
     // `media-src` entrou em 3/set/2026 **antes** de existir player, de
     // propósito: o bug do vídeo custou dias porque a diretiva faltante só

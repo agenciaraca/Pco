@@ -10,6 +10,7 @@ import type {
 } from './types';
 import { PaymentProviderError } from './types';
 import { pingHttp } from './ping-http';
+import { criouCobrancaPeloStatus } from './criou-cobranca';
 import { origemPublica } from '../../origem-publica';
 
 function apiBase(mode: 'test' | 'live'): string {
@@ -82,11 +83,12 @@ export const paypalProvider: PaymentProviderImpl = {
     });
     if (!res.ok) {
       const j = await res.json().catch(() => null);
-      // O PayPal respondeu recusando: nenhum pedido foi criado.
+      // Recusa por validação não cria pedido; erro de servidor pode ter
+      // criado e não conseguido responder.
       throw new PaymentProviderError(
         'PAYPAL_CREATE_FAILED',
         JSON.stringify(j) || `HTTP ${res.status}`,
-        'nao',
+        criouCobrancaPeloStatus(res.status),
       );
     }
     const order = (await res.json()) as {

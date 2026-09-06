@@ -6,8 +6,17 @@
  * DATABASE_URL=<owner> npx tsx scripts/restaurar_banco.ts data/backups/2026-09-05
  *
  * # 2. Depois de ler o ensaio, e só depois:
- * DATABASE_URL=<owner> npx tsx scripts/restaurar_banco.ts data/backups/2026-09-05 --commit
+ * SEI_O_QUE_FACO=1 DATABASE_URL=<owner> \
+ *   npx tsx scripts/restaurar_banco.ts data/backups/2026-09-05 --commit
  * ```
+ *
+ * A variável não é burocracia: o `.env` da máquina de quem desenvolve aponta
+ * para produção, e este script apaga antes de inserir. O ensaio não a exige.
+ *
+ * **É tudo ou nada.** A gravação roda dentro de uma transação; se qualquer
+ * tabela falhar, tudo é desfeito e o banco fica como estava. Restauração pela
+ * metade deixa o banco num estado que ninguém consegue descrever de fora — e
+ * este código roda no dia do desastre, quando a snapshot é a única cópia.
  *
  * **As migrations vêm antes.** Este script restaura *linhas*; a estrutura vem
  * de `server/db/migrate.ts`. Restaurar para um banco vazio sem rodar as
@@ -59,6 +68,35 @@ async function main() {
   console.log(`[restore] modo:     ${commit ? 'GRAVANDO (--commit)' : 'ensaio (nada é gravado)'}`);
   console.log('');
 
+  /*
+    **Imprimir o alvo não é o mesmo que exigir que alguém o leia.**
+
+    Este é o script mais destrutivo do repositório: ele esvazia cada tabela da
+    snapshot antes de reinseri-la. E ele carrega `dotenv/config` numa máquina
+    cujo `.env` aponta para **produção** — o `CLAUDE.md` registra dois scripts
+    de manutenção que já miraram na base errada exatamente assim, os dois
+    imprimindo o que iam fazer.
+
+    O projeto já respondeu a esse risco em outros lugares: `playwright.config`
+    zera `DATABASE_URL` à força, e `restart_vps.py` exige `SEI_O_QUE_FACO=1`.
+    Era o único caminho perigoso sem o portão equivalente.
+
+    O ensaio **não** passa por aqui: é leitura pura, e é justamente o que se
+    precisa rodar antes de decidir.
+  */
+  if (commit && !process.env.SEI_O_QUE_FACO) {
+    console.error('RECUSADO: --commit APAGA cada tabela da snapshot antes de reinserir.');
+    console.error('');
+    console.error(`  banco alvo:  ${alvoLegivel()}`);
+    console.error('');
+    console.error('Confira a linha acima. Se for mesmo esse o banco, repita com:');
+    console.error('');
+    console.error(`  SEI_O_QUE_FACO=1 npx tsx scripts/restaurar_banco.ts ${dir} --commit`);
+    console.error('');
+    console.error('Rode antes o ensaio (sem --commit): ele lê e não grava nada.');
+    process.exit(1);
+  }
+
   const r = await restoreDatabase(pasta, { commit });
 
   const totalLinhas = r.tabelas.reduce((s, t) => s + t.linhasNoArquivo, 0);
@@ -93,6 +131,12 @@ async function main() {
     console.log('[restore] ENSAIO — nada foi gravado. Releia acima e repita com --commit.');
   } else if (r.completo) {
     console.log('[restore] concluído: todas as tabelas da snapshot foram restauradas.');
+  } else if (r.desfeito) {
+    // A transação inteira foi desfeita. O banco está como estava — dizer isso
+    // é a informação que muda o que o operador faz em seguida.
+    console.log('[restore] DESFEITO — nada foi gravado, o banco está como antes.');
+    console.log('[restore] Veja as linhas marcadas FALHOU acima e corrija a causa.');
+    process.exit(2);
   } else {
     console.log('[restore] TERMINOU COM PENDÊNCIA — veja as linhas marcadas FALHOU acima.');
     process.exit(2);

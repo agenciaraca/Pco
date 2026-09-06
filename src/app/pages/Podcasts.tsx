@@ -9,10 +9,21 @@ import {
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import { useToast } from '../components/Toast';
 import { useT } from '../i18n';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
+
+/*
+  Lista vazia estável.
+
+  `data ?? []` cria um array novo a cada render, e todo `useMemo` que dependa
+  dele recalcula sempre — o que é justamente o oposto do que o `useMemo` está
+  ali para fazer.
+*/
+const VAZIO: never[] = [];
 
 export default function Podcasts() {
   const t = useT();
-  const { data: podcasts = [], isLoading } = usePodcasts();
+  const podcastsQ = usePodcasts();
+  const podcasts = podcastsQ.data ?? VAZIO;
   const engagementQ = useMyPodcastEngagement();
   const setEng = useSetPodcastEngagement();
   const toast = useToast();
@@ -42,7 +53,19 @@ export default function Podcasts() {
     [podcasts, activeTag],
   );
 
-  if (isLoading) return <CardListSkeleton count={4} />;
+  // Sem rede a consulta fica `paused`, e aí `isLoading` e `isError` são
+  // os dois `false`: a tela caía no estado vazio e dizia que não há nada,
+  // que é a única leitura que faz alguém parar de procurar.
+  if (podcastsQ.fetchStatus === 'paused') return <SemConexao oQue="os episódios" />;
+  if (podcastsQ.isPending) return <CardListSkeleton count={4} />;
+  if (podcastsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={podcastsQ.error}
+        oQue="os episódios"
+        aoTentarDeNovo={() => void podcastsQ.refetch()}
+      />
+    );
 
   async function toggleFavorite(id: string, current: boolean) {
     try {

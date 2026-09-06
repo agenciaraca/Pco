@@ -4,14 +4,25 @@ import { useLibrary, useCourses } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useT } from '../i18n';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 
 type CourseFilter = 'all' | string;
 type MandatoryFilter = 'all' | 'mandatory' | 'optional';
 type TypeFilter = 'all' | 'pdf' | 'apostila' | 'leitura' | 'artigo';
 
+/*
+  Lista vazia estável.
+
+  `data ?? []` cria um array novo a cada render, e todo `useMemo` que dependa
+  dele recalcula sempre — o que é justamente o oposto do que o `useMemo` está
+  ali para fazer.
+*/
+const VAZIO: never[] = [];
+
 export default function Library() {
   const t = useT();
-  const { data: libraryItems = [], isLoading } = useLibrary();
+  const libraryQ = useLibrary();
+  const libraryItems = libraryQ.data ?? VAZIO;
   const { data: courses = [] } = useCourses();
   const [courseFilter, setCourseFilter] = useState<CourseFilter>('all');
   const [mandatoryFilter, setMandatoryFilter] = useState<MandatoryFilter>('all');
@@ -39,7 +50,19 @@ export default function Library() {
     });
   }, [libraryItems, courseFilter, mandatoryFilter, typeFilter, activeTag]);
 
-  if (isLoading) return <CardListSkeleton count={4} />;
+  // Sem rede a consulta fica `paused`, e aí `isLoading` e `isError` são
+  // os dois `false`: a tela caía no estado vazio e dizia que não há nada,
+  // que é a única leitura que faz alguém parar de procurar.
+  if (libraryQ.fetchStatus === 'paused') return <SemConexao oQue="a biblioteca" />;
+  if (libraryQ.isPending) return <CardListSkeleton count={4} />;
+  if (libraryQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={libraryQ.error}
+        oQue="a biblioteca"
+        aoTentarDeNovo={() => void libraryQ.refetch()}
+      />
+    );
 
   return (
     <div className="space-y-6">

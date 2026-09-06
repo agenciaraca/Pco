@@ -58,6 +58,14 @@ export interface RestoreResult {
   tabelas: TabelaRestaurada[];
   /** Alguma tabela ficou por gravar? */
   completo: boolean;
+  /**
+   * A transação foi desfeita e **nada** foi gravado.
+   *
+   * Restauração pela metade deixa o banco num estado que ninguém consegue
+   * descrever de fora. Quando algo falha, desfazer devolve o operador ao ponto
+   * de partida — com o relatório dizendo o que impediu.
+   */
+  desfeito?: boolean;
 }
 
 type Tabela = { nome: string; objeto: unknown };
@@ -176,81 +184,138 @@ export async function restoreDatabase(
     return resultado;
   }
 
-  // Atalho: se o banco deixar, desliga os gatilhos de FK e a ordem some do
-  // problema. Em banco gerenciado normalmente não deixa — daí o laço abaixo.
-  let semGatilhos = false;
-  try {
-    await db.execute(sql`set session_replication_role = 'replica'`);
-    semGatilhos = true;
-  } catch {
-    semGatilhos = false;
-  }
+  /*
+    **Tudo ou nada, dentro de uma transação.**
 
+    A primeira versão apagava todas as tabelas e só depois inseria, sem
+    transação. Se a inserção falhasse — arquivo truncado, coerção de tipo, FK
+    que não resolve em seis passadas — as tabelas já estavam vazias e não havia
+    volta. O relatório marcava `completo: false`, o que é honesto e inútil: o
+    dado já tinha saído.
+
+    Isso importa mais aqui do que em qualquer outro lugar do sistema, porque
+    este código roda **no dia do desastre**, quando o banco já está ruim e a
+    snapshot é a única cópia. Um restaurador que pode piorar a situação é pior
+    do que não ter restaurador, porque dá confiança para ser executado.
+
+    ## Por que cada passo tem o seu savepoint
+
+    No Postgres, um comando que falha **aborta a transação inteira**: todo
+    comando seguinte responde `current transaction is aborted`. O laço de
+    passadas — que é como este módulo resolve FK sem conhecer a ordem das
+    tabelas — depende de tentar, falhar e tentar de novo. As duas coisas só
+    convivem com savepoint por tentativa, que é o que `tx.transaction()` cria.
+  */
+  class RestauracaoIncompleta extends Error {}
+
+  let semGatilhos = false;
   const feitas = new Set<string>();
   const erros = new Map<string, string>();
-
-  // ---- apagar, em passadas ----
-  let restantes = pendentes.map((p) => p.tabela);
-  for (let passada = 0; passada < 6 && restantes.length > 0; passada++) {
-    const falharam: Tabela[] = [];
-    for (const t of restantes) {
-      try {
-        await db.delete(t.objeto as never);
-      } catch (err) {
-        erros.set(t.nome, err instanceof Error ? err.message : String(err));
-        falharam.push(t);
-      }
-    }
-    if (falharam.length === restantes.length) break; // sem progresso
-    restantes = falharam;
-  }
-
-  // ---- inserir, em passadas ----
   let aInserir = [...pendentes];
-  for (let passada = 0; passada < 6 && aInserir.length > 0; passada++) {
-    const falharam: typeof aInserir = [];
-    for (const item of aInserir) {
+
+  try {
+    await db.transaction(async (tx) => {
+      // Atalho: se o banco deixar, desliga os gatilhos de FK e a ordem some do
+      // problema. Em banco gerenciado normalmente não deixa — daí o laço
+      // abaixo. `set local` porque estamos numa transação: volta sozinho.
       try {
-        for (let i = 0; i < item.linhas.length; i += LOTE) {
-          const lote = item.linhas
-            .slice(i, i + LOTE)
-            .map((l) => coagir(item.tabela.objeto, l));
-          if (lote.length > 0) await db.insert(item.tabela.objeto as never).values(lote as never);
+        await tx.execute(sql`set local session_replication_role = 'replica'`);
+        semGatilhos = true;
+      } catch {
+        semGatilhos = false;
+      }
+
+      // ---- apagar, em passadas ----
+      let restantes = pendentes.map((p) => p.tabela);
+      for (let passada = 0; passada < 6 && restantes.length > 0; passada++) {
+        const falharam: Tabela[] = [];
+        for (const t of restantes) {
+          try {
+            // Savepoint: sem ele, a primeira FK que barrar mata a transação e
+            // as passadas seguintes não teriam como rodar.
+            await tx.transaction(async (sp) => {
+              await sp.delete(t.objeto as never);
+            });
+          } catch (err) {
+            erros.set(t.nome, err instanceof Error ? err.message : String(err));
+            falharam.push(t);
+          }
         }
-        feitas.add(item.tabela.nome);
-        erros.delete(item.tabela.nome);
+        if (falharam.length === restantes.length) break; // sem progresso
+        restantes = falharam;
+      }
+
+      // ---- inserir, em passadas ----
+      for (let passada = 0; passada < 6 && aInserir.length > 0; passada++) {
+        const falharam: typeof aInserir = [];
+        for (const item of aInserir) {
+          try {
+            await tx.transaction(async (sp) => {
+              for (let i = 0; i < item.linhas.length; i += LOTE) {
+                const lote = item.linhas
+                  .slice(i, i + LOTE)
+                  .map((l) => coagir(item.tabela.objeto, l));
+                if (lote.length > 0) {
+                  await sp.insert(item.tabela.objeto as never).values(lote as never);
+                }
+              }
+            });
+            feitas.add(item.tabela.nome);
+            erros.delete(item.tabela.nome);
+            resultado.tabelas.push({
+              tabela: item.tabela.nome,
+              linhasNoArquivo: item.linhas.length,
+              linhasGravadas: item.linhas.length,
+            });
+          } catch (err) {
+            erros.set(item.tabela.nome, err instanceof Error ? err.message : String(err));
+            falharam.push(item);
+          }
+        }
+        if (falharam.length === aInserir.length) break; // sem progresso
+        aInserir = falharam;
+      }
+
+      for (const item of aInserir) {
         resultado.tabelas.push({
           tabela: item.tabela.nome,
           linhasNoArquivo: item.linhas.length,
-          linhasGravadas: item.linhas.length,
+          linhasGravadas: 0,
+          erro: erros.get(item.tabela.nome) ?? 'não foi possível inserir',
         });
-      } catch (err) {
-        erros.set(item.tabela.nome, err instanceof Error ? err.message : String(err));
-        falharam.push(item);
       }
-    }
-    if (falharam.length === aInserir.length) break; // sem progresso
-    aInserir = falharam;
-  }
 
-  for (const item of aInserir) {
-    resultado.tabelas.push({
-      tabela: item.tabela.nome,
-      linhasNoArquivo: item.linhas.length,
-      linhasGravadas: 0,
-      erro: erros.get(item.tabela.nome) ?? 'não foi possível inserir',
+      /*
+        Restauração pela metade é o pior estado possível: o banco fica com
+        parte das linhas velhas apagadas e parte das novas ausentes, e ninguém
+        consegue dizer de fora qual metade é qual. Desfazer devolve o operador
+        a um estado que ele conhece, com o relatório na mão dizendo o que
+        impediu.
+      */
+      if (aInserir.length > 0 || resultado.tabelas.some((t) => t.erro)) {
+        throw new RestauracaoIncompleta();
+      }
     });
-  }
-
-  if (semGatilhos) {
-    try {
-      await db.execute(sql`set session_replication_role = 'origin'`);
-    } catch {
-      // Sessão termina junto com o processo; não vale derrubar a restauração
-      // por causa da volta de um ajuste de sessão.
+  } catch (err) {
+    if (!(err instanceof RestauracaoIncompleta)) {
+      // Falha inesperada (conexão caiu, por exemplo): a transação já desfez o
+      // que tinha feito. Registrar e devolver o relatório é melhor do que
+      // estourar sem dizer o que aconteceu.
+      resultado.tabelas.push({
+        tabela: '(transação)',
+        linhasNoArquivo: 0,
+        linhasGravadas: 0,
+        erro: err instanceof Error ? err.message : String(err),
+      });
     }
+    // Nada foi gravado: o `gravou` do relatório mentiria dizendo que sim.
+    resultado.gravou = false;
+    resultado.desfeito = true;
+    resultado.completo = false;
+    return resultado;
   }
 
+  void semGatilhos;
   resultado.completo =
     aInserir.length === 0 && desconhecidos.length === 0 && resultado.tabelas.every((t) => !t.erro);
   return resultado;

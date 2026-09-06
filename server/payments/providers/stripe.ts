@@ -12,6 +12,7 @@ import type {
 } from './types';
 import { PaymentProviderError } from './types';
 import { pingHttp } from './ping-http';
+import { criouCobrancaPeloStatus } from './criou-cobranca';
 import { origemPublica } from '../../origem-publica';
 
 const API_BASE = 'https://api.stripe.com/v1';
@@ -66,9 +67,13 @@ export const stripeProvider: PaymentProviderImpl = {
       const msg =
         (j as { error?: { message?: string } })?.error?.message ??
         `Stripe HTTP ${res.status}`;
-      // O Stripe respondeu recusando: não há sessão criada, e o próximo
-      // gateway da rota pode ser tentado sem risco de cobrar duas vezes.
-      throw new PaymentProviderError('STRIPE_CREATE_FAILED', msg, 'nao');
+      // 4xx: não há sessão criada, e o próximo gateway pode ser tentado sem
+      // risco de cobrar duas vezes. 5xx não dá essa garantia.
+      throw new PaymentProviderError(
+        'STRIPE_CREATE_FAILED',
+        msg,
+        criouCobrancaPeloStatus(res.status),
+      );
     }
     const session = (await res.json()) as {
       id: string;

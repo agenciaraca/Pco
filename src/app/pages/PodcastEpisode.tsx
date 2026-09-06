@@ -6,6 +6,9 @@ import {
   Pause,
   SkipBack,
   SkipForward,
+  FileText,
+  Volume2,
+  VolumeX,
   Heart,
   Share2,
   Mic2,
@@ -21,15 +24,28 @@ import {
   useMyPodcastEngagement,
 } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
+
+/*
+  Lista vazia estável.
+
+  `data ?? []` cria um array novo a cada render, e todo `useMemo` que dependa
+  dele recalcula sempre — o que é justamente o oposto do que o `useMemo` está
+  ali para fazer.
+*/
+const VAZIO: never[] = [];
 
 export default function PodcastEpisode() {
   const { id } = useParams<{ id: string }>();
-  const { data: podcasts = [], isLoading } = usePodcasts();
+  const podcastsQ = usePodcasts();
+  const podcasts = podcastsQ.data ?? VAZIO;
   const { data: courses = [] } = useCourses();
   const { data: libraryItems = [] } = useLibrary();
   const setEng = useSetPodcastEngagement();
   const episode = podcasts.find((p) => p.id === id);
   const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [mudo, setMudo] = useState(false);
   const [markedListened, setMarkedListened] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const { data: engajamento = [] } = useMyPodcastEngagement();
@@ -58,7 +74,25 @@ export default function PodcastEpisode() {
     setMarkedListened(false);
   }, [id]);
 
-  if (isLoading) return <CardListSkeleton count={2} />;
+  /*
+    **Sem rede, `isLoading` e `isError` são os dois `false`.**
+
+    No TanStack Query v5 a consulta feita offline fica `fetchStatus: 'paused'`:
+    nada está sendo buscado e nada falhou. Numa tela que só conhece esses dois
+    estados a execução escorria até o ramo final — que aqui era
+    `<Navigate to="/podcasts" />`. O ouvinte era jogado para fora do episódio
+    **sem uma palavra**, no metrô, que é exatamente onde se ouve podcast.
+  */
+  if (podcastsQ.fetchStatus === 'paused') return <SemConexao oQue="este episódio" />;
+  if (podcastsQ.isPending) return <CardListSkeleton count={2} />;
+  if (podcastsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={podcastsQ.error}
+        oQue="este episódio"
+        aoTentarDeNovo={() => void podcastsQ.refetch()}
+      />
+    );
   if (!episode) return <Navigate to="/podcasts" replace />;
 
   // A duração de verdade é a do arquivo; `durationMinutes` é o que alguém
@@ -72,6 +106,15 @@ export default function PodcastEpisode() {
     const a = audioRef.current;
     if (!a) return;
     a.currentTime = Math.max(0, Math.min(a.duration || 0, a.currentTime + delta));
+  }
+
+  /** Posiciona em segundos absolutos, com as bordas presas. */
+  function irPara(seg: number) {
+    const a = audioRef.current;
+    if (!a) return;
+    const limite = a.duration || totalSeconds || 0;
+    a.currentTime = Math.max(0, Math.min(limite, seg));
+    setSegundos(a.currentTime);
   }
   const fmt = (s: number) => {
     const m = Math.floor(s / 60);
@@ -173,9 +216,67 @@ export default function PodcastEpisode() {
           )}
 
           <div className="space-y-3">
-            <div className="h-1.5 rounded-full bg-surface-gray overflow-hidden">
+            {/*
+              **A barra é um controle, não um enfeite.**
+
+              Ela era um `<div>` com `width` calculada: não respondia a clique,
+              a teclado nem a leitor de tela. Os únicos controles de posição
+              eram ±15s — chegar ao minuto 40 de um episódio de 60 min exigia
+              cerca de 160 acionamentos.
+
+              Isso costuma ser lido como problema só de acessibilidade, e não
+              era: **nem o mouse tinha para onde clicar**. Quem depende de
+              teclado só perdia mais porque não tinha nem a alternativa.
+
+              `role="slider"` com `aria-valuetext` resolve as duas coisas de uma
+              vez, e de quebra dá ao leitor de tela um jeito de responder "em
+              que ponto estou" sem varrer a página atrás do contador.
+            */}
+            <div
+              role="slider"
+              tabIndex={audioUrl ? 0 : -1}
+              aria-label="Posição do episódio"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(totalSeconds)}
+              aria-valuenow={Math.round(currentSeconds)}
+              aria-valuetext={`${fmt(currentSeconds)} de ${fmt(totalSeconds)}`}
+              aria-disabled={!audioUrl}
+              onClick={(e) => {
+                if (!audioUrl) return;
+                const r = e.currentTarget.getBoundingClientRect();
+                if (r.width <= 0) return;
+                irPara(((e.clientX - r.left) / r.width) * totalSeconds);
+              }}
+              onKeyDown={(e) => {
+                if (!audioUrl) return;
+                // Setas movem 5s; Page Up/Down, um minuto; Home/End vão às
+                // pontas. É o comportamento que um `<input type=range>` traria
+                // de graça, e que se perde ao desenhar o controle à mão.
+                const passos: Record<string, number> = {
+                  ArrowRight: 5,
+                  ArrowUp: 5,
+                  ArrowLeft: -5,
+                  ArrowDown: -5,
+                  PageUp: 60,
+                  PageDown: -60,
+                };
+                if (e.key in passos) {
+                  e.preventDefault();
+                  irPara(currentSeconds + passos[e.key]!);
+                } else if (e.key === 'Home') {
+                  e.preventDefault();
+                  irPara(0);
+                } else if (e.key === 'End') {
+                  e.preventDefault();
+                  irPara(totalSeconds);
+                }
+              }}
+              className={`h-1.5 rounded-full bg-surface-gray overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pco-blue focus-visible:ring-offset-2 ${
+                audioUrl ? 'cursor-pointer' : 'cursor-default'
+              }`}
+            >
               <div
-                className="h-full bg-gradient-to-r from-pco-blue to-pco-cyan transition-all duration-200"
+                className="h-full bg-gradient-to-r from-pco-blue to-pco-cyan transition-all duration-200 pointer-events-none"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -217,6 +318,61 @@ export default function PodcastEpisode() {
             >
               <SkipForward size={18} strokeWidth={1.75} />
             </button>
+          </div>
+
+          {/*
+            **Volume.**
+
+            O `<audio>` fica com `display:none` e sem `controls`, então tudo o
+            que o elemento nativo daria de graça — volume, mudo, taxa de
+            reprodução — precisa ser reconstruído. Só play/pause e ±15s tinham
+            sido. Sem isto, a única forma de baixar o som do episódio é o
+            controle do sistema operacional, que é menos descobrível e vale para
+            a máquina inteira.
+
+            Aqui é `<input type="range">` nativo, e não outro controle
+            desenhado à mão: ele já traz teclado, leitor de tela e arrasto.
+          */}
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const a = audioRef.current;
+                if (!a) return;
+                const novo = !mudo;
+                a.muted = novo;
+                setMudo(novo);
+              }}
+              disabled={!audioUrl}
+              className="h-8 w-8 rounded-full text-ink-muted grid place-items-center hover:text-pco-blue disabled:opacity-40"
+              aria-label={mudo ? 'Reativar som' : 'Silenciar'}
+            >
+              {mudo || volume === 0 ? (
+                <VolumeX size={16} strokeWidth={1.75} />
+              ) : (
+                <Volume2 size={16} strokeWidth={1.75} />
+              )}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={mudo ? 0 : Math.round(volume * 100)}
+              disabled={!audioUrl}
+              onChange={(e) => {
+                const v = Number(e.target.value) / 100;
+                const a = audioRef.current;
+                setVolume(v);
+                setMudo(v === 0);
+                if (a) {
+                  a.volume = v;
+                  a.muted = v === 0;
+                }
+              }}
+              aria-label="Volume"
+              aria-valuetext={`${Math.round((mudo ? 0 : volume) * 100)}%`}
+              className="w-28 accent-pco-blue disabled:opacity-40"
+            />
           </div>
 
           <div className="flex items-center justify-center gap-2 text-xs text-ink-muted">
@@ -265,11 +421,61 @@ export default function PodcastEpisode() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 pco-card">
-          <h3 className="text-base font-semibold text-pco-deep mb-3">Sobre este episódio</h3>
-          <p className="text-sm text-ink-muted leading-relaxed whitespace-pre-line">
-            {episode.description}
-          </p>
+        <div className="lg:col-span-2 space-y-5">
+          <div className="pco-card">
+            <h3 className="text-base font-semibold text-pco-deep mb-3">Sobre este episódio</h3>
+            <p className="text-sm text-ink-muted leading-relaxed whitespace-pre-line">
+              {episode.description}
+            </p>
+          </div>
+
+          {/*
+            **A transcrição, para quem não pode ouvir.**
+
+            Episódio de podcast é conteúdo **só-áudio**: sem alternativa textual
+            não há via de acesso nenhuma para quem é surdo ou tem deficiência
+            auditiva — nem para quem está numa sala de espera sem fone. As aulas
+            de vídeo têm transcrição desde a migration `0017`; o formato em que
+            o áudio *é* o conteúdo não tinha.
+
+            O resumo acima não substitui: ele é o texto do card da lista,
+            limitado a 2000 caracteres. Um episódio de 40 minutos não cabe ali.
+
+            Fica recolhida por padrão porque são milhares de palavras entre o
+            player e o resto da página — e quem veio ouvir não deveria ter de
+            rolar por elas. `<details>` nativo: abre sem JavaScript, é anunciado
+            pelo leitor de tela e o navegador já sabe procurar dentro dele.
+          */}
+          {episode.transcript ? (
+            <details className="pco-card group">
+              <summary className="cursor-pointer list-none flex items-center justify-between gap-2">
+                <span className="text-base font-semibold text-pco-deep flex items-center gap-2">
+                  <FileText size={16} className="text-pco-blue" strokeWidth={1.75} />
+                  Transcrição
+                </span>
+                <span className="text-xs text-ink-muted group-open:hidden">mostrar</span>
+                <span className="text-xs text-ink-muted hidden group-open:inline">ocultar</span>
+              </summary>
+              <div className="mt-4 border-t border-border-subtle pt-4">
+                <p className="text-sm text-pco-deep leading-relaxed whitespace-pre-line">
+                  {episode.transcript}
+                </p>
+              </div>
+            </details>
+          ) : (
+            /*
+              Silêncio aqui diria que o áudio basta. Quem depende de texto
+              precisa saber que o pedido é legítimo e para onde levá-lo.
+            */
+            <p className="pco-card text-xs text-ink-subtle">
+              Este episódio ainda não tem transcrição. Se você precisa dela para
+              acompanhar o conteúdo,{' '}
+              <Link to="/suporte" className="text-pco-blue hover:underline">
+                peça à secretaria
+              </Link>{' '}
+              — a escola prioriza a transcrição dos episódios pedidos.
+            </p>
+          )}
         </div>
 
         <div className="pco-card">

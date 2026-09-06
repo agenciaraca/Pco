@@ -50,6 +50,8 @@ import * as courseReviews from '../reviews/store';
 import * as retentionRepo from '../repositories/retention';
 import * as adminNotes from '../admin/notes-store';
 import * as recoveryPlans from '../repositories/recovery-plans';
+import * as emailLogs from '../notifications/log-store';
+import * as auditLog from '../audit/log';
 
 export type Destino = 'apagar' | 'anonimizar' | 'reter';
 
@@ -137,6 +139,21 @@ export const DECISOES: DecisaoDeCategoria[] = [
     // A nota entra na média que os outros leem; sumir com ela reescreve um
     // número público por causa de um pedido individual.
   },
+  {
+    categoria: 'emailLogs',
+    destino: 'apagar',
+    // `to` é o endereço da pessoa e `subject` diz o que a escola comunicou a
+    // ela. A fila continuava contando isso depois de a conta ser anonimizada.
+  },
+  {
+    categoria: 'auditLog',
+    destino: 'reter',
+    motivo:
+      'Registro de segurança: é o que prova o que a escola fez com os dados desta pessoa — ' +
+      'inclusive que este expurgo foi executado, por quem e quando. Apagá-lo destruiria a ' +
+      'evidência da própria exclusão, e a retenção de log de segurança é interesse legítimo ' +
+      '(LGPD art. 7º, IX, e art. 16, II).',
+  },
   { categoria: 'retentionRisk', destino: 'apagar' },
   { categoria: 'adminNotesAboutMe', destino: 'apagar' },
   { categoria: 'recoveryPlans', destino: 'apagar' },
@@ -214,6 +231,17 @@ export async function expurgarTitular(
   // Carimbo do arquivo: não há o que apagar, e declarar isso é melhor do que
   // omitir a categoria e deixar a comparação com a exportação incompleta.
   itens.push({ ...d('exportedAt'), encontrados: 0, tratados: 0 });
+
+  /*
+    **O e-mail é lido aqui, antes de qualquer coisa.**
+
+    A fila de envios é chaveada pelo endereço, não pelo `userId` — quem escreve
+    ali é o remetente, que só conhece o e-mail. E a categoria `user`, logo
+    abaixo, **troca** esse endereço pela marca anônima. Lendo depois, a busca
+    procuraria por `removido-...@invalido.local` e não acharia nada: o relatório
+    diria "0 encontrados" sobre uma fila cheia.
+  */
+  const email = (await usersStore.findUserById(userId))?.email ?? null;
 
   await registra(
     d('user'),
@@ -328,6 +356,20 @@ export async function expurgarTitular(
     async () =>
       (await contar(() => courseReviews.listAll())).filter((x) => x.userId === userId).length,
     async () => await courseReviews.anonimizarParaUsuario(userId, marca),
+  );
+
+  await registra(
+    d('emailLogs'),
+    async () => (email ? (await emailLogs.listForEmail(email)).length : 0),
+    async () => (email ? await emailLogs.clearForEmail(email) : 0),
+  );
+
+  await registra(
+    d('auditLog'),
+    // Retido: `registra` nem chama a rotina quando o destino é `reter`. O que
+    // se mede aqui é quanto existe, para o relatório dizer o que fica.
+    async () => (await auditLog.listAudit({ targetId: userId, limit: 1000 })).length,
+    async () => 0,
   );
 
   await registra(

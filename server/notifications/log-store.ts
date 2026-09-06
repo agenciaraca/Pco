@@ -29,3 +29,37 @@ export async function pushLog(log: Omit<EmailLog, 'id' | 'ts'>): Promise<EmailLo
   await store.setAll(next);
   return entry;
 }
+
+/**
+ * Os e-mails enviados para um endereço — para a exportação e para o expurgo.
+ *
+ * `EmailLog.to` é o endereço do destinatário, e o `subject` diz o que a escola
+ * comunicou a ele. Isso é dado pessoal, e ficou fora das duas pontas até
+ * 5/set/2026 — o expurgo declarava a conta anonimizada enquanto a fila de
+ * e-mails continuava dizendo quem recebeu o quê e quando.
+ *
+ * A chave é o e-mail, não o `userId`: o log é escrito pelo remetente, que só
+ * conhece o endereço.
+ */
+export async function listForEmail(email: string): Promise<EmailLog[]> {
+  const alvo = email.trim().toLowerCase();
+  if (!alvo) return [];
+  const all = await store.getAll();
+  return all.filter((l) => l.to.trim().toLowerCase() === alvo);
+}
+
+/** Apaga os registros de envio para um endereço. Devolve quantos saíram. */
+export async function clearForEmail(email: string): Promise<number> {
+  const alvo = email.trim().toLowerCase();
+  if (!alvo) return 0;
+  // `modify` em vez de `getAll` + `setAll`: o par perde escrita concorrente
+  // ocorrida entre as duas chamadas, e este store recebe uma linha por e-mail
+  // enviado — é dos mais movimentados do sistema.
+  return await store.modify((items) => {
+    const antes = items.length;
+    const restantes = items.filter((l) => l.to.trim().toLowerCase() !== alvo);
+    items.length = 0;
+    items.push(...restantes);
+    return antes - items.length;
+  });
+}

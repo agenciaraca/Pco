@@ -5,14 +5,37 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { useT } from '../i18n';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
+
+/*
+  Lista vazia estável.
+
+  `data ?? []` cria um array novo a cada render, e todo `useMemo` que dependa
+  dele recalcula sempre — o que é justamente o oposto do que o `useMemo` está
+  ali para fazer.
+*/
+const VAZIO: never[] = [];
 
 export default function Eventos() {
   const t = useT();
   useDocumentMeta({ title: `${t('events.title')} — AVA PCO` });
-  const { data: sessions = [], isLoading } = useMyLiveSessions();
+  const sessionsQ = useMyLiveSessions();
+  const sessions = sessionsQ.data ?? VAZIO;
   const { data: courses = [] } = useCourses();
 
-  if (isLoading) return <CardListSkeleton count={3} />;
+  // Sem rede a consulta fica `paused`, e aí `isLoading` e `isError` são
+  // os dois `false`: a tela caía no estado vazio e dizia que não há nada,
+  // que é a única leitura que faz alguém parar de procurar.
+  if (sessionsQ.fetchStatus === 'paused') return <SemConexao oQue="os eventos" />;
+  if (sessionsQ.isPending) return <CardListSkeleton count={3} />;
+  if (sessionsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={sessionsQ.error}
+        oQue="os eventos"
+        aoTentarDeNovo={() => void sessionsQ.refetch()}
+      />
+    );
 
   const live = sessions.filter((s) => s.statusComputed === 'live');
   const upcoming = sessions.filter((s) => s.statusComputed === 'scheduled');

@@ -47,6 +47,7 @@ const MODULO_POR_JOB: Record<string, string> = {
   'session-reminders': 'sessions/lembrete-worker',
   'sandra-poll': 'payments/sandra-poll-worker',
   'log-rotator': 'services/log-rotator',
+  'checkout-alerta': 'payments/alerta-checkout-worker',
 };
 
 describe('todo worker que o servidor inicia aparece em /admin/jobs', () => {

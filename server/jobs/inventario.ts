@@ -3,7 +3,7 @@
 // ## Por que este arquivo existe
 //
 // `/admin/jobs` montava a resposta com **cinco** `getStatus()` escritos à mão
-// dentro da rota. São **doze** workers. Os sete de fora não apareciam em tela
+// dentro da rota. São **treze** workers (eram doze quando isto foi escrito). Os sete de fora não apareciam em tela
 // nenhuma: quem olhava o painel para decidir o que acontece num restart
 // subestimava a superfície por mais da metade — e entre os invisíveis estavam
 // o backup, a rotação de log, a retenção e, pior, o **sondador da Sandra**, que
@@ -15,7 +15,7 @@
 //
 // ## Por que adaptador por worker, e não um normalizador esperto
 //
-// Os doze `getStatus()` não concordam entre si: uns dizem `name`, o da Sandra
+// Os `getStatus()` não concordam entre si: uns dizem `name`, o da Sandra
 // diz `nome`; uns têm `lastRunAt`, outros `lastTickAt`, `lastRotatedAt` ou
 // `ultimaExecucao`; uns contam `totalTicks`, outros `totalRotations`, outros
 // não contam. Um normalizador que adivinha campo por heurística esconde essa
@@ -41,6 +41,7 @@ import * as progressEmail from '../notifications/student-progress-email';
 import * as backupWorker from '../db/backup-worker';
 import * as retentionWorker from '../services/retention-worker';
 import * as logRotator from '../services/log-rotator';
+import * as alertaCheckout from '../payments/alerta-checkout-worker';
 
 const MIN = 60_000;
 const HORA = 60 * MIN;
@@ -80,7 +81,7 @@ function numero(v: unknown): number | null {
 }
 
 /**
- * Os doze, na ordem em que `server/dev.ts` os inicia.
+ * Todos, na ordem em que `server/dev.ts` os inicia.
  *
  * `test/jobs-inventario.test.ts` compara esta lista com os `startWorker` do
  * `dev.ts` e falha se divergirem — foi assim que sete deles ficaram invisíveis
@@ -280,6 +281,28 @@ export function listarJobs(): JobStatus[] {
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: true,
       saudavel: null,
+      detalhes: { ...s },
+    });
+  }
+
+  {
+    const s = alertaCheckout.getStatus();
+    jobs.push({
+      name: 'checkout-alerta',
+      rotulo: 'Alerta de checkout',
+      // Mesma razão da frase longa da Sandra: é um worker cuja parada custa
+      // dinheiro sem fazer barulho, e quem lê a tela precisa saber disso ali.
+      descricao:
+        'Avisa a administração por e-mail quando a taxa de falha de compra passa do limite. A venda ficou 2 dias fora do ar sem ninguém notar.',
+      intervalMs: 15 * MIN,
+      enabled: s.enabled,
+      lastRunAt: texto(s.ultimoAvisoEm),
+      totalTicks: null,
+      podeRodarAgora: true,
+      // `saudavel` aqui é sobre a medição conseguir rodar, não sobre a venda
+      // estar boa. As duas perguntas são diferentes, e confundi-las faria o
+      // card ficar vermelho por motivo trocado.
+      saudavel: s.saudavel,
       detalhes: { ...s },
     });
   }

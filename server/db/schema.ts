@@ -372,6 +372,14 @@ export const podcasts = pgTable('podcasts', {
   publishedAt: text('published_at').notNull(),
   coverColor: text('cover_color').notNull(),
   audioUrl: text('audio_url'),
+  /**
+   * Transcrição do episódio, em texto puro. `null` = não transcrito.
+   *
+   * Conteúdo só-áudio sem alternativa textual não tem via de acesso nenhuma
+   * para quem é surdo. `description` não serve: é o resumo do card, limitado a
+   * 2000 caracteres pelo schema — um episódio de 40 min não cabe ali.
+   */
+  transcript: text('transcript'),
   tags: jsonb('tags')
     .$type<string[]>()
     .notNull()

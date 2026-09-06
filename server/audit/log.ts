@@ -72,6 +72,51 @@ export async function recordAudit(c: Context, input: RecordInput): Promise<void>
   }
 }
 
+/**
+ * Registra um evento sem requisição HTTP por trás.
+ *
+ * `recordAudit` tira ator, IP e user-agent do `Context` do Hono, e worker não
+ * tem `Context`. Sem esta porta, evento de sistema — a venda parou, a venda
+ * voltou — ficaria só no log de processo, que rotaciona e não é consultável
+ * pela tela de auditoria.
+ *
+ * O ator é obrigatório e explícito de propósito: `'sistema'` é uma afirmação,
+ * e deixá-lo nulo faria a entrada parecer ator desconhecido, que é outra coisa.
+ */
+export async function recordAuditDirect(input: {
+  actorEmail: string;
+  action: string;
+  targetType?: string | null;
+  targetId?: string | null;
+  meta?: Record<string, unknown>;
+  status?: 'ok' | 'error';
+}): Promise<void> {
+  try {
+    const entry: AuditEntry = {
+      id: `a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      ts: new Date().toISOString(),
+      actorId: null,
+      actorEmail: input.actorEmail,
+      actorRole: 'system',
+      action: input.action,
+      targetType: input.targetType ?? null,
+      targetId: input.targetId ?? null,
+      ip: null,
+      userAgent: null,
+      meta: input.meta,
+      status: input.status ?? 'ok',
+    };
+    await store.unshift(entry);
+    // `modify` em vez de `getAll` + `setAll`: entre as duas chamadas há
+    // `await`, e uma entrada gravada nesse intervalo seria perdida.
+    await store.modify((items) => {
+      if (items.length > MAX_ENTRIES) items.length = MAX_ENTRIES;
+    });
+  } catch (e) {
+    console.error('[audit] failed to record entry:', e);
+  }
+}
+
 export interface AuditQuery {
   action?: string;
   actorId?: string;

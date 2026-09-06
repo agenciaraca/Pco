@@ -312,6 +312,15 @@ import('./payments/sandra-poll-worker').then((m) => m.startWorker(5 * 60_000));
 // Rotaciona app.log quando passa de 10MB (verifica a cada 1h)
 import('./services/log-rotator').then((m) => m.startWorker(60 * 60_000));
 
+// Alerta quando a venda para de passar — tick de 15 min.
+//
+// A venda ficou dois dias fora do ar em 3–5/set/2026, com campanha paga
+// rodando, e a detecção foi alguém abrir `/admin/pedidos` por outro motivo. O
+// botão de testar gateway não pega esse caso: ele lê credencial, e a
+// credencial estava boa. O intervalo é curto de propósito — o custo aqui é
+// medido em horas de anúncio pago apontando para um funil que não fecha.
+import('./payments/alerta-checkout-worker').then((m) => m.startWorker(15 * 60_000));
+
 // Encerramento: descarrega o que está em memória antes de o processo morrer.
 //
 // Duas coisas, e a segunda é a que dói. A medição de tráfego perde até 5

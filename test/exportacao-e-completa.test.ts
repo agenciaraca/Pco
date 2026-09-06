@@ -72,6 +72,12 @@ const CATEGORIAS: Record<string, string> = {
   adminNotesAboutMe:
     'O que a coordenação anotou a respeito dele. Mesmo motivo do risco: é sobre a pessoa, ' +
     'e ela não tem outro caminho para ver.',
+  emailLogs:
+    'Os e-mails que a escola mandou para ela: assunto, quando e se chegou. A fila é chaveada ' +
+    'pelo endereço, não pelo id — quem escreve ali é o remetente, que só conhece o e-mail.',
+  auditLog:
+    'O que foi feito com os dados dela e quando. Sai a ação e o alvo, **não** quem operou — ' +
+    'mesma regra das notas da coordenação.',
   recoveryPlans:
     'Os planos de retomada gerados a respeito dele, com diagnóstico e mensagem sugerida.',
 };

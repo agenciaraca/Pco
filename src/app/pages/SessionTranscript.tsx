@@ -5,6 +5,7 @@ import * as api from '../data/api';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -26,7 +27,18 @@ export default function SessionTranscript() {
 
   const transcript = transcriptQ.data;
 
-  if (transcriptQ.isLoading) return <CardListSkeleton count={2} />;
+  // "ainda não foi transcrita" e "não consegui buscar" pedem ações opostas de
+  // quem lê: a primeira é esperar, a segunda é tentar de novo.
+  if (transcriptQ.fetchStatus === 'paused') return <SemConexao oQue="a transcrição" />;
+  if (transcriptQ.isPending) return <CardListSkeleton count={2} />;
+  if (transcriptQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={transcriptQ.error}
+        oQue="a transcrição"
+        aoTentarDeNovo={() => void transcriptQ.refetch()}
+      />
+    );
 
   if (!transcript) {
     return (

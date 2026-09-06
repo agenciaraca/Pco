@@ -19,6 +19,7 @@ import { isPubliclyListed } from '../../../shared/visibilidade';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 
 const MAX_COMPARE = 4;
 
@@ -32,7 +33,8 @@ export default function CompareCourses() {
     .filter(Boolean)
     .slice(0, MAX_COMPARE);
 
-  const { data: allCourses, isLoading } = useCourses();
+  const coursesQ = useCourses();
+  const allCourses = coursesQ.data;
   const summaryQ = useAdminCoursesSummary();
   const summaryById = useMemo(
     () => new Map((summaryQ.data ?? []).map((s) => [s.courseId, s])),
@@ -67,7 +69,18 @@ export default function CompareCourses() {
     setSearchParams({ ids: [...ids, id].join(',') });
   }
 
-  if (isLoading) return <CardListSkeleton count={3} />;
+  // A tela não pode afirmar que o curso não existe quando o que houve foi
+  // falta de rede: dizer isso manda embora quem talvez já tenha pago.
+  if (coursesQ.fetchStatus === 'paused') return <SemConexao oQue="os cursos" />;
+  if (coursesQ.isPending) return <CardListSkeleton count={3} />;
+  if (coursesQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={coursesQ.error}
+        oQue="os cursos"
+        aoTentarDeNovo={() => void coursesQ.refetch()}
+      />
+    );
 
   if (courses.length === 0) {
     return (

@@ -5,10 +5,21 @@ import { useNews } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useT } from '../i18n';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
+
+/*
+  Lista vazia estável.
+
+  `data ?? []` cria um array novo a cada render, e todo `useMemo` que dependa
+  dele recalcula sempre — o que é justamente o oposto do que o `useMemo` está
+  ali para fazer.
+*/
+const VAZIO: never[] = [];
 
 export default function News() {
   const t = useT();
-  const { data: newsArticles = [], isLoading } = useNews();
+  const newsQ = useNews();
+  const newsArticles = newsQ.data ?? VAZIO;
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>('all');
 
@@ -30,7 +41,19 @@ export default function News() {
     });
   }, [newsArticles, search, category]);
 
-  if (isLoading) return <CardListSkeleton count={4} />;
+  // Sem rede a consulta fica `paused`, e aí `isLoading` e `isError` são
+  // os dois `false`: a tela caía no estado vazio e dizia que não há nada,
+  // que é a única leitura que faz alguém parar de procurar.
+  if (newsQ.fetchStatus === 'paused') return <SemConexao oQue="as matérias" />;
+  if (newsQ.isPending) return <CardListSkeleton count={4} />;
+  if (newsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={newsQ.error}
+        oQue="as matérias"
+        aoTentarDeNovo={() => void newsQ.refetch()}
+      />
+    );
 
   // Featured só aparece quando filtros estão "limpos"
   const showFeatured = search.trim() === '' && category === 'all';

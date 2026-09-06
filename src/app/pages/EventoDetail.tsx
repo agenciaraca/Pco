@@ -15,6 +15,7 @@ import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import LiveCaptions from '../components/LiveCaptions';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 
 const ZoomEmbed = lazy(() => import('../components/ZoomEmbed'));
 
@@ -27,7 +28,19 @@ export default function EventoDetail() {
   const session = sessions.find((s) => s.id === id);
   const [showCaptions, setShowCaptions] = useState(false);
 
-  if (sessionsQ.isLoading) return <CardListSkeleton count={1} />;
+  // Sem rede não é "o evento não existe": a tela dizia que ele não existia ou
+  // que o aluno não tinha acesso, e as duas coisas mandam procurar a
+  // secretaria por um problema que era do celular dele.
+  if (sessionsQ.fetchStatus === 'paused') return <SemConexao oQue="este evento" />;
+  if (sessionsQ.isPending) return <CardListSkeleton count={1} />;
+  if (sessionsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={sessionsQ.error}
+        oQue="este evento"
+        aoTentarDeNovo={() => void sessionsQ.refetch()}
+      />
+    );
   if (!session) {
     return (
       <div className="space-y-4">

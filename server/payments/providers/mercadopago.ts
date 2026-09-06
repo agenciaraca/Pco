@@ -10,6 +10,7 @@ import type {
 } from './types';
 import { PaymentProviderError } from './types';
 import { pingHttp } from './ping-http';
+import { criouCobrancaPeloStatus } from './criou-cobranca';
 import { origemPublica } from '../../origem-publica';
 import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 
@@ -81,11 +82,12 @@ export const mercadopagoProvider: PaymentProviderImpl = {
     });
     if (!res.ok) {
       const j = await res.json().catch(() => null);
-      // Preferência recusada: não existe cobrança do outro lado.
+      // Preferência recusada por validação: não existe cobrança do outro
+      // lado. Falha de servidor não permite a mesma conclusão.
       throw new PaymentProviderError(
         'MP_CREATE_FAILED',
         JSON.stringify(j) || `HTTP ${res.status}`,
-        'nao',
+        criouCobrancaPeloStatus(res.status),
       );
     }
     const pref = (await res.json()) as { id: string; init_point: string };
