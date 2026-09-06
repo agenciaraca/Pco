@@ -13,6 +13,7 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 function formatUptime(sec: number): string {
   if (sec < 60) return `${sec}s`;
@@ -27,7 +28,8 @@ function formatUptime(sec: number): string {
 export default function AdminAbout() {
   const t = useT();
   useDocumentMeta({ title: `${t('admin.nav.about')} — Admin AVA PCO` });
-  const { data, isLoading } = useAdminAbout();
+  const aboutQ = useAdminAbout();
+  const data = aboutQ.data;
   const qc = useQueryClient();
   const toast = useToast();
 
@@ -42,7 +44,22 @@ export default function AdminAbout() {
     toast.success('Caches invalidados — recarregando dados');
   }
 
-  if (isLoading || !data) return <CardListSkeleton count={3} />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a tela caía no ramo seguinte e dizia que não havia
+    nada. No painel o custo é menor do que na tela do aluno, mas a leitura é a
+    mesma: quem vê "nenhum registro" para de procurar.
+  */
+  if (aboutQ.fetchStatus === 'paused') return <SemConexao oQue="a página Sobre" />;
+  if (aboutQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={aboutQ.error}
+        oQue="a página Sobre"
+        aoTentarDeNovo={() => void aboutQ.refetch()}
+      />
+    );
+  if (aboutQ.isPending || !data) return <CardListSkeleton count={3} />;
 
   const rows: Array<{ label: string; value: string; icon?: React.ReactNode }> = [
     { label: 'Versão', value: `v${data.version}`, icon: <Info size={14} /> },

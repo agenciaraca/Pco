@@ -3,13 +3,30 @@ import { ArrowLeft, Eye, Layers, Clock, PlayCircle } from 'lucide-react';
 import { useCourses } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminCoursePreview() {
   const { courseId } = useParams<{ courseId: string }>();
-  const { data: courses = [], isLoading } = useCourses();
+  const coursesQ = useCourses();
+  const courses = coursesQ.data ?? [];
   useDocumentMeta({ title: 'Preview do curso — Admin' });
 
-  if (isLoading) return <CardListSkeleton count={3} />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a execução escorria para o ramo seguinte, que dizia
+    que não havia nada. No painel o custo é menor do que na tela do aluno, mas
+    a leitura é a mesma: quem vê "nenhum registro" para de procurar.
+  */
+  if (coursesQ.fetchStatus === 'paused') return <SemConexao oQue="os cursos" />;
+  if (coursesQ.isPending) return <CardListSkeleton count={3} />;
+  if (coursesQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={coursesQ.error}
+        oQue="os cursos"
+        aoTentarDeNovo={() => void coursesQ.refetch()}
+      />
+    );
   const course = courses.find((c) => c.id === courseId);
   if (!course) return <Navigate to="/admin/cursos" replace />;
 

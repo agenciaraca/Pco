@@ -18,10 +18,12 @@ import {
 import { downloadImportJob } from '../../../data/api';
 import { useToast } from '../../../components/Toast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../../components/EstadosDeConsulta';
 
 export default function ImportJobDetail() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading } = useImportJob(id);
+  const jobQ = useImportJob(id);
+  const data = jobQ.data;
   const toast = useToast();
   const rollback = useRollbackImportJob();
   const cancel = useCancelImportJob();
@@ -54,7 +56,17 @@ export default function ImportJobDetail() {
     });
   }
 
-  if (isLoading || !data) {
+  if (jobQ.fetchStatus === 'paused')
+    return <SemConexao oQue="esta importação" />;
+  if (jobQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={jobQ.error}
+        oQue="esta importação"
+        aoTentarDeNovo={() => void jobQ.refetch()}
+      />
+    );
+  if (jobQ.isPending || !data) {
     return (
       <div className="pco-card p-6 flex items-center gap-2 text-sm text-ink-muted">
         <Loader2 size={16} className="animate-spin" />

@@ -21,6 +21,7 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 import type {
   AdminCommentDto,
   AdminReviewDto,
@@ -249,7 +250,15 @@ function CommentsPanel() {
         </div>
       )}
 
-      {list.isLoading ? (
+      {list.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os itens de moderação" />
+      ) : list.isError ? (
+        <FalhaAoCarregar
+          erro={list.error}
+          oQue="os itens de moderação"
+          aoTentarDeNovo={() => void list.refetch()}
+        />
+      ) : list.isPending ? (
         <CardListSkeleton count={3} />
       ) : (list.data ?? []).length === 0 ? (
         <EmptyState
@@ -415,7 +424,15 @@ function ReviewsPanel() {
         </select>
       </div>
 
-      {list.isLoading ? (
+      {list.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os itens de moderação" />
+      ) : list.isError ? (
+        <FalhaAoCarregar
+          erro={list.error}
+          oQue="os itens de moderação"
+          aoTentarDeNovo={() => void list.refetch()}
+        />
+      ) : list.isPending ? (
         <CardListSkeleton count={3} />
       ) : (list.data ?? []).length === 0 ? (
         <EmptyState

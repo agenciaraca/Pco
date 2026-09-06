@@ -23,10 +23,12 @@ import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminCourseStudents() {
   const { courseId } = useParams<{ courseId: string }>();
-  const { data, isLoading } = useCourseStudents(courseId);
+  const studentsQ = useCourseStudents(courseId);
+  const data = studentsQ.data;
   useDocumentMeta({
     title: data ? `Alunos — ${data.courseTitle}` : 'Alunos do curso',
   });
@@ -73,7 +75,22 @@ export default function AdminCourseStudents() {
     return { completed, inProgress, notStarted, avgPct };
   }, [data]);
 
-  if (isLoading) return <CardListSkeleton count={5} />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a execução escorria para o ramo seguinte, que dizia
+    que não havia nada. No painel o custo é menor do que na tela do aluno, mas
+    a leitura é a mesma: quem vê "nenhum registro" para de procurar.
+  */
+  if (studentsQ.fetchStatus === 'paused') return <SemConexao oQue="os alunos do curso" />;
+  if (studentsQ.isPending) return <CardListSkeleton count={5} />;
+  if (studentsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={studentsQ.error}
+        oQue="os alunos do curso"
+        aoTentarDeNovo={() => void studentsQ.refetch()}
+      />
+    );
   if (!data) {
     return (
       <EmptyState

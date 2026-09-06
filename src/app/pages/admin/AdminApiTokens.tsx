@@ -18,6 +18,7 @@ import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { ApiTokenScopeDto } from '../../data/api';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const SCOPE_LABELS: Record<ApiTokenScopeDto, string> = {
   'stats:read': 'Estatísticas (resumo)',
@@ -186,7 +187,15 @@ export default function AdminApiTokens() {
 
       <section>
         <h2 className="text-base font-semibold text-pco-deep mb-2">Tokens ativos</h2>
-        {list.isLoading ? (
+        {list.fetchStatus === 'paused' ? (
+          <SemConexao oQue="os tokens" />
+        ) : list.isError ? (
+          <FalhaAoCarregar
+            erro={list.error}
+            oQue="os tokens"
+            aoTentarDeNovo={() => void list.refetch()}
+          />
+        ) : list.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (list.data?.tokens ?? []).length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">

@@ -27,6 +27,7 @@ import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { BulkCouponInputDto, CouponDto, CouponInputDto } from '../../data/api';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminCoupons() {
   const t = useT();
@@ -154,7 +155,15 @@ export default function AdminCoupons() {
         />
       )}
 
-      {coupons.isLoading ? (
+      {coupons.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os cupons" />
+      ) : coupons.isError ? (
+        <FalhaAoCarregar
+          erro={coupons.error}
+          oQue="os cupons"
+          aoTentarDeNovo={() => void coupons.refetch()}
+        />
+      ) : coupons.isPending ? (
         <CardListSkeleton count={3} />
       ) : (coupons.data ?? []).length === 0 && !creating ? (
         <EmptyState

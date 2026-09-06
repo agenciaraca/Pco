@@ -14,6 +14,7 @@ import { downloadImportTemplate } from '../../../data/api';
 import { useToast } from '../../../components/Toast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
 import type { ImportEntityTypeDto } from '../../../data/api';
+import { SemConexao, FalhaAoCarregar } from '../../../components/EstadosDeConsulta';
 
 const entityLabel: Record<ImportEntityTypeDto, string> = {
   student: 'Alunos',
@@ -137,7 +138,15 @@ export default function ImportsHome() {
             Cabeçalho + linha de exemplo + linha em branco
           </span>
         </div>
-        {templates.isLoading ? (
+        {templates.fetchStatus === 'paused' ? (
+          <SemConexao oQue="os modelos" />
+        ) : templates.isError ? (
+          <FalhaAoCarregar
+            erro={templates.error}
+            oQue="os modelos"
+            aoTentarDeNovo={() => void templates.refetch()}
+          />
+        ) : templates.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (
           <ul className="grid gap-2 sm:grid-cols-2">
@@ -183,7 +192,15 @@ export default function ImportsHome() {
             Ver todas →
           </Link>
         </div>
-        {jobs.isLoading ? (
+        {jobs.fetchStatus === 'paused' ? (
+          <SemConexao oQue="as importações" />
+        ) : jobs.isError ? (
+          <FalhaAoCarregar
+            erro={jobs.error}
+            oQue="as importações"
+            aoTentarDeNovo={() => void jobs.refetch()}
+          />
+        ) : jobs.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : recentJobs.length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">

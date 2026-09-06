@@ -13,6 +13,7 @@ import EmptyState from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { AtribuicaoDto, OrderStatus } from '../../data/api';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 /**
  * Cadastro de pedido em tela cheia — criar e editar.
@@ -38,7 +39,8 @@ export default function AdminOrderForm() {
 
   // A lista já está em cache quando se chega pela tela de pedidos; quando se
   // chega por link direto, esta é a única busca da página.
-  const { data: pedidos, isLoading } = useAllOrders();
+  const ordersQ = useAllOrders();
+  const pedidos = ordersQ.data;
   const pedido = useMemo(
     () => (editando ? (pedidos ?? []).find((o) => o.id === id) : undefined),
     [pedidos, id, editando],
@@ -152,7 +154,22 @@ export default function AdminOrderForm() {
     }
   }
 
-  if (editando && isLoading) return <CardListSkeleton count={2} />;
+  /*
+    Só o modo de edição depende da lista — criar um pedido não precisa
+    dela. Por isso as três guardas ficam atrás de `editando`: numa tela de
+    criação, falha de rede aqui não impede nada.
+  */
+  if (editando && ordersQ.fetchStatus === 'paused')
+    return <SemConexao oQue="este pedido" />;
+  if (editando && ordersQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={ordersQ.error}
+        oQue="este pedido"
+        aoTentarDeNovo={() => void ordersQ.refetch()}
+      />
+    );
+  if (editando && ordersQ.isPending) return <CardListSkeleton count={2} />;
   if (editando && !pedido) {
     return (
       <EmptyState

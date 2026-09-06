@@ -3,6 +3,7 @@ import { Send, Users, ShieldAlert, Loader2, CheckCircle2, Mail } from 'lucide-re
 import { useConviteSegmentos, useConviteExcluidos, useEnviarConvites } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 /**
  * Convite de primeiro acesso para quem veio da plataforma antiga.
@@ -74,7 +75,23 @@ export default function AdminConvites() {
     }
   }
 
-  if (segQ.isLoading) return <CardListSkeleton count={3} />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a execução escorria para o ramo seguinte, que aqui
+    dizia que não havia nada. Num painel de administração o custo é menor do
+    que na tela do aluno, mas a leitura é a mesma: quem vê "nenhum registro"
+    para de procurar.
+  */
+  if (segQ.fetchStatus === 'paused') return <SemConexao oQue="os convites" />;
+  if (segQ.isPending) return <CardListSkeleton count={3} />;
+  if (segQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={segQ.error}
+        oQue="os convites"
+        aoTentarDeNovo={() => void segQ.refetch()}
+      />
+    );
   if (!seg) return <div className="pco-card text-sm text-ink-muted">Não foi possível carregar.</div>;
 
   const motivos = Object.entries(seg.porMotivo).sort((a, b) => b[1] - a[1]);

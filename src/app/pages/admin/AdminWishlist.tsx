@@ -5,6 +5,7 @@ import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminWishlist() {
   useDocumentMeta({ title: 'Wishlist — Admin AVA PCO' });
@@ -50,7 +51,15 @@ export default function AdminWishlist() {
         </button>
       </header>
 
-      {wish.isLoading ? (
+      {wish.fetchStatus === 'paused' ? (
+        <SemConexao oQue="a lista de desejos" />
+      ) : wish.isError ? (
+        <FalhaAoCarregar
+          erro={wish.error}
+          oQue="a lista de desejos"
+          aoTentarDeNovo={() => void wish.refetch()}
+        />
+      ) : wish.isPending ? (
         <CardListSkeleton count={3} />
       ) : (wish.data ?? []).length === 0 ? (
         <EmptyState

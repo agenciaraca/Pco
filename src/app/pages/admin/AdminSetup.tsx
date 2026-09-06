@@ -9,11 +9,13 @@ import {
 import { useSetupStatus } from '../../data/hooks';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminSetup() {
   const t = useT();
   useDocumentMeta({ title: `${t('admin.nav.setup')} — Admin` });
-  const { data, isLoading } = useSetupStatus();
+  const setupQ = useSetupStatus();
+  const data = setupQ.data;
 
   return (
     <div className="space-y-6">
@@ -27,7 +29,15 @@ export default function AdminSetup() {
         </p>
       </header>
 
-      {isLoading || !data ? (
+      {setupQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="o estado da instalação" />
+      ) : setupQ.isError ? (
+        <FalhaAoCarregar
+          erro={setupQ.error}
+          oQue="o estado da instalação"
+          aoTentarDeNovo={() => void setupQ.refetch()}
+        />
+      ) : setupQ.isPending || !data ? (
         <div className="text-sm text-ink-muted">Carregando...</div>
       ) : (
         <>

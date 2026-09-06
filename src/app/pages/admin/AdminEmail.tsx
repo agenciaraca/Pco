@@ -27,6 +27,7 @@ import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { EmailConfigDto, EmailProviderIdDto } from '../../data/api';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 /**
  * Um rótulo por provedor implementado. Faltavam três — mailgun, brevo e ses
@@ -117,7 +118,15 @@ export default function AdminEmail() {
 
       <section>
         <h2 className="text-base font-semibold text-pco-deep mb-2">Configurações</h2>
-        {configs.isLoading ? (
+        {configs.fetchStatus === 'paused' ? (
+          <SemConexao oQue="as configurações de e-mail" />
+        ) : configs.isError ? (
+          <FalhaAoCarregar
+            erro={configs.error}
+            oQue="as configurações de e-mail"
+            aoTentarDeNovo={() => void configs.refetch()}
+          />
+        ) : configs.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (configs.data ?? []).length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">
@@ -290,7 +299,15 @@ export default function AdminEmail() {
           <HistoryIcon size={16} className="text-pco-blue" strokeWidth={1.75} />
           Histórico de envios
         </h2>
-        {logs.isLoading ? (
+        {logs.fetchStatus === 'paused' ? (
+          <SemConexao oQue="o histórico de envios" />
+        ) : logs.isError ? (
+          <FalhaAoCarregar
+            erro={logs.error}
+            oQue="o histórico de envios"
+            aoTentarDeNovo={() => void logs.refetch()}
+          />
+        ) : logs.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (logs.data ?? []).length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">

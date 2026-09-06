@@ -20,6 +20,7 @@ import EmptyState from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { SupportTicket } from '../../types/schema';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const STATUS_LABELS: Record<SupportTicket['status'], string> = {
   open: 'Aberto',
@@ -152,7 +153,15 @@ export default function AdminSupport() {
         </select>
       </div>
 
-      {tickets.isLoading ? (
+      {tickets.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os chamados" />
+      ) : tickets.isError ? (
+        <FalhaAoCarregar
+          erro={tickets.error}
+          oQue="os chamados"
+          aoTentarDeNovo={() => void tickets.refetch()}
+        />
+      ) : tickets.isPending ? (
         <CardListSkeleton count={3} />
       ) : visible.length === 0 ? (
         <EmptyState

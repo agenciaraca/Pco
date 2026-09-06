@@ -8,6 +8,7 @@ import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { LeaderboardEntryDto } from '../../data/api';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const RANGES = [
   { value: 7, label: '7 dias' },
@@ -20,7 +21,8 @@ export default function AdminLeaderboard() {
   useDocumentMeta({ title: 'Leaderboard — Admin AVA PCO' });
   const [days, setDays] = useState(30);
   const [limit, setLimit] = useState(20);
-  const { data, isLoading } = useLeaderboard(days, limit);
+  const boardQ = useLeaderboard(days, limit);
+  const data = boardQ.data;
   const toast = useToast();
 
   async function handleExport() {
@@ -84,7 +86,15 @@ export default function AdminLeaderboard() {
         </div>
       </header>
 
-      {isLoading ? (
+      {boardQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="o ranking" />
+      ) : boardQ.isError ? (
+        <FalhaAoCarregar
+          erro={boardQ.error}
+          oQue="o ranking"
+          aoTentarDeNovo={() => void boardQ.refetch()}
+        />
+      ) : boardQ.isPending ? (
         <CardListSkeleton count={5} />
       ) : !data || data.entries.length === 0 ? (
         <EmptyState

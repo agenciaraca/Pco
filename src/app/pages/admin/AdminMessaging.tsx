@@ -22,6 +22,7 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const PROVIDER_LABELS: Record<api.MessagingProviderId, string> = {
   mock: 'Mock (dev/teste)',
@@ -154,7 +155,15 @@ export default function AdminMessaging() {
         </ol>
       </div>
 
-      {configsQ.isLoading ? (
+      {configsQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="as integrações" />
+      ) : configsQ.isError ? (
+        <FalhaAoCarregar
+          erro={configsQ.error}
+          oQue="as integrações"
+          aoTentarDeNovo={() => void configsQ.refetch()}
+        />
+      ) : configsQ.isPending ? (
         <CardListSkeleton count={2} />
       ) : !configsQ.data || configsQ.data.length === 0 ? (
         <div className="pco-card">

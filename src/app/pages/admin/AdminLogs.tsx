@@ -37,9 +37,10 @@ export default function AdminLogs() {
     [level, q],
   );
 
-  const { data, isLoading, isFetching, refetch } = useLogs(filter, {
+  const logsQ = useLogs(filter, {
     refetchInterval: paused ? false : 5_000,
   });
+  const { data, isFetching, refetch } = logsQ;
 
   const counters = useMemo(() => {
     const lines = data?.lines ?? [];
@@ -179,9 +180,14 @@ export default function AdminLogs() {
       </div>
 
       <div className="text-xs text-ink-muted">
-        {isLoading
-          ? 'Carregando...'
-          : `${data?.lines.length ?? 0} linha(s) — buffer total: ${data?.total ?? 0}`}
+        {/* Mesmo motivo do feed: 0 sem ter medido é mentira. */}
+        {logsQ.fetchStatus === 'paused'
+          ? 'sem conexão'
+          : logsQ.isError
+            ? 'não consegui carregar'
+            : logsQ.isPending
+              ? 'Carregando...'
+              : `${data?.lines.length ?? 0} linha(s) — buffer total: ${data?.total ?? 0}`}
       </div>
 
       <div className="pco-card p-0 overflow-hidden">

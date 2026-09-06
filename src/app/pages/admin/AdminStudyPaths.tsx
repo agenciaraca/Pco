@@ -11,6 +11,7 @@ import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { StudyPathDto } from '../../data/api';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 interface EditState {
   id: string | null;
@@ -163,7 +164,15 @@ export default function AdminStudyPaths() {
         </button>
       </header>
 
-      {pathsQ.isLoading ? (
+      {pathsQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="as trilhas" />
+      ) : pathsQ.isError ? (
+        <FalhaAoCarregar
+          erro={pathsQ.error}
+          oQue="as trilhas"
+          aoTentarDeNovo={() => void pathsQ.refetch()}
+        />
+      ) : pathsQ.isPending ? (
         <div className="text-sm text-ink-muted">Carregando…</div>
       ) : paths.length === 0 ? (
         <div className="pco-card p-6 text-center text-sm text-ink-muted">

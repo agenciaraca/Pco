@@ -34,6 +34,7 @@ import * as api from '../data/api';
 import TwoFactorAuthCard from '../components/TwoFactorAuthCard';
 import AchievementsPanel from '../components/AchievementsPanel';
 import StudyHeatmap from '../components/StudyHeatmap';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 import ProfileCompleteness, {
   type ProfileItem,
 } from '../components/ProfileCompleteness';
@@ -586,7 +587,15 @@ export default function Profile() {
           Cada quadradinho é um dia. Quanto mais aulas você concluiu nesse dia,
           mais escuro fica.
         </p>
-        {heatmapQ.isLoading ? (
+        {heatmapQ.fetchStatus === 'paused' ? (
+          <SemConexao oQue="o seu histórico" />
+        ) : heatmapQ.isError ? (
+          <FalhaAoCarregar
+            erro={heatmapQ.error}
+            oQue="o seu histórico"
+            aoTentarDeNovo={() => void heatmapQ.refetch()}
+          />
+        ) : heatmapQ.isPending ? (
           <div className="text-xs text-ink-muted">Carregando heatmap…</div>
         ) : heatmapQ.data ? (
           <StudyHeatmap days={heatmapQ.data.days} summary={heatmapQ.data.summary} />

@@ -22,6 +22,7 @@ import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import type { LiveSessionDto, LiveSessionStatusDto } from '../../data/api';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const STATUS_STYLES: Record<LiveSessionStatusDto, string> = {
   scheduled: 'bg-pco-blue/10 text-pco-blue',
@@ -71,7 +72,15 @@ export default function AdminLiveSessions() {
         </button>
       </header>
 
-      {list.isLoading ? (
+      {list.fetchStatus === 'paused' ? (
+        <SemConexao oQue="as sessões ao vivo" />
+      ) : list.isError ? (
+        <FalhaAoCarregar
+          erro={list.error}
+          oQue="as sessões ao vivo"
+          aoTentarDeNovo={() => void list.refetch()}
+        />
+      ) : list.isPending ? (
         <div className="text-sm text-ink-muted">Carregando...</div>
       ) : sorted.length === 0 ? (
         <div className="pco-card p-6 text-center text-sm text-ink-muted">

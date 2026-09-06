@@ -5,6 +5,7 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminTutorChat() {
   const t = useT();
@@ -59,7 +60,15 @@ export default function AdminTutorChat() {
         </select>
       </div>
 
-      {list.isLoading ? (
+      {list.fetchStatus === 'paused' ? (
+        <SemConexao oQue="as conversas" />
+      ) : list.isError ? (
+        <FalhaAoCarregar
+          erro={list.error}
+          oQue="as conversas"
+          aoTentarDeNovo={() => void list.refetch()}
+        />
+      ) : list.isPending ? (
         <CardListSkeleton count={3} />
       ) : (list.data ?? []).length === 0 ? (
         <EmptyState

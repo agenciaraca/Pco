@@ -13,6 +13,7 @@ import { useZoomConfig, useSaveZoomConfig } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminZoomConfig() {
   useDocumentMeta({ title: 'Zoom SDK — Admin' });
@@ -27,7 +28,23 @@ export default function AdminZoomConfig() {
 
   const config = configQ.data;
 
-  if (configQ.isLoading) return <CardListSkeleton count={1} />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a execução escorria para o ramo seguinte, que aqui
+    dizia que não havia nada. Num painel de administração o custo é menor do
+    que na tela do aluno, mas a leitura é a mesma: quem vê "nenhum registro"
+    para de procurar.
+  */
+  if (configQ.fetchStatus === 'paused') return <SemConexao oQue="a configuração do Zoom" />;
+  if (configQ.isPending) return <CardListSkeleton count={1} />;
+  if (configQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={configQ.error}
+        oQue="a configuração do Zoom"
+        aoTentarDeNovo={() => void configQ.refetch()}
+      />
+    );
 
   const isConfigured = config?.configured && config?.enabled;
 

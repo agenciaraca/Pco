@@ -22,6 +22,7 @@ import {
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 import type {
   WebhookEndpointDto,
   WebhookEventTypeDto,
@@ -82,7 +83,15 @@ export default function AdminWebhooks() {
 
       <section>
         <h2 className="text-base font-semibold text-pco-deep mb-2">Endpoints</h2>
-        {endpoints.isLoading ? (
+        {endpoints.fetchStatus === 'paused' ? (
+          <SemConexao oQue="os endpoints" />
+        ) : endpoints.isError ? (
+          <FalhaAoCarregar
+            erro={endpoints.error}
+            oQue="os endpoints"
+            aoTentarDeNovo={() => void endpoints.refetch()}
+          />
+        ) : endpoints.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (endpoints.data ?? []).length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">
@@ -207,7 +216,15 @@ export default function AdminWebhooks() {
             </button>
           )}
         </div>
-        {deliveries.isLoading ? (
+        {deliveries.fetchStatus === 'paused' ? (
+          <SemConexao oQue="as entregas" />
+        ) : deliveries.isError ? (
+          <FalhaAoCarregar
+            erro={deliveries.error}
+            oQue="as entregas"
+            aoTentarDeNovo={() => void deliveries.refetch()}
+          />
+        ) : deliveries.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (deliveries.data ?? []).length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">

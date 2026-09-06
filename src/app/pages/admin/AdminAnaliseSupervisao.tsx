@@ -38,6 +38,7 @@ import { useToast } from '../../components/Toast';
 import type { AdminProfessionalRow, PriceTier } from '../../data/api';
 import type { SessionService } from '../../types/schema';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 /** Centavos para real, do jeito que o brasileiro lê. */
 function reais(centavos: number): string {
@@ -61,6 +62,14 @@ const tabs = [
     icon: <AlertCircle size={14} strokeWidth={1.75} />,
   },
 ];
+
+/*
+  Lista vazia estável.
+
+  `data ?? []` cria um array novo a cada render, e todo `useMemo` que dependa
+  dele recalcula sempre — o oposto do que o `useMemo` está ali para fazer.
+*/
+const VAZIO: never[] = [];
 
 export default function AdminAnaliseSupervisao() {
   const t = useT();
@@ -610,7 +619,8 @@ function ProfissionaisPane() {
  */
 function AgendaPane() {
   const { data: professionals = [] } = useAdminProfessionals();
-  const { data: bookings = [], isLoading } = useAllBookings();
+  const bookingsQ = useAllBookings();
+  const bookings = bookingsQ.data ?? VAZIO;
   const [profFiltro, setProfFiltro] = useState<string>('');
   const [mesOffset, setMesOffset] = useState(0);
 
@@ -731,7 +741,10 @@ function AgendaPane() {
             );
           })}
         </div>
-        {!isLoading && dePe.length === 0 && (
+        {!bookingsQ.isPending &&
+          !bookingsQ.isError &&
+          bookingsQ.fetchStatus !== 'paused' &&
+          dePe.length === 0 && (
           <p className="mt-4 text-xs text-ink-muted">
             Nenhuma sessão agendada ainda — os pontos aparecem quando houver.
           </p>
@@ -740,7 +753,15 @@ function AgendaPane() {
 
       <div className="pco-card">
         <h3 className="text-base font-semibold text-pco-deep mb-3">Próximas sessões</h3>
-        {isLoading ? (
+{bookingsQ.fetchStatus === 'paused' ? (
+          <SemConexao oQue="os agendamentos" />
+        ) : bookingsQ.isError ? (
+          <FalhaAoCarregar
+            erro={bookingsQ.error}
+            oQue="os agendamentos"
+            aoTentarDeNovo={() => void bookingsQ.refetch()}
+          />
+        ) : bookingsQ.isPending ? (
           <p className="text-xs text-ink-muted">Carregando…</p>
         ) : proximas.length === 0 ? (
           <p className="text-xs text-ink-muted">Nada marcado daqui para frente.</p>

@@ -3,6 +3,7 @@ import { ShieldOff, Search, Activity, Power } from 'lucide-react';
 import { useSessions, useForceLogout } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminSessoes() {
   useDocumentMeta({ title: 'Sessões — Admin' });
@@ -91,7 +92,15 @@ export default function AdminSessoes() {
         </label>
       </div>
 
-      {sessions.isLoading ? (
+      {sessions.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os agendamentos" />
+      ) : sessions.isError ? (
+        <FalhaAoCarregar
+          erro={sessions.error}
+          oQue="os agendamentos"
+          aoTentarDeNovo={() => void sessions.refetch()}
+        />
+      ) : sessions.isPending ? (
         <div className="text-sm text-ink-muted">Carregando...</div>
       ) : list.length === 0 ? (
         <div className="pco-card p-6 text-center text-sm text-ink-muted">

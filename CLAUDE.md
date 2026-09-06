@@ -291,6 +291,103 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
+> ### 6/set/2026, madrugada — a auditoria 004 foi ao fim, e tudo está no ar
+>
+> **`main`, `origin/main` e produção no mesmo commit.** Banco com as migrations
+> `0020` (parcelamento) e `0021` (transcrição de podcast) aplicadas — sempre
+> **antes** do código, e há um script que confere isso:
+> `npx tsx scripts/confere_banco_antes_do_deploy.ts`.
+>
+> A passada 004 rodou sobre `26cb33c`, o primeiro HEAD desta série **em
+> produção**. Os relatórios estão em `H:/ia/dev/auditoria-ava-pco/relatorios/`,
+> com uma seção "Passada 004" cada; `correcoes-aplicadas.md` tem a tabela do que
+> foi consertado, em três rodadas.
+>
+> **O fio que une quase todos os achados:** a rotina rodava, contava e reportava
+> sucesso. Nenhum deles dava erro.
+>
+> #### O que foi corrigido, em ordem de dano
+>
+> 1. **O gateway reserva podia cobrar duas vezes** (SEC4-001). Cinco providers
+>    tratavam todo não-2xx como "não criou cobrança"; um 502 depois de o
+>    adquirente gravar o pedido faria o reserva criar a segunda.
+> 2. **O restaurador de banco podia piorar o dia do desastre** (SEC4-002).
+>    Apagava tudo antes de inserir, sem transação, sem trava de ambiente.
+> 3. **A venda podia parar sem ninguém notar** (PROD4-001). Décimo terceiro
+>    worker: alarme por taxa de falha de checkout.
+> 4. **O expurgo da LGPD deixava o CPF, a senha e o 2FA** (PRIV4-001 a 005), o
+>    fórum ficava fora das duas pontas, e store fora do ar era impresso como
+>    "nada a apagar" no ensaio que o operador lê antes de autorizar.
+> 5. **O drip trancava o botão de concluir, não a aula** (LEARN4-001).
+> 6. **O quiz não deixava registro nenhum** — achado indo atrás do item da
+>    auditoria que estava como "não verificado". A escola não conseguia
+>    responder se alguém foi avaliado, e **é a razão técnica de o certificado
+>    ser contagem de cliques**.
+> 7. **O player de podcast sem seek, sem volume e sem transcrição**
+>    (A11Y4-001/002/004).
+> 8. **`/admin/roles` mostrava um controle que não existe** (SEC3-706 medido):
+>    `permissions` e `tier` são gravados e nenhuma rota os lê.
+> 9. **`isLoading` sem `isError` — encerrado.** Não resta **nenhum** arquivo em
+>    `src/` com `isLoading` e sem tratamento de erro ou de `paused`.
+>
+> #### E um achado que só apareceu olhando a configuração real
+>
+> O **Pagar.me estava como reserva das três rotas de pagamento**. Pela regra do
+> mínimo isso derrubava a promessa do boleto de 6x para 1x, e a linha do site
+> dizia só *"12x no cartão"*. Pior: aquele reserva **não cobra nada** hoje.
+> Removido; a linha voltou a ser "12x no cartão ou 6x de R$ 199,77 no boleto".
+> A configuração vive em `data/payment-routing.json` no servidor, com backup
+> `.bak-<data>` ao lado.
+>
+> ### O que segue aberto — e as sete primeiras são AÇÃO SUA, não código
+>
+> 1. **Revogar a Application Password do WordPress.** Oitava sessão
+>    registrando. Tirar do código não desfaz o histórico do git.
+> 2. **Habilitar o produto Checkout no painel do Pagar.me.** Enquanto não for,
+>    ele não pode voltar à rota. Quando for, ligá-lo como **reserva do cartão**
+>    é ganho sem custo; como reserva do **boleto**, derruba a promessa de 6x
+>    para 1x de novo.
+> 3. **Configurar lifecycle no bucket S3.** Snapshot sem expiração guarda o
+>    titular indefinidamente depois de a escola dizer que apagou os dados dele.
+> 4. **Decidir `CARNE_ATRASO_SUSPENDE`.** O acesso é liberado integral na
+>    parcela 1 de 6 e nada o reverte. É política comercial.
+> 5. **Decidir `orders.userEmail` no expurgo.** Ou é dado fiscal — e então é
+>    retido *declarado como tal* — ou vai para a marca anônima. Hoje o relatório
+>    já **declara** que o pedido guarda o e-mail e o mesmo id de conta, o que
+>    tornou o problema visível; a dissociação continua parcial.
+> 6. **Decidir se o certificado passa a depender de avaliação.** Agora existe
+>    dado sobre o que decidir — antes não existia. Mudar a regra afeta quem já
+>    se formou: precisa de política para o retroativo.
+> 7. **Decidir se `/admin/*` terá autorização por permissão.** Hoje há um
+>    catálogo de papéis que não restringe nada, com aviso na tela dizendo isso.
+>    Implementar significa declarar uma permissão em **cada** rota
+>    administrativa, com risco de trancar o operador para fora.
+>
+> **O que sobrou de código, e é pouco:**
+>
+> - **A contradição do carnê** registrada em SEC4-001: dois comentários no mesmo
+>   HEAD dizem coisas opostas sobre as parcelas 2..N acharem o pedido. Quem
+>   mexer no carnê resolve isso antes.
+> - **`SEC4-003`, meia-verificação:** a extensão do upload vem do `file.type`
+>   declarado pelo cliente, e o conteúdo nunca é inspecionado. Só admin sobe
+>   documento, então o risco é baixo — mas está anotado.
+> - Os "não verificado" restantes da passada 004: transcrições de sessão ao vivo
+>   (o store não tem `userId`), `external-references.json`, e as snapshots em S3
+>   — esta última é o item 3 acima.
+>
+> ### Como retomar
+>
+> 1. `git fetch && git status` — a regra de sempre depois de trocar de máquina.
+> 2. `npx tsx scripts/confere_banco_antes_do_deploy.ts` diz se o banco está
+>    pronto para o código.
+> 3. A suíte roda com `npx vitest run --maxWorkers=1`. **Sem o `--maxWorkers=1`
+>    ela morre por memória no meio**, e o sintoma engana.
+> 4. O deploy é `bash scripts/deploy_producao.sh` — confere o host, faz backup
+>    do `data/` e compara o hash do bundle.
+> 5. O índice da auditoria, com o que cada trilha achou e o que não verificou,
+>    está em `H:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`, no bloco do topo.
+
+
 > ### 5/set/2026, noite — a auditoria auditou o que subiu de manhã
 >
 > A passada 004 rodou sobre `26cb33c` — o primeiro HEAD desta série que está
@@ -1383,12 +1480,22 @@ palavra**. No `LearningLayout` era pior — a tela afirmava *"Este curso não
 existe ou não está na sua estante"* sobre um curso que ele cursa e pagou.
 
 A auditoria de 3/set/2026 achou **76 arquivos** com `isLoading` e sem `isError`
-em lugar nenhum. **Toda a área do aluno está corrigida** desde 5/set/2026 —
-lista de podcasts, episódio, notícias, biblioteca, eventos, detalhe de evento,
-transcrição de sessão, comparação e pré-visualização de curso, além das cinco
-telas de aula que já tinham sido feitas. **O que sobra é `/admin`**, e é
-trabalho mecânico: lá o custo é painel que gira, não aluno lendo mentira sobre
-si.
+em lugar nenhum. **Está encerrado desde 6/set/2026**: não resta um único
+arquivo em `src/` com `isLoading` e sem tratamento de `isError` ou de
+`fetchStatus === 'paused'`. Confira com
+
+```bash
+cd src && for f in $(grep -rl "isLoading" --include=*.tsx app); do   grep -q "isError\|fetchStatus" "$f" || echo "$f"; done
+```
+
+Três formas apareceram na varredura, e a terceira é a que se esquece:
+
+1. **Guarda no topo** (`if (X.isLoading) return <Skeleton/>`) — vira a cadeia
+   `paused` → `isError` → `isPending`, nessa ordem.
+2. **Expressão no JSX** (`{X.isLoading ? … : …}`) — mesma cadeia, aninhada.
+3. **Contador em texto** (`{X.isLoading ? 'Carregando…' : `${n} itens`}`) —
+   sem rede isso imprimia **"0 evento(s)"** sobre um feed cheio. É a mesma
+   mentira das telas de métrica, num lugar em que ninguém procura por ela.
 
 A pior das que faltavam era o **episódio de podcast**, e ela é o caso do
 manual: `if (isLoading) …; if (!episode) return <Navigate to="/podcasts" />`.

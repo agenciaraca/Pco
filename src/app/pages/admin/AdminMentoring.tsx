@@ -21,6 +21,7 @@ import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import type { MentoringConfigDto } from '../../data/api';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminMentoring() {
   useDocumentMeta({ title: 'Mentorias — Admin' });
@@ -109,7 +110,23 @@ export default function AdminMentoring() {
     }
   }
 
-  if (mentoringQ.isLoading) return <CardListSkeleton count={3} />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a execução escorria para o ramo seguinte, que aqui
+    dizia que não havia nada. Num painel de administração o custo é menor do
+    que na tela do aluno, mas a leitura é a mesma: quem vê "nenhum registro"
+    para de procurar.
+  */
+  if (mentoringQ.fetchStatus === 'paused') return <SemConexao oQue="as mentorias" />;
+  if (mentoringQ.isPending) return <CardListSkeleton count={3} />;
+  if (mentoringQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={mentoringQ.error}
+        oQue="as mentorias"
+        aoTentarDeNovo={() => void mentoringQ.refetch()}
+      />
+    );
 
   return (
     <div className="space-y-6">

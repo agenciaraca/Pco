@@ -18,6 +18,15 @@ import {
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from './Toast';
 import type { LessonCommentDto } from '../data/api';
+import { SemConexao, FalhaAoCarregar } from './EstadosDeConsulta';
+
+/*
+  Lista vazia estável.
+
+  `data ?? []` cria um array novo a cada render, e todo `useMemo` que dependa
+  dele recalcula sempre — o oposto do que o `useMemo` está ali para fazer.
+*/
+const VAZIO: never[] = [];
 
 export default function LessonComments({
   lessonId,
@@ -30,7 +39,8 @@ export default function LessonComments({
 }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
-  const { data: comments = [], isLoading } = useLessonComments(lessonId);
+  const commentsQ = useLessonComments(lessonId);
+  const comments = commentsQ.data ?? VAZIO;
   const create = useCreateLessonComment();
   const updateMut = useUpdateLessonComment();
   const del = useDeleteLessonComment();
@@ -116,7 +126,15 @@ export default function LessonComments({
         </div>
       )}
 
-      {isLoading ? (
+      {commentsQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os comentários" />
+      ) : commentsQ.isError ? (
+        <FalhaAoCarregar
+          erro={commentsQ.error}
+          oQue="os comentários"
+          aoTentarDeNovo={() => void commentsQ.refetch()}
+        />
+      ) : commentsQ.isPending ? (
         <div className="text-xs text-ink-muted">Carregando...</div>
       ) : grouped.roots.length === 0 ? (
         <div className="text-xs text-ink-muted text-center py-4">

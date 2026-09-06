@@ -37,6 +37,7 @@ import type {
   UserMatchKeyDto,
 } from '../../../data/api';
 import { diagnoseImportConnection, diagnoseImportConnectionLd } from '../../../data/api';
+import { SemConexao, FalhaAoCarregar } from '../../../components/EstadosDeConsulta';
 
 const ENTITY_GROUPS: Array<{
   source: 'wp' | 'ld' | 'wc';
@@ -259,7 +260,15 @@ export default function ImportWizardApi() {
         title="Conexões"
         description="Aponta para um site WordPress. Você pode ter quantas quiser."
       >
-        {conns.isLoading ? (
+        {conns.fetchStatus === 'paused' ? (
+          <SemConexao oQue="os conectores" />
+        ) : conns.isError ? (
+          <FalhaAoCarregar
+            erro={conns.error}
+            oQue="os conectores"
+            aoTentarDeNovo={() => void conns.refetch()}
+          />
+        ) : conns.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (conns.data ?? []).length === 0 ? (
           <div className="pco-card p-4 text-center text-sm text-ink-muted">

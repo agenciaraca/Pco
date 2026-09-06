@@ -17,6 +17,7 @@ import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { useT } from '../i18n';
 import { publicCourseUrl } from '../lib/publicUrls';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 
 /**
  * Catálogo público — visualização sem autenticação. Mostra cursos disponíveis
@@ -25,7 +26,8 @@ import { publicCourseUrl } from '../lib/publicUrls';
 export default function Catalog() {
   const t = useT();
   useDocumentMeta({ title: `${t('catalog.title')} — AVA PCO` });
-  const { data: courses, isLoading } = useCourses();
+  const coursesQ = useCourses();
+  const courses = coursesQ.data;
   const { data: products = [] } = useProducts();
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string>('');
@@ -146,7 +148,15 @@ export default function Catalog() {
           )}
         </div>
 
-        {isLoading ? (
+        {coursesQ.fetchStatus === 'paused' ? (
+          <SemConexao oQue="o catálogo" />
+        ) : coursesQ.isError ? (
+          <FalhaAoCarregar
+            erro={coursesQ.error}
+            oQue="o catálogo"
+            aoTentarDeNovo={() => void coursesQ.refetch()}
+          />
+        ) : coursesQ.isPending ? (
           <CardListSkeleton count={3} />
         ) : visibleCourses.length === 0 ? (
           <EmptyState

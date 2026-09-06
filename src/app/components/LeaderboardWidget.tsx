@@ -1,12 +1,27 @@
 import { Trophy, Crown, BookOpen, Flame, Award } from 'lucide-react';
 import { useMyRank, usePublicLeaderboard, useCurrentStudent } from '../data/hooks';
+import { SemConexao, FalhaAoCarregar } from './EstadosDeConsulta';
 
 export default function LeaderboardWidget() {
   const top = usePublicLeaderboard(30, 5);
   const myRank = useMyRank(30);
   const me = useCurrentStudent();
 
-  if (top.isLoading || !top.data) {
+  /*
+    Sem rede, `isLoading` e `isError` são os dois `false`. O widget caía
+    no ramo de carregando para sempre — um cartão girando no painel, que
+    é a forma de a tela não dizer nada.
+  */
+  if (top.fetchStatus === 'paused') return <SemConexao oQue="o ranking" />;
+  if (top.isError)
+    return (
+      <FalhaAoCarregar
+        erro={top.error}
+        oQue="o ranking"
+        aoTentarDeNovo={() => void top.refetch()}
+      />
+    );
+  if (top.isPending || !top.data) {
     return null;
   }
 

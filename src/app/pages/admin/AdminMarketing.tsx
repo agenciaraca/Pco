@@ -3,6 +3,7 @@ import { Save, ShieldCheck, Tag, AlertTriangle } from 'lucide-react';
 import { useMarketingTags, useUpdateMarketingTags } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 /**
  * Onde entram as tags de Google e Meta.
@@ -87,7 +88,22 @@ export default function AdminMarketing() {
     });
   }, [q.data]);
 
-  if (q.isLoading) return <CardListSkeleton />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a tela caía no ramo seguinte e dizia que não havia
+    nada. No painel o custo é menor do que na tela do aluno, mas a leitura é a
+    mesma: quem vê "nenhum registro" para de procurar.
+  */
+  if (q.fetchStatus === 'paused') return <SemConexao oQue="as tags de marketing" />;
+  if (q.isError)
+    return (
+      <FalhaAoCarregar
+        erro={q.error}
+        oQue="as tags de marketing"
+        aoTentarDeNovo={() => void q.refetch()}
+      />
+    );
+  if (q.isPending) return <CardListSkeleton />;
 
   const salvar = async () => {
     try {

@@ -17,6 +17,7 @@ import Sparkline from '../../components/Sparkline';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useToast } from '../../components/Toast';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const tabs = [
   { id: 'limites', label: 'Limites', icon: <Users size={14} strokeWidth={1.75} /> },
@@ -54,7 +55,17 @@ export default function AdminTutor() {
     setAllowedScopesRaw((config.allowedScopes ?? []).join(', '));
   }, [config]);
 
-  if (configsQ.isLoading || !config) {
+  if (configsQ.fetchStatus === 'paused')
+    return <SemConexao oQue="as configurações do tutor" />;
+  if (configsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={configsQ.error}
+        oQue="as configurações do tutor"
+        aoTentarDeNovo={() => void configsQ.refetch()}
+      />
+    );
+  if (configsQ.isPending || !config) {
     return (
       <div className="space-y-6">
         <header>
@@ -267,8 +278,19 @@ export default function AdminTutor() {
 }
 
 function UsoPane() {
-  const { data, isLoading } = useTutorUsageStats(30);
-  if (isLoading || !data) {
+  const usoQ = useTutorUsageStats(30);
+  const data = usoQ.data;
+  if (usoQ.fetchStatus === 'paused')
+    return <SemConexao oQue="o uso do tutor" />;
+  if (usoQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={usoQ.error}
+        oQue="o uso do tutor"
+        aoTentarDeNovo={() => void usoQ.refetch()}
+      />
+    );
+  if (usoQ.isPending || !data) {
     return <div className="pco-card p-6 text-sm text-ink-muted">Carregando...</div>;
   }
   return (

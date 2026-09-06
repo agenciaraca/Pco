@@ -19,6 +19,7 @@ import { useCourses, useDeleteModule, useUpdateModule } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useToast } from '../../components/Toast';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const statusStyles: Record<string, string> = {
   completed: 'bg-status-success/10 text-status-success',
@@ -62,7 +63,8 @@ function applyTri(value: boolean, filter: TriFilter): boolean {
 
 export default function AdminModules() {
   const t = useT();
-  const { data: courses, isLoading } = useCourses();
+  const coursesQ = useCourses();
+  const courses = coursesQ.data;
   const deleteMut = useDeleteModule();
   const updateMut = useUpdateModule();
   const toast = useToast();
@@ -398,7 +400,15 @@ export default function AdminModules() {
         </div>
       )}
 
-      {isLoading ? (
+      {coursesQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os cursos" />
+      ) : coursesQ.isError ? (
+        <FalhaAoCarregar
+          erro={coursesQ.error}
+          oQue="os cursos"
+          aoTentarDeNovo={() => void coursesQ.refetch()}
+        />
+      ) : coursesQ.isPending ? (
         <CardListSkeleton count={4} />
       ) : (
         <div className="pco-card p-0 overflow-hidden">

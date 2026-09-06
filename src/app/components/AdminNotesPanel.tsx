@@ -7,9 +7,11 @@ import {
   useDeleteAdminNote,
 } from '../data/hooks';
 import { useToast } from './Toast';
+import { SemConexao, FalhaAoCarregar } from './EstadosDeConsulta';
 
 export default function AdminNotesPanel({ studentId }: { studentId: string }) {
-  const { data, isLoading } = useAdminNotes(studentId);
+  const notesQ = useAdminNotes(studentId);
+  const data = notesQ.data;
   const create = useCreateAdminNote();
   const update = useUpdateAdminNote();
   const del = useDeleteAdminNote();
@@ -85,7 +87,15 @@ export default function AdminNotesPanel({ studentId }: { studentId: string }) {
         </div>
       </div>
 
-      {isLoading ? (
+      {notesQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="as anotações" />
+      ) : notesQ.isError ? (
+        <FalhaAoCarregar
+          erro={notesQ.error}
+          oQue="as anotações"
+          aoTentarDeNovo={() => void notesQ.refetch()}
+        />
+      ) : notesQ.isPending ? (
         <div className="text-xs text-ink-muted">Carregando...</div>
       ) : (data ?? []).length === 0 ? (
         <div className="text-xs text-ink-muted text-center py-4">Sem notas ainda.</div>

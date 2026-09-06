@@ -27,6 +27,7 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import type { QuestionDto, QuestionTypeDto } from '../../data/api';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 interface EditState {
   id: string | null;
@@ -362,7 +363,15 @@ export default function AdminQuestions() {
         </span>
       </div>
 
-      {questionsQ.isLoading ? (
+      {questionsQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="as questões" />
+      ) : questionsQ.isError ? (
+        <FalhaAoCarregar
+          erro={questionsQ.error}
+          oQue="as questões"
+          aoTentarDeNovo={() => void questionsQ.refetch()}
+        />
+      ) : questionsQ.isPending ? (
         <CardListSkeleton count={3} />
       ) : filtered.length === 0 ? (
         <EmptyState

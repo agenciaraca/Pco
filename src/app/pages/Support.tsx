@@ -11,6 +11,7 @@ import {
   type CreateSupportTicketInput,
 } from '../../../shared/schemas';
 import { useT } from '../i18n';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 
 const categories: { id: CreateSupportTicketInput['category']; label: string }[] = [
   { id: 'duvida_aula', label: 'Dúvida sobre aula' },
@@ -150,7 +151,15 @@ export default function Support() {
 
         <div className="pco-card">
           <h3 className="text-base font-semibold text-pco-deep mb-4">Histórico</h3>
-          {ticketsQ.isLoading ? (
+          {ticketsQ.fetchStatus === 'paused' ? (
+            <SemConexao oQue="os seus chamados" />
+          ) : ticketsQ.isError ? (
+            <FalhaAoCarregar
+              erro={ticketsQ.error}
+              oQue="os seus chamados"
+              aoTentarDeNovo={() => void ticketsQ.refetch()}
+            />
+          ) : ticketsQ.isPending ? (
             <TableSkeleton rows={2} />
           ) : (ticketsQ.data ?? []).length === 0 ? (
             <EmptyState

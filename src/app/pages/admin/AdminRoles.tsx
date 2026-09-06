@@ -21,6 +21,7 @@ import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { useT } from '../../i18n';
 import type { RoleDto } from '../../data/api';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 interface EditState {
   id: string | null;
@@ -288,7 +289,15 @@ export default function AdminRoles() {
         </div>
       </header>
 
-      {rolesQ.isLoading ? (
+      {rolesQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os papéis" />
+      ) : rolesQ.isError ? (
+        <FalhaAoCarregar
+          erro={rolesQ.error}
+          oQue="os papéis"
+          aoTentarDeNovo={() => void rolesQ.refetch()}
+        />
+      ) : rolesQ.isPending ? (
         <div className="text-sm text-ink-muted">Carregando…</div>
       ) : roles.length === 0 ? (
         <div className="pco-card p-6 text-center text-sm text-ink-muted">

@@ -131,10 +131,18 @@ export default function ImportsHistory() {
       <section className="pco-card p-0 overflow-hidden">
         <div className="px-4 py-2 flex items-center justify-between border-b border-pco-border">
           <span className="text-sm font-semibold text-pco-deep">
-            {jobs.isLoading ? 'Carregando...' : `${rows.length} job(s)`}
+            {/* 0 sem ter medido é mentira: sem rede a consulta fica
+                `paused`, e `isLoading` é `false`. */}
+            {jobs.fetchStatus === 'paused'
+              ? 'sem conexão'
+              : jobs.isError
+                ? 'não consegui carregar'
+                : jobs.isPending
+                  ? 'Carregando...'
+                  : `${rows.length} job(s)`}
           </span>
         </div>
-        {!jobs.isLoading && rows.length === 0 && (
+        {!jobs.isPending && !jobs.isError && jobs.fetchStatus !== 'paused' && rows.length === 0 && (
           <div className="p-8 text-center text-sm text-ink-muted">
             Nenhum job para os filtros selecionados.
           </div>

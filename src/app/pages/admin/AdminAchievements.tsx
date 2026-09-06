@@ -4,13 +4,30 @@ import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminAchievements() {
   const t = useT();
   useDocumentMeta({ title: `${t('admin.nav.achievements')} — Admin AVA PCO` });
-  const { data, isLoading } = useAchievementsStats();
+  const statsQ = useAchievementsStats();
+  const data = statsQ.data;
 
-  if (isLoading || !data) return <CardListSkeleton count={5} />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a tela caía no ramo seguinte e dizia que não havia
+    nada. No painel o custo é menor do que na tela do aluno, mas a leitura é a
+    mesma: quem vê "nenhum registro" para de procurar.
+  */
+  if (statsQ.fetchStatus === 'paused') return <SemConexao oQue="as conquistas" />;
+  if (statsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={statsQ.error}
+        oQue="as conquistas"
+        aoTentarDeNovo={() => void statsQ.refetch()}
+      />
+    );
+  if (statsQ.isPending || !data) return <CardListSkeleton count={5} />;
 
   const maxAwarded = Math.max(...data.badges.map((b) => b.awarded), 1);
 

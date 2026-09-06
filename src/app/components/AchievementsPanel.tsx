@@ -2,9 +2,11 @@ import { Award, RefreshCw } from 'lucide-react';
 import { useMyAchievements, useRefreshMyAchievements } from '../data/hooks';
 import { useToast } from './Toast';
 import type { BadgeIdDto } from '../data/api';
+import { SemConexao, FalhaAoCarregar } from './EstadosDeConsulta';
 
 export default function AchievementsPanel() {
-  const { data, isLoading } = useMyAchievements();
+  const achQ = useMyAchievements();
+  const data = achQ.data;
   const refresh = useRefreshMyAchievements();
   const toast = useToast();
 
@@ -48,7 +50,15 @@ export default function AchievementsPanel() {
         </button>
       </div>
 
-      {isLoading ? (
+      {achQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="as conquistas" />
+      ) : achQ.isError ? (
+        <FalhaAoCarregar
+          erro={achQ.error}
+          oQue="as conquistas"
+          aoTentarDeNovo={() => void achQ.refetch()}
+        />
+      ) : achQ.isPending ? (
         <div className="text-xs text-ink-muted">Carregando...</div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

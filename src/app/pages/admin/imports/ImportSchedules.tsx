@@ -21,6 +21,7 @@ import {
 } from '../../../data/hooks';
 import { useToast } from '../../../components/Toast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../../components/EstadosDeConsulta';
 import type {
   ImportEntityTypeDto,
   ImportScheduleDto,
@@ -91,7 +92,15 @@ export default function ImportSchedules() {
       </header>
 
       <div>
-        {list.isLoading ? (
+        {list.fetchStatus === 'paused' ? (
+          <SemConexao oQue="os agendamentos" />
+        ) : list.isError ? (
+          <FalhaAoCarregar
+            erro={list.error}
+            oQue="os agendamentos"
+            aoTentarDeNovo={() => void list.refetch()}
+          />
+        ) : list.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (list.data ?? []).length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">

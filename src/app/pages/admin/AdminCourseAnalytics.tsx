@@ -12,14 +12,31 @@ import { useCourseAnalytics } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminCourseAnalytics() {
   const t = useT();
   const { courseId } = useParams<{ courseId: string }>();
   useDocumentMeta({ title: 'Analytics — Admin' });
-  const { data, isLoading } = useCourseAnalytics(courseId);
+  const analyticsQ = useCourseAnalytics(courseId);
+  const data = analyticsQ.data;
 
-  if (isLoading) return <CardListSkeleton count={3} />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a execução escorria para o ramo seguinte, que dizia
+    que não havia nada. No painel o custo é menor do que na tela do aluno, mas
+    a leitura é a mesma: quem vê "nenhum registro" para de procurar.
+  */
+  if (analyticsQ.fetchStatus === 'paused') return <SemConexao oQue="as métricas do curso" />;
+  if (analyticsQ.isPending) return <CardListSkeleton count={3} />;
+  if (analyticsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={analyticsQ.error}
+        oQue="as métricas do curso"
+        aoTentarDeNovo={() => void analyticsQ.refetch()}
+      />
+    );
   if (!data) return <Navigate to="/admin/cursos" replace />;
 
   const totalSeconds = data.watchTime.totalSeconds;

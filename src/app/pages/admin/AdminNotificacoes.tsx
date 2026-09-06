@@ -19,6 +19,7 @@ import Tabs from '../../components/Tabs';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import type { BroadcastNotificationInput, NotificationDto } from '../../data/api';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const audiences: Array<{ value: BroadcastNotificationInput['audience']; label: string; desc: string }> = [
   { value: 'all', label: 'Todos', desc: 'Alunos + administradores ativos' },
@@ -111,7 +112,15 @@ export default function AdminNotificacoes() {
 
       {tab === 'history' && (
         <div className="space-y-3">
-          {sent.isLoading ? (
+          {sent.fetchStatus === 'paused' ? (
+            <SemConexao oQue="os envios" />
+          ) : sent.isError ? (
+            <FalhaAoCarregar
+              erro={sent.error}
+              oQue="os envios"
+              aoTentarDeNovo={() => void sent.refetch()}
+            />
+          ) : sent.isPending ? (
             <CardListSkeleton count={4} />
           ) : !sent.data || sent.data.length === 0 ? (
             <EmptyState

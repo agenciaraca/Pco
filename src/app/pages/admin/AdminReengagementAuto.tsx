@@ -16,6 +16,7 @@ import {
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminReengagementAuto() {
   useDocumentMeta({ title: 'Reengajamento automático — Admin' });
@@ -206,7 +207,15 @@ export default function AdminReengagementAuto() {
           <HistoryIcon size={16} className="text-pco-blue" strokeWidth={1.75} />
           Envios recentes
         </h2>
-        {sent.isLoading ? (
+        {sent.fetchStatus === 'paused' ? (
+          <SemConexao oQue="os envios" />
+        ) : sent.isError ? (
+          <FalhaAoCarregar
+            erro={sent.error}
+            oQue="os envios"
+            aoTentarDeNovo={() => void sent.refetch()}
+          />
+        ) : sent.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (sent.data ?? []).length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">

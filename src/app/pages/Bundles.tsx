@@ -8,11 +8,21 @@ import { useToast } from '../components/Toast';
 import CheckoutDialog from '../components/CheckoutDialog';
 import type { ProductDto } from '../data/api';
 import { useT } from '../i18n';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
+
+/*
+  Lista vazia estável.
+
+  `data ?? []` cria um array novo a cada render, e todo `useMemo` que dependa
+  dele recalcula sempre — o oposto do que o `useMemo` está ali para fazer.
+*/
+const VAZIO: never[] = [];
 
 export default function Bundles() {
   const t = useT();
   useDocumentMeta({ title: `${t('bundles.title')} — AVA PCO` });
-  const { data: products = [], isLoading } = useProducts();
+  const productsQ = useProducts();
+  const products = productsQ.data ?? VAZIO;
   const { data: courses = [] } = useCourses();
   const { data: student } = useCurrentStudent();
   const toast = useToast();
@@ -69,8 +79,24 @@ export default function Bundles() {
         </p>
       </header>
 
-      {isLoading && <CardListSkeleton count={2} />}
-      {!isLoading && bundles.length === 0 && (
+      {/*
+        Sem rede a consulta fica `paused`: `isLoading` é `false` e a tela
+        dizia que não há combos, que é a única leitura que faz alguém parar
+        de procurar.
+      */}
+      {productsQ.fetchStatus === 'paused' && <SemConexao oQue="os combos" />}
+      {productsQ.isError && (
+        <FalhaAoCarregar
+          erro={productsQ.error}
+          oQue="os combos"
+          aoTentarDeNovo={() => void productsQ.refetch()}
+        />
+      )}
+      {productsQ.isPending && <CardListSkeleton count={2} />}
+      {!productsQ.isPending &&
+        !productsQ.isError &&
+        productsQ.fetchStatus !== 'paused' &&
+        bundles.length === 0 && (
         <div className="pco-card">
           <EmptyState
             title="Sem pacotes ativos"

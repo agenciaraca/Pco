@@ -154,9 +154,18 @@ export default function AdminActivity() {
 
       <section>
         <div className="text-xs text-ink-muted mb-2">
-          {feed.isLoading
-            ? 'Carregando...'
-            : `${(feed.data ?? []).length} evento(s)`}
+          {/*
+            Contador que vira 0 sem ter medido é a mesma mentira das telas de
+            métrica. Sem rede, a consulta fica `paused` e `isLoading` é
+            `false` — o texto dizia "0 evento(s)" sobre um feed cheio.
+          */}
+          {feed.fetchStatus === 'paused'
+            ? 'sem conexão'
+            : feed.isError
+              ? 'não consegui carregar'
+              : feed.isPending
+                ? 'Carregando...'
+                : `${(feed.data ?? []).length} evento(s)`}
         </div>
         {(feed.data ?? []).length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">

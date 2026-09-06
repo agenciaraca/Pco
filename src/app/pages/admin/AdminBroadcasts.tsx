@@ -12,6 +12,7 @@ import type { BroadcastAudienceDto } from '../../data/api';
 import { useT } from '../../i18n';
 import SortableTh from '../../components/SortableTh';
 import { useTableSort } from '../../hooks/useTableSort';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 const AUDIENCE_LABELS: Record<BroadcastAudienceDto, string> = {
   all: 'Todos os usuários ativos',
@@ -234,7 +235,15 @@ export default function AdminBroadcasts() {
 
       <section>
         <h2 className="text-base font-semibold text-pco-deep mb-2">Histórico</h2>
-        {broadcasts.isLoading ? (
+        {broadcasts.fetchStatus === 'paused' ? (
+          <SemConexao oQue="os comunicados" />
+        ) : broadcasts.isError ? (
+          <FalhaAoCarregar
+            erro={broadcasts.error}
+            oQue="os comunicados"
+            aoTentarDeNovo={() => void broadcasts.refetch()}
+          />
+        ) : broadcasts.isPending ? (
           <div className="text-sm text-ink-muted">Carregando...</div>
         ) : (broadcasts.data ?? []).length === 0 ? (
           <div className="pco-card p-6 text-center text-sm text-ink-muted">

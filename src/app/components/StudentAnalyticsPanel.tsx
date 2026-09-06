@@ -1,10 +1,22 @@
 import { BarChart3, Clock, Award, Star, BookOpen } from 'lucide-react';
 import { useStudentAnalytics } from '../data/hooks';
+import { SemConexao, FalhaAoCarregar } from './EstadosDeConsulta';
 
 export default function StudentAnalyticsPanel({ studentId }: { studentId: string }) {
-  const { data, isLoading } = useStudentAnalytics(studentId);
+  const analyticsQ = useStudentAnalytics(studentId);
+  const data = analyticsQ.data;
 
-  if (isLoading || !data) {
+  if (analyticsQ.fetchStatus === 'paused')
+    return <SemConexao oQue="as métricas do aluno" />;
+  if (analyticsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={analyticsQ.error}
+        oQue="as métricas do aluno"
+        aoTentarDeNovo={() => void analyticsQ.refetch()}
+      />
+    );
+  if (analyticsQ.isPending || !data) {
     return <div className="text-xs text-ink-muted">Carregando analytics...</div>;
   }
 

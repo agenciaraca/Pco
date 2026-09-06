@@ -5,6 +5,7 @@ import { http } from '../../data/client';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import EmptyState from '../../components/EmptyState';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 interface Experiment {
   id: string;
@@ -114,7 +115,15 @@ export default function AdminExperiments() {
         </button>
       </header>
 
-      {expsQ.isLoading ? (
+      {expsQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="os experimentos" />
+      ) : expsQ.isError ? (
+        <FalhaAoCarregar
+          erro={expsQ.error}
+          oQue="os experimentos"
+          aoTentarDeNovo={() => void expsQ.refetch()}
+        />
+      ) : expsQ.isPending ? (
         <div className="pco-card text-sm text-ink-muted">Carregando...</div>
       ) : !expsQ.data || expsQ.data.length === 0 ? (
         <div className="pco-card">

@@ -15,13 +15,30 @@ import { useAlertsCenter } from '../../data/hooks';
 import { CardListSkeleton } from '../../components/LoadingSkeleton';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import { useT } from '../../i18n';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminAlertsCenter() {
   const t = useT();
   useDocumentMeta({ title: `${t('admin.nav.alerts')} — Admin` });
-  const { data, isLoading, refetch, isFetching } = useAlertsCenter();
+  const alertsQ = useAlertsCenter();
+  const { data, refetch, isFetching } = alertsQ;
 
-  if (isLoading || !data) return <CardListSkeleton count={5} />;
+  /*
+    Sem rede a consulta fica `paused`, e nesse estado `isLoading` e `isError`
+    são os dois `false` — a tela caía no ramo seguinte e dizia que não havia
+    nada. No painel o custo é menor do que na tela do aluno, mas a leitura é a
+    mesma: quem vê "nenhum registro" para de procurar.
+  */
+  if (alertsQ.fetchStatus === 'paused') return <SemConexao oQue="os alertas" />;
+  if (alertsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={alertsQ.error}
+        oQue="os alertas"
+        aoTentarDeNovo={() => void alertsQ.refetch()}
+      />
+    );
+  if (alertsQ.isPending || !data) return <CardListSkeleton count={5} />;
 
   const sections = [
     {

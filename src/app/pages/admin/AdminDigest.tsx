@@ -16,6 +16,7 @@ import {
 } from '../../data/hooks';
 import { useToast } from '../../components/Toast';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
+import { SemConexao, FalhaAoCarregar } from '../../components/EstadosDeConsulta';
 
 export default function AdminDigest() {
   useDocumentMeta({ title: 'Digest diário — Admin AVA PCO' });
@@ -212,7 +213,15 @@ export default function AdminDigest() {
           <Eye size={14} strokeWidth={2} />
           Pré-visualização
         </h2>
-        {preview.isLoading ? (
+        {preview.fetchStatus === 'paused' ? (
+          <SemConexao oQue="a prévia do resumo" />
+        ) : preview.isError ? (
+          <FalhaAoCarregar
+            erro={preview.error}
+            oQue="a prévia do resumo"
+            aoTentarDeNovo={() => void preview.refetch()}
+          />
+        ) : preview.isPending ? (
           <div className="text-sm text-ink-muted">Gerando...</div>
         ) : preview.data ? (
           <>
