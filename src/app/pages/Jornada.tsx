@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 import clsx from 'clsx';
 import {
   CheckCircle2,
@@ -19,7 +20,8 @@ import { useT } from '../i18n';
 
 export default function Jornada() {
   const t = useT();
-  const { data: courses = [], isLoading } = useCourses();
+  const coursesQ = useCourses();
+  const courses = coursesQ.data ?? [];
   const { data: progress } = useMyProgress();
   // A página mostrava sempre `courses[0]` e o seletor ao lado era decorativo:
   // o aluno com mais de um curso escolhia outro e a jornada não mudava.
@@ -38,7 +40,18 @@ export default function Jornada() {
     ) ?? 0;
   const overallPct = totalLessons > 0 ? Math.round((doneLessons / totalLessons) * 100) : 0;
 
-  if (isLoading) return <CardListSkeleton count={3} />;
+  if (coursesQ.fetchStatus === 'paused') return <SemConexao oQue="sua jornada" />;
+  if (coursesQ.isPending) return <CardListSkeleton count={3} />;
+  if (coursesQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={coursesQ.error}
+        oQue="sua jornada"
+        aoTentarDeNovo={() => void coursesQ.refetch()}
+      />
+    );
+  // Só depois dos três acima: "sem cursos" é conclusão, e conclusão exige ter
+  // conseguido perguntar.
   if (!course) return <EmptyState title="Sem cursos disponíveis" />;
 
   return (

@@ -2,6 +2,7 @@
 // Aluno matriculado pode criar/responder. Autor/admin podem marcar resolvido e excluir.
 
 import { useState } from 'react';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -132,8 +133,21 @@ export default function CourseForum() {
         </button>
       </header>
 
-      {threadsQ.isLoading ? (
+      {/*
+        "Nenhuma publicação ainda" convida a pessoa a escrever. Sem rede, isso
+        vira um convite a repostar o que já está lá — e o fórum do curso é
+        justamente onde a repetição incomoda os outros alunos.
+      */}
+      {threadsQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="o fórum" />
+      ) : threadsQ.isPending ? (
         <CardListSkeleton count={3} />
+      ) : threadsQ.isError ? (
+        <FalhaAoCarregar
+          erro={threadsQ.error}
+          oQue="o fórum"
+          aoTentarDeNovo={() => void threadsQ.refetch()}
+        />
       ) : !threadsQ.data || threadsQ.data.length === 0 ? (
         <div className="pco-card">
           <EmptyState

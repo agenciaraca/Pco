@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 import { Award, Download, Eye, Copy, ExternalLink } from 'lucide-react';
 import { useCertificates, useCourses } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
@@ -7,8 +8,10 @@ import { useT } from '../i18n';
 
 export default function Certificates() {
   const t = useT();
-  const { data: certificates = [], isLoading } = useCertificates();
-  const { data: courses = [] } = useCourses();
+  const certsQ = useCertificates();
+  const certificates = certsQ.data ?? [];
+  const coursesQ = useCourses();
+  const courses = coursesQ.data ?? [];
   const toast = useToast();
 
   function copyShareLink(code: string) {
@@ -42,7 +45,20 @@ export default function Certificates() {
     })();
   }
 
-  if (isLoading) return <CardListSkeleton count={3} />;
+  // Sem rede, `isLoading` é falso e a lista sai vazia: a tela dizia "nenhum
+  // certificado" para quem tem certificado. Pior aqui do que em outras telas,
+  // porque o diploma é a prova de que a pessoa concluiu.
+  if (certsQ.fetchStatus === 'paused' || coursesQ.fetchStatus === 'paused')
+    return <SemConexao oQue="seus certificados" />;
+  if (certsQ.isPending) return <CardListSkeleton count={3} />;
+  if (certsQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={certsQ.error}
+        oQue="seus certificados"
+        aoTentarDeNovo={() => void certsQ.refetch()}
+      />
+    );
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
 import { Link } from 'react-router-dom';
 import { StickyNote, Search, ArrowRight, BookOpen, Download, ArrowDownUp } from 'lucide-react';
 import { useToast } from '../components/Toast';
@@ -15,7 +16,8 @@ export default function MyNotes() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'course' | 'oldest'>('recent');
-  const { data, isLoading } = useMyNotes(search || undefined);
+  const notasQ = useMyNotes(search || undefined);
+  const data = notasQ.data;
   const toast = useToast();
 
   const sortedNotes = useMemo(() => {
@@ -142,8 +144,21 @@ export default function MyNotes() {
         </div>
       </div>
 
-      {isLoading ? (
+      {/*
+        "Sem anotações" é conclusão, e conclusão exige ter conseguido
+        perguntar. Sem rede a lista chegava vazia e a tela dizia que a pessoa
+        nunca escreveu nada — sobre anotações que ela mesma fez.
+      */}
+      {notasQ.fetchStatus === 'paused' ? (
+        <SemConexao oQue="suas anotações" />
+      ) : notasQ.isPending ? (
         <CardListSkeleton count={3} />
+      ) : notasQ.isError ? (
+        <FalhaAoCarregar
+          erro={notasQ.error}
+          oQue="suas anotações"
+          aoTentarDeNovo={() => void notasQ.refetch()}
+        />
       ) : (data ?? []).length === 0 ? (
         <EmptyState
           title={search ? 'Nada encontrado' : 'Sem anotações'}
