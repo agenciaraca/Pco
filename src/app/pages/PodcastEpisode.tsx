@@ -30,40 +30,49 @@ export default function PodcastEpisode() {
   const setEng = useSetPodcastEngagement();
   const episode = podcasts.find((p) => p.id === id);
   const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [markedListened, setMarkedListened] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const { data: engajamento = [] } = useMyPodcastEngagement();
   const favorito = engajamento.some((e) => e.episodeId === id && e.favorite);
-  const intervalRef = useRef<number | null>(null);
+  /**
+   * O player era um `setInterval` que somava 0.6% a cada 200ms.
+   *
+   * Não havia `<audio>` em lugar nenhum e `episode.audioUrl` — que existe no
+   * DTO — nunca era lido. A barra andava sozinha, o botão "voltar 15s" mexia
+   * num número, e **aos 80% desse progresso inventado a tela gravava
+   * `listened: true`**. Ou seja, a métrica de engajamento com podcast da escola
+   * era produzida por uma animação: ninguém tinha ouvido nada.
+   *
+   * Agora o áudio é de verdade e o progresso vem do `timeupdate` dele. A CSP
+   * ganhou `media-src` em 3/set/2026 justamente para isto.
+   */
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [segundos, setSegundos] = useState(0);
+  const [duracaoReal, setDuracaoReal] = useState(0);
 
   useEffect(() => {
-    if (playing) {
-      intervalRef.current = window.setInterval(() => {
-        setProgress((p) => Math.min(100, p + 0.6));
-      }, 200);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [playing]);
-
-  useEffect(() => {
-    if (progress >= 100) setPlaying(false);
-    // Marca como ouvido quando atinge 80% (uma vez)
-    if (id && progress >= 80 && !markedListened) {
-      setMarkedListened(true);
-      setEng.mutate({ episodeId: id, patch: { listened: true } });
-    }
-  }, [progress, id, markedListened, setEng]);
+    // Episódio novo, player do zero.
+    setSegundos(0);
+    setDuracaoReal(0);
+    setPlaying(false);
+    setMarkedListened(false);
+  }, [id]);
 
   if (isLoading) return <CardListSkeleton count={2} />;
   if (!episode) return <Navigate to="/podcasts" replace />;
 
-  const totalSeconds = episode.durationMinutes * 60;
-  const currentSeconds = (progress / 100) * totalSeconds;
+  // A duração de verdade é a do arquivo; `durationMinutes` é o que alguém
+  // digitou no cadastro e só serve enquanto o áudio não carregou.
+  const totalSeconds = duracaoReal || episode.durationMinutes * 60;
+  const currentSeconds = segundos;
+  const progress = totalSeconds > 0 ? Math.min(100, (segundos / totalSeconds) * 100) : 0;
+  const audioUrl = episode.audioUrl;
+
+  function mover(delta: number) {
+    const a = audioRef.current;
+    if (!a) return;
+    a.currentTime = Math.max(0, Math.min(a.duration || 0, a.currentTime + delta));
+  }
   const fmt = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
@@ -130,6 +139,39 @@ export default function PodcastEpisode() {
             )}
           </div>
 
+          {audioUrl ? (
+            <audio
+              ref={audioRef}
+              src={audioUrl}
+              preload="metadata"
+              onLoadedMetadata={(e) => setDuracaoReal(e.currentTarget.duration || 0)}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              onEnded={() => setPlaying(false)}
+              onTimeUpdate={(e) => {
+                const a = e.currentTarget;
+                setSegundos(a.currentTime);
+                // 80% do que foi ouvido de verdade. Antes era 80% de uma
+                // animação, e virava dado de engajamento igual.
+                if (id && !markedListened && a.duration > 0 && a.currentTime / a.duration >= 0.8) {
+                  setMarkedListened(true);
+                  setEng.mutate({ episodeId: id, patch: { listened: true } });
+                }
+              }}
+              className="hidden"
+            />
+          ) : (
+            /*
+              Sem arquivo não há o que tocar — e dizer isso é melhor do que
+              deixar um play que finge. O episódio segue com título, descrição e
+              transcrição, que é o que existe dele.
+            */
+            <p className="rounded-xl bg-surface-gray px-4 py-3 text-xs text-ink-muted">
+              Este episódio ainda não tem o áudio publicado. Assim que ele subir,
+              o player aparece aqui.
+            </p>
+          )}
+
           <div className="space-y-3">
             <div className="h-1.5 rounded-full bg-surface-gray overflow-hidden">
               <div
@@ -145,14 +187,20 @@ export default function PodcastEpisode() {
 
           <div className="flex items-center justify-center gap-3">
             <button
-              onClick={() => setProgress((p) => Math.max(0, p - 5))}
+              onClick={() => mover(-15)}
               className="h-11 w-11 rounded-full bg-surface-gray text-pco-deep grid place-items-center hover:bg-pco-blue hover:text-white transition-colors"
               aria-label="Voltar 15s"
             >
               <SkipBack size={18} strokeWidth={1.75} />
             </button>
             <button
-              onClick={() => setPlaying((v) => !v)}
+              disabled={!audioUrl}
+              onClick={() => {
+                const a = audioRef.current;
+                if (!a) return;
+                if (a.paused) void a.play();
+                else a.pause();
+              }}
               className="h-14 w-14 rounded-full bg-pco-blue text-white grid place-items-center hover:bg-[#007a92] transition-colors shadow-card"
               aria-label={playing ? 'Pausar' : 'Reproduzir'}
             >
@@ -163,7 +211,7 @@ export default function PodcastEpisode() {
               )}
             </button>
             <button
-              onClick={() => setProgress((p) => Math.min(100, p + 5))}
+              onClick={() => mover(15)}
               className="h-11 w-11 rounded-full bg-surface-gray text-pco-deep grid place-items-center hover:bg-pco-blue hover:text-white transition-colors"
               aria-label="Avançar 15s"
             >
