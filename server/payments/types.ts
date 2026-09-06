@@ -115,6 +115,13 @@ export interface Order {
    */
   metodo?: MetodoPagamento | null;
   externalId: string | null; // ID do payment no gateway
+  /**
+   * ID do parcelamento no gateway, quando é carnê. `null` = à vista.
+   *
+   * É por ele que o aviso de vencimento da parcela 3 acha o pedido: cada
+   * parcela tem id próprio e o pedido guarda o da primeira.
+   */
+  gatewayInstallmentId?: string | null;
   status: OrderStatus;
   amountCents: number;
   currency: string;

@@ -631,6 +631,16 @@ export const paymentOrders = pgTable('payment_orders', {
   gatewayProvider: text('gateway_provider').notNull(),
   /** ID do pagamento no gateway. */
   externalId: text('external_id'),
+  /**
+   * ID do **parcelamento** no gateway, quando a cobrança é um carnê.
+   *
+   * Cada parcela é uma cobrança com id próprio, e o pedido guarda o da
+   * primeira. Sem este campo, o aviso de vencimento da parcela 3 não encontra
+   * pedido nenhum e é ignorado — quem para de pagar no meio do carnê continua
+   * estudando, e o AVA não fica sabendo. O Asaas devolve `installment` na
+   * criação e o repete em todas as parcelas.
+   */
+  gatewayInstallmentId: text('gateway_installment_id'),
   status: text('status').notNull().default('pending'),
   /**
    * De onde veio a pessoa que comprou: origem, meio, campanha.

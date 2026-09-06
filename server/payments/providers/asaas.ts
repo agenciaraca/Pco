@@ -148,6 +148,8 @@ export const asaasProvider: PaymentProviderImpl = {
       id: string;
       invoiceUrl?: string;
       status: string;
+      /** Presente só quando é carnê: o id do parcelamento. */
+      installment?: string;
     };
 
     // Pega QR Code PIX se billingType=PIX
@@ -167,6 +169,8 @@ export const asaasProvider: PaymentProviderImpl = {
       status: payment.status === 'CONFIRMED' || payment.status === 'RECEIVED' ? 'paid' : 'pending',
       checkoutUrl: payment.invoiceUrl,
       qrCode,
+      // O elo do carnê. Sem ele, o aviso da parcela 3 não acha o pedido.
+      installmentId: payment.installment,
     };
   },
 
@@ -189,7 +193,7 @@ export const asaasProvider: PaymentProviderImpl = {
     try {
       const evt = JSON.parse(rawBody) as {
         event: string;
-        payment: { id: string; status: string };
+        payment: { id: string; status: string; installment?: string; installmentNumber?: number };
       };
       if (!evt.payment?.id) return null;
       let status: WebhookEvent['status'] = 'processing';
@@ -208,7 +212,14 @@ export const asaasProvider: PaymentProviderImpl = {
       ) {
         status = 'failed';
       }
-      return { externalId: evt.payment.id, status, rawPayload: evt };
+      return {
+        externalId: evt.payment.id,
+        // Parcelas 2..N têm id próprio e não casam com o pedido; o
+        // parcelamento é o mesmo em todas, e é por ele que se acha.
+        installmentId: evt.payment.installment,
+        status,
+        rawPayload: evt,
+      };
     } catch {
       return null;
     }

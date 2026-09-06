@@ -33,6 +33,8 @@ export interface CreatePaymentInput {
 
 export interface CreatePaymentResult {
   externalId: string;
+  /** Id do parcelamento, quando a cobrança é um carnê. */
+  installmentId?: string;
   status: 'pending' | 'processing' | 'paid' | 'failed';
   checkoutUrl?: string;
   qrCode?: string; // base64 ou string PIX copia-cola
@@ -40,6 +42,13 @@ export interface CreatePaymentResult {
 
 export interface WebhookEvent {
   externalId: string;
+  /**
+   * Id do parcelamento, quando o evento é de uma parcela.
+   *
+   * Existe porque cada parcela é uma cobrança com id próprio: sem isto, o
+   * aviso da parcela 3 não casa com pedido nenhum e é descartado.
+   */
+  installmentId?: string;
   status: 'pending' | 'processing' | 'paid' | 'failed' | 'canceled' | 'refunded';
   rawPayload: unknown;
   // metadata extraído do payload, se o provider devolver

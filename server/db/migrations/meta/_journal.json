@@ -141,6 +141,13 @@
       "when": 1788634124867,
       "tag": "0019_metodo_de_pagamento_no_pedido",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1788656226215,
+      "tag": "0020_parcelamento_do_pedido",
+      "breakpoints": true
     }
   ]
 }

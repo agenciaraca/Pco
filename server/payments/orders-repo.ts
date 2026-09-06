@@ -32,6 +32,7 @@ function daLinha(r: Linha): Order {
     gatewayId: r.gatewayId,
     gatewayProvider: r.gatewayProvider as Order['gatewayProvider'],
     metodo: (r.metodo ?? null) as Order['metodo'],
+    gatewayInstallmentId: r.gatewayInstallmentId ?? null,
     externalId: r.externalId ?? null,
     status: r.status as OrderStatus,
     amountCents: r.amountCents,
@@ -246,6 +247,42 @@ interface CreateInput {
   attribution?: Order['attribution'];
 }
 
+/**
+ * Acha o pedido pelo **parcelamento**, quando a parcela não é a primeira.
+ *
+ * `findByExternalId` casa pelo id da cobrança, e num carnê cada parcela tem o
+ * seu — só a primeira está no pedido. Sem esta busca, o aviso de vencimento da
+ * parcela 3 não encontra nada e é descartado: quem para de pagar no meio segue
+ * estudando, e o AVA não fica sabendo.
+ *
+ * Continua exigindo o gateway, pelo mesmo motivo da outra: gateway não
+ * confirma pedido de outro.
+ */
+export async function findByInstallment(
+  installmentId: string,
+  gatewayId: string,
+): Promise<Order | null> {
+  if (!installmentId) return null;
+  const db = await bancoSeTabelaExiste('payment_orders');
+  if (db) {
+    const rows = await db
+      .select()
+      .from(schema.paymentOrders)
+      .where(
+        and(
+          eq(schema.paymentOrders.gatewayInstallmentId, installmentId),
+          eq(schema.paymentOrders.gatewayId, gatewayId),
+        ),
+      );
+    if (rows[0]) return daLinha(rows[0]);
+  }
+  return (
+    (await store.findOne(
+      (o) => o.gatewayInstallmentId === installmentId && o.gatewayId === gatewayId,
+    )) ?? null
+  );
+}
+
 export async function createOrder(input: CreateInput): Promise<Order> {
   const now = new Date().toISOString();
   const o: Order = {
@@ -258,6 +295,7 @@ export async function createOrder(input: CreateInput): Promise<Order> {
     gatewayProvider: input.gatewayProvider,
     metodo: input.metodo ?? null,
     externalId: null,
+    gatewayInstallmentId: null,
     status: 'pending',
     amountCents: input.amountCents,
     currency: input.currency,
@@ -294,6 +332,8 @@ export async function attachGatewayResult(
      */
     gatewayId?: string;
     gatewayProvider?: Order['gatewayProvider'];
+    /** Id do parcelamento, quando a cobrança criada é um carnê. */
+    installmentId?: string;
   },
 ): Promise<Order | null> {
   const db = await bancoSeTabelaExiste('payment_orders');
@@ -310,6 +350,7 @@ export async function attachGatewayResult(
         status: data.status,
         ...(data.gatewayId ? { gatewayId: data.gatewayId } : {}),
         ...(data.gatewayProvider ? { gatewayProvider: data.gatewayProvider } : {}),
+        ...(data.installmentId ? { gatewayInstallmentId: data.installmentId } : {}),
         updatedAt: agora,
         events: [
           ...atual.events,
@@ -337,6 +378,7 @@ export async function attachGatewayResult(
       status: data.status,
       ...(data.gatewayId ? { gatewayId: data.gatewayId } : {}),
       ...(data.gatewayProvider ? { gatewayProvider: data.gatewayProvider } : {}),
+      ...(data.installmentId ? { gatewayInstallmentId: data.installmentId } : {}),
       updatedAt: new Date().toISOString(),
       events: [
         ...o.events,

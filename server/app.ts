@@ -3343,6 +3343,7 @@ export function buildApp() {
           status: result.status,
           gatewayId: gateway.id,
           gatewayProvider: gateway.provider,
+          installmentId: result.installmentId,
         });
         await recordAudit(c, {
           action: 'session.booking.checkout',
@@ -11442,6 +11443,7 @@ export function buildApp() {
           // o pedido, e o pagamento confirmado não viraria matrícula.
           gatewayId: gateway.id,
           gatewayProvider: gateway.provider,
+          installmentId: result.installmentId,
         });
         if (appliedCouponId) {
           await ordersRepo.updateStatus(
@@ -11660,6 +11662,7 @@ export function buildApp() {
         status: result.status,
         gatewayId: gateway.id,
         gatewayProvider: gateway.provider,
+        installmentId: result.installmentId,
       });
       // Conta nova: e-mail para definir senha (best-effort).
       if (isNewAccount) {
@@ -11770,7 +11773,13 @@ export function buildApp() {
     // Localiza order pelo externalId
     // O gateway da URL autentica; o pedido tem de ser DELE. Busca global aqui
     // fazia um gateway confirmar pedido de outro.
-    const order = await ordersRepo.findByExternalId(event.externalId, gw.id);
+    let order = await ordersRepo.findByExternalId(event.externalId, gw.id);
+    if (!order && event.installmentId) {
+      // Parcela 2..N de um carnê: id de cobrança próprio, parcelamento
+      // compartilhado. Sem esta segunda busca o aviso de vencimento da parcela
+      // 3 seria descartado, e quem parou de pagar seguiria estudando.
+      order = await ordersRepo.findByInstallment(event.installmentId, gw.id);
+    }
     if (!order) {
       // Aceita 200 para o gateway não retentar indefinidamente — mas registra.
       // Até 3/set/2026 este caminho era silencioso, e é exatamente onde um
@@ -11791,6 +11800,43 @@ export function buildApp() {
     // Idempotência: se já paid, não duplica grant
     if (order.status === 'paid' && event.status === 'paid') {
       return c.json({ ok: true, ignored: true, reason: 'already-paid' });
+    }
+
+    /*
+      Parcela vencida de um carnê **não** derruba o pedido inteiro.
+
+      O pedido foi pago — a parcela 1 entrou e o acesso foi liberado. Marcá-lo
+      `failed` porque a parcela 3 atrasou reescreveria a história: o `status` do
+      pedido é a situação da compra, e a compra aconteceu.
+
+      O que se faz é registrar no histórico e avisar. **Suspender o acesso é
+      decisão comercial**, não técnica: cortar o curso de quem atrasou um boleto
+      por dois dias é política da escola, e por isso mora atrás de
+      `CARNE_ATRASO_SUSPENDE=true`, desligada por padrão. Enquanto estiver
+      desligada, o atraso aparece para gente decidir, que é o lado certo para
+      errar.
+    */
+    const ehParcelaDeCarne =
+      Boolean(order.gatewayInstallmentId) && event.externalId !== order.externalId;
+    if (ehParcelaDeCarne && event.status !== 'paid') {
+      const suspende = process.env.CARNE_ATRASO_SUSPENDE === 'true';
+      await ordersRepo.updateStatus(
+        order.id,
+        suspende ? 'pending' : order.status,
+        `Parcela do carnê em atraso no gateway ${gw.provider} (cobrança ${event.externalId})` +
+          (suspende ? ' — acesso suspenso por configuração' : ' — acesso mantido'),
+      );
+      if (suspende) {
+        const recarregado = await ordersRepo.findById(order.id);
+        if (recarregado) await aplicarSituacaoDoPedido(recarregado, order.status);
+      }
+      await recordAudit(c, {
+        action: 'payment.installment.overdue',
+        targetType: 'order',
+        targetId: order.id,
+        meta: { externalId: event.externalId, suspendeu: suspende },
+      });
+      return c.json({ ok: true, parcelaEmAtraso: true, suspendeu: suspende });
     }
 
     const updated = await ordersRepo.updateStatus(

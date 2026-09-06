@@ -322,8 +322,8 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > **O que segue aberto**, em ordem:
 >
-> 1. **A inadimplência no carnê**: quem para de pagar no meio dos 6 boletos
->    continua estudando. O elo técnico existe; falta a decisão comercial.
+> 1. **Decidir se atraso no carnê suspende o acesso** — o mecanismo existe e
+>    está desligado (`CARNE_ATRASO_SUSPENDE`). É política comercial.
 > 2. **O resto dos `isLoading` sem `isError`** — 61 arquivos, quase todos em
 >    `/admin`, onde o custo é painel que gira em vez de aluno lendo mentira
 >    sobre si. As quatro telas do aluno que importavam foram corrigidas.
@@ -940,13 +940,22 @@ Quatro regras que qualquer mexida aqui tem de respeitar:
   `installmentValue`) faz o arredondamento cair na última parcela, para a soma
   fechar no preço anunciado.
 
-**O que o carnê ainda não faz.** Cada parcela é uma cobrança com id próprio, e o
-pedido guarda o da primeira: o `paid` dela libera o acesso, e os eventos das
-parcelas seguintes não casam com pedido nenhum. Quem para de pagar no meio do
-carnê **continua estudando**. O elo existe (`installment`, repetido em todas as
-parcelas) e a regra "atraso suspende" já existe — falta a decisão comercial de
-aplicá-la. Enquanto isso não for decidido, 6x no boleto vende com risco de
-crédito da escola.
+**A parcela do meio do carnê já encontra o pedido** (5/set/2026). Cada parcela é
+uma cobrança com id próprio e o pedido guarda o da primeira, então o aviso da
+parcela 3 não casava com nada e sumia. A coluna `gateway_installment_id`
+(migration `0020`) guarda o parcelamento, e o webhook cai nela quando o
+`externalId` não bate.
+
+Duas coisas que qualquer mexida aqui tem de respeitar:
+
+- **Parcela vencida não derruba o pedido.** Ele foi pago — a parcela 1 entrou e
+  o acesso saiu. Marcá-lo `failed` porque a 3 atrasou reescreveria a história da
+  compra. O que se faz é registrar no histórico e auditar.
+- **Suspender é decisão comercial, e está desligada.**
+  `CARNE_ATRASO_SUSPENDE=true` liga; sem ela, o atraso aparece para gente
+  decidir. Cortar o curso de quem atrasou um boleto por dois dias é política da
+  escola, não escolha de quem programa — e enquanto a política não existir, o
+  lado certo para errar é manter o acesso.
 
 ## Checkout: duas rotas de compra, e só uma mandava quem estava comprando
 
