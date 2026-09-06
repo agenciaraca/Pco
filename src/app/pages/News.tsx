@@ -1,4 +1,5 @@
 import { Calendar, Tag, Search, Filter } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { useNews } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
@@ -86,7 +87,11 @@ export default function News() {
       ) : (
         <>
           {featured && (
-            <article className="pco-card pco-card-hover overflow-hidden p-0">
+            /* O card inteiro é o link: a matéria não tinha como ser aberta. */
+            <Link
+              to={`/news/${featured.id}`}
+              className="pco-card pco-card-hover overflow-hidden p-0 block"
+            >
               <div className={`h-56 bg-gradient-to-br ${featured.coverColor}`} />
               <div className="p-6">
                 <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-pco-blue">
@@ -102,12 +107,12 @@ export default function News() {
                   <span>{featured.authorName}</span>
                 </div>
               </div>
-            </article>
+            </Link>
           )}
 
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {others.map((a) => (
-              <article key={a.id} className="pco-card pco-card-hover">
+              <Link key={a.id} to={`/news/${a.id}`} className="pco-card pco-card-hover block">
                 <div className={`h-32 rounded-xl bg-gradient-to-br ${a.coverColor} mb-3`} />
                 <div className="text-xs font-semibold uppercase tracking-wider text-pco-blue">
                   {a.category}
@@ -127,7 +132,7 @@ export default function News() {
                 <div className="mt-3 text-xs text-ink-subtle">
                   {new Date(a.publishedAt).toLocaleDateString('pt-BR')} · {a.authorName}
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         </>

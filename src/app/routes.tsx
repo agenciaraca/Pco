@@ -40,6 +40,7 @@ const LessonPreviewPublic = lazy(() => import('./pages/LessonPreviewPublic'));
 const MyNotes = lazy(() => import('./pages/MyNotes'));
 const Library = lazy(() => import('./pages/Library'));
 const News = lazy(() => import('./pages/News'));
+const NewsArticle = lazy(() => import('./pages/NewsArticle'));
 const Podcasts = lazy(() => import('./pages/Podcasts'));
 const PodcastEpisode = lazy(() => import('./pages/PodcastEpisode'));
 const Tutor = lazy(() => import('./pages/Tutor'));
@@ -190,6 +191,7 @@ export const router = createBrowserRouter([
       { path: '/anotacoes', element: <S><MyNotes /></S> },
       { path: '/biblioteca', element: <S><Library /></S> },
       { path: '/news', element: <S><News /></S> },
+      { path: '/news/:id', element: <S><NewsArticle /></S> },
       { path: '/podcasts', element: <S><Podcasts /></S> },
       { path: '/podcasts/:id', element: <S><PodcastEpisode /></S> },
       { path: '/tutor', element: <S><Tutor /></S> },
