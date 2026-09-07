@@ -178,6 +178,63 @@ describe('o schema do checkout público EXIGE os dois', () => {
   });
 });
 
+describe('a mensagem de erro diz o que fazer, em português', () => {
+  /*
+    O padrão do Zod é "Invalid input: expected string, received undefined", em
+    inglês, e o `flatten()` agrupa os erros do endereço sob uma chave só, sem
+    dizer qual campo. Num checkout, o texto vermelho abaixo do formulário é a
+    última coisa que a pessoa lê antes de desistir — "Dados inválidos" a manda
+    procurar sozinha em treze campos.
+  */
+  const base = {
+    courseSlug: 'curso',
+    name: 'Maria Souza',
+    email: 'maria@exemplo.com',
+    consent: true as const,
+  };
+
+  function primeiraMensagem(entrada: unknown): string | undefined {
+    const r = publicCheckoutSchema.safeParse(entrada);
+    if (r.success) return undefined;
+    return Object.values(r.error.flatten().fieldErrors)
+      .flat()
+      .find((m): m is string => typeof m === 'string' && m.length > 0);
+  }
+
+  it('campo que falta é nomeado', () => {
+    expect(primeiraMensagem({ ...base, endereco: enderecoValido })).toBe(
+      'Informe a data de nascimento.',
+    );
+    expect(primeiraMensagem({ ...base, birthDate: '1990-05-20' })).toBe(
+      'Informe o endereço completo.',
+    );
+  });
+
+  it('cada campo do endereço tem a sua', () => {
+    const casos: Array<[Partial<typeof enderecoValido>, string]> = [
+      [{ numero: '' }, 'Informe o número.'],
+      [{ bairro: '' }, 'Informe o bairro.'],
+      [{ cidade: '' }, 'Informe a cidade.'],
+      [{ logradouro: '' }, 'Informe o endereço (rua, avenida).'],
+      [{ cep: '00000-000' }, 'CEP inválido — confira os 8 dígitos.'],
+    ];
+    for (const [patch, esperado] of casos) {
+      const msg = primeiraMensagem({
+        ...base,
+        birthDate: '1990-05-20',
+        endereco: { ...enderecoValido, ...patch },
+      });
+      expect(msg, JSON.stringify(patch)).toBe(esperado);
+    }
+  });
+
+  it('e nenhuma delas está em inglês', () => {
+    const msg = primeiraMensagem({ ...base });
+    expect(msg).toBeDefined();
+    expect(msg!).not.toMatch(/Invalid input|expected|received/i);
+  });
+});
+
 describe('no checkout do aluno logado eles são opcionais', () => {
   it('a compra continua passando sem endereço', () => {
     // Assimetria deliberada: esta rota é de quem já está logado e pode estar

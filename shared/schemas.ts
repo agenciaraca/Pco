@@ -195,19 +195,45 @@ export type UpdateProductInput = z.infer<typeof updateProductSchema>;
  *
  * `complemento` é o único opcional — casa sem apartamento existe.
  */
-export const enderecoSchema = z.object({
-  cep: z
-    .string()
-    .min(8)
-    .max(9)
-    .refine(cepValido, 'CEP inválido — informe os 8 dígitos.'),
-  logradouro: z.string().min(2).max(120),
-  numero: z.string().min(1).max(20),
-  complemento: z.string().max(60).optional().or(z.literal('')),
-  bairro: z.string().min(2).max(80),
-  cidade: z.string().min(2).max(80),
-  uf: z.enum(UFS),
-});
+export const enderecoSchema = z.object(
+  {
+    /*
+    Cada campo tem mensagem PRÓPRIA, em português.
+
+    O padrão do Zod é "Invalid input: expected string, received undefined", em
+    inglês — e o `flatten()` que o servidor devolve agrupa tudo sob a chave
+    `endereco`, sem dizer qual campo. Num checkout, o texto que aparece em
+    vermelho é a última coisa que a pessoa lê antes de desistir; ele precisa
+    dizer o que fazer.
+  */
+    cep: z
+      .string({ error: 'Informe o CEP.' })
+      .min(8, 'CEP incompleto — são 8 dígitos.')
+      .max(9, 'CEP inválido.')
+      .refine(cepValido, 'CEP inválido — confira os 8 dígitos.'),
+    logradouro: z
+      .string({ error: 'Informe o endereço (rua, avenida).' })
+      .min(2, 'Informe o endereço (rua, avenida).')
+      .max(120, 'Endereço muito longo.'),
+    numero: z
+      .string({ error: 'Informe o número.' })
+      .min(1, 'Informe o número.')
+      .max(20, 'Número muito longo.'),
+    complemento: z.string().max(60, 'Complemento muito longo.').optional().or(z.literal('')),
+    bairro: z
+      .string({ error: 'Informe o bairro.' })
+      .min(2, 'Informe o bairro.')
+      .max(80, 'Bairro muito longo.'),
+    cidade: z
+      .string({ error: 'Informe a cidade.' })
+      .min(2, 'Informe a cidade.')
+      .max(80, 'Cidade muito longa.'),
+    uf: z.enum(UFS, { error: 'Selecione o estado.' }),
+  },
+  // Mensagem de quando o OBJETO inteiro falta ou vem com outro tipo. Sem ela,
+  // o Zod devolve "expected object, received undefined", em inglês.
+  { error: 'Informe o endereço completo.' },
+);
 export type EnderecoInput = z.infer<typeof enderecoSchema>;
 
 /**
@@ -218,7 +244,7 @@ export type EnderecoInput = z.infer<typeof enderecoSchema>;
  * anos** — ver o comentário lá: seria política comercial, não regra técnica.
  */
 export const dataNascimentoSchema = z
-  .string()
+  .string({ error: 'Informe a data de nascimento.' })
   .refine(dataDeNascimentoValida, 'Data de nascimento inválida.');
 
 export const checkoutSchema = z.object({

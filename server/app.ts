@@ -11689,7 +11689,22 @@ export function buildApp() {
   app.post('/public/checkout', rateLimit({ windowMs: 60_000, max: 8 }), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const v = validate(publicCheckoutSchema, body);
-    if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+    if (!v.ok) {
+      /*
+        Aqui a mensagem é o PROBLEMA, não "Dados inválidos".
+
+        É o texto que o site mostra em vermelho abaixo do formulário, e é a
+        última coisa que a pessoa lê antes de desistir da compra. "Dados
+        inválidos" a manda procurar sozinha em treze campos; "Informe o número"
+        ela resolve em dois segundos. O `details` continua indo inteiro, para
+        quem estiver depurando.
+      */
+      const detalhes = v.error.flatten();
+      const primeira = Object.values(detalhes.fieldErrors)
+        .flat()
+        .find((m): m is string => typeof m === 'string' && m.length > 0);
+      return jsonError(c, 400, 'INVALID_INPUT', primeira ?? 'Dados inválidos', detalhes);
+    }
 
     /**
      * Um curso ou um carrinho. `courseSlugs` chegou com o carrinho; `courseSlug`
