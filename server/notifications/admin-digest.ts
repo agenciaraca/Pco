@@ -6,6 +6,7 @@ import * as usersStore from '../auth/users-store';
 import * as ordersRepo from '../payments/orders-repo';
 import * as certsRepo from '../repositories/certificates';
 import { sendSafe } from './sender';
+import { novoRegistro, comRegistro } from '../jobs/registro-de-tick';
 
 export interface DigestConfig {
   enabled: boolean;
@@ -202,31 +203,35 @@ let lastResult: SendDigestResult | null = null;
  * Worker que verifica a cada 30min se hora atual UTC == hourUtc configurado.
  * Se sim e ainda não rodou hoje, dispara.
  */
+/**
+ * Saúde do ciclo. Ele dispara uma vez por dia, na hora configurada: um ciclo
+ * perdido é o resumo daquele dia que a administração nunca recebe.
+ */
+const registro = novoRegistro();
+
 export function startWorker(): void {
   if (interval) return;
   let lastDispatchedDay: string | null = null;
+  // O `try/catch` saiu daqui e virou `comRegistro`: ele fazia o mesmo
+  // `console.error` e deixava o status intocado — o painel mostrava o digest
+  // saudável com o `lastRunAt` do último envio que deu certo.
   const tick = async () => {
-    try {
-      const cfg = await getConfig();
-      if (!cfg.enabled) return;
-      const now = new Date();
-      if (now.getUTCHours() !== cfg.hourUtc) return;
-      const today = now.toISOString().slice(0, 10);
-      if (lastDispatchedDay === today) return;
-      const r = await sendDigestNow();
-      lastDispatchedDay = today;
-      lastRunAt = new Date().toISOString();
-      lastResult = r;
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[admin-digest] erro:', err);
-    }
+    const cfg = await getConfig();
+    if (!cfg.enabled) return;
+    const now = new Date();
+    if (now.getUTCHours() !== cfg.hourUtc) return;
+    const today = now.toISOString().slice(0, 10);
+    if (lastDispatchedDay === today) return;
+    const r = await sendDigestNow();
+    lastDispatchedDay = today;
+    lastRunAt = new Date().toISOString();
+    lastResult = r;
   };
   interval = setInterval(() => {
-    void tick();
+    void comRegistro(registro, tick, 'admin-digest');
   }, 30 * 60_000);
   // Tick imediato (se hour bate, manda; senão, sai cedo)
-  void tick();
+  void comRegistro(registro, tick, 'admin-digest');
 }
 
 export function stopWorker(): void {
@@ -237,5 +242,5 @@ export function stopWorker(): void {
 }
 
 export function getStatus() {
-  return { enabled: interval !== null, lastRunAt, lastResult };
+  return { enabled: interval !== null, lastRunAt, lastResult, ...registro };
 }

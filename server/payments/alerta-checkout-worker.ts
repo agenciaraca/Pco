@@ -200,9 +200,15 @@ export function getStatus() {
     estado: ultimoEstado,
     ultimoAvisoEm,
     ultimaAvaliacao,
-    // `saudavel` é sobre o worker, não sobre o checkout: diz se a medição está
+    // `saudavel` é sobre o worker, não sobre o checkout: diz se a MEDIÇÃO está
     // conseguindo rodar. Os dois são perguntas diferentes.
-    saudavel: ultimoErro === null,
+    //
+    // `null` enquanto nada foi avaliado. Era `ultimoErro === null`, e antes da
+    // primeira avaliação isso dá `true` — verde afirmado sobre nada medido, no
+    // worker que existe justamente para avisar que a venda parou. É a mesma
+    // regra que este arquivo já aplica ao checkout logo abaixo: sem base,
+    // silêncio.
+    saudavel: ultimaAvaliacao === null ? null : ultimoErro === null,
     ultimoErro,
   };
 }

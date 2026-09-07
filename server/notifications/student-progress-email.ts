@@ -6,6 +6,7 @@ import * as usersStore from '../auth/users-store';
 import { blockedFromReengagement } from './prefs-store';
 import { sendSafe } from './sender';
 import { urlPublica } from '../origem-publica';
+import { novoRegistro, comRegistro } from '../jobs/registro-de-tick';
 
 export interface StudentProgressConfig {
   enabled: boolean;
@@ -249,7 +250,7 @@ export async function tickWorker(now: Date = new Date()): Promise<{
 }
 
 export function getStatus() {
-  return { lastRunAt, lastResult };
+  return { lastRunAt, lastResult, ...registro };
 }
 
 let timer: NodeJS.Timeout | null = null;
@@ -262,12 +263,16 @@ let timer: NodeJS.Timeout | null = null;
  * chamada — hot-reload do `tsx watch`, dois pontos de bootstrap, um
  * `pm2 reload` que não derruba o processo — fazia sair aviso de progresso do aluno em duplicata.
  */
+/**
+ * Saúde do ciclo. Também manda e-mail para aluno — mesma razão do relatório
+ * semanal: silêncio aqui é comunicação que a escola acha que fez e não fez.
+ */
+const registro = novoRegistro();
+
 export function startWorker(intervalMs = 60 * 60_000): NodeJS.Timeout {
   if (timer) return timer;
   timer = setInterval(() => {
-    void tickWorker().catch((err) => {
-      console.error('[student-progress-email] erro:', err);
-    });
+    void comRegistro(registro, tickWorker, 'student-progress-email');
   }, intervalMs);
   timer.unref?.();
   return timer;

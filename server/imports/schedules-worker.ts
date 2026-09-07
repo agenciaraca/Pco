@@ -9,6 +9,7 @@ import type {
   EnrollmentStartRule,
   ImportEnrollmentConfig,
 } from './types';
+import { novoRegistro, comRegistro } from '../jobs/registro-de-tick';
 
 let interval: NodeJS.Timeout | null = null;
 let lastTickAt: string | null = null;
@@ -72,18 +73,23 @@ export async function tickWorker(now: Date = new Date()): Promise<{
   return { dispatched, errors };
 }
 
+/**
+ * Saúde do ciclo. O carimbo só avança quando o ciclo termina — falhar deixava
+ * `lastTickAt` parado e mais nada, e parado não é uma afirmação que alguém lê.
+ */
+const registro = novoRegistro();
+
+/** O carimbo é do SUCESSO. Falha vai para o registro, não para o relógio. */
+async function tickComCarimbo(): Promise<void> {
+  await tickWorker();
+  lastTickAt = new Date().toISOString();
+  totalTicks++;
+}
+
 export function startWorker(intervalMs = 60_000): void {
   if (interval) return;
   interval = setInterval(() => {
-    void (async () => {
-      try {
-        await tickWorker();
-        lastTickAt = new Date().toISOString();
-        totalTicks++;
-      } catch {
-        /* swallow */
-      }
-    })();
+    void comRegistro(registro, tickComCarimbo, 'imports-scheduler');
   }, intervalMs);
 }
 
@@ -97,6 +103,7 @@ export function stopWorker(): void {
 export function getStatus() {
   return {
     name: 'imports-scheduler',
+    ...registro,
     enabled: interval !== null,
     lastTickAt,
     totalTicks,

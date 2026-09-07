@@ -207,6 +207,61 @@ não ficou para trás porque houve deploy manual pelo caminho.
 dois segundos** e nenhum arquivo do repositório diz. Um `git log` limpo e a
 suíte verde localmente **não** provam que a esteira está andando.
 
+## Worker que falha todo ciclo não pode aparecer verde
+
+`server/jobs/registro-de-tick.ts` (7/set/2026). Os treze workers seguem o mesmo
+molde: `setInterval` chamando um tick assíncrono, com o erro engolido para que
+um ciclo ruim não derrube o processo. **A parte engolida está certa.** O errado
+era o que sobrava depois.
+
+O tick típico gravava `lastRunAt` e `lastRunResult` **no fim**. Uma exceção
+pulava a gravação, e o `.catch(() => {})` apagava o rastro: o status ficava com
+o último resultado **bem-sucedido**, `enabled` seguia `true`, e `/admin/jobs`
+mostrava um worker saudável com um carimbo de hora velho. Ninguém vigia carimbo
+de hora — o worker podia estar falhando há um mês.
+
+**Nove dos treze estavam assim**, e `server/jobs/inventario.ts` os declarava
+`saudavel: null` com literal fixo no código — a ausência de medição estava
+escrita no painel, não no worker. Entre os nove: o que avisa o aluno que o
+acesso vence, o que lembra da sessão paga, e os dois que mandam e-mail para
+aluno.
+
+É a mesma classe do `catch` vazio da sondagem da Sandra, que fez pagamento real
+deixar de virar matrícula em silêncio. Lá o conserto foi caso a caso; aqui
+virou peça única.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **`comRegistro` nunca lança.** O `setInterval` continua vivo como antes; a
+  diferença é que a falha passa a existir no status em vez de sumir.
+- **Uma falha já derruba `saudavel`, sem limiar.** Para um worker diário, um
+  ciclo perdido é um dia inteiro de aluno não avisado — esperar a terceira
+  falha seria esperar três dias. Como ele volta a `true` no primeiro sucesso,
+  descreve o estado de agora e não vira alarme. Quem quiser graduar gravidade
+  tem `falhasSeguidas`.
+- **`null` é "ainda não rodou", nunca "ok".** Dois workers afirmavam saúde
+  antes de medir: a **Sandra** nascia `saudavel: true` com o comentário dizendo
+  "a varredura completou alguma vez desde o boot?" — e nenhuma tinha completado;
+  o **alerta de checkout** calculava `ultimoErro === null`, que é `true` antes
+  da primeira avaliação. Os dois são justamente os que existem para avisar que
+  dinheiro parou de entrar.
+- **O carimbo é do sucesso.** Onde o tick atualizava `lastTickAt` no fim, isso
+  virou uma função à parte: falha vai para o registro, não para o relógio.
+
+**O dispatcher de webhooks era o pior, e por outro motivo.** As duas chamadas do
+`startWorker` eram `void tickWorker()` **sem `catch` nenhum**. Rejeição não
+tratada derruba o processo por padrão no Node desde a v15, e este repositório
+não instala `process.on('unhandledRejection')` — a falha não era só invisível,
+era capaz de matar a aplicação e deixar o PM2 reerguendo. (Não há evidência de
+que tenha acontecido: os `[api] unhandled error` do log de produção são do
+tratador do Hono, não do processo.) Ele também tem duas medidas diferentes, e
+as duas contam: `falhasAoEnfileirar` é evento que nem entrou na fila — não há
+retry que o salve —, e `saudavel` é o ciclo de entrega.
+
+`test/worker-que-falha-nao-fica-verde.test.ts` trava as três garantias: que os
+treze expõem `saudavel`, que nenhum nasce verde, e que o `startWorker` de cada
+um passa por `comRegistro`. Worker novo que chegue sem isso falha o teste.
+
 ## O expurgo não pode calar sobre o que não alcança
 
 Duas metades do mesmo defeito, fechadas em 7/set/2026. Nenhuma dava erro — a

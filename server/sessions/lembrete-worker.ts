@@ -21,6 +21,7 @@ import * as notificationsRepo from '../repositories/notifications';
 import { sendSafe } from '../notifications/sender';
 import * as usersStore from '../auth/users-store';
 import { origemPublica } from '../origem-publica';
+import { novoRegistro, comRegistro } from '../jobs/registro-de-tick';
 
 /** Faixas de lembrete, em horas antes do início. */
 export const FAIXAS_HORAS = [24, 1] as const;
@@ -203,13 +204,18 @@ export async function tickWorker(opts: { dryRun?: boolean } = {}): Promise<RunRe
  * Tick de 15 minutos, e não diário: a faixa de 1 hora precisa de resolução
  * melhor que um dia para existir de verdade.
  */
+/**
+ * Saúde do ciclo. Antes, um tick que lançava era engolido pelo `.catch` e o
+ * status guardava o último resultado BEM-SUCEDIDO — o painel mostrava o worker
+ * verde com um carimbo de hora velho, e ninguém vigia carimbo de hora.
+ */
+const registro = novoRegistro();
+
 export function startWorker(intervalMs = 15 * 60_000): void {
   if (interval) return;
   intervalMsCfg = intervalMs;
   interval = setInterval(() => {
-    void tickWorker().catch(() => {
-      /* engolido: o status guarda o último resultado */
-    });
+    void comRegistro(registro, tickWorker, 'session-reminders');
   }, intervalMs);
 }
 
@@ -224,6 +230,7 @@ export function getStatus() {
   return {
     name: 'session-reminders',
     enabled: interval !== null,
+    ...registro,
     intervalMs: intervalMsCfg,
     lastRunAt,
     lastRunResult,

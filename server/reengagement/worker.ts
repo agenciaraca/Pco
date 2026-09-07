@@ -7,6 +7,7 @@ import * as usersStore from '../auth/users-store';
 import * as notificationPrefs from '../notifications/prefs-store';
 import { sendSafe } from '../notifications/sender';
 import { origemPublica } from '../origem-publica';
+import { novoRegistro, comRegistro } from '../jobs/registro-de-tick';
 
 export interface RunResult {
   scanned: number;
@@ -116,13 +117,18 @@ let totalTicks = 0;
 let intervalMsCfg = 24 * 60 * 60_000;
 
 /** Loop diário. Se intervalMs omitido, usa 24h. */
+/**
+ * Saúde do ciclo. Antes, um tick que lançava era engolido pelo `.catch` e o
+ * status guardava o último resultado BEM-SUCEDIDO — o painel mostrava o worker
+ * verde com um carimbo de hora velho, e ninguém vigia carimbo de hora.
+ */
+const registro = novoRegistro();
+
 export function startWorker(intervalMs = 24 * 60 * 60_000): void {
   if (interval) return;
   intervalMsCfg = intervalMs;
   interval = setInterval(() => {
-    void tickWorker().catch(() => {
-      /* swallow */
-    });
+    void comRegistro(registro, tickWorker, 'reengagement');
   }, intervalMs);
 }
 
@@ -137,6 +143,7 @@ export function getStatus() {
   return {
     name: 'reengagement',
     enabled: interval !== null,
+    ...registro,
     intervalMs: intervalMsCfg,
     lastRunAt,
     lastRunResult,

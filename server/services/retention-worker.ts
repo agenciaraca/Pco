@@ -4,6 +4,7 @@
 
 import { recomputeAllRisks } from './retention-calculator';
 import { listCourses } from '../repositories/courses';
+import { novoRegistro, comRegistro } from '../jobs/registro-de-tick';
 
 let interval: NodeJS.Timeout | null = null;
 let lastTickAt: string | null = null;
@@ -26,30 +27,27 @@ async function tick(): Promise<void> {
   totalUpdated += summary.updated;
 }
 
+/** O carimbo é do SUCESSO. Falha vai para o registro, não para o relógio. */
+async function tickComCarimbo(): Promise<void> {
+  await tick();
+  lastTickAt = new Date().toISOString();
+  totalTicks++;
+}
+
+/**
+ * Saúde do ciclo. Este roda de 6 em 6h: um ciclo perdido em silêncio é um
+ * quarto de dia sem recalcular risco de evasão, e nada denunciava.
+ */
+const registro = novoRegistro();
+
 export function startWorker(intervalMs = 6 * 60 * 60 * 1000): void {
   if (interval) return;
   // Tick imediato no boot (após delay curto, para não competir com outros workers)
   setTimeout(() => {
-    void (async () => {
-      try {
-        await tick();
-        lastTickAt = new Date().toISOString();
-        totalTicks++;
-      } catch {
-        /* swallow */
-      }
-    })();
+    void comRegistro(registro, tickComCarimbo, 'retention');
   }, 30_000);
   interval = setInterval(() => {
-    void (async () => {
-      try {
-        await tick();
-        lastTickAt = new Date().toISOString();
-        totalTicks++;
-      } catch {
-        /* swallow */
-      }
-    })();
+    void comRegistro(registro, tickComCarimbo, 'retention');
   }, intervalMs);
 }
 
@@ -64,6 +62,7 @@ export function getStatus() {
   return {
     name: 'retention-recompute',
     enabled: interval !== null,
+    ...registro,
     lastTickAt,
     totalTicks,
     totalUpdated,

@@ -7,6 +7,7 @@
 import { promises as fs } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import path from 'node:path';
+import { novoRegistro, comRegistro } from '../jobs/registro-de-tick';
 
 const LOG_PATH = process.env.APP_LOG_PATH ?? path.resolve(process.env.HOME ?? '.', 'ava-pco/app.log');
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
@@ -55,14 +56,20 @@ async function rotateIfNeeded(): Promise<boolean> {
   return true;
 }
 
+/**
+ * Saúde do ciclo. A rotação falhando em silêncio deixa o log crescer sem teto —
+ * e o disco cheio derruba a app inteira, não só o log.
+ */
+const registro = novoRegistro();
+
 export function startWorker(intervalMs = 60 * 60_000): void {
   if (interval) return;
   // Tick imediato após 5min (após boot estabilizar)
   setTimeout(() => {
-    void rotateIfNeeded().catch(() => {});
+    void comRegistro(registro, rotateIfNeeded, 'log-rotator');
   }, 5 * 60_000);
   interval = setInterval(() => {
-    void rotateIfNeeded().catch(() => {});
+    void comRegistro(registro, rotateIfNeeded, 'log-rotator');
   }, intervalMs);
 }
 
@@ -77,6 +84,7 @@ export function getStatus() {
   return {
     name: 'log-rotator',
     enabled: interval !== null,
+    ...registro,
     lastRotatedAt,
     totalRotations,
     logPath: LOG_PATH,

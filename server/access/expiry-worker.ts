@@ -32,6 +32,7 @@ import { sendSafe } from '../notifications/sender';
 import { accessFor } from './course-access';
 import { avisaVencimento } from './situacao-matricula';
 import { origemPublica } from '../origem-publica';
+import { novoRegistro, comRegistro } from '../jobs/registro-de-tick';
 
 /**
  * Interruptor de envio. `AVISO_VENCIMENTO=off` faz o worker varrer e contar,
@@ -280,13 +281,18 @@ export async function tickWorker(opts: { dryRun?: boolean } = {}): Promise<RunRe
 }
 
 /** Loop diário, como os demais workers da casa. */
+/**
+ * Saúde do ciclo. Antes, um tick que lançava era engolido pelo `.catch` e o
+ * status guardava o último resultado BEM-SUCEDIDO — o painel mostrava o worker
+ * verde com um carimbo de hora velho, e ninguém vigia carimbo de hora.
+ */
+const registro = novoRegistro();
+
 export function startWorker(intervalMs = 24 * 60 * 60_000): void {
   if (interval) return;
   intervalMsCfg = intervalMs;
   interval = setInterval(() => {
-    void tickWorker().catch(() => {
-      /* engolido de propósito: o status guarda o último resultado */
-    });
+    void comRegistro(registro, tickWorker, 'access-expiry');
   }, intervalMs);
 }
 
@@ -301,6 +307,7 @@ export function getStatus() {
   return {
     name: 'access-expiry',
     enabled: interval !== null,
+    ...registro,
     avisosLigados: avisosLigados(),
     intervalMs: intervalMsCfg,
     lastRunAt,

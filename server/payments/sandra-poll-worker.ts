@@ -51,8 +51,17 @@ interface Estado {
    * deixava de virar matrícula** até a janela de 10 dias fechar sozinha.
    */
   falhasSeguidas: number;
-  /** A varredura completou alguma vez desde o boot? */
-  saudavel: boolean;
+  /**
+   * A varredura completou alguma vez desde o boot?
+   *
+   * `null` é **"ainda não rodou"**, e o campo nascia `true` — afirmando saúde
+   * de uma varredura que nunca aconteceu, no worker cujo silêncio custa
+   * dinheiro. Entre o boot e a primeira varredura, `/admin/jobs` mostrava
+   * verde sobre nada medido; se a primeira já falhasse, o verde durava até a
+   * terceira falha. Mesma regra das telas de métrica: zero e verde são
+   * afirmações, ausência de medição não é nenhuma das duas.
+   */
+  saudavel: boolean | null;
 }
 
 const estado: Estado = {
@@ -62,7 +71,7 @@ const estado: Estado = {
   erros: 0,
   ultimoErro: null,
   falhasSeguidas: 0,
-  saudavel: true,
+  saudavel: null,
 };
 
 /** A partir daqui não é soluço de rede: é problema que precisa de gente. */

@@ -4,6 +4,7 @@ import * as endpoints from './endpoints-store';
 import * as deliveries from './delivery-store';
 import { signPayload } from './signer';
 import { RETRY_DELAYS_MS, MAX_ATTEMPTS } from './types';
+import { novoRegistro, comRegistro } from '../jobs/registro-de-tick';
 import type {
   WebhookEventType,
   WebhookDelivery,
@@ -66,14 +67,26 @@ let lastRunProcessed = 0;
 let totalTicks = 0;
 let intervalMsCfg = 30_000;
 
+/**
+ * Saúde do ciclo de ENTREGA.
+ *
+ * `falhasAoEnfileirar` conta outra coisa: evento que nem chegou à fila. O tick
+ * que entrega o que já está nela não tinha registro nenhum — e, pior, as duas
+ * chamadas abaixo eram `void tickWorker()` **sem `catch`**. Rejeição não
+ * tratada no Node derruba o processo por padrão desde a v15, então uma falha
+ * aqui não era só invisível: era capaz de matar a aplicação inteira e deixar o
+ * PM2 reerguendo.
+ */
+const registro = novoRegistro();
+
 export function startWorker(intervalMs = 30_000): void {
   if (workerInterval) return;
   intervalMsCfg = intervalMs;
   workerInterval = setInterval(() => {
-    void tickWorker();
+    void comRegistro(registro, tickWorker, 'webhooks');
   }, intervalMs);
   // Tick inicial
-  void tickWorker();
+  void comRegistro(registro, tickWorker, 'webhooks');
 }
 
 export function stopWorker(): void {
@@ -96,6 +109,7 @@ export function getStatus() {
     // retry para salvá-lo, e é o único caso em que o webhook some de vez.
     falhasAoEnfileirar,
     ultimaFalhaAoEnfileirar,
+    ...registro,
   };
 }
 

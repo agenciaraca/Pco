@@ -14,6 +14,11 @@ import { listRetentionRisks } from '../repositories/retention';
 import { getActiveByModule } from '../ai/store';
 import { getProvider } from '../ai/providers';
 import { sendSafe } from './sender';
+import {
+  novoRegistro,
+  comRegistro,
+  type RegistroDeTick,
+} from '../jobs/registro-de-tick';
 
 export interface WeeklyReportConfig {
   enabled: boolean;
@@ -480,8 +485,13 @@ export function getStatus(): {
   enabled: boolean;
   lastRunAt: string | null;
   lastFiredKey: string | null;
-} {
-  return { enabled: timer !== null, lastRunAt, lastFiredKey: lastFiredKey || null };
+} & RegistroDeTick {
+  return {
+    enabled: timer !== null,
+    lastRunAt,
+    lastFiredKey: lastFiredKey || null,
+    ...registro,
+  };
 }
 
 /**
@@ -492,13 +502,17 @@ export function getStatus(): {
  * chamada — hot-reload do `tsx watch`, dois pontos de bootstrap, um
  * `pm2 reload` que não derruba o processo — fazia sair relatório semanal do admin em duplicata.
  */
+/**
+ * Saúde do ciclo. Este manda e-mail para ALUNO: falhar em silêncio é a escola
+ * deixar de se comunicar sem que ninguém saiba que deixou.
+ */
+const registro = novoRegistro();
+
 export function startWorker(intervalMs = 60 * 60_000): NodeJS.Timeout {
   if (timer) return timer;
   timer = setInterval(() => {
     lastRunAt = new Date().toISOString();
-    void tickWorker().catch((err) => {
-      console.error('[weekly-report] erro:', err);
-    });
+    void comRegistro(registro, tickWorker, 'weekly-report');
   }, intervalMs);
   timer.unref?.();
   return timer;

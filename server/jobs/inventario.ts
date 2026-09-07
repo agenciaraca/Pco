@@ -67,6 +67,14 @@ export interface JobStatus {
   /**
    * Saúde, quando o worker sabe dizer. `null` é **"não medido"**, não "ok" —
    * a mesma regra das telas de métrica.
+   *
+   * Até 7/set/2026 nove dos treze vinham `null` fixo daqui, e não porque o
+   * worker não soubesse: porque ele não guardava. Um tick que lançava era
+   * engolido pelo `.catch` do `setInterval` e o status ficava com o último
+   * resultado **bem-sucedido** — o painel mostrava o worker verde, com um
+   * carimbo de hora velho, pelo tempo que fosse. Hoje todos passam por
+   * `comRegistro` (`server/jobs/registro-de-tick.ts`) e `null` voltou a
+   * significar só uma coisa: ainda não rodou nesta vida do processo.
    */
   saudavel: boolean | null;
   /** O status cru do worker, para a tela mostrar o que for específico dele. */
@@ -101,7 +109,11 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastRunAt),
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: true,
-      saudavel: s.falhasAoEnfileirar > 0 ? false : true,
+      // Duas medidas diferentes, e as duas contam: `falhasAoEnfileirar` é
+      // evento que nem entrou na fila (não há retry que o salve), `saudavel` é
+      // o ciclo de entrega. Ficar verde com uma delas ruim seria escolher qual
+      // problema esconder.
+      saudavel: s.falhasAoEnfileirar > 0 ? false : (s.saudavel ?? null),
       detalhes: { ...s },
     });
   }
@@ -136,7 +148,7 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastTickAt),
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: false,
-      saudavel: null,
+      saudavel: s.saudavel ?? null,
       detalhes: { ...s },
     });
   }
@@ -152,7 +164,7 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastRunAt),
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: true,
-      saudavel: null,
+      saudavel: s.saudavel ?? null,
       detalhes: { ...s },
     });
   }
@@ -168,7 +180,7 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastRunAt),
       totalTicks: null,
       podeRodarAgora: false,
-      saudavel: null,
+      saudavel: s.saudavel ?? null,
       detalhes: { ...s },
     });
   }
@@ -184,7 +196,7 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastRunAt),
       totalTicks: null,
       podeRodarAgora: false,
-      saudavel: null,
+      saudavel: s.saudavel ?? null,
       detalhes: { ...s },
     });
   }
@@ -200,7 +212,7 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastRunAt),
       totalTicks: null,
       podeRodarAgora: false,
-      saudavel: null,
+      saudavel: s.saudavel ?? null,
       detalhes: { ...s },
     });
   }
@@ -232,7 +244,7 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastRotatedAt),
       totalTicks: numero(s.totalRotations),
       podeRodarAgora: false,
-      saudavel: null,
+      saudavel: s.saudavel ?? null,
       detalhes: { ...s },
     });
   }
@@ -248,7 +260,7 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastTickAt),
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: false,
-      saudavel: null,
+      saudavel: s.saudavel ?? null,
       detalhes: { ...s },
     });
   }
@@ -264,7 +276,7 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastRunAt),
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: true,
-      saudavel: null,
+      saudavel: s.saudavel ?? null,
       detalhes: { ...s },
     });
   }
@@ -280,7 +292,7 @@ export function listarJobs(): JobStatus[] {
       lastRunAt: texto(s.lastRunAt),
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: true,
-      saudavel: null,
+      saudavel: s.saudavel ?? null,
       detalhes: { ...s },
     });
   }
