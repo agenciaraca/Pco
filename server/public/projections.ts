@@ -20,6 +20,7 @@ import * as productsRepo from '../payments/products-repo';
 import * as newsRepo from '../repositories/news';
 import * as certificatesRepo from '../repositories/certificates';
 import * as reviewsStore from '../reviews/store';
+import { registrarFalhaDeLeitura } from './falhas-de-leitura';
 
 type Product = Awaited<ReturnType<typeof productsRepo.listActive>>[number];
 
@@ -40,6 +41,11 @@ export function fmtBRL(cents: number): string {
 /**
  * Degradação graciosa: o site público NUNCA pode dar 500 por erro de leitura
  * (ex.: tabela ausente no DB). Loga e devolve o fallback.
+ *
+ * **E registra a falha na requisição.** Só logar deixava o fallback passar por
+ * verdade: lista vazia virava "a escola não tem formações" e `null` virava
+ * 404 numa página de curso que existe. Quem lê o registro é o roteador, no
+ * momento de decidir o que desenhar — ver `falhas-de-leitura.ts`.
  */
 async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -50,6 +56,7 @@ async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promis
       `[public-site] leitura falhou (${label}):`,
       err instanceof Error ? err.message : err,
     );
+    registrarFalhaDeLeitura(label);
     return fallback;
   }
 }

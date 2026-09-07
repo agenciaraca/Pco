@@ -207,6 +207,45 @@ não ficou para trás porque houve deploy manual pelo caminho.
 dois segundos** e nenhum arquivo do repositório diz. Um `git log` limpo e a
 suíte verde localmente **não** provam que a esteira está andando.
 
+## O site público dizia "não existe" quando era "não consegui ler"
+
+`server/public/falhas-de-leitura.ts` (7/set/2026). O site tem uma regra boa e
+tinha uma consequência ruim. A regra: `projections.ts` embrulha toda leitura em
+`safe()` e **nunca** devolve 500 por erro de banco — a vitrine não cai porque
+uma tabela não respondeu. A consequência: o fallback passava por verdade.
+
+Com as 21 leituras falhando que o log de produção registrou, o visitante via:
+
+- **`/formacoes` dizendo "Em breve novos cursos"** — a escola parecendo não ter
+  nada à venda;
+- **`/formacao/:slug` respondendo 404** — a página que vende afirmando que o
+  curso não existe. Para o comprador e para o robô de busca, que registra a
+  página como inexistente por causa de uma queda de um segundo;
+- **a home omitindo a seção inteira** de formações, com um `courses.length ?
+  ... : ''`, ficando com cara de completa. É o mesmo `if (!data) return null`
+  já corrigido nos cartões do `/admin`.
+
+É a mesma regra que o projeto já aplica às telas de métrica ("zero diz *medi e
+não houve*") e às telas do aluno ("sem rede não é *não existe*"). Faltava no
+único lugar em que o leitor é um desconhecido decidindo comprar.
+
+Três coisas que qualquer mexida aqui tem de respeitar:
+
+- **`safe()` registra, não só loga.** A falha é anotada onde acontece e
+  consultada onde importa — o render.
+- **O armazém é por requisição** (`AsyncLocalStorage`). Variável de módulo
+  vazaria a falha de um visitante para a página do seguinte. Fora de
+  requisição (script, teste, boot) não há coletor e registrar é inócuo, de
+  propósito: anotar falha não pode ser motivo de erro novo.
+- **503 com `Retry-After`, nunca 404.** O 404 é uma afirmação — "isto não
+  existe" — e o índice de busca acredita nela. O 503 diz "volte", que é o que
+  se sabe.
+
+**Por que não trocar as assinaturas.** As projeções são chamadas de oito
+lugares e devolvem listas e objetos diretos; um `{ ok, valor }` espalharia a
+checagem pelo roteador inteiro e convidaria a esquecê-la em um ponto — que é
+como o defeito nasceu.
+
 ## Queda de conexão com o banco custava o chamado do aluno
 
 `server/db/repetir-consulta.ts` (7/set/2026). Medido no log de produção, com 7

@@ -15,7 +15,8 @@ import {
 import { tetoDeParcelas } from '../payments/condicoes';
 import { html, raw } from 'hono/html';
 import { ORG, AUTHOR, AUTHOR_IS_PLACEHOLDER, YMYL_DISCLAIMER } from './config';
-import { renderPage, pincel, ICONE_WHATSAPP } from './layout';
+import { renderPage, pincel, ICONE_WHATSAPP, type Html } from './layout';
+import { comColetaDeFalhas, houveFalhaDeLeitura } from './falhas-de-leitura';
 import {
   orgJsonLd,
   websiteJsonLd,
@@ -49,7 +50,48 @@ function fmtDate(iso: string): string {
 
 export const publicSite = new Hono();
 
+/**
+ * Coletor de falhas de leitura, por requisição.
+ *
+ * `projections.ts` embrulha toda leitura em `safe()` para que a vitrine nunca
+ * caia por erro de banco — regra boa. O efeito colateral é que o fallback
+ * passava por verdade: lista vazia lida como "a escola não tem formações",
+ * `null` lido como 404 numa página de curso que existe. Com o coletor, o
+ * render pergunta se houve falha antes de afirmar ausência.
+ */
+publicSite.use('*', (c, next) => comColetaDeFalhas(() => next()));
+
 const HTML_HEADERS = { 'Content-Type': 'text/html; charset=utf-8' } as const;
+
+/**
+ * O bloco de "não consegui carregar", para onde a página mostraria vazio.
+ *
+ * Traz um botão de tentar de novo porque a falha é quase sempre passageira —
+ * e uma tela sem saída manda o visitante embora, que é o custo que se está
+ * tentando evitar.
+ *
+ * **Onde ele entra, e por quê.** O catálogo dizia "Em breve novos cursos" — a
+ * escola parecendo não ter nada à venda. A home fazia pior: a seção "Nossas
+ * formações" sumia inteira com um `courses.length ? ... : ''`, e a página
+ * ficava com cara de completa, sem nada indicando que houvesse algo para ver.
+ * É o mesmo `if (!data) return null` já corrigido nos cartões do `/admin`, e
+ * aqui quem lê é alguém decidindo comprar.
+ */
+function blocoIndisponivel(oQue: string): Html {
+  return html`<div
+    class="aviso-indisponivel"
+    role="status"
+    style="border:1px solid var(--line-soft);border-radius:12px;padding:20px;text-align:center"
+  >
+    <p style="font-weight:700;margin:0 0 6px">Não conseguimos carregar ${oQue} agora.</p>
+    <p class="lead" style="margin:0 0 14px">
+      É uma falha temporária nossa, não uma lista vazia. Tente de novo em instantes.
+    </p>
+    <a class="btn btn-primary" href="" onclick="location.reload();return false;"
+      >Tentar de novo</a
+    >
+  </div>`;
+}
 
 // ---- asset JS same-origin (CSP script-src 'self') ----
 /**
@@ -466,27 +508,48 @@ publicSite.get('/blog', async (c) => {
 publicSite.get('/blog/:slug', async (c) => {
   const post = await getPublicPostBySlug(c.req.param('slug'));
   if (!post) {
-    const nf = html`
-      <section class="section" style="text-align:center">
-        <div class="wrap">
-          <h1>Artigo não encontrado</h1>
-          <p class="lead" style="margin:12px 0 24px">
-            O texto que você procura pode ter sido movido.
-          </p>
-          <a class="btn btn-primary" href="/blog">Ver todos os artigos</a>
-        </div>
-      </section>
-    `;
+    // Mesma razão da página de curso: 404 afirma que o artigo não existe, e
+    // uma queda de leitura não autoriza essa afirmação — nem para o leitor,
+    // nem para o índice de busca.
+    const falhou = houveFalhaDeLeitura();
+    const nf = falhou
+      ? html`
+          <section class="section" style="text-align:center">
+            <div class="wrap">
+              <h1>Página temporariamente indisponível</h1>
+              <p class="lead" style="margin:12px 0 24px">
+                Não conseguimos carregar este artigo agora. Ele continua no ar — é uma
+                falha temporária nossa.
+              </p>
+              <a class="btn btn-primary" href="" onclick="location.reload();return false;"
+                >Tentar de novo</a
+              >
+            </div>
+          </section>
+        `
+      : html`
+          <section class="section" style="text-align:center">
+            <div class="wrap">
+              <h1>Artigo não encontrado</h1>
+              <p class="lead" style="margin:12px 0 24px">
+                O texto que você procura pode ter sido movido.
+              </p>
+              <a class="btn btn-primary" href="/blog">Ver todos os artigos</a>
+            </div>
+          </section>
+        `;
     return c.html(
       renderPage({
-        title: `Artigo não encontrado — ${ORG.shortName}`,
-        description: 'Artigo não encontrado.',
+        title: falhou
+          ? `Temporariamente indisponível — ${ORG.shortName}`
+          : `Artigo não encontrado — ${ORG.shortName}`,
+        description: falhou ? 'Temporariamente indisponível.' : 'Artigo não encontrado.',
         path: `/blog/${c.req.param('slug')}`,
         noindex: true,
         bodyHtml: nf,
       }),
-      404,
-      HTML_HEADERS,
+      falhou ? 503 : 404,
+      falhou ? { ...HTML_HEADERS, 'Retry-After': '60' } : HTML_HEADERS,
     );
   }
   const tagsHtml = post.tags.length
@@ -989,7 +1052,15 @@ publicSite.get('/', async (c) => {
             </div>
           </div>
         </section>`
-      : ''}
+      : houveFalhaDeLeitura()
+        ? html`<section class="section" style="background:var(--surface-2)">
+            <div class="wrap">
+              <span class="eyebrow">Nossas formações</span>
+              <h2 style="margin:12px 0 24px">Escolha por onde começar</h2>
+              ${blocoIndisponivel('as formações')}
+            </div>
+          </section>`
+        : ''}
 
     ${posts.length
       ? html`<section class="section">
@@ -1128,7 +1199,9 @@ publicSite.get('/formacoes', async (c) => {
     <section class="lista-cursos">
       ${courses.length
         ? raw(courses.map(linha).join(''))
-        : raw('<p style="color:var(--ink-soft)">Em breve novos cursos.</p>')}
+        : houveFalhaDeLeitura()
+          ? blocoIndisponivel('as formações')
+          : raw('<p style="color:var(--ink-soft)">Em breve novos cursos.</p>')}
     </section>
 
     <section class="lista-ajuda">
@@ -1167,23 +1240,49 @@ publicSite.get('/formacoes', async (c) => {
 publicSite.get('/formacao/:slug', async (c) => {
   const co = await getPublicCourseBySlug(c.req.param('slug'));
   if (!co) {
-    const nf = html`<section class="section" style="text-align:center">
-      <div class="wrap">
-        <h1>Formação não encontrada</h1>
-        <p class="lead" style="margin:12px 0 24px">Talvez tenha mudado de endereço.</p>
-        <a class="btn btn-primary" href="/formacoes">Ver todas as formações</a>
-      </div>
-    </section>`;
+    /*
+      404 é uma AFIRMAÇÃO: esta formação não existe. Quando a leitura falhou,
+      não se sabe disso — e dizer 404 aqui tem dois custos que não se recuperam
+      sozinhos: o comprador vai embora achando que o curso saiu do ar, e o robô
+      do Google registra a página como inexistente, o que a tira do índice por
+      uma queda de conexão de um segundo.
+
+      503 com `Retry-After` diz a coisa certa para os dois: está indisponível
+      agora, volte.
+    */
+    const falhou = houveFalhaDeLeitura();
+    const nf = falhou
+      ? html`<section class="section" style="text-align:center">
+          <div class="wrap">
+            <h1>Página temporariamente indisponível</h1>
+            <p class="lead" style="margin:12px 0 24px">
+              Não conseguimos carregar esta formação agora. Ela continua no ar — é uma
+              falha temporária nossa. Tente de novo em instantes.
+            </p>
+            <a class="btn btn-primary" href="" onclick="location.reload();return false;"
+              >Tentar de novo</a
+            >
+          </div>
+        </section>`
+      : html`<section class="section" style="text-align:center">
+          <div class="wrap">
+            <h1>Formação não encontrada</h1>
+            <p class="lead" style="margin:12px 0 24px">Talvez tenha mudado de endereço.</p>
+            <a class="btn btn-primary" href="/formacoes">Ver todas as formações</a>
+          </div>
+        </section>`;
     return c.html(
       renderPage({
-        title: `Formação não encontrada — ${ORG.shortName}`,
-        description: 'Formação não encontrada.',
+        title: falhou
+          ? `Temporariamente indisponível — ${ORG.shortName}`
+          : `Formação não encontrada — ${ORG.shortName}`,
+        description: falhou ? 'Temporariamente indisponível.' : 'Formação não encontrada.',
         path: `/formacao/${c.req.param('slug')}`,
         noindex: true,
         bodyHtml: nf,
       }),
-      404,
-      HTML_HEADERS,
+      falhou ? 503 : 404,
+      falhou ? { ...HTML_HEADERS, 'Retry-After': '60' } : HTML_HEADERS,
     );
   }
   /**
