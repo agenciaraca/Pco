@@ -878,9 +878,9 @@ publicSite.get('/', async (c) => {
         aria-hidden="true"
       ></div>
       <div class="hero-veu" aria-hidden="true"></div>
-      <div class="wrap" style="max-width:860px">
+      <div class="wrap">
         <span class="eyebrow">Bem-vindo à Psicanálise Clínica Online</span>
-        <h1 style="margin:18px 0 18px">Curso de Psicanálise Clínica Online</h1>
+        <h1 style="margin:18px 0 18px;max-width:20ch">Curso de Psicanálise Clínica Online</h1>
         <p class="lead" style="max-width:62ch">
           O curso de psicanálise com o melhor custo-benefício do Brasil! Conheça agora o curso que
           vai te formar psicanalista em pouco tempo, gastando pouco e aprendendo muito. Aulas, dicas
@@ -898,7 +898,8 @@ publicSite.get('/', async (c) => {
     </section>
 
     <section class="section">
-      <div class="wrap" style="max-width:820px">
+      <div class="wrap">
+        <div class="coluna-texto">
         <span class="eyebrow">Sobre a PCO — Psicanálise Clínica Online</span>
         <h2 style="margin:14px 0 20px">
           Uma jornada única para compreender a mente humana — e transformar isso em carreira
@@ -917,6 +918,7 @@ publicSite.get('/', async (c) => {
           pode ser a chave para o seu sucesso pessoal e profissional em um mundo em constante
           transformação.
         </p>
+        </div>
       </div>
     </section>
 
@@ -954,7 +956,8 @@ publicSite.get('/', async (c) => {
     </section>
 
     <section class="section">
-      <div class="wrap" style="max-width:820px">
+      <div class="wrap">
+        <div class="coluna-texto">
         <h2 style="margin-bottom:20px">
           Sua carreira após a Formação em Psicanálise Clínica aqui na PCO
         </h2>
@@ -971,6 +974,7 @@ publicSite.get('/', async (c) => {
           transformadora, onde o conhecimento profundo se une à flexibilidade do aprendizado online.
           Estamos aqui para guiar você rumo ao sucesso na psicanálise!
         </p>
+        </div>
       </div>
     </section>
 

@@ -60,9 +60,19 @@ export const NAV: NavItem[] = [
   },
   { label: 'Nosso AVA', href: '/ava-pco', key: 'ava' },
   { label: 'Blog', href: '/blog', key: 'blog' },
-  { label: 'Sobre', href: '/sobre', key: 'sobre' },
-  { label: 'Contato', href: '/contato', key: 'contato' },
 ];
+
+/*
+  "Sobre" e "Contato" saíram do topo em 7/set/2026 e vivem no RODAPÉ.
+
+  A barra ficou com o que leva a uma decisão de compra — cursos, o carro-chefe,
+  o AVA e o blog. Institucional e canal de atendimento continuam alcançáveis de
+  qualquer página, no rodapé, que é onde as pessoas já os procuram.
+
+  Elas NÃO podem simplesmente sumir: página pública sem link interno nenhum é
+  página que o buscador deixa de rastrear, e foi assim que o `/checkout` ficou
+  órfão em 30/ago/2026. `test/links-internos.test.ts` cobra isso.
+*/
 
 export interface PageOptions {
   title: string;
@@ -360,7 +370,8 @@ function footer(): Html {
       <div class="wrap legal">
         <span>© ${ORG.founded ?? 2018}–${year} ${ORG.name}. Todos os direitos reservados.</span>
         <span
-          ><a href="/sobre">Quem somos</a> · <a href="/termos">Termos de Uso</a> ·
+          ><a href="/sobre">Quem somos</a> · <a href="/contato">Contato</a> ·
+          <a href="/termos">Termos de Uso</a> ·
           <a class="link-destaque" href="/privacidade">Política de Privacidade</a></span
         >
       </div>

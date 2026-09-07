@@ -79,6 +79,14 @@ h2{font-size:clamp(24px,3vw,34px)}
 h3{font-size:clamp(18px,2vw,22px)}
 p{margin:0}
 .wrap{max-width:var(--wrap);margin:0 auto;padding:0 24px}
+/* Coluna de texto corrido DENTRO do wrap padrao.
+   Encolher o proprio .wrap (que e margin:0 auto) centraliza a coluna e
+   desloca a borda esquerda para dentro: o texto passa a comecar ~180px a
+   direita do de todas as outras secoes. O prototipo aprovado faz o
+   contrario, contêiner na largura do site e coluna estreita encostada a
+   esquerda (margin:0, nao auto). Medida de leitura preservada,
+   alinhamento tambem. */
+.coluna-texto{max-width:820px;margin-right:auto}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 .skip{position:absolute;left:-999px;top:8px;background:var(--accent);color:var(--on-accent);padding:10px 16px;border-radius:8px;z-index:200}
 .skip:focus{left:12px}
