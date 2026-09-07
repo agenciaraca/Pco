@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { saveUpload, ehTipoDeDocumento, UploadError } from '../server/uploads/store';
+import { bytesPdf, bytesPng, bytesSvg } from './apoio-arquivos';
 
 /**
  * A biblioteca não tinha upload — e o motivo de isso não ser trivial.
@@ -33,8 +34,22 @@ afterAll(async () => {
   if (tmpDir) await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
 });
 
-function arquivo(nome: string, mime: string, bytes = 16): File {
-  return new File([new Uint8Array(bytes)], nome, { type: mime });
+/**
+ * Bytes de verdade. Era `new Uint8Array(bytes)` — zeros com um rótulo —, e é
+ * por isso que estes casos ficavam verdes enquanto o upload decidia a extensão
+ * pelo `file.type` do cliente. Desde 7/set/2026 o conteúdo é que decide.
+ */
+const BYTES: Record<string, () => Buffer> = {
+  'application/pdf': bytesPdf,
+  'image/png': bytesPng,
+  'image/svg+xml': bytesSvg,
+};
+
+function arquivo(nome: string, mime: string, bytes = 0): File {
+  const base = (BYTES[mime] ?? (() => Buffer.alloc(0)))();
+  const recheio = Math.max(0, bytes - base.length);
+  const buf = Buffer.concat([base, Buffer.alloc(recheio)]);
+  return new File([new Uint8Array(buf)], nome, { type: mime });
 }
 
 describe('documento é upload de administração, imagem é de todo mundo', () => {

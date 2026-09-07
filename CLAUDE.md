@@ -207,6 +207,52 @@ não ficou para trás porque houve deploy manual pelo caminho.
 dois segundos** e nenhum arquivo do repositório diz. Um `git log` limpo e a
 suíte verde localmente **não** provam que a esteira está andando.
 
+## Upload: quem diz o que o arquivo é são os bytes, não o cliente
+
+`server/uploads/assinaturas.ts` (7/set/2026). Até então `saveUpload` lia
+`file.type` — o `Content-Type` que quem envia escreve na parte do multipart,
+texto livre — e a extensão gravada saía dali. Nenhum byte do conteúdo era
+olhado. Era o `SEC4-003`, anotado como "meia-verificação" desde 6/set.
+
+**O que era, medido:** `POST /uploads` é `requireAuth()`, não
+`requireAuth('admin')`. Bastava declarar `image/png` para qualquer um dos ~1.600
+alunos gravar bytes arbitrários e receber de volta uma URL sob o domínio da
+escola.
+
+**O que NÃO era, e vale escrever para ninguém superestimar depois:** execução
+de script. `/uploads/*` sai com `X-Content-Type-Options: nosniff`
+(`server/public/csp.ts` vale em `root.use('*')`, cobre o estático também) e o
+`serveStatic` deriva o `Content-Type` da extensão — HTML gravado como `.png`
+chega como `image/png` e não roda. O que havia era hospedagem de arquivo
+arbitrário no domínio de uma escola, que é o que empresta credibilidade a um
+golpe — a mesma razão de documento já ser restrito à administração.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **O tipo declarado não participa mais da decisão** — nem para confirmar, nem
+  para desempatar. PNG enviado com rótulo de PDF é gravado como `.png`.
+- **Nada reconhecido é recusado.** "Não sei o que é isto" não pode virar "então
+  deixa passar".
+- **A separação entre as duas listas continua sendo da rota.** Detectar melhor
+  não pode dar ao aluno o que só a administração tem: PDF genuíno enviado à
+  rota de imagem é recusado pela lista, não pela assinatura.
+- **O limite de tamanho é conferido ANTES de ler os bytes.** Decidir pelo
+  conteúdo exige carregar o arquivo; sem o limite antes, a leitura viraria o
+  próprio ataque.
+
+Duas armadilhas de formato que o detector resolve e que não se inferem: **todo
+EPUB é um ZIP**, e o que o separa de um `.zip` qualquer é a exigência do OCF de
+o arquivo `mimetype` vir primeiro e sem compressão — o valor fica em claro no
+deslocamento 30. E o **PDF** aceita o cabeçalho dentro do primeiro kilobyte,
+não só no byte zero (ISO 32000): exigir o byte zero recusaria apostila legítima.
+
+**A suíte ficou verde durante toda a vida do defeito, e o motivo é o de sempre
+neste projeto:** as fixtures eram `new Uint8Array(n)` — zeros com um `type`
+declarado no construtor do `File`. Elas provavam que o upload aceitava o
+**rótulo**. Os bytes de verdade agora moram em `test/apoio-arquivos.ts`, e as
+duas suítes antigas passaram a usá-los. **Teste de upload com buffer de zeros
+não testa upload.**
+
 ## O menu mobile é um diálogo — e o papel entra e sai por JS
 
 `server/public/client.ts` (6/set/2026). O painel do menu no celular **é o mesmo
@@ -427,9 +473,11 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > - **A contradição do carnê** registrada em SEC4-001: dois comentários no mesmo
 >   HEAD dizem coisas opostas sobre as parcelas 2..N acharem o pedido. Quem
 >   mexer no carnê resolve isso antes.
-> - **`SEC4-003`, meia-verificação:** a extensão do upload vem do `file.type`
->   declarado pelo cliente, e o conteúdo nunca é inspecionado. Só admin sobe
->   documento, então o risco é baixo — mas está anotado.
+> - ~~**`SEC4-003`**~~ — **fechado em 7/set/2026.** A extensão passou a vir do
+>   conteúdo; o tipo declarado não decide mais nada. E a avaliação de "risco
+>   baixo" estava incompleta: o caso não era o admin subindo documento, era a
+>   rota de imagem, que é `requireAuth()` e alcança os ~1.600 alunos. Ver a
+>   seção do upload.
 > - Os "não verificado" restantes da passada 004: transcrições de sessão ao vivo
 >   (o store não tem `userId`), `external-references.json`, e as snapshots em S3
 >   — esta última é o item 3 acima.

@@ -7,6 +7,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { putObject, s3CredsFromEnv } from '../aws/s3';
+import { detectarTipo } from './assinaturas';
 
 const DATA_DIR = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
@@ -85,21 +86,33 @@ export async function saveUpload(
       `Arquivo excede o limite de ${Math.round(limite / 1024 / 1024)}MB.`,
     );
   }
-  const mime = file.type;
-  const ext = permitidos[mime];
-  if (!ext) {
+  // Quem diz o que este arquivo é: o CONTEÚDO, nunca o `file.type`.
+  //
+  // `file.type` é o Content-Type que o cliente escreve na parte do multipart —
+  // texto livre. Era dele que saía a extensão gravada, e a rota de imagem é
+  // `requireAuth()`: bastava declarar `image/png` para qualquer aluno gravar
+  // bytes arbitrários e receber uma URL no domínio da escola. O `nosniff` de
+  // `/uploads/*` impedia que isso virasse script; não impedia a hospedagem.
+  //
+  // O tipo declarado deixou de participar da decisão — nem para confirmar, nem
+  // para desempatar. Ler os bytes exige carregar o arquivo antes de decidir, e
+  // é por isso que o limite de tamanho é conferido ACIMA: ele é o que impede
+  // que a leitura seja o próprio ataque.
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const mime = detectarTipo(buffer);
+  const ext = mime ? permitidos[mime] : undefined;
+  if (!mime || !ext) {
     throw new UploadError(
       'INVALID_MIME',
       opts.permiteDocumento
-        ? 'Tipo não permitido. Use imagem, PDF, EPUB ou áudio (MP3/M4A).'
-        : 'Tipo de arquivo não permitido. Use JPG, PNG, WEBP ou GIF.',
+        ? 'O conteúdo do arquivo não corresponde a um tipo aceito. Use imagem, PDF, EPUB ou áudio (MP3/M4A).'
+        : 'O conteúdo do arquivo não corresponde a uma imagem. Use JPG, PNG, WEBP ou GIF.',
     );
   }
   await fs.mkdir(UPLOADS_DIR, { recursive: true });
   const id = crypto.randomBytes(12).toString('hex');
   const filename = `${id}${ext}`;
   const filepath = path.join(UPLOADS_DIR, filename);
-  const buffer = Buffer.from(await file.arrayBuffer());
   await fs.writeFile(filepath, buffer, { mode: 0o644 });
 
   // Tentativa de upload para S3/R2 se configurado. Mantém cópia local como

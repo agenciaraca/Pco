@@ -2,6 +2,13 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import {
+  bytesGif,
+  bytesJpeg,
+  bytesPdf,
+  bytesPng,
+  bytesWebp,
+} from './apoio-arquivos';
 
 let tmpDir: string;
 let store: typeof import('../server/uploads/store');
@@ -16,9 +23,31 @@ afterAll(async () => {
   if (tmpDir) await fs.rm(tmpDir, { recursive: true, force: true });
 });
 
+/**
+ * Bytes de verdade, com preenchimento até o tamanho pedido.
+ *
+ * Isto era `new Uint8Array(sizeBytes)` — zeros com um `type` declarado. A
+ * suíte ficou verde durante toda a vida do defeito porque provava que
+ * `saveUpload` aceitava o RÓTULO, e nunca que aceitava uma imagem. Desde
+ * 7/set/2026 quem decide o tipo é o conteúdo, e a fixture precisou virar
+ * arquivo de verdade.
+ *
+ * O recheio vai DEPOIS da assinatura, senão a assinatura deixa de ser o começo
+ * do arquivo — que é onde ela tem de estar.
+ */
+const BYTES: Record<string, () => Buffer> = {
+  'image/png': bytesPng,
+  'image/jpeg': bytesJpeg,
+  'image/gif': bytesGif,
+  'image/webp': bytesWebp,
+  'application/pdf': bytesPdf,
+};
+
 function fakeImage(mime: string, sizeBytes: number): File {
-  const buf = new Uint8Array(sizeBytes);
-  return new File([buf], 'test.bin', { type: mime });
+  const base = (BYTES[mime] ?? (() => Buffer.alloc(0)))();
+  const recheio = Math.max(0, sizeBytes - base.length);
+  const buf = Buffer.concat([base, Buffer.alloc(recheio)]);
+  return new File([new Uint8Array(buf)], 'test.bin', { type: mime });
 }
 
 describe('uploads/store', () => {
@@ -43,7 +72,10 @@ describe('uploads/store', () => {
     }
   });
 
-  it('rejeita MIME inválido (UploadError INVALID_MIME)', async () => {
+  it('rejeita tipo fora da lista da rota (UploadError INVALID_MIME)', async () => {
+    // PDF de verdade: o que barra aqui é a lista da rota aberta, não a
+    // assinatura — a rota de imagem não aceita documento nem quando ele é
+    // genuíno.
     const f = fakeImage('application/pdf', 100);
     await expect(store.saveUpload(f)).rejects.toMatchObject({
       code: 'INVALID_MIME',
