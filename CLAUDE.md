@@ -802,7 +802,10 @@ aparecia como "alteração por salvar". Uma sessão que começasse ali refaria t
 ou commitaria por cima. Parte dos objetos veio pela metade: `git log` dava erro.
 
 **Regra:** depois de mover ou copiar o projeto, `git fetch && git status` **antes**
-de qualquer edição. A cópia em `C:\ia\dev\pco` ainda existe, aponta para o mesmo
+de qualquer edição. O procedimento completo — o que vem por `git clone` e o que
+precisa ser copiado à mão, incluindo a pasta de memória do Claude Code, que é
+indexada **pelo caminho** e some em silêncio ao mudar de letra de disco — está em
+`docs/setup-maquina-nova.md`. A cópia em `C:\ia\dev\pco` ainda existe, aponta para o mesmo
 remoto e será apagada pelo dono.
 
 ## Script de manutenção precisa carregar o `.env`
@@ -1145,7 +1148,7 @@ dentro de HTML não é o valor.
 ## Reference docs
 
 `docs/` has deeper notes per subsystem when you need them:
-`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `webhooks-cookbook.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `admin-user-guide.md`, `api-public.md`, `deploy.md`, `production-checklist.md`, `migration-wp-ld.md`, `prazo-de-acesso.md`, `sessoes.md`.
+`architecture.md`, `security.md`, `payments.md`, `imports.md`, `webhooks.md`, `webhooks-cookbook.md`, `email.md`, `engagement.md`, `live-sessions.md`, `analytics.md`, `admin-ops.md`, `admin-user-guide.md`, `api-public.md`, `deploy.md`, `production-checklist.md`, `migration-wp-ld.md`, `prazo-de-acesso.md`, `sessoes.md`, `setup-maquina-nova.md`.
 
 ## Sessões: opcionais por LEI, e o preço vem da titulação
 
