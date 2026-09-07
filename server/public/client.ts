@@ -45,10 +45,83 @@ export const PUBLIC_JS = `
     document.body.appendChild(el);requestAnimationFrame(function(){el.style.opacity='1';});
     setTimeout(function(){el.style.opacity='0';setTimeout(function(){el.remove();},250);},2600);
   }
+  // ---- menu mobile ----
+  //
+  // O painel É o mesmo <nav> do desktop, e é por isso que o papel entra e sai
+  // aqui em vez de estar fixo no HTML: aberto no celular ele deixa de ser a
+  // barra de navegação e passa a ser um diálogo por cima da página, mas um
+  // role="dialog" escrito no markup mentiria em toda tela larga, onde o mesmo
+  // elemento é a navegação principal e não um diálogo. O nome acessível troca
+  // junto — "Principal" descreve a barra, "Menu" descreve o painel.
+  //
+  // Prender o foco não é enfeite. Sem isso o Tab sai do painel aberto e chega
+  // aos links que estão ATRÁS dele: invisíveis para quem enxerga, alcançáveis
+  // para quem navega por teclado ou leitor de tela. E sem o Esc, quem abriu o
+  // menu sem mouse não tem como fechá-lo.
+  var FOCAVEIS='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  var menuAberto=false;
+  function painelMenu(){return document.getElementById('site-nav');}
+  function botaoMenu(){return document.querySelector('[data-menu-toggle]');}
+  function focaveisDoPainel(){
+    var nav=painelMenu();if(!nav)return[];
+    return [].slice.call(nav.querySelectorAll(FOCAVEIS));
+  }
+  function abrirMenu(){
+    var nav=painelMenu();if(!nav)return;
+    var bt=botaoMenu();
+    nav.classList.add('open');
+    nav.setAttribute('role','dialog');
+    nav.setAttribute('aria-modal','true');
+    nav.setAttribute('aria-label','Menu');
+    if(bt)bt.setAttribute('aria-expanded','true');
+    menuAberto=true;
+    var lista=focaveisDoPainel();
+    if(lista.length&&lista[0].focus)lista[0].focus();
+  }
+  function fecharMenu(devolveFoco){
+    var nav=painelMenu();if(!nav)return;
+    var bt=botaoMenu();
+    nav.classList.remove('open');
+    nav.removeAttribute('role');
+    nav.removeAttribute('aria-modal');
+    nav.setAttribute('aria-label','Principal');
+    if(bt)bt.setAttribute('aria-expanded','false');
+    menuAberto=false;
+    // Devolver o foco ao botão só vale quando o fechamento partiu do teclado
+    // ou do próprio botão. Depois de um clique fora, roubar o foco de volta
+    // atrapalharia quem foi clicar em outra coisa.
+    if(devolveFoco&&bt&&bt.focus)bt.focus();
+  }
+  document.addEventListener('keydown',function(e){
+    if(!menuAberto)return;
+    if(e.key==='Escape'){e.preventDefault();fecharMenu(true);return;}
+    if(e.key!=='Tab')return;
+    var lista=focaveisDoPainel();
+    if(!lista.length)return;
+    var primeiro=lista[0],ultimo=lista[lista.length-1];
+    if(e.shiftKey&&document.activeElement===primeiro){e.preventDefault();if(ultimo.focus)ultimo.focus();}
+    else if(!e.shiftKey&&document.activeElement===ultimo){e.preventDefault();if(primeiro.focus)primeiro.focus();}
+  });
+  // Clique fora fecha. O painel não tem cortina: deixar o clique atravessar
+  // faria o aria-modal prometer um isolamento que não existe.
+  document.addEventListener('click',function(e){
+    if(!menuAberto)return;
+    if(!e.target||!e.target.closest)return;
+    if(e.target.closest('#site-nav')||e.target.closest('[data-menu-toggle]'))return;
+    fecharMenu(false);
+  });
+  // Voltar para largura de desktop devolve o <nav> ao papel de navegação: o
+  // painel some por CSS, e um diálogo invisível continuaria sendo anunciado.
+  try{
+    var mqLargo=matchMedia('(min-width:901px)');
+    var aoTrocarLargura=function(){if(mqLargo.matches&&menuAberto)fecharMenu(false);};
+    if(mqLargo.addEventListener)mqLargo.addEventListener('change',aoTrocarLargura);
+    else if(mqLargo.addListener)mqLargo.addListener(aoTrocarLargura);
+  }catch(e){}
   // ---- delegação de cliques ----
   document.addEventListener('click',function(e){
     var tt=e.target.closest('[data-theme-toggle]');if(tt){e.preventDefault();toggleTheme();return;}
-    var mt=e.target.closest('[data-menu-toggle]');if(mt){e.preventDefault();var nav=document.getElementById('site-nav');if(nav){nav.classList.toggle('open');mt.setAttribute('aria-expanded',nav.classList.contains('open')?'true':'false');}return;}
+    var mt=e.target.closest('[data-menu-toggle]');if(mt){e.preventDefault();if(menuAberto){fecharMenu(true);}else{abrirMenu();}return;}
     var add=e.target.closest('[data-add-cart]');if(add){e.preventDefault();window.pcoCart.add({slug:add.getAttribute('data-slug'),title:add.getAttribute('data-title'),price:Number(add.getAttribute('data-price')||0),href:'/formacao/'+add.getAttribute('data-slug')});return;}
     var acc=e.target.closest('[data-accordion]');if(acc){var panel=acc.nextElementSibling;var open=acc.getAttribute('aria-expanded')==='true';acc.setAttribute('aria-expanded',open?'false':'true');if(panel){panel.style.maxHeight=open?'0px':panel.scrollHeight+'px';}return;}
   });

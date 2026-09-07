@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Common commands
 
-Repo root é `H:\ia\dev\pco\` — `package.json`, `.git` e todas as pastas (`src/`, `server/`, `shared/`, `api/`, etc.) ficam aqui. Não existe mais subpasta `Pco/` (consolidado em 2026-05-22).
+Repo root é `C:\ia\dev\pco\` — `package.json`, `.git` e todas as pastas (`src/`, `server/`, `shared/`, `api/`, etc.) ficam aqui. Não existe mais subpasta `Pco/` (consolidado em 2026-05-22).
 
 ```bash
 npm run dev            # concurrent: Vite (5173) + Hono dev server (3001)
@@ -195,6 +195,60 @@ Suite smoke em `e2e/` rodada com `npm run e2e` (chromium-only). Pré-requisitos:
 `continue-on-error: true` que este parágrafo descrevia foi removido lá, e era ele
 que escondia uma suíte que nunca rodava inteira.
 
+**E o E2E vermelho para o deploy automático, em silêncio.** `deploy.yml` dispara
+por `workflow_run` condicionado à CI: com o job `e2e` falhando, ele sai
+`skipped` — não falha, não avisa, apenas não acontece. Foi o que se mediu em
+6/set/2026: **onze pushes seguidos com a CI vermelha** (de `b61cbec`, 5/set, a
+`d736503`), o último verde sendo `699bac3` de 2/set, e **um único teste
+falhando** — o menu mobile. `Quality` e `Build` passavam nos onze. Produção só
+não ficou para trás porque houve deploy manual pelo caminho.
+
+**Ao voltar a uma sessão, `gh run list --workflow=CI --limit 10` diz isso em
+dois segundos** e nenhum arquivo do repositório diz. Um `git log` limpo e a
+suíte verde localmente **não** provam que a esteira está andando.
+
+## O menu mobile é um diálogo — e o papel entra e sai por JS
+
+`server/public/client.ts` (6/set/2026). O painel do menu no celular **é o mesmo
+`<nav id="site-nav">`** que serve de barra de navegação no desktop: abaixo de
+900px o CSS esconde o `<nav>` e mostra o `.menu-toggle`, e `.nav.open` o traz de
+volta como painel absoluto sob o cabeçalho.
+
+Até 6/set/2026 abrir o menu era só `classList.toggle('open')`. Não havia papel
+de diálogo, nome acessível de painel, `Esc`, foco preso nem clique-fora. Quem
+abrisse o menu pelo teclado ficava sem como fechá-lo, e o `Tab` saía do painel
+aberto para os links **atrás** dele: invisíveis para quem enxerga, alcançáveis
+para quem navega por teclado ou leitor de tela.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **`role="dialog"` não pode estar no markup.** O mesmo elemento é a navegação
+  principal em toda tela larga; um papel fixo mentiria ali. Ele entra em
+  `abrirMenu()` e sai em `fecharMenu()`, junto com `aria-modal` e com a troca do
+  nome acessível — `"Principal"` descreve a barra, `"Menu"` descreve o painel.
+- **O foco preso é a razão de o `aria-modal` ser honesto**, e a saída é o `Esc`.
+  O botão que abre fica **fora** do painel, então ele não entra no ciclo do
+  `Tab`: com `aria-modal="true"`, o que está fora não é anunciado, e pôr o botão
+  no ciclo prometeria um alcance que o leitor de tela não tem.
+- **Clique fora fecha.** O painel não tem cortina; deixar o clique atravessar
+  faria o `aria-modal` prometer um isolamento que não existe.
+- **Voltar para largura de desktop fecha.** O CSS some com o painel sozinho, e
+  um diálogo invisível continuaria sendo anunciado — daí o ouvinte de
+  `matchMedia('(min-width:901px)')`, dentro de `try/catch` porque jsdom não
+  implementa `matchMedia`.
+
+O contrato é cobrado nos dois níveis, de propósito:
+`e2e/mobile-smoke.spec.ts` (navegador de verdade, toque de verdade) e
+`test/menu-mobile-acessivel.test.ts` (milissegundos, na suíte que se roda antes
+de commitar). O segundo nasceu porque o primeiro **já cobrava isso desde
+5/set/2026 e ficou onze commits vermelho** sem que ninguém visse.
+
+**Uma armadilha ao mexer nesse teste:** o `PUBLIC_JS` é avaliado **uma vez** por
+arquivo. Os ouvintes dele vivem em `document`; avaliá-lo por caso empilharia
+handlers, e dois toggles no mesmo clique se anulam — o teste passaria a medir a
+si mesmo. O estado de aberto/fechado mora no fechamento do script, não no DOM,
+e é por isso que o `beforeEach` dispara um `Esc` depois de trocar o corpo.
+
 ## Deploying production (VPS)
 
 O alvo de produção é um VPS Node, não a Vercel.
@@ -226,9 +280,14 @@ comandos da app vão via `sudo -u avapco -i`.
 > ponteiro para cá. Instrução errada em arquivo escrito para agente não é doc
 > desatualizado — é ordem que alguém executa.
 
-**Acesso SSH resolvido em 27/ago/2026:** a chave está instalada no usuário
-`avapco` (pelo painel da Hostinger), e o atalho `vps` aponta para ele. Como o
-`avapco` é o dono da app, **não é mais preciso `sudo -u avapco -i`**.
+**Acesso SSH — e isto depende da máquina.** Em 27/ago/2026 a chave `pco_deploy`
+foi instalada no usuário `avapco` (pelo painel da Hostinger) e o atalho `vps`
+passou a apontar para ele; ali o `sudo -u avapco -i` deixou de ser necessário.
+**Na máquina de 6/set/2026 (`C:`) essa chave não existe** — `~/.ssh/pco_deploy`
+não veio junto, porque chave não viaja com o repositório. O que funciona aqui é
+o atalho genérico `vps` (root, chave `enlevo_vps195`), e por ele **todo comando
+da app volta a exigir `sudo -u avapco -i`**. Antes de seguir qualquer receita
+desta seção, confira com `ssh vps whoami`: se responder `root`, use o prefixo.
 
 O caminho recomendado é `bash scripts/deploy_producao.sh`, que confere estar no
 servidor certo antes de tocar em nada, faz backup do `data/` e compara o hash
@@ -299,7 +358,7 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > `npx tsx scripts/confere_banco_antes_do_deploy.ts`.
 >
 > A passada 004 rodou sobre `26cb33c`, o primeiro HEAD desta série **em
-> produção**. Os relatórios estão em `H:/ia/dev/auditoria-ava-pco/relatorios/`,
+> produção**. Os relatórios estão em `C:/ia/dev/auditoria-ava-pco/relatorios/`,
 > com uma seção "Passada 004" cada; `correcoes-aplicadas.md` tem a tabela do que
 > foi consertado, em três rodadas.
 >
@@ -385,14 +444,14 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > 4. O deploy é `bash scripts/deploy_producao.sh` — confere o host, faz backup
 >    do `data/` e compara o hash do bundle.
 > 5. O índice da auditoria, com o que cada trilha achou e o que não verificou,
->    está em `H:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`, no bloco do topo.
+>    está em `C:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`, no bloco do topo.
 
 
 > ### 5/set/2026, noite — a auditoria auditou o que subiu de manhã
 >
 > A passada 004 rodou sobre `26cb33c` — o primeiro HEAD desta série que está
 > **em produção, com aluno dentro e dinheiro passando**. Os relatórios estão em
-> `H:/ia/dev/auditoria-ava-pco/relatorios/`, com uma seção "Passada 004" cada.
+> `C:/ia/dev/auditoria-ava-pco/relatorios/`, com uma seção "Passada 004" cada.
 >
 > **O que ela achou foi o código escrito naquela mesma manhã**, e os cinco
 > defeitos do expurgo têm todos a mesma forma: a rotina rodava, contava e
@@ -556,12 +615,12 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >   exclusão vira `completed` sem chamar rotina de expurgo nenhuma.
 > - Achados menores da passada do aluno (`ALU4-007` a `ALU4-009`) no relatório.
 >
-> Relatórios: `H:/ia/dev/auditoria-ava-pco/relatorios/` — a passada do aluno
+> Relatórios: `C:/ia/dev/auditoria-ava-pco/relatorios/` — a passada do aluno
 > está em `aluno-passada-004.md`.
 
 > ### 4/set/2026 — dois consertos, uma auditoria, e nada publicado
 >
-> **Comece por `H:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`, pelo bloco do
+> **Comece por `C:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`, pelo bloco do
 > fim** (“⏸ Retomar daqui — 4/set”). Ele fica **fora deste repositório** de
 > propósito: relatório de auditoria com evidência não se mistura a código.
 >
@@ -590,7 +649,7 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 > ### 3/set/2026 — o handoff vivo mudou de lugar (registro anterior)
 >
-> **Comece por `H:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`**, que fica
+> **Comece por `C:/ia/dev/auditoria-ava-pco/RETOMAR-AQUI.md`**, que fica
 > **fora deste repositório** de propósito (relatório de auditoria com evidência
 > não se mistura a código).
 >

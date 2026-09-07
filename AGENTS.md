@@ -20,7 +20,7 @@ apontar em vez de repetir.
 
 ## O essencial, para quem chegou aqui primeiro
 
-- **Raiz do repo:** `H:\ia\dev\pco\`.
+- **Raiz do repo:** `C:\ia\dev\pco\`.
 - **Verificação:** `npm run typecheck`, `npm run lint`, `npm run test`,
   `npm run build`. E2E: `E2E_FRESH=1 npm run e2e`.
 - **Deploy:** `bash scripts/deploy_producao.sh`. Migração de banco é passo
