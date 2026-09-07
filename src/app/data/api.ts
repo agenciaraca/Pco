@@ -4718,10 +4718,27 @@ export interface DeletionRequestDto {
   };
 }
 
+/**
+ * Um lugar que pode conter dado pessoal e que a rotina não sabe consultar.
+ *
+ * Não é retenção: retenção é guardar algo que se sabe existir e se sabe achar.
+ * Aqui não há identificador ligando o registro ao titular, então nem
+ * "encontrados: 0" pode ser afirmado — e zero, na tela, se lê como "não havia".
+ */
+export interface ExpurgoSemIndiceDto {
+  store: string;
+  oQueGuarda: string;
+  porQue: string;
+  /** Total de registros no store, não "deste titular". `null` = nem contar deu. */
+  existentesNoTotal: number | null;
+}
+
 export interface ExpurgoResultadoDto {
   /** `true` = ensaio: nada foi tocado. */
   ensaio: boolean;
   completo: boolean;
+  /** O que a rotina não alcança, declarado. Ver `ExpurgoSemIndiceDto`. */
+  semIndice?: ExpurgoSemIndiceDto[];
   tratadas: Array<{ categoria: string; destino: string; tratados: number }>;
   retidas: Array<{ categoria: string; motivo: string }>;
   pendentes: Array<{ categoria: string; erro: string }>;

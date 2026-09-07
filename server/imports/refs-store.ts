@@ -37,6 +37,50 @@ export async function listForInternal(
   );
 }
 
+/**
+ * As referências que apontam para a CONTA de uma pessoa.
+ *
+ * `internalId` só é igual ao id do usuário nas referências de `student` — as
+ * de pedido e de matrícula carregam o id do pedido e o da matrícula. Por isso
+ * a busca é pelo id, sem filtrar o tipo: ela acerta exatamente a linha de
+ * identidade e não encosta nas outras.
+ *
+ * Existe para o expurgo da LGPD. Cada linha destas amarra a conta a um usuário
+ * do WordPress de origem (`psi:1234`, `portal:567`) — depois de a conta ser
+ * anonimizada, ela continuaria sendo o caminho de volta ao nome real.
+ */
+export async function listForUser(userId: string): Promise<ExternalReference[]> {
+  return await store.filter((r) => r.internalId === userId);
+}
+
+/**
+ * Apaga as referências da conta. Devolve quantas saíram.
+ *
+ * **A consequência operacional, escrita porque não é óbvia:** sem a
+ * referência, uma reimportação da mesma origem deixa de reconhecer a pessoa e
+ * criaria uma conta nova — ressuscitando o que o titular pediu para apagar. O
+ * conserto disso não é guardar o vínculo, é a escola remover o titular na
+ * ORIGEM, que é obrigação dela do mesmo jeito. Guardar o mapeamento "para o
+ * caso de reimportar" seria manter o identificador exatamente pelo motivo que
+ * a anonimização existe para eliminar.
+ *
+ * Usa `modify` e não `getAll` + `setAll`: o par monta um array novo fora da
+ * lista viva e o instala por cima, e entre as duas chamadas há `await` — toda
+ * escrita concorrente no intervalo se perde sem erro.
+ */
+export async function clearForUser(userId: string): Promise<number> {
+  return await store.modify((items) => {
+    let removidas = 0;
+    for (let i = items.length - 1; i >= 0; i--) {
+      if (items[i]!.internalId === userId) {
+        items.splice(i, 1);
+        removidas++;
+      }
+    }
+    return removidas;
+  });
+}
+
 interface UpsertInput {
   sourceType: ImportSource;
   externalEntityType: ImportEntityType;

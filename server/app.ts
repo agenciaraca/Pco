@@ -259,6 +259,7 @@ import * as studyPaths from './repositories/study-paths';
 import { computePathProgress } from './repositories/study-paths';
 import * as questionBank from './repositories/question-bank';
 import * as quizAttempts from './repositories/quiz-attempts';
+import * as externalRefsStore from './imports/refs-store';
 import { checkPrerequisites, computeCompletedCourseIds } from './repositories/prerequisites';
 
 /**
@@ -2175,7 +2176,16 @@ export function buildApp() {
           pendentes: resumo.pendentes.length,
         },
       });
-      return c.json({ ensaio: !commit, ...resumo, itens: r.itens });
+      // `semIndice` vai junto de propósito: é o que a rotina NÃO consegue
+      // procurar, e o ensaio é onde o operador lê antes de autorizar. Omitir
+      // aqui devolveria a tabela a dizer "completo" sobre um lugar que ninguém
+      // olhou — que foi como as transcrições de sessão sumiram das duas pontas.
+      return c.json({
+        ensaio: !commit,
+        ...resumo,
+        itens: r.itens,
+        semIndice: r.semIndice,
+      });
     },
   );
 
@@ -2232,6 +2242,7 @@ export function buildApp() {
       emailsRecebidos,
       registrosDeAuditoria,
       avaliacoesFeitas,
+      referenciasExternas,
     ] = await Promise.all([
       ordersRepo.listForUser(u.sub),
       bookingsRepo.listForUser(u.sub),
@@ -2251,6 +2262,7 @@ export function buildApp() {
       emailLogStore.listForEmail(u.email ?? ''),
       auditLogStore.listAudit({ targetId: u.sub, limit: 1000 }),
       quizAttempts.listForUser(u.sub),
+      externalRefsStore.listForUser(u.sub),
     ]);
 
     const dump = {
@@ -2295,6 +2307,17 @@ export function buildApp() {
       emailLogs: emailsRecebidos,
       // As avaliações que ela fez: nota, aprovação e resultado por questão.
       quizAttempts: avaliacoesFeitas,
+      /*
+        De onde esta conta veio: o vínculo com o usuário do WordPress de origem.
+
+        É identificador do titular em outro sistema, e por isso é dele. Sai sem
+        o `metadata`, que é escrituração da importação — carrega o retrato do
+        registro de origem no momento da carga, com campos que não são dele e
+        que ninguém revisou para entrega.
+      */
+      externalReferences: referenciasExternas.map(
+        ({ metadata: _m, ...resto }) => resto,
+      ),
       /*
         O que foi feito **com** os dados dela, e por quem.
 

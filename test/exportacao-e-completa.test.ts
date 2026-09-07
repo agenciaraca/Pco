@@ -66,6 +66,8 @@ const CATEGORIAS: Record<string, string> = {
     'outro store — e foi por `forumAndComments` ter nome de cobrir os dois que o ' +
     'fórum ficou fora daqui e do expurgo até 5/set/2026.',
   courseReviews: 'As avaliações e comentários que ele deixou nos cursos.',
+  externalReferences:
+    'De onde a conta dele veio: o vínculo com o usuário do WordPress de origem.',
   retentionRisk:
     'O índice de risco de evasão e as razões. **Juízo sobre ele, feito sem que ele saiba** ' +
     'e invisível em qualquer outra tela — é o caso central do direito de acesso.',

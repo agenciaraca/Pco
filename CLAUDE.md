@@ -207,6 +207,67 @@ não ficou para trás porque houve deploy manual pelo caminho.
 dois segundos** e nenhum arquivo do repositório diz. Um `git log` limpo e a
 suíte verde localmente **não** provam que a esteira está andando.
 
+## O expurgo não pode calar sobre o que não alcança
+
+Duas metades do mesmo defeito, fechadas em 7/set/2026. Nenhuma dava erro — a
+rotina rodava, contava e reportava `completo: true`.
+
+### A referência externa sobrevivia à anonimização
+
+`external-references.json` amarra a conta ao usuário do WordPress de origem
+(`psi:1234`, `portal:567`), e é **indexada pelo id da conta**. O expurgo
+trocava o nome e o e-mail na tabela de contas e deixava, na linha ao lado, o
+ponteiro para o nome real. Anonimizar assim é de fachada: o caminho de volta
+continua escrito, no mesmo `data/`.
+
+Agora é categoria (`externalReferences`), destino **apagar**, nas duas pontas —
+exportação e expurgo, como o invariante exige.
+
+Duas coisas que qualquer mexida aqui tem de respeitar:
+
+- **`internalId` só é o id do usuário nas referências de `student`.** As de
+  pedido e de matrícula carregam o id do pedido e o da matrícula, e seguem o
+  destino das suas próprias categorias — pedido pago é documento fiscal retido.
+  Por isso a busca é por id, sem filtrar tipo: acerta a linha de identidade e
+  não encosta nas outras.
+- **A consequência operacional, que não é óbvia:** sem a referência, uma
+  reimportação da mesma origem não reconhece a pessoa e criaria conta nova —
+  ressuscitando o que o titular mandou apagar. O conserto disso não é guardar o
+  vínculo; é a escola remover o titular **na origem**, obrigação dela do mesmo
+  jeito. Guardar o mapeamento "para o caso de reimportar" seria manter o
+  identificador exatamente pelo motivo que a anonimização existe para eliminar.
+
+### A transcrição de sessão não estava em ponta nenhuma
+
+Não saía no `/me/export`, não aparecia no expurgo, e não era declarada. O
+relatório afirmava completude por cima de um lugar que ninguém tinha olhado —
+mesma classe do `contar()` com `catch` vazio que este arquivo já corrigiu.
+
+**Ela não virou categoria com rotina, e a razão é do modelo, não esquecimento.**
+`SessionTranscript` guarda `sessionId`; `LiveSession` **não tem lista de
+participante** — nenhum campo, em nenhum dos dois stores, liga a transcrição a
+uma pessoa. O `speaker` dos segmentos é rótulo do provedor ("Speaker 0"), não
+identidade. Procurar o nome no `fullText` seria pior que não procurar: falso
+positivo apaga a fala de terceiros, falso negativo mente dizendo que apagou. E
+a gravação é de aula coletiva: apagá-la a pedido de um aluno destruiria o
+registro dos outros.
+
+**Também não virou `reter`**, e a distinção importa: retenção é decisão
+jurídica sobre algo que se sabe existir e se sabe achar, com motivo escrito.
+Aqui não se sabe se existe. Chamar isto de retenção usaria uma palavra que
+promete conhecimento que não temos.
+
+O que sobrou é `SEM_INDICE_POR_TITULAR` no resultado (`semIndice`), impresso no
+**ensaio** — que é o que o operador lê antes de autorizar. Ele traz o total do
+**store**, não do titular: é o que distingue "não há o que procurar" de "há 300
+arquivos para alguém olhar à mão". `null` ali é "não consegui contar", nunca
+zero.
+
+`test/expurgo-nao-cala-o-que-nao-alcanca.test.ts` cobra os dois lados, e um dos
+casos é a prova de que a ausência de rotina é do modelo: ele lê os dois stores
+e falha no dia em que a sessão ganhar lista de participante — que é exatamente
+quando a categoria tem de deixar de ser manual.
+
 ## Upload: quem diz o que o arquivo é são os bytes, não o cliente
 
 `server/uploads/assinaturas.ts` (7/set/2026). Até então `saveUpload` lia
@@ -386,9 +447,15 @@ Só restart, sem rebuild: `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
 **Quando o deploy automático falhar por rede, não perca tempo relendo o
 workflow.** Em 1º/set/2026 ele falhou com `ssh: connect to host ***: Connection
 timed out` — o runner do GitHub não alcançou o VPS, enquanto o SSH da máquina
-local funcionava no mesmo minuto. Não era código nem chave. O caminho é
-`bash scripts/deploy_producao.sh`, que confere o host, faz backup do `data/` e
-compara o hash do bundle. **Bundle igual antes e depois é esperado** quando o
+local funcionava no mesmo minuto. Não era código nem chave.
+
+**Tente o re-run ANTES do deploy manual.** A falha se repetiu em 7/set/2026, no
+mesmo formato, e `gh run rerun <id> --failed` resolveu na primeira tentativa: a
+indisponibilidade é do caminho de rede entre o runner e o VPS, e ela passa.
+Custa um comando e trinta segundos, contra reconstruir tudo à mão.
+
+Se o re-run também falhar, aí sim o caminho é `bash scripts/deploy_producao.sh`,
+que confere o host, faz backup do `data/` e compara o hash do bundle. **Bundle igual antes e depois é esperado** quando o
 commit não toca no frontend — o aviso do script é genérico; confirme pelo
 `git log -1` do servidor.
 
@@ -470,16 +537,21 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > **O que sobrou de código, e é pouco:**
 >
-> - **A contradição do carnê** registrada em SEC4-001: dois comentários no mesmo
->   HEAD dizem coisas opostas sobre as parcelas 2..N acharem o pedido. Quem
->   mexer no carnê resolve isso antes.
+> - ~~**A contradição do carnê**~~ — **resolvida em 7/set/2026.** O comentário do
+>   `asaas.ts` afirmava, no presente, que as parcelas 2..N "não encontram pedido
+>   nenhum" e que "o que falta não é código" — descrição de um estado anterior à
+>   migration `0020`, que criou `gatewayInstallmentId`, e à segunda busca do
+>   webhook (`findByInstallment`). Ele mandava a próxima pessoa não procurar o
+>   que já existe. Reescrito para dizer como o elo funciona e separar o que
+>   continua aberto, que é só a política `CARNE_ATRASO_SUSPENDE`.
 > - ~~**`SEC4-003`**~~ — **fechado em 7/set/2026.** A extensão passou a vir do
 >   conteúdo; o tipo declarado não decide mais nada. E a avaliação de "risco
 >   baixo" estava incompleta: o caso não era o admin subindo documento, era a
 >   rota de imagem, que é `requireAuth()` e alcança os ~1.600 alunos. Ver a
 >   seção do upload.
-> - Os "não verificado" restantes da passada 004: transcrições de sessão ao vivo
->   (o store não tem `userId`), `external-references.json`, e as snapshots em S3
+> - ~~Os "não verificado" da passada 004 sobre transcrição de sessão e
+>   `external-references.json`~~ — **fechados em 7/set/2026**, um com rotina e o
+>   outro com declaração. Ver a seção do expurgo. Restam as snapshots em S3
 >   — esta última é o item 3 acima.
 >
 > ### Como retomar

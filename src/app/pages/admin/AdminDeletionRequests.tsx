@@ -367,6 +367,41 @@ function Relatorio({ r }: { r: ExpurgoResultadoDto }) {
         </tbody>
       </table>
 
+      {/*
+        O que a rotina NÃO consegue procurar.
+
+        Fica ABAIXO da tabela e acima das retenções de propósito: quem lê o
+        ensaio está decidindo autorizar a execução, e a tabela sozinha se lê
+        como inventário completo. Antes disto as transcrições de sessão não
+        apareciam em canto nenhum — nem na exportação, nem no expurgo — e o
+        relatório dizia "completo".
+
+        O total é do store inteiro, não do titular: é o que permite distinguir
+        "não há o que procurar" de "há registros para alguém olhar à mão".
+      */}
+      {(r.semIndice?.length ?? 0) > 0 && (
+        <div className="rounded border border-status-warn/40 bg-status-warn/5 p-2 text-xs space-y-2">
+          <p className="font-medium text-ink-muted">
+            O que a rotina não consegue procurar — verificação manual:
+          </p>
+          {r.semIndice!.map((x) => (
+            <div key={x.store} className="text-ink-subtle">
+              <p>
+                <strong className="font-mono text-[11px]">{x.store}</strong>
+                {' — '}
+                {x.existentesNoTotal === null
+                  ? 'não foi possível contar os registros'
+                  : x.existentesNoTotal === 0
+                    ? 'nenhum registro existe hoje, nada a verificar'
+                    : `${x.existentesNoTotal} registro(s) no total`}
+              </p>
+              <p>{x.oQueGuarda}</p>
+              <p className="italic">{x.porQue}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {r.retidas.length > 0 && (
         <div className="text-xs text-ink-subtle space-y-1">
           <p className="font-medium text-ink-muted">O que fica, e por quê:</p>

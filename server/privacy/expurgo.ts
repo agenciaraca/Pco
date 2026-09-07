@@ -53,6 +53,8 @@ import * as adminNotes from '../admin/notes-store';
 import * as recoveryPlans from '../repositories/recovery-plans';
 import * as emailLogs from '../notifications/log-store';
 import * as auditLog from '../audit/log';
+import * as externalRefs from '../imports/refs-store';
+import * as transcriptions from '../transcription/store';
 
 export type Destino = 'apagar' | 'anonimizar' | 'reter';
 
@@ -79,6 +81,37 @@ export interface ResultadoDoExpurgo {
   itens: ItemDoExpurgo[];
   /** Toda categoria foi tratada sem erro? */
   completo: boolean;
+  /**
+   * O que a rotina NÃO consegue procurar, e por quê. Ver
+   * `SEM_INDICE_POR_TITULAR`.
+   */
+  semIndice: StoreSemIndice[];
+}
+
+/**
+ * Um lugar que pode conter dado pessoal e que a rotina não sabe consultar.
+ *
+ * Não é o mesmo que uma categoria retida: retenção é uma decisão de guardar
+ * algo que se sabe existir e se sabe achar. Isto é o contrário — não há
+ * identificador que ligue o registro ao titular, então nem "encontrados: 0"
+ * pode ser afirmado. Imprimir zero aqui seria dizer "não havia nada" quando o
+ * que houve foi "não consegui olhar", que é exatamente o defeito que o
+ * `contar()` desta rotina já corrigiu uma vez.
+ */
+export interface StoreSemIndice {
+  /** Onde procurar à mão. */
+  store: string;
+  /** O que pode haver ali a respeito do titular. */
+  oQueGuarda: string;
+  /** Por que a rotina não alcança. */
+  porQue: string;
+  /**
+   * Quantos registros existem no TOTAL — não "deste titular", que é
+   * justamente o que não dá para saber. Serve para o operador distinguir
+   * "não há o que procurar" de "há 300 arquivos para alguém olhar".
+   * `null` quando nem o total pôde ser lido.
+   */
+  existentesNoTotal: number | null;
 }
 
 /**
@@ -163,6 +196,20 @@ export const DECISOES: DecisaoDeCategoria[] = [
     destino: 'apagar',
     // Desempenho em avaliação é dado da pessoa, e não vale para terceiro: o
     // certificado, que é o que fica para o mundo, é retido à parte.
+  },
+  {
+    categoria: 'externalReferences',
+    destino: 'apagar',
+    /*
+      A linha que amarra esta conta ao usuário do WordPress de origem
+      (`psi:1234`, `portal:567`). Sem apagá-la, a anonimização é de fachada: o
+      nome sai da nossa tabela e o ponteiro para o nome continua ao lado, no
+      mesmo arquivo, indexado pelo id da conta anonimizada.
+
+      Só as referências de `student` casam pelo id do usuário — as de pedido e
+      de matrícula carregam outros ids e seguem o destino das suas próprias
+      categorias.
+    */
   },
   { categoria: 'retentionRisk', destino: 'apagar' },
   { categoria: 'adminNotesAboutMe', destino: 'apagar' },
@@ -389,6 +436,12 @@ export async function expurgarTitular(
   );
 
   await registra(
+    d('externalReferences'),
+    async () => (await contar(() => externalRefs.listForUser(userId))).length,
+    async () => await externalRefs.clearForUser(userId),
+  );
+
+  await registra(
     d('retentionRisk'),
     async () =>
       (await contar(() => retentionRepo.listRetentionRisks())).filter(
@@ -414,5 +467,54 @@ export async function expurgarTitular(
     executou: commit,
     itens,
     completo: itens.every((i) => !i.erro),
+    semIndice: await levantarSemIndice(),
   };
+}
+
+/**
+ * O que a rotina não sabe procurar — declarado, não omitido.
+ *
+ * A auditoria de 6/set/2026 deixou as transcrições de sessão ao vivo como
+ * "não verificado", e o efeito disso no produto era pior do que a anotação
+ * sugere: elas não estavam em lugar nenhum. Não saíam no `/me/export`, não
+ * apareciam no expurgo, e o relatório imprimia `completo: true` — uma
+ * afirmação de completude por cima de um lugar que ninguém tinha olhado.
+ *
+ * **Por que não vira categoria com rotina.** `SessionTranscript` guarda
+ * `sessionId`, e `LiveSession` não tem lista de participante: nenhum campo, em
+ * nenhum dos dois stores, liga uma transcrição a uma pessoa. O `speaker` dos
+ * segmentos é rótulo do provedor ("Speaker 0"), não identidade. Procurar pelo
+ * nome no `fullText` seria pior que não procurar: falso positivo apaga a fala
+ * de terceiros, falso negativo mente dizendo que apagou.
+ *
+ * **E por que não vira `reter`.** Retenção é decisão jurídica sobre algo que
+ * se sabe existir e se sabe achar, com o motivo escrito. Aqui não se sabe se
+ * existe. Chamar isto de retenção usaria uma palavra que promete conhecimento
+ * que não temos.
+ *
+ * O que sobra, e é o certo: dizer ao operador, no ensaio que ele lê ANTES de
+ * autorizar, que existe este lugar, quantos registros há nele, e que a
+ * verificação é manual.
+ */
+async function levantarSemIndice(): Promise<StoreSemIndice[]> {
+  let total: number | null;
+  try {
+    total = (await transcriptions.listAll()).length;
+  } catch {
+    // Store fora do ar: `null` diz "não consegui contar". Zero diria "não há",
+    // que é outra coisa.
+    total = null;
+  }
+  return [
+    {
+      store: 'data/session-transcripts.json',
+      oQueGuarda:
+        'Transcrição de sessão ao vivo — pode conter o nome e a fala do titular, ditos em aula.',
+      porQue:
+        'A transcrição é ligada à sessão, e a sessão não tem lista de participante. ' +
+        'Nenhum campo liga o registro a uma pessoa, e a gravação é de aula coletiva: ' +
+        'apagá-la por pedido de um aluno destruiria o registro dos outros.',
+      existentesNoTotal: total,
+    },
+  ];
 }

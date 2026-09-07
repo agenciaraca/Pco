@@ -117,20 +117,23 @@ export const asaasProvider: PaymentProviderImpl = {
         // exatamente o preço anunciado. Dividir aqui deixaria centavos sobrando
         // ou faltando contra a vitrine.
         //
-        // ⚠️ **O que o carnê ainda NÃO faz, e é decisão de gente.**
+        // **Como as parcelas 2..N encontram o pedido.**
         // Cada parcela é uma cobrança própria, com id próprio, e o pedido
-        // guarda o id da **primeira**. `findByExternalId` casa o webhook por
-        // esse id — então o `paid` da parcela 1 libera o acesso (certo), e os
-        // eventos das parcelas 2 a N **não encontram pedido nenhum** e são
-        // ignorados. Consequência prática: quem para de pagar no meio do carnê
-        // continua estudando, e o AVA não fica sabendo.
+        // guarda o da **primeira** — então `findByExternalId` casa a parcela 1
+        // e mais nenhuma. O elo é o `installment` que o Asaas devolve na
+        // criação e repete em todas: ele é gravado em `gatewayInstallmentId`
+        // (migration `0020`), e o webhook cai em `findByInstallment` quando o
+        // `externalId` não bate. Sem isso, o aviso da parcela 3 não achava
+        // pedido nenhum e era descartado.
         //
-        // O elo existe: o Asaas devolve `installment` (o id do parcelamento) e
-        // o repete em todas as parcelas. Ligar `PAYMENT_OVERDUE` daquele
-        // parcelamento a `aplicarSituacaoDoPedido` fecharia o buraco — a regra
-        // "atraso suspende" já existe em `server/access/situacao-matricula.ts`.
-        // O que falta não é código, é a decisão: suspender o acesso de quem
-        // atrasou um boleto por dois dias é política comercial da escola.
+        // ⚠️ **O que continua sendo decisão de gente.** Achar o pedido não é
+        // suspender o acesso. Parcela vencida NÃO derruba o pedido — ele foi
+        // pago, a parcela 1 entrou e o acesso saiu; marcá-lo `failed` porque a
+        // 3 atrasou reescreveria a história da compra. O que o webhook faz é
+        // registrar no histórico e auditar. Suspender mora atrás de
+        // `CARNE_ATRASO_SUSPENDE=true`, **desligada**: cortar o curso de quem
+        // atrasou um boleto por dois dias é política comercial da escola, e
+        // enquanto ela não existir o lado certo para errar é manter o acesso.
         ...(parcelas > 1
           ? { installmentCount: parcelas, totalValue: input.amountCents / 100 }
           : {}),
