@@ -741,6 +741,94 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
+> ### 7/set/2026 — dez sprints, tudo publicado, nada pela metade
+>
+> **Árvore limpa, `main` = `origin/main`, e produção acompanhando.** A suíte
+> saiu de **263 arquivos / 2483 testes** para **273 / 2587**. Cada sprint tem
+> teste que falha contra o código anterior — foi assim que se conferiu.
+>
+> #### O que destravou o dia
+>
+> **A CI estava vermelha havia onze commits e ninguém sabia.** Último verde:
+> `699bac3`, de 2/set. Falhava **um** teste E2E — o menu mobile —, e como o
+> `deploy.yml` dispara por `workflow_run` condicionado à CI, o deploy saía
+> `skipped`: não falha, não avisa, apenas não acontece. **O deploy automático
+> não rodava desde 2/set.**
+>
+> Ao retomar, `gh run list --workflow=CI --limit 10` diz isso em dois segundos,
+> e nenhum arquivo do repositório diz. Suíte verde na máquina não prova que a
+> esteira anda.
+>
+> #### Os dez, em ordem de commit
+>
+> | commit | o quê |
+> | --- | --- |
+> | `4bb3d25` | menu mobile virou diálogo de verdade — destravou CI e deploy |
+> | `4589a17` | upload decide pelo **conteúdo**, não pelo tipo declarado |
+> | `7ecc234` | LGPD: a referência externa sobrevivia à anonimização |
+> | `f052acd` | 9 dos 13 workers podiam falhar todo ciclo e aparecer verdes |
+> | `6243fa2` | queda de conexão custava chamado de aluno e um certificado |
+> | `b1bc2d9` | a vitrine dizia "não existe" quando era "não consegui ler" |
+> | `a3e6327` | painel de saúde passou a perguntar pelos workers |
+> | `db765d1` | `getAll+setAll` perdia escrita concorrente em 24 lugares |
+> | `fd888a0` | hero e duas seções da home + Sobre/Contato para o rodapé |
+> | `9fa0615` `4601ddb` | checkout com nascimento e endereço + erros em português |
+>
+> Cada um tem seção própria acima, com o porquê. **O fio que une quase todos é
+> o mesmo de sempre neste projeto: a rotina rodava, contava e reportava
+> sucesso.**
+>
+> #### Dois achados que a auditoria não tinha pego
+>
+> 1. **O provider do Asaas nunca enviava o CPF nem o telefone.** O checkout
+>    coletava, conferia o dígito verificador, passava adiante — e o
+>    `createPayment` montava o cadastro do cliente com nome e e-mail, só. O
+>    campo existia em `CreatePaymentInput` desde 31/ago e ninguém o lia, com o
+>    roteamento de produção mandando **boleto** justamente para o Asaas.
+> 2. **Dois workers afirmavam saúde antes de medir**, e são os que existem para
+>    avisar que dinheiro parou de entrar: a Sandra nascia `saudavel: true` com o
+>    comentário dizendo *"a varredura completou alguma vez desde o boot?"*; o
+>    alarme de checkout calculava `ultimoErro === null`, que é `true` antes da
+>    primeira avaliação.
+>
+> #### Retomar daqui
+>
+> A frente aberta é o **preenchimento automático por CEP**, e o desenho já está
+> decidido: rota nossa (`GET /public/cep/:cep`), não `fetch` do navegador — a
+> CSP bloqueia terceiro, e assim o IP do visitante não vai para o ViaCEP.
+> Cache em memória, limite por IP, e falha em silêncio: se não responder, a
+> pessoa digita. **Nada disso foi começado**, então não há nada a limpar.
+>
+> Depois dela, na ordem em que eu faria:
+>
+> 1. **Persistir endereço e nascimento** — bloqueado, ver abaixo.
+> 2. **Node 20 no VPS**, fora de suporte desde abril/2026.
+> 3. As sete decisões da auditoria, que continuam sendo do dono.
+>
+> #### O que ME bloqueia, e não é código
+>
+> - **Migration não roda desta máquina.** A porta 5432 do DivZ dá timeout daqui
+>   (DNS resolve, TCP não conecta), então `db:migrate` e
+>   `scripts/confere_banco_antes_do_deploy.ts` morrem. Sem coluna nova, o
+>   endereço do checkout **não é persistido** — vive só no cadastro do gateway.
+>   Persistir traz junto o prefill e a entrada nas duas pontas da LGPD.
+> - **`~/.ssh/pco_deploy` não existe aqui.** `ssh vps` entra como **root**, e
+>   por isso todo comando da app precisa de `sudo -u avapco -i`. A chave
+>   `pco_avapco` foi gerada nesta máquina e **ainda não foi instalada** no
+>   servidor; a pública está em `~/.ssh/pco_avapco.pub`.
+> - **Chrome não alcança o `localhost`** desta máquina (permissão de site da
+>   extensão), então verificação visual foi feita por HTML servido + conta de
+>   CSS, não por captura de tela.
+>
+> #### Duas armadilhas que custaram tempo hoje
+>
+> - **Crase dentro de template literal quebra o arquivo inteiro** — seção
+>   própria acima. Quatro interrupções.
+> - **`tail` de log de produção não é o presente.** O `ava-pco-error.log` não
+>   recebe uma linha desde 4/set 21:53, e eu afirmei num commit que as falhas
+>   "continuam acontecendo agora". Confira `stat -c %y` antes de citar log
+>   como evidência.
+
 > ### 6/set/2026, madrugada — a auditoria 004 foi ao fim, e tudo está no ar
 >
 > **`main`, `origin/main` e produção no mesmo commit.** Banco com as migrations
