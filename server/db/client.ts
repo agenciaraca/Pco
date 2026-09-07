@@ -11,6 +11,7 @@
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import * as schema from './schema';
+import { instalarRetry } from './repetir-consulta';
 
 export type DB = NodePgDatabase<typeof schema>;
 
@@ -52,13 +53,31 @@ export function getDb(): DB | null {
       max: 10,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 15_000,
+      /*
+        Keepalive de TCP, porque o banco é REMOTO.
+
+        Sem ele, uma conexão parada é derrubada em silêncio por NAT ou firewall
+        no meio do caminho, e a próxima consulta que a usar morre com
+        `Connection terminated unexpectedly` ou `read ETIMEDOUT` — as duas
+        mensagens que aparecem no log de produção. O pacote de keepalive mantém
+        o caminho vivo; é barato e não muda comportamento nenhum.
+      */
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
     });
     // Log de erros do pool para não derrubar o processo em desconexões.
     pool.on('error', (err) => {
       // eslint-disable-next-line no-console
       console.error('[db] erro idle no pool pg:', err.message);
     });
-    _db = drizzle(pool, { schema });
+    /*
+      Retentativa para queda de conexão. Ver `db/repetir-consulta.ts` — leitura
+      repete sempre, escrita só quando é certo que a consulta não saiu. Em
+      7/set/2026 o log de produção tinha 10 chamados de aluno perdidos, 21
+      leituras do site público falhando e um certificado não emitido, todos por
+      queda de conexão, e nenhum tinha retentativa.
+    */
+    _db = drizzle(instalarRetry(pool), { schema });
     if (process.env.NODE_ENV !== 'test') {
       // eslint-disable-next-line no-console
       console.log('[db] conectado ao Postgres via node-postgres (pg)');

@@ -207,6 +207,51 @@ não ficou para trás porque houve deploy manual pelo caminho.
 dois segundos** e nenhum arquivo do repositório diz. Um `git log` limpo e a
 suíte verde localmente **não** provam que a esteira está andando.
 
+## Queda de conexão com o banco custava o chamado do aluno
+
+`server/db/repetir-consulta.ts` (7/set/2026). Medido no log de produção, com 7
+quedas de conexão no período do arquivo:
+
+- **10 `insert into support_tickets` falharam** — o aluno escreveu o chamado,
+  clicou em enviar e levou erro;
+- **21 leituras do site público** falharam (cursos, posts, certificados);
+- a primeira linha do log é `[auto-issue cert] erro ao verificar`: **certificado
+  que não foi emitido**.
+
+As mensagens são `Connection terminated unexpectedly` e `read ETIMEDOUT` — a
+assinatura de uma conexão TCP de longa distância derrubada no meio. O banco
+(DivZ) é remoto, não havia nada errado com as consultas, e **não existia
+retentativa em lugar nenhum**: uma queda de rede de um segundo virava erro na
+cara de quem estava usando.
+
+**A regra é a mesma que este projeto já escreveu para pagamento**, e é o que
+torna o conserto seguro. Em `criou-cobranca.ts`, `!res.ok` não provava que a
+cobrança não fora criada, e repetir gerava cobrança dobrada. Aqui:
+
+- **Leitura repete sempre.** `SELECT` não tem efeito.
+- **Escrita só repete quando é certo que a consulta NÃO SAIU.** Conexão morta
+  *durante* um `INSERT` pode ter deixado o commit gravado do outro lado — o que
+  se perdeu foi a resposta. Só as falhas de **aquisição** de conexão provam que
+  nada foi enviado (`timeout exceeded when trying to connect`,
+  `Connection terminated due to connection timeout`), porque nelas a consulta
+  nunca chegou a existir.
+
+Errar para o lado de não repetir custa uma mensagem que a pessoa refaz à mão.
+Errar para o outro cria chamado, certificado e matrícula em duplicata — e
+ninguém vai atrás do que não deu erro.
+
+Três coisas que não se inferem lendo o arquivo:
+
+- **`WITH` não conta como leitura**, de propósito: uma CTE pode terminar em
+  `INSERT ... RETURNING`. A checagem é estrita em vez de esperta porque o custo
+  de errar é gravar duas vezes.
+- **Só o `query` do pool é embrulhado.** Transação abre um `PoolClient`
+  dedicado, e repetir um comando dentro de uma transação já abortada não
+  recupera nada — no Postgres um comando que falha aborta a transação inteira.
+- **`keepAlive: true` entrou junto no pool**, e é a metade preventiva: sem ele,
+  conexão parada é derrubada em silêncio por NAT ou firewall no meio do
+  caminho, que é exatamente como as duas mensagens do log aparecem.
+
 ## Worker que falha todo ciclo não pode aparecer verde
 
 `server/jobs/registro-de-tick.ts` (7/set/2026). Os treze workers seguem o mesmo
