@@ -110,11 +110,10 @@ export async function revokeToken(id: string): Promise<boolean> {
 }
 
 export async function deleteToken(id: string): Promise<boolean> {
-  const all = await store.getAll();
-  const keep = all.filter((t) => t.id !== id);
-  if (keep.length === all.length) return false;
-  await store.setAll(keep);
-  return true;
+  // `remove` faz isto numa passada sobre a lista viva. Era `getAll` + `filter`
+  // + `setAll`, e esse par instala uma cópia por cima do estado: tudo que
+  // outra chamada inserir entre as duas some sem erro.
+  return await store.remove((t) => t.id === id);
 }
 
 /**

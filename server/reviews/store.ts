@@ -101,11 +101,10 @@ export async function upsertReview(input: UpsertInput): Promise<CourseReview> {
 }
 
 export async function deleteReview(id: string): Promise<boolean> {
-  const all = await store.getAll();
-  const keep = all.filter((r) => r.id !== id);
-  if (keep.length === all.length) return false;
-  await store.setAll(keep);
-  return true;
+  // `remove` faz isto numa passada sobre a lista viva. Era `getAll` + `filter`
+  // + `setAll`, e esse par instala uma cópia por cima do estado: tudo que
+  // outra chamada inserir entre as duas some sem erro.
+  return await store.remove((r) => r.id === id);
 }
 
 /**

@@ -32,9 +32,7 @@ export async function recordMessage(input: Omit<MessagingLogEntry, 'id' | 'ts'>)
     id: newId(),
     ts: new Date().toISOString(),
   };
-  await store.unshift(entry);
-  const all = await store.getAll();
-  if (all.length > MAX_ENTRIES) await store.setAll(all.slice(0, MAX_ENTRIES));
+  await store.unshiftComTeto(entry, MAX_ENTRIES);
   return entry;
 }
 

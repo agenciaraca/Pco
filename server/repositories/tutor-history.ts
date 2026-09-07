@@ -27,16 +27,19 @@ export async function recordTurn(input: Omit<TutorTurn, 'id' | 'ts'>): Promise<T
     ts: new Date().toISOString(),
     ...input,
   };
-  await store.unshift(turn);
-
-  // Truncamento por user — mantém os mais recentes
-  const all = await store.getAll();
-  const userTurns = all.filter((t) => t.userId === turn.userId);
-  if (userTurns.length > MAX_PER_USER) {
-    const userIdsToRemove = userTurns.slice(MAX_PER_USER).map((t) => t.id);
-    const remainders = all.filter((t) => !userIdsToRemove.includes(t.id));
-    await store.setAll(remainders);
-  }
+  // Insere e apara o excesso DAQUELE usuário, numa passada só sobre a lista
+  // viva. O teto aqui é por pessoa, não global, então não dá para usar
+  // `unshiftComTeto` — mas o motivo de não usar `getAll` + `setAll` é o mesmo:
+  // duas conversas simultâneas com o tutor perdiam turno uma da outra.
+  await store.modify((items) => {
+    items.unshift(turn);
+    const doUsuario = items.filter((t) => t.userId === turn.userId);
+    if (doUsuario.length <= MAX_PER_USER) return;
+    const remover = new Set(doUsuario.slice(MAX_PER_USER).map((t) => t.id));
+    for (let i = items.length - 1; i >= 0; i--) {
+      if (remover.has(items[i]!.id)) items.splice(i, 1);
+    }
+  });
   return turn;
 }
 

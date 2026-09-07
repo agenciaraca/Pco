@@ -59,13 +59,10 @@ export async function recordAudit(c: Context, input: RecordInput): Promise<void>
       meta: input.meta,
       status: input.status ?? 'ok',
     };
-    await store.unshift(entry);
-
-    // Truncamento: se passar do limite, mantém os mais novos
-    const all = await store.getAll();
-    if (all.length > MAX_ENTRIES) {
-      await store.setAll(all.slice(0, MAX_ENTRIES));
-    }
+    // Insere e apara numa passada só. Era `unshift` + `getAll` + `setAll`, e
+    // o par perde escrita concorrente sem erro — aqui isso é registro de
+    // auditoria, que é a prova do que a escola fez.
+    await store.unshiftComTeto(entry, MAX_ENTRIES);
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('[audit] failed to record entry:', e);

@@ -207,6 +207,47 @@ não ficou para trás porque houve deploy manual pelo caminho.
 dois segundos** e nenhum arquivo do repositório diz. Um `git log` limpo e a
 suíte verde localmente **não** provam que a esteira está andando.
 
+## `getAll()` + `setAll()` perde escrita concorrente — em mais 24 lugares
+
+Este arquivo já documentava o padrão desde 5/set/2026, quando treze rotinas do
+expurgo viraram `modify`. **Ele sobreviveu em 24 outros pontos**, encontrados
+por varredura em 7/set/2026.
+
+A mecânica: `getAll()` devolve uma **cópia rasa** do array vivo, `setAll()`
+instala outra cópia por cima. Entre as duas há `await` — e a requisição A quase
+sempre aguarda algo nesse intervalo (uma consulta, um hash, uma chamada HTTP).
+Tudo que a requisição B gravar nessa janela é jogado fora, sem erro e sem log.
+
+**Os piores eram os logs de acréscimo** — auditoria, erros, e-mail, mensageria,
+tutor, entrega de webhook. São exatamente os que recebem escrita concorrente em
+**rajada**: quando muita coisa falha ao mesmo tempo é quando os registros se
+perdem. O log de erros perdia registro de erro justamente durante um incidente;
+o de auditoria, a prova do que a escola fez; o de e-mail é lido pelo expurgo da
+LGPD para dizer o que foi enviado a uma pessoa.
+
+Dois métodos novos no `JsonStore` resolvem a maioria sem repetir `modify` vinte
+vezes:
+
+- **`unshiftComTeto(item, max)`** — insere no topo e apara numa passada só.
+  `items.length = max` corta no lugar, sem criar array novo.
+- **`removeAll(predicate)`** — `remove` só tira o primeiro que casa, e quem
+  precisava tirar vários caía no par. Varre de trás para a frente, senão
+  remover o índice 0 faz o antigo 1 virar 0 e a varredura pula ele.
+
+Nove exclusões por id viraram `store.remove(...)`, que **já existia atômico** e
+ninguém usava.
+
+**O que ficou de fora, de propósito:** `setAll([])` (limpar) e `setAll([cfg])`
+(configuração de uma linha só) não são leitura-seguida-de-escrita — são
+substituição deliberada, e não têm a janela.
+
+`test/getall-setall-perde-escrita.test.ts` **demonstra a perda** em vez de
+descrevê-la, e guarda uma pegadinha: escrever `const p = store.unshift(...)`
+sem `await` **não** reproduz o defeito. Ordem de microtarefa — o `setAll`
+instala a cópia de forma síncrona antes da continuação do `unshift`, e a linha
+nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
+janela, que é o caso real de duas requisições.
+
 ## O painel de saúde não perguntava pelos workers
 
 `server/health/dashboard.ts` (7/set/2026). Ele tinha dezesseis verificações —

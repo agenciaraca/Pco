@@ -24,9 +24,9 @@ export async function pushLog(log: Omit<EmailLog, 'id' | 'ts'>): Promise<EmailLo
     ts: new Date().toISOString(),
     ...log,
   };
-  const all = await store.getAll();
-  const next = [entry, ...all].slice(0, MAX);
-  await store.setAll(next);
+  // Esta fila é lida pelo expurgo da LGPD para saber o que a escola mandou
+  // para uma pessoa. Perder linha aqui é perder o registro do envio.
+  await store.unshiftComTeto(entry, MAX);
   return entry;
 }
 

@@ -181,9 +181,5 @@ export function clearCancel(id: string): void {
 /** Drop jobs com mais de N dias (helper opcional). */
 export async function purgeOlderThan(days: number): Promise<number> {
   const cutoff = Date.now() - days * 24 * 60 * 60_000;
-  const all = await store.getAll();
-  const keep = all.filter((j) => new Date(j.startedAt).getTime() >= cutoff);
-  const removed = all.length - keep.length;
-  if (removed > 0) await store.setAll(keep);
-  return removed;
+  return await store.removeAll((j) => new Date(j.startedAt).getTime() < cutoff);
 }

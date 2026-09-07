@@ -254,6 +254,28 @@ export class JsonStore<T> {
     return true;
   }
 
+  /**
+   * Remove **todos** os que casam, e devolve quantos saíram.
+   *
+   * `remove` tira só o primeiro. Quem precisava tirar vários fazia
+   * `getAll` + `filter` + `setAll`, e esse par perde escrita concorrente sem
+   * erro: o `setAll` instala uma cópia por cima da lista viva, jogando fora o
+   * que outra chamada tiver inserido no intervalo. Percorrer de trás para a
+   * frente é o que permite remover durante a varredura sem pular índice.
+   */
+  async removeAll(predicate: (item: T) => boolean): Promise<number> {
+    await this.load();
+    let removidos = 0;
+    for (let i = this.items!.length - 1; i >= 0; i--) {
+      if (predicate(this.items![i]!)) {
+        this.items!.splice(i, 1);
+        removidos++;
+      }
+    }
+    if (removidos > 0) await this.queueWrite();
+    return removidos;
+  }
+
   /** Aplica mutação em todos os items que casam o predicate (in-place). */
   async mutate(predicate: (item: T) => boolean, mutator: (item: T) => void): Promise<number> {
     await this.load();
@@ -266,6 +288,28 @@ export class JsonStore<T> {
     }
     if (count > 0) await this.queueWrite();
     return count;
+  }
+
+  /**
+   * Insere no topo e apara o excesso — numa passada só, sobre a lista VIVA.
+   *
+   * Existe porque o par `unshift` + `getAll` + `setAll(fatiado)` perde escrita
+   * concorrente sem erro: `getAll` devolve uma CÓPIA, e o `setAll` instala essa
+   * cópia por cima da lista viva. Tudo que outra chamada tiver inserido entre
+   * as duas some. É o defeito que este projeto já corrigiu em treze rotinas do
+   * expurgo, e ele sobrevivia justamente nos logs de acréscimo — auditoria,
+   * erros, e-mail, mensageria, tutor, entrega de webhook —, que são os que
+   * recebem escrita concorrente **em rajada**: quando muita coisa falha ao
+   * mesmo tempo é exatamente quando os registros se perdem.
+   *
+   * `items.length = max` apara no lugar, sem criar array novo.
+   */
+  async unshiftComTeto(item: T, max: number): Promise<T> {
+    await this.load();
+    this.items!.unshift(item);
+    if (this.items!.length > max) this.items!.length = max;
+    await this.queueWrite();
+    return item;
   }
 
   /**

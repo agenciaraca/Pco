@@ -58,10 +58,10 @@ export async function create(input: {
     updatedAt: now,
     nextAttemptAt: now,
   };
-  // Cap aplicado no final — mantém os mais recentes
-  const all = await store.getAll();
-  const next = [d, ...all].slice(0, MAX);
-  await store.setAll(next);
+  // Cap aplicado no final — mantém os mais recentes. Numa passada só: a fila
+  // recebe escrita concorrente por natureza (um evento dispara N entregas), e
+  // o par `getAll` + `setAll` descartava as que entrassem no intervalo.
+  await store.unshiftComTeto(d, MAX);
   return d;
 }
 

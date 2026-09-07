@@ -26,13 +26,7 @@ export async function add(userId: string, courseId: string): Promise<WishlistEnt
 }
 
 export async function remove(userId: string, courseId: string): Promise<boolean> {
-  const all = await store.getAll();
-  const keep = all.filter(
-    (e) => !(e.userId === userId && e.courseId === courseId),
-  );
-  if (keep.length === all.length) return false;
-  await store.setAll(keep);
-  return true;
+  return await store.remove((e) => e.userId === userId && e.courseId === courseId);
 }
 
 export async function listForUser(userId: string): Promise<WishlistEntry[]> {

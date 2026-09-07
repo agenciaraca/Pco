@@ -57,9 +57,7 @@ export async function recordClientError(c: Context, input: ClientErrorInput): Pr
       ip: clientIp(c),
       userAgent: (input.userAgent ?? c.req.header('user-agent') ?? '').slice(0, 500),
     };
-    await store.unshift(entry);
-    const all = await store.getAll();
-    if (all.length > MAX_ENTRIES) await store.setAll(all.slice(0, MAX_ENTRIES));
+    await store.unshiftComTeto(entry, MAX_ENTRIES);
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('[client-errors] failed to record:', e);
@@ -86,9 +84,10 @@ export async function recordError(c: Context, err: unknown, status = 500): Promi
       ip: clientIp(c),
       userAgent: c.req.header('user-agent') ?? null,
     };
-    await store.unshift(entry);
-    const all = await store.getAll();
-    if (all.length > MAX_ENTRIES) await store.setAll(all.slice(0, MAX_ENTRIES));
+    // Insere e apara numa passada só. Erro chega em RAJADA — é quando muita
+    // coisa falha ao mesmo tempo —, e era exatamente aí que o par
+    // `getAll` + `setAll` descartava os registros das outras requisições.
+    await store.unshiftComTeto(entry, MAX_ENTRIES);
     // Forward para Sentry server-side se SENTRY_DSN definido.
     // Fire-and-forget: erro do Sentry nunca quebra o handler.
     void captureException(err, {

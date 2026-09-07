@@ -89,11 +89,9 @@ export async function updateComment(
 }
 
 export async function deleteComment(id: string): Promise<boolean> {
-  const all = await store.getAll();
-  const keep = all.filter((c) => c.id !== id && c.parentId !== id);
-  if (keep.length === all.length) return false;
-  await store.setAll(keep);
-  return true;
+  // Sai o comentário E as respostas dele — por isso `removeAll`, e não
+  // `remove`, que tira só o primeiro que casa.
+  return (await store.removeAll((c) => c.id === id || c.parentId === id)) > 0;
 }
 
 export interface ListAllFilter {

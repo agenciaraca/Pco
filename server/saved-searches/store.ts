@@ -84,9 +84,5 @@ export async function deleteSearch(
   id: string,
   ownerId: string,
 ): Promise<boolean> {
-  const all = await store.getAll();
-  const keep = all.filter((s) => !(s.id === id && s.ownerId === ownerId));
-  if (keep.length === all.length) return false;
-  await store.setAll(keep);
-  return true;
+  return await store.remove((s) => s.id === id && s.ownerId === ownerId);
 }

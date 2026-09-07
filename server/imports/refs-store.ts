@@ -64,21 +64,12 @@ export async function listForUser(userId: string): Promise<ExternalReference[]> 
  * caso de reimportar" seria manter o identificador exatamente pelo motivo que
  * a anonimização existe para eliminar.
  *
- * Usa `modify` e não `getAll` + `setAll`: o par monta um array novo fora da
+ * Usa `removeAll` e não `getAll` + `setAll`: o par monta um array novo fora da
  * lista viva e o instala por cima, e entre as duas chamadas há `await` — toda
  * escrita concorrente no intervalo se perde sem erro.
  */
 export async function clearForUser(userId: string): Promise<number> {
-  return await store.modify((items) => {
-    let removidas = 0;
-    for (let i = items.length - 1; i >= 0; i--) {
-      if (items[i]!.internalId === userId) {
-        items.splice(i, 1);
-        removidas++;
-      }
-    }
-    return removidas;
-  });
+  return await store.removeAll((r) => r.internalId === userId);
 }
 
 interface UpsertInput {
@@ -124,9 +115,5 @@ export async function upsert(input: UpsertInput): Promise<ExternalReference> {
 }
 
 export async function deleteByJob(jobId: string): Promise<number> {
-  const all = await store.getAll();
-  const keep = all.filter((r) => r.jobId !== jobId);
-  const removed = all.length - keep.length;
-  if (removed > 0) await store.setAll(keep);
-  return removed;
+  return await store.removeAll((r) => r.jobId === jobId);
 }
