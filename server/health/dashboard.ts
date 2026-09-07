@@ -275,7 +275,47 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     // ignora
   }
 
-  // 11) Disk usage (data dir)
+  /*
+    11) Workers.
+
+    Faltava aqui, e é onde o operador olha primeiro. Até 7/set/2026 nove dos
+    treze workers não guardavam nada sobre o próprio ciclo: um tick que
+    lançava era engolido, o status ficava com o último resultado bem-sucedido,
+    e `/admin/jobs` mostrava tudo verde. Agora que eles reportam, o painel de
+    saúde precisa perguntar.
+
+    **O estado sai só de `saudavel === false`**, que é falha medida. `enabled`
+    ficou de fora de propósito: em Vercel Functions worker nenhum roda, e
+    tratar isso como problema encheria o painel de alarme falso justamente
+    onde não há o que alarmar. Quem quiser ver quem está parado tem
+    `/admin/jobs`.
+
+    O nome de quem falhou vai na mensagem. É o que transforma "algum worker
+    falhou" em "o aviso de vencimento de acesso falhou" — sem isso, o alerta
+    manda alguém abrir outra tela para descobrir o que ele já sabia.
+  */
+  try {
+    const { listarJobs } = await import('../jobs/inventario');
+    const jobs = listarJobs();
+    const comFalha = jobs.filter((j) => j.saudavel === false);
+    const medidos = jobs.filter((j) => j.saudavel !== null);
+    checks.push({
+      id: 'workers',
+      label: 'Workers',
+      status: comFalha.length > 0 ? 'error' : medidos.length === 0 ? 'na' : 'ok',
+      message:
+        comFalha.length > 0
+          ? `Falhando: ${comFalha.map((j) => j.rotulo).join(', ')}`
+          : medidos.length === 0
+            ? 'Nenhum ciclo completou ainda nesta vida do processo'
+            : `${medidos.length} de ${jobs.length} já rodaram, sem falha no último ciclo`,
+      metric: `${medidos.length}/${jobs.length}`,
+    });
+  } catch {
+    // ignora
+  }
+
+  // 12) Disk usage (data dir)
   try {
     const usage = await diskUsage(DATA_DIR);
     checks.push({

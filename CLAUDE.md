@@ -207,6 +207,32 @@ não ficou para trás porque houve deploy manual pelo caminho.
 dois segundos** e nenhum arquivo do repositório diz. Um `git log` limpo e a
 suíte verde localmente **não** provam que a esteira está andando.
 
+## O painel de saúde não perguntava pelos workers
+
+`server/health/dashboard.ts` (7/set/2026). Ele tinha dezesseis verificações —
+gateways, e-mail, webhooks, IA, erros recentes, disco, checkout — e **nenhuma**
+sobre os treze processos que rodam sozinhos. É a primeira tela que alguém abre
+quando desconfia de alguma coisa, e não olhava para onde o silêncio custa mais.
+
+Três escolhas deliberadas:
+
+- **O estado sai só de `saudavel === false`**, que é falha medida. `enabled`
+  ficou de fora: em Vercel Functions worker nenhum roda, e tratar isso como
+  problema encheria o painel de alarme falso onde não há o que alarmar. Quem
+  quiser ver quem está parado tem `/admin/jobs`.
+- **`na` quando nada rodou ainda**, nunca `ok`. Verde sem medição é a mesma
+  mentira das telas de métrica.
+- **O nome de quem falhou vai na mensagem.** É o que transforma "algum worker
+  falhou" em "o aviso de vencimento de acesso falhou" — a mesma razão de o
+  alarme de checkout carregar o motivo mais comum junto.
+
+De quebra, o selo de `/admin/jobs` deixou de mentir: o texto dele dizia que "a
+maioria dos workers não sabe dizer da própria saúde" e que "só três respondem
+de verdade". Hoje respondem os treze, e `null` mudou de significado — passou de
+"este worker não sabe dizer" para **"ainda não rodou nesta vida do processo"**.
+Num worker de 24h isso é normal logo depois de um restart; num de 30 segundos,
+é sinal de que algo não arrancou.
+
 ## O site público dizia "não existe" quando era "não consegui ler"
 
 `server/public/falhas-de-leitura.ts` (7/set/2026). O site tem uma regra boa e
@@ -214,7 +240,8 @@ tinha uma consequência ruim. A regra: `projections.ts` embrulha toda leitura em
 `safe()` e **nunca** devolve 500 por erro de banco — a vitrine não cai porque
 uma tabela não respondeu. A consequência: o fallback passava por verdade.
 
-Com as 21 leituras falhando que o log de produção registrou, o visitante via:
+Com as 21 leituras falhando que o log de produção registrou — período
+terminando em 4/set/2026, ver a seção acima —, o visitante via:
 
 - **`/formacoes` dizendo "Em breve novos cursos"** — a escola parecendo não ter
   nada à venda;
@@ -248,8 +275,10 @@ como o defeito nasceu.
 
 ## Queda de conexão com o banco custava o chamado do aluno
 
-`server/db/repetir-consulta.ts` (7/set/2026). Medido no log de produção, com 7
-quedas de conexão no período do arquivo:
+`server/db/repetir-consulta.ts` (7/set/2026). Medido no log de erro de produção,
+que cobre um período terminando em **4/set/2026 21:53 UTC** — daí para cá o
+`stderr` não recebeu uma linha, então isto é um problema **intermitente e em
+rajada**, não contínuo. No período, com 7 quedas de conexão:
 
 - **10 `insert into support_tickets` falharam** — o aluno escreveu o chamado,
   clicou em enviar e levou erro;
@@ -290,6 +319,14 @@ Três coisas que não se inferem lendo o arquivo:
 - **`keepAlive: true` entrou junto no pool**, e é a metade preventiva: sem ele,
   conexão parada é derrubada em silêncio por NAT ou firewall no meio do
   caminho, que é exatamente como as duas mensagens do log aparecem.
+
+**Correção de uma afirmação minha:** a mensagem do commit `b1bc2d9` diz que as
+falhas "continuam acontecendo agora, medidas minutos atrás". Está errado, e o
+erro foi ler o `tail` do log sem olhar o carimbo do arquivo: o
+`ava-pco-error.log` não recebe uma linha desde 4/set/2026 21:53 UTC. As falhas
+são reais e custaram o que está descrito; o que não se pode afirmar é
+continuidade. **Ao citar log de produção como evidência, confira o `stat -c %y`
+antes** — `tail` mostra o fim do arquivo, não o presente.
 
 ## Worker que falha todo ciclo não pode aparecer verde
 

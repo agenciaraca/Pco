@@ -171,9 +171,15 @@ function JobCard({
 /**
  * Três estados, não dois.
  *
- * `saudavel: null` é **não medido** — a maioria dos workers não sabe dizer da
- * própria saúde, e pintá-los de verde seria afirmar o que ninguém apurou. Só o
- * dos webhooks, o do backup e o da Sandra respondem de verdade.
+ * `saudavel: null` é **não medido**, e pintá-lo de verde seria afirmar o que
+ * ninguém apurou.
+ *
+ * O que `null` significa mudou em 7/set/2026, e vale saber qual é o de hoje.
+ * Antes era "este worker não sabe dizer" — nove dos treze não guardavam nada
+ * sobre o próprio ciclo, e o inventário os declarava `null` com literal fixo.
+ * Agora **os treze reportam**, e `null` quer dizer só uma coisa: ainda não
+ * rodou nesta vida do processo. Num worker de 24h isso é normal logo depois de
+ * um restart; num de 30 segundos, é sinal de que algo não arrancou.
  */
 function SeloDeSaude({ job }: { job: JobStatusDto }) {
   if (!job.enabled) {
@@ -203,7 +209,7 @@ function SeloDeSaude({ job }: { job: JobStatusDto }) {
   return (
     <span
       className="pco-badge bg-surface-gray text-ink-muted shrink-0"
-      title="Este worker não reporta saúde própria — está no ar, e é só o que se sabe."
+      title="Ainda não rodou nesta vida do processo — está no ar, e é só o que se sabe."
     >
       <Minus size={10} strokeWidth={2} />
       no ar
@@ -231,6 +237,8 @@ const ROTULOS: Record<string, string> = {
   running: 'Rodando agora',
   falhasAoEnfileirar: 'Falhas ao enfileirar',
   falhasSeguidas: 'Falhas seguidas',
+  ultimaFalha: 'Última falha',
+  ultimaFalhaEm: 'Falhou em',
   confirmados: 'Confirmados',
   pendentesVistos: 'Cobranças vistas',
   erros: 'Erros',
