@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 import * as api from './api';
 import type { AiProviderInfo } from './api';
+import type { Endereco } from '../../../shared/endereco';
 
 // Keys centralizadas para invalidate
 export const queryKeys = {
@@ -1338,6 +1339,8 @@ export function useStartCheckout() {
       document,
       whatsapp,
       metodo,
+      birthDate,
+      endereco,
     }: {
       productId: string;
       gatewayId?: string;
@@ -1346,8 +1349,17 @@ export function useStartCheckout() {
       document?: string;
       whatsapp?: string;
       metodo?: MetodoPagamento;
+      birthDate?: string;
+      endereco?: Endereco;
     }) =>
-      api.startCheckout(productId, gatewayId, couponCode, { name, document, whatsapp, metodo }),
+      api.startCheckout(productId, gatewayId, couponCode, {
+        name,
+        document,
+        whatsapp,
+        metodo,
+        birthDate,
+        endereco,
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: myOrdersKey }),
   });
 }

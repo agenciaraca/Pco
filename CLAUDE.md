@@ -207,6 +207,67 @@ não ficou para trás porque houve deploy manual pelo caminho.
 dois segundos** e nenhum arquivo do repositório diz. Um `git log` limpo e a
 suíte verde localmente **não** provam que a esteira está andando.
 
+## Checkout: nascimento e endereço — e o CPF que não chegava ao Asaas
+
+`shared/endereco.ts` (7/set/2026). O checkout pedia nome, e-mail, CPF e
+WhatsApp, e mais nada. Faltavam **data de nascimento e endereço completo**, e
+não é preferência de formulário: o Asaas **recusa boleto sem CEP e sem
+número**, e a análise antifraude de cartão pontua com nascimento e endereço.
+Coletar o dado depois da recusa é perder a venda.
+
+**Ao ligar os campos apareceu um defeito maior, no caminho do dinheiro:** o
+provider do Asaas **nunca enviava o CPF**. O checkout coletava o documento,
+conferia o dígito verificador e o passava adiante; o `createPayment` montava o
+cadastro do cliente com `name` e `email`, só. O campo existia em
+`CreatePaymentInput` desde 31/ago/2026 e ninguém o lia — e o roteamento de
+produção manda **boleto** justamente para o Asaas. É a mesma classe do campo de
+aula sem coluna: coletado, validado, e descartado em silêncio na última curva.
+
+Cinco coisas que qualquer mexida aqui tem de respeitar:
+
+- **A regra mora em `shared/`**, como `documento.ts` e `visibilidade.ts`: o
+  navegador valida para dar erro na hora e o servidor revalida porque não
+  confia no navegador. Duas cópias acabam discordando, e quem paga é quem está
+  comprando.
+- **Não há trava de 18 anos, de propósito.** Seria defensável — capacidade
+  civil plena — mas quem compra pode ser o responsável por um estudante mais
+  novo, e a trava recusaria venda legítima sem ninguém ter decidido isso. É
+  política comercial; se a escola quiser, entra declarada.
+- **Obrigatório no público, opcional no logado.** A assimetria é deliberada: a
+  rota do aluno logado atende quem pode estar comprando o segundo curso, e
+  **ainda não há onde guardar o endereço** para preencher sozinho. Exigir sem
+  prefill obrigaria a redigitar tudo a cada compra. A exceção é o boleto, que
+  exige nos dois — o gateway o recusa sem endereço.
+- **`city` não vai para o Asaas.** Naquela API é o **id numérico** da cidade;
+  mandar o nome dá erro de tipo. O Asaas resolve o município pelo `postalCode`.
+  E `province`, lá, é o **bairro**.
+- **CEP não tem dígito verificador.** Conferir existência exigiria consultar os
+  Correios, e uma checagem que depende de rede não pode barrar uma compra. O
+  que se afirma é o formato — com `00000000` fora, porque é o que sai de
+  formulário preenchido a esmo.
+
+**O que este sprint NÃO fez, e por quê:** nada é persistido. Guardar endereço
+exige coluna nova em `students` ou em `payment_orders` — nenhuma das duas tem
+jsonb genérico —, e **migration não pode ser aplicada da máquina de
+7/set/2026**: a porta 5432 do banco não é alcançável dela. Por ora o endereço
+vive no cadastro do gateway. Quando a persistência entrar, ela traz junto o
+prefill e a entrada nas duas pontas da LGPD (`/me/export` e o expurgo) — dado
+pessoal novo que não entra nas duas é exatamente o defeito que o fórum e a
+transcrição de sessão tinham.
+
+## Crase dentro de template literal quebra o arquivo inteiro
+
+Três arquivos deste projeto são um template literal gigante: `public/client.ts`
+(o `PUBLIC_JS`), `public/styles.ts` (o CSS) e todo bloco `html\`...\`` de
+`router.ts` e `layout.ts`. **Um acento grave num comentário fecha o template**,
+e o erro que aparece é `Unterminated template literal` centenas de linhas
+adiante — parece corrupção do arquivo, e é uma crase.
+
+Custou quatro interrupções em 7/set/2026. Ao comentar dentro desses arquivos,
+escreva `shared/endereco.ts` sem crase, e prefira mover a explicação para fora
+do template — um comentário de JS antes da função diz a mesma coisa e não vai
+junto no HTML servido a cada visita.
+
 ## `getAll()` + `setAll()` perde escrita concorrente — em mais 24 lugares
 
 Este arquivo já documentava o padrão desde 5/set/2026, quando treze rotinas do

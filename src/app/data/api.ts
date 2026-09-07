@@ -26,6 +26,7 @@ import type {
   StudentsFilter,
 } from '../../../shared/schemas';
 import type { AdminStudentRow } from './seed';
+import type { Endereco } from '../../../shared/endereco';
 
 // ---------- Auth ----------
 
@@ -996,6 +997,13 @@ export interface CheckoutComprador {
   whatsapp?: string;
   /** Pix, boleto ou cartão. É ele que decide qual gateway cobra. */
   metodo?: MetodoPagamento;
+  /**
+   * Nascimento e endereço. Opcionais nesta rota (aluno logado, sem prefill) e
+   * obrigatórios no checkout público — ver `shared/schemas.ts`. Boleto exige o
+   * endereço: o gateway recusa sem CEP e sem número.
+   */
+  birthDate?: string;
+  endereco?: Endereco;
 }
 
 export async function startCheckout(

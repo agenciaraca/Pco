@@ -555,6 +555,9 @@ p{margin:0}
 .ck-campos{display:flex;flex-direction:column;gap:16px}
 .ck-dupla{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .lbl{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}
+/* Marca o campo que nao e obrigatorio. Sem isso, quem preenche nao sabe
+   onde pode parar, e formulario longo perde gente por duvida. */
+.ck-opcional{font-weight:400;color:var(--ink-subtle)}
 /* Campo — mesma fonte do botão: Componentes.dc.html. O foco é anel macio sobre
    a borda de acento, não contorno que apaga a borda; e faltavam desabilitado e
    erro, então campo bloqueado e campo com erro ficavam iguais a campo normal.

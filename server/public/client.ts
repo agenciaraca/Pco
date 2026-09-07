@@ -125,6 +125,16 @@ export const PUBLIC_JS = `
     var add=e.target.closest('[data-add-cart]');if(add){e.preventDefault();window.pcoCart.add({slug:add.getAttribute('data-slug'),title:add.getAttribute('data-title'),price:Number(add.getAttribute('data-price')||0),href:'/formacao/'+add.getAttribute('data-slug')});return;}
     var acc=e.target.closest('[data-accordion]');if(acc){var panel=acc.nextElementSibling;var open=acc.getAttribute('aria-expanded')==='true';acc.setAttribute('aria-expanded',open?'false':'true');if(panel){panel.style.maxHeight=open?'0px':panel.scrollHeight+'px';}return;}
   });
+  // ---- máscara de CEP ----
+  // So formatacao: quem valida e shared/endereco.ts, nos dois lados. Digitar
+  // 8 dígitos e ver "00000-000" é o que faz a pessoa perceber que acertou.
+  document.addEventListener('input', function (e) {
+    var el = e.target;
+    if (!el || el.name !== 'cep') return;
+    var d = String(el.value).replace(/\D/g, '').slice(0, 8);
+    el.value = d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d;
+  });
+
   // ---- origem da visita (primeiro toque) ----
   //
   // Guardado no PRIMEIRO acesso e nunca sobrescrito: quem chega por um anúncio
@@ -175,6 +185,15 @@ export const PUBLIC_JS = `
       name: g('name'), email: g('email'), whatsapp: g('whatsapp'),
       document: g('document'), consent: !!(cons && cons.checked),
       metodo: metodo,
+      // Nascimento e endereco completo. O servidor revalida tudo: isto aqui
+      // so monta o corpo, e a regra mora em shared/endereco.ts, a mesma dos
+      // dois lados de proposito.
+      birthDate: g('birthDate'),
+      endereco: {
+        cep: g('cep'), logradouro: g('logradouro'), numero: g('numero'),
+        complemento: g('complemento'), bairro: g('bairro'),
+        cidade: g('cidade'), uf: g('uf')
+      },
       // De onde a pessoa veio. Não muda preço nem acesso — o servidor só grava.
       origem: leOrigem()
     };

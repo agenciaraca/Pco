@@ -11639,6 +11639,10 @@ export function buildApp() {
             customerName: v.data.name || undefined,
             customerDocument: documentoInformado || undefined,
             customerPhone: v.data.whatsapp || undefined,
+            // Opcionais nesta rota (aluno logado, sem prefill ainda) e
+            // obrigatórios no checkout público. Ver `checkoutSchema`.
+            customerBirthDate: v.data.birthDate || undefined,
+            customerAddress: v.data.endereco,
             metadata: { orderId: order.id, userId: u.sub },
           },
         });
@@ -11860,6 +11864,8 @@ export function buildApp() {
           customerName: v.data.name,
           customerDocument: v.data.document || undefined,
           customerPhone: v.data.whatsapp || undefined,
+          customerBirthDate: v.data.birthDate,
+          customerAddress: v.data.endereco,
           metadata: { orderId: order.id, userId: user.id, source: 'public' },
         },
       });

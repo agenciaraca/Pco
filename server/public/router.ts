@@ -40,6 +40,7 @@ import {
 import { PUBLIC_JS } from './client';
 import { getTags } from '../marketing/tags-store';
 import { tagsScript } from '../marketing/tags-script';
+import { UFS } from '../../shared/endereco';
 
 /** Data pt-BR legível a partir de ISO. */
 function fmtDate(iso: string): string {
@@ -1595,15 +1596,64 @@ function formularioCheckout(
               <input class="fi" id="ck-zap" name="whatsapp" autocomplete="tel" placeholder="(00) 00000-0000">
             </div>
           </div>
-          <div>
-            <label class="lbl" for="ck-cpf">CPF</label>
-            <input class="fi" id="ck-cpf" name="document" inputmode="numeric" placeholder="000.000.000-00">
+          <div class="ck-dupla">
+            <div>
+              <label class="lbl" for="ck-cpf">CPF</label>
+              <input class="fi" id="ck-cpf" name="document" inputmode="numeric" placeholder="000.000.000-00">
+            </div>
+            <div>
+              <label class="lbl" for="ck-nasc">Data de nascimento</label>
+              <input class="fi" id="ck-nasc" name="birthDate" type="date" required autocomplete="bday" max="${new Date().toISOString().slice(0, 10)}">
+            </div>
           </div>
         </div>
       </div>
 
       <div class="ck-bloco">
-        <h2>2. Como você quer pagar</h2>
+        <h2>2. Endereço</h2>
+        <div class="ck-campos">
+          <div class="ck-dupla">
+            <div>
+              <label class="lbl" for="ck-cep">CEP</label>
+              <input class="fi" id="ck-cep" name="cep" required inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9">
+            </div>
+            <div>
+              <label class="lbl" for="ck-uf">Estado</label>
+              <select class="fi" id="ck-uf" name="uf" required autocomplete="address-level1">
+                <option value="">Selecione</option>
+                ${UFS.map((uf) => `<option value="${uf}">${uf}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="lbl" for="ck-rua">Endereço</label>
+            <input class="fi" id="ck-rua" name="logradouro" required minlength="2" autocomplete="address-line1" placeholder="Rua, avenida...">
+          </div>
+          <div class="ck-dupla">
+            <div>
+              <label class="lbl" for="ck-num">Número</label>
+              <input class="fi" id="ck-num" name="numero" required autocomplete="address-line2" placeholder="123">
+            </div>
+            <div>
+              <label class="lbl" for="ck-compl">Complemento <span class="ck-opcional">(opcional)</span></label>
+              <input class="fi" id="ck-compl" name="complemento" placeholder="Apto, bloco...">
+            </div>
+          </div>
+          <div class="ck-dupla">
+            <div>
+              <label class="lbl" for="ck-bairro">Bairro</label>
+              <input class="fi" id="ck-bairro" name="bairro" required minlength="2" autocomplete="address-level3">
+            </div>
+            <div>
+              <label class="lbl" for="ck-cidade">Cidade</label>
+              <input class="fi" id="ck-cidade" name="cidade" required minlength="2" autocomplete="address-level2">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ck-bloco">
+        <h2>3. Como você quer pagar</h2>
         <fieldset class="ck-metodos">
           <legend class="sr-only">Meio de pagamento</legend>${opcoesDeMetodo(tetos)}
         </fieldset>

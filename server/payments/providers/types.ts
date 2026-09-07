@@ -2,6 +2,7 @@
 
 import type { PaymentGateway } from '../types';
 import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
+import type { Endereco } from '../../../shared/endereco';
 
 export interface CreatePaymentInput {
   amountCents: number;
@@ -17,6 +18,17 @@ export interface CreatePaymentInput {
    */
   customerDocument?: string;
   customerPhone?: string;
+  /**
+   * Data de nascimento (`AAAA-MM-DD`) e endereço do comprador.
+   *
+   * Opcionais na interface porque nem todo provider aceita — o Mock e o
+   * `legado-wp` não têm onde pôr. Onde entram, entram por um motivo concreto:
+   * **boleto sem CEP e sem número é recusado**, e a análise antifraude de
+   * cartão pontua melhor com nascimento e endereço. Coletar depois da recusa é
+   * perder a venda.
+   */
+  customerBirthDate?: string;
+  customerAddress?: Endereco;
   /**
    * Pix, boleto ou cartão. **Opcional na interface, e não por preguiça:** o
    * checkout antigo não mandava método nenhum, e cada provider decidia sozinho.

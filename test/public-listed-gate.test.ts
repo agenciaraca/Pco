@@ -154,6 +154,19 @@ describe('ponta a ponta pela projeção pública', () => {
           name: 'Visitante Teste',
           email: 'visitante.teste@exemplo.com.br',
           consent: true,
+          // Nascimento e endereço são obrigatórios no checkout público desde
+          // 7/set/2026: o gateway recusa boleto sem CEP e sem número, e a
+          // análise antifraude de cartão usa os dois. Ver
+          // `test/checkout-endereco-e-nascimento.test.ts`.
+          birthDate: '1990-05-20',
+          endereco: {
+            cep: '01310-100',
+            logradouro: 'Avenida Paulista',
+            numero: '1000',
+            bairro: 'Bela Vista',
+            cidade: 'São Paulo',
+            uf: 'SP',
+          },
         }),
       });
 

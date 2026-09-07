@@ -147,6 +147,37 @@ export const pagarmeProvider: PaymentProviderImpl = {
           ...(documento
             ? { document: documento, document_type: documento.length === 14 ? 'CNPJ' : 'CPF' }
             : {}),
+          /*
+            Nascimento e endereço, quando o checkout os coletou.
+
+            A API v5 chama o CEP de `zip_code` e monta o logradouro em duas
+            linhas de texto: `line_1` com rua, número e bairro; `line_2` com o
+            complemento. `country` é ISO-2 e não aceita "Brasil".
+
+            `birthdate` entra porque a análise antifraude de cartão pontua com
+            ele — e é cartão que este gateway cobra.
+          */
+          ...(input.customerBirthDate ? { birthdate: input.customerBirthDate } : {}),
+          ...(input.customerAddress
+            ? {
+                address: {
+                  line_1: [
+                    input.customerAddress.numero,
+                    input.customerAddress.logradouro,
+                    input.customerAddress.bairro,
+                  ]
+                    .filter(Boolean)
+                    .join(', '),
+                  ...(input.customerAddress.complemento
+                    ? { line_2: input.customerAddress.complemento }
+                    : {}),
+                  zip_code: input.customerAddress.cep.replace(/\D/g, ''),
+                  city: input.customerAddress.cidade,
+                  state: input.customerAddress.uf,
+                  country: 'BR',
+                },
+              }
+            : {}),
         },
         payments: [
           {

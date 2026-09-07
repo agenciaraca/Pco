@@ -63,6 +63,35 @@ export const asaasProvider: PaymentProviderImpl = {
       body: JSON.stringify({
         name: input.customerName ?? input.customerEmail.split('@')[0],
         email: input.customerEmail,
+        /*
+          CPF/CNPJ, telefone e endereço PARAVAM AQUI — o cadastro ia com nome e
+          e-mail, e só. O checkout coletava o documento, validava o dígito
+          verificador e o passava adiante; este provider o descartava em
+          silêncio.
+
+          Não é detalhe de cadastro: **o Asaas exige `cpfCnpj` para emitir
+          boleto**, e o roteamento de produção manda boleto para cá. O campo
+          existia em `CreatePaymentInput` desde 31/ago/2026 e nunca foi lido.
+
+          `cpfCnpj` vai só com dígitos. O endereço vai como o Asaas o nomeia —
+          `province` é o bairro. `city` fica de fora de propósito: naquela API
+          ele é o **id numérico** da cidade, e mandar o nome dá erro de tipo; o
+          Asaas resolve município a partir do `postalCode`.
+        */
+        ...(input.customerDocument
+          ? { cpfCnpj: input.customerDocument.replace(/\D/g, '') }
+          : {}),
+        ...(input.customerPhone ? { mobilePhone: input.customerPhone } : {}),
+        ...(input.customerAddress
+          ? {
+              postalCode: input.customerAddress.cep.replace(/\D/g, ''),
+              address: input.customerAddress.logradouro,
+              addressNumber: input.customerAddress.numero,
+              complement: input.customerAddress.complemento || undefined,
+              province: input.customerAddress.bairro,
+              state: input.customerAddress.uf,
+            }
+          : {}),
       }),
     });
     if (!customerRes.ok) {

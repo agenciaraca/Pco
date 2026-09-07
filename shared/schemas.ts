@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { metodoPagamentoSchema } from './metodos-pagamento';
+import { UFS, cepValido, dataDeNascimentoValida } from './endereco';
 
 // Reutilizáveis
 export const idSchema = z.string().min(1);
@@ -187,6 +188,39 @@ export type UpdateProductInput = z.infer<typeof updateProductSchema>;
  * provider (a Sandra sempre exigiu, o Pagar.me passou a exigir com boleto), e
  * marcá-los obrigatórios no schema quebraria as chamadas que já existem.
  */
+/**
+ * Endereço do comprador. **Completo**, porque meio endereço não serve para
+ * nada: o gateway recusa boleto sem CEP e sem número, e a escola não consegue
+ * emitir documento fiscal sem bairro e município.
+ *
+ * `complemento` é o único opcional — casa sem apartamento existe.
+ */
+export const enderecoSchema = z.object({
+  cep: z
+    .string()
+    .min(8)
+    .max(9)
+    .refine(cepValido, 'CEP inválido — informe os 8 dígitos.'),
+  logradouro: z.string().min(2).max(120),
+  numero: z.string().min(1).max(20),
+  complemento: z.string().max(60).optional().or(z.literal('')),
+  bairro: z.string().min(2).max(80),
+  cidade: z.string().min(2).max(80),
+  uf: z.enum(UFS),
+});
+export type EnderecoInput = z.infer<typeof enderecoSchema>;
+
+/**
+ * Data de nascimento, `AAAA-MM-DD`.
+ *
+ * A validação vive em `shared/endereco.ts` e cobre dia que não existe no mês
+ * (`2026-02-31`), data no futuro e idade impossível. **Não há trava de 18
+ * anos** — ver o comentário lá: seria política comercial, não regra técnica.
+ */
+export const dataNascimentoSchema = z
+  .string()
+  .refine(dataDeNascimentoValida, 'Data de nascimento inválida.');
+
 export const checkoutSchema = z.object({
   productId: z.string().min(1),
   /**
@@ -203,6 +237,18 @@ export const checkoutSchema = z.object({
   /** CPF/CNPJ. Obrigatório para boleto; validado por `shared/documento.ts`. */
   document: z.string().max(20).optional().or(z.literal('')),
   whatsapp: z.string().max(30).optional().or(z.literal('')),
+  /**
+   * Data de nascimento e endereço do comprador.
+   *
+   * **Opcionais aqui e obrigatórios no checkout público**, e a assimetria é
+   * deliberada: esta rota é do aluno já logado, que pode estar comprando o
+   * segundo curso, e ainda não existe onde guardar o endereço para preencher
+   * sozinho (falta coluna, ver `docs/`). Exigir sem prefill obrigaria a
+   * redigitar tudo a cada compra. Assim que a persistência existir, os dois
+   * lados passam a exigir.
+   */
+  birthDate: dataNascimentoSchema.optional(),
+  endereco: enderecoSchema.optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
@@ -229,6 +275,15 @@ export const publicCheckoutSchema = z
     /** CPF/CNPJ (opcional; alguns gateways exigem). */
     document: z.string().max(20).optional().or(z.literal('')),
     whatsapp: z.string().max(30).optional().or(z.literal('')),
+    /**
+     * Data de nascimento e endereço completo — **obrigatórios**.
+     *
+     * Aqui quem compra é um desconhecido, e é onde o gateway mais cobra dado:
+     * boleto sem CEP e sem número é recusado, e a análise antifraude de cartão
+     * usa nascimento e endereço. Cobrar depois da recusa é perder a venda.
+     */
+    birthDate: dataNascimentoSchema,
+    endereco: enderecoSchema,
     gatewayId: z.string().min(1).optional(),
     /** Pix, boleto ou cartão. Ver a nota em `checkoutSchema`. */
     metodo: metodoPagamentoSchema.optional(),

@@ -6,6 +6,14 @@ import { useToast } from './Toast';
 import type { CouponCheckResultDto, ProductDto } from '../data/api';
 import { documentoValido, formatarDocumento } from '../../../shared/documento';
 import {
+  UFS,
+  cepValido,
+  dataDeNascimentoValida,
+  formatarCep,
+  ufValida,
+  type UF,
+} from '../../../shared/endereco';
+import {
   METODOS_PAGAMENTO,
   ROTULO_METODO,
   exigeDocumento,
@@ -65,6 +73,28 @@ export default function CheckoutDialog({
   // errado — e acontecia na unica tela de compra do aluno logado.
   const [erroNome, setErroNome] = useState<string | null>(null);
   const [erroDoc, setErroDoc] = useState<string | null>(null);
+  /*
+    Nascimento e endereço.
+
+    Opcionais aqui e obrigatórios no checkout público, e a assimetria é
+    deliberada: esta tela é do aluno já logado, que pode estar comprando o
+    segundo curso, e ainda não há onde guardar o endereço para preencher
+    sozinho. Exigir sem prefill obrigaria a redigitar tudo a cada compra.
+
+    A exceção é o BOLETO: o gateway o recusa sem CEP e sem número, então ali
+    vira obrigatório — a mesma regra que o CPF já segue nesta tela.
+  */
+  const [nascimento, setNascimento] = useState('');
+  const [end, setEnd] = useState({
+    cep: '',
+    logradouro: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    uf: '',
+  });
+  const [erroEnd, setErroEnd] = useState<string | null>(null);
   const [validation, setValidation] = useState<
     | { kind: 'idle' }
     | { kind: 'ok'; data: CouponCheckResultDto }
@@ -130,6 +160,30 @@ export default function CheckoutDialog({
       refDoc.current?.focus();
       return;
     }
+    const enderecoCompleto =
+      cepValido(end.cep) &&
+      end.logradouro.trim().length >= 2 &&
+      end.numero.trim().length >= 1 &&
+      end.bairro.trim().length >= 2 &&
+      end.cidade.trim().length >= 2 &&
+      ufValida(end.uf);
+
+    if (metodo === 'boleto' && !enderecoCompleto) {
+      // Boleto sem endereço é recusado pelo gateway, e a recusa derruba o
+      // pedido inteiro — a pessoa perde junto o cartão e o Pix.
+      setErroEnd('Para pagar no boleto, informe o endereço completo.');
+      return;
+    }
+    if (nascimento && !dataDeNascimentoValida(nascimento)) {
+      setErroEnd('Data de nascimento inválida.');
+      return;
+    }
+    if (!enderecoCompleto && (end.cep || end.logradouro || end.cidade)) {
+      // Endereço pela metade não ajuda o gateway e engana quem preencheu.
+      setErroEnd('Complete o endereço ou deixe todos os campos em branco.');
+      return;
+    }
+
     try {
       const r = await startCheckout.mutateAsync({
         productId: product.id,
@@ -138,6 +192,18 @@ export default function CheckoutDialog({
           validation.kind === 'ok' ? validation.data.coupon.code : undefined,
         name: nome.trim(),
         document: documento,
+        birthDate: nascimento || undefined,
+        endereco: enderecoCompleto
+          ? {
+              cep: end.cep,
+              logradouro: end.logradouro.trim(),
+              numero: end.numero.trim(),
+              complemento: end.complemento.trim() || undefined,
+              bairro: end.bairro.trim(),
+              cidade: end.cidade.trim(),
+              uf: end.uf.toUpperCase() as UF,
+            }
+          : undefined,
       });
       onSuccess?.(r);
       onClose();
@@ -277,6 +343,160 @@ export default function CheckoutDialog({
             </p>
           )}
         </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label
+              htmlFor={`${idDoc}-nasc`}
+              className="text-xs uppercase tracking-wide text-ink-muted"
+            >
+              Nascimento
+            </label>
+            <input
+              id={`${idDoc}-nasc`}
+              type="date"
+              value={nascimento}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => {
+                setNascimento(e.target.value);
+                setErroEnd(null);
+              }}
+              className="pco-input text-sm mt-1"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor={`${idDoc}-cep`}
+              className="text-xs uppercase tracking-wide text-ink-muted"
+            >
+              CEP{metodo === 'boleto' ? '' : ' (opcional)'}
+            </label>
+            <input
+              id={`${idDoc}-cep`}
+              value={end.cep}
+              inputMode="numeric"
+              maxLength={9}
+              placeholder="00000-000"
+              autoComplete="postal-code"
+              onChange={(e) => {
+                setEnd({ ...end, cep: formatarCep(e.target.value) });
+                setErroEnd(null);
+              }}
+              className="pco-input text-sm font-mono mt-1"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_5rem] gap-2">
+          <div>
+            <label
+              htmlFor={`${idDoc}-rua`}
+              className="text-xs uppercase tracking-wide text-ink-muted"
+            >
+              Endereço
+            </label>
+            <input
+              id={`${idDoc}-rua`}
+              value={end.logradouro}
+              autoComplete="address-line1"
+              placeholder="Rua, avenida..."
+              onChange={(e) => {
+                setEnd({ ...end, logradouro: e.target.value });
+                setErroEnd(null);
+              }}
+              className="pco-input text-sm mt-1"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor={`${idDoc}-num`}
+              className="text-xs uppercase tracking-wide text-ink-muted"
+            >
+              Número
+            </label>
+            <input
+              id={`${idDoc}-num`}
+              value={end.numero}
+              placeholder="123"
+              onChange={(e) => {
+                setEnd({ ...end, numero: e.target.value });
+                setErroEnd(null);
+              }}
+              className="pco-input text-sm mt-1"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_1fr_4.5rem] gap-2">
+          <div>
+            <label
+              htmlFor={`${idDoc}-bairro`}
+              className="text-xs uppercase tracking-wide text-ink-muted"
+            >
+              Bairro
+            </label>
+            <input
+              id={`${idDoc}-bairro`}
+              value={end.bairro}
+              autoComplete="address-level3"
+              onChange={(e) => {
+                setEnd({ ...end, bairro: e.target.value });
+                setErroEnd(null);
+              }}
+              className="pco-input text-sm mt-1"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor={`${idDoc}-cidade`}
+              className="text-xs uppercase tracking-wide text-ink-muted"
+            >
+              Cidade
+            </label>
+            <input
+              id={`${idDoc}-cidade`}
+              value={end.cidade}
+              autoComplete="address-level2"
+              onChange={(e) => {
+                setEnd({ ...end, cidade: e.target.value });
+                setErroEnd(null);
+              }}
+              className="pco-input text-sm mt-1"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor={`${idDoc}-uf`}
+              className="text-xs uppercase tracking-wide text-ink-muted"
+            >
+              UF
+            </label>
+            <select
+              id={`${idDoc}-uf`}
+              value={end.uf}
+              autoComplete="address-level1"
+              onChange={(e) => {
+                setEnd({ ...end, uf: e.target.value });
+                setErroEnd(null);
+              }}
+              className="pco-input text-sm mt-1"
+            >
+              <option value="">--</option>
+              {UFS.map((uf) => (
+                <option key={uf} value={uf}>
+                  {uf}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {erroEnd && (
+          <p className="text-xs text-status-danger flex items-center gap-1">
+            <AlertCircle size={10} />
+            {erroEnd}
+          </p>
+        )}
 
         <fieldset>
           <legend className="text-xs uppercase tracking-wide text-ink-muted mb-1">
