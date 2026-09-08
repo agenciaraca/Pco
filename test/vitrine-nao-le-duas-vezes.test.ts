@@ -98,9 +98,10 @@ describe('memo por requisição', () => {
 });
 
 describe('a home', () => {
-  it('lê a árvore de cursos UMA vez, mesmo contando aulas e montando cartões', async () => {
+  it('lê a árvore UMA vez, e pela variante que não traz o corpo das aulas', async () => {
     const repo = await import('../server/repositories/courses');
-    const espiao = vi.spyOn(repo, 'listCourses');
+    const resumido = vi.spyOn(repo, 'listCoursesResumidos');
+    const completo = vi.spyOn(repo, 'listCourses');
     const { listPublicCourses, numerosDoSite } = await import('../server/public/projections');
 
     await comMemoDaRequisicao(async () => {
@@ -110,8 +111,12 @@ describe('a home', () => {
 
     // Duas chamadas era o defeito: ~3 MB de conteúdo de aula vindo do banco
     // remoto duas vezes, para a mesma página.
-    expect(espiao).toHaveBeenCalledTimes(1);
-    espiao.mockRestore();
+    expect(resumido).toHaveBeenCalledTimes(1);
+    // E a vitrine não pode voltar a usar a leitura completa: ela traz
+    // `lessons.content` — a apostila inteira — para montar três cartões.
+    expect(completo).not.toHaveBeenCalled();
+    resumido.mockRestore();
+    completo.mockRestore();
   });
 
   it('os números saem completos, e cada um com o seu próprio safe()', async () => {

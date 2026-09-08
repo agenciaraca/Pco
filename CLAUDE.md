@@ -409,10 +409,18 @@ usava. A imagem saiu do `style` do markup para o CSS, onde media query existe:
 é a menor**: quem não casar com nenhuma media query fica com a leve, não com a
 pesada.
 
-**O que NÃO foi feito, e é a próxima frente:** `listCourses()` continua trazendo
-o conteúdo das aulas para montar três cartões. Uma projeção que não selecione
-`lessons.content` tiraria o segundo inteiro que sobrou — é o maior item aberto
-de desempenho da vitrine.
+**E a vitrine parou de trazer a apostila para montar cartão.**
+`listCoursesResumidos()` seleciona as colunas de aula **sem `content` e sem
+`transcripts`** — os 2,93 milhões de caracteres que vinham do banco remoto e
+eram jogados fora logo em seguida, porque o caminho público já os removia da
+resposta (`semConteudoDeAula`). As quatro leituras de curso da vitrine passaram
+a usar essa variante, pelo mesmo memo.
+
+**Isso não afrouxa nada.** O corpo da aula continua saindo só por
+`/me/courses/:c/lessons/:l/content`, atrás de `courseAccessFor` — o que mudou é
+que ele deixou de ser trazido para ser descartado. `listCourses()` completo
+segue para quem edita e para quem estuda, e há teste cobrando que a vitrine não
+volte a chamá-lo.
 
 ## A home não tem mais corte reto — e o `fill` do SVG não entende degradê
 

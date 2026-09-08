@@ -450,7 +450,10 @@ async function activeCourseProducts(): Promise<Map<string, Product>> {
  * que a falha vira estado da tela. Ver `cache-de-vitrine.ts`.
  */
 async function cursosCrus(): Promise<Row[]> {
-  return memoDaRequisicao('cursos-crus', async () => (await coursesRepo.listCourses()) as unknown as Row[]);
+  return memoDaRequisicao(
+    'cursos-crus',
+    async () => (await coursesRepo.listCoursesResumidos()) as unknown as Row[],
+  );
 }
 
 export async function listPublicCourses(): Promise<PublicCourseSummary[]> {
@@ -481,11 +484,8 @@ export async function getPublicCourseBySlug(slug: string): Promise<PublicCourse 
   return safe(
     `course:${slug}`,
     async () => {
-      const [courses, productMap] = await Promise.all([
-        coursesRepo.listCourses(),
-        activeCourseProducts(),
-      ]);
-      const match = (courses as unknown as Row[]).find(
+      const [courses, productMap] = await Promise.all([cursosCrus(), activeCourseProducts()]);
+      const match = courses.find(
         (c) => (str(c.slug) ?? String(c.id)) === slug && isPubliclyListed(c),
       );
       if (!match) return null;
@@ -504,7 +504,7 @@ export async function getPublicCourseSlugById(id: string): Promise<string | null
   return safe(
     `courseSlug:${id}`,
     async () => {
-      const courses = (await coursesRepo.listCourses()) as unknown as Row[];
+      const courses = await cursosCrus();
       const match = courses.find((c) => String(c.id) === id && isPubliclyListed(c));
       return match ? (str(match.slug) ?? String(match.id)) : null;
     },
@@ -609,7 +609,7 @@ export async function getPublicPostBySlug(slug: string): Promise<PublicPost | nu
         : [];
       let relatedCourseSlugs: string[] = [];
       if (relatedIds.length) {
-        const courses = (await coursesRepo.listCourses()) as unknown as Row[];
+        const courses = await cursosCrus();
         relatedCourseSlugs = courses
           .filter((c) => relatedIds.includes(String(c.id)) && isPubliclyListed(c))
           .map((c) => str(c.slug) ?? String(c.id));

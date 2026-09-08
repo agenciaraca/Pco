@@ -87,7 +87,32 @@ async function selectActiveCourses(
   return await db.select(COURSE_BASE_COLUMNS).from(schema.courses).where(filtro);
 }
 
-async function loadFromDb(somenteAtivos = true): Promise<Course[]> {
+/**
+ * As colunas de aula que NÃO servem para listar.
+ *
+ * `content` guarda a apostila inteira — 2,93 milhões de caracteres nas 590
+ * aulas — e `transcripts`, a legenda. Selecionar as duas para montar três
+ * cartões de vitrine custava ~1 s por página, num banco remoto. Ver
+ * `semConteudoDeAula` em `server/access/conteudo-aula.ts`: a resposta pública
+ * já **descartava** esses campos depois de trazê-los.
+ */
+const COLUNAS_DE_AULA_SEM_CORPO = {
+  id: schema.lessons.id,
+  moduleId: schema.lessons.moduleId,
+  courseId: schema.lessons.courseId,
+  title: schema.lessons.title,
+  durationMinutes: schema.lessons.durationMinutes,
+  videoUrl: schema.lessons.videoUrl,
+  description: schema.lessons.description,
+  isMandatory: schema.lessons.isMandatory,
+  isPreview: schema.lessons.isPreview,
+  order: schema.lessons.order,
+};
+
+async function loadFromDb(
+  somenteAtivos = true,
+  opts: { semCorpoDeAula?: boolean } = {},
+): Promise<Course[]> {
   const db = getDb();
   if (!db) return [];
 
@@ -97,7 +122,14 @@ async function loadFromDb(somenteAtivos = true): Promise<Course[]> {
   if (courses.length === 0) return [];
 
   const modules = await db.select().from(schema.modules).orderBy(asc(schema.modules.order));
-  const lessons = await db.select().from(schema.lessons).orderBy(asc(schema.lessons.order));
+  const lessons = (
+    opts.semCorpoDeAula
+      ? await db
+          .select(COLUNAS_DE_AULA_SEM_CORPO)
+          .from(schema.lessons)
+          .orderBy(asc(schema.lessons.order))
+      : await db.select().from(schema.lessons).orderBy(asc(schema.lessons.order))
+  ) as Array<typeof schema.lessons.$inferSelect>;
   const assessments = await db.select().from(schema.assessments);
 
   return courses.map((c) => {
@@ -434,6 +466,29 @@ export async function listCourses(): Promise<Course[]> {
  *
  * Use só onde o aluno já tem o conteúdo em mãos. Para listar, `listCourses()`.
  */
+/**
+ * O catálogo para **listar**: sem o corpo das aulas.
+ *
+ * A vitrine precisa de título, slug, preço, e da contagem de módulos e aulas —
+ * nunca da apostila. `listCourses()` trazia `lessons.content` inteiro do banco
+ * remoto para montar três cartões, e a home fazia isso a cada visita: ~1 s de
+ * servidor, medido em 8/set/2026.
+ *
+ * **Não é uma otimização com risco de vazamento invertido:** o caminho público
+ * já removia esses campos da resposta (`semConteudoDeAula`). O que muda é que
+ * eles deixam de ser trazidos para serem jogados fora.
+ *
+ * No modo JSON devolve tudo, como antes — ali a leitura é local e o corpo já
+ * está em memória.
+ */
+export async function listCoursesResumidos(): Promise<Course[]> {
+  if (getDb()) {
+    const fromDb = await loadFromDb(true, { semCorpoDeAula: true });
+    if (fromDb.length > 0) return fromDb;
+  }
+  return await store.getAll();
+}
+
 export async function listCoursesIncludingInactive(): Promise<Course[]> {
   if (getDb()) {
     const fromDb = await loadFromDb(false);
