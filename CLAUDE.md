@@ -1074,12 +1074,22 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > #### Retomar daqui
 >
-> A frente aberta com melhor relação custo/benefício é **medir de novo o
-> celular**: `npx tsx scripts/auditar_carregamento_mobile.mts`. O último número
-> conhecido é 1,4 s de tempo de servidor na home **antes** do sprint
-> `db40c69`, que tirou a apostila da leitura — ninguém mediu depois dele.
+> **O desempenho do celular está medido, e o número está fechado:**
 >
-> Depois, na ordem em que eu faria:
+> | medida (Pixel 5, Slow 4G, CPU 4x) | antes | depois |
+> | --- | --- | --- |
+> | home — LCP | 6932 ms | **2172 ms** |
+> | home — TTFB | 5599 ms | **1569 ms** |
+> | home — bytes de imagem | 191 kB | **76 kB** |
+> | home — tempo de servidor (no VPS) | 2,5–3,7 s | **0,86–0,95 s** |
+> | curso / checkout — TTFB | 2440 / 2475 ms | **1863 / 1823 ms** |
+>
+> Refazer com `npx tsx scripts/auditar_carregamento_mobile.mts`. **Ele aquece
+> antes de medir**, e isso não é detalhe: sem o aquecimento a PRIMEIRA página
+> da lista come o processo frio e aparece com 6 s de TTFB enquanto o servidor
+> responde em 0,9 s — a conclusão sairia sobre a página errada.
+>
+> Na ordem em que eu faria, daqui:
 >
 > 1. **Node 20 no VPS**, fora de suporte desde abril/2026. É ação de operação,
 >    com risco real numa app gerenciada por PM2 — merece janela e plano de

@@ -22,6 +22,22 @@ const PAGINAS = [
 ] as const;
 
 const b = await chromium.launch();
+
+/*
+  Aquece antes de medir.
+
+  A primeira requisicao de uma serie paga o que ninguem quer medir: processo
+  frio, pool do banco vazio, TLS do zero. Sem este passo a PRIMEIRA pagina da
+  lista sempre parecia a pior — a home apareceu com 6 s de TTFB enquanto o
+  servidor respondia em 0,9 s, e a conclusao teria sido sobre a pagina errada.
+*/
+{
+  const ctx = await b.newContext();
+  const p = await ctx.newPage();
+  for (const [, url] of PAGINAS) await p.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await ctx.close();
+}
+
 for (const [nome, url] of PAGINAS) {
   const ctx = await b.newContext({ ...devices['Pixel 5'] });
   const p = await ctx.newPage();
