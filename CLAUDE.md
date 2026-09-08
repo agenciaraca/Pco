@@ -1156,6 +1156,8 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > | --- | --- |
 > | `a871f3e` | o script do site passou a ter a impressão digital no endereço |
 > | `c642e97` | o alarme da venda deixou de ser cego para a recusa antes do pedido |
+> | `846a557` | a leitura de curso fazia quatro idas ao banco, uma esperando a outra |
+> | `2e460b4` | a medição do ganho, e a correção do que o commit anterior superestimou |
 >
 > **Como o diagnóstico foi fechado, porque o atalho vale para a próxima vez:**
 > a frase *"Informe a data de nascimento"* só sai quando a chave **não vem no
@@ -1184,7 +1186,7 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > #### Estado ao fechar a sessão
 >
 > **`main` = `origin/main` = produção**, árvore limpa, sem branch pendente e sem
-> migration pendente. Suíte em **284 arquivos / 2668 testes**, verde com
+> migration pendente. Suíte em **285 arquivos / 2672 testes**, verde com
 > `npx vitest run --maxWorkers=1` (o `--maxWorkers=1` continua obrigatório
 > nesta máquina). Os dois sprints têm teste que falha contra o código anterior:
 > 3 de 7 casos num, 5 de 12 no outro.
@@ -1210,21 +1212,35 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >   dois. Produção tem 1 conta com os campos gravados: o caminho funciona de
 >   ponta a ponta, não é só código.
 > - ✅ **O alarme da venda** — virou o sprint `c642e97`.
-> - ❌ **Não olhei com o mesmo cuidado**: `server/public/memo-da-requisicao.ts`,
->   `server/db/repetir-consulta.ts` e `server/public/cep.ts`. São os três
->   arquivos novos de maior superfície que sobraram, e é por aí que eu
->   continuaria.
+> - ✅ **`memo-da-requisicao.ts`, `repetir-consulta.ts` e `public/cep.ts`** —
+>   auditados depois, e **os três estão sãos**. O memo está ligado
+>   (`publicSite.use('*')`) e suas quatro chaves são de leituras sem argumento,
+>   então não há colisão; o retry está instalado no pool (`instalarRetry`) com
+>   `keepAlive`; o CEP tem 13 casos, limite de 20/min e as três respostas
+>   separadas.
+>
+>   **Duas hipóteses minhas sobre eles estavam ERRADAS**, e verifiquei antes de
+>   mexer: `listCoursesResumidos` **não** perde `active`/`publicListed` (o
+>   primeiro vem da coluna, o segundo do `meta`), e as leituras de gateway e
+>   roteamento no checkout **não** são banco — são `JsonStore` em memória.
+>
+>   O que a passada rendeu não veio de ler, veio de **medir**: o custo do site
+>   público é ida-e-volta ao banco (`select 1` = 196 ms), e `loadFromDb` fazia
+>   quatro em fila. Ver a seção própria acima, inclusive o que a medição **não**
+>   autoriza afirmar.
 >
 > #### Na ordem em que eu retomaria
 >
-> 1. **Terminar a auditoria** nos três arquivos acima. Código novo não auditado
->    é a maior superfície aberta — foi assim que os dois defeitos de hoje
->    apareceram.
-> 2. **Node 20 no VPS**, fora de suporte desde abril/2026. É ação de operação
+> 1. **Node 20 no VPS**, fora de suporte desde abril/2026. É ação de operação
 >    com risco real numa app sob PM2: merece janela e plano de volta, e por isso
 >    não foi feita sozinha.
-> 3. **As sete decisões do dono**, que continuam sendo dele — a lista está no
+> 2. **As sete decisões do dono**, que continuam sendo dele — a lista está no
 >    bloco de 6/set/2026, mais abaixo, e nenhuma mudou.
+> 3. **Se for atrás de desempenho de novo**, comece pela seção "O custo do site
+>    público é ida-e-volta ao banco": o caminho que sobra é reduzir idas ou
+>    aproximar o banco, e otimizar SQL não move nada. Leia junto as três
+>    armadilhas de medição — a primeira delas quase me fez concluir que a
+>    própria melhora era uma piora.
 >
 > Ainda vale o que está escrito abaixo: **CI verde não é deploy feito**, e a
 > terceira linha do bloco seguinte é a que não tem substituto.
