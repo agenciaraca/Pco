@@ -1171,8 +1171,13 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > campo entrou. E zero pedidos é exatamente o que faz o alarme calar, porque
 > ele mede taxa de falha *sobre pedidos*.
 >
-> **Duas armadilhas de ferramenta que custaram tempo aqui**, e nenhuma é do
+> **Três armadilhas de ferramenta que custaram tempo aqui**, e nenhuma é do
 > projeto:
+>
+> - **`cmd | tail && echo OK` mente.** `npx tsc -b --noEmit | tail -10 && echo
+>   TYPECHECK_OK` imprime OK **mesmo com erro de tipo**, porque o `&&` lê o
+>   código de saída do `tail`. Quase reportei "typecheck limpo" sobre dois erros
+>   que estavam na tela. Use `echo "exit=${PIPESTATUS[0]}"` depois do pipe.
 >
 > - **A barra invertida some entre o shell e o arquivo.** Escrever um regex com
 >   duas barras invertidas num heredoc pelo Bash chega ao disco com uma só, e o erro
@@ -1188,8 +1193,8 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > **`main` = `origin/main` = produção**, árvore limpa, sem branch pendente e sem
 > migration pendente. Suíte em **285 arquivos / 2672 testes**, verde com
 > `npx vitest run --maxWorkers=1` (o `--maxWorkers=1` continua obrigatório
-> nesta máquina). Os dois sprints têm teste que falha contra o código anterior:
-> 3 de 7 casos num, 5 de 12 no outro.
+> nesta máquina). Os três sprints têm teste que falha contra o código anterior:
+> 3 de 7 casos, 5 de 12, e 2 de 4.
 >
 > **Uma sujeira que eu deixei, de propósito, e que você vai encontrar:** há
 > **uma** linha em `~/ava-pco/data/checkout-recusas.json` em produção, de
