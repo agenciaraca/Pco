@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Loader2, Tag, X, CheckCircle2, AlertCircle, User, FileText } from 'lucide-react';
 import { useCheckCoupon, useStartCheckout } from '../data/hooks';
+import { recadoDoCep, usePreenchimentoPorCep, type EnderecoDoCep } from '../data/cep';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from './Toast';
 import type { CouponCheckResultDto, ProductDto } from '../data/api';
@@ -95,6 +96,44 @@ export default function CheckoutDialog({
     uf: '',
   });
   const [erroEnd, setErroEnd] = useState<string | null>(null);
+  /*
+    Preenchimento pelo CEP — o mesmo do site público, pela mesma rota.
+
+    Duas regras que valem nas duas telas: só se sobrescreve o que o próprio
+    preenchimento pôs (o que a pessoa digitou à mão fica de pé, mesmo que o
+    CEP diga outra coisa), e "não achei" nunca é dito quando a verdade é "não
+    consegui perguntar".
+  */
+  const vindosDoCep = useRef<Set<string>>(new Set());
+  const refCep = useRef<HTMLInputElement>(null);
+  const refNumero = useRef<HTMLInputElement>(null);
+  const estadoCep = usePreenchimentoPorCep(end.cep, (achado: EnderecoDoCep) => {
+    setEnd((atual) => {
+      const proximo = { ...atual };
+      const campos = [
+        ['logradouro', achado.logradouro],
+        ['bairro', achado.bairro],
+        ['cidade', achado.cidade],
+        ['uf', achado.uf],
+      ] as const;
+      for (const [campo, valor] of campos) {
+        // Digitado à mão: não se toca.
+        if (atual[campo] && !vindosDoCep.current.has(campo)) continue;
+        // CEP de cidade inteira volta sem logradouro e sem bairro. Aí o certo
+        // é limpar o que o CEP anterior tinha posto, não deixar o resto de lá.
+        proximo[campo] = valor;
+        if (valor) vindosDoCep.current.add(campo);
+        else vindosDoCep.current.delete(campo);
+      }
+      return proximo;
+    });
+    // O número é o único campo que o CEP nunca traz. Levar o foco até ele só
+    // vale se a pessoa ainda estiver no CEP — roubar o foco de quem já seguiu
+    // adiante é pior do que não ajudar.
+    if (document.activeElement === refCep.current && !refNumero.current?.value) {
+      refNumero.current?.focus();
+    }
+  });
   const [validation, setValidation] = useState<
     | { kind: 'idle' }
     | { kind: 'ok'; data: CouponCheckResultDto }
@@ -373,6 +412,7 @@ export default function CheckoutDialog({
             </label>
             <input
               id={`${idDoc}-cep`}
+              ref={refCep}
               value={end.cep}
               inputMode="numeric"
               maxLength={9}
@@ -384,6 +424,11 @@ export default function CheckoutDialog({
               }}
               className="pco-input text-sm font-mono mt-1"
             />
+            {recadoDoCep(estadoCep) ? (
+              <p role="status" className="mt-1 text-xs text-ink-muted">
+                {recadoDoCep(estadoCep)}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -416,6 +461,7 @@ export default function CheckoutDialog({
             </label>
             <input
               id={`${idDoc}-num`}
+              ref={refNumero}
               value={end.numero}
               placeholder="123"
               onChange={(e) => {

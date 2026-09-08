@@ -298,6 +298,14 @@ Cinco coisas que qualquer mexida aqui tem de respeitar:
 E **três segundos de timeout**, não os dez do ping de gateway: do outro lado há
 uma pessoa parada no checkout, e digitar o endereço custa vinte segundos.
 
+**As duas telas de compra usam a mesma rota e a mesma regra.** O site público
+faz por `PUBLIC_JS`; a do aluno logado, pelo hook `usePreenchimentoPorCep`
+(`src/app/data/cep.ts`). Elas já divergiram antes — até 2/set/2026 a do aluno
+logado mandava ao gateway só o e-mail e nenhuma compra por dentro do app se
+concluía —, então a paridade é cobrada por teste dos dois lados, e o que se
+cobra é a **regra**, não o desenho: as três respostas, o que pode ser
+sobrescrito, e resposta atrasada não pisar no CEP atual.
+
 ## A faixa final da home nasce do pincel do rodapé
 
 `.cta-final` em `server/public/styles.ts` (8/set/2026). O último convite da
