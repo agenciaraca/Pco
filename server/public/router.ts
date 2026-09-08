@@ -958,6 +958,16 @@ publicSite.get('/', async (c) => {
           transformação.
         </p>
         </div>
+        <div class="numeros-declarados">${raw(declaradosHtml)}</div>
+        <p class="declarados-nota">
+          Com orgulho, celebramos a formação de mais de 800 alunos que escolheram trilhar a jornada
+          do Curso de Psicanálise Clínica Online conosco.${
+            numeros.aulas
+              ? ` São ${numeros.aulas} aulas exclusivas, proporcionando um aprendizado abrangente e de qualidade.`
+              : ''
+          }
+          Junte-se a nós e faça parte dessa comunidade de sucesso na Psicanálise Clínica Online!
+        </p>
       </div>
     </section>
 
@@ -1063,18 +1073,6 @@ publicSite.get('/', async (c) => {
             caminho da excelência em sua formação!
           </p>
         </div>
-      </div>
-      <div class="wrap">
-        <div class="numeros-declarados">${raw(declaradosHtml)}</div>
-        <p class="declarados-nota">
-          Com orgulho, celebramos a formação de mais de 800 alunos que escolheram trilhar a jornada
-          do Curso de Psicanálise Clínica Online conosco.${
-            numeros.aulas
-              ? ` São ${numeros.aulas} aulas exclusivas, proporcionando um aprendizado abrangente e de qualidade.`
-              : ''
-          }
-          Junte-se a nós e faça parte dessa comunidade de sucesso na Psicanálise Clínica Online!
-        </p>
       </div>
       ${pincel(PAPEL)}
     </section>

@@ -197,7 +197,6 @@ p{margin:0}
 .faixa-rntp .eyebrow{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#dfeeea}
 .faixa-rntp .rntp-texto{color:#cfe0dc}
 .faixa-rntp .rntp-bloco .selo-rntp{width:200px;height:200px;padding:10px}
-.faixa-rntp .numeros-declarados{margin-top:44px}
 @media (max-width:700px){.faixa-rntp .rntp-bloco .selo-rntp{width:150px;height:150px}}
 
 /* Bloco final da home — a faixa laranja que encosta no rodapé.
@@ -387,12 +386,19 @@ main:has(> .cta-final:last-child) + .pincel-topo{
 /* Bloco RNTP com o selo real ao lado do texto. */
 .rntp-bloco{display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center}
 .rntp-bloco .selo-rntp{width:150px;height:150px;box-shadow:var(--shadow-lg)}
-/* Números DECLARADOS pela escola — separados dos medidos, e rotulados como tal. */
+/* Números DECLARADOS pela escola — separados dos medidos, e rotulados como tal.
+
+   Vivem no "Sobre a PCO", em fundo CLARO. Estiveram sobre a faixa petróleo até
+   8/set/2026, e a cor de lá era branca — trocar de fundo sem trocar a cor
+   deixaria o número invisível, que é o tipo de coisa que só aparece quando
+   alguém olha a página. O valor sai na tinta de acento porque é o que a pessoa
+   deve ler primeiro; o rótulo, na tinta suave do corpo. */
 .numeros-declarados{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:24px;
-  text-align:center;color:#fff}
-.numeros-declarados .valor{font-size:clamp(34px,5vw,50px);font-weight:800;line-height:1.05}
-.numeros-declarados .rotulo{color:#cfe0dc;font-size:15px;margin-top:6px}
-.declarados-nota{margin-top:26px;color:#dceaef;font-size:15px;line-height:1.7;max-width:78ch}
+  text-align:center;margin-top:40px}
+.numeros-declarados .valor{font-size:clamp(34px,5vw,50px);font-weight:800;line-height:1.05;
+  color:var(--accent-ink)}
+.numeros-declarados .rotulo{color:var(--ink-soft);font-size:15px;margin-top:6px}
+.declarados-nota{margin-top:26px;color:var(--ink-soft);font-size:15px;line-height:1.7;max-width:78ch}
 /* A barra medida sobrevive, agora sobre fundo claro e dizendo que é medição. */
 .barra-numeros-neutra{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:18px;
   padding:24px;margin-top:12px}
