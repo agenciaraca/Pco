@@ -5,6 +5,7 @@ import { recadoDoCep, usePreenchimentoPorCep, type EnderecoDoCep } from '../data
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from './Toast';
 import type { CouponCheckResultDto, ProductDto } from '../data/api';
+import { fetchDadosDeCobranca } from '../data/api';
 import { documentoValido, formatarDocumento } from '../../../shared/documento';
 import {
   UFS,
@@ -154,6 +155,56 @@ export default function CheckoutDialog({
   useEffect(() => {
     if (open && !nome && user?.name) setNome(user.name);
   }, [open, user?.name, nome]);
+
+  /*
+    Prefill do que a própria pessoa digitou numa compra anterior.
+
+    É a razão de o endereço passar a ser guardado: até 8/set/2026 ele ia para o
+    cadastro do gateway e sumia daqui, e quem comprava o segundo curso
+    redigitava seis campos. Por isso esta tela pedia endereço como OPCIONAL —
+    exigir sem ter de onde preencher obrigaria a redigitar tudo a cada compra.
+
+    Só preenche o que está VAZIO: o que a pessoa já digitou nesta sessão vale
+    mais que o que veio da compra anterior. E falha calada — não ter prefill é
+    exatamente como era antes, e um aviso aqui não daria à pessoa nada para
+    fazer.
+  */
+  const prefillFeito = useRef(false);
+  useEffect(() => {
+    if (!open || prefillFeito.current) return;
+    prefillFeito.current = true;
+    let vivo = true;
+    fetchDadosDeCobranca()
+      .then((d) => {
+        if (!vivo) return;
+        if (d.birthDate) setNascimento((atual) => atual || d.birthDate!);
+        if (d.document) setDocumento((atual) => atual || formatarDocumento(d.document!));
+        if (d.endereco) {
+          setEnd((atual) => {
+            const vazio = !atual.cep && !atual.logradouro && !atual.cidade;
+            if (!vazio) return atual;
+            /*
+              Marcados como "não digitados nesta sessão".
+
+              É o que permite corrigir o CEP e ver a rua trocar junto. Sem
+              isto, o endereço da compra anterior seria tratado como digitado à
+              mão e sobreviveria a um CEP novo — a pessoa ficaria com o CEP de
+              uma cidade e a rua de outra, e o gateway recusaria sem explicar.
+            */
+            for (const campo of ['logradouro', 'bairro', 'cidade', 'uf']) {
+              vindosDoCep.current.add(campo);
+            }
+            return { ...atual, ...d.endereco, complemento: d.endereco!.complemento ?? '' };
+          });
+        }
+      })
+      .catch(() => {
+        // Sem prefill é como sempre foi. Nada a dizer para quem está comprando.
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [open]);
 
   if (!open) return null;
 

@@ -234,10 +234,11 @@ Cinco coisas que qualquer mexida aqui tem de respeitar:
   novo, e a trava recusaria venda legítima sem ninguém ter decidido isso. É
   política comercial; se a escola quiser, entra declarada.
 - **Obrigatório no público, opcional no logado.** A assimetria é deliberada: a
-  rota do aluno logado atende quem pode estar comprando o segundo curso, e
-  **ainda não há onde guardar o endereço** para preencher sozinho. Exigir sem
-  prefill obrigaria a redigitar tudo a cada compra. A exceção é o boleto, que
-  exige nos dois — o gateway o recusa sem endereço.
+  rota do aluno logado atende quem pode estar comprando o segundo curso.
+  **Desde 8/set/2026 há prefill** (migration `0022` — ver a seção abaixo), mas
+  ele só existe para quem já comprou uma vez; na primeira compra pelo app não
+  há de onde preencher, e exigir ali obrigaria a redigitar tudo. A exceção é o
+  boleto, que exige nos dois — o gateway o recusa sem endereço.
 - **`city` não vai para o Asaas.** Naquela API é o **id numérico** da cidade;
   mandar o nome dá erro de tipo. O Asaas resolve o município pelo `postalCode`.
   E `province`, lá, é o **bairro**.
@@ -246,14 +247,49 @@ Cinco coisas que qualquer mexida aqui tem de respeitar:
   que se afirma é o formato — com `00000000` fora, porque é o que sai de
   formulário preenchido a esmo.
 
-**O que este sprint NÃO fez, e por quê:** nada é persistido. Guardar endereço
-exige coluna nova em `students` ou em `payment_orders` — nenhuma das duas tem
-jsonb genérico —, e **migration não pode ser aplicada da máquina de
-7/set/2026**: a porta 5432 do banco não é alcançável dela. Por ora o endereço
-vive no cadastro do gateway. Quando a persistência entrar, ela traz junto o
-prefill e a entrada nas duas pontas da LGPD (`/me/export` e o expurgo) — dado
-pessoal novo que não entra nas duas é exatamente o defeito que o fórum e a
-transcrição de sessão tinham.
+## Nascimento e endereço passaram a ser guardados (migration `0022`)
+
+Até 8/set/2026 o checkout coletava os dois, mandava para o gateway e **não
+guardava nada**. Quem comprava o segundo curso redigitava seis campos, e o
+titular que pedia exportação ou exclusão não via nem apagava um endereço que a
+escola de fato coletou — dado pessoal fora das duas pontas da LGPD, que é o
+defeito que o fórum e a transcrição de sessão tinham.
+
+**Onde mora: em `users`**, ao lado do `document`. Não em `students` (ficaria de
+fora das 418 contas com login e sem ficha) nem em `payment_orders` (guardaria
+histórico por compra, que não tem consumidor hoje, e duplicaria a superfície de
+dado pessoal a apagar). Identidade da pessoa junto da identidade da pessoa, e a
+anonimização já passa por ali.
+
+Cinco coisas que qualquer mexida aqui tem de respeitar:
+
+- **`birth_date` é `text` em `AAAA-MM-DD`, não `date`.** O tipo do Postgres
+  volta como `Date` no driver e passa por fuso na serialização: `1990-03-15`
+  vira `1990-03-14` para quem está a oeste de Greenwich. Data de nascimento não
+  tem hora.
+- **Quem grava é `salvarDadosDeCobranca`, não o `updateUser`.** Função à parte
+  pela mesma razão que `document` não está no `UpdateInput`: alargá-lo daria à
+  tela de edição do admin um caminho para gravar dado pessoal de cobrança que
+  ela não tem nem deve ter. Há teste cobrando que os schemas de conta não
+  ganhem esses campos.
+- **Só grava o que veio.** Compra sem endereço (o caso do aluno logado fora do
+  boleto) não pode apagar o endereço da compra anterior — é exatamente o que se
+  quer preencher da próxima vez.
+- **Gravar não derruba a compra.** Vai antes de cobrar, para que a segunda
+  tentativa já venha preenchida se o gateway recusar; e o erro é engolido com
+  log, porque o dado já seguiu para o gateway de qualquer forma.
+- **O prefill marca os campos como "não digitados nesta sessão".** Sem isso,
+  corrigir o CEP deixaria a rua da compra anterior colada no CEP novo — a
+  pessoa ficaria com o CEP de uma cidade e a rua de outra, e o gateway
+  recusaria sem explicar.
+
+**A migration roda ANTES do código, e desta vez pelo VPS.** A porta 5432 do
+DivZ não é alcançável da máquina de desenvolvimento, mas é do servidor: copiar
+a pasta `server/db/migrations` para `/tmp` de lá e rodar o migrator com a
+credencial de owner **no ambiente do processo** aplica sem que a credencial
+toque o disco do servidor. Coluna nova em `users` com o código velho é seguro
+(o Drizzle seleciona coluna a coluna); o contrário — código novo com banco
+velho — quebraria **toda consulta a `users`**, inclusive o login.
 
 ## CEP: a consulta é nossa, e "não achei" não é "não consegui olhar"
 

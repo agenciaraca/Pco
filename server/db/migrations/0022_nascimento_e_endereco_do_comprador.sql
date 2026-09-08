@@ -1,0 +1,46 @@
+-- Data de nascimento e endereço de quem compra.
+--
+-- O checkout coleta os dois desde 7/set/2026 — o Asaas recusa boleto sem CEP e
+-- sem número, e a análise antifraude de cartão pontua com nascimento e
+-- endereço. Até agora eles só existiam no cadastro do gateway: o AVA coletava,
+-- validava, mandava adiante e não guardava nada.
+--
+-- Isso custava duas coisas. Quem compra o segundo curso redigita tudo, porque
+-- não há de onde preencher. E o titular que pede exportação ou exclusão dos
+-- dados não vê nem apaga um endereço que a escola de fato coletou — dado
+-- pessoal fora das duas pontas da LGPD é exatamente o defeito que o fórum e a
+-- transcrição de sessão tinham.
+--
+-- ## Por que em `users`, e não em `students` nem em `payment_orders`
+--
+-- É onde já mora o `document` (CPF): identidade da pessoa fica junto da
+-- identidade da pessoa, e a rotina de anonimização já passa por aqui
+-- (`usersStore.anonimizarConta`) — uma coluna nova em outra tabela seria uma
+-- segunda varredura para alguém esquecer.
+--
+-- `students` ficaria de fora de quem compra e ainda não tem ficha: são 418
+-- contas com login e sem ficha em produção. `payment_orders` guardaria o
+-- histórico por compra, que é bonito e não tem consumidor nenhum hoje — e
+-- duplicaria a superfície de dado pessoal a apagar sem nada em troca.
+--
+-- ## Por que `text` e não `date` para o nascimento
+--
+-- A regra de validação mora em `shared/endereco.ts` e trabalha com
+-- `AAAA-MM-DD` puro, nos dois lados. `date` do Postgres volta como `Date` no
+-- driver e passa por fuso na serialização: `1990-03-15` vira `1990-03-14` para
+-- quem está a oeste de Greenwich. Data de nascimento não tem hora e não tem
+-- fuso; guardar o texto é guardar o que a pessoa digitou.
+--
+-- ## Por que `jsonb` para o endereço
+--
+-- São sete campos que andam juntos e são lidos sempre inteiros, para preencher
+-- formulário e para montar o cadastro no gateway. Sete colunas dariam sete
+-- migrations no dia em que o gateway pedir o oitavo campo, e nenhuma consulta
+-- deste produto filtra por cidade ou por UF.
+--
+-- Nulos em toda conta existente. **Nulo quer dizer "nunca coletamos"**, não
+-- "endereço vazio" — e é por isso que o formulário do aluno logado continua
+-- opcional: preencher sozinho só é possível para quem já comprou uma vez.
+
+ALTER TABLE "users" ADD COLUMN "birth_date" text;
+ALTER TABLE "users" ADD COLUMN "address" jsonb;

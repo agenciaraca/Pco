@@ -18,6 +18,7 @@ import {
   index,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import type { Endereco } from '../../shared/endereco';
 
 // ---------- Enums ----------
 
@@ -124,6 +125,21 @@ export const users = pgTable(
     totpSecretEncrypted: text('totp_secret_encrypted'),
     /** Hashes sha256 dos códigos de backup do 2FA — nunca os códigos em claro. */
     totpBackupCodes: jsonb('totp_backup_codes').$type<string[]>(),
+    /**
+     * Nascimento e endereço de quem compra (migration `0022`).
+     *
+     * Ficam aqui, ao lado do `document`, porque é onde a identidade da pessoa
+     * mora e por onde a anonimização já passa — coluna em outra tabela seria
+     * uma segunda varredura para alguém esquecer.
+     *
+     * `birthDate` é `text` em `AAAA-MM-DD`, não `date`: o tipo do Postgres
+     * volta como `Date` e passa por fuso, e `1990-03-15` vira `1990-03-14`
+     * para quem está a oeste de Greenwich. Data de nascimento não tem hora.
+     *
+     * **Nulo quer dizer "nunca coletamos"**, não "endereço vazio".
+     */
+    birthDate: text('birth_date'),
+    address: jsonb('address').$type<Endereco>(),
   },
   (t) => ({
     emailIdx: uniqueIndex('users_email_idx').on(t.email),

@@ -17,6 +17,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { inArray } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
+import type { Endereco } from '../../shared/endereco';
 
 export type Role = 'student' | 'admin' | 'superadmin';
 
@@ -46,6 +47,15 @@ export interface SystemUser {
   totpSecretEncrypted?: string;
   // Códigos de backup — guardamos só os hashes (sha256)
   totpBackupCodes?: string[];
+  /**
+   * Nascimento e endereço de quem compra (migration `0022`).
+   *
+   * Coletados no checkout porque o gateway exige, e guardados aqui para
+   * preencher a próxima compra e para existirem nas duas pontas da LGPD.
+   * **Ausente quer dizer "nunca coletamos"**, não "endereço vazio".
+   */
+  birthDate?: string | null;
+  endereco?: Endereco | null;
 }
 
 export interface SystemUserPublic {
@@ -63,6 +73,8 @@ export interface SystemUserPublic {
   document?: string | null;
   onboardingCompletedAt?: string | null;
   totpEnabled?: boolean;
+  birthDate?: string | null;
+  endereco?: Endereco | null;
 }
 
 const DATA_DIR = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
@@ -126,6 +138,8 @@ function toRow(u: SystemUser): UserRow {
     totpEnabled: u.totpEnabled ?? false,
     totpSecretEncrypted: u.totpSecretEncrypted ?? null,
     totpBackupCodes: u.totpBackupCodes ?? null,
+    birthDate: u.birthDate ?? null,
+    address: u.endereco ?? null,
   };
 }
 
@@ -151,6 +165,8 @@ function fromRow(r: typeof schema.users.$inferSelect): SystemUser {
     totpEnabled: r.totpEnabled,
     totpSecretEncrypted: r.totpSecretEncrypted ?? undefined,
     totpBackupCodes: r.totpBackupCodes ?? undefined,
+    birthDate: r.birthDate,
+    endereco: r.address,
   };
 }
 
@@ -484,6 +500,42 @@ export async function updateUser(
  * para aceitar `document` daria à tela de edição de usuário um caminho para
  * gravar CPF que ela não tem hoje.
  */
+/**
+ * Grava nascimento e endereço de quem acabou de comprar.
+ *
+ * Função à parte, e não um campo novo em `UpdateInput`, pela mesma razão que
+ * `document` não está lá: alargar o `UpdateInput` daria à tela de edição do
+ * admin um caminho para gravar dado pessoal de cobrança que ela não tem nem
+ * deve ter. Quem escreve aqui é o checkout, com o que o titular acabou de
+ * digitar sobre si.
+ *
+ * **Só grava o que veio.** Uma compra de aluno logado pode vir sem endereço
+ * (ele é opcional lá, menos no boleto), e sobrescrever com `null` apagaria o
+ * endereço da compra anterior — que é justamente o que se quer preencher da
+ * próxima vez.
+ */
+export async function salvarDadosDeCobranca(
+  id: string,
+  dados: { birthDate?: string | null; endereco?: Endereco | null },
+): Promise<boolean> {
+  await loadUsers();
+  const i = users.findIndex((u) => u.id === id);
+  if (i === -1) return false;
+  let mudou = false;
+  if (dados.birthDate) {
+    users[i].birthDate = dados.birthDate;
+    mudou = true;
+  }
+  if (dados.endereco) {
+    users[i].endereco = dados.endereco;
+    mudou = true;
+  }
+  if (!mudou) return false;
+  users[i].updatedAt = new Date().toISOString();
+  await queueWrite();
+  return true;
+}
+
 export async function anonimizarConta(
   id: string,
   marca: { nome: string; email: string },
@@ -496,6 +548,11 @@ export async function anonimizarConta(
     name: marca.nome,
     email: marca.email,
     document: null,
+    // Endereço e nascimento saem junto com o CPF: são dado de identificação
+    // da mesma pessoa, e deixá-los para trás faria a anonimização ser de
+    // fachada — foi assim que a referência externa sobreviveu, em 5/set.
+    birthDate: null,
+    endereco: null,
     passwordHash: '',
     avatarUrl: null,
     lastLoginAt: undefined,

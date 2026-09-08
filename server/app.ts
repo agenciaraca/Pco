@@ -118,6 +118,7 @@ import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
 import { isPubliclyListed } from './public/projections';
 import { consultarCep } from './public/cep';
+import type { Endereco } from '../shared/endereco';
 import { documentoValido } from '../shared/documento';
 import { nomePublico } from '../shared/nome-publico';
 import { podeEntrar, MENSAGEM_SEM_MATRICULA } from './access/portao-de-entrada';
@@ -510,6 +511,28 @@ function dataDeLiberacao(iso: string | null | undefined): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return 'breve';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+/**
+ * Guarda nascimento e endereço de quem comprou.
+ *
+ * Nunca lança. A compra é o que importa nesse instante, e o dado já seguiu
+ * para o gateway de qualquer forma — deixar o erro subir trocaria "um dia essa
+ * pessoa vai redigitar o endereço" por "essa pessoa não comprou".
+ *
+ * Quem escreve é `usersStore.salvarDadosDeCobranca`, função à parte do
+ * `updateUser` de propósito: alargar o `UpdateInput` daria à tela de edição do
+ * admin um caminho para gravar dado pessoal de cobrança que ela não tem.
+ */
+async function guardarDadosDeCobranca(
+  userId: string,
+  dados: { birthDate?: string | null; endereco?: Endereco | null },
+): Promise<void> {
+  try {
+    await usersStore.salvarDadosDeCobranca(userId, dados);
+  } catch (err) {
+    console.error('[checkout] não deu para guardar nascimento/endereço:', err);
+  }
 }
 
 export function buildApp() {
@@ -2213,6 +2236,28 @@ export function buildApp() {
    * pessoal precisa entrar nos dois — ou ser declarada, com o motivo, como
    * fora do escopo.
    */
+  /**
+   * O que o checkout preenche sozinho da próxima vez.
+   *
+   * Só o que a própria pessoa digitou sobre si numa compra anterior, e só para
+   * ela: `requireAuth()` sem parâmetro, lendo `u.sub`. Não existe versão desta
+   * rota para terceiro — endereço de aluno não é dado de tela de admin.
+   *
+   * Responde com os campos **ausentes** quando nunca houve compra, e não com
+   * strings vazias: vazio se lê como "está em branco", e o formulário do aluno
+   * logado precisa distinguir isso de "nunca coletamos".
+   */
+  app.get('/me/dados-de-cobranca', requireAuth(), async (c) => {
+    const u = c.get('user')!;
+    const perfil = await usersStore.findUserById(u.sub);
+    return c.json({
+      birthDate: perfil?.birthDate ?? null,
+      endereco: perfil?.endereco ?? null,
+      document: perfil?.document ?? null,
+      name: perfil?.name ?? null,
+    });
+  });
+
   app.get('/me/export', requireAuth(), async (c) => {
     const u = c.get('user')!;
     const profile = await usersStore.findUserById(u.sub);
@@ -11623,6 +11668,22 @@ export function buildApp() {
         currency: product.currency,
       });
 
+      /*
+        Guarda o que a pessoa acabou de digitar sobre si.
+
+        Vai ANTES de cobrar, e de propósito: se o gateway recusar, o endereço
+        continua guardado e a segunda tentativa já vem preenchida — que é o
+        momento em que a pessoa mais precisa que ela não peça tudo de novo.
+
+        E não derruba a compra. Falhar aqui custa um formulário para repreencher
+        um dia; deixar o erro subir custaria a venda, com o dado já a caminho do
+        gateway de qualquer forma.
+      */
+      await guardarDadosDeCobranca(u.sub, {
+        birthDate: v.data.birthDate,
+        endereco: v.data.endereco,
+      });
+
       try {
         const { gateway, resultado: result } = await cobrar({
           metodo: v.data.metodo,
@@ -11898,6 +11959,14 @@ export function buildApp() {
       metodo: v.data.metodo ?? null,
       amountCents: product.priceCents,
       currency: product.currency,
+    });
+
+    // Mesma gravação do checkout do aluno logado — ver a nota lá em cima.
+    // Aqui a conta acabou de ser provisionada, então isto é o primeiro dado
+    // pessoal de cobrança que ela recebe.
+    await guardarDadosDeCobranca(user.id, {
+      birthDate: v.data.birthDate,
+      endereco: v.data.endereco,
     });
 
     try {

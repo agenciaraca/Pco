@@ -980,6 +980,32 @@ export async function fetchMyOrders(): Promise<OrderDto[]> {
   return http.get<OrderDto[]>('/me/orders');
 }
 
+/**
+ * O que o checkout preenche sozinho: o que a própria pessoa digitou sobre si
+ * numa compra anterior. Campos ausentes quando nunca houve compra — `null` é
+ * "nunca coletamos", que é diferente de "está em branco".
+ */
+export interface DadosDeCobrancaDto {
+  birthDate: string | null;
+  endereco: EnderecoDto | null;
+  document: string | null;
+  name: string | null;
+}
+
+export interface EnderecoDto {
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento?: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+}
+
+export async function fetchDadosDeCobranca(): Promise<DadosDeCobrancaDto> {
+  return http.get<DadosDeCobrancaDto>('/me/dados-de-cobranca');
+}
+
 export async function fetchAllOrders(): Promise<OrderDto[]> {
   return http.get<OrderDto[]>('/admin/orders');
 }

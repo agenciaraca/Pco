@@ -155,6 +155,13 @@
       "when": 1788662628955,
       "tag": "0021_transcricao_do_podcast",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788836851996,
+      "tag": "0022_nascimento_e_endereco_do_comprador",
+      "breakpoints": true
     }
   ]
 }
