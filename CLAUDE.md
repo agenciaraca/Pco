@@ -1107,7 +1107,7 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > | commit | o quê |
 > | --- | --- |
 > | `a871f3e` | o script do site passou a ter a impressão digital no endereço |
-> | (este) | o alarme da venda deixou de ser cego para a recusa antes do pedido |
+> | `c642e97` | o alarme da venda deixou de ser cego para a recusa antes do pedido |
 >
 > **Como o diagnóstico foi fechado, porque o atalho vale para a próxima vez:**
 > a frase *"Informe a data de nascimento"* só sai quando a chave **não vem no
