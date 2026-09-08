@@ -1006,6 +1006,107 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
+> ### 8/set/2026 — catorze sprints, e a migration `0022` já está no banco
+>
+> **Árvore limpa, `main` = `origin/main`.** A suíte saiu de 273 arquivos /
+> 2587 testes para **280 / 2650**. Cada sprint tem teste que falha contra o
+> código anterior.
+>
+> #### A primeira coisa a conferir ao retomar
+>
+> ```bash
+> gh run list --limit 5          # a CI anda?
+> git fetch && git status        # a árvore está limpa?
+> ssh vps 'sudo -u avapco -i bash -c "cd ~/ava-pco && git log --oneline -1"'
+> ```
+>
+> A terceira linha é a que importa e não tem substituto: **CI verde não é
+> deploy feito**. Em 8/set a CI do sprint de desempenho falhou por um mock
+> desatualizado, o `deploy.yml` saiu `skipped` — não falha, não avisa — e
+> produção ficou dois commits atrás sem nada dizer.
+>
+> #### Os catorze, em ordem de commit
+>
+> | commit | o quê |
+> | --- | --- |
+> | `349f096` | CEP preenche o endereço no checkout público — e a **máscara estava quebrada em produção** |
+> | `651b38e` | faixa final laranja com textura, nascendo do pincel do rodapé |
+> | `a5b78ee` | o mesmo CEP na compra do aluno logado |
+> | `e9a7a15` | três trechos do `docs/deploy.md` que mandavam fazer a coisa errada no incidente |
+> | `f19251b` | nove pontos que **ainda** perdiam escrita concorrente |
+> | `690a93c` | worker que roda e não entrega deixou de ficar verde |
+> | `5869e45` | nenhuma passagem de seção da home com corte reto; RNTP virou bloco azul |
+> | `bd97dab` | números declarados saíram da faixa azul para "Sobre a PCO" |
+> | `ea395ad` | **nascimento e endereço passam a ser guardados** (migration `0022`) |
+> | `bc9ebc7` | a home levava 2,5s de servidor e lia a mesma coisa duas vezes |
+> | `687a41b` | o auditor de carregamento no celular virou ferramenta do repositório |
+> | `db40c69` | a vitrine parou de trazer a apostila para montar cartão |
+> | `9de86f1` | o simulador de falha de leitura mirava a função que a vitrine deixou de chamar |
+>
+> Cada um tem seção própria acima, com o porquê.
+>
+> #### O que MUDOU no banco de produção
+>
+> **A migration `0022` já está aplicada** (`users.birth_date`, `users.address`),
+> rodada pelo VPS antes do código subir. Não há migration pendente. O caminho
+> está descrito na seção "Nascimento e endereço passaram a ser guardados" — e a
+> parte que não se infere é que **o banco não é alcançável da máquina de
+> desenvolvimento, mas é do servidor**: copiar `server/db/migrations` para
+> `/tmp` de lá e rodar o migrator com a credencial de owner no ambiente do
+> processo aplica sem que ela toque o disco.
+>
+> #### Quatro achados que a auditoria de 7/set não tinha pego
+>
+> 1. **A máscara de CEP estava quebrada em produção.** `\D` dentro do template
+>    literal do `PUBLIC_JS` vira `D`: a máscara apagava a letra D e deixava
+>    passar o hífen, e o oitavo dígito virava `12345--67`. A suíte ficou verde
+>    a vida inteira do defeito porque **nada avaliava o `PUBLIC_JS`**.
+> 2. **O livro do reengajamento perdia registro.** `recordSent` fazia
+>    `[novo, ...todos].slice(0, N)` — o `unshiftComTeto` criado no sprint
+>    anterior existia e não foi usado ali. Registro perdido nesse arquivo é o
+>    aluno recebendo o mesmo e-mail outra vez.
+> 3. **Configuração de uma linha também é leitura-seguida-de-escrita.** O
+>    CLAUDE.md dizia o contrário, e a frase saiu corrigida junto com oito
+>    conversões.
+> 4. **A home custava 2,5s de servidor.** `numerosDoSite` trazia a árvore
+>    inteira de cursos — com o conteúdo das 590 aulas — **só para contar
+>    aulas**, e as três leituras rodavam em sequência.
+>
+> #### Retomar daqui
+>
+> A frente aberta com melhor relação custo/benefício é **medir de novo o
+> celular**: `npx tsx scripts/auditar_carregamento_mobile.mts`. O último número
+> conhecido é 1,4 s de tempo de servidor na home **antes** do sprint
+> `db40c69`, que tirou a apostila da leitura — ninguém mediu depois dele.
+>
+> Depois, na ordem em que eu faria:
+>
+> 1. **Node 20 no VPS**, fora de suporte desde abril/2026. É ação de operação,
+>    com risco real numa app gerenciada por PM2 — merece janela e plano de
+>    volta, e por isso não foi feita sozinha.
+> 2. **Uma passada de auditoria sobre o que foi escrito hoje.** Foi assim que a
+>    passada 004 achou os cinco defeitos do expurgo escrito na mesma manhã, e é
+>    assim que os quatro achados acima apareceram. Código novo não auditado é a
+>    maior superfície aberta.
+> 3. As sete decisões do dono, que continuam sendo dele (ver o bloco de
+>    6/set/2026, mais abaixo).
+>
+> #### O que me bloqueou, e não é código
+>
+> - **Chrome não alcança o `localhost`** desta máquina, então verificação
+>   visual foi feita com **Playwright headless** — que funciona e virou o
+>   caminho normal: `chromium.launch()`, captura por seção, e comparação de
+>   estilo computado. É mais confiável que olhar, e deixa evidência.
+> - **A porta 5432 do banco continua inalcançável daqui.** O que destravou foi
+>   passar pelo VPS; ver acima.
+>
+> #### Uma armadilha que custou tempo hoje
+>
+> **Crase dentro de template literal, de novo** — nos comentários que eu mesmo
+> tinha acabado de escrever no CSS, dez linhas abaixo da seção do CLAUDE.md que
+> avisa sobre isso. O erro aparece como `Unterminated template literal`
+> centenas de linhas adiante.
+
 > ### 7/set/2026 — dez sprints, tudo publicado, nada pela metade
 >
 > **Árvore limpa, `main` = `origin/main`, e produção acompanhando.** A suíte
