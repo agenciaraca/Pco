@@ -77,6 +77,18 @@ export interface JobStatus {
    * significar só uma coisa: ainda não rodou nesta vida do processo.
    */
   saudavel: boolean | null;
+  /**
+   * O último ciclo em números: quantos itens deram certo e quantos falharam.
+   *
+   * **`saudavel` não cobre isto, e a diferença custa caro.** Ele diz se o tick
+   * completou; um tick que percorre 200 lembretes, falha nos 200 e devolve
+   * `{ enviados: 0, erros: 200 }` completou — e aparece verde. É a forma exata
+   * do defeito que este projeto persegue: a rotina rodou, contou e reportou
+   * sucesso, enquanto ninguém recebeu o aviso da sessão que pagou.
+   *
+   * `null` = o worker não conta itens (ou ainda não rodou). Não é zero.
+   */
+  ultimoCiclo: { ok: number; erros: number } | null;
   /** O status cru do worker, para a tela mostrar o que for específico dele. */
   detalhes: Record<string, unknown>;
 }
@@ -86,6 +98,18 @@ function texto(v: unknown): string | null {
 }
 function numero(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+/**
+ * Normaliza o resultado do último ciclo. Devolve `null` quando o worker não
+ * rodou ou não conta itens — nunca `{ ok: 0, erros: 0 }`, que afirmaria uma
+ * medição que não houve.
+ */
+function ciclo(ok: unknown, erros: unknown): { ok: number; erros: number } | null {
+  const a = numero(ok);
+  const b = numero(erros);
+  if (a === null && b === null) return null;
+  return { ok: a ?? 0, erros: b ?? 0 };
 }
 
 /**
@@ -114,6 +138,7 @@ export function listarJobs(): JobStatus[] {
       // o ciclo de entrega. Ficar verde com uma delas ruim seria escolher qual
       // problema esconder.
       saudavel: s.falhasAoEnfileirar > 0 ? false : (s.saudavel ?? null),
+      ultimoCiclo: null,
       detalhes: { ...s },
     });
   }
@@ -133,6 +158,7 @@ export function listarJobs(): JobStatus[] {
       totalTicks: null,
       podeRodarAgora: true,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: null,
       detalhes: { ...s },
     });
   }
@@ -149,6 +175,7 @@ export function listarJobs(): JobStatus[] {
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: false,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: null,
       detalhes: { ...s },
     });
   }
@@ -165,6 +192,10 @@ export function listarJobs(): JobStatus[] {
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: true,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: ciclo(
+        (s.lastRunResult as { enviados?: number } | null)?.enviados,
+        (s.lastRunResult as { erros?: number } | null)?.erros,
+      ),
       detalhes: { ...s },
     });
   }
@@ -181,6 +212,7 @@ export function listarJobs(): JobStatus[] {
       totalTicks: null,
       podeRodarAgora: false,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: null,
       detalhes: { ...s },
     });
   }
@@ -197,6 +229,7 @@ export function listarJobs(): JobStatus[] {
       totalTicks: null,
       podeRodarAgora: false,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: null,
       detalhes: { ...s },
     });
   }
@@ -213,6 +246,7 @@ export function listarJobs(): JobStatus[] {
       totalTicks: null,
       podeRodarAgora: false,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: null,
       detalhes: { ...s },
     });
   }
@@ -229,6 +263,10 @@ export function listarJobs(): JobStatus[] {
       totalTicks: null,
       podeRodarAgora: true,
       saudavel: s.saudavel,
+      ultimoCiclo: ciclo(
+        s.lastResult?.filesBackedUp,
+        s.lastResult?.errors?.length,
+      ),
       detalhes: { ...s },
     });
   }
@@ -245,6 +283,7 @@ export function listarJobs(): JobStatus[] {
       totalTicks: numero(s.totalRotations),
       podeRodarAgora: false,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: null,
       detalhes: { ...s },
     });
   }
@@ -261,6 +300,7 @@ export function listarJobs(): JobStatus[] {
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: false,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: null,
       detalhes: { ...s },
     });
   }
@@ -277,6 +317,10 @@ export function listarJobs(): JobStatus[] {
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: true,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: ciclo(
+        (s.lastRunResult as { sent?: number } | null)?.sent,
+        (s.lastRunResult as { errors?: number } | null)?.errors,
+      ),
       detalhes: { ...s },
     });
   }
@@ -293,6 +337,10 @@ export function listarJobs(): JobStatus[] {
       totalTicks: numero(s.totalTicks),
       podeRodarAgora: true,
       saudavel: s.saudavel ?? null,
+      ultimoCiclo: ciclo(
+        (s.lastRunResult as { enviados?: number } | null)?.enviados,
+        (s.lastRunResult as { erros?: number } | null)?.erros,
+      ),
       detalhes: { ...s },
     });
   }
@@ -315,6 +363,7 @@ export function listarJobs(): JobStatus[] {
       // estar boa. As duas perguntas são diferentes, e confundi-las faria o
       // card ficar vermelho por motivo trocado.
       saudavel: s.saudavel,
+      ultimoCiclo: null,
       detalhes: { ...s },
     });
   }

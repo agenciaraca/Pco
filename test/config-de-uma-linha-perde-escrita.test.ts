@@ -46,14 +46,14 @@ describe('configuração de uma linha', () => {
     const { updateSettings, getSettings } = await import('../server/repositories/settings');
 
     await Promise.all([
-      updateSettings({ schoolName: 'Escola A' }),
+      updateSettings({ siteName: 'Escola A' }),
       updateSettings({ helpEmail: 'suporte-b@exemplo.test' }),
     ]);
 
     const final = await getSettings();
     // Com `getAll` + `setAll`, um dos dois sobrescrevia a base que o outro
     // tinha lido e a mudança dele sumia. Os dois campos são independentes.
-    expect(final.schoolName).toBe('Escola A');
+    expect(final.siteName).toBe('Escola A');
     expect(final.helpEmail).toBe('suporte-b@exemplo.test');
   });
 

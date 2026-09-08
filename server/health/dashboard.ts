@@ -299,16 +299,56 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     const jobs = listarJobs();
     const comFalha = jobs.filter((j) => j.saudavel === false);
     const medidos = jobs.filter((j) => j.saudavel !== null);
+    /*
+      Um tick pode completar e não ter feito nada.
+
+      `saudavel` responde "o ciclo terminou?". Os workers que percorrem itens
+      pegam o erro POR ITEM, contam e seguem — então um tick que examina 200
+      lembretes, falha nos 200 e devolve `{ enviados: 0, erros: 200 }` termina
+      bem e fica verde aqui. É a forma exata do defeito que este projeto
+      persegue: a rotina rodou, contou e reportou sucesso, e ninguém recebeu o
+      aviso da sessão que pagou.
+
+      Dois níveis, porque as duas situações pedem ações diferentes:
+
+      - **nada passou** (`erros > 0` e `ok === 0`) é `error`: é o worker mudo,
+        e a causa costuma ser uma só — credencial de e-mail vencida, provedor
+        fora. Vale acordar alguém.
+      - **algo falhou** (`erros > 0` com algum `ok`) é `warn`: endereço
+        inválido de um aluno entre duzentos não pode pintar o painel de
+        vermelho, mas também não pode sumir.
+
+      `ultimoCiclo: null` fica de fora dos dois: é "não conta itens", não zero.
+    */
+    const mudos = jobs.filter((j) => j.ultimoCiclo && j.ultimoCiclo.erros > 0 && j.ultimoCiclo.ok === 0);
+    const comAlgumErro = jobs.filter(
+      (j) => j.ultimoCiclo && j.ultimoCiclo.erros > 0 && j.ultimoCiclo.ok > 0,
+    );
+    const nomes = (lista: typeof jobs) => lista.map((j) => j.rotulo).join(', ');
     checks.push({
       id: 'workers',
       label: 'Workers',
-      status: comFalha.length > 0 ? 'error' : medidos.length === 0 ? 'na' : 'ok',
+      status:
+        comFalha.length > 0 || mudos.length > 0
+          ? 'error'
+          : comAlgumErro.length > 0
+            ? 'warn'
+            : medidos.length === 0
+              ? 'na'
+              : 'ok',
       message:
-        comFalha.length > 0
-          ? `Falhando: ${comFalha.map((j) => j.rotulo).join(', ')}`
-          : medidos.length === 0
-            ? 'Nenhum ciclo completou ainda nesta vida do processo'
-            : `${medidos.length} de ${jobs.length} já rodaram, sem falha no último ciclo`,
+        comFalha.length > 0 || mudos.length > 0
+          ? [
+              comFalha.length > 0 ? `Falhando: ${nomes(comFalha)}` : '',
+              mudos.length > 0 ? `Rodou sem entregar nada: ${nomes(mudos)}` : '',
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          : comAlgumErro.length > 0
+            ? `Com erros no último ciclo: ${nomes(comAlgumErro)}`
+            : medidos.length === 0
+              ? 'Nenhum ciclo completou ainda nesta vida do processo'
+              : `${medidos.length} de ${jobs.length} já rodaram, sem falha no último ciclo`,
       metric: `${medidos.length}/${jobs.length}`,
     });
   } catch {
