@@ -255,6 +255,49 @@ prefill e a entrada nas duas pontas da LGPD (`/me/export` e o expurgo) — dado
 pessoal novo que não entra nas duas é exatamente o defeito que o fórum e a
 transcrição de sessão tinham.
 
+## CEP: a consulta é nossa, e "não achei" não é "não consegui olhar"
+
+`server/public/cep.ts` + `GET /public/cep/:cep` (8/set/2026). O checkout passou
+a pedir seis campos de endereço porque o Asaas recusa boleto sem CEP e sem
+número. Seis campos com o cartão na mão é onde a compra morre; com o
+preenchimento pelo CEP sobram **dois** — o número e, se houver, o complemento.
+
+**Por que a consulta sai do servidor e não do navegador de quem compra:**
+
+- **O IP e o CEP do visitante não vão para terceiro nenhum.** Quem fala com o
+  ViaCEP somos nós.
+- **O cache é nosso.** CEP repetido não vira requisição externa nenhuma.
+- **A queda do terceiro é nossa para tratar**, em vez de virar erro de rede no
+  console de quem está pagando.
+
+**Correção de uma afirmação anterior:** o handoff de 7/set dizia que a rota
+própria era necessária porque "a CSP bloqueia terceiro". **Não bloqueia** — a
+nossa emite `connect-src 'self' https:`, e um `fetch` direto do navegador
+passaria. O motivo é privacidade, e ele basta; repetir o argumento falso faria
+a próxima pessoa afrouxar a CSP achando que resolveria alguma coisa.
+
+Cinco coisas que qualquer mexida aqui tem de respeitar:
+
+- **Três respostas, não duas.** `200 {encontrado:true}`, `200
+  {encontrado:false}` (os Correios responderam que não existe) e **`503` com
+  `Retry-After`** (não deu para perguntar). Achatar as duas últimas faz a tela
+  mandar conferir um CEP correto porque um serviço externo caiu por dez
+  segundos — no exato momento em que a pessoa ia pagar. É o mesmo defeito da
+  vitrine (`falhas-de-leitura.ts`), no lugar em que ele custa a venda.
+- **Nada disso barra a compra.** Falhou, os campos continuam editáveis e o
+  servidor revalida o endereço no checkout de qualquer jeito.
+- **Só se sobrescreve o que o próprio preenchimento pôs** (marca
+  `data-de-cep`). O que a pessoa digitou à mão fica de pé; corrigir o CEP
+  depois refaz apenas o que veio do CEP anterior.
+- **Falha não entra no cache.** Achado dura um dia, inexistente uma hora,
+  indisponível nunca — senão uma queda de dez segundos ficaria colada no CEP
+  de alguém.
+- **`logradouro` e `bairro` vazios são normais** — é o CEP de cidade inteira e
+  o de faixa. Vazio não pode ser gravado por cima do que já está no campo.
+
+E **três segundos de timeout**, não os dez do ping de gateway: do outro lado há
+uma pessoa parada no checkout, e digitar o endereço custa vinte segundos.
+
 ## Crase dentro de template literal quebra o arquivo inteiro
 
 Três arquivos deste projeto são um template literal gigante: `public/client.ts`
@@ -267,6 +310,22 @@ Custou quatro interrupções em 7/set/2026. Ao comentar dentro desses arquivos,
 escreva `shared/endereco.ts` sem crase, e prefira mover a explicação para fora
 do template — um comentário de JS antes da função diz a mesma coisa e não vai
 junto no HTML servido a cada visita.
+
+### A irmã silenciosa: barra invertida também some
+
+A crase pelo menos **quebra a compilação**. A barra invertida não: no template
+literal, `\D` é uma sequência de escape desconhecida e o resultado é `D`.
+
+Foi o que aconteceu com a máscara de CEP, escrita em 7/set/2026 e encontrada em
+8/set. `String(el.value).replace(/\D/g, '')` chegava ao navegador como
+`replace(/D/g, '')` — apagava **a letra D** e deixava passar o hífen. Digitando
+o oitavo dígito, o campo mostrava `12345--67`. Compilou, subiu, e a suíte ficou
+verde o tempo todo, porque **nada avaliava o `PUBLIC_JS`**: os testes liam o
+HTML servido e nunca executavam o script.
+
+**Toda barra invertida dentro do `PUBLIC_JS` vai dobrada** (`/\\D/g`), e
+`test/cep-preenche-no-navegador.test.ts` agora executa o script de verdade em
+jsdom — é o único lugar onde esse defeito aparece.
 
 ## `getAll()` + `setAll()` perde escrita concorrente — em mais 24 lugares
 

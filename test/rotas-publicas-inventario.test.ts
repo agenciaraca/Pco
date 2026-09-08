@@ -88,6 +88,7 @@ const PUBLICAS_POR_DECISAO: Record<string, string> = {
 
   // Compra sem conta prévia.
   'POST /api/public/checkout': 'compra provisiona a conta',
+  'GET /api/public/cep/:cep': 'preenche o endereço de quem ainda não tem conta; só CEP entra e só endereço sai',
   'POST /api/payments/webhook/:gatewayId': 'quem chama é o gateway; valida assinatura',
 
   // Operação e observabilidade.

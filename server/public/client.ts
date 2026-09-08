@@ -128,12 +128,101 @@ export const PUBLIC_JS = `
   // ---- máscara de CEP ----
   // So formatacao: quem valida e shared/endereco.ts, nos dois lados. Digitar
   // 8 dígitos e ver "00000-000" é o que faz a pessoa perceber que acertou.
+  //
+  // A barra invertida vai DOBRADA porque este arquivo inteiro e um template
+  // literal: \\D dentro dele chega ao navegador como D, e a mascara passa a
+  // apagar a letra D em vez de tudo que nao e digito. Foi o que aconteceu ate
+  // 8/set/2026 — ver a secao do CEP no CLAUDE.md. E a irma da crase.
   document.addEventListener('input', function (e) {
     var el = e.target;
     if (!el || el.name !== 'cep') return;
-    var d = String(el.value).replace(/\D/g, '').slice(0, 8);
+    var d = String(el.value).replace(/\\D/g, '').slice(0, 8);
     el.value = d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d;
+    buscaCep(el);
   });
+  // Colar o CEP nao dispara 'input' em todo navegador; 'change' fecha a conta.
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.name === 'cep') buscaCep(e.target);
+  });
+
+  // ---- preenchimento de endereco pelo CEP ----
+  //
+  // Quem fala com os Correios e o servidor (ver server/public/cep.ts): assim o
+  // IP e o CEP de quem esta comprando nao vao para terceiro nenhum, e a queda
+  // do servico externo nao vira erro de rede no console de quem esta pagando.
+  //
+  // Tres regras aqui:
+  //
+  // - Nada disto barra a compra. Deu errado, os campos continuam editaveis e a
+  //   pessoa digita, que e como era ate agora.
+  // - So se sobrescreve o que ESTE codigo preencheu. O que a pessoa digitou a
+  //   mao fica de pe; corrigir o CEP depois refaz so o que veio do CEP
+  //   anterior.
+  // - "Nao achei" e "nao consegui perguntar" sao mensagens diferentes. Mandar
+  //   conferir um CEP correto porque o servico externo caiu e o mesmo defeito
+  //   que a vitrine tinha, no lugar onde ele custa a venda.
+  var cepPedido = 0;
+  var cepUltimo = '';
+  var CAMPOS_DO_CEP = ['logradouro', 'bairro', 'cidade', 'uf'];
+  function avisoCep(form, msg) {
+    var el = form.querySelector('[data-cep-aviso]');
+    if (!el) return;
+    el.textContent = msg || '';
+    el.style.display = msg ? 'block' : 'none';
+  }
+  function preencheCampo(form, nome, valor) {
+    var el = form.querySelector('[name="' + nome + '"]');
+    if (!el || !valor) return;
+    // Vazio, ou posto por um CEP anterior: pode receber. Digitado a mao: nao.
+    if (el.value && el.getAttribute('data-de-cep') !== '1') return;
+    el.value = valor;
+    el.setAttribute('data-de-cep', '1');
+  }
+  function limpaOQueVeioDoCep(form) {
+    for (var i = 0; i < CAMPOS_DO_CEP.length; i++) {
+      var el = form.querySelector('[name="' + CAMPOS_DO_CEP[i] + '"]');
+      if (el && el.getAttribute('data-de-cep') === '1') el.value = '';
+    }
+  }
+  function buscaCep(campo) {
+    var form = campo.form || (campo.closest && campo.closest('form'));
+    if (!form) return;
+    var d = String(campo.value).replace(/\\D/g, '');
+    if (d.length !== 8 || d === '00000000') { cepUltimo = ''; avisoCep(form, ''); return; }
+    if (d === cepUltimo) return;
+    cepUltimo = d;
+    var meu = ++cepPedido;
+    limpaOQueVeioDoCep(form);
+    avisoCep(form, 'Buscando endereço…');
+    fetch('/api/public/cep/' + d, { headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+      .then(function (res) {
+        if (meu !== cepPedido) return; // resposta atrasada: outro CEP ja foi pedido
+        if (res.status === 200 && res.j && res.j.encontrado && res.j.endereco) {
+          var e = res.j.endereco;
+          preencheCampo(form, 'logradouro', e.logradouro);
+          preencheCampo(form, 'bairro', e.bairro);
+          preencheCampo(form, 'cidade', e.cidade);
+          preencheCampo(form, 'uf', e.uf);
+          avisoCep(form, '');
+          // O numero e o unico campo que o CEP nunca traz. Levar o foco ate ele
+          // so vale se a pessoa ainda estiver no CEP: roubar o foco de quem ja
+          // seguiu adiante e pior do que nao ajudar.
+          var num = form.querySelector('[name="numero"]');
+          if (num && !num.value && document.activeElement === campo && num.focus) num.focus();
+          return;
+        }
+        if (res.status === 200 && res.j && res.j.encontrado === false) {
+          avisoCep(form, 'CEP não encontrado. Confira o número ou preencha o endereço à mão.');
+          return;
+        }
+        avisoCep(form, 'Não deu para buscar o endereço agora — pode preencher à mão.');
+      })
+      .catch(function () {
+        if (meu !== cepPedido) return;
+        avisoCep(form, 'Não deu para buscar o endereço agora — pode preencher à mão.');
+      });
+  }
 
   // ---- origem da visita (primeiro toque) ----
   //

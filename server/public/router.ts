@@ -1616,6 +1616,7 @@ function formularioCheckout(
             <div>
               <label class="lbl" for="ck-cep">CEP</label>
               <input class="fi" id="ck-cep" name="cep" required inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9">
+              <p data-cep-aviso role="status" class="ck-cep-aviso" style="display:none"></p>
             </div>
             <div>
               <label class="lbl" for="ck-uf">Estado</label>

@@ -569,6 +569,10 @@ p{margin:0}
 .fi[disabled],.fi[readonly]{background:var(--surface-2);color:var(--ink-faint);cursor:not-allowed}
 .fi.err,.fi[aria-invalid="true"]{border-color:var(--crit);box-shadow:0 0 0 3px var(--crit-bg)}
 .fi-erro{display:block;margin-top:6px;font-size:13px;font-weight:600;color:var(--crit)}
+/* Aviso do preenchimento pelo CEP. Nao e erro e nao usa a cor de erro: o pior
+   caso aqui e a pessoa digitar o endereco, que era o normal ate ontem. Pintar
+   de vermelho diria que ha algo a consertar quando nao ha. */
+.ck-cep-aviso{margin-top:6px;font-size:13px;color:var(--ink-soft);line-height:1.4}
 .fi::placeholder{color:var(--ink-faint)}
 /* Escolha do meio de pagamento. É ela que decide qual gateway cobra — ver
    server/payments/roteamento.ts. Rótulo grande e alvo generoso: metade das

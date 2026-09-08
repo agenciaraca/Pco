@@ -117,6 +117,7 @@ import {
 import * as supportRepo from './repositories/support';
 import * as coursesRepo from './repositories/courses';
 import { isPubliclyListed } from './public/projections';
+import { consultarCep } from './public/cep';
 import { documentoValido } from '../shared/documento';
 import { nomePublico } from '../shared/nome-publico';
 import { podeEntrar, MENSAGEM_SEM_MATRICULA } from './access/portao-de-entrada';
@@ -11680,6 +11681,41 @@ export function buildApp() {
       }
     },
   );
+
+  /**
+   * Preenchimento de endereço pelo CEP, para o checkout de quem não tem conta.
+   *
+   * Quem consulta os Correios é o servidor, não o navegador de quem está
+   * comprando — o porquê está em `server/public/cep.ts`. Aqui só sobra a
+   * tradução para HTTP, e ela tem **três respostas diferentes de propósito**:
+   *
+   * - `200 { encontrado: true, endereco }` — achou.
+   * - `200 { encontrado: false }` — os Correios responderam que este CEP não
+   *   existe. A tela pode dizer isso.
+   * - `503` com `Retry-After` — **não deu para perguntar**. A tela não pode
+   *   dizer "CEP não encontrado" aqui: manda conferir um dado que pode estar
+   *   certo, no exato momento em que a pessoa ia pagar. Mesma razão de a
+   *   vitrine responder 503 em vez de 404 quando o banco não responde.
+   *
+   * Falha nenhuma barra a compra: os campos continuam editáveis, e o servidor
+   * revalida o endereço no checkout de qualquer jeito.
+   */
+  app.get('/public/cep/:cep', rateLimit({ windowMs: 60_000, max: 20 }), async (c) => {
+    const r = await consultarCep(c.req.param('cep') ?? '');
+    if (r.estado === 'achado') return c.json({ encontrado: true, endereco: r.endereco });
+    if (r.estado === 'invalido') {
+      return jsonError(c, 400, 'CEP_INVALIDO', 'CEP precisa ter 8 dígitos.');
+    }
+    if (r.estado === 'inexistente') return c.json({ encontrado: false });
+    console.error(`[cep] indisponível: ${r.motivo}`);
+    c.header('Retry-After', '10');
+    return jsonError(
+      c,
+      503,
+      'CEP_INDISPONIVEL',
+      'Não deu para consultar o CEP agora. Preencha o endereço à mão.',
+    );
+  });
 
   // ---------- Checkout PÚBLICO (visitante não logado; provisiona conta) ----------
   // Fluxo do site público de vendas: cria/recupera a conta pelo e-mail, cria o
