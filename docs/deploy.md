@@ -34,7 +34,7 @@ Guia passo-a-passo para subir e atualizar a produção. O AVA PCO roda como proc
 │   ├── orders.json
 │   ├── audit-log.json
 │   └── ... (~30 arquivos)
-├── data/backups/          # snapshots tar.gz (gerados pelo backup-worker)
+├── data/backups/          # uma PASTA datada por dia (não .tar.gz) — ver "Backup e restore"
 ├── app.log                # stdout/stderr do processo
 ├── package.json
 ├── .env                   # NÃO commitado, configurado manualmente
@@ -241,23 +241,29 @@ curl -s https://ava.psicanaliseclinica.online/login | grep -o 'assets/index-[^"]
 O passo 3 importa: `/api/health` devolve 200 mesmo servindo código velho. A única
 confirmação real de que o deploy subiu é o hash do bundle bater com o `dist/` local.
 
-### Caminho histórico (host antigo, mantido como referência)
+### Caminho histórico (host sem PM2) — NÃO é o caminho de hoje
 
-O script `update_vps_pwd.py`:
-1. Conecta via SSH
-2. `git fetch && git reset --hard origin/main`
-3. `npm install --legacy-peer-deps`
-4. `npm run build`
-5. Tenta `systemctl --user restart ava-pco.service` (não existe → fallback)
-6. `pkill -f 'tsx server/dev.ts'`
-7. Inicia processo novo via setsid + nohup
-8. Health check em http://127.0.0.1:3035/api/health
+> Este trecho descrevia `update_vps_pwd.py` e `restart_vps.py` como se fossem o
+> jeito de reiniciar produção, com a linha de comando pronta para copiar. **Os
+> dois sobem a app por fora do PM2**, que é quem gerencia `ava-pco` desde a
+> migração para o servidor 195: o PM2 reergue o que foi morto, os dois processos
+> disputam a 3035, e produção fica em laço de reinício. Desde 2/set/2026 os
+> scripts **recusam** rodar sem `SEI_O_QUE_FACO=1` e imprimem o caminho certo —
+> mas quem chegasse por aqui só descobriria isso depois de tentar.
 
-Se só precisar reiniciar (sem rebuild), use `restart_vps.py`:
+Os dois seguem no repositório como referência para um host **sem PM2**, e é só
+para isso que servem. O que eles fazem: SSH, `git reset --hard origin/main`,
+`npm install`, `npm run build`, `pkill` do processo antigo e `setsid nohup` de
+um novo, com health check em `http://127.0.0.1:3035/api/health`.
+
+**Para reiniciar produção é uma linha, e é esta:**
 
 ```bash
-HOST=... USER_NAME=avapco PORT=22 SSH_PASSWORD='...' python scripts/restart_vps.py
+ssh vps 'sudo -u avapco -i pm2 restart ava-pco'
 ```
+
+(Sem `sudo -u avapco -i` quando `ssh vps whoami` já responder `avapco` — depende
+da chave instalada na máquina de onde se roda.)
 
 ## Backup e restore
 
@@ -372,7 +378,12 @@ cd ~/ava-pco && git log --oneline -1
 
 ### "Failed to restart ava-pco.service: Unit not found"
 
-Esperado. Não usamos systemd. O fallback do script (pkill + setsid + nohup) já cuida.
+Esperado: não usamos systemd. **Mas o fallback do script — `pkill` + `setsid
+nohup` — não é o conserto**, e esta linha dizia que era. Quem gerencia a app é
+o PM2; matar o processo faz o PM2 reerguer um enquanto o script sobe outro, e
+os dois disputam a 3035.
+
+O reinício certo é `ssh vps 'sudo -u avapco -i pm2 restart ava-pco'`.
 
 ### Processo não sobe após deploy
 
