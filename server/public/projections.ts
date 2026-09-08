@@ -394,8 +394,8 @@ export async function numerosDoSite(fundadoEm?: string): Promise<NumerosDoSite> 
 function textoDasCondicoes(condicoes: CondicaoDePagamento[]): string | null {
   const parceladas = condicoes.filter((x) => x.parcelas > 1);
   if (parceladas.length === 0) return null;
-  const partes = parceladas.map(
-    (x) => `${x.parcelas}x de ${fmtBRL(x.valorParcelaCents)} ${ONDE[x.metodo] ?? ''}`.trim(),
+  const partes = parceladas.map((x) =>
+    `${x.parcelas}x de ${fmtBRL(x.valorParcelaCents)} ${ONDE[x.metodo] ?? ''}`.trim(),
   );
   return partes.length === 1 ? partes[0]! : partes.join(' ou ');
 }
@@ -447,7 +447,11 @@ async function activeCourseProducts(): Promise<Map<string, Product>> {
  * quantas aulas existem. Agora as duas leem daqui.
  *
  * Fica fora do `safe()` de propósito: quem chama já está dentro de um, e é lá
- * que a falha vira estado da tela. Ver `cache-de-vitrine.ts`.
+ * que a falha vira estado da tela. Ver `memo-da-requisicao.ts`.
+ *
+ * (Este comentário apontava para um `cache-de-vitrine.ts` que nunca existiu —
+ * o nome mudou antes de o arquivo nascer. Ponteiro para arquivo inexistente
+ * manda a próxima pessoa procurar o que não está lá.)
  */
 async function cursosCrus(): Promise<Row[]> {
   return memoDaRequisicao(
@@ -460,10 +464,7 @@ export async function listPublicCourses(): Promise<PublicCourseSummary[]> {
   return safe(
     'courses',
     async () => {
-      const [courses, productMap] = await Promise.all([
-        cursosCrus(),
-        activeCourseProducts(),
-      ]);
+      const [courses, productMap] = await Promise.all([cursosCrus(), activeCourseProducts()]);
       // Produto/preço é opcional: se houver produto ativo vinculado, exibe
       // preço; senão, o curso aparece sem preço.
       const visiveis = courses.filter(isPubliclyListed);

@@ -116,27 +116,48 @@ async function loadFromDb(
   const db = getDb();
   if (!db) return [];
 
-  const courses = (await selectActiveCourses(db, somenteAtivos)) as Array<
-    typeof schema.courses.$inferSelect
-  >;
-  if (courses.length === 0) return [];
+  /*
+    As quatro leituras vão JUNTAS, e é isso que decide o tempo da página.
 
-  const modules = await db.select().from(schema.modules).orderBy(asc(schema.modules.order));
-  const lessons = (
+    Elas eram sequenciais, e nenhuma depende do resultado da outra: módulos,
+    aulas e avaliações são lidos inteiros e cruzados em memória logo abaixo. O
+    banco é remoto (DivZ), então cada `await` custava um ida-e-volta — quatro
+    deles, um atrás do outro, em toda página pública. Medido no VPS em
+    8/set/2026, antes: home 0,96 s, curso 0,89 s, checkout 0,89 s de tempo de
+    servidor, contra 0,47 s do blog, que lê uma coisa só.
+
+    É a mesma forma do defeito que `numerosDoSite` tinha — três leituras
+    independentes esperando uma pela outra —, uma camada abaixo, e no caminho
+    de **toda** página pública, checkout inclusive. O pool tem `max: 10`, então
+    as quatro saem de fato ao mesmo tempo.
+
+    **O `courses.length === 0` deixou de poupar as outras três, de propósito.**
+    Ele só é verdadeiro em banco vazio (instalação nova), e aí as outras
+    tabelas estão vazias também: o que ele poupava era três consultas que não
+    devolvem nada. Trocar isso por um ida-e-volta a menos em toda visita é o
+    lado certo.
+  */
+  const [cursosCrus, modules, lessons, assessments] = await Promise.all([
+    selectActiveCourses(db, somenteAtivos),
+    db.select().from(schema.modules).orderBy(asc(schema.modules.order)),
     opts.semCorpoDeAula
-      ? await db
-          .select(COLUNAS_DE_AULA_SEM_CORPO)
-          .from(schema.lessons)
-          .orderBy(asc(schema.lessons.order))
-      : await db.select().from(schema.lessons).orderBy(asc(schema.lessons.order))
-  ) as Array<typeof schema.lessons.$inferSelect>;
-  const assessments = await db.select().from(schema.assessments);
+      ? db.select(COLUNAS_DE_AULA_SEM_CORPO).from(schema.lessons).orderBy(asc(schema.lessons.order))
+      : db.select().from(schema.lessons).orderBy(asc(schema.lessons.order)),
+    db.select().from(schema.assessments),
+  ]);
+
+  const courses = cursosCrus as Array<typeof schema.courses.$inferSelect>;
+  // Com `semCorpoDeAula` a linha vem sem `content` e sem `transcripts`; o
+  // mapeamento abaixo lê os dois com `?? undefined`, que é o que já acontecia
+  // antes — a diferença é só onde o molde é declarado.
+  const aulas = lessons as Array<typeof schema.lessons.$inferSelect>;
+  if (courses.length === 0) return [];
 
   return courses.map((c) => {
     const courseModules = modules
       .filter((m) => m.courseId === c.id)
       .map((m) => {
-        const moduleLessons: Lesson[] = lessons
+        const moduleLessons: Lesson[] = aulas
           .filter((l) => l.moduleId === m.id)
           .map((l) => ({
             id: l.id,
@@ -433,10 +454,7 @@ export async function deleteCourse(id: string): Promise<{ ok: true } | null> {
   }
   const existing = await findCourse(id);
   if (!existing) return null;
-  await db
-    .update(schema.courses)
-    .set({ active: false })
-    .where(eq(schema.courses.id, id));
+  await db.update(schema.courses).set({ active: false }).where(eq(schema.courses.id, id));
   return { ok: true };
 }
 
@@ -509,10 +527,7 @@ export async function findCourseIncludingInactive(id: string): Promise<Course | 
   return all.find((c) => c.id === id) ?? null;
 }
 
-export async function updateCourse(
-  id: string,
-  patch: UpdateCourseInput,
-): Promise<Course | null> {
+export async function updateCourse(id: string, patch: UpdateCourseInput): Promise<Course | null> {
   const db = getDb();
 
   if (!db) {
@@ -748,10 +763,7 @@ export async function createLesson(
   }
 
   // Resolve courseId via DB
-  const moduleRow = await db
-    .select()
-    .from(schema.modules)
-    .where(eq(schema.modules.id, moduleId));
+  const moduleRow = await db.select().from(schema.modules).where(eq(schema.modules.id, moduleId));
   if (moduleRow.length === 0) return null;
   const courseId = moduleRow[0].courseId;
   const id = newLessonId(moduleId);
@@ -906,10 +918,7 @@ export async function upsertAssessment(
     });
   }
 
-  const moduleRow = await db
-    .select()
-    .from(schema.modules)
-    .where(eq(schema.modules.id, moduleId));
+  const moduleRow = await db.select().from(schema.modules).where(eq(schema.modules.id, moduleId));
   if (moduleRow.length === 0) return null;
   const courseId = moduleRow[0].courseId;
 
