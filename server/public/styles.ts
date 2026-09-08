@@ -298,7 +298,20 @@ main:has(> .cta-final:last-child) + .pincel-topo{
 /* ---- foto de fundo do hero ----
    Bem tênue: a foto ambienta, o degradê da marca é que manda. Decorativa, por
    isso entra como background e não como <img> com texto alternativo. */
-.hero-foto{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.16;pointer-events:none}
+/* Foto de fundo do herói — a imagem sai daqui, e nao do style do markup, para
+   poder ser escolhida por tamanho de tela.
+
+   Ate 8/set/2026 todo mundo baixava a de 1792px (147 kB), inclusive um celular
+   de 393px de largura. A imagem e decorativa e vai a 16% de opacidade por cima
+   do degrade: numa tela de telefone a de 760px e indistinguivel e custa 32 kB.
+   Em 4G lento isso e meio segundo a menos antes de a pagina aparecer.
+
+   O padrao e a MENOR: quem nao casar com nenhuma media query (navegador
+   antigo, leitor estranho) fica com a leve, nao com a pesada. */
+.hero-foto{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.16;pointer-events:none;
+  background-image:url('/img/hero-consultorio-760.webp')}
+@media (min-width:701px){.hero-foto{background-image:url('/img/hero-consultorio-1280.webp')}}
+@media (min-width:1401px){.hero-foto{background-image:url('/img/hero-consultorio.webp')}}
 .hero-veu{position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(180deg,rgba(11,116,134,.25),rgba(0,151,178,.05) 40%,rgba(11,116,134,.55))}
 .hero-deep .wrap{position:relative;z-index:1}

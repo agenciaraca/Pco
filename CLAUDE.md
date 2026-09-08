@@ -374,6 +374,46 @@ Quatro decisões que um retoque futuro desfaz sem perceber:
   arquivo da textura — `url()` para caminho errado não dá erro em lugar nenhum,
   dá 404 no navegador de quem visita e uma faixa lisa.
 
+## A home levava 2,5 s de servidor, e lia a mesma coisa duas vezes
+
+`server/public/memo-da-requisicao.ts` (8/set/2026). Medido no próprio VPS, com
+`curl` no `127.0.0.1` — sem rede no meio: **2,5 a 3,7 s** só para responder a
+home. No celular com 4G lento isso virava **LCP de 6,9 s**. Curso e checkout
+ficavam em 1,4 s; o blog, em 0,46 s.
+
+Cronometrado leitura a leitura contra o banco de produção: `numerosDoSite`
+**2483 ms**, `listPublicCourses` 1054 ms, `listPublicPosts` 412 ms. Duas causas,
+as duas dentro de `numerosDoSite`: as três leituras rodavam **em sequência**, e
+a pior era `coursesRepo.listCourses()` — a árvore inteira de cursos, com o
+conteúdo das 590 aulas, **só para contar quantas aulas existem**. Como a home
+também chama `listPublicCourses()`, os ~3 MB vinham do banco remoto **duas
+vezes na mesma página**.
+
+**Por que memo por requisição e não cache com relógio.** Um cache de 60 s seria
+mais rápido e traria um problema: a vitrine mostraria por até um minuto um curso
+que o admin acabou de despublicar. `publicListed` não é preferência de exibição
+aqui — foi a marca que segurava o curso interno de operadores, e o vazamento
+dela custou um sprint em 2/set. E cache com relógio exigiria invalidar na
+escrita: são **17 funções de escrita** só no repositório de cursos, e gancho
+espalhado por dezessete lugares é gancho que alguém esquece.
+
+Duas regras do arquivo: **falha não fica guardada** (a promessa rejeitada sai do
+armazém, e o `safe()` de quem chamou decide o que a tela diz) e **fora de
+requisição não há memo** — script, teste e boot leem direto, porque memo global
+é estado compartilhado entre pessoas diferentes.
+
+**A foto do herói também.** Todo mundo baixava a de 1792px (147 kB), inclusive
+um celular de 393px — e já existia uma de 1280px pela metade do peso, que nada
+usava. A imagem saiu do `style` do markup para o CSS, onde media query existe:
+760px (32 kB) no telefone, 1280 no meio, a grande só acima de 1400. **O padrão
+é a menor**: quem não casar com nenhuma media query fica com a leve, não com a
+pesada.
+
+**O que NÃO foi feito, e é a próxima frente:** `listCourses()` continua trazendo
+o conteúdo das aulas para montar três cartões. Uma projeção que não selecione
+`lessons.content` tiraria o segundo inteiro que sobrou — é o maior item aberto
+de desempenho da vitrine.
+
 ## A home não tem mais corte reto — e o `fill` do SVG não entende degradê
 
 `server/public/styles.ts` + a home em `router.ts` (8/set/2026). O site tem um

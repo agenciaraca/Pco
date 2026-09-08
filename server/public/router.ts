@@ -17,6 +17,7 @@ import { html, raw } from 'hono/html';
 import { ORG, AUTHOR, AUTHOR_IS_PLACEHOLDER, YMYL_DISCLAIMER } from './config';
 import { renderPage, pincel, ICONE_WHATSAPP, type Html } from './layout';
 import { comColetaDeFalhas, houveFalhaDeLeitura } from './falhas-de-leitura';
+import { comMemoDaRequisicao } from './memo-da-requisicao';
 import {
   orgJsonLd,
   websiteJsonLd,
@@ -60,7 +61,9 @@ export const publicSite = new Hono();
  * `null` lido como 404 numa página de curso que existe. Com o coletor, o
  * render pergunta se houve falha antes de afirmar ausência.
  */
-publicSite.use('*', (c, next) => comColetaDeFalhas(() => next()));
+// Os dois armazéns por requisição: o que anota falha de leitura e o que evita
+// ler a mesma coisa duas vezes na mesma página. Ver `memo-da-requisicao.ts`.
+publicSite.use('*', (c, next) => comColetaDeFalhas(() => comMemoDaRequisicao(() => next())));
 
 const HTML_HEADERS = { 'Content-Type': 'text/html; charset=utf-8' } as const;
 
@@ -911,11 +914,7 @@ publicSite.get('/', async (c) => {
       class="hero-deep"
       style="padding:clamp(56px,9vw,110px) 0 calc(var(--pincel-altura) + 20px);overflow:hidden"
     >
-      <div
-        class="hero-foto"
-        style="background-image:url('/img/hero-consultorio.webp')"
-        aria-hidden="true"
-      ></div>
+      <div class="hero-foto" aria-hidden="true"></div>
       <div class="hero-veu" aria-hidden="true"></div>
       <div class="wrap">
         <span class="eyebrow">Bem-vindo à Psicanálise Clínica Online</span>

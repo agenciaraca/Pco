@@ -20,6 +20,7 @@ import * as productsRepo from '../payments/products-repo';
 import * as newsRepo from '../repositories/news';
 import * as certificatesRepo from '../repositories/certificates';
 import * as reviewsStore from '../reviews/store';
+import { memoDaRequisicao } from './memo-da-requisicao';
 import { registrarFalhaDeLeitura } from './falhas-de-leitura';
 
 type Product = Awaited<ReturnType<typeof productsRepo.listActive>>[number];
@@ -313,11 +314,20 @@ export interface NumerosDoSite {
   aulas: number | null;
 }
 
+/**
+ * Os números da vitrine.
+ *
+ * As três leituras rodam **em paralelo**; rodavam em sequência, e a soma das
+ * latências até o banco remoto era 2,5 s em toda visita à home. Cada uma tem o
+ * seu `safe()`, então uma que caia não leva as outras junto — e cada uma tem o
+ * seu memo, para que a que caiu volte a ser tentada na visita seguinte sem
+ * arrastar as que deram certo.
+ */
 export async function numerosDoSite(fundadoEm?: string): Promise<NumerosDoSite> {
-  const avaliacao = await safe(
+  const pAvaliacao = safe(
     'reviews',
     async () => {
-      const todas = await reviewsStore.listAll();
+      const todas = await memoDaRequisicao('avaliacoes-cruas', () => reviewsStore.listAll());
       const validas = todas.filter((r) => r.rating >= 1 && r.rating <= 5);
       if (validas.length === 0) return null;
       const soma = validas.reduce((acc, r) => acc + r.rating, 0);
@@ -329,13 +339,14 @@ export async function numerosDoSite(fundadoEm?: string): Promise<NumerosDoSite> 
     null as NumerosDoSite['avaliacao'],
   );
 
-  const formados = await safe(
+  const pFormados = safe(
     'certificates',
-    async () => {
-      const todos = await certificatesRepo.listAllCertificates();
-      const emitidos = todos.filter((c) => c.status === 'issued').length;
-      return emitidos > 0 ? emitidos : null;
-    },
+    async () =>
+      memoDaRequisicao('certificados-emitidos', async () => {
+        const todos = await certificatesRepo.listAllCertificates();
+        const emitidos = todos.filter((c) => c.status === 'issued').length;
+        return emitidos > 0 ? emitidos : null;
+      }),
     null as number | null,
   );
 
@@ -343,13 +354,16 @@ export async function numerosDoSite(fundadoEm?: string): Promise<NumerosDoSite> 
   const anos =
     Number.isFinite(ano) && ano > 1900 ? Math.max(0, new Date().getFullYear() - ano) : null;
 
-  const aulas = await safe(
+  const pAulas = safe(
     'lessons',
     async () => {
       // Só o que o visitante pode de fato encontrar no site: contar o curso
       // interno de operadores inflaria o número com material que ninguém
       // compra.
-      const cursos = (await coursesRepo.listCourses()) as unknown as Row[];
+      //
+      // Lê do MESMO memo que os cartões da home: era esta linha que trazia os
+      // ~3 MB de conteúdo de aula uma segunda vez por visita.
+      const cursos = await cursosCrus();
       const total = cursos
         .filter(isPubliclyListed)
         .reduce(
@@ -366,6 +380,7 @@ export async function numerosDoSite(fundadoEm?: string): Promise<NumerosDoSite> 
     null as number | null,
   );
 
+  const [avaliacao, formados, aulas] = await Promise.all([pAvaliacao, pFormados, pAulas]);
   return { avaliacao, formados, anos, aulas };
 }
 
@@ -423,17 +438,32 @@ async function activeCourseProducts(): Promise<Map<string, Product>> {
 }
 
 /** Cursos visíveis no site público (ativos + com produto ativo). */
+/**
+ * A árvore de cursos, lida no máximo uma vez por minuto.
+ *
+ * São ~3 MB vindos do banco remoto — cada curso traz módulos e aulas, e as
+ * aulas trazem o conteúdo. A home precisava disto **duas vezes por visita**:
+ * uma para os cartões e outra, dentro de `numerosDoSite`, só para contar
+ * quantas aulas existem. Agora as duas leem daqui.
+ *
+ * Fica fora do `safe()` de propósito: quem chama já está dentro de um, e é lá
+ * que a falha vira estado da tela. Ver `cache-de-vitrine.ts`.
+ */
+async function cursosCrus(): Promise<Row[]> {
+  return memoDaRequisicao('cursos-crus', async () => (await coursesRepo.listCourses()) as unknown as Row[]);
+}
+
 export async function listPublicCourses(): Promise<PublicCourseSummary[]> {
   return safe(
     'courses',
     async () => {
       const [courses, productMap] = await Promise.all([
-        coursesRepo.listCourses(),
+        cursosCrus(),
         activeCourseProducts(),
       ]);
       // Produto/preço é opcional: se houver produto ativo vinculado, exibe
       // preço; senão, o curso aparece sem preço.
-      const visiveis = (courses as unknown as Row[]).filter(isPubliclyListed);
+      const visiveis = courses.filter(isPubliclyListed);
       const condicoesDe = await tabelaDeCondicoes(
         visiveis.map((c) => {
           const p = productMap.get(String(c.id)) as unknown as Row | undefined;
@@ -553,7 +583,10 @@ export async function listPublicPosts(): Promise<PublicPostSummary[]> {
   return safe(
     'posts',
     async () => {
-      const posts = (await newsRepo.listNews()) as unknown as Row[];
+      const posts = await memoDaRequisicao(
+        'posts-crus',
+        async () => (await newsRepo.listNews()) as unknown as Row[],
+      );
       return posts
         .map(toPostSummary)
         .filter((p) => p.title && p.publishedAt)
