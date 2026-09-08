@@ -42,7 +42,7 @@ afterAll(async () => {
 describe('faixa final da home', () => {
   it('é a última coisa dentro do <main> — é disso que a regra do pincel depende', () => {
     const main = home.slice(home.indexOf('<main'), home.indexOf('</main>'));
-    expect(main).toContain('class="section cta-final"');
+    expect(main).toContain('cta-final');
     // Nada de seção depois dela: `:last-child` deixaria de casar e o vão volta.
     const depois = main.slice(main.lastIndexOf('cta-final'));
     expect(depois).not.toContain('<section');
@@ -58,13 +58,22 @@ describe('faixa final da home', () => {
   });
 
   it('o arquivo da textura existe de verdade', async () => {
-    const url = /url\('([^']+)'\)/.exec(PUBLIC_CSS.slice(PUBLIC_CSS.indexOf('.cta-final::before')));
+    // A textura saiu de `.cta-final::before` para a classe `.com-textura`,
+    // porque a faixa azul do RNTP passou a usar a mesma — e duas cópias da
+    // mesma regra acabam discordando.
+    const url = /url\('([^']+)'\)/.exec(PUBLIC_CSS.slice(PUBLIC_CSS.indexOf('.com-textura::before')));
     expect(url, 'a faixa deixou de declarar a textura').not.toBeNull();
     const arquivo = path.join(process.cwd(), 'public', url![1].replace(/^\//, ''));
     await expect(
       fs.access(arquivo),
       `a CSS aponta para ${url![1]} e o arquivo não está em public/`,
     ).resolves.toBeUndefined();
+  });
+
+  it('a faixa laranja usa a classe da textura, e não uma cópia da regra', () => {
+    const main = home.slice(home.indexOf('<main'), home.indexOf('</main>'));
+    const faixa = main.slice(main.lastIndexOf('<section'));
+    expect(faixa).toContain('com-textura');
   });
 
   it('o texto sobre o laranja é a tinta escura da paleta, não branco', () => {

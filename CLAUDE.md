@@ -338,6 +338,39 @@ Quatro decisões que um retoque futuro desfaz sem perceber:
   arquivo da textura — `url()` para caminho errado não dá erro em lugar nenhum,
   dá 404 no navegador de quem visita e uma faixa lisa.
 
+## A home não tem mais corte reto — e o `fill` do SVG não entende degradê
+
+`server/public/styles.ts` + a home em `router.ts` (8/set/2026). O site tem um
+divisor próprio, o **pincel**: três ondas do tom da seção **seguinte** subindo
+por cima da atual. Ele existia em duas passagens — a do herói e a da faixa de
+matrícula — e faltava em seis. A mesma página tinha os dois tratamentos.
+
+Agora a regra é uma só: **toda troca de cor entre seções tem a onda, e onde a
+cor não muda não entra divisor nenhum** (ele seria desenhado na própria cor do
+fundo — invisível, e só um vão a mais).
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **A cor da onda é SÓLIDA, sempre.** O `fill` de um SVG **não entende**
+  `linear-gradient()`: ele ignora o valor e cai no **preto**. Três passagens
+  saíram pretas assim antes de a captura mostrar, e é a razão de o pincel do
+  rodapé sempre ter usado `--brand-grad-topo` em vez de `--brand-gradient`.
+  Para faixa em degradê, a sólida é a cor do **topo** — que é onde a onda
+  encosta. Daí `--cta-grad-topo`, irmão do que já existia.
+- **A folga embaixo acompanha `--pincel-altura`.** Era `120px` cravado contra
+  uma onda que vai a `150px`: em 1440px a onda passava por cima dos 30px
+  finais do conteúdo, e na faixa de matrícula isso cobria os **dois botões**.
+- **O fim da página é calculado, não cravado.** As duas últimas seções são
+  condicionais (formações e blog); com elas ausentes, o vizinho de baixo muda.
+  Cor cravada erraria exatamente no dia em que o blog ficasse sem post.
+- **Textura em faixa colorida é `.com-textura`, e a faixa é UMA seção.** A
+  textura de duas caixas encostadas fica fora de fase na junta e a emenda
+  aparece como um risco atravessando a página — foi por isso que o
+  reconhecimento RNTP e os números declarados viraram um bloco azul só.
+
+`test/home-sem-corte-reto.test.ts` cobra a regra lendo o HTML servido, e
+inclui o caso do degradê no `fill`.
+
 ## Crase dentro de template literal quebra o arquivo inteiro
 
 Três arquivos deste projeto são um template literal gigante: `public/client.ts`

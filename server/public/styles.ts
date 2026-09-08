@@ -23,7 +23,7 @@ export const PUBLIC_CSS = `
   /* Degradê oficial: sempre do principal para o escuro, nunca invertido. */
   --brand-gradient:linear-gradient(118deg,#0097b2 0%,#008ba4 52%,#0b7486 100%);
   --brand-grad-topo:#0097b2;
-  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);
+  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);--cta-grad-topo:#ff914d;
   --pincel-altura:clamp(60px,10vw,150px);
   --good:#2f7d4f;--good-bg:#e0efe4;--good-line:#bcdcc6;
   --warn:#9a6a12;--warn-bg:#f5ead1;--warn-line:#e5d09a;
@@ -44,7 +44,7 @@ export const PUBLIC_CSS = `
   --orange:#ff914d;--orange-soft:#33200f;
   --brand-gradient:linear-gradient(118deg,#0a7f95 0%,#0a7183 52%,#0a5f6e 100%);
   --brand-grad-topo:#0a7f95;
-  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);
+  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);--cta-grad-topo:#ff914d;
   --good:#5cbd83;--good-bg:#16281d;--good-line:#274a34;
   --warn:#d6a24c;--warn-bg:#2c2413;--warn-line:#4a3c1c;
   --crit:#e08066;--crit-bg:#2c1a14;--crit-line:#4d2c22;
@@ -61,7 +61,7 @@ export const PUBLIC_CSS = `
   --orange:#ff914d;--orange-soft:#33200f;
   --brand-gradient:linear-gradient(118deg,#0a7f95 0%,#0a7183 52%,#0a5f6e 100%);
   --brand-grad-topo:#0a7f95;
-  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);
+  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);--cta-grad-topo:#ff914d;
   --good:#5cbd83;--good-bg:#16281d;--good-line:#274a34;
   --warn:#d6a24c;--warn-bg:#2c2413;--warn-line:#4a3c1c;
   --crit:#e08066;--crit-bg:#2c1a14;--crit-line:#4d2c22;
@@ -182,6 +182,24 @@ p{margin:0}
 .hero-deep h1{color:#fff}
 .hero-deep .lead{color:#cfe0dc}
 /* ---- footer ---- */
+/* Faixa do reconhecimento RNTP + os números declarados, em UM bloco azul.
+
+   Eram duas seções: a do selo em fundo claro e a dos números em petróleo,
+   encostadas sem divisor. Viraram uma só porque a textura exige — ver
+   .com-textura — e porque as duas dizem a mesma coisa: quem atesta esta
+   escola, e quantos passaram por ela. O selo cresce, que é o que se olha
+   primeiro.
+
+   O texto claro sobre o petróleo é o mesmo par do herói (--on-deep e
+   #cfe0dc), e não o --ink-soft de fundo claro, que aqui sumiria. */
+.faixa-rntp{background:var(--brand-gradient);color:var(--on-deep)}
+.faixa-rntp h2{color:#fff}
+.faixa-rntp .eyebrow{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#dfeeea}
+.faixa-rntp .rntp-texto{color:#cfe0dc}
+.faixa-rntp .rntp-bloco .selo-rntp{width:200px;height:200px;padding:10px}
+.faixa-rntp .numeros-declarados{margin-top:44px}
+@media (max-width:700px){.faixa-rntp .rntp-bloco .selo-rntp{width:150px;height:150px}}
+
 /* Bloco final da home — a faixa laranja que encosta no rodapé.
    Antes ela era .hero-deep, o MESMO degradê petróleo do rodapé: as duas
    faixas se fundiam numa mancha só, e o último convite da página tinha a
@@ -193,13 +211,20 @@ p{margin:0}
    divisor entre os dois é a virada de cor, e o desenho do rodapé já tem os
    dele (a ondinha nas colunas e o filete de .legal). Mais um traço aqui
    competiria com eles. */
-.cta-final{background:var(--cta-gradient);color:var(--on-orange);position:relative;overflow:hidden;text-align:center}
+.cta-final{background:var(--cta-gradient);color:var(--on-orange);text-align:center}
 /* A textura de ondas é DECORATIVA: pseudo-elemento, sem alt e sem entrar na
    árvore de acessibilidade, e com pointer-events:none para não roubar clique
    do botão que está por cima. As linhas são brancas com alfa; a opacidade
-   baixa é o que mantém o contraste do texto de pé. */
-.cta-final::before{content:'';position:absolute;inset:0;pointer-events:none;
-  background:url('/img/pattern-ondas.webp') repeat center;background-size:560px auto;opacity:.16}
+   baixa é o que mantém o contraste do texto de pé.
+
+   Vive em classe própria porque duas faixas a usam — a laranja do fim e a
+   azul do reconhecimento. E é por isso que a faixa azul é UMA seção só: a
+   textura de duas caixas encostadas fica fora de fase na junta, e a emenda
+   aparece como um risco atravessando a página. */
+.com-textura{position:relative;overflow:hidden}
+.com-textura::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:url('/img/pattern-ondas.webp') repeat center;background-size:620px auto;opacity:.09}
+.com-textura > *{position:relative;z-index:1}
 /* A faixa reserva, embaixo, a altura exata do pincel do rodapé — e o pincel é
    puxado para cima na mesma medida (regra logo abaixo). O resultado é um fundo
    SÓ: as ondas petróleo nascem de dentro do laranja e sobem para o rodapé, com
@@ -267,7 +292,10 @@ main:has(> .cta-final:last-child) + .pincel-topo{
    dois. (Sem crase neste comentario: o CSS mora dentro de um template literal.) */
 .pincel-topo{line-height:0;pointer-events:none;margin-top:64px}
 .pincel-topo svg{display:block;width:100%;height:var(--pincel-altura)}
-.tem-pincel{position:relative;overflow:hidden;padding-bottom:120px}
+/* Seção que carrega o divisor: a folga embaixo acompanha a altura da onda.
+   Era 120px fixo, e a onda vai a 150px em tela larga — nesses 30px ela passava
+   por cima do conteúdo. */
+.tem-pincel{position:relative;overflow:hidden;padding-bottom:calc(var(--pincel-altura) + 20px)}
 /* ---- foto de fundo do hero ----
    Bem tênue: a foto ambienta, o degradê da marca é que manda. Decorativa, por
    isso entra como background e não como <img> com texto alternativo. */
@@ -339,7 +367,10 @@ main:has(> .cta-final:last-child) + .pincel-topo{
 .pilar h3{font-size:19px;margin-bottom:8px}
 .pilar p{font-size:14.5px;color:var(--ink-soft);line-height:1.6}
 /* Faixa de chamada no degradê, com o pincel dissolvendo para a seção seguinte. */
-.faixa-cta{background:var(--brand-gradient);color:#fff;position:relative;padding-bottom:clamp(60px,8vw,110px)}
+/* A folga embaixo acompanha a onda, como em .tem-pincel: era
+   clamp(60px,8vw,110px) contra uma onda que vai a 150px, e em 1440px os dois
+   botões desta faixa ficavam 33px POR BAIXO dela. */
+.faixa-cta{background:var(--brand-gradient);color:#fff;position:relative;padding-bottom:calc(var(--pincel-altura) + 20px)}
 .faixa-cta h2{color:#fff}
 /* Depoimentos: aspas de verdade, nome e papel separados do texto. */
 .depoimentos{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}

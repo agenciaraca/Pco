@@ -667,6 +667,41 @@ publicSite.get('/', async (c) => {
   /** O curso carro-chefe é o destino de toda CTA desta página. */
   const CARRO_CHEFE = '/formacao/curso-de-psicanalise-clinica-online';
 
+  /*
+    Os divisores da home.
+
+    A regra: **toda passagem de cor entre seções tem a onda; nenhuma passagem
+    tem corte reto** — e onde a cor NÃO muda não entra divisor nenhum, porque
+    ele seria desenhado na própria cor do fundo e viraria só um vão a mais.
+    Foi o que sobrou de assimétrico até 8/set/2026: o herói e a faixa de
+    matrícula tinham a onda, e as seis passagens do meio eram cortes retos.
+
+    A cor do divisor é a da seção **seguinte** — ele é a água da próxima
+    subindo por cima desta. Por isso o fim da página é calculado: as duas
+    últimas seções são condicionais, e com elas ausentes o vizinho de baixo
+    muda. Hard-code aqui erraria a cor exatamente no dia em que o blog ficasse
+    sem post.
+  */
+  /*
+    Cor SÓLIDA, sempre. O `fill` de um SVG não entende `linear-gradient()`: ele
+    ignora o valor e cai no preto, e o divisor vira uma faixa preta atravessando
+    a página. Foi assim que três passagens saíram pretas em 8/set/2026, e é a
+    razão de o pincel do rodapé sempre ter usado `--brand-grad-topo` em vez de
+    `--brand-gradient`. Para as seções em degradê, a sólida é a cor do TOPO —
+    que é justamente onde a onda encosta.
+  */
+  const PAPEL = 'var(--paper)';
+  const CINZA = 'var(--surface-2)';
+  const PETROLEO = 'var(--brand-grad-topo)';
+  const LARANJA = 'var(--cta-grad-topo)';
+
+  const temFormacoes = courses.length > 0 || houveFalhaDeLeitura();
+  const temPosts = posts.length > 0;
+  /** O que vem depois da barra de números claros. */
+  const aposNumeros = temFormacoes ? CINZA : temPosts ? PAPEL : LARANJA;
+  /** O que vem depois das formações, quando elas existem. */
+  const aposFormacoes = temPosts ? PAPEL : LARANJA;
+
   /**
    * Faixa de confiança do herói: só o que tem medição atrás. A avaliação sai
    * das avaliações reais e **anda com a base**; some quando não há nenhuma.
@@ -872,7 +907,10 @@ publicSite.get('/', async (c) => {
     </a>`;
 
   const body = html`
-    <section class="hero-deep" style="padding:clamp(56px,9vw,110px) 0 150px;overflow:hidden">
+    <section
+      class="hero-deep"
+      style="padding:clamp(56px,9vw,110px) 0 calc(var(--pincel-altura) + 20px);overflow:hidden"
+    >
       <div
         class="hero-foto"
         style="background-image:url('/img/hero-consultorio.webp')"
@@ -923,8 +961,9 @@ publicSite.get('/', async (c) => {
       </div>
     </section>
 
-    <section class="section-tight">
+    <section class="section-tight tem-pincel">
       <div class="wrap pilares">${raw(pilaresHtml)}</div>
+      ${pincel(PETROLEO)}
     </section>
 
     <section class="section-tight faixa-cta">
@@ -940,7 +979,7 @@ publicSite.get('/', async (c) => {
       ${pincel('var(--surface-2)')}
     </section>
 
-    <section class="section" style="background:var(--surface-2)">
+    <section class="section tem-pincel" style="background:var(--surface-2)">
       <div class="wrap">
         <span class="eyebrow">Por que escolher a ${ORG.shortName}</span>
         <h2 style="margin:12px 0 14px">Por que escolher a PCO Psicanálise Clínica Online?</h2>
@@ -954,9 +993,10 @@ publicSite.get('/', async (c) => {
           <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero começar</a>
         </div>
       </div>
+      ${pincel(PAPEL)}
     </section>
 
-    <section class="section">
+    <section class="section tem-pincel">
       <div class="wrap">
         <div class="coluna-texto">
         <h2 style="margin-bottom:20px">
@@ -977,9 +1017,10 @@ publicSite.get('/', async (c) => {
         </p>
         </div>
       </div>
+      ${pincel(CINZA)}
     </section>
 
-    <section class="section" style="background:var(--surface-2)">
+    <section class="section tem-pincel" style="background:var(--surface-2)">
       <div class="wrap">
         <span class="eyebrow">O que dizem sobre nós?</span>
         <h2 style="margin:12px 0 26px">
@@ -995,9 +1036,10 @@ publicSite.get('/', async (c) => {
           <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero fazer este curso</a>
         </div>
       </div>
+      ${pincel(PETROLEO)}
     </section>
 
-    <section class="section">
+    <section class="section faixa-rntp com-textura tem-pincel">
       <div class="wrap rntp-bloco">
         <span class="selo-rntp">
           <img
@@ -1011,7 +1053,7 @@ publicSite.get('/', async (c) => {
         <div>
           <span class="eyebrow">Curso reconhecido RNTP</span>
           <h2 style="margin:12px 0 14px">Reconhecimento que atesta a formação</h2>
-          <p style="color:var(--ink-soft);font-size:16.5px;line-height:1.7">
+          <p class="rntp-texto" style="font-size:16.5px;line-height:1.7">
             Orgulhamo-nos em afirmar que nosso Curso de Psicanálise Clínica conquistou o
             reconhecimento do RNTP, após uma rigorosa avaliação de seu conteúdo. Este selo de
             qualidade atesta a excelência na formação do psicanalista, colocando a PCO no seleto
@@ -1022,9 +1064,6 @@ publicSite.get('/', async (c) => {
           </p>
         </div>
       </div>
-    </section>
-
-    <section class="section-tight" style="background:var(--brand-gradient)">
       <div class="wrap">
         <div class="numeros-declarados">${raw(declaradosHtml)}</div>
         <p class="declarados-nota">
@@ -1037,17 +1076,19 @@ publicSite.get('/', async (c) => {
           Junte-se a nós e faça parte dessa comunidade de sucesso na Psicanálise Clínica Online!
         </p>
       </div>
+      ${pincel(PAPEL)}
     </section>
 
-    <section class="section-tight">
+    <section class="section-tight${aposNumeros === PAPEL ? '' : ' tem-pincel'}">
       <div class="wrap barra-numeros-claro">
         <span class="eyebrow">Medido no sistema, hoje</span>
         <div class="barra-numeros barra-numeros-neutra">${raw(barraNumeros)}</div>
       </div>
+      ${aposNumeros === PAPEL ? '' : pincel(aposNumeros)}
     </section>
 
     ${courses.length
-      ? html`<section class="section" style="background:var(--surface-2)">
+      ? html`<section class="section tem-pincel" style="background:var(--surface-2)">
           <div class="wrap">
             <span class="eyebrow">Nossas formações</span>
             <h2 style="margin:12px 0 24px">Escolha por onde começar</h2>
@@ -1056,19 +1097,21 @@ publicSite.get('/', async (c) => {
               <a class="btn btn-outline" href="/formacoes">Ver todos os cursos</a>
             </div>
           </div>
+          ${pincel(aposFormacoes)}
         </section>`
       : houveFalhaDeLeitura()
-        ? html`<section class="section" style="background:var(--surface-2)">
+        ? html`<section class="section tem-pincel" style="background:var(--surface-2)">
             <div class="wrap">
               <span class="eyebrow">Nossas formações</span>
               <h2 style="margin:12px 0 24px">Escolha por onde começar</h2>
               ${blocoIndisponivel('as formações')}
             </div>
+            ${pincel(aposFormacoes)}
           </section>`
         : ''}
 
     ${posts.length
-      ? html`<section class="section">
+      ? html`<section class="section tem-pincel">
           <div class="wrap">
             <span class="eyebrow">Do blog</span>
             <h2 style="margin:12px 0 24px">Artigos recentes</h2>
@@ -1077,10 +1120,11 @@ publicSite.get('/', async (c) => {
               <a class="btn btn-outline" href="/blog">Ver todos os artigos</a>
             </div>
           </div>
+          ${pincel(LARANJA)}
         </section>`
       : ''}
 
-    <section class="section cta-final">
+    <section class="section cta-final com-textura">
       <div class="wrap">
         <h2>Pronto para dar o primeiro passo?</h2>
         <p class="lead">Comece sua formação em psicanálise clínica hoje.</p>
