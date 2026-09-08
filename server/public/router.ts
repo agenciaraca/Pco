@@ -1080,13 +1080,11 @@ publicSite.get('/', async (c) => {
         </section>`
       : ''}
 
-    <section class="section hero-deep" style="text-align:center">
-      <div class="wrap" style="max-width:640px">
-        <h2 style="color:#fff;margin-bottom:14px">Pronto para dar o primeiro passo?</h2>
-        <p class="lead" style="color:#cfe0dc;margin-bottom:24px">
-          Comece sua formação em psicanálise clínica hoje.
-        </p>
-        <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero me matricular</a>
+    <section class="section cta-final">
+      <div class="wrap">
+        <h2>Pronto para dar o primeiro passo?</h2>
+        <p class="lead">Comece sua formação em psicanálise clínica hoje.</p>
+        <a class="btn btn-claro btn-lg" href="${CARRO_CHEFE}">Quero me matricular</a>
       </div>
     </section>
   `;

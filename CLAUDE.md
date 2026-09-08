@@ -298,6 +298,38 @@ Cinco coisas que qualquer mexida aqui tem de respeitar:
 E **três segundos de timeout**, não os dez do ping de gateway: do outro lado há
 uma pessoa parada no checkout, e digitar o endereço custa vinte segundos.
 
+## A faixa final da home nasce do pincel do rodapé
+
+`.cta-final` em `server/public/styles.ts` (8/set/2026). O último convite da
+home — "Pronto para dar o primeiro passo?" — era `.hero-deep`: o **mesmo**
+degradê petróleo do rodapé. As duas faixas se fundiam numa mancha só, e a
+oferta final da página tinha aparência de rodapé, que é o lugar onde ninguém
+procura oferta.
+
+Agora é laranja com a textura de ondas (`public/img/pattern-ondas.webp`), e
+encosta no rodapé sem vão.
+
+Quatro decisões que um retoque futuro desfaz sem perceber:
+
+- **O divisor é o `.pincel-topo`**, as ondas petróleo que sobem para dentro do
+  rodapé — ele mora dentro de `footer()` e é dele que se fala quando se fala do
+  "divider do rodapé". Quando a última seção é a faixa laranja, ele é **puxado
+  para dentro dela** (`margin-top` negativo) e a faixa reserva embaixo a folga
+  equivalente. Os dois saem do mesmo token, `--pincel-altura`: mudar um sozinho
+  sobra ou falta exatamente essa diferença.
+- **É um fundo só, não duas caixas encostadas.** Pintar o laranja e a textura
+  em dois elementos deixaria a textura fora de fase justamente na junta — uma
+  linha visível atravessando a página inteira.
+- **O texto sobre o laranja é escuro** (`--on-orange`, 7,5:1). Branco sobre
+  `#ff914d` dá 2,8:1 e reprova em qualquer tamanho. É a troca que mais tenta
+  quem mexe em faixa colorida, e o token existe na paleta exatamente para
+  isto. O botão é claro com tinta petróleo — o `.btn-cta` é laranja e sumiria.
+- **A regra é `main:has(> .cta-final:last-child)`.** Entrar qualquer seção
+  depois da faixa devolve o vão de 64px sem quebrar nada e sem ninguém ver;
+  `test/faixa-final-encosta-no-rodape.test.ts` cobra isso, mais a existência do
+  arquivo da textura — `url()` para caminho errado não dá erro em lugar nenhum,
+  dá 404 no navegador de quem visita e uma faixa lisa.
+
 ## Crase dentro de template literal quebra o arquivo inteiro
 
 Três arquivos deste projeto são um template literal gigante: `public/client.ts`

@@ -24,6 +24,7 @@ export const PUBLIC_CSS = `
   --brand-gradient:linear-gradient(118deg,#0097b2 0%,#008ba4 52%,#0b7486 100%);
   --brand-grad-topo:#0097b2;
   --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);
+  --pincel-altura:clamp(60px,10vw,150px);
   --good:#2f7d4f;--good-bg:#e0efe4;--good-line:#bcdcc6;
   --warn:#9a6a12;--warn-bg:#f5ead1;--warn-line:#e5d09a;
   --crit:#b0422f;--crit-bg:#f6e2dc;--crit-line:#e8bfb3;
@@ -181,6 +182,46 @@ p{margin:0}
 .hero-deep h1{color:#fff}
 .hero-deep .lead{color:#cfe0dc}
 /* ---- footer ---- */
+/* Bloco final da home — a faixa laranja que encosta no rodapé.
+   Antes ela era .hero-deep, o MESMO degradê petróleo do rodapé: as duas
+   faixas se fundiam numa mancha só, e o último convite da página tinha a
+   aparência de rodapé. O laranja é o que separa convite de rodapé, e é o
+   laranja de decisão de compra — a mesma cor do .btn-cta, usada só onde há
+   compra a decidir.
+
+   Encosta no rodapé de propósito: sem margem, sem borda, sem sombra. O único
+   divisor entre os dois é a virada de cor, e o desenho do rodapé já tem os
+   dele (a ondinha nas colunas e o filete de .legal). Mais um traço aqui
+   competiria com eles. */
+.cta-final{background:var(--cta-gradient);color:var(--on-orange);position:relative;overflow:hidden;text-align:center}
+/* A textura de ondas é DECORATIVA: pseudo-elemento, sem alt e sem entrar na
+   árvore de acessibilidade, e com pointer-events:none para não roubar clique
+   do botão que está por cima. As linhas são brancas com alfa; a opacidade
+   baixa é o que mantém o contraste do texto de pé. */
+.cta-final::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:url('/img/pattern-ondas.webp') repeat center;background-size:560px auto;opacity:.16}
+/* A faixa reserva, embaixo, a altura exata do pincel do rodapé — e o pincel é
+   puxado para cima na mesma medida (regra logo abaixo). O resultado é um fundo
+   SÓ: as ondas petróleo nascem de dentro do laranja e sobem para o rodapé, com
+   a textura correndo por trás delas sem emenda. Pintar duas caixas encostadas
+   deixaria a textura fora de fase justamente na junta. */
+.cta-final{padding-bottom:calc(clamp(48px,7vw,88px) + var(--pincel-altura))}
+.cta-final .wrap{position:relative;z-index:1;max-width:660px}
+/* Vale só quando a última seção da página é a faixa laranja — nas outras, o
+   pincel continua saindo do fundo da página, com a folga de 64px de sempre.
+   Navegador sem :has() ignora a regra e vê o desenho anterior, que funciona. */
+main:has(> .cta-final:last-child) + .pincel-topo{
+  margin-top:calc(-1 * var(--pincel-altura));position:relative;z-index:2}
+/* Texto ESCURO sobre o laranja, e isto não é escolha de gosto: branco sobre
+   #ff914d dá 2,8:1, que reprova em qualquer tamanho. O #2b1608 de --on-orange
+   dá 7,5:1, e o token existe na paleta exatamente para este uso. */
+.cta-final h2{color:var(--on-orange);margin-bottom:14px}
+.cta-final .lead{color:var(--on-orange);opacity:.86;margin-bottom:26px}
+/* O .btn-cta é laranja e sumiria sobre laranja. Botão claro com a tinta
+   petróleo do rodapé: 14:1 de contraste, e amarra a faixa ao que vem abaixo. */
+.btn-claro{background:#fff;color:var(--brand-petroleo);box-shadow:0 12px 30px rgba(43,22,8,.22)}
+.btn-claro:hover{background:#fffaf6;filter:none}
+.btn-claro:focus-visible{outline:3px solid rgba(255,255,255,.9);outline-offset:3px}
 .site-footer{background:var(--brand-gradient);color:var(--on-deep)}
 .site-footer a{color:#cfe0dc}.site-footer a:hover{color:#fff}
 .site-footer .cols{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:36px;padding:56px 0 40px;text-align:center;justify-items:center}
@@ -225,7 +266,7 @@ p{margin:0}
    A margem superior vive aqui, e nao no rodape: la ela abriria um vao entre os
    dois. (Sem crase neste comentario: o CSS mora dentro de um template literal.) */
 .pincel-topo{line-height:0;pointer-events:none;margin-top:64px}
-.pincel-topo svg{display:block;width:100%;height:clamp(60px,10vw,150px)}
+.pincel-topo svg{display:block;width:100%;height:var(--pincel-altura)}
 .tem-pincel{position:relative;overflow:hidden;padding-bottom:120px}
 /* ---- foto de fundo do hero ----
    Bem tênue: a foto ambienta, o degradê da marca é que manda. Decorativa, por
