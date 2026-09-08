@@ -604,6 +604,35 @@ retry que o salve —, e `saudavel` é o ciclo de entrega.
 treze expõem `saudavel`, que nenhum nasce verde, e que o `startWorker` de cada
 um passa por `comRegistro`. Worker novo que chegue sem isso falha o teste.
 
+## Ciclo que termina não é ciclo que fez alguma coisa
+
+`server/jobs/inventario.ts` + `server/health/dashboard.ts` (8/set/2026). O
+sprint de 7/set fechou o worker que **lança**: todos passam por `comRegistro` e
+uma exceção derruba `saudavel`. Ficou de fora o caso vizinho, que é o mais
+provável de acontecer.
+
+Os workers que percorrem itens pegam o erro **por item**, contam e seguem — e
+isso está certo: um endereço inválido não pode derrubar o envio dos outros 199.
+Só que o tick termina normalmente, `comRegistro` grava sucesso, e um ciclo que
+examinou 200 lembretes e falhou nos 200 aparecia **verde** no painel. A rotina
+rodou, contou e reportou sucesso; o que ninguém recebeu foi o aviso da sessão
+que a pessoa pagou.
+
+Três coisas que qualquer mexida aqui tem de respeitar:
+
+- **`saudavel` e `ultimoCiclo` respondem perguntas diferentes.** O primeiro é
+  "o tick terminou?", o segundo é "ele entregou?". Fundir os dois faria o
+  worker cair por um endereço inválido entre duzentos.
+- **`ultimoCiclo: null` é "não conta itens", nunca `{ ok: 0, erros: 0 }`** —
+  zero é uma medição, e a maioria dos workers não tem itens para contar. Cada
+  adaptador do inventário traduz os campos do seu worker à mão (`enviados/erros`,
+  `sent/errors`, `filesBackedUp/errors[]`), pelo mesmo motivo que o arquivo
+  inteiro é assim: um normalizador por heurística quebra em silêncio.
+- **Dois níveis no painel, porque as ações são diferentes.** *Nada passou*
+  (`erros > 0` e `ok === 0`) é vermelho — é o worker mudo, e a causa costuma
+  ser uma só, credencial de e-mail vencida. *Algo falhou* com o resto entregue
+  é amarelo: não pode pintar o painel de vermelho, e não pode sumir.
+
 ## O expurgo não pode calar sobre o que não alcança
 
 Duas metades do mesmo defeito, fechadas em 7/set/2026. Nenhuma dava erro — a
