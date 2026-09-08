@@ -191,9 +191,18 @@ describe('o alerta chega às telas, não só ao e-mail', () => {
       'utf8',
     );
     expect(s).toContain("id: 'checkout'");
-    // Pouco movimento não é saúde confirmada. Um verde ali diria que se mediu
-    // quando não se mediu — a mesma regra das telas de métrica.
-    expect(s).toMatch(/taxaFalhaPct === null \? 'na'/);
+    /*
+      Pouco movimento não é saúde confirmada. Um verde ali diria que se mediu
+      quando não se mediu — a mesma regra das telas de métrica.
+
+      A conferência é frouxa de propósito: cobra que o `null` leve a `'na'` e
+      **nunca** a `'ok'`, sem cravar o desenho da expressão. A versão anterior
+      casava o texto inteiro e quebrou quando o cartão ganhou um terceiro
+      estado (`alertaDeRecusas`), que preserva exatamente esta regra — teste que
+      cobra a forma em vez da garantia dá trabalho e não protege nada.
+    */
+    expect(s).toMatch(/taxaFalhaPct === null\s*\?\s*'na'/);
+    expect(s).not.toMatch(/taxaFalhaPct === null\s*\?\s*'ok'/);
   });
 
   it('o worker está no inventário de jobs e pode ser disparado à mão', async () => {

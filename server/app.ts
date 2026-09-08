@@ -166,6 +166,7 @@ import { cobrar, escolherCandidatos } from './payments/cobranca';
 import { listarJobs } from './jobs/inventario';
 import { expurgarTitular } from './privacy/expurgo';
 import * as roteamentoPagamento from './payments/roteamento';
+import { anotarRecusas } from './payments/recusas-de-checkout';
 import { metodoPagamentoSchema } from '../shared/metodos-pagamento';
 import * as importJobs from './imports/job-store';
 import {
@@ -11559,6 +11560,19 @@ export function buildApp() {
   });
 
   // ---------- Checkout (cria order + chama provider) ----------
+
+  /*
+    Anota quem foi recusado ANTES de virar pedido, nas duas rotas de compra.
+
+    Declarado aqui, e não como mais um argumento de cada `app.post`, por dois
+    motivos: as duas rotas somam mais de dez saídas de erro e a anotação não
+    pode depender de alguém lembrar dela na décima primeira; e um `use` por
+    caminho não reindenta duzentas linhas de handler, o que deixa o diff
+    legível para quem for revisar. Precisa vir ANTES das rotas — o Hono executa
+    na ordem de registro. Ver `payments/recusas-de-checkout.ts`.
+  */
+  app.use('/payments/checkout', anotarRecusas('aluno'));
+  app.use('/public/checkout', anotarRecusas('publico'));
 
   app.post(
     '/payments/checkout',

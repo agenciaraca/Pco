@@ -1,4 +1,5 @@
 import * as ordersRepo from './orders-repo';
+import { resumirRecusas, type ResumoDeRecusas } from './recusas-de-checkout';
 import type { Order } from './types';
 
 /**
@@ -37,6 +38,22 @@ import type { Order } from './types';
  * não — é quase sempre desistência de quem comprou, e desistência é do
  * negócio, não do sistema. Só `failed` conta: é o gateway tendo recusado a
  * criação da cobrança.
+ *
+ * ## O ponto cego que este arquivo tinha, e a segunda medida
+ *
+ * Tudo acima olha **pedidos**. Em 7/set/2026 a venda parou de um jeito que não
+ * criava pedido nenhum: um script velho em cache mandava o corpo sem os campos
+ * que o checkout passara a exigir, e a requisição morria na validação, antes
+ * de `createOrder`. Naquele dia houve **zero pedidos** — e zero pedidos dá
+ * `taxaFalhaPct = null`, que este módulo (corretamente) chama de "sem base
+ * para medir". O alarme escrito para o dia em que a venda para ficou calado no
+ * dia em que a venda parou.
+ *
+ * Daí a segunda medida: **as recusas anteriores ao pedido**
+ * (`recusas-de-checkout.ts`). Ela dispara sozinha quando muita gente foi
+ * recusada e **ninguém** comprou na janela — as duas condições juntas, pela
+ * mesma razão de sempre: recusa acontece todo dia (CPF digitado errado), e
+ * recusa com venda passando não é a venda parada.
  */
 
 export interface SaudeDoCheckout {
@@ -72,6 +89,22 @@ export interface SaudeDoCheckout {
   motivoMaisComum: string | null;
   /** Gateways envolvidos nas falhas, para saber se é um só ou todos. */
   gatewaysComFalha: string[];
+  /**
+   * Tentativas recusadas ANTES de virar pedido, na mesma janela.
+   *
+   * Nada disto aparece em `payment_orders`: a validação roda antes de
+   * `createOrder`. É o ponto cego descrito no topo do arquivo.
+   */
+  recusas: ResumoDeRecusas;
+  /**
+   * `true` quando houve recusa demais e **nenhuma** venda na janela.
+   *
+   * Separado de `alerta` de propósito: são dois problemas com causas e ações
+   * diferentes — um é o gateway recusando a cobrança, o outro é a pessoa nem
+   * chegando ao gateway. Achatá-los faria a mensagem apontar para o lugar
+   * errado.
+   */
+  alertaDeRecusas: boolean;
 }
 
 const JANELA_PADRAO_HORAS = 24;
@@ -97,7 +130,7 @@ export async function avaliarCheckout(
   const limite = opts.limitePct ?? LIMITE_PCT;
 
   const desde = Date.now() - janelaHoras * 3_600_000;
-  const todos = await ordersRepo.listAll();
+  const [todos, recusas] = await Promise.all([ordersRepo.listAll(), resumirRecusas(janelaHoras)]);
   const naJanela = todos.filter((o) => new Date(o.createdAt).getTime() >= desde);
 
   const falhados = naJanela.filter((o) => o.status === 'failed');
@@ -111,11 +144,29 @@ export async function avaliarCheckout(
     const m = motivoDe(o);
     if (m) contagem.set(m, (contagem.get(m) ?? 0) + 1);
   }
-  const motivoMaisComum =
-    [...contagem.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const motivoMaisComum = [...contagem.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 
   const taxaFalhaPct =
     tentativas >= minimo ? Math.round((falhados.length / tentativas) * 1000) / 10 : null;
+
+  /*
+    Ninguém comprou E muita gente foi recusada antes de virar pedido.
+
+    O mínimo é o mesmo das tentativas, e as duas condições são exigidas
+    juntas: sozinha, "cinco recusas" é uma tarde normal de gente digitando o
+    CPF errado; com venda nenhuma no mesmo período, é o checkout não deixando
+    ninguém passar. Foi exatamente o retrato de 7/set/2026.
+
+    **`pagos` é pedido CRIADO na janela e já pago** — a janela filtra por
+    `createdAt`. Um boleto emitido na terça e pago na sexta não conta aqui, e
+    está certo que não conte: a pergunta é se o checkout de hoje deixou alguém
+    passar, não se dinheiro entrou hoje. Numa escola que vende poucas vezes por
+    semana isso torna `pagos === 0` a situação comum, e o alarme passa a
+    depender do número de recusas — que, com este volume, é o sinal certo:
+    cinco pessoas batendo no checkout num dia sem nenhuma comprando é notícia.
+    Quem tiver volume maior sobe `minimoDeTentativas`.
+  */
+  const alertaDeRecusas = recusas.total >= minimo && pagos === 0;
 
   return {
     janelaHoras,
@@ -127,13 +178,27 @@ export async function avaliarCheckout(
     alerta: taxaFalhaPct !== null && taxaFalhaPct >= limite,
     motivoMaisComum,
     gatewaysComFalha: [...new Set(falhados.map((o) => o.gatewayProvider))],
+    recusas,
+    alertaDeRecusas,
   };
 }
 
 /** A frase que vai para a tela e para o e-mail. */
 export function resumoLegivel(s: SaudeDoCheckout): string {
+  // A recusa antes do pedido vem PRIMEIRO quando é ela que está disparando:
+  // nesse estado não há pedido nenhum para descrever, e a frase antiga dizia
+  // "sem base para medir" justamente no dia em que ninguém conseguia comprar.
+  if (s.alertaDeRecusas) {
+    const base = `${s.recusas.total} tentativa(s) recusadas antes de virar pedido nas últimas ${s.janelaHoras}h, e nenhuma venda no período.`;
+    return s.recusas.motivoMaisComum
+      ? `${base} Motivo mais comum (${s.recusas.motivoMaisComumPct}%): "${s.recusas.motivoMaisComum}".`
+      : base;
+  }
   if (s.taxaFalhaPct === null) {
-    return `Menos de ${s.minimoDeTentativas} tentativas em ${s.janelaHoras}h — sem base para medir.`;
+    const semBase = `Menos de ${s.minimoDeTentativas} tentativas em ${s.janelaHoras}h — sem base para medir.`;
+    return s.recusas.total > 0
+      ? `${semBase} ${s.recusas.total} recusa(s) antes do pedido no período.`
+      : semBase;
   }
   const base = `${s.taxaFalhaPct}% das ${s.tentativas} tentativas falharam nas últimas ${s.janelaHoras}h (${s.falhas} de ${s.tentativas}).`;
   return s.motivoMaisComum ? `${base} Motivo mais comum: "${s.motivoMaisComum}".` : base;

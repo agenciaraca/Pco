@@ -137,9 +137,7 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     const eps = await webhookEndpoints.listEndpoints();
     const active = eps.filter((e) => e.enabled);
     const recentFailed = active.filter(
-      (e) =>
-        e.lastFailureAt &&
-        (!e.lastSuccessAt || e.lastFailureAt > e.lastSuccessAt),
+      (e) => e.lastFailureAt && (!e.lastSuccessAt || e.lastFailureAt > e.lastSuccessAt),
     ).length;
     checks.push({
       id: 'webhooks',
@@ -267,7 +265,21 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     checks.push({
       id: 'checkout',
       label: 'Checkout (24h)',
-      status: sc.taxaFalhaPct === null ? 'na' : sc.alerta ? 'error' : 'ok',
+      /*
+        `alertaDeRecusas` é conferido ANTES do `null`, e a ordem é o conserto.
+
+        Recusa antes do pedido não aparece em `payment_orders`, então o dia em
+        que ninguém consegue nem criar pedido dá `taxaFalhaPct === null` — e
+        este cartão pintava 'na' ("sem base para medir") justamente quando a
+        venda estava parada. Foi o que aconteceu em 7/set/2026.
+      */
+      status: sc.alertaDeRecusas
+        ? 'error'
+        : sc.taxaFalhaPct === null
+          ? 'na'
+          : sc.alerta
+            ? 'error'
+            : 'ok',
       message: resumoLegivel(sc),
       metric: sc.taxaFalhaPct ?? '—',
     });
@@ -320,7 +332,9 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
 
       `ultimoCiclo: null` fica de fora dos dois: é "não conta itens", não zero.
     */
-    const mudos = jobs.filter((j) => j.ultimoCiclo && j.ultimoCiclo.erros > 0 && j.ultimoCiclo.ok === 0);
+    const mudos = jobs.filter(
+      (j) => j.ultimoCiclo && j.ultimoCiclo.erros > 0 && j.ultimoCiclo.ok === 0,
+    );
     const comAlgumErro = jobs.filter(
       (j) => j.ultimoCiclo && j.ultimoCiclo.erros > 0 && j.ultimoCiclo.ok > 0,
     );

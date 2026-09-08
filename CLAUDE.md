@@ -455,6 +455,53 @@ Quatro coisas que qualquer mexida aqui tem de respeitar:
 `test/home-sem-corte-reto.test.ts` cobra a regra lendo o HTML servido, e
 inclui o caso do degradê no `fill`.
 
+## O alarme da venda enxergava o pedido falhando, não o pedido faltando
+
+`server/payments/recusas-de-checkout.ts` (8/set/2026). O alarme de checkout
+existe desde 5/set e mede **taxa de falha sobre pedidos**. Ele estava certo
+para o incidente que o criou — o gateway recusando a cobrança — e cego para o
+vizinho, que aconteceu dois dias depois.
+
+Quando a venda para **antes** de virar pedido, não há pedido para contar. A
+validação roda antes de `createOrder`, então a recusa não existe em
+`payment_orders`: `tentativas` fica em 0, `taxaFalhaPct` fica `null`, o painel
+escreve *"sem base para medir"* — que é a frase honesta — e o worker
+`return`ava antes de avisar ninguém. **Medido no banco de produção: em 7/set,
+o dia em que o script velho em cache derrubou o checkout, foram zero pedidos
+criados**, contra 3 a 13 por dia na semana anterior. O alarme escrito para o dia
+em que a venda para ficou calado no dia em que a venda parou.
+
+A segunda medida conta as recusas anteriores ao pedido, e dispara com **duas
+condições juntas**: recusas acima do mínimo **e** nenhuma venda na janela.
+Recusa sozinha é vida normal — gente digita CPF errado todo dia —, e recusa com
+a venda passando não é a venda parada.
+
+Cinco coisas que qualquer mexida aqui tem de respeitar:
+
+- **A anotação é um middleware, não uma chamada em cada `return`.** As duas
+  rotas de checkout somam mais de dez saídas de erro; espalhar o registro por
+  todas é a receita conhecida — gancho em muitos lugares é gancho que alguém
+  esquece ao acrescentar a décima primeira.
+- **4xx conta, 5xx não.** Nas duas rotas a falha do gateway é `502` e acontece
+  **depois** de o pedido existir: ele já vai para `failed` e já é contado pela
+  outra metade. Contar aqui faria o mesmo incidente aparecer em dobro. E `429`
+  fica de fora porque limitador é freio, não recusa de conteúdo.
+- **Não se guarda nada de quem tentou comprar** — três campos: quando, qual
+  rota, e a frase que a pessoa leu. Sem IP, sem e-mail, sem nome. É o que
+  mantém isto fora das duas pontas da LGPD sem precisar de categoria nem de
+  rotina, e há teste cobrando as três chaves.
+- **`alertaDeRecusas` é conferido ANTES do `null`**, no painel e no worker. A
+  ordem é o conserto inteiro: era o `taxaFalhaPct === null` que devolvia
+  primeiro e pintava `na`.
+- **O número nunca anda sozinho.** O motivo mais comum vai junto com o
+  percentual dele — é o que separa robô postando lixo (motivos variados) de
+  checkout quebrado (a mesma frase repetida), e é a frase que diz o que
+  consertar.
+
+`test/venda-parada-sem-pedido-nao-fica-calada.test.ts` — 12 casos, 5 falham
+contra o código anterior. Metade deles é sobre **não** alarmar, pela mesma
+razão do arquivo irmão: alarme que grita à toa vira filtro de caixa de entrada.
+
 ## A página nova rodava o script velho — e culpava quem estava comprando
 
 `server/public/versao-de-asset.ts` (8/set/2026). O HTML do site sai **sem
@@ -1049,6 +1096,46 @@ commit não toca no frontend — o aviso do script é genérico; confirme pelo
 Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
+
+> ### 8/set/2026, tarde — a venda estava quebrada em produção, e nada dizia
+>
+> O dono relatou o checkout recusando data de nascimento preenchida. **Não era
+> a validação**: era o navegador rodando um script velho por cima de uma página
+> nova. Duas seções acima contam o porquê de cada metade; o que interessa ao
+> retomar:
+>
+> | commit | o quê |
+> | --- | --- |
+> | `a871f3e` | o script do site passou a ter a impressão digital no endereço |
+> | (este) | o alarme da venda deixou de ser cego para a recusa antes do pedido |
+>
+> **Como o diagnóstico foi fechado, porque o atalho vale para a próxima vez:**
+> a frase *"Informe a data de nascimento"* só sai quando a chave **não vem no
+> corpo**; com a chave vazia a mensagem é outra. Um `curl` contra produção com
+> o corpo sem a chave reproduziu o texto exato em segundos, e um navegador de
+> cache limpo (Playwright, com a requisição interceptada para não criar pedido)
+> comprava normalmente. Servidor certo, cliente velho.
+>
+> **O número que fecha o caso**, medido no banco de produção: 2/set a 6/set
+> tiveram 4, 1, 2, 13 e 3 pedidos criados; **7/set teve zero** — o dia em que o
+> campo entrou. E zero pedidos é exatamente o que faz o alarme calar, porque
+> ele mede taxa de falha *sobre pedidos*.
+>
+> **Duas armadilhas de ferramenta que custaram tempo aqui**, e nenhuma é do
+> projeto:
+>
+> - **A barra invertida some entre o shell e o arquivo.** Escrever um regex com
+>   duas barras invertidas num heredoc pelo Bash chega ao disco com uma só, e o erro
+>   aparece como "Unterminated group" numa linha que parece correta. Arquivo com
+>   barra invertida vai pelo Write, não pelo heredoc — é a mesma classe da crase
+>   dentro do template literal, noutro lugar.
+> - **`server/app.ts` e o `CLAUDE.md` já estão fora do padrão do Prettier em
+>   `main`.** Rodar `--write` neles reformata mais de cem linhas alheias e
+>   afoga o diff. Confira com `git stash` antes de culpar a sua mudança.
+>
+> Ainda vale o que está escrito abaixo: **CI verde não é deploy feito**, e a
+> terceira linha do bloco seguinte é a que não tem substituto.
+>
 
 > ### 8/set/2026 — catorze sprints, e a migration `0022` já está no banco
 >

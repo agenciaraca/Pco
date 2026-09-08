@@ -106,19 +106,25 @@ export interface ResultadoDaChecagem {
  * `dryRun` mede e não envia — é o que `/admin/jobs/:id/run?dryRun=true` chama, e
  * é como se confere o limiar sem escrever para ninguém.
  */
-export async function checarAgora(
-  opts: { dryRun?: boolean } = {},
-): Promise<ResultadoDaChecagem> {
+export async function checarAgora(opts: { dryRun?: boolean } = {}): Promise<ResultadoDaChecagem> {
   const saude = await avaliarCheckout();
   ultimaAvaliacao = saude;
 
-  // Sem base para medir não é "ok" nem "alerta": é não saber. Não muda o estado
-  // anterior, e portanto não dispara nem o aviso nem o "voltou".
-  if (saude.taxaFalhaPct === null) {
+  /*
+    Sem base para medir não é "ok" nem "alerta": é não saber. Não muda o estado
+    anterior, e portanto não dispara nem o aviso nem o "voltou".
+
+    **`alertaDeRecusas` escapa dessa porta, e é o motivo de ela existir.** Em
+    7/set/2026 a venda parou sem criar pedido nenhum — script velho em cache
+    mandando o corpo sem os campos novos —, e zero pedido é exatamente
+    `taxaFalhaPct === null`. Este `return` era o que calava o alarme no dia em
+    que ele mais precisava falar.
+  */
+  if (saude.taxaFalhaPct === null && !saude.alertaDeRecusas) {
     return { saude, mudou: false, enviados: 0, falhasDeEnvio: 0 };
   }
 
-  const estado: 'ok' | 'alerta' = saude.alerta ? 'alerta' : 'ok';
+  const estado: 'ok' | 'alerta' = saude.alerta || saude.alertaDeRecusas ? 'alerta' : 'ok';
   const mudou = ultimoEstado !== null && ultimoEstado !== estado;
   const primeiraVezRuim = ultimoEstado === null && estado === 'alerta';
 
@@ -160,6 +166,11 @@ export async function checarAgora(
       tentativas: saude.tentativas,
       falhas: saude.falhas,
       motivo: saude.motivoMaisComum,
+      // A outra metade: quem foi recusado antes de virar pedido. Sem isto, o
+      // registro de "a venda parou" ficaria sem a causa nos casos em que a
+      // parada não produziu pedido nenhum.
+      recusas: saude.recusas.total,
+      motivoDasRecusas: saude.recusas.motivoMaisComum,
       avisados: enviados,
     },
   }).catch(() => {});
