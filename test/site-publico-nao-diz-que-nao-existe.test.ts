@@ -76,9 +76,14 @@ describe('safe() registra, não só loga', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     // `listPublicCourses` lê o repositório de cursos; derrubá-lo é o cenário
     // real (queda de conexão), e o contrato é: devolve `[]` E marca.
+    //
+    // A vitrine lê pela variante RESUMIDA desde 8/set/2026 — a completa traz
+    // `lessons.content` para montar cartão. Mockar a errada faria este teste
+    // passar sem exercitar nada, que é como ele quebrou na CI: o mock deixou
+    // de valer e a leitura real deu certo.
     const courses = await import('../server/repositories/courses');
     const espiao = vi
-      .spyOn(courses, 'listCourses')
+      .spyOn(courses, 'listCoursesResumidos')
       .mockRejectedValue(new Error('Connection terminated unexpectedly'));
 
     await comColetaDeFalhas(async () => {
