@@ -374,6 +374,54 @@ Quatro decisões que um retoque futuro desfaz sem perceber:
   arquivo da textura — `url()` para caminho errado não dá erro em lugar nenhum,
   dá 404 no navegador de quem visita e uma faixa lisa.
 
+## O custo do site público é ida-e-volta ao banco, não consulta
+
+Medido contra o banco de produção a partir do próprio VPS em 8/set/2026, com
+12 amostras por consulta:
+
+| consulta              | mínimo | linhas |
+| --------------------- | ------ | ------ |
+| `select 1`            | 196 ms |      1 |
+| `courses`             | 197 ms |      4 |
+| `modules`             | 197 ms |    116 |
+| `lessons` (sem corpo) | 203 ms |    590 |
+| `lessons` (completa)  | 342 ms |    590 |
+| `assessments`         | 196 ms |      0 |
+
+**Ler 590 aulas custa o mesmo que `select 1`.** O tempo é a latência de rede
+até o DivZ, e nenhuma otimização de SQL a toca — índice, `EXPLAIN`, coluna a
+menos, nada disso mexe nos 196 ms. A única alavanca é **quantas idas** a página
+faz.
+
+Por isso `loadFromDb` passou a ler `courses`, `modules`, `lessons` e
+`assessments` numa `Promise.all`: eram quatro `await` em fila, 791 ms de piso —
+a soma exata dos quatro ida-e-voltas —, e nenhuma depende do resultado da
+outra. Juntas, o piso é 203 ms.
+
+**E o que a medição não autoriza afirmar:** o piso melhora 4×, a **mediana
+não**. Quinze amostras × três rodadas intercaladas deram sequencial 803 ms e
+paralelo 827 ms de mediana, com o paralelo variando de 203 a 1046 ms — o banco
+é hospedagem compartilhada e parece serializar concorrência quando está
+ocupado. O ganho é do melhor caso. Vale mesmo assim porque esta forma **não tem
+como** custar mais idas que a anterior; no pior caso empata.
+
+Três armadilhas de medição que custaram tempo aqui, e todas dariam conclusão
+errada:
+
+- **Sem o `Host` certo, a app responde 301** e `curl` mede o custo do
+  redirecionamento: 1,5 ms, que parece um site instantâneo. Use
+  `curl -H 'Host: psicanaliseclinica.online' http://127.0.0.1:3035/`.
+- **Uma amostra não é medição.** A primeira comparação que fiz mostrou o site
+  *piorando* depois da mudança — e o blog, que não lê curso nenhum, "piorou"
+  junto. Era ruído do link. Compare mínimo e mediana de uma série.
+- **Antes e depois têm de sair do mesmo minuto.** Comparar uma amostra de ontem
+  com uma série de hoje não compara nada. O jeito honesto é cronometrar as duas
+  formas lado a lado, no mesmo processo — foi assim que os 791 ms × 203 ms
+  apareceram.
+
+Quem quiser o caso típico melhor precisa atacar a latência (banco mais perto)
+ou cachear — e cachear a vitrine tem o custo descrito na seção seguinte.
+
 ## A home levava 2,5 s de servidor, e lia a mesma coisa duas vezes
 
 `server/public/memo-da-requisicao.ts` (8/set/2026). Medido no próprio VPS, com

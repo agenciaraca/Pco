@@ -117,25 +117,47 @@ async function loadFromDb(
   if (!db) return [];
 
   /*
-    As quatro leituras vão JUNTAS, e é isso que decide o tempo da página.
+    As quatro leituras vão JUNTAS, e nenhuma depende do resultado da outra:
+    módulos, aulas e avaliações são lidos inteiros e cruzados em memória logo
+    abaixo.
 
-    Elas eram sequenciais, e nenhuma depende do resultado da outra: módulos,
-    aulas e avaliações são lidos inteiros e cruzados em memória logo abaixo. O
-    banco é remoto (DivZ), então cada `await` custava um ida-e-volta — quatro
-    deles, um atrás do outro, em toda página pública. Medido no VPS em
-    8/set/2026, antes: home 0,96 s, curso 0,89 s, checkout 0,89 s de tempo de
-    servidor, contra 0,47 s do blog, que lê uma coisa só.
+    ## O número que explica tudo aqui: `select 1` custa 196 ms
 
-    É a mesma forma do defeito que `numerosDoSite` tinha — três leituras
-    independentes esperando uma pela outra —, uma camada abaixo, e no caminho
-    de **toda** página pública, checkout inclusive. O pool tem `max: 10`, então
-    as quatro saem de fato ao mesmo tempo.
+    Medido contra o banco de produção a partir do próprio VPS, em 8/set/2026,
+    com 12 amostras por consulta:
+
+    | consulta               | mínimo | linhas |
+    | ---------------------- | ------ | ------ |
+    | `select 1`             | 196 ms |      1 |
+    | `courses`              | 197 ms |      4 |
+    | `modules`              | 197 ms |    116 |
+    | `lessons` (sem corpo)  | 203 ms |    590 |
+    | `assessments`          | 196 ms |      0 |
+
+    **O custo é o ida-e-volta, não a consulta.** Ler 590 aulas custa o mesmo
+    que `select 1`. Isso é latência de rede até o DivZ, e nenhuma otimização de
+    SQL a toca. A única alavanca é o **número** de idas.
+
+    Quatro `await` em fila davam 791 ms de piso — a soma exata dos quatro
+    ida-e-voltas. Juntas, o piso é 203 ms: uma ida.
+
+    ## O que a medição NÃO autoriza afirmar
+
+    O piso melhora 4×; a **mediana, não** — 15 amostras × 3 rodadas
+    intercaladas deram sequencial 803 ms e paralelo 827 ms de mediana, com o
+    paralelo variando de 203 ms a 1046 ms. O banco é hospedagem compartilhada e
+    parece serializar consultas concorrentes quando está ocupado.
+
+    Então o ganho é real e é do melhor caso, não do caso típico. Vale mesmo
+    assim, porque **não há como esta forma custar mais idas que a anterior** —
+    no pior caso ela empata. Quem quiser o caso típico melhor precisa atacar a
+    latência em si (banco mais perto) ou cachear, e cachear a vitrine tem o
+    custo descrito em `server/public/memo-da-requisicao.ts`.
 
     **O `courses.length === 0` deixou de poupar as outras três, de propósito.**
     Ele só é verdadeiro em banco vazio (instalação nova), e aí as outras
-    tabelas estão vazias também: o que ele poupava era três consultas que não
-    devolvem nada. Trocar isso por um ida-e-volta a menos em toda visita é o
-    lado certo.
+    tabelas estão vazias também: o que ele poupava eram três consultas que não
+    devolvem nada.
   */
   const [cursosCrus, modules, lessons, assessments] = await Promise.all([
     selectActiveCourses(db, somenteAtivos),
