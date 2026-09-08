@@ -1,3 +1,18 @@
+/**
+ * Auditoria de carregamento no celular, contra o site publico de producao.
+ *
+ * Roda com `npx tsx scripts/auditar_carregamento_mobile.mts`. Emula um Pixel 5
+ * com a rede "Slow 4G" do Lighthouse (1,6 Mbps de descida, 150 ms de ida e
+ * volta) e CPU 4x mais lenta — que e a maquina do aluno mediano, nao a de quem
+ * programa.
+ *
+ * Foi ele que mediu, em 8/set/2026, os 6,9 s de LCP da home. O numero que
+ * importa e o **TTFB**: ele isola tempo de servidor de tempo de rede, e foi por
+ * ele que se chegou a `numerosDoSite`, que sozinho custava 2,5 s.
+ *
+ * Para separar servidor de rede de vez, o par deste script e um `curl` rodado
+ * DENTRO do VPS, no 127.0.0.1 — sem rede nenhuma no meio.
+ */
 import { chromium, devices } from '@playwright/test';
 
 const PAGINAS = [
