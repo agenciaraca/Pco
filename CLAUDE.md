@@ -1133,6 +1133,51 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >   `main`.** Rodar `--write` neles reformata mais de cem linhas alheias e
 >   afoga o diff. Confira com `git stash` antes de culpar a sua mudança.
 >
+> #### Estado ao fechar a sessão
+>
+> **`main` = `origin/main` = produção**, árvore limpa, sem branch pendente e sem
+> migration pendente. Suíte em **284 arquivos / 2668 testes**, verde com
+> `npx vitest run --maxWorkers=1` (o `--maxWorkers=1` continua obrigatório
+> nesta máquina). Os dois sprints têm teste que falha contra o código anterior:
+> 3 de 7 casos num, 5 de 12 no outro.
+>
+> **Uma sujeira que eu deixei, de propósito, e que você vai encontrar:** há
+> **uma** linha em `~/ava-pco/data/checkout-recusas.json` em produção, de
+> 8/set 17:11 UTC, com o motivo `"Informe a data de nascimento."`. **É minha**,
+> da verificação pós-deploy — não houve comprador recusado ali. O limiar do
+> alarme é cinco, então ela não dispara nada; não a apaguei porque o arquivo é
+> lido para a memória no boot e removê-la exigiria reiniciar produção, o que
+> custa mais do que ela atrapalha. Ela sai sozinha quando as 500 posições
+> girarem.
+>
+> #### O que a auditoria cobriu, e o que ela NÃO cobriu
+>
+> A passada de auditoria sobre o código de 7 e 8/set foi **parcial**, e vale
+> saber onde ela parou:
+>
+> - ✅ **Escapes do `PUBLIC_JS`** — o script servido tem uma única sequência de
+>   escape (`\D`), e ela chega certa. Aquela classe está limpa hoje.
+> - ✅ **O dado pessoal da migration `0022`** — `toRow`/`fromRow` levam
+>   `birthDate` e `address` nos dois sentidos, e `anonimizarConta` limpa os
+>   dois. Produção tem 1 conta com os campos gravados: o caminho funciona de
+>   ponta a ponta, não é só código.
+> - ✅ **O alarme da venda** — virou o sprint `c642e97`.
+> - ❌ **Não olhei com o mesmo cuidado**: `server/public/memo-da-requisicao.ts`,
+>   `server/db/repetir-consulta.ts` e `server/public/cep.ts`. São os três
+>   arquivos novos de maior superfície que sobraram, e é por aí que eu
+>   continuaria.
+>
+> #### Na ordem em que eu retomaria
+>
+> 1. **Terminar a auditoria** nos três arquivos acima. Código novo não auditado
+>    é a maior superfície aberta — foi assim que os dois defeitos de hoje
+>    apareceram.
+> 2. **Node 20 no VPS**, fora de suporte desde abril/2026. É ação de operação
+>    com risco real numa app sob PM2: merece janela e plano de volta, e por isso
+>    não foi feita sozinha.
+> 3. **As sete decisões do dono**, que continuam sendo dele — a lista está no
+>    bloco de 6/set/2026, mais abaixo, e nenhuma mudou.
+>
 > Ainda vale o que está escrito abaixo: **CI verde não é deploy feito**, e a
 > terceira linha do bloco seguinte é a que não tem substituto.
 >
