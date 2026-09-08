@@ -91,9 +91,7 @@ function blocoIndisponivel(oQue: string): Html {
     <p class="lead" style="margin:0 0 14px">
       É uma falha temporária nossa, não uma lista vazia. Tente de novo em instantes.
     </p>
-    <a class="btn btn-primary" href="" onclick="location.reload();return false;"
-      >Tentar de novo</a
-    >
+    <a class="btn btn-primary" href="" onclick="location.reload();return false;">Tentar de novo</a>
   </div>`;
 }
 
@@ -112,9 +110,31 @@ publicSite.get('/_pub/tags.js', async (c) => {
   return c.body(tagsScript(tags));
 });
 
+/*
+  O script do site, no endereço com a impressão digital do conteúdo.
+
+  Cache eterno porque o endereço muda junto com o conteúdo — é o mesmo contrato
+  do bundle do app. Ver `versao-de-asset.ts`: enquanto este endereço era fixo e
+  o cache durava uma hora, a página nova podia rodar o script velho, e foi
+  assim que o checkout passou a recusar data de nascimento preenchida.
+*/
+publicSite.get('/_pub/v/:v/site.js', (c) => {
+  c.header('Content-Type', 'application/javascript; charset=utf-8');
+  c.header('Cache-Control', 'public, max-age=31536000, immutable');
+  return c.body(PUBLIC_JS);
+});
+
+/*
+  O endereço antigo, sem impressão digital.
+
+  Continua servindo o script ATUAL porque há páginas dele espalhadas em cache
+  de navegador, e uma delas apontando para 404 deixaria o site sem JS nenhum —
+  sem menu no celular, sem carrinho, sem checkout. O que muda é a validade:
+  um minuto, não uma hora, para que ninguém mais fique preso a uma cópia velha.
+*/
 publicSite.get('/_pub/site.js', (c) => {
   c.header('Content-Type', 'application/javascript; charset=utf-8');
-  c.header('Cache-Control', 'public, max-age=3600');
+  c.header('Cache-Control', 'public, max-age=60');
   return c.body(PUBLIC_JS);
 });
 
@@ -522,8 +542,8 @@ publicSite.get('/blog/:slug', async (c) => {
             <div class="wrap">
               <h1>Página temporariamente indisponível</h1>
               <p class="lead" style="margin:12px 0 24px">
-                Não conseguimos carregar este artigo agora. Ele continua no ar — é uma
-                falha temporária nossa.
+                Não conseguimos carregar este artigo agora. Ele continua no ar — é uma falha
+                temporária nossa.
               </p>
               <a class="btn btn-primary" href="" onclick="location.reload();return false;"
                 >Tentar de novo</a
@@ -766,15 +786,15 @@ publicSite.get('/', async (c) => {
     ],
   ];
   const pilaresHtml = pilares
-    .map(
-      ([t, d]) =>
-        `<div class="pilar"><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`,
-    )
+    .map(([t, d]) => `<div class="pilar"><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`)
     .join('');
 
   // ---- por que escolher a PCO (texto do dono, oito itens) ----
   const porqueItens: Array<[string, string]> = [
-    ['Aulas em Vídeo', 'Vasto material de estudo em vídeo com aulas exclusivas e sugestões de filmes.'],
+    [
+      'Aulas em Vídeo',
+      'Vasto material de estudo em vídeo com aulas exclusivas e sugestões de filmes.',
+    ],
     [
       'Pagamento Facilitado',
       'Você pode optar pelos planos de pagamento que melhor se encaixa para você. No boleto ou no cartão, conheça as condições.',
@@ -791,7 +811,10 @@ publicSite.get('/', async (c) => {
       'Provas Simplificadas',
       'Uma prova por módulo de forma simplificada. Você vai eliminando as matérias até o final do seu curso.',
     ],
-    ['Duração', 'Sua formação em apenas 4 meses, tudo feito nas horas vagas, dependendo apenas de você.'],
+    [
+      'Duração',
+      'Sua formação em apenas 4 meses, tudo feito nas horas vagas, dependendo apenas de você.',
+    ],
     [
       'Reconhecimento RNTP',
       'Nosso curso é reconhecido pela RNTP, após a conclusão do seu curso basta você se associar e pronto, sua carteirinha de psicanalista é emitida sem burocracia e avaliações de suficiência.',
@@ -890,7 +913,10 @@ publicSite.get('/', async (c) => {
       : []),
   ];
   const declaradosHtml = numerosDeclarados
-    .map(([v, r]) => `<div><div class="valor">${esc(v)}</div><div class="rotulo">${esc(r)}</div></div>`)
+    .map(
+      ([v, r]) =>
+        `<div><div class="valor">${esc(v)}</div><div class="rotulo">${esc(r)}</div></div>`,
+    )
     .join('');
 
   const courseCard = (co: (typeof courses)[number]): string => `
@@ -938,33 +964,32 @@ publicSite.get('/', async (c) => {
     <section class="section">
       <div class="wrap">
         <div class="coluna-texto">
-        <span class="eyebrow">Sobre a PCO — Psicanálise Clínica Online</span>
-        <h2 style="margin:14px 0 20px">
-          Uma jornada única para compreender a mente humana — e transformar isso em carreira
-        </h2>
-        <p style="color:var(--ink-soft);font-size:17px;line-height:1.7;margin-bottom:16px">
-          Em um mundo em constante evolução, onde a compreensão pessoal e as habilidades para
-          auxiliar os outros são cruciais, a Psicanálise Clínica Online (PCO) se destaca. Oferecemos
-          uma jornada única e transformadora que permite a você explorar as profundezas da mente
-          humana, compreender os comportamentos de maneira mais profunda e, por fim, transformar
-          essa paixão em uma carreira verdadeiramente gratificante.
-        </p>
-        <p style="color:var(--ink-soft);font-size:17px;line-height:1.7">
-          Nossa abordagem de ensino é flexível e inovadora, proporcionando a você a oportunidade de
-          se qualificar no seu próprio ritmo, sem comprometer a qualidade ou a profundidade do
-          aprendizado. Embarque nessa jornada conosco e descubra como a Psicanálise Clínica Online
-          pode ser a chave para o seu sucesso pessoal e profissional em um mundo em constante
-          transformação.
-        </p>
+          <span class="eyebrow">Sobre a PCO — Psicanálise Clínica Online</span>
+          <h2 style="margin:14px 0 20px">
+            Uma jornada única para compreender a mente humana — e transformar isso em carreira
+          </h2>
+          <p style="color:var(--ink-soft);font-size:17px;line-height:1.7;margin-bottom:16px">
+            Em um mundo em constante evolução, onde a compreensão pessoal e as habilidades para
+            auxiliar os outros são cruciais, a Psicanálise Clínica Online (PCO) se destaca.
+            Oferecemos uma jornada única e transformadora que permite a você explorar as profundezas
+            da mente humana, compreender os comportamentos de maneira mais profunda e, por fim,
+            transformar essa paixão em uma carreira verdadeiramente gratificante.
+          </p>
+          <p style="color:var(--ink-soft);font-size:17px;line-height:1.7">
+            Nossa abordagem de ensino é flexível e inovadora, proporcionando a você a oportunidade
+            de se qualificar no seu próprio ritmo, sem comprometer a qualidade ou a profundidade do
+            aprendizado. Embarque nessa jornada conosco e descubra como a Psicanálise Clínica Online
+            pode ser a chave para o seu sucesso pessoal e profissional em um mundo em constante
+            transformação.
+          </p>
         </div>
         <div class="numeros-declarados">${raw(declaradosHtml)}</div>
         <p class="declarados-nota">
           Com orgulho, celebramos a formação de mais de 800 alunos que escolheram trilhar a jornada
-          do Curso de Psicanálise Clínica Online conosco.${
-            numeros.aulas
-              ? ` São ${numeros.aulas} aulas exclusivas, proporcionando um aprendizado abrangente e de qualidade.`
-              : ''
-          }
+          do Curso de Psicanálise Clínica Online
+          conosco.${numeros.aulas
+            ? ` São ${numeros.aulas} aulas exclusivas, proporcionando um aprendizado abrangente e de qualidade.`
+            : ''}
           Junte-se a nós e faça parte dessa comunidade de sucesso na Psicanálise Clínica Online!
         </p>
       </div>
@@ -1008,22 +1033,22 @@ publicSite.get('/', async (c) => {
     <section class="section tem-pincel">
       <div class="wrap">
         <div class="coluna-texto">
-        <h2 style="margin-bottom:20px">
-          Sua carreira após a Formação em Psicanálise Clínica aqui na PCO
-        </h2>
-        <p style="color:var(--ink-soft);font-size:17px;line-height:1.7;margin-bottom:16px">
-          Desperte o psicanalista em você com nossa formação em psicanálise online de excelência! Ao
-          concluir nosso curso, você não apenas dominará a psicanálise, mas também estará apto a se
-          tornar membro do RNTP, elevando sua credibilidade e desbloqueando um mundo de novas
-          oportunidades.
-        </p>
-        <p style="color:var(--ink-soft);font-size:17px;line-height:1.7">
-          Seja desbravando consultórios virtuais, integrando equipes multidisciplinares online, ou
-          atuando em clínicas digitais, sua jornada como psicanalista promete ser não apenas rica e
-          variada, mas também incrivelmente gratificante. Prepare-se para uma carreira
-          transformadora, onde o conhecimento profundo se une à flexibilidade do aprendizado online.
-          Estamos aqui para guiar você rumo ao sucesso na psicanálise!
-        </p>
+          <h2 style="margin-bottom:20px">
+            Sua carreira após a Formação em Psicanálise Clínica aqui na PCO
+          </h2>
+          <p style="color:var(--ink-soft);font-size:17px;line-height:1.7;margin-bottom:16px">
+            Desperte o psicanalista em você com nossa formação em psicanálise online de excelência!
+            Ao concluir nosso curso, você não apenas dominará a psicanálise, mas também estará apto
+            a se tornar membro do RNTP, elevando sua credibilidade e desbloqueando um mundo de novas
+            oportunidades.
+          </p>
+          <p style="color:var(--ink-soft);font-size:17px;line-height:1.7">
+            Seja desbravando consultórios virtuais, integrando equipes multidisciplinares online, ou
+            atuando em clínicas digitais, sua jornada como psicanalista promete ser não apenas rica
+            e variada, mas também incrivelmente gratificante. Prepare-se para uma carreira
+            transformadora, onde o conhecimento profundo se une à flexibilidade do aprendizado
+            online. Estamos aqui para guiar você rumo ao sucesso na psicanálise!
+          </p>
         </div>
       </div>
       ${pincel(CINZA)}
@@ -1106,7 +1131,6 @@ publicSite.get('/', async (c) => {
             ${pincel(aposFormacoes)}
           </section>`
         : ''}
-
     ${posts.length
       ? html`<section class="section tem-pincel">
           <div class="wrap">
@@ -1300,8 +1324,8 @@ publicSite.get('/formacao/:slug', async (c) => {
           <div class="wrap">
             <h1>Página temporariamente indisponível</h1>
             <p class="lead" style="margin:12px 0 24px">
-              Não conseguimos carregar esta formação agora. Ela continua no ar — é uma
-              falha temporária nossa. Tente de novo em instantes.
+              Não conseguimos carregar esta formação agora. Ela continua no ar — é uma falha
+              temporária nossa. Tente de novo em instantes.
             </p>
             <a class="btn btn-primary" href="" onclick="location.reload();return false;"
               >Tentar de novo</a
@@ -1586,9 +1610,7 @@ async function tetosDePagamento(): Promise<Record<MetodoPagamento, number>> {
 function opcoesDeMetodo(tetos: Record<MetodoPagamento, number>): string {
   const textos: Record<MetodoPagamento, (teto: number) => string> = {
     credit_card: (n) =>
-      n > 1
-        ? `Em até ${n}x sem juros, conforme o valor do curso.`
-        : 'Pagamento à vista no cartão.',
+      n > 1 ? `Em até ${n}x sem juros, conforme o valor do curso.` : 'Pagamento à vista no cartão.',
     boleto: (n) =>
       n > 1
         ? `Em até ${n}x — um boleto por parcela. <strong>Exige CPF</strong>, preenchido acima.`

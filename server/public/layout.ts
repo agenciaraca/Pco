@@ -12,6 +12,18 @@ import { ORG, AUTHOR_IS_PLACEHOLDER, ENDERECO_PEDAGOGICO, PRIVACIDADE_RESUMO } f
 import { PUBLIC_CSS_SERVIDO } from './styles';
 import { getTags, tagsEmCache, temTag } from '../marketing/tags-store';
 import { metasDeVerificacao, tagsNoscript } from '../marketing/tags-script';
+import { PUBLIC_JS } from './client';
+import { urlDoSiteJs } from './versao-de-asset';
+
+/**
+ * O endereço do script do site, com a impressão digital do conteúdo dentro.
+ *
+ * Calculado uma vez, no carregamento do módulo: o script é uma constante do
+ * processo, então a impressão só muda quando um deploy novo sobe. Ver
+ * `versao-de-asset.ts` para o motivo — uma página nunca pode rodar um script
+ * mais velho que ela mesma.
+ */
+export const URL_DO_SITE_JS = urlDoSiteJs(PUBLIC_JS);
 
 /**
  * Aquece o cache das tags uma vez, no carregamento do módulo.
@@ -431,7 +443,7 @@ export function renderPage(o: PageOptions): Html {
           </svg>
         </a>
         ${raw(tagsNoscript(tagsEmCache()))} ${bannerConsentimento()}
-        <script src="/_pub/site.js" defer></script>
+        <script src="${URL_DO_SITE_JS}" defer></script>
         ${raw(temTag() ? '<script src="/_pub/tags.js" defer></script>' : '')}
       </body>
     </html>`;
