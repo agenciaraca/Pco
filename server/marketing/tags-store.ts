@@ -99,13 +99,17 @@ export async function getTags(): Promise<TagsMarketing> {
 }
 
 export async function updateTags(patch: Partial<TagsMarketing>): Promise<TagsMarketing> {
-  const atual = await getTags();
-  const proximo: TagsMarketing = {
-    ...atual,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  };
-  await store.setAll([proximo]);
+  // Patch mesclado — ver a nota em `repositories/settings.ts`. Aqui o que se
+  // perderia e id de GTM ou de pixel, e o efeito nao e so a linha sumir: a CSP
+  // afrouxa exatamente os hosts que estao cadastrados, entao uma tag perdida
+  // volta a ser bloqueada pelo navegador sem ninguem entender por que.
+  const proximo = await store.modify((items) => {
+    const atual: TagsMarketing = { ...PADRAO, ...(items[0] ?? {}) };
+    const p: TagsMarketing = { ...atual, ...patch, updatedAt: new Date().toISOString() };
+    items.length = 0;
+    items.push(p);
+    return p;
+  });
   cache = proximo;
   return proximo;
 }

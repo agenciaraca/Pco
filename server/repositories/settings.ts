@@ -37,12 +37,21 @@ export async function getSettings(): Promise<AppSettings> {
 }
 
 export async function updateSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
-  const current = await getSettings();
-  const next: AppSettings = {
-    ...current,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  };
-  await store.setAll([next]);
-  return next;
+  /*
+    Configuracao de uma linha tambem e leitura-seguida-de-escrita.
+
+    O CLAUDE.md dizia que `setAll([cfg])` era "substituicao deliberada" e
+    ficava fora da varredura de 7/set. Isso vale para `setAll([])` e para quem
+    monta a linha inteira a partir da entrada — nao para um patch mesclado
+    sobre o que estava la. Dois admins salvando abas diferentes de
+    `/admin/settings` ao mesmo tempo: o segundo grava por cima da base velha
+    que leu, e a mudanca do primeiro some sem erro.
+  */
+  return store.modify((items) => {
+    const atual = items[0] ?? { ...DEFAULTS };
+    const next: AppSettings = { ...atual, ...patch, updatedAt: new Date().toISOString() };
+    items.length = 0;
+    items.push(next);
+    return next;
+  });
 }

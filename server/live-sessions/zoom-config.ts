@@ -32,12 +32,15 @@ export async function setConfig(input: {
 }
 
 export async function disable(): Promise<void> {
-  const cfg = await getConfig();
-  if (cfg) {
+  // Le, muda e grava — ver a nota em `repositories/settings.ts`. O `setConfig`
+  // acima fica como esta: ele monta a linha inteira a partir da entrada, e
+  // isso e substituicao, nao leitura-seguida-de-escrita.
+  await store.modify((items) => {
+    const cfg = items[0];
+    if (!cfg) return;
     cfg.enabled = false;
     cfg.updatedAt = new Date().toISOString();
-    await store.setAll([cfg]);
-  }
+  });
 }
 
 export function getPublicConfig(cfg: ZoomConfig): {

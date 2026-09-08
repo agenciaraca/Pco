@@ -397,9 +397,29 @@ vezes:
 Nove exclusões por id viraram `store.remove(...)`, que **já existia atômico** e
 ninguém usava.
 
-**O que ficou de fora, de propósito:** `setAll([])` (limpar) e `setAll([cfg])`
-(configuração de uma linha só) não são leitura-seguida-de-escrita — são
+**O que ficou de fora, de propósito:** `setAll([])` (limpar) e a gravação que
+monta a linha inteira a partir da entrada (`zoom-config.setConfig`,
+`transcription.setConfig`) não são leitura-seguida-de-escrita — são
 substituição deliberada, e não têm a janela.
+
+> **Correção de 8/set/2026.** Este parágrafo dizia `setAll([cfg])`
+> (configuração de uma linha só), e isso estava errado para o formato que
+> **todas** as telas de configuração deste projeto usam:
+> `const atual = await getConfig(); const next = {...atual, ...patch}; await
+> store.setAll([next])`. Isso é ler, mesclar e gravar — dois pedidos leem a
+> mesma base e o segundo apaga a mudança do primeiro. Oito pontos assim
+> viraram `modify`: configurações da escola, tela de login, tags de marketing
+> (onde a perda também refecha a CSP e o script volta a ser bloqueado sem
+> explicação), os três agendamentos de relatório, o reengajamento e o
+> `zoom-config.disable`.
+>
+> **E um nono escapou por não ter o formato `setAll([x])`:**
+> `reengagement/config-store.recordSent` fazia `[novo, ...todos].slice(0, N)`,
+> que é exatamente o `unshiftComTeto` criado naquele mesmo sprint. É o livro
+> que impede reenviar para a mesma pessoa — registro perdido ali não é linha
+> faltando num log, é **o aluno recebendo o e-mail outra vez**.
+>
+> `test/config-de-uma-linha-perde-escrita.test.ts` demonstra as duas perdas.
 
 `test/getall-setall-perde-escrita.test.ts` **demonstra a perda** em vez de
 descrevê-la, e guarda uma pegadinha: escrever `const p = store.unshift(...)`

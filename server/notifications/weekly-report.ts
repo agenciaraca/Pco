@@ -51,13 +51,17 @@ export async function getConfig(): Promise<WeeklyReportConfig> {
 export async function setConfig(
   patch: Partial<WeeklyReportConfig>,
 ): Promise<WeeklyReportConfig> {
-  const cur = await getConfig();
-  const next: WeeklyReportConfig = { ...cur, ...patch };
-  if (next.hourUtc < 0) next.hourUtc = 0;
-  if (next.hourUtc > 23) next.hourUtc = 23;
-  if (next.dayOfWeekUtc < 0 || next.dayOfWeekUtc > 6) next.dayOfWeekUtc = 1;
-  await cfgStore.setAll([next]);
-  return next;
+  // Patch mesclado — ver a nota em `repositories/settings.ts`.
+  return cfgStore.modify((items) => {
+    const cur = items[0] ?? DEFAULT_CFG;
+    const next: WeeklyReportConfig = { ...cur, ...patch };
+    if (next.hourUtc < 0) next.hourUtc = 0;
+    if (next.hourUtc > 23) next.hourUtc = 23;
+    if (next.dayOfWeekUtc < 0 || next.dayOfWeekUtc > 6) next.dayOfWeekUtc = 1;
+    items.length = 0;
+    items.push(next);
+    return next;
+  });
 }
 
 export interface WeeklyReportData {

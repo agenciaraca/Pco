@@ -57,14 +57,14 @@ export async function getConfig(): Promise<ReengagementConfig> {
 export async function setConfig(
   patch: Partial<ReengagementConfig>,
 ): Promise<ReengagementConfig> {
-  const cur = await getConfig();
-  const next: ReengagementConfig = {
-    ...cur,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  };
-  await configStore.setAll([next]);
-  return next;
+  // Patch mesclado — ver a nota em `repositories/settings.ts`.
+  return configStore.modify((items) => {
+    const cur = items[0] ?? DEFAULT_CONFIG;
+    const next: ReengagementConfig = { ...cur, ...patch, updatedAt: new Date().toISOString() };
+    items.length = 0;
+    items.push(next);
+    return next;
+  });
 }
 
 export async function listRecentSends(limit = 200): Promise<ReengagementSent[]> {
@@ -75,9 +75,16 @@ export async function listRecentSends(limit = 200): Promise<ReengagementSent[]> 
 }
 
 export async function recordSent(userId: string, email: string): Promise<void> {
-  const all = await sentStore.getAll();
-  const next = [{ userId, email, ts: new Date().toISOString() }, ...all].slice(0, 5000);
-  await sentStore.setAll(next);
+  /*
+    `unshiftComTeto` e nao `getAll` + `setAll`.
+
+    Este e o livro que impede escrever de novo para a mesma pessoa
+    (`lastSentForUser`, logo abaixo, e quem le). Com o par, uma execucao manual
+    de `/admin/reengagement/run` rodando junto do tick de 24h faz um registro
+    ser jogado fora sem erro — e registro perdido aqui nao e linha faltando num
+    log: e o aluno recebendo o mesmo e-mail outra vez.
+  */
+  await sentStore.unshiftComTeto({ userId, email, ts: new Date().toISOString() }, 5000);
 }
 
 export async function lastSentForUser(userId: string): Promise<string | null> {

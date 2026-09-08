@@ -30,12 +30,16 @@ export async function getConfig(): Promise<DigestConfig> {
 }
 
 export async function setConfig(patch: Partial<DigestConfig>): Promise<DigestConfig> {
-  const cur = await getConfig();
-  const next = { ...cur, ...patch };
-  if (next.hourUtc < 0) next.hourUtc = 0;
-  if (next.hourUtc > 23) next.hourUtc = 23;
-  await cfgStore.setAll([next]);
-  return next;
+  // Patch mesclado — ver a nota em `repositories/settings.ts`.
+  return cfgStore.modify((items) => {
+    const cur = items[0] ?? DEFAULT_CFG;
+    const next = { ...cur, ...patch };
+    if (next.hourUtc < 0) next.hourUtc = 0;
+    if (next.hourUtc > 23) next.hourUtc = 23;
+    items.length = 0;
+    items.push(next);
+    return next;
+  });
 }
 
 export interface DigestData {

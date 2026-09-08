@@ -41,14 +41,16 @@ export async function getConfig(): Promise<LoginConfig> {
 }
 
 export async function updateConfig(patch: Partial<LoginConfig>): Promise<LoginConfig> {
-  const current = await getConfig();
-  const next: LoginConfig = {
-    ...current,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  };
-  await store.setAll([next]);
-  return next;
+  // Patch mesclado sobre o que esta gravado — ver a nota em
+  // `repositories/settings.ts`: isto e leitura-seguida-de-escrita, e o par
+  // `getAll`+`setAll` perde a gravacao concorrente sem dar erro.
+  return store.modify((items) => {
+    const atual = items[0] ?? { ...DEFAULTS };
+    const next: LoginConfig = { ...atual, ...patch, updatedAt: new Date().toISOString() };
+    items.length = 0;
+    items.push(next);
+    return next;
+  });
 }
 
 export async function resetConfig(): Promise<LoginConfig> {
