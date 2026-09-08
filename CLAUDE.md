@@ -455,6 +455,50 @@ Quatro coisas que qualquer mexida aqui tem de respeitar:
 `test/home-sem-corte-reto.test.ts` cobra a regra lendo o HTML servido, e
 inclui o caso do degradê no `fill`.
 
+## A página nova rodava o script velho — e culpava quem estava comprando
+
+`server/public/versao-de-asset.ts` (8/set/2026). O HTML do site sai **sem
+`Cache-Control`**: cada visita traz a página nova. O script saía de
+`/_pub/site.js`, endereço **fixo**, com `max-age=3600`. Depois de um deploy que
+mexesse nos dois, o navegador de quem já tinha visitado montava a página nova
+por cima do script guardado.
+
+Em 7/set o checkout passou a exigir data de nascimento e endereço. Quem tinha o
+script anterior em cache **via os campos novos na tela**, preenchia a data,
+clicava em pagar — e o servidor respondia *"Informe a data de nascimento"* sobre
+um campo visivelmente preenchido, no momento exato de pagar. Não havia o que a
+pessoa fizesse.
+
+**O diagnóstico tem um atalho, e ele vale para qualquer erro de validação
+deste checkout:** *"Informe a data de nascimento"* só sai quando a chave **não
+vem no corpo** (`invalid_type`); com a chave presente e vazia a mensagem é
+*"Data de nascimento inválida"*. As duas mensagens separam "o navegador não
+mandou" de "a pessoa não preencheu" — e a primeira acusa o script, nunca quem
+compra. Um `curl` com o corpo sem a chave reproduz o texto exato em segundos.
+
+E **não havia erro em log nenhum**: do lado do servidor era um 400 de validação
+como outro qualquer, em 1 ms. O que se via era a venda não acontecer — dez 400s
+seguidos em `pm2 logs`, sem uma linha dizendo por quê.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **A impressão digital vai no CAMINHO, não em `?v=`.** Proxy configurado para
+  ignorar query string em arquivo estático serviria a cópia velha do mesmo
+  jeito — e é justamente de proxy e de cache que se está falando.
+- **Ela ocupa um SEGMENTO inteiro** (`/_pub/v/<hash>/site.js`). O roteador casa
+  parâmetro por segmento; `site.:v.js` não casa nada, e o sintoma seria 404 no
+  script do site inteiro — sem menu no celular, sem carrinho, sem checkout.
+- **O endereço antigo continua servindo o script ATUAL.** Há páginas apontando
+  para ele guardadas em navegador por aí; 404 ali deixaria essas páginas sem JS.
+  O que mudou é a validade: um minuto, não uma hora.
+- **O CSS não tem esse problema porque é inline** (`PUBLIC_CSS_SERVIDO` vai
+  dentro do `<style>`). `/_pub/tags.js` tem `max-age=300` e é configuração, não
+  código acoplado ao HTML — se um dia passar a ser, entra na mesma regra.
+
+`test/pagina-nova-nao-roda-script-velho.test.ts` cobra as três metades, e a que
+importa é a terceira: que a URL **mude** quando o script mudar. Impressão
+constante passaria pelas outras duas e não protegeria nada.
+
 ## Crase dentro de template literal quebra o arquivo inteiro
 
 Três arquivos deste projeto são um template literal gigante: `public/client.ts`
