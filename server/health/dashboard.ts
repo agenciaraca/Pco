@@ -369,7 +369,70 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     // ignora
   }
 
-  // 12) Disk usage (data dir)
+  /*
+    12) Backup — e a pergunta é feita ao DISCO.
+
+    O painel tinha doze verificações e nenhuma sobre a cópia dos dados. É a
+    mesma falta que os workers tinham até 7/set/2026, no lugar em que ela custa
+    mais: backup incompleto é indistinguível de backup completo até o dia em
+    que alguém precisa dele.
+
+    Perguntar ao worker não resolveria. O status dele fala só desta vida do
+    processo, a snapshot acontece numa janela de uma hora, e produção reinicia
+    o tempo todo — na maior parte do dia ele não tem o que responder. Quem
+    sabe de que dia é a última cópia é o disco.
+
+    Três estados, e o terceiro é o que não podia faltar:
+
+    - **`error`** quando há banco e nenhuma cópia dele em disco. É o estado que
+      pode custar a base inteira.
+    - **`warn`** quando a cópia existe mas está atrasada. Um dia de atraso é
+      normal (a snapshot é de madrugada e o dia vira antes dela); dois já é
+      sinal de que alguma noite passou em branco.
+    - **`na`** quando não deu para olhar. Não conseguir ler o diretório não é
+      "não há backup", e tratar como se fosse mandaria alguém correr atrás de
+      uma cópia que está lá.
+  */
+  try {
+    const { copiaMaisRecente } = await import('../db/ultima-copia');
+    const copia = await copiaMaisRecente();
+    const alvo = hasDb() ? copia.banco : copia.qualquer;
+    const oQue = hasDb() ? 'do banco' : 'dos arquivos';
+    if (copia.erro) {
+      checks.push({
+        id: 'backup',
+        label: 'Backup',
+        status: 'na',
+        message: `Não deu para olhar as cópias: ${copia.erro}`,
+      });
+    } else if (!alvo) {
+      checks.push({
+        id: 'backup',
+        label: 'Backup',
+        status: 'error',
+        message: `Nenhuma cópia ${oQue} em disco`,
+      });
+    } else {
+      const atrasada = alvo.idadeEmDias >= 2;
+      checks.push({
+        id: 'backup',
+        label: 'Backup',
+        status: atrasada ? 'warn' : 'ok',
+        // O número anda com a base: a data e o que ela contém, para que o
+        // "ok" seja conferível sem abrir outra tela.
+        message:
+          `Última cópia ${oQue}: ${alvo.data}` +
+          (hasDb() ? ` · ${alvo.tabelas} tabelas` : '') +
+          ` · ${alvo.arquivos} arquivos` +
+          (atrasada ? ` · ATRASADA (${alvo.idadeEmDias} dias)` : ''),
+        metric: alvo.idadeEmDias,
+      });
+    }
+  } catch {
+    // ignora
+  }
+
+  // 13) Disk usage (data dir)
   try {
     const usage = await diskUsage(DATA_DIR);
     checks.push({

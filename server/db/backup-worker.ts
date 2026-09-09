@@ -245,15 +245,31 @@ export function stopWorker(): void {
  *
  * As tres situacoes que precisam ser distinguiveis na tela:
  *
- * - **`bancoCoberto: null`** — nao ha banco (modo JSON). Nao e falha.
+ * - **`bancoCoberto: null`** — nao ha banco (modo JSON), **ou o worker ainda
+ *   nao rodou nesta vida do processo**. Nos dois casos nao ha medicao, e nao
+ *   medir nunca pode ser reportado como medir.
  * - **`bancoCoberto: true`** — as 25 tabelas entraram na ultima snapshot.
  * - **`bancoCoberto: false`** — ha banco e ele **nao** esta na snapshot. E o
  *   estado em que a instalacao esteve todo esse tempo, e o unico que pode
  *   custar a base inteira.
+ *
+ * O segundo caso do `null` entrou em 9/set/2026, e o defeito era medido: a
+ * expressao caia em `false` sempre que `lastResult` fosse nulo, isto e, do
+ * boot ate as 04:00 UTC. Producao reinicia muito (143 vezes ate aquele dia),
+ * entao **`false` era o estado normal do painel** — afirmando que o banco nao
+ * estava no backup enquanto os despejos dos tres dias anteriores estavam em
+ * disco. Alarme que grita todo dia a toa e alarme que ninguem le no dia certo.
+ *
+ * A linha de baixo, `saudavel`, ja tratava isso ("nunca rodou nao e nao
+ * saudavel, e nao medido"): as duas moravam na mesma funcao e discordavam.
+ *
+ * **Quem responde "o banco esta copiado?" depois de um restart e o DISCO** —
+ * ver `ultima-copia.ts`. Este status fala so desta vida do processo, e e por
+ * isso que ele nao basta sozinho.
  */
 export function getStatus() {
   const db = lastResult?.db;
-  const bancoCoberto = !hasDb() ? null : db?.enabled ? db.completo : false;
+  const bancoCoberto = !hasDb() || lastResult === null ? null : db?.enabled ? db.completo : false;
   return {
     enabled: interval !== null,
     lastRunAt,
