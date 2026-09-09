@@ -56,13 +56,28 @@ describe('alinhamento da home', () => {
     expect(styles).not.toMatch(/\.coluna-texto\{[^}]*margin:0 auto/);
   });
 
-  it('as duas seções de texto da home usam a coluna', () => {
+  it('a seção de texto da home usa a coluna', () => {
     const inicio = router.indexOf("publicSite.get('/', async");
     const home = router.slice(inicio, router.indexOf("publicSite.get('/formacoes'"));
+    // Eram duas até 9/set/2026. "Sua carreira" virou faixa de destaque, com
+    // foto de fundo e título centralizado — ver `faixa-da-carreira.test.ts`.
+    // Sobrou "Sobre a PCO", que continua sendo texto corrido em fundo claro.
     const usos = home.match(/class="coluna-texto"/g) ?? [];
-    expect(usos.length).toBe(2);
-    // E nenhuma delas pode ter voltado ao wrap estreito.
+    expect(usos.length).toBe(1);
+    // E ela não pode ter voltado ao wrap estreito.
     expect(home).not.toMatch(/class="wrap"\s+style="max-width:820px"/);
+  });
+
+  it('a faixa da carreira não encolhe o contêiner — o alinhamento é o mesmo', () => {
+    // A regra deste arquivo vale para ela também, por outro caminho: o título
+    // é centralizado por `text-align`, e não por um wrap estreito. Encolher o
+    // contêiner centralizaria a faixa inteira e a borda esquerda do texto
+    // sairia do lugar em relação a todas as outras seções.
+    const i = router.indexOf('class="section faixa-carreira');
+    expect(i).toBeGreaterThan(0);
+    const bloco = router.slice(i, i + 900);
+    expect(bloco).toMatch(/class="wrap"/);
+    expect(bloco).not.toMatch(/class="wrap"\s+style="[^"]*max-width/);
   });
 });
 

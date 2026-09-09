@@ -22,6 +22,14 @@ export const PUBLIC_CSS = `
      mexer nela descaracterizaria o selo. Existe para ser o fundo do disco do
      selo — ver .selo-rntp. */
   --rntp-azul:#336699;
+  /* O laranja SOB a foto da faixa da carreira.
+
+     Não é --brand-orange, e a diferença é medida, não gosto: o site antigo
+     punha texto branco sobre #FF9000, o que dá 2,2:1 e reprova em qualquer
+     tamanho. Este tom é o laranja da marca rebaixado até o branco passar em
+     4,5:1 — e é o PIOR caso da faixa, porque a foto entra por multiply, que
+     só escurece. Clarear isto reprova a faixa inteira de uma vez. */
+  --carreira-laranja:#a65e32;
   --brand-orange:#ff914d;--brand-orange-ink:#d96a24;--brand-orange-soft:#ffe9db;--on-orange:#2b1608;
   /* Alias do laranja antigo, para não quebrar quem já usa --orange. */
   --orange:#ff914d;--orange-soft:#ffe9db;
@@ -332,6 +340,51 @@ main:has(> .cta-final:last-child) + .pincel-topo{
   background-image:url('/img/hero-consultorio-760.webp')}
 @media (min-width:701px){.hero-foto{background-image:url('/img/hero-consultorio-1280.webp')}}
 @media (min-width:1401px){.hero-foto{background-image:url('/img/hero-consultorio.webp')}}
+/* ---- faixa da carreira: foto de fundo com overlay laranja ----
+
+   O tratamento é o do site antigo, e a mecânica é a mesma: a cor é o fundo, a
+   foto entra por multiply por cima. Multiply só escurece, então o tom mais
+   claro que a faixa alcança é o --carreira-laranja puro — nas áreas em que a
+   foto é branca. É por isso que o contraste do texto se decide na cor, e não
+   na foto: trocar a imagem não pode piorar a legibilidade.
+
+   isolation:isolate é o que segura o multiply dentro da seção. Sem ele a
+   foto multiplicaria com o que estiver atrás na pilha, e o resultado muda
+   conforme a seção vizinha — um efeito que aparece só às vezes, que é o pior
+   tipo de defeito visual.
+
+   O padrão é a MENOR imagem, como no herói: quem não casar com media query
+   nenhuma fica com a leve. */
+.faixa-carreira{position:relative;isolation:isolate;
+  background-color:var(--carreira-laranja);color:#fff}
+/* A opacidade é o que separa "overlay laranja com foto de fundo" de "foto com
+   filtro laranja". A 1 a foto vence: o rosto e a camisa xadrez disputam
+   atenção com o texto que está por cima deles. A .45 ela ambienta e o laranja
+   manda, que é o desenho do site antigo. Clarear também piora o contraste —
+   menos multiply, fundo mais claro —, então mexer aqui exige remedir. */
+/* A máscara existe por causa da onda que vem da seção anterior: a parte sólida
+   dela encosta no topo desta faixa em laranja liso, e a foto começando no
+   pixel seguinte desenhava uma linha reta atravessando a página inteira — o
+   corte reto que o pincel existe para não ter. Com a foto nascendo ao longo de
+   110px, a faixa começa na cor da onda e revela a imagem. */
+.carreira-foto{position:absolute;inset:0;background-size:cover;background-position:center;
+  mix-blend-mode:multiply;opacity:.45;pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 110px);
+  mask-image:linear-gradient(180deg,transparent 0,#000 110px);
+  background-image:url('/img/carreira-psicanalise-760.webp')}
+@media (min-width:701px){.carreira-foto{background-image:url('/img/carreira-psicanalise-1280.webp')}}
+@media (min-width:1401px){.carreira-foto{background-image:url('/img/carreira-psicanalise-1441.webp')}}
+/* z-index acima da foto — o .pincel já vive em 2, e o texto precisa dos dois. */
+.faixa-carreira .wrap{position:relative;z-index:1}
+.faixa-carreira h2{color:#fff;text-align:center;margin:0 auto 30px;max-width:34ch}
+/* Duas colunas em tela larga: o texto são dois parágrafos longos, e numa
+   coluna só de 1180px cada linha passaria de 150 caracteres. */
+.carreira-colunas{display:grid;grid-template-columns:1fr 1fr;gap:34px}
+.carreira-colunas p{color:#fff;font-size:17px;line-height:1.75;margin:0}
+@media (max-width:860px){
+  .carreira-colunas{grid-template-columns:1fr;gap:18px}
+  .faixa-carreira h2{max-width:none}
+}
 .hero-veu{position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(180deg,rgba(11,116,134,.25),rgba(0,151,178,.05) 40%,rgba(11,116,134,.55))}
 .hero-deep .wrap{position:relative;z-index:1}

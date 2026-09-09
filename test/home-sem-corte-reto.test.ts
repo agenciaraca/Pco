@@ -47,6 +47,10 @@ function secoesDaHome(html: string): string[] {
 function fundoDe(secao: string): string {
   const abertura = secao.slice(0, secao.indexOf('>'));
   if (abertura.includes('cta-final')) return 'laranja';
+  // A faixa da carreira é foto sobre laranja. O que a onda tem de usar é a cor
+  // SOB a foto: ela entra por multiply, que só escurece, então esse é o tom em
+  // que a faixa encosta na onda. Ver `test/faixa-da-carreira.test.ts`.
+  if (abertura.includes('faixa-carreira')) return 'carreira';
   if (
     abertura.includes('hero-deep') ||
     abertura.includes('faixa-cta') ||
@@ -77,6 +81,7 @@ const SOLIDA: Record<string, string> = {
   cinza: 'var(--surface-2)',
   petroleo: 'var(--brand-grad-topo)',
   laranja: 'var(--cta-grad-topo)',
+  carreira: 'var(--carreira-laranja)',
 };
 
 beforeAll(async () => {

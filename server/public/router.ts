@@ -717,6 +717,13 @@ publicSite.get('/', async (c) => {
   const CINZA = 'var(--surface-2)';
   const PETROLEO = 'var(--brand-grad-topo)';
   const LARANJA = 'var(--cta-grad-topo)';
+  /**
+   * O fundo da faixa da carreira. É a cor SOB a foto, e por isso é ela que a
+   * onda da seção anterior tem de usar: a foto entra por multiply, que só
+   * escurece, então este é o tom mais claro que a faixa chega a ter — o que
+   * encosta na onda. Ver `--carreira-laranja` em `styles.ts`.
+   */
+  const CARREIRA = 'var(--carreira-laranja)';
 
   const temFormacoes = courses.length > 0 || houveFalhaDeLeitura();
   const temPosts = posts.length > 0;
@@ -1020,22 +1027,21 @@ publicSite.get('/', async (c) => {
           <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero começar</a>
         </div>
       </div>
-      ${pincel(PAPEL)}
+      ${pincel(CARREIRA)}
     </section>
 
-    <section class="section tem-pincel">
+    <section class="section faixa-carreira tem-pincel">
+      <div class="carreira-foto" aria-hidden="true"></div>
       <div class="wrap">
-        <div class="coluna-texto">
-          <h2 style="margin-bottom:20px">
-            Sua carreira após a Formação em Psicanálise Clínica aqui na PCO
-          </h2>
-          <p style="color:var(--ink-soft);font-size:17px;line-height:1.7;margin-bottom:16px">
+        <h2>Sua carreira após a Formação em Psicanálise Clínica aqui na PCO</h2>
+        <div class="carreira-colunas">
+          <p>
             Desperte o psicanalista em você com nossa formação em psicanálise online de excelência!
             Ao concluir nosso curso, você não apenas dominará a psicanálise, mas também estará apto
             a se tornar membro do RNTP, elevando sua credibilidade e desbloqueando um mundo de novas
             oportunidades.
           </p>
-          <p style="color:var(--ink-soft);font-size:17px;line-height:1.7">
+          <p>
             Seja desbravando consultórios virtuais, integrando equipes multidisciplinares online, ou
             atuando em clínicas digitais, sua jornada como psicanalista promete ser não apenas rica
             e variada, mas também incrivelmente gratificante. Prepare-se para uma carreira
