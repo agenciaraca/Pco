@@ -83,10 +83,34 @@ function mime(tipo: string): string {
   return /^[a-z0-9/+.-]*$/.test(so) && so ? so : 'desconhecido';
 }
 
+export interface OpcoesDePing {
+  /**
+   * Decide se um **404 prova que a credencial vale**.
+   *
+   * Existe porque nem toda API oferece listagem do recurso que o checkout
+   * escreve. A da Sandra não: `GET /charges` responde
+   * `{"error":"not_found","message":"No v1 endpoint for GET /charges"}` — a
+   * rota de listar não existe. O que ela oferece é `GET /charges/:id`, e
+   * consultar um id que sabidamente não existe é ler o MESMO recurso que o
+   * checkout escreve, que é a regra deste arquivo.
+   *
+   * Nesse desenho, 404 é a resposta de sucesso: a chave foi aceita, a rota
+   * existe, o recurso é que não. Quem sabe distinguir isso de "a rota não
+   * existe" é o provider, que conhece o formato de erro da sua API — por isso
+   * o predicado vem de fora e este arquivo não aprende nada sobre a Sandra.
+   *
+   * **Sem o predicado, 404 continua sendo falha.** Tratar todo 404 como prova
+   * de credencial faria um endereço-base errado passar por saudável, que é
+   * exatamente o defeito que este ping existe para pegar.
+   */
+  recursoAusenteProvaCredencial?: (corpo: string) => boolean;
+}
+
 export async function pingHttp(
   url: string,
   init: RequestInit,
   rotulo: string,
+  opcoes: OpcoesDePing = {},
 ): Promise<PingResult> {
   let alvo: URL;
   try {
@@ -128,6 +152,23 @@ export async function pingHttp(
       };
     }
     return { ok: true, alcancou: true, message: `${rotulo} respondeu e aceitou a credencial.` };
+  }
+
+  if (res.status === 404 && opcoes.recursoAusenteProvaCredencial) {
+    const corpo = await res.text().catch(() => '');
+    // O `content-type` continua valendo: um 404 em HTML é proxy ou página de
+    // manutenção, e ali nenhuma credencial foi conferida.
+    if (pareceApi(tipo) && opcoes.recursoAusenteProvaCredencial(corpo)) {
+      return { ok: true, alcancou: true, message: `${rotulo} respondeu e aceitou a credencial.` };
+    }
+    guardarNoLog(rotulo, res.status, corpo);
+    return {
+      ok: false,
+      alcancou: true,
+      message:
+        `${rotulo} respondeu HTTP 404 de um jeito que não prova a credencial — ` +
+        'provavelmente o endereço configurado está errado. O corpo está no log do servidor.',
+    };
   }
 
   if (res.status === 401 || res.status === 403) {

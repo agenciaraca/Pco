@@ -55,6 +55,15 @@ import type { MetodoPagamento } from '../../../shared/metodos-pagamento';
 export type MetodoSandra = 'pix' | 'boleto' | 'credit' | 'debit';
 const METODOS: MetodoSandra[] = ['pix', 'boleto', 'credit', 'debit'];
 
+/**
+ * O id que o ping consulta: um UUID válido que não é de cobrança nenhuma.
+ *
+ * Precisa ser **bem formado** — id fora do formato devolve 400
+ * `invalid_id_format`, que não prova credencial. E precisa ser fixo, para que
+ * o teste de conexão seja sempre a mesma leitura.
+ */
+const COBRANCA_INEXISTENTE = '00000000-0000-0000-0000-000000000000';
+
 interface OpcoesSandra {
   /** Ex.: `https://app.sandra.com.vc`. */
   baseUrl?: string;
@@ -323,10 +332,49 @@ export const sandraProvider: PaymentProviderImpl = {
         message: 'Sandra: faltam `baseUrl` e `tenantSlug` nas opções do gateway.',
       };
     }
+    /*
+      Consulta UMA cobrança que não existe, em vez de listar.
+
+      `GET /charges` não existe nesta API — responde
+      `{"error":"not_found","message":"No v1 endpoint for GET /charges"}`, e o
+      ping ficou vermelho de 8/set/2026 até ser medido em 9/set. O que ela
+      oferece é `GET /charges/:id`, que é o caminho que o worker de sondagem
+      usa para confirmar pagamento; ele sempre funcionou.
+
+      Medido contra a API de produção, só com leituras:
+
+        GET /charges?limit=1                      404 "No v1 endpoint..."
+        GET /charges/<id fora do formato>         400 invalid_id_format
+        GET /charges/<uuid inexistente>           404 {"error":"not_found"}
+        idem, com chave inválida                  401 {"error":"invalid_api_key"}
+
+      Ou seja: 404 limpo prova que a chave foi aceita e a rota existe; 401
+      separa credencial ruim. As duas respostas que o card precisa distinguir.
+
+      **Por que não `GET /tenants/<slug>`**, que responde 200: seria ler outro
+      recurso, e a regra do `ping-http` é ler o mesmo que o checkout escreve —
+      chave restrita ao cadastro do tenant diria "OK" sem conseguir vender.
+      **Por que não `/invoices`**: além de ser outro recurso, a resposta traz
+      nome de aluno, e um teste de conexão não tem por que puxar dado pessoal
+      de terceiros para o log.
+    */
     return await pingHttp(
-      `${o.baseUrl}/api/v1/tenants/${encodeURIComponent(o.tenantSlug)}/charges?limit=1`,
+      `${o.baseUrl}/api/v1/tenants/${encodeURIComponent(o.tenantSlug)}/charges/${COBRANCA_INEXISTENTE}`,
       { headers: { authorization: `Bearer ${creds.apiKey}` } },
       'Sandra',
+      {
+        // `{"error":"not_found"}` sozinho é o recurso que não existe. Com
+        // `message` é a ROTA que não existe — e aí o endereço está errado, que
+        // é defeito nosso e não pode passar por credencial boa.
+        recursoAusenteProvaCredencial: (corpo) => {
+          try {
+            const j = JSON.parse(corpo) as { error?: string; message?: string };
+            return j.error === 'not_found' && !j.message;
+          } catch {
+            return false;
+          }
+        },
+      },
     );
   },
 };
