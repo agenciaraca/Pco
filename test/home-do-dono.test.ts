@@ -173,10 +173,16 @@ describe('a home carrega o texto que o dono entregou', () => {
     expect(contem(h, '96,6%')).toBe(false);
   });
 
-  it('a barra medida continua separada da declarada, e diz que é medição', async () => {
-    // A regra do projeto não morreu: o que o SISTEMA afirma continua andando com
-    // a medição. O que muda é que a afirmação da escola está rotulada como dela.
+  it('a barra "Medido no sistema" saiu, e a regra que ela guardava tem outro dono', async () => {
+    // A barra existia para separar o que o SISTEMA mede do que a escola
+    // DECLARA. Saiu em 9/set/2026 porque tinha virado duas células, e uma
+    // delas repetia em letra miúda a faixa inteira do RNTP logo acima.
+    //
+    // **A regra não saiu com ela**, e é isso que este caso cobra: o lado
+    // declarado continua rotulado como declarado. Trazer a barra de volta é
+    // uma decisão, não um retoque — daí a asserção de ausência.
     const h = await home();
-    expect(contem(h, 'Medido no sistema, hoje')).toBe(true);
+    expect(contem(h, 'Medido no sistema, hoje')).toBe(false);
+    expect(contem(h, 'Alunos Formados'), 'o lado declarado sumiu junto').toBe(true);
   });
 });

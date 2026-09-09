@@ -87,8 +87,10 @@ const AFIRMACOES_PERMITIDAS: Record<string, string> = {
     'Histórico da escola, DECLARADO pelo dono — não é medição do sistema, e não',
     'pode ser: o AVA existe há menos tempo que a PCO, então os formados de antes',
     'dele não têm certificado emitido aqui. Fica como afirmação da escola, que é',
-    'de quem é. A contagem medida vive na barra "Medido no sistema, hoje", logo',
-    'abaixo e separada de propósito.',
+    'de quem é. A contagem medida vivia na barra "Medido no sistema, hoje", que',
+    'saiu da home em 9/set/2026 — em produção ela tinha duas células e uma',
+    'repetia a faixa do RNTP logo acima. O rótulo "Alunos Formados" continua',
+    'dizendo de quem é a afirmação, que é o que a regra cobra.',
   ].join(' '),
 
   '800 alunos': 'O mesmo número do quadro acima, repetido no parágrafo. Antes o parágrafo dizia "mais de 1000" e contradizia o quadro; agora os dois dizem 800.',

@@ -720,8 +720,16 @@ publicSite.get('/', async (c) => {
 
   const temFormacoes = courses.length > 0 || houveFalhaDeLeitura();
   const temPosts = posts.length > 0;
-  /** O que vem depois da barra de números claros. */
-  const aposNumeros = temFormacoes ? CINZA : temPosts ? PAPEL : LARANJA;
+  /**
+   * O que vem depois da faixa do RNTP.
+   *
+   * Entre ela e a seção seguinte havia a barra "Medido no sistema, hoje", que
+   * saiu em 9/set/2026: em produção ela mostrava duas células, e uma delas era
+   * *"RNTP · escola reconhecida"* — repetindo, em letra pequena, a faixa
+   * inteira logo acima. Com a barra fora, é a faixa que passa a encostar na
+   * seção seguinte, e é a onda dela que precisa tomar esta cor.
+   */
+  const aposRntp = temFormacoes ? CINZA : temPosts ? PAPEL : LARANJA;
   /** O que vem depois das formações, quando elas existem. */
   const aposFormacoes = temPosts ? PAPEL : LARANJA;
 
@@ -738,37 +746,22 @@ publicSite.get('/', async (c) => {
     .filter(Boolean)
     .join('');
 
-  const celulas = [
-    numeros.anos
-      ? {
-          valor: `${numeros.anos}`,
-          rotulo: 'anos de escola',
-          base: `desde ${esc(ORG.founded ?? '')}`,
-        }
-      : null,
-    numeros.formados
-      ? {
-          valor: `${numeros.formados}`,
-          rotulo: 'certificados emitidos',
-          base: 'contagem no sistema',
-        }
-      : null,
-    numeros.avaliacao
-      ? {
-          valor: numeros.avaliacao.media.toLocaleString('pt-BR', { minimumFractionDigits: 1 }),
-          rotulo: 'avaliação média',
-          base: `${numeros.avaliacao.total} avaliaç${numeros.avaliacao.total === 1 ? 'ão' : 'ões'}`,
-        }
-      : null,
-    { valor: 'RNTP', rotulo: 'escola reconhecida', base: esc(ORG.rntp ?? '') },
-  ].filter(Boolean) as { valor: string; rotulo: string; base: string }[];
+  /*
+    A barra "Medido no sistema, hoje" saiu daqui em 9/set/2026.
 
-  const barraNumeros = celulas
-    .map(
-      (n) =>
-        `<div><div class="valor">${esc(n.valor)}</div><div class="rotulo">${esc(n.rotulo)}</div><div class="base">${n.base}</div></div>`,
-    )
-    .join('');
+    Ela nasceu para separar o que o SISTEMA mede do que a escola DECLARA, e a
+    regra continua de pé — o que não continuava era ela mesma. Em produção
+    restavam duas células: "8 · anos de escola" e "RNTP · escola reconhecida".
+    A segunda repetia, em letra miúda, a faixa inteira do reconhecimento logo
+    acima; a primeira é aritmética da data de fundação, que o rodapé já diz.
+    As outras duas células — certificados emitidos e avaliação média — não
+    aparecem: as duas são condicionais e as duas estão vazias.
+
+    **A medição não sumiu da home.** A avaliação real continua na faixa de
+    confiança do herói, e lá ela anda com a base (o total de avaliações), que
+    é a regra que importa. O lado declarado segue rotulado como declarado, em
+    "Sobre a PCO".
+  */
 
   // ---- os três pilares (texto do dono) ----
   const pilares: Array<[string, string]> = [
@@ -1098,15 +1091,7 @@ publicSite.get('/', async (c) => {
           </p>
         </div>
       </div>
-      ${pincel(PAPEL)}
-    </section>
-
-    <section class="section-tight${aposNumeros === PAPEL ? '' : ' tem-pincel'}">
-      <div class="wrap barra-numeros-claro">
-        <span class="eyebrow">Medido no sistema, hoje</span>
-        <div class="barra-numeros barra-numeros-neutra">${raw(barraNumeros)}</div>
-      </div>
-      ${aposNumeros === PAPEL ? '' : pincel(aposNumeros)}
+      ${pincel(aposRntp)}
     </section>
 
     ${courses.length

@@ -437,12 +437,6 @@ main:has(> .cta-final:last-child) + .pincel-topo{
   color:var(--accent-ink)}
 .numeros-declarados .rotulo{color:var(--ink-soft);font-size:15px;margin-top:6px}
 .declarados-nota{margin-top:26px;color:var(--ink-soft);font-size:15px;line-height:1.7;max-width:78ch}
-/* A barra medida sobrevive, agora sobre fundo claro e dizendo que é medição. */
-.barra-numeros-neutra{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:18px;
-  padding:24px;margin-top:12px}
-.barra-numeros-neutra .valor{color:var(--ink)}
-.barra-numeros-neutra .rotulo{color:var(--ink-soft)}
-.barra-numeros-neutra .base{color:var(--ink-faint)}
 @media (max-width:900px){
   .pilares{grid-template-columns:1fr}
   .rntp-bloco{grid-template-columns:1fr;justify-items:center;text-align:center;gap:24px}
@@ -758,12 +752,6 @@ main:has(> .cta-final:last-child) + .pincel-topo{
   background-color:#0b7486;
   background-image:linear-gradient(135deg,rgba(0,151,178,.55),rgba(11,116,134,.9)),
     repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 14px,rgba(255,255,255,0) 14px 28px)}
-/* barra de números */
-.barra-numeros{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-  gap:24px;text-align:center;color:var(--on-deep)}
-.barra-numeros .valor{font-size:38px;font-weight:800;line-height:1.1}
-.barra-numeros .rotulo{color:#cfe0dc;font-size:14px;margin-top:4px}
-.barra-numeros .base{color:#a9c9d2;font-size:12px;margin-top:2px}
 /* por que escolher */
 .porque{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 .porque-item{background:var(--raise);border:1px solid var(--line-soft);border-radius:18px;padding:26px}
