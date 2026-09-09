@@ -83,6 +83,44 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     });
   }
 
+  /*
+    2b) O reserva rebaixa a promessa de parcelamento?
+
+    A promessa é o mínimo entre os candidatos da rota, então um reserva fraco
+    derruba o método inteiro — e isso não dá erro em lugar nenhum: aparece como
+    uma linha a menos na vitrine, que é onde ninguém procura.
+
+    Aconteceu duas vezes com o mesmo par: Asaas faz 6x no boleto, Pagar.me faz
+    1x, e `min(6,1) = 1`. Em 5/set o site parou de anunciar o boleto parcelado
+    que a escola vende; foi desfeito em 6/set e **voltou em 8/set**, pela tela.
+    Duas vezes o mesmo prejuízo diz que faltava código, não atenção.
+
+    É `warn`, e não `error`, porque rebaixar pode ser deliberado — aceitar menos
+    parcelas para ter um segundo gateway é troca legítima, e é do dono. O que
+    não pode é acontecer em silêncio.
+  */
+  try {
+    const { rebaixamentosDeParcela } = await import('../payments/reserva-rebaixa');
+    const quedas = await rebaixamentosDeParcela();
+    if (quedas.length > 0) {
+      checks.push({
+        id: 'parcelamento',
+        label: 'Promessa de parcelamento',
+        status: 'warn',
+        // O número anda junto: quanto se prometia, quanto se promete, por quem.
+        message: quedas
+          .map(
+            (q) =>
+              `${q.metodo}: ${q.comOPrincipal}x cai para ${q.comOReserva}x por causa do reserva (${q.reserva})`,
+          )
+          .join(' · '),
+        metric: quedas.length,
+      });
+    }
+  } catch {
+    // ignora
+  }
+
   // 3) E-mail config
   try {
     const cfgs = await emailConfigs.listConfigs();
