@@ -35,15 +35,30 @@ let totalRotations = 0;
  */
 let alvoExiste: boolean | null = null;
 
+/**
+ * Quando o alvo recebeu a última linha. `null` = ainda não olhou, ou não há
+ * arquivo.
+ *
+ * **Este é o caso que de fato acontece**, e o que a primeira versão desta
+ * correção não pegava: em produção o alvo EXISTE — `~/ava-pco/app.log`, 918 kB
+ * — e está parado desde 24/jul/2026, porque desde que o PM2 assumiu o processo
+ * o log vivo é `~/.pm2/logs/ava-pco-out.log`. Um arquivo ausente é fácil de
+ * ver; um arquivo morto tem tamanho, data e cara de log, e o worker o vigia
+ * para sempre sem nunca ter nada a fazer.
+ */
+let alvoParadoDesde: string | null = null;
+
 async function rotateIfNeeded(): Promise<boolean> {
   let stat;
   try {
     stat = await fs.stat(LOG_PATH);
     alvoExiste = true;
+    alvoParadoDesde = stat.mtime.toISOString();
   } catch {
     // O arquivo não existe. **Não é "não precisou rotacionar"** — é não ter o
     // que vigiar, e quem lê o painel precisa saber a diferença.
     alvoExiste = false;
+    alvoParadoDesde = null;
     return false;
   }
   if (stat.size < MAX_SIZE_BYTES) return false;
@@ -112,6 +127,8 @@ export function getStatus() {
     logPath: LOG_PATH,
     /** `null` = ainda não olhou. `false` = está vigiando um caminho que não existe. */
     alvoExiste,
+    /** Última escrita no alvo. Parado há muito significa que a app não escreve mais ali. */
+    alvoParadoDesde,
     maxSizeBytes: MAX_SIZE_BYTES,
     maxRotations: MAX_ROTATIONS,
   };
@@ -126,6 +143,7 @@ export function getStatus() {
  */
 export function _resetParaTeste(): void {
   alvoExiste = null;
+  alvoParadoDesde = null;
   lastRotatedAt = null;
   totalRotations = 0;
 }

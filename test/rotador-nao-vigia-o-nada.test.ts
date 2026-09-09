@@ -101,6 +101,31 @@ describe('rotador de log', () => {
     expect(check!.message).toContain(alvo);
   });
 
+  it('alvo que existe mas está PARADO também é vigiar o nada', async () => {
+    // Este é o caso real de produção, e o que a primeira versão da correção
+    // não pegava: o arquivo existe (918 kB), tem cara de log, e não recebe uma
+    // linha desde 24/jul — porque desde que o PM2 assumiu, a aplicação escreve
+    // em outro lugar. Ausente é fácil de ver; morto não é.
+    const alvo = path.join(tmpDir, 'parado.log');
+    await fs.writeFile(alvo, 'linha antiga\n', 'utf8');
+    const antigo = new Date(Date.now() - 47 * 86_400_000);
+    await fs.utimes(alvo, antigo, antigo);
+
+    const m = await carregar(alvo);
+    m._resetParaTeste();
+    m.startWorker(1);
+    await new Promise((r) => setTimeout(r, 30));
+    m.stopWorker();
+    expect(m.getStatus().alvoExiste, 'o arquivo existe — não é o caso de ausente').toBe(true);
+
+    const { buildSnapshot } = await import('../server/health/dashboard');
+    const check = (await buildSnapshot()).checks.find((c) => c.id === 'log-rotator');
+    expect(check, 'log morto passou por saudável').toBeTruthy();
+    expect(check!.status).toBe('warn');
+    expect(check!.message).toMatch(/não recebe uma linha há \d+ dias/);
+    expect(check!.metric).toBeGreaterThanOrEqual(47);
+  });
+
   it('com alvo válido o painel não põe aviso nenhum', async () => {
     const alvo = path.join(tmpDir, 'ok.log');
     await fs.writeFile(alvo, 'linha\n', 'utf8');

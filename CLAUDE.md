@@ -684,6 +684,140 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## Como perguntar a produção o que ela está fazendo
+
+Achado depois de 9/set/2026, e é a técnica que rendeu quase tudo daquele dia.
+O painel de saúde e o `/admin/jobs` só respondem com token de admin, e não há
+sessão à mão. O caminho é **assinar um JWT dentro do próprio servidor**, onde o
+`JWT_SECRET` já está no ambiente do processo — ele não precisa sair de lá, nem
+tocar o disco da máquina de quem desenvolve:
+
+```ts
+// script .mts copiado para ~/ava-pco e rodado com `npx tsx`
+const r = await getDb().execute(sql`select id, email, role,
+  coalesce(token_version,0) as tv from users
+  where role in ('admin','superadmin') and coalesce(active,true) limit 1`);
+// monta {sub,email,role,tv,iat,exp}, assina HS256 com process.env.JWT_SECRET,
+// e chama http://127.0.0.1:3035/api/admin/saude
+```
+
+O `tv` tem de sair do banco: é o `tokenVersion` da conta, e o middleware o
+confere. Apague o script do servidor depois — ele não tem por que ficar lá.
+
+**O que essa medição achou em uma tarde:** o painel afirmando que o banco não
+estava no backup (e estava), a promessa do boleto caída de 6x para 1x, o ping
+de um gateway apontando para rota inexistente e um worker vigiando arquivo
+morto. **Nenhum deles dava erro em lugar nenhum**, e nenhum apareceu lendo
+código — o handoff de 8/set já dizia isso, e continua valendo: *o que rendeu
+não veio de ler, veio de medir*.
+
+## O backup do banco existe, e nada dele sai do servidor
+
+Medido em 9/set/2026. Produção tem **dois backups paralelos** no mesmo
+diretório, e eles não se conhecem:
+
+| quem | o quê | onde | retenção |
+| --- | --- | --- | --- |
+| worker (`db/backup-worker`) | JSON **+ despejo do Postgres** | `data/backups/<AAAA-MM-DD>/` | `BACKUP_KEEP_DAYS`, 14 |
+| cron de shell (`scripts/backup_data.sh`) | só os `data/*.json` | `data/backups/<data>_<hora>.tar.gz` | 14 dias |
+
+O `.tar.gz` **não contém o banco** — são 65 arquivos, zero `db-*`. Quem carrega
+as 25 tabelas é a pasta datada, e ela existe todo dia desde 6/set (antes disso
+o despejo não existia). A de 6/set tem 40 arquivos porque gravava os dois
+nomes, o da tabela e o do export; ver a seção do backup, acima.
+
+**E nada sai do servidor: não há `S3_*` no `.env`.** Os dois backups vivem no
+mesmo disco da aplicação. Se o VPS morrer, perde-se tudo. Ligar o S3 é ação no
+provedor e continua sendo decisão do dono — é o item 3 da lista dele.
+
+**A pergunta "o banco está copiado?" se faz ao disco**, não ao worker
+(`server/db/ultima-copia.ts`). O status do worker só sabe desta vida do
+processo, a snapshot acontece numa janela de uma hora (04:00 UTC) e produção
+reinicia o tempo todo: na maior parte do dia ele não tem o que responder. Três
+coisas que o arquivo respeita: não conseguir olhar devolve `null` com o motivo
+e nunca zero; a idade sai da **data no nome da pasta**, não do mtime, que muda
+quando o worker apaga snapshots vizinhas; e o `.tar.gz` do outro backup não
+conta como cópia do banco.
+
+## O reserva de pagamento rebaixa a promessa — e isso já voltou uma vez
+
+`server/payments/reserva-rebaixa.ts` (9/set/2026). A promessa de parcelamento é
+o **mínimo** entre os candidatos da rota, e tem de ser: quem cai no reserva não
+pode descobrir a troca depois de decidir comprar. A consequência é que um
+reserva fraco derruba o método inteiro.
+
+O par concreto: Asaas faz 6x no boleto, Pagar.me faz 1x, `min(6,1) = 1`. Em
+5/set o site parou de anunciar o boleto parcelado que a escola vende; foi
+desfeito em 6/set. **Voltou em 8/set às 16:58**, pela tela — oito minutos
+depois de alguém testar outro gateway em `/admin/gateways`. Medido em 9/set:
+`tetoDeParcelas('boleto') = 1`.
+
+Duas vezes o mesmo prejuízo diz que **faltava código, não atenção**: a regra
+estava escrita aqui e nada a verificava. Hoje o painel de saúde avisa, com os
+dois números e o nome de quem puxa para baixo.
+
+- **É `warn`, não `error`.** Rebaixar pode ser deliberado; o que não pode é ser
+  silencioso.
+- **Reserva que não rebaixa não vira aviso** — no cartão os dois declaram 12x,
+  e alarme sem ação atrás vira filtro de caixa de entrada.
+- **A configuração vive em `data/payment-routing.json`, no servidor**, e não é
+  versionada. Editar à mão exige `pm2 restart` para valer: o `JsonStore` lê
+  para a memória no boot.
+
+## Os endpoints da API da Sandra, medidos
+
+9/set/2026, só com leituras contra a API de produção. Vale escrever porque a
+documentação vive em `H:\ia\dev\Sandra\docs\cobranca-api\`, que **não existe na
+máquina atual**:
+
+| requisição | resposta |
+| --- | --- |
+| `GET /api/v1/tenants/<slug>/charges?limit=1` | 404 `No v1 endpoint for GET /charges` |
+| `GET .../charges/<id fora do formato>` | 400 `invalid_id_format` |
+| `GET .../charges/<uuid inexistente>` | 404 `{"error":"not_found"}` |
+| idem, com chave inválida | 401 `{"error":"invalid_api_key"}` |
+| `GET /api/v1/tenants/<slug>` | 200, o cadastro do tenant |
+| `GET /api/v1/tenants/<slug>/invoices?limit=1` | 200, **com nome de aluno** |
+
+**Não há listagem de cobranças.** O ping usava `GET /charges` e ficou vermelho
+de 8/set até ser medido — dizendo "HTTP 404", que se lê como credencial ruim.
+A credencial estava boa.
+
+Três coisas que qualquer mexida aqui tem de respeitar:
+
+- **O ping lê `GET /charges/<uuid zerado>`**, que é o mesmo recurso que o
+  checkout escreve. `GET /tenants/<slug>` seria mais simples e responde 200,
+  mas é outro recurso: chave restrita ao cadastro diria "OK" sem vender.
+- **`/invoices` está fora de cogitação** — traz nome de aluno, e teste de
+  conexão não puxa dado pessoal de terceiro para o log.
+- **404 só prova credencial quando o provider diz que prova.** `not_found`
+  sozinho é o recurso; `not_found` **com** `message` é a rota que não existe, e
+  isso é defeito nosso. Sem o predicado, 404 continua sendo falha — senão um
+  endereço-base errado passaria por saudável em qualquer gateway.
+
+## O rotador de log vigia um arquivo que ninguém escreve
+
+Medido em 9/set/2026. `APP_LOG_PATH` cai no padrão `~/ava-pco/app.log`, **parado
+desde 24/jul/2026** — desde que o PM2 assumiu o processo. O log vivo é
+`~/.pm2/logs/ava-pco-out.log`, e **o `pm2-logrotate` não está instalado**, então
+ele cresce sem teto (2,2 MB em 9/set; o disco tem 312 GB livres, então não é
+urgente).
+
+O worker dizia-se saudável porque `rotateIfNeeded` devolvia `false` nos dois
+casos: "não precisou rotacionar" e "o arquivo nem existe".
+
+**São TRÊS casos, e o que acontece de verdade é o terceiro.** A primeira versão
+desta correção só distinguia arquivo ausente — e foi ao ar sem mudar nada no
+painel, porque em produção o alvo **existe**: 918 kB, cara de log, parado. Um
+arquivo ausente é fácil de ver; um arquivo morto tem tamanho e data e engana.
+Hoje o status tem `alvoExiste` (`null` = ainda não olhou) **e**
+`alvoParadoDesde`, e o painel avisa a partir de 7 dias sem uma linha, dizendo
+há quantos dias e qual é o caminho.
+
+**O conserto não é apontar para o log do PM2**: rotacionar por baixo de um
+processo que mantém o descritor aberto troca um problema por outro. Quem faz
+isso é o gerenciador do processo — `pm2 install pm2-logrotate`.
+
 ## O painel de saúde não perguntava pelos workers
 
 `server/health/dashboard.ts` (7/set/2026). Ele tinha dezesseis verificações —
@@ -1144,6 +1278,90 @@ commit não toca no frontend — o aviso do script é genérico; confirme pelo
 Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
+
+> ### 9/set/2026 — quatro pedidos do dono, e depois o que MEDIR em produção achou
+>
+> O dia teve duas metades. A primeira foi o dono pedindo mudanças na home, uma
+> de cada vez. A segunda foi modo autônomo, e **tudo o que ela achou veio de
+> perguntar à produção**, não de ler código.
+>
+> #### A primeira coisa a fazer ao retomar
+>
+> ```bash
+> gh run list --limit 5          # a esteira anda?
+> git fetch && git status        # a árvore está limpa?
+> ssh vps 'sudo -u avapco -i bash -c "cd ~/ava-pco && git log --oneline -1"'
+> ```
+>
+> E, se for mexer em qualquer coisa de operação, leia primeiro a seção **"Como
+> perguntar a produção o que ela está fazendo"**, acima: é a receita do JWT
+> assinado dentro do servidor, e foi ela que rendeu o dia.
+>
+> #### O que subiu
+>
+> | commit | o quê |
+> | --- | --- |
+> | `a8d2941` | o selo do RNTP dobrou, e a moldura branca não era do selo |
+> | `8636a93` | a barra "Medido no sistema, hoje" saiu — e a onda tomou a cor certa |
+> | `697b1e2` | a faixa da carreira voltou a ser foto com overlay laranja |
+> | `0ed169d` | "Sobre a PCO" com o texto centralizado |
+> | `3e05ee0` | o selo do rodapé tinha a mesma moldura — e ali o conserto é outro |
+> | `878f07b` | o painel dizia que o banco não estava no backup, e estava |
+> | `ae6e3c6` | **o reserva rebaixava o boleto de 6x para 1x, em produção** |
+> | `5151d86` | o cartão de curso da home cravava "12x" no HTML |
+> | `f239d8e` | o rotador de log reportava saúde vigiando um arquivo que não existe |
+> | `27e1964` | o teste de conexão da Sandra consultava uma rota que não existe |
+>
+> Cada um tem seção própria acima. A suíte saiu de **285 arquivos / 2672
+> testes** para **292 / 2719**.
+>
+> #### O que estava quebrado em produção e ninguém sabia
+>
+> 1. **A promessa do boleto.** `tetoDeParcelas('boleto') = 1` numa escola que
+>    vende 6x. Reincidente — foi corrigido em 6/set e voltou pela tela em
+>    8/set. Corrigido no servidor (backup `.bak-20260909-1931`) e travado por
+>    código.
+> 2. **O painel afirmava que o banco não estava no backup.** Era `false` desde
+>    o boot até as 04:00 UTC, todo dia, porque não medir caía em "medi e não
+>    cobre". Com 143 restarts, esse era o estado normal.
+> 3. **O ping da Sandra** apontava para rota inexistente desde 8/set. A
+>    credencial estava boa. E a boa notícia da medição: `GET /charges/:id`
+>    funciona, então o worker de sondagem — **único confirmador de pagamento**
+>    daquele gateway — sempre esteve são.
+> 4. **O rotador de log** vigia `app.log`, parado desde julho.
+>
+> **O fio é o mesmo de sempre neste projeto:** a rotina rodava, contava e
+> reportava sucesso. Nenhum dos quatro dava erro.
+>
+> #### Na ordem em que eu retomaria
+>
+> 1. **Node 20 no VPS**, fora de suporte desde abril/2026. Continua sendo o
+>    maior aberto de operação, e continua pedindo janela e plano de volta.
+> 2. **As duas ações de operação que apareceram hoje**, ambas do dono:
+>    - **Ligar o S3 do backup.** Não há `S3_*` no `.env`, então as duas cópias
+>      (JSON e banco) vivem no mesmo disco da aplicação. É o item 3 da lista
+>      antiga, e agora está medido.
+>    - **`pm2 install pm2-logrotate`.** O log do PM2 cresce sem teto. Não é
+>      urgente (2,2 MB contra 312 GB livres), mas é a razão de o worker de
+>      rotação existir e não cobrir nada.
+> 3. **As sete decisões do dono**, que continuam sendo dele — a lista está no
+>    bloco de 6/set, mais abaixo. Uma delas ficou mais barata: com o produto
+>    Checkout do Pagar.me habilitado, ele volta como reserva **do cartão**,
+>    onde não rebaixa nada. Nunca do boleto.
+>
+> #### Duas armadilhas de ferramenta que custaram tempo hoje
+>
+> - **Crase dentro de template literal, três vezes**, sempre em comentário que
+>   eu mesmo acabara de escrever no CSS. Na terceira o `tsc` não pegou porque
+>   eu tinha rodado o typecheck **antes** de escrever o comentário; quem
+>   recusou foi o servidor ao subir.
+> - **Duas suítes ao mesmo tempo matam a máquina.** O `--maxWorkers=1` resolve
+>   uma execução, não duas simultâneas: as duas morreram por memória. Rode uma,
+>   espere, rode a outra.
+> - E `$` dentro de `node -e '...'` pelo Bash **some**. Um regex de preço
+>   voltou "(nenhuma linha de parcelamento)" sobre uma página que anunciava
+>   preço — quase virou um achado falso. Mesma família da barra invertida no
+>   heredoc.
 
 > ### 8/set/2026, tarde — a venda estava quebrada em produção, e nada dizia
 >

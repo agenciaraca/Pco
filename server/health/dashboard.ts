@@ -485,12 +485,30 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
   try {
     const { getStatus } = await import('../services/log-rotator');
     const s = getStatus();
+    const receita =
+      'Defina APP_LOG_PATH para onde a aplicação de fato escreve, ou rotacione ' +
+      'o log pelo gerenciador do processo (pm2 install pm2-logrotate).';
+    // Duas formas de "vigiar o nada", e a segunda é a que acontece de verdade:
+    // o arquivo existe, tem tamanho e cara de log, e ninguém escreve nele.
+    const paradoHaDias = s.alvoParadoDesde
+      ? Math.floor((Date.now() - new Date(s.alvoParadoDesde).getTime()) / 86_400_000)
+      : null;
     if (s.alvoExiste === false) {
       checks.push({
         id: 'log-rotator',
         label: 'Rotação de log',
         status: 'warn',
-        message: `Vigiando um caminho que não existe: ${s.logPath}. Defina APP_LOG_PATH ou rotacione o log pelo gerenciador do processo.`,
+        message: `Vigiando um caminho que não existe: ${s.logPath}. ${receita}`,
+      });
+    } else if (paradoHaDias !== null && paradoHaDias >= 7) {
+      checks.push({
+        id: 'log-rotator',
+        label: 'Rotação de log',
+        status: 'warn',
+        message:
+          `O log vigiado não recebe uma linha há ${paradoHaDias} dias (${s.logPath}) — ` +
+          `a aplicação escreve em outro lugar, e esse outro lugar não tem rotação. ${receita}`,
+        metric: paradoHaDias,
       });
     }
   } catch {
