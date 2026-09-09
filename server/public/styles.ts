@@ -101,6 +101,28 @@ p{margin:0}
    esquerda (margin:0, nao auto). Medida de leitura preservada,
    alinhamento tambem. */
 .coluna-texto{max-width:820px;margin-right:auto}
+/* "Sobre a PCO" é a exceção, e é pedido do dono (9/set/2026): ali o texto vai
+   centralizado.
+
+   Não é o defeito que o comentário acima descreve. Aquele era um contêiner
+   encolhido por engano, que centralizava a seção enquanto todas as vizinhas
+   ficavam à esquerda — desalinhamento invisível de quem escreveu e óbvio para
+   quem olha a página inteira. Aqui a seção JÁ tinha os números declarados
+   centralizados no meio de texto encostado à esquerda: eram três alinhamentos
+   diferentes num bloco só. Centralizar os três é o que os põe de acordo.
+
+   A medida de leitura continua limitada (820px e 78ch), que é a razão de a
+   coluna existir. O que muda é onde ela fica dentro do contêiner. */
+.sobre-pco .coluna-texto,.sobre-pco .declarados-nota{margin-left:auto;margin-right:auto;
+  text-align:center}
+/* E os números vão junto. O 1fr do auto-fit reparte a largura inteira entre
+   eles: com dois, cada um fica no meio de uma metade de 566px, ou seja,
+   colados nas bordas e com um vazio no centro. Passava despercebido enquanto
+   o texto ao lado estava à esquerda; com tudo centralizado, o buraco no meio
+   é a primeira coisa que se vê. O teto de 240px agrupa os números no centro e
+   continua valendo se um terceiro voltar. */
+.sobre-pco .numeros-declarados{grid-template-columns:repeat(auto-fit,minmax(160px,240px));
+  justify-content:center}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 .skip{position:absolute;left:-999px;top:8px;background:var(--accent);color:var(--on-accent);padding:10px 16px;border-radius:8px;z-index:200}
 .skip:focus{left:12px}

@@ -50,10 +50,28 @@ describe('alinhamento da home', () => {
     expect(bloco).toMatch(/max-width:\s*62ch/);
   });
 
-  it('a coluna de texto encosta à esquerda, não centraliza', () => {
+  it('a coluna de texto, por padrão, encosta à esquerda', () => {
     expect(styles).toContain('.coluna-texto{max-width:820px;margin-right:auto}');
-    // `margin:0 auto` aqui devolveria o defeito inteiro.
-    expect(styles).not.toMatch(/\.coluna-texto\{[^}]*margin:0 auto/);
+    // `margin:0 auto` na regra BASE devolveria o defeito inteiro: centralizaria
+    // toda coluna de texto do site sem ninguém ter pedido.
+    expect(styles).not.toMatch(/^\.coluna-texto\{[^}]*margin:0 auto/m);
+  });
+
+  it('centralizar é exceção declarada por seção, nunca o padrão', () => {
+    // "Sobre a PCO" é centralizada desde 9/set/2026, a pedido do dono: a
+    // seção já tinha os números declarados centralizados no meio de texto
+    // encostado à esquerda, e eram três alinhamentos num bloco só.
+    //
+    // O que este caso trava é a FORMA da exceção. Ela vale por uma classe na
+    // seção, então lê-se na marcação quem está centralizado e quem não está;
+    // afrouxar a regra base para conseguir o mesmo efeito centralizaria todas
+    // as colunas do site de uma vez, que é o defeito que este arquivo existe
+    // para impedir.
+    expect(router).toContain('class="section sobre-pco"');
+    expect(styles).toMatch(/\.sobre-pco \.coluna-texto[^{]*\{[^}]*margin-left:auto/);
+    expect(styles).toMatch(/\.sobre-pco \.coluna-texto[^{]*\{[^}]*text-align:center/);
+    // A medida de leitura continua limitada — é a razão de a coluna existir.
+    expect(styles).not.toMatch(/\.sobre-pco \.coluna-texto[^{]*\{[^}]*max-width:\s*none/);
   });
 
   it('a seção de texto da home usa a coluna', () => {

@@ -961,7 +961,7 @@ publicSite.get('/', async (c) => {
       ${pincel('var(--paper)')}
     </section>
 
-    <section class="section">
+    <section class="section sobre-pco">
       <div class="wrap">
         <div class="coluna-texto">
           <span class="eyebrow">Sobre a PCO — Psicanálise Clínica Online</span>
