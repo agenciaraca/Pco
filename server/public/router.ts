@@ -925,7 +925,7 @@ publicSite.get('/', async (c) => {
       ${co.badge ? `<span class="tag-chip">${esc(co.badge)}</span>` : ''}
       <h3 style="font-size:19px;margin:10px 0 8px">${esc(co.shortTitle || co.title)}</h3>
       <p style="color:var(--ink-soft);font-size:14px">${esc((co.tagline || co.description || '').slice(0, 110))}</p>
-      <p style="color:var(--ink);font-weight:800;margin-top:14px">${co.priceFormatted ? esc(co.priceFormatted) : 'Consulte'}${co.installmentFormatted ? ` <span style="font-weight:600;color:var(--ink-faint);font-size:13px">ou 12x ${esc(co.installmentFormatted)}</span>` : ''}</p>
+      <p style="color:var(--ink);font-weight:800;margin-top:14px">${co.priceFormatted ? esc(co.priceFormatted) : 'Consulte'}${co.installmentFormatted ? ` <span style="font-weight:600;color:var(--ink-faint);font-size:13px">ou ${co.installments}x ${esc(co.installmentFormatted)}</span>` : ''}</p>
     </a>`;
   const postCard = (p: (typeof posts)[number]): string => `
     <a class="card" href="/blog/${p.slug}" style="display:block">
