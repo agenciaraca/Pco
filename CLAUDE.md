@@ -684,6 +684,49 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## Node 20 no VPS: validado sob Node 22, e o servidor é COMPARTILHADO
+
+Medido em 9/set/2026. Esta pendência aparecia como "atualizar o Node do VPS" e
+a medição mudou o tamanho dela nos dois sentidos — é mais arriscada do que
+parecia, e ao mesmo tempo já está provada.
+
+**O que a torna delicada:** `/usr/bin/node` é o Node do sistema
+(`nodejs 20.20.2-1nodesource1`, apt), e este servidor hospeda **oito
+aplicações de usuários diferentes**, todas com PM2 — `amoterapia`, `avapco`,
+`avapcossh`, `campusae`, `cde` (11 processos), `cdexc`, `divz-my…`,
+`enlevo-…`. Um `apt upgrade` do Node atinge todas de uma vez, e nenhuma delas
+é desta aplicação. **Não é uma decisão do AVA PCO.**
+
+**O caminho isolado existe:** o usuário `avapco` tem `nvm`. Instalar o Node 22
+ali e apontar o `interpreter` do PM2 para ele muda só esta app, sem tocar em
+`/usr/bin/node`.
+
+**E ele está validado.** Testado no próprio servidor, num diretório à parte,
+com o Node 22 do nvm e sem encostar em produção:
+
+| etapa | resultado |
+| --- | --- |
+| `npm install --legacy-peer-deps` | ok, 611 pacotes |
+| `npm run build` | ok |
+| app de pé (`node --import tsx server/dev.ts`) | `/api/health` 200, home 200, sem erro no arranque |
+| suíte completa | **2717 de 2719** |
+
+As duas que faltam são artefato do teste, não do runtime:
+`semente-nao-atropela-producao` roda `git ls-files` e a cópia não tinha `.git`.
+
+**O que ainda falta decidir, e é por isso que não foi executado:** o deploy
+automático roda `npm install` e `npm run build` pelo shell de login do
+`avapco`, ou seja, com o Node do PATH. Trocar só o `interpreter` do PM2 deixa
+o build em 20 e o runtime em 22. Fazer direito é `nvm alias default 22` para o
+usuário **mais** reconfigurar o PM2 **mais** reinstalar `node_modules` — uma
+janela, com a app parada por alguns minutos, e com plano de volta (`nvm alias
+default 20` e `pm2 restart`).
+
+**Uma armadilha do teste, que quase virou conclusão errada:** `tar
+--exclude=data` casa em **qualquer nível**, então ele comeu `src/app/data` e o
+build falhou com `Cannot find module '../src/app/data/hooks'` — que se lê como
+incompatibilidade do Node. As exclusões precisam ser ancoradas (`--exclude=./data`).
+
 ## Como perguntar a produção o que ela está fazendo
 
 Achado depois de 9/set/2026, e é a técnica que rendeu quase tudo daquele dia.
@@ -1335,8 +1378,14 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > #### Na ordem em que eu retomaria
 >
-> 1. **Node 20 no VPS**, fora de suporte desde abril/2026. Continua sendo o
->    maior aberto de operação, e continua pedindo janela e plano de volta.
+> 1. **Node 20 no VPS** — **agora validado sob Node 22**, ver a seção própria
+>    acima. O que mudou: a aplicação inteira foi testada no servidor com Node
+>    22 (install, build, app de pé e 2717 de 2719 testes), e descobriu-se que
+>    o servidor hospeda **oito aplicações de outros usuários** no mesmo Node do
+>    sistema — então o caminho não é `apt upgrade`, é o nvm do usuário `avapco`
+>    com o interpreter do PM2. Falta só a janela: `nvm alias default 22`,
+>    reinstalar `node_modules`, reconfigurar o PM2 e reiniciar. Volta com
+>    `nvm alias default 20`.
 > 2. **As duas ações de operação que apareceram hoje**, ambas do dono:
 >    - **Ligar o S3 do backup.** Não há `S3_*` no `.env`, então as duas cópias
 >      (JSON e banco) vivem no mesmo disco da aplicação. É o item 3 da lista
