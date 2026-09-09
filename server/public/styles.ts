@@ -309,7 +309,18 @@ main:has(> .cta-final:last-child) + .pincel-topo{
 /* Selo RNTP: a imagem oficial, baixada do site da escola. O protótipo desenha
    um círculo com o texto "RNTP" porque não tinha o arquivo; desenhar à mão um
    selo de certificação é pior que não ter — parece o selo sem ser o selo. */
-.selo-rntp{width:124px;height:124px;display:block;border-radius:50%;background:#fff;padding:7px;
+/* Sem padding: eram 7px, e como o arquivo é mais alto que largo (202x207, e
+   o grande 406x415) o object-fit ainda deixa sobrar faixa nos lados. Os dois
+   juntos desenhavam um ANEL branco em volta do círculo azul — uma moldura que
+   o selo não tem. Sem o padding a sobra vira um fio de 1,5px e a imagem cresce
+   de 110px para 124px.
+
+   O fundo branco FICA, e aqui ele não é o mesmo caso da faixa da carreira, que
+   o trocou pelo azul do próprio selo. Medido: o anel do selo (#336699) contra
+   o petróleo do rodapé dá 1,10:1 — ali o selo se dissolveria no fundo. O
+   branco dá 5,45:1. Na faixa laranja o fundo é claro e a troca separa; aqui
+   ela apagaria o selo. */
+.selo-rntp{width:124px;height:124px;display:block;border-radius:50%;background:#fff;padding:0;
   box-shadow:0 6px 20px rgba(0,0,0,.18)}
 .selo-rntp img{width:100%;height:100%;object-fit:contain;display:block}
 .rodape-social{display:flex;gap:10px;margin-top:16px}

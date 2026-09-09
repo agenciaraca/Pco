@@ -50,12 +50,28 @@ afterAll(async () => {
   if (tmpDir) await fs.rm(tmpDir, { recursive: true, force: true });
 });
 
-/** O corpo de uma regra do CSS, pelo seletor exato. */
+/**
+ * O corpo de uma regra do CSS, pelo seletor exato.
+ *
+ * Ancorado em início de LINHA de propósito. Sem isso, pedir `.selo-rntp`
+ * devolvia o corpo de `.faixa-rntp .rntp-bloco .selo-rntp`, que aparece antes
+ * no arquivo e termina com o mesmo texto — e o caso do rodapé passava a medir
+ * a faixa, calado.
+ */
 function regra(seletor: string): string {
-  const i = PUBLIC_CSS.indexOf(seletor + '{');
-  expect(i, `seletor ausente no CSS: ${seletor}`).toBeGreaterThan(-1);
-  const abre = i + seletor.length + 1;
+  const i = PUBLIC_CSS.indexOf('\n' + seletor + '{');
+  expect(i, `seletor ausente no CSS (em início de linha): ${seletor}`).toBeGreaterThan(-1);
+  const abre = i + seletor.length + 2;
   return PUBLIC_CSS.slice(abre, PUBLIC_CSS.indexOf('}', abre));
+}
+
+/** Luminância relativa da WCAG 2.x. */
+function luminancia([r, g, b]: [number, number, number]): number {
+  const canal = (c: number): number => {
+    const v = c / 255;
+    return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
 }
 
 /** `#rrggbb` -> [r,g,b]. */
@@ -210,6 +226,33 @@ describe('selo do RNTP na faixa da home', () => {
   it('o texto fica com 2/3, e o minmax(0,...) é o que sustenta isso', () => {
     const corpo = regra('.rntp-bloco');
     expect(corpo).toContain('grid-template-columns:minmax(0,1fr) minmax(0,2fr)');
+  });
+
+  it('a regra base não tem padding — era metade da moldura', () => {
+    // O rodapé usa a regra base. Com 7px de padding, mais a sobra do
+    // object-fit, o branco virava um anel em volta do círculo azul; sem ele a
+    // sobra é um fio de 1,5px e a imagem cresce de 110px para 124px.
+    expect(regra('.selo-rntp')).toMatch(/padding:\s*0(?![.\d])/);
+  });
+
+  it('no rodapé o fundo branco FICA, e o número diz por quê', () => {
+    // A faixa da carreira trocou o branco pelo azul do próprio selo. Repetir
+    // isso no rodapé seria "unificar" e apagar o selo: ali o fundo é petróleo.
+    expect(regra('.selo-rntp')).toContain('background:#fff');
+
+    const azul = hexParaRgb(/--rntp-azul:\s*(#[0-9a-f]{6})/i.exec(PUBLIC_CSS)![1]);
+    const petroleo = hexParaRgb(/--brand-deep:\s*(#[0-9a-f]{6})/i.exec(PUBLIC_CSS)![1]);
+    const razao = (a: [number, number, number], b: [number, number, number]): number => {
+      const [x, y] = [luminancia(a), luminancia(b)].sort((p, q) => q - p);
+      return (x + 0.05) / (y + 0.05);
+    };
+    // Se um dia estes números virarem, a decisão muda e este caso avisa.
+    expect(
+      razao(azul, petroleo),
+      'o azul do selo passou a se separar do petróleo do rodapé — a troca que ' +
+        'a faixa da carreira faz pode passar a valer aqui também',
+    ).toBeLessThan(1.5);
+    expect(razao([255, 255, 255], petroleo)).toBeGreaterThan(4.5);
   });
 
   it('as dimensões declaradas na <img> são as do arquivo', async () => {
