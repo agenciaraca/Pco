@@ -470,6 +470,33 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     // ignora
   }
 
+  /*
+    12b) O rotador de log está vigiando alguma coisa?
+
+    Ele existe para que o disco cheio não derrube a aplicação. Medido em
+    produção em 9/set/2026: o alvo é `~/ava-pco/app.log`, parado desde 24/jul,
+    enquanto o log vivo é o do PM2 — que cresce e não tem rotação. O worker
+    dizia-se saudável porque "não precisou rotacionar" e "não há o que
+    rotacionar" eram a mesma resposta.
+
+    `null` continua sendo "ainda não olhou", e não vira aviso: o primeiro ciclo
+    deste worker só acontece cinco minutos depois do boot.
+  */
+  try {
+    const { getStatus } = await import('../services/log-rotator');
+    const s = getStatus();
+    if (s.alvoExiste === false) {
+      checks.push({
+        id: 'log-rotator',
+        label: 'Rotação de log',
+        status: 'warn',
+        message: `Vigiando um caminho que não existe: ${s.logPath}. Defina APP_LOG_PATH ou rotacione o log pelo gerenciador do processo.`,
+      });
+    }
+  } catch {
+    // ignora
+  }
+
   // 13) Disk usage (data dir)
   try {
     const usage = await diskUsage(DATA_DIR);

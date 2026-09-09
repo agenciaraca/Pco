@@ -17,12 +17,34 @@ let interval: NodeJS.Timeout | null = null;
 let lastRotatedAt: string | null = null;
 let totalRotations = 0;
 
+/**
+ * O arquivo que este worker deveria vigiar existe?
+ *
+ * `null` até o primeiro ciclo — ainda não olhou. Depois `true`/`false`.
+ *
+ * Isto existe porque `rotateIfNeeded` devolvia `false` nos DOIS casos: "não
+ * precisou rotacionar" e "o arquivo nem existe". Achatados, o segundo passava
+ * por saúde — o worker rodava, contava e reportava sucesso vigiando o nada.
+ *
+ * Não é hipótese. Medido em produção em 9/set/2026: o alvo é
+ * `~/ava-pco/app.log`, parado desde 24/jul, enquanto o log vivo da aplicação é
+ * `~/.pm2/logs/ava-pco-out.log`, que cresce e não tem rotação nenhuma
+ * (`pm2-logrotate` não está instalado). O worker existe para que o disco cheio
+ * não derrube a aplicação, e estava olhando para o arquivo errado desde que o
+ * PM2 assumiu.
+ */
+let alvoExiste: boolean | null = null;
+
 async function rotateIfNeeded(): Promise<boolean> {
   let stat;
   try {
     stat = await fs.stat(LOG_PATH);
+    alvoExiste = true;
   } catch {
-    return false; // log não existe
+    // O arquivo não existe. **Não é "não precisou rotacionar"** — é não ter o
+    // que vigiar, e quem lê o painel precisa saber a diferença.
+    alvoExiste = false;
+    return false;
   }
   if (stat.size < MAX_SIZE_BYTES) return false;
 
@@ -88,7 +110,22 @@ export function getStatus() {
     lastRotatedAt,
     totalRotations,
     logPath: LOG_PATH,
+    /** `null` = ainda não olhou. `false` = está vigiando um caminho que não existe. */
+    alvoExiste,
     maxSizeBytes: MAX_SIZE_BYTES,
     maxRotations: MAX_ROTATIONS,
   };
+}
+
+/**
+ * Só para teste: devolve o worker ao estado de quem ainda não olhou.
+ *
+ * O módulo guarda estado no fechamento, e os casos precisam distinguir
+ * "não olhou" de "olhou e não achou" — que é justamente a diferença que este
+ * arquivo passou a fazer.
+ */
+export function _resetParaTeste(): void {
+  alvoExiste = null;
+  lastRotatedAt = null;
+  totalRotations = 0;
 }
