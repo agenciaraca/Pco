@@ -17,6 +17,11 @@ export const PUBLIC_CSS = `
   --accent-bright:#0cc0df;--accent-light:#5ce1e6;--brand-petroleo:#063b49;
   --wa:#25d366;
   --brand-deep:#0b7486;--on-deep:#eef3f1;
+  /* O azul do selo do RNTP, amostrado do anel do PNG oficial. Não é cor da
+     PCO e por isso não muda com o tema: é a cor de uma marca de terceiro, e
+     mexer nela descaracterizaria o selo. Existe para ser o fundo do disco do
+     selo — ver .selo-rntp. */
+  --rntp-azul:#336699;
   --brand-orange:#ff914d;--brand-orange-ink:#d96a24;--brand-orange-soft:#ffe9db;--on-orange:#2b1608;
   /* Alias do laranja antigo, para não quebrar quem já usa --orange. */
   --orange:#ff914d;--orange-soft:#ffe9db;
@@ -196,8 +201,23 @@ p{margin:0}
 .faixa-rntp h2{color:#fff}
 .faixa-rntp .eyebrow{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#dfeeea}
 .faixa-rntp .rntp-texto{color:#cfe0dc}
-.faixa-rntp .rntp-bloco .selo-rntp{width:200px;height:200px;padding:10px}
-@media (max-width:700px){.faixa-rntp .rntp-bloco .selo-rntp{width:150px;height:150px}}
+/* O selo enche a coluna de 1/3, com teto de 400px — o dobro dos 200px que
+   tinha até 9/set/2026.
+
+   Duas coisas que um retoque desfaz sem perceber:
+
+   - **Nada de padding, e o fundo do disco é o azul do PRÓPRIO selo.** O PNG
+     tem 406x415 (mais alto que largo) e cantos transparentes: num quadrado
+     com object-fit:contain sobra uma faixa vertical de cada lado, e ela
+     mostra o fundo do container. Com o #fff herdado de .selo-rntp isso
+     desenhava um anel branco em volta do círculo azul — o padding de 10px
+     engrossava —, e o selo ficava com uma moldura que não existe no selo.
+   - **A largura é min(400px,100%), não 400px cravado.** A coluna é
+     minmax(0,1fr): um item de largura fixa forçaria o mínimo automático dela
+     e comeria a proporção de 2/3 do texto justamente nas telas médias. */
+.faixa-rntp .rntp-bloco .selo-rntp{width:min(400px,100%);height:auto;aspect-ratio:1;
+  padding:0;background:var(--rntp-azul)}
+@media (max-width:700px){.faixa-rntp .rntp-bloco .selo-rntp{width:min(300px,72vw)}}
 
 /* Bloco final da home — a faixa laranja que encosta no rodapé.
    Antes ela era .hero-deep, o MESMO degradê petróleo do rodapé: as duas
@@ -396,8 +416,13 @@ main:has(> .cta-final:last-child) + .pincel-topo{
 .depo figcaption{display:flex;flex-direction:column;gap:2px;margin-top:auto}
 .depo .nome{font-weight:700;color:var(--ink);font-size:15px}
 .depo .papel{font-size:13px;color:var(--ink-faint)}
-/* Bloco RNTP com o selo real ao lado do texto. */
-.rntp-bloco{display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center}
+/* Bloco RNTP com o selo real ao lado do texto: um terço para o selo, dois
+   terços para o texto.
+
+   O minmax(0,...) não é preciosismo — sem ele a coluna herda min-width:auto,
+   o tamanho do selo passa a mandar na largura dela, e a proporção 1/3-2/3
+   deixa de valer sem nada quebrar visivelmente. */
+.rntp-bloco{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:36px;align-items:center}
 .rntp-bloco .selo-rntp{width:150px;height:150px;box-shadow:var(--shadow-lg)}
 /* Números DECLARADOS pela escola — separados dos medidos, e rotulados como tal.
 
