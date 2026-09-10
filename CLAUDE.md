@@ -2924,6 +2924,75 @@ por `GET /me/courses/:courseId/lessons/:lessonId/content`, que passa por
 `courseAccessFor` (matrícula **e** prazo). A chave é removida, não esvaziada:
 `content: ''` faria a tela mostrar a descrição como se fosse a aula.
 
+## Filtro que não divide nada não é ruído — ele mente
+
+`src/app/pages/Library.tsx` e `Podcasts.tsx` (10/set/2026). A biblioteca foi desenhada
+para meia dúzia de itens de semente e passou a ter **108**. Medido no acervo de
+produção, os quatro filtros dela viraram **constantes**:
+
+| filtro | como ficou nos 108 |
+| --- | --- |
+| tipo | `pdf` em 108 |
+| obrigatório | `false` em 108 |
+| curso | nenhum ligado |
+| tag | `acervo` em 108 |
+
+Cada um dividia 108 em 108-e-0, e **não havia busca por texto**. Quem
+procurasse "Luto e Melancolia" rolava 108 cartões.
+
+**O pior não era a ausência da busca, era o filtro de tipo.** A lista era
+cravada no código (`pdf | apostila | leitura | artigo`), então clicar em
+"APOSTILA" devolvia *"Nenhum material com esses filtros"* — que se lê como **a
+escola não tem apostilas**. É a mesma regra que este projeto já aplica às telas
+de métrica e à vitrine: ausência de resultado não pode passar por ausência de
+acervo.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **As opções saem do acervo, não do código.** `allTags` já fazia isso; os
+  outros três passaram a fazer. Curso sem material não vira filtro — oferecê-lo
+  faria o aluno concluir que aquele curso não tem material de apoio.
+- **O bloco some quando sobra uma opção só.** Filtro com uma alternativa não
+  filtra; é rótulo repetido em tudo ocupando a primeira dobra.
+- **A busca ignora acento NOS DOIS SENTIDOS.** Normalizar só o alvo é a metade
+  que se esquece: quem digita `Arquétipos` com acento deixaria de casar com o
+  título normalizado. O acervo é de psicanálise, e ninguém digita acento no
+  celular.
+- **Ela procura no autor também.** É a segunda coisa que alguém sabe de um
+  livro, e boa parte deste acervo se acha procurando por "Freud" ou "Jung".
+
+### A tela irmã tinha o mesmo defeito, do mesmo import
+
+**43 podcasts, todos com a única tag "PCO POD"** — a fileira mostrava
+`Todos | PCO POD`, e clicar em qualquer um dos dois devolvia a mesma lista.
+Sem busca, quem procurasse um episódio pelo nome rolava 43 cartões.
+
+Por isso o normalizador mora em **`src/app/lib/busca.ts`**, e não numa cópia em
+cada tela: as duas ganharam busca no mesmo dia, e duas cópias da mesma regra
+acabam discordando — é o motivo de `shared/documento.ts` e
+`shared/visibilidade.ts` existirem, aplicado ao lado do cliente. Quem as telas
+chamam é `combina()`, não `semAcento()`, justamente para que ninguém normalize
+um lado e esqueça o outro.
+
+### Duas armadilhas que quase passaram, e nenhuma daria erro
+
+- **O campo foi escrito com utilitárias à mão, com `bg-white` cravado.** Existe
+  **`.pco-input`**, e ela tem variante de tema escuro em
+  `src/styles/theme.css`: o campo à mão ficaria **branco em página escura**,
+  sem o CSS reclamar, e só quem usa o tema escuro veria. Campo novo usa a
+  classe da casa.
+- **A barra invertida sumiu no heredoc, de novo.** O intervalo
+  `[̀-ͯ]` escrito com `\u` num heredoc do Bash chega ao disco
+  como `̀` e o Python o interpreta: o arquivo fica com os **caracteres
+  combinantes literais**, que são invisíveis no editor. O regex funciona igual
+  — o que se perde é a legibilidade, e quem for mexer não vê o que está
+  apagando. O jeito que funcionou foi construir a barra por `chr(92)`, sem
+  escrever nenhuma no caminho.
+
+`test/biblioteca-de-108-precisa-de-busca.test.tsx` — 12 casos, **10 falham**
+contra o código anterior. `test/podcast-com-43-episodios-precisa-de-busca.test.tsx`
+— 7 casos.
+
 ## A `videoUrl` do podcast é pública, e quem a protege é a Vimeo
 
 `GET /api/podcasts` (medido em 10/set/2026). A rota é pública por desenho —

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mic2, PlayCircle, Heart, CheckCircle2, Clock, Tag } from 'lucide-react';
+import { Mic2, PlayCircle, Heart, CheckCircle2, Clock, Tag, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
   usePodcasts,
@@ -10,6 +10,7 @@ import { CardListSkeleton } from '../components/LoadingSkeleton';
 import { useToast } from '../components/Toast';
 import { useT } from '../i18n';
 import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
+import { combina } from '../lib/busca';
 
 /*
   Lista vazia estável.
@@ -28,6 +29,7 @@ export default function Podcasts() {
   const setEng = useSetPodcastEngagement();
   const toast = useToast();
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [busca, setBusca] = useState('');
 
   const engagementMap = useMemo(() => {
     const map = new Map<string, { listened: boolean; favorite: boolean }>();
@@ -45,12 +47,19 @@ export default function Podcasts() {
     return Array.from(set).sort();
   }, [podcasts]);
 
+  /*
+    Os 43 episodios importados do LMS antigo tem TODOS a mesma tag ("PCO POD"),
+    e a lista nao tinha busca: quem procurasse um episodio pelo nome rolava 43
+    cartoes. Uma fileira de filtro com uma opcao so nao filtra nada -- e a
+    mesma regra da biblioteca, que o mesmo import encheu no mesmo dia.
+  */
   const visiblePodcasts = useMemo(
     () =>
-      activeTag
-        ? podcasts.filter((p) => (p.tags ?? []).includes(activeTag))
-        : podcasts,
-    [podcasts, activeTag],
+      podcasts.filter((p) => {
+        if (activeTag && !(p.tags ?? []).includes(activeTag)) return false;
+        return combina(busca, p.title, p.description);
+      }),
+    [podcasts, activeTag, busca],
   );
 
   // Sem rede a consulta fica `paused`, e aí `isLoading` e `isError` são
@@ -84,7 +93,34 @@ export default function Podcasts() {
         </p>
       </header>
 
-      {allTags.length > 0 && (
+      <label className="relative block">
+        <span className="sr-only">Buscar episódio</span>
+        <Search
+          size={14}
+          strokeWidth={2}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
+          aria-hidden="true"
+        />
+        <input
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar episódio…"
+          className="pco-input pl-9 pr-9"
+        />
+        {busca && (
+          <button
+            type="button"
+            onClick={() => setBusca('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-subtle hover:text-pco-deep"
+            title="Limpar busca"
+          >
+            <X size={14} strokeWidth={2} />
+          </button>
+        )}
+      </label>
+
+      {allTags.length > 1 && (
         <div className="flex flex-wrap gap-1.5 items-center">
           <Tag size={12} className="text-pco-blue" strokeWidth={1.75} />
           <button
@@ -113,6 +149,13 @@ export default function Podcasts() {
             </button>
           ))}
         </div>
+      )}
+
+      {visiblePodcasts.length === 0 && busca && (
+        <p className="pco-card p-6 text-center text-sm text-ink-muted">
+          Nada encontrado para <strong className="text-pco-deep">“{busca}”</strong>. Tente outra
+          palavra do título — a busca ignora acentos.
+        </p>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">

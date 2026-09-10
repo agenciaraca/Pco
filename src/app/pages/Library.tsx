@@ -1,10 +1,11 @@
-import { BookOpen, Download, Filter } from 'lucide-react';
+import { BookOpen, Download, Filter, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useLibrary, useCourses } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useT } from '../i18n';
 import { SemConexao, FalhaAoCarregar } from '../components/EstadosDeConsulta';
+import { combina } from '../lib/busca';
 
 type CourseFilter = 'all' | string;
 type MandatoryFilter = 'all' | 'mandatory' | 'optional';
@@ -28,6 +29,7 @@ export default function Library() {
   const [mandatoryFilter, setMandatoryFilter] = useState<MandatoryFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [busca, setBusca] = useState('');
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
@@ -36,6 +38,38 @@ export default function Library() {
     }
     return Array.from(set).sort();
   }, [libraryItems]);
+
+  /*
+    Os filtros saem do acervo, e so aparecem quando podem dividi-lo.
+
+    Em 10/set/2026 entraram 108 PDFs do LMS antigo, e os quatro filtros desta
+    tela viraram constantes: todos `pdf`, todos nao-obrigatorios, nenhum ligado
+    a curso, todos com a mesma tag. Cada um dividia 108 em 108-e-0.
+
+    Um filtro que nao divide nada nao e so ruido -- ele MENTE. A lista de tipos
+    era cravada (`pdf | apostila | leitura | artigo`), entao quem clicasse em
+    "APOSTILA" recebia "nenhum material com esses filtros", que se le como *a
+    escola nao tem apostilas*. E a mesma regra que este projeto aplica as telas
+    de metrica: ausencia de resultado nao pode passar por ausencia de acervo.
+
+    Por isso as opcoes saem dos itens que existem -- como `allTags` ja fazia --
+    e o bloco inteiro some quando sobra uma opcao so.
+  */
+  const tiposPresentes = useMemo(() => {
+    const set = new Set<string>();
+    for (const it of libraryItems) if (it.type) set.add(it.type);
+    return Array.from(set).sort();
+  }, [libraryItems]);
+
+  const cursosComMaterial = useMemo(
+    () => courses.filter((c) => libraryItems.some((it) => it.relatedCourseIds?.includes(c.id))),
+    [courses, libraryItems],
+  );
+
+  const temObrigatorioEComplementar = useMemo(
+    () => libraryItems.some((it) => it.mandatory) && libraryItems.some((it) => !it.mandatory),
+    [libraryItems],
+  );
 
   const filtered = useMemo(() => {
     return libraryItems.filter((item) => {
@@ -46,9 +80,12 @@ export default function Library() {
       if (mandatoryFilter === 'optional' && item.mandatory) return false;
       if (typeFilter !== 'all' && item.type !== typeFilter) return false;
       if (activeTag && !(item.tags ?? []).includes(activeTag)) return false;
+      // Titulo E autor: o autor e a segunda coisa que alguem sabe de um
+      // livro, e boa parte deste acervo se acha procurando por "Freud".
+      if (!combina(busca, item.title, item.author)) return false;
       return true;
     });
-  }, [libraryItems, courseFilter, mandatoryFilter, typeFilter, activeTag]);
+  }, [libraryItems, courseFilter, mandatoryFilter, typeFilter, activeTag, busca]);
 
   // Sem rede a consulta fica `paused`, e aí `isLoading` e `isError` são
   // os dois `false`: a tela caía no estado vazio e dizia que não há nada,
@@ -74,48 +111,99 @@ export default function Library() {
       </header>
 
       <div className="pco-card p-4 space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterChip
-            active={courseFilter === 'all'}
-            onClick={() => setCourseFilter('all')}
-            label="Todos"
+        <label className="relative block">
+          <span className="sr-only">Buscar por título ou autor</span>
+          <Search
+            size={14}
+            strokeWidth={2}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
+            aria-hidden="true"
           />
-          {courses.map((c) => (
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por título ou autor…"
+            /*
+              `pco-input` e a classe da casa, e ela tem variante de tema escuro
+              em theme.css. Escrever as utilitarias a mao com `bg-white`
+              cravado daria um campo branco em pagina escura -- o CSS nao
+              reclama, e so quem usa o tema escuro ve.
+            */
+            className="pco-input pl-9 pr-9"
+          />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-subtle hover:text-pco-deep"
+              title="Limpar busca"
+            >
+              <X size={14} strokeWidth={2} />
+            </button>
+          )}
+        </label>
+        {cursosComMaterial.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-surface-mute pt-3">
             <FilterChip
-              key={c.id}
-              active={courseFilter === c.id}
-              onClick={() => setCourseFilter(c.id)}
-              label={c.shortTitle}
+              active={courseFilter === 'all'}
+              onClick={() => setCourseFilter('all')}
+              label="Todos"
             />
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 border-t border-surface-mute pt-3">
-          <FilterChip
-            active={mandatoryFilter === 'all'}
-            onClick={() => setMandatoryFilter('all')}
-            label="Tudo"
-          />
-          <FilterChip
-            active={mandatoryFilter === 'mandatory'}
-            onClick={() => setMandatoryFilter('mandatory')}
-            label="Obrigatórios"
-          />
-          <FilterChip
-            active={mandatoryFilter === 'optional'}
-            onClick={() => setMandatoryFilter('optional')}
-            label="Complementares"
-          />
-          <span className="mx-2 h-4 w-px bg-surface-gray" />
-          {(['all', 'pdf', 'apostila', 'leitura', 'artigo'] as const).map((t) => (
-            <FilterChip
-              key={t}
-              active={typeFilter === t}
-              onClick={() => setTypeFilter(t)}
-              label={t === 'all' ? 'Qualquer tipo' : t.toUpperCase()}
-            />
-          ))}
-        </div>
-        {allTags.length > 0 && (
+            {cursosComMaterial.map((c) => (
+              <FilterChip
+                key={c.id}
+                active={courseFilter === c.id}
+                onClick={() => setCourseFilter(c.id)}
+                label={c.shortTitle}
+              />
+            ))}
+          </div>
+        )}
+        {(temObrigatorioEComplementar || tiposPresentes.length > 1) && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-surface-mute pt-3">
+            {temObrigatorioEComplementar && (
+              <>
+                <FilterChip
+                  active={mandatoryFilter === 'all'}
+                  onClick={() => setMandatoryFilter('all')}
+                  label="Tudo"
+                />
+                <FilterChip
+                  active={mandatoryFilter === 'mandatory'}
+                  onClick={() => setMandatoryFilter('mandatory')}
+                  label="Obrigatórios"
+                />
+                <FilterChip
+                  active={mandatoryFilter === 'optional'}
+                  onClick={() => setMandatoryFilter('optional')}
+                  label="Complementares"
+                />
+              </>
+            )}
+            {temObrigatorioEComplementar && tiposPresentes.length > 1 && (
+              <span className="mx-2 h-4 w-px bg-surface-gray" />
+            )}
+            {tiposPresentes.length > 1 && (
+              <>
+                <FilterChip
+                  active={typeFilter === 'all'}
+                  onClick={() => setTypeFilter('all')}
+                  label="Qualquer tipo"
+                />
+                {tiposPresentes.map((tp) => (
+                  <FilterChip
+                    key={tp}
+                    active={typeFilter === tp}
+                    onClick={() => setTypeFilter(tp as TypeFilter)}
+                    label={tp.toUpperCase()}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        )}
+        {allTags.length > 1 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             <span className="text-xs text-ink-subtle uppercase mr-1">Tags:</span>
             <button
@@ -153,8 +241,12 @@ export default function Library() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="Nenhum material com esses filtros"
-          description="Limpe os filtros ou experimente outras combinações."
+          title={busca ? `Nada encontrado para “${busca}”` : 'Nenhum material com esses filtros'}
+          description={
+            busca
+              ? 'Tente outra palavra do título ou o nome do autor. A busca ignora acentos.'
+              : 'Limpe os filtros ou experimente outras combinações.'
+          }
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
