@@ -1893,7 +1893,11 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > | --- | --- |
 > | `5b35921` | o cupom era aceito e jogado fora; e o suporte não trocava senha |
 > | `6e5ae7f` | verde `#04d3a9` na paleta inteira; H1 da home sem o ano |
-> | *(este)* | o reserva cobrava em silêncio — e o corpo cru do gateway ia para o pedido |
+> | `75a9de7` | o reserva cobrava em silêncio — e o corpo cru do gateway ia para o pedido |
+> | `935112f` | a `/ava-pco` passa a falar com quem vai comprar (backstage fora, CTA para a vitrine) |
+> | `7ffed77` | a trilha do modo de estudo abria os 19 módulos de uma vez |
+>
+> A suíte saiu de **304 arquivos / 2859 testes** para **306 / 2881**.
 >
 > Mais três de operação, de manhã: `860f7d7` (acervo), `8ff55cf` (biblioteca
 > fechada), `1458310` (busca), `ed7add4` (botão morto + handoff), `9eeb368`
@@ -1901,17 +1905,20 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > #### Na ordem em que eu retomaria
 >
-> 1. ~~**Fazer o reserva falar**~~ — **feito.** `/admin/pedidos` mostra
->    "Pagar.me recusou (…): … → cobrado no Asaas"; `/admin/saude` avisa quantas
->    das cobranças de 48h saíram pelo reserva, com o motivo; e o botão "Testar"
->    parou de implicar que a conta vende. **A ação do dono continua sendo
->    habilitar o Checkout no Pagar.me** — enquanto não for, cada compra no
->    cartão custa ~10 s esperando a recusa.
-> 2. **`docs/PLANO-pagina-ava-pco.md`** — auditoria de conversão da `/ava-pco`
->    que o dono mandou hoje, guardada na íntegra. **Não começada.** Leia a
->    seção final ("O que NÃO pode ser inventado") antes: metade dos
->    placeholders é dado que só ele tem, e duas afirmações do plano contradizem
->    o produto (fala em "15 formações"; a vitrine tem 4 ativos).
+> 1. ~~**Fazer o reserva falar**~~ — **feito** (`75a9de7`). `/admin/pedidos`
+>    mostra "Pagar.me recusou (…): … → cobrado no Asaas"; `/admin/saude` avisa
+>    quantas das cobranças de 48h saíram pelo reserva, com o motivo; e o botão
+>    "Testar" parou de implicar que a conta vende. **A ação do dono continua
+>    sendo habilitar o Checkout no Pagar.me** — enquanto não for, cada compra
+>    no cartão custa ~10 s esperando a recusa.
+> 2. ~~**`docs/PLANO-pagina-ava-pco.md`**~~ — **parte feita** (`935112f`). Saiu
+>    o backstage (Retenção, Admin PCO, `/admin/tutor`), entraram "para quem é",
+>    os 3 benefícios, "4 passos" e um FAQ de 6 perguntas, e os CTAs vão para a
+>    vitrine. **Medido: a vitrine tem 2 formações, não 15** — nenhum número de
+>    catálogo foi cravado. **Falta o que depende do dono**: garantia, prazo de
+>    acesso, depoimentos, faixa de alunos, foto/links da Rose. E a página é
+>    SPA — HTML servido de 2,6 kB sem texto —, então FAQ em JSON-LD só se ela
+>    for para o SSR (decisão à parte).
 > 3. **Ligar o S3 do backup** — as duas cópias vivem no disco da aplicação.
 > 4. **As sete decisões do dono**, no bloco de 6/set.
 >
