@@ -10,6 +10,8 @@ import { publicSite } from './public/router';
 import { getTags, hostsParaCsp } from './marketing/tags-store';
 import { ROTAS_FUNDIDAS } from './public/rotas-fundidas';
 import { cabecalhosDeSeguranca } from './public/csp';
+import { ehRotaDoApp, pareceArquivo } from './rotas-do-app';
+import { htmlDeNaoEncontrada } from './public/nao-encontrada';
 import { AUTHOR_IS_PLACEHOLDER } from './public/config';
 import { hostPublico } from './origem-publica';
 
@@ -229,8 +231,33 @@ ${allUrls
   // 404 dispara Vite a fazer fallback de import dinâmico, que o auto-reload captura.
   root.get('/assets/*', (c) => c.text('Not found', 404));
 
-  // SPA fallback: qualquer GET não casado retorna index.html
-  root.get('*', serveStatic({ path: 'index.html', root: staticRoot }));
+  /*
+    SPA fallback — mas só para endereços que pertencem ao aplicativo.
+
+    Era `root.get('*', ...)` puro, e por isso **qualquer** endereço respondia
+    HTTP 200 com o `index.html`. Medido em produção em 9/set/2026:
+    `/pagina-que-nao-existe` e `/xyz123` devolviam 200.
+
+    Para quem digitou errado, isso é uma tela do aplicativo em vez de um aviso.
+    Para o robô de busca é pior: cada endereço inventado — e eles chegam às
+    centenas, de links quebrados e de varredura — vira uma página válida a
+    indexar, todas com o mesmo conteúdo.
+
+    O fallback continua existindo, porque as rotas do React só passam a existir
+    depois que o JavaScript roda. O que mudou é que ele agora pergunta antes.
+    Ver `server/rotas-do-app.ts` — e o teste que mantém aquela lista em dia com
+    `src/app/routes.tsx`, que é a metade que impede o estrago inverso: rota
+    real do aluno respondendo 404.
+  */
+  root.get('*', async (c, next) => {
+    if (ehRotaDoApp(c.req.path)) {
+      return serveStatic({ path: 'index.html', root: staticRoot })(c, next);
+    }
+    // Arquivo que não existe recebe texto, não HTML — mesma razão do 404 de
+    // `/assets/*` logo acima. Ver `pareceArquivo`.
+    if (pareceArquivo(c.req.path)) return c.text('Not found', 404);
+    return c.html(await htmlDeNaoEncontrada(c.req.path), 404);
+  });
 
   appToServe = root;
   // eslint-disable-next-line no-console
