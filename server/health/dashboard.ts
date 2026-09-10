@@ -121,6 +121,45 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     // ignora
   }
 
+  /*
+    2c) A página do curso se contradiz?
+
+    Os chips do topo contam os módulos reais; a grade "Conteúdo do curso" vem
+    de `curriculum`, um campo editorial digitado à mão. Medido em 9/set/2026 no
+    carro-chefe: **19 no chip, 15 na grade**. Quatro módulos que o aluno compra
+    não aparecem no lugar em que ele decide comprar, e a página mostra os dois
+    números na mesma tela.
+
+    Nada disso dá erro: a página responde 200 e os dois números estão lá.
+  */
+  try {
+    const { conferirGrades } = await import('../public/vitrine-coerente');
+    const r = await conferirGrades();
+    if (r.erro) {
+      checks.push({
+        id: 'vitrine-grade',
+        label: 'Grade publicada',
+        status: 'na',
+        message: `Não deu para conferir as grades: ${r.erro}`,
+      });
+    } else if (r.divergentes.length > 0) {
+      checks.push({
+        id: 'vitrine-grade',
+        label: 'Grade publicada',
+        status: 'warn',
+        message: r.divergentes
+          .map(
+            (d) =>
+              `${d.titulo}: a página anuncia ${d.modulos} módulos e a grade lista ${d.naGrade}`,
+          )
+          .join(' · '),
+        metric: r.divergentes.length,
+      });
+    }
+  } catch {
+    // ignora
+  }
+
   // 3) E-mail config
   try {
     const cfgs = await emailConfigs.listConfigs();
