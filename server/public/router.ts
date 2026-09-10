@@ -68,6 +68,23 @@ publicSite.use('*', (c, next) => comColetaDeFalhas(() => comMemoDaRequisicao(() 
 const HTML_HEADERS = { 'Content-Type': 'text/html; charset=utf-8' } as const;
 
 /**
+ * O H1 da home fala da ESCOLA; o da página do curso fala do curso.
+ *
+ * Os dois eram a mesma frase — "Curso de Psicanálise Clínica Online" — e os
+ * dois `<title>` eram quase iguais, invertendo a ordem das mesmas palavras.
+ * Duas páginas do mesmo site disputando a mesma busca não somam: o buscador
+ * escolhe uma e a outra perde a posição que tinha. E quem chega pela home
+ * procurando a escola cai numa página que se apresenta como a do produto.
+ *
+ * O nome do curso continua na home — no parágrafo do herói, nos cartões e no
+ * `<title>`. O que muda é qual das duas páginas reivindica a busca por ele.
+ *
+ * Vive aqui, e não dentro do template, porque comentário em HTML é servido a
+ * cada visita: a explicação pertence ao código, não à página.
+ */
+const H1_DA_HOME = `Formação em psicanálise clínica que cabe na sua vida, desde ${ORG.founded}`;
+
+/**
  * O bloco de "não consegui carregar", para onde a página mostraria vazio.
  *
  * Traz um botão de tentar de novo porque a falha é quase sempre passageira —
@@ -944,7 +961,7 @@ publicSite.get('/', async (c) => {
       <div class="hero-veu" aria-hidden="true"></div>
       <div class="wrap">
         <span class="eyebrow">Bem-vindo à Psicanálise Clínica Online</span>
-        <h1 style="margin:18px 0 18px;max-width:20ch">Curso de Psicanálise Clínica Online</h1>
+        <h1 style="margin:18px 0 18px;max-width:22ch">${H1_DA_HOME}</h1>
         <p class="lead" style="max-width:62ch">
           O curso de psicanálise com o melhor custo-benefício do Brasil! Conheça agora o curso que
           vai te formar psicanalista em pouco tempo, gastando pouco e aprendendo muito. Aulas, dicas
