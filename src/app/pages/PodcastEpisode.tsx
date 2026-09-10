@@ -1,5 +1,6 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
+import VideoAula from '../components/VideoAula';
 import {
   ArrowLeft,
   Play,
@@ -101,6 +102,18 @@ export default function PodcastEpisode() {
   const currentSeconds = segundos;
   const progress = totalSeconds > 0 ? Math.min(100, (segundos / totalSeconds) * 100) : 0;
   const audioUrl = episode.audioUrl;
+  /*
+    Episódio em vídeo — o formato de todo o acervo que veio do LMS antigo.
+
+    Ele NÃO entra no `<audio>` acima: `player.vimeo.com/video/<id>` devolve uma
+    página, não um arquivo de mídia, e o elemento ficaria mudo. É o mesmo engano
+    que a preview pública de curso cometeu e que nunca funcionou.
+
+    Quem sabe tocar isso é o `VideoAula`, que já resolve as duas coisas que a
+    Vimeo exige — o `referrerPolicy` por elemento e o `frame-src` da CSP — e já
+    distingue arquivo solto de página de embed.
+  */
+  const videoUrl = episode.videoUrl;
 
   function mover(delta: number) {
     const a = audioRef.current;
@@ -181,6 +194,12 @@ export default function PodcastEpisode() {
               </span>
             )}
           </div>
+
+          {videoUrl && (
+            <div className="mb-5 aspect-video w-full overflow-hidden rounded-xl bg-black">
+              <VideoAula url={videoUrl} titulo={episode.title} />
+            </div>
+          )}
 
           {audioUrl ? (
             <audio

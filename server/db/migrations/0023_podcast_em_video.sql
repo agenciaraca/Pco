@@ -1,0 +1,28 @@
+-- O podcast pode ser vídeo.
+--
+-- Os 43 podcasts que a PCO produziu e publicou no LMS antigo (portalpco.online)
+-- são **gravações em vídeo**, hospedadas no Vimeo — não arquivos de áudio.
+-- Medido em 10/set/2026 pela API do LearnDash: 43 de 43 têm `video_url`, todos
+-- em `vimeo.com`.
+--
+-- A tabela só tinha `audio_url`, e o player da tela do episódio é um `<audio>`
+-- com barra de progresso, volume e transcrição. Uma URL do Vimeo ali não toca:
+-- `player.vimeo.com/video/<id>` devolve uma PÁGINA, não um arquivo de mídia —
+-- é o mesmo engano que a preview pública do curso cometeu com `<video src>` e
+-- que nunca funcionou. Importar os 43 sem esta coluna produziria 43 episódios
+-- com player mudo, que é exatamente o defeito corrigido em 5/set/2026, quando o
+-- progresso do podcast era um `setInterval` fingindo reprodução.
+--
+-- **Coluna nova em vez de reaproveitar `audio_url`**, por duas razões:
+--
+-- 1. Os dois formatos convivem. O acervo importado é vídeo; o que a escola
+--    gravar depois pode ser áudio, que é mais barato de produzir e é o formato
+--    que se ouve no deslocamento — a razão de o PCO POD existir.
+-- 2. O player escolhe pelo campo preenchido. Guardar um endereço de vídeo num
+--    campo chamado `audio_url` faria a tela ter de adivinhar pelo domínio, e
+--    adivinhação por domínio quebra no dia em que mudar o provedor.
+--
+-- Nula em todo episódio existente, e nula continua querendo dizer "este
+-- episódio não tem vídeo" — não "o vídeo falhou".
+
+ALTER TABLE "podcasts" ADD COLUMN "video_url" text;

@@ -741,6 +741,13 @@ export const createPodcastSchema = z.object({
   coverColor: z.string().max(120).default('from-pco-blue to-pco-cyan'),
   audioUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
   /*
+    O episódio em vídeo — o formato do acervo que veio do LMS antigo, onde os
+    43 podcasts são gravações no Vimeo. Convive com `audioUrl` em vez de
+    substituí-lo: quem escolhe o player é o campo preenchido, e adivinhar pelo
+    domínio da URL quebra no dia em que o provedor mudar.
+  */
+  videoUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
+  /*
     Transcrição. O teto é generoso de propósito: uma hora de fala dá algo em
     torno de 60 mil caracteres, e cortar no meio produziria transcrição
     truncada — que é pior do que nenhuma, porque parece completa.

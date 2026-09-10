@@ -382,8 +382,11 @@ function footer(): Html {
       <div class="wrap legal">
         <span>© ${ORG.founded ?? 2018}–${year} ${ORG.name}. Todos os direitos reservados.</span>
         <span
-          ><a href="/sobre">Quem somos</a> · <a href="/contato">Contato</a> ·
-          <a href="/termos">Termos de Uso</a> ·
+          ><a href="/sobre">Quem somos</a>
+          ${raw(AUTHOR_IS_PLACEHOLDER ? '' : ' · <a href="/quem-ensina">Quem ensina</a>')} ·
+          <a href="/como-funciona">Como funciona</a> · <a href="/legalidade">Legalidade</a> ·
+          <a href="/perguntas-frequentes">Perguntas frequentes</a> ·
+          <a href="/contato">Contato</a> · <a href="/termos">Termos de Uso</a> ·
           <a class="link-destaque" href="/privacidade">Política de Privacidade</a></span
         >
       </div>

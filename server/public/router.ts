@@ -15,7 +15,7 @@ import {
 import { tetoDeParcelas } from '../payments/condicoes';
 import { html, raw } from 'hono/html';
 import { ORG, AUTHOR, AUTHOR_IS_PLACEHOLDER, YMYL_DISCLAIMER } from './config';
-import { renderPage, pincel, ICONE_WHATSAPP, type Html } from './layout';
+import { renderPage, pincel, ICONE_WHATSAPP, NAV, type Html } from './layout';
 import { comColetaDeFalhas, houveFalhaDeLeitura } from './falhas-de-leitura';
 import { comMemoDaRequisicao } from './memo-da-requisicao';
 import {
@@ -37,7 +37,12 @@ import {
   getPublicCourseBySlug,
   getPublicCourseSlugById,
   numerosDoSite,
+  type PublicFaq,
 } from './projections';
+// Análise e supervisão são opcionais por LEI (venda casada, CDC art. 39, I), e
+// o texto que diz isso mora no módulo da regra — não pode ser reescrito à mão
+// numa página, porque duas cópias acabam discordando.
+import { AVISO_OPCIONAL } from '../sessions/regra-opcional';
 import { PUBLIC_JS } from './client';
 import { getTags } from '../marketing/tags-store';
 import { tagsScript } from '../marketing/tags-script';
@@ -181,6 +186,18 @@ publicSite.get('/llms.txt', async (c) => {
   lines.push(`- [Formações](${u('/formacoes')}): catálogo de cursos de psicanálise clínica.`);
   lines.push(`- [Blog](${u('/blog')}): artigos sobre psicanálise, formação e carreira.`);
   lines.push(`- [Sobre](${u('/sobre')}): missão, método e credibilidade da PCO.`);
+  lines.push(
+    `- [Legalidade da profissão](${u('/legalidade')}): a psicanálise não é profissão regulamentada no Brasil; formação livre pela LDB 9.394/96, art. 42, e ocupação na CBO 2515-50.`,
+  );
+  lines.push(
+    `- [Como funciona](${u('/como-funciona')}): passo a passo da matrícula ao certificado.`,
+  );
+  if (!AUTHOR_IS_PLACEHOLDER) {
+    lines.push(`- [Quem ensina](${u('/quem-ensina')}): quem responde pelo conteúdo publicado.`);
+  }
+  lines.push(
+    `- [Perguntas frequentes](${u('/perguntas-frequentes')}): dúvidas sobre legalidade, prazo, avaliação, certificado, atuação e pagamento.`,
+  );
   if (!AUTHOR_IS_PLACEHOLDER) {
     lines.push(`- [Responsável técnico](${u('/autor')}): perfil, credenciais e autoria (E-E-A-T).`);
   }
@@ -481,6 +498,592 @@ publicSite.get('/contato', async (c) => {
   );
 });
 
+/*
+  ================= páginas institucionais =================
+
+  Quatro páginas escritas em 10/set/2026: /legalidade, /como-funciona,
+  /quem-ensina e /perguntas-frequentes.
+
+  A regra que orienta as quatro é a mesma que o resto deste arquivo já segue:
+  só afirma o que dá para sustentar. Fato público entra citado pela fonte (a
+  LDB e a CBO, na página da legalidade); dado do produto entra lido do
+  repositório (prazo, preço, FAQ do curso); e o que ninguém informou não vira
+  frase aproximada — some. Em conteúdo YMYL de saúde mental, número plausível
+  inventado é o defeito mais caro que existe, e a página da legalidade é
+  justamente onde quem lê está decidindo uma carreira.
+
+  Nenhuma delas afirma carga horária semanal, número de tentativas de prova,
+  horário de atendimento nem custo de registro em entidade privada: são os
+  campos que o plano deixou em branco, e branco continua branco.
+*/
+
+/** Uma lista simples, com o texto escapado. Usada nas páginas institucionais. */
+function listaSimples(itens: string[]): string {
+  return `<ul>${itens.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>`;
+}
+
+/**
+ * Pergunta e resposta SEMPRE visíveis, sem sanfona.
+ *
+ * A sanfona do `/formacao/:slug` (`.curso-faq-corpo`) nasce com
+ * `max-height:0` e só abre por JavaScript. Numa página cujo conteúdo inteiro é
+ * pergunta e resposta, isso significa uma tela de títulos vazios para quem
+ * está sem JS — e o `FAQPage` do schema.org exige que a resposta esteja
+ * visível na página, não escondida atrás de um clique que pode não acontecer.
+ */
+function blocoPerguntas(grupos: Array<{ titulo: string; itens: PublicFaq[] }>): string {
+  return grupos
+    .map(
+      (g) =>
+        `<h2>${esc(g.titulo)}</h2>` +
+        g.itens
+          .map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`)
+          .join(''),
+    )
+    .join('');
+}
+
+// ============================ /legalidade ============================
+publicSite.get('/legalidade', async (c) => {
+  const permite = [
+    'Atender como psicanalista, em consultório próprio ou on-line.',
+    'Emitir recibo pelos atendimentos e declarar a renda.',
+    'Abrir CNPJ para a atividade.',
+    'Usar o título de psicanalista e informar qual formação livre concluiu.',
+    'Buscar, se quiser, registro em entidade privada — sempre voluntário.',
+  ];
+  const naoPermite = [
+    'Usar o título de psicólogo, psiquiatra ou médico.',
+    'Diagnosticar doença, prescrever medicamento ou solicitar exame.',
+    'Emitir laudo, parecer ou avaliação psicológica privativos do psicólogo.',
+    'Ocupar cargo ou vaga cujo edital ou lei exija inscrição em conselho profissional.',
+    'Apresentar certificado de curso livre como diploma de graduação ou de pós-graduação.',
+  ];
+
+  const body = html`
+    <section class="section-tight hero-deep tem-pincel">
+      <div class="wrap">
+        <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
+          <a href="/">Início</a><span>›</span><span>Legalidade</span>
+        </nav>
+        <span class="eyebrow">Formação livre</span>
+        <h1 style="margin:14px 0 16px;max-width:24ch">
+          Psicanalista precisa de faculdade? O que a lei diz sobre formação livre
+        </h1>
+        <p class="lead" style="max-width:64ch">
+          Não. A psicanálise não é profissão regulamentada no Brasil: não existe conselho
+          profissional que a fiscalize nem exigência legal de diploma de graduação para exercê-la. A
+          formação acontece em cursos livres, previstos na LDB (Lei 9.394/96, art. 42), e a ocupação
+          de psicanalista consta na Classificação Brasileira de Ocupações sob o código 2515-50.
+        </p>
+      </div>
+      ${pincel('var(--paper)')}
+    </section>
+
+    <section class="section">
+      <div class="wrap two-col" style="align-items:start">
+        <div class="prose">
+          <h2>O que a LDB, art. 42, diz</h2>
+          <p>
+            A Lei de Diretrizes e Bases da Educação Nacional (Lei 9.394/96) prevê, no art. 42, que
+            as instituições de educação profissional ofereçam, além dos seus cursos regulares,
+            cursos especiais abertos à comunidade, com matrícula condicionada à capacidade de
+            aproveitamento e não necessariamente ao nível de escolaridade.
+          </p>
+          <p>
+            É esse dispositivo que dá base ao que se chama de curso livre. Curso livre não é
+            graduação nem pós-graduação e não confere diploma de nível superior — e é exatamente por
+            isso que ele pode ser aberto a quem não tem faculdade.
+          </p>
+
+          <h2>O que é a CBO 2515-50</h2>
+          <p>
+            A Classificação Brasileira de Ocupações (CBO) é o cadastro oficial de ocupações do país,
+            mantido pelo Ministério do Trabalho. A ocupação de psicanalista aparece nela sob o código
+            2515-50.
+          </p>
+          <p>
+            Constar na CBO significa que a ocupação existe e é reconhecida para efeito de registro
+            estatístico e trabalhista. Não significa regulamentação: a CBO descreve o que se faz no
+            Brasil, não cria conselho, não define currículo mínimo e não passa a exigir diploma.
+          </p>
+
+          <h2>Por que CRP e CFM não regulam a psicanálise</h2>
+          <p>
+            O Conselho Regional de Psicologia (CRP) fiscaliza o exercício da Psicologia; o Conselho
+            Federal de Medicina (CFM) e os CRMs, o da Medicina. A competência de um conselho alcança
+            a profissão que a lei criou e entregou a ele — e nenhuma lei entregou a psicanálise a um
+            conselho.
+          </p>
+          <p>
+            Por isso não existe registro de psicanalista no CRP, nem inscrição obrigatória em
+            conselho nenhum para atuar. Pela mesma razão, o psicanalista que não é psicólogo nem
+            médico não está sujeito à fiscalização desses conselhos — e também não pode se apresentar
+            como psicólogo ou médico.
+          </p>
+
+          <h2>O que a formação livre permite</h2>
+          ${raw(listaSimples(permite))}
+
+          <h2>O que a formação livre não permite</h2>
+          ${raw(listaSimples(naoPermite))}
+
+          <h2>O papel dos registros privados</h2>
+          <p>
+            RNTP, sindicatos e associações de psicanálise são entidades privadas. O registro nelas é
+            voluntário e vale como filiação — nunca como licença do Estado, porque não existe licença
+            estatal para uma profissão que não é regulamentada.
+          </p>
+          <p>
+            Ele pode somar em credibilidade e dar acesso aos benefícios da própria entidade; o que
+            não pode é ser apresentado como equivalente a inscrição em conselho profissional. A ${ORG
+              .shortName} é escola reconhecida pelo RNTP (${ORG.rntp}).
+          </p>
+        </div>
+
+        <aside class="stack">
+          <div class="card">
+            <h3 style="font-size:15px;margin-bottom:10px">Fontes citadas nesta página</h3>
+            <ul
+              style="list-style:none;padding:0;margin:0;display:grid;gap:9px;font-size:14px;color:var(--ink-soft)"
+            >
+              <li>Lei nº 9.394/1996 (LDB), art. 42 — cursos especiais abertos à comunidade.</li>
+              <li>
+                Classificação Brasileira de Ocupações (CBO), código 2515-50 — psicanalista.
+              </li>
+            </ul>
+          </div>
+          <div class="disclaimer">${YMYL_DISCLAIMER}</div>
+          <a class="btn btn-primary" href="/como-funciona" style="width:100%"
+            >Como funciona a formação</a
+          >
+          <a class="btn btn-outline" href="/perguntas-frequentes" style="width:100%"
+            >Perguntas frequentes</a
+          >
+        </aside>
+      </div>
+    </section>
+  `;
+
+  return c.html(
+    renderPage({
+      title: `Psicanalista precisa de faculdade? O que a lei diz — ${ORG.shortName}`,
+      description:
+        'A psicanálise não é profissão regulamentada no Brasil: não há conselho nem exigência de graduação. A formação se dá em cursos livres (LDB 9.394/96, art. 42) e a ocupação consta na CBO 2515-50.',
+      path: '/legalidade',
+      bodyHtml: body,
+      jsonLd: [
+        orgJsonLd(),
+        faqJsonLd([
+          {
+            q: 'Psicanalista precisa de faculdade?',
+            a: 'Não. A psicanálise não é profissão regulamentada no Brasil: não existe conselho profissional que a fiscalize nem exigência legal de diploma de graduação. A formação acontece em cursos livres, previstos na LDB (Lei 9.394/96, art. 42).',
+          },
+          {
+            q: 'Psicanalista precisa de registro no CRP?',
+            a: 'Não. O CRP fiscaliza o exercício da Psicologia, e nenhuma lei entregou a psicanálise a um conselho profissional. Não existe registro de psicanalista no CRP nem inscrição obrigatória em conselho para atuar.',
+          },
+          {
+            q: 'O que a CBO 2515-50 significa?',
+            a: 'Que a ocupação de psicanalista é reconhecida na Classificação Brasileira de Ocupações, para efeito de registro estatístico e trabalhista. A CBO descreve ocupações; ela não regulamenta a profissão, não cria conselho e não exige diploma.',
+          },
+        ]),
+        breadcrumbJsonLd([
+          { name: 'Início', path: '/' },
+          { name: 'Legalidade', path: '/legalidade' },
+        ]),
+      ],
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
+// ============================ /como-funciona ============================
+publicSite.get('/como-funciona', async (c) => {
+  const passos: Array<{ titulo: string; texto: string }> = [
+    {
+      titulo: 'Matrícula',
+      texto:
+        'Você escolhe a formação, preenche seus dados no checkout e finaliza o pagamento na página segura do provedor. Nenhum dado de cartão é digitado ou guardado neste site.',
+    },
+    {
+      titulo: 'Acesso após a confirmação do pagamento',
+      texto:
+        'Confirmado o pagamento, você recebe um e-mail para definir sua senha e a matrícula é ativada. No pix a confirmação chega em minutos; no boleto, ela depende da compensação bancária.',
+    },
+    {
+      titulo: 'Estudo por módulo, no seu ritmo',
+      texto:
+        'O conteúdo é organizado em módulos, e cada módulo em aulas com vídeo e material escrito. Fica disponível 24 horas por dia, e você avança quando puder — o prazo de conclusão é o declarado na página de cada formação.',
+    },
+    {
+      titulo: 'Avaliação',
+      texto:
+        'Há avaliação de múltipla escolha, com número de questões e nota mínima definidos pela escola. O resultado fica registrado na sua conta, e a avaliação pode ser refeita com novas questões.',
+    },
+    {
+      titulo: 'Certificado digital',
+      texto:
+        'Concluído o percurso, o certificado digital é emitido em seu nome com um código de validação. Qualquer pessoa pode conferir a autenticidade pelo código, na página pública de verificação do site.',
+    },
+    {
+      titulo: 'Registro no RNTP, se você quiser',
+      texto:
+        'O registro em entidade privada como o RNTP é opcional e contratado diretamente com ela, por sua conta. Não é exigência legal para atuar como psicanalista — a psicanálise não é profissão regulamentada.',
+    },
+  ];
+
+  const passosHtml = passos
+    .map(
+      (p, i) =>
+        `<div class="curso-ementa-item"><div class="curso-ementa-n">${String(i + 1).padStart(2, '0')}</div>` +
+        `<div><div class="t">${esc(p.titulo)}</div><div class="d">${esc(p.texto)}</div></div></div>`,
+    )
+    .join('');
+
+  const body = html`
+    <section class="section-tight hero-deep tem-pincel">
+      <div class="wrap">
+        <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
+          <a href="/">Início</a><span>›</span><span>Como funciona</span>
+        </nav>
+        <span class="eyebrow">Passo a passo</span>
+        <h1 style="margin:14px 0 16px;max-width:22ch">
+          Como se tornar psicanalista pela ${ORG.shortName} — passo a passo
+        </h1>
+        <p class="lead" style="max-width:60ch">
+          Da matrícula ao certificado, na ordem em que as coisas acontecem. A ordem é informação:
+          cada etapa depende da anterior.
+        </p>
+      </div>
+      ${pincel('var(--paper)')}
+    </section>
+
+    <section class="section">
+      <div class="wrap two-col" style="align-items:start">
+        <div class="prose">
+          <h2>As seis etapas</h2>
+          <ol class="sr-only">
+            ${raw(passos.map((p) => `<li>${esc(p.titulo)}</li>`).join(''))}
+          </ol>
+          <div class="curso-ementa">${raw(passosHtml)}</div>
+
+          <h2>O que não é etapa do percurso</h2>
+          <p>${AVISO_OPCIONAL}</p>
+          <p>
+            E o registro em entidade privada não é etapa da formação: ele vem depois, se você quiser,
+            e é contratado com a entidade, não com a escola.
+          </p>
+        </div>
+
+        <aside class="stack">
+          <div class="card">
+            <h3 style="font-size:15px;margin-bottom:10px">Antes de começar</h3>
+            <p style="color:var(--ink-soft);font-size:14px;margin:0">
+              Não há exigência de graduação para se matricular numa formação livre. O porquê, com as
+              fontes, está na página sobre a
+              <a class="link-destaque" href="/legalidade">legalidade da profissão</a>.
+            </p>
+          </div>
+          <div class="disclaimer">${YMYL_DISCLAIMER}</div>
+          <a class="btn btn-cta" href="/formacoes" style="width:100%">Ver as formações</a>
+          <a class="btn btn-outline" href="/perguntas-frequentes" style="width:100%"
+            >Perguntas frequentes</a
+          >
+        </aside>
+      </div>
+    </section>
+  `;
+
+  return c.html(
+    renderPage({
+      title: `Como funciona a formação — passo a passo | ${ORG.shortName}`,
+      description: `Da matrícula ao certificado: as seis etapas da formação em psicanálise clínica da ${ORG.shortName}, na ordem em que acontecem. Formação livre — não substitui graduação em Psicologia ou Medicina.`,
+      path: '/como-funciona',
+      bodyHtml: body,
+      jsonLd: [
+        orgJsonLd(),
+        breadcrumbJsonLd([
+          { name: 'Início', path: '/' },
+          { name: 'Como funciona', path: '/como-funciona' },
+        ]),
+      ],
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
+// ============================ /quem-ensina ============================
+publicSite.get('/quem-ensina', async (c) => {
+  // Mesma trava do `/autor`, e pelo mesmo motivo: sem pessoa nomeada, a página
+  // não existe. Publicar "quem ensina" sem quem seria uma página de autoridade
+  // sem autoridade nenhuma atrás — em saúde mental, é o pior tipo de vitrine.
+  const autor = AUTHOR;
+  if (AUTHOR_IS_PLACEHOLDER || autor === null) return c.notFound();
+
+  const iniciais =
+    autor.name
+      .replace(/\[.*?\]/g, '')
+      .trim()
+      .slice(0, 1)
+      .toUpperCase() || 'ψ';
+
+  // Foto, credenciais e links só aparecem quando existem. Enquanto a pessoa não
+  // fornecer, o lugar fica vazio — nunca preenchido por plausibilidade.
+  const retratoHtml = autor.photo
+    ? `<img src="${esc(autor.photo)}" alt="${esc(autor.name)}" width="140" height="140" style="width:140px;height:140px;border-radius:50%;object-fit:cover;margin:0 auto 14px">`
+    : `<div aria-hidden="true" style="width:140px;height:140px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-size:52px;font-weight:800;color:#fff;background:linear-gradient(135deg,#0a3f3a,#1f9e93)">${esc(iniciais)}</div>`;
+
+  const linksHtml = autor.sameAs.length
+    ? `<div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap">${autor.sameAs
+        .map(
+          (u) =>
+            `<a class="tag-chip" href="${esc(u)}" rel="noopener nofollow me">${esc(new URL(u).hostname.replace('www.', ''))}</a>`,
+        )
+        .join('')}</div>`
+    : '';
+
+  const credenciaisHtml = autor.credentials.length
+    ? `<div class="card"><h3 style="font-size:15px;margin-bottom:10px">Credenciais</h3>` +
+      `<ul style="list-style:none;padding:0;margin:0;display:grid;gap:9px;font-size:14px;color:var(--ink-soft)">` +
+      autor.credentials
+        .map(
+          (cr) =>
+            `<li style="display:flex;gap:9px"><span style="color:var(--accent)">✓</span><span>${esc(cr)}</span></li>`,
+        )
+        .join('') +
+      `</ul></div>`
+    : '';
+
+  const body = html`
+    <section class="section-tight">
+      <div class="wrap">
+        <nav class="breadcrumb" aria-label="Trilha">
+          <a href="/">Início</a><span>›</span><span>Quem ensina</span>
+        </nav>
+      </div>
+    </section>
+    <section class="section-tight">
+      <div class="wrap two-col" style="align-items:start">
+        <div class="stack">
+          <div class="card" style="text-align:center">
+            ${raw(retratoHtml)}
+            <p style="font-weight:800;font-size:20px;margin:0">${autor.name}</p>
+            <p style="color:var(--ink-soft);font-size:14.5px;margin-top:4px">${autor.honorific}</p>
+            ${raw(linksHtml)}
+          </div>
+          ${raw(credenciaisHtml)}
+          <div class="disclaimer">${YMYL_DISCLAIMER}</div>
+        </div>
+        <div class="prose">
+          <span class="eyebrow">Experiência &amp; expertise</span>
+          <h1 style="margin:14px 0 16px">Quem ensina na ${ORG.shortName}</h1>
+          <p>${autor.bio}</p>
+          <p>${autor.experience}</p>
+          <h2>Como o conteúdo é preparado</h2>
+          <p>
+            O material das formações é organizado em módulos e aulas, com o percurso desenhado dos
+            fundamentos às abordagens contemporâneas. Cada curso é revisado antes de ir ao ar, e a
+            escola declara na própria página o que uma formação livre é — e o que ela não é.
+          </p>
+          <p>
+            O perfil completo de quem responde tecnicamente pelo conteúdo publicado está em
+            <a class="link-destaque" href="/autor">responsável técnico</a>. Como se estuda aqui, do
+            primeiro dia ao certificado, está em
+            <a class="link-destaque" href="/como-funciona">como funciona</a>.
+          </p>
+        </div>
+      </div>
+    </section>
+  `;
+
+  return c.html(
+    renderPage({
+      title: `Quem ensina na ${ORG.shortName} — ${autor.name}`,
+      description: `${autor.name}, ${autor.jobTitle}, responde pelo conteúdo publicado na ${ORG.shortName}. Formação livre em psicanálise clínica — não substitui graduação em Psicologia ou Medicina.`,
+      path: '/quem-ensina',
+      ogType: 'profile',
+      bodyHtml: body,
+      jsonLd: [
+        personJsonLd(autor),
+        breadcrumbJsonLd([
+          { name: 'Início', path: '/' },
+          { name: 'Quem ensina', path: '/quem-ensina' },
+        ]),
+      ],
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
+// ============================ /perguntas-frequentes ============================
+publicSite.get('/perguntas-frequentes', async (c) => {
+  /*
+    O prazo sai do curso, não de um literal.
+
+    Ele é declarado por formação (`monthsMin`/`monthsMax`), e escrever "4 a 16
+    meses" aqui à mão criaria a segunda cópia de um número que o admin pode
+    mudar numa tela — as duas discordariam no dia da mudança, e quem lê a
+    errada é alguém decidindo comprar. Sem o dado, a resposta remete à página
+    da formação, que é onde ele sempre está certo.
+  */
+  const slugCarroChefe = (NAV.find((n) => n.key === 'carro-chefe')?.href ?? '').replace(
+    '/formacao/',
+    '',
+  );
+  const carroChefe = slugCarroChefe ? await getPublicCourseBySlug(slugCarroChefe) : null;
+  const prazo =
+    carroChefe && carroChefe.monthsMin && carroChefe.monthsMax
+      ? `Depende da formação. No ${carroChefe.title} o percurso é de ${carroChefe.monthsMin} a ${carroChefe.monthsMax} meses, no seu ritmo. O prazo de cada curso está declarado na página dele.`
+      : 'Depende da formação: cada curso declara o próprio prazo na página dele, e o estudo é no seu ritmo dentro desse prazo.';
+
+  const grupos: Array<{ titulo: string; itens: PublicFaq[] }> = [
+    {
+      titulo: 'Antes de decidir',
+      itens: [
+        {
+          q: 'Preciso de faculdade para ser psicanalista?',
+          a: 'Não. A psicanálise não é profissão regulamentada no Brasil: não há conselho profissional que a fiscalize nem exigência legal de diploma de graduação. A formação acontece em cursos livres, previstos na LDB (Lei 9.394/96, art. 42), e a ocupação consta na CBO 2515-50.',
+        },
+        {
+          q: 'Preciso de formação prévia para começar?',
+          a: 'Não. O curso parte dos fundamentos, então é adequado para iniciantes sérios, e também aprofunda quem já atua em áreas afins.',
+        },
+        {
+          q: 'O curso substitui a faculdade de Psicologia?',
+          a: 'Não. É uma formação livre em psicanálise clínica, não uma graduação nem substituto de formação regulamentada em Psicologia ou Medicina.',
+        },
+      ],
+    },
+    {
+      titulo: 'O curso',
+      itens: [
+        {
+          q: 'Como as aulas funcionam?',
+          a: 'O conteúdo é organizado em módulos, e cada módulo em aulas com vídeo e material escrito. Fica disponível 24 horas por dia, e você avança quando puder.',
+        },
+        { q: 'Quanto tempo tenho para concluir?', a: prazo },
+        {
+          q: 'Existe prova?',
+          a: 'Sim. Há avaliação de múltipla escolha, com número de questões e nota mínima definidos pela escola. O resultado fica registrado na sua conta, e a avaliação pode ser refeita com novas questões.',
+        },
+      ],
+    },
+    {
+      titulo: 'Certificado e registro',
+      itens: [
+        {
+          q: 'Recebo certificado ao concluir?',
+          a: 'Sim. O certificado digital é emitido em seu nome, com um código de validação próprio.',
+        },
+        {
+          q: 'Como alguém confere se o meu certificado é verdadeiro?',
+          a: 'Pelo código de validação, na página pública de verificação do site. Qualquer pessoa pode conferir, sem precisar de conta.',
+        },
+        {
+          q: 'O certificado dá registro profissional?',
+          a: `Não, e nenhum certificado daria: a psicanálise não é profissão regulamentada, então não existe registro estatal para ela. Registros em entidades privadas, como o RNTP, são voluntários e contratados diretamente com a entidade. A ${ORG.shortName} é escola reconhecida pelo RNTP (${ORG.rntp}).`,
+        },
+      ],
+    },
+    {
+      titulo: 'Atuação',
+      itens: [
+        {
+          q: 'Posso atender depois de formado?',
+          a: 'Sim, como psicanalista — ocupação reconhecida na CBO sob o código 2515-50. Você pode atender em consultório próprio ou on-line, emitir recibo e abrir CNPJ para a atividade.',
+        },
+        {
+          q: 'O que eu não posso fazer com uma formação livre?',
+          a: 'Usar o título de psicólogo, psiquiatra ou médico; diagnosticar doença, prescrever medicamento ou pedir exame; emitir laudo ou avaliação psicológica privativos do psicólogo; e apresentar o certificado como diploma de graduação ou de pós-graduação.',
+        },
+        {
+          q: 'Análise pessoal e supervisão são obrigatórias?',
+          a: AVISO_OPCIONAL,
+        },
+      ],
+    },
+    {
+      titulo: 'Pagamento e suporte',
+      itens: [
+        {
+          q: 'Quais são as formas de pagamento?',
+          a: 'O valor, as formas de pagamento e o parcelamento disponível aparecem na página de cada formação e no checkout. O pagamento é finalizado na página segura do provedor: nenhum dado de cartão é digitado ou guardado neste site.',
+        },
+        {
+          q: 'Quando o acesso é liberado?',
+          a: 'Após a confirmação do pagamento. Você recebe um e-mail para definir sua senha e a matrícula é ativada.',
+        },
+        {
+          q: 'Posso desistir depois de comprar?',
+          a: 'Sim. Há direito de arrependimento em até 7 dias corridos a partir da compra.',
+        },
+        {
+          q: 'Como falo com a escola?',
+          a: `Pelo WhatsApp ${ORG.phones[0]} ou pelo e-mail ${ORG.email}.`,
+        },
+      ],
+    },
+  ];
+
+  const body = html`
+    <section class="section-tight hero-deep tem-pincel">
+      <div class="wrap">
+        <nav class="breadcrumb" aria-label="Trilha" style="color:#9fc0ba">
+          <a href="/">Início</a><span>›</span><span>Perguntas frequentes</span>
+        </nav>
+        <span class="eyebrow">Dúvidas comuns</span>
+        <h1 style="margin:14px 0 16px;max-width:20ch">Perguntas frequentes</h1>
+        <p class="lead" style="max-width:60ch">
+          O que mais perguntam antes de se matricular — da legalidade da profissão ao certificado.
+        </p>
+      </div>
+      ${pincel('var(--paper)')}
+    </section>
+
+    <section class="section">
+      <div class="wrap two-col" style="align-items:start">
+        <div class="prose">${raw(blocoPerguntas(grupos))}</div>
+        <aside class="stack">
+          <div class="card">
+            <h3 style="font-size:15px;margin-bottom:10px">Ainda com dúvida?</h3>
+            <p style="color:var(--ink-soft);font-size:14px;margin:0 0 12px">
+              A base legal da formação livre está em
+              <a class="link-destaque" href="/legalidade">legalidade</a>, e o percurso completo em
+              <a class="link-destaque" href="/como-funciona">como funciona</a>.
+            </p>
+            <a class="btn btn-primary" href="/contato" style="width:100%">Falar com a escola</a>
+          </div>
+          <div class="disclaimer">${YMYL_DISCLAIMER}</div>
+          <a class="btn btn-cta" href="/formacoes" style="width:100%">Ver as formações</a>
+        </aside>
+      </div>
+    </section>
+  `;
+
+  return c.html(
+    renderPage({
+      title: `Perguntas frequentes — ${ORG.shortName}`,
+      description: `Dúvidas comuns sobre a formação livre em psicanálise clínica da ${ORG.shortName}: legalidade da profissão, prazo, avaliação, certificado, atuação, pagamento e suporte.`,
+      path: '/perguntas-frequentes',
+      bodyHtml: body,
+      jsonLd: [
+        orgJsonLd(),
+        faqJsonLd(grupos.flatMap((g) => g.itens)),
+        breadcrumbJsonLd([
+          { name: 'Início', path: '/' },
+          { name: 'Perguntas frequentes', path: '/perguntas-frequentes' },
+        ]),
+      ],
+    }),
+    200,
+    HTML_HEADERS,
+  );
+});
+
 // ============================ helpers blog ============================
 function esc(s: string): string {
   return s
@@ -743,6 +1346,14 @@ publicSite.get('/', async (c) => {
    * encosta na onda. Ver `--carreira-laranja` em `styles.ts`.
    */
   const CARREIRA = 'var(--carreira-laranja)';
+  /**
+   * O fundo da faixa do reconhecimento RNTP — o azul do selo, mais escuro.
+   *
+   * A faixa era petróleo como o resto do site, e a seção que fala de um selo
+   * azul aparecia esverdeada. A onda que desce até ela tem de usar esta cor:
+   * apontando para o petróleo, aparece uma listra verde sobre o azul.
+   */
+  const RNTP_FUNDO = 'var(--rntp-fundo-topo)';
 
   const temFormacoes = courses.length > 0 || houveFalhaDeLeitura();
   const temPosts = posts.length > 0;
@@ -1088,7 +1699,7 @@ publicSite.get('/', async (c) => {
           <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero fazer este curso</a>
         </div>
       </div>
-      ${pincel(PETROLEO)}
+      ${pincel(RNTP_FUNDO)}
     </section>
 
     <section class="section faixa-rntp com-textura tem-pincel">

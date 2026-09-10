@@ -51,10 +51,14 @@ function fundoDe(secao: string): string {
   // SOB a foto: ela entra por multiply, que só escurece, então esse é o tom em
   // que a faixa encosta na onda. Ver `test/faixa-da-carreira.test.ts`.
   if (abertura.includes('faixa-carreira')) return 'carreira';
+  // A faixa do reconhecimento é AZUL desde 10/set/2026 — o azul do próprio
+  // selo, 15% mais escuro. Ela era petróleo como o resto do site, e a seção
+  // que fala de um selo azul aparecia esverdeada. A onda que desce até ela tem
+  // de usar esta cor: com a antiga, aparece uma listra verde sobre o azul.
+  if (abertura.includes('faixa-rntp')) return 'rntp';
   if (
     abertura.includes('hero-deep') ||
     abertura.includes('faixa-cta') ||
-    abertura.includes('faixa-rntp') ||
     abertura.includes('--brand-gradient')
   ) {
     return 'petroleo';
@@ -82,6 +86,7 @@ const SOLIDA: Record<string, string> = {
   petroleo: 'var(--brand-grad-topo)',
   laranja: 'var(--cta-grad-topo)',
   carreira: 'var(--carreira-laranja)',
+  rntp: 'var(--rntp-fundo-topo)',
 };
 
 beforeAll(async () => {

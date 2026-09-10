@@ -162,6 +162,13 @@
       "when": 1788836851996,
       "tag": "0022_nascimento_e_endereco_do_comprador",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789016285868,
+      "tag": "0023_podcast_em_video",
+      "breakpoints": true
     }
   ]
 }

@@ -389,6 +389,19 @@ export const podcasts = pgTable('podcasts', {
   coverColor: text('cover_color').notNull(),
   audioUrl: text('audio_url'),
   /**
+   * O episódio em vídeo. `null` = este episódio não tem vídeo.
+   *
+   * Os 43 podcasts que a escola produziu no LMS antigo são gravações em vídeo
+   * no Vimeo, não arquivos de áudio. Guardá-los em `audioUrl` faria o player
+   * `<audio>` receber uma PÁGINA em vez de mídia, e nada tocaria — ver a
+   * migration `0023`.
+   *
+   * Os dois campos convivem: o acervo importado é vídeo, e o que a escola
+   * gravar depois pode ser áudio, que é o formato que se ouve no deslocamento.
+   * Quem escolhe o player é o campo preenchido, nunca o domínio da URL.
+   */
+  videoUrl: text('video_url'),
+  /**
    * Transcrição do episódio, em texto puro. `null` = não transcrito.
    *
    * Conteúdo só-áudio sem alternativa textual não tem via de acesso nenhuma

@@ -152,6 +152,17 @@ if (staticRoot) {
       { path: '/ava-pco', priority: '0.7', changefreq: 'monthly' },
       { path: '/blog', priority: '0.8', changefreq: 'weekly' },
       { path: '/sobre', priority: '0.6', changefreq: 'monthly' },
+      // Institucionais de 10/set/2026. A da legalidade responde a pergunta que
+      // antecede a compra ("psicanalista precisa de faculdade?") e é conteúdo
+      // verificável contra fonte pública — daí a prioridade acima das outras.
+      { path: '/legalidade', priority: '0.8', changefreq: 'monthly' },
+      { path: '/como-funciona', priority: '0.7', changefreq: 'monthly' },
+      { path: '/perguntas-frequentes', priority: '0.7', changefreq: 'monthly' },
+      // /quem-ensina segue o /autor: sem pessoa nomeada, a rota devolve 404 e
+      // não pode entrar no sitemap.
+      ...(AUTHOR_IS_PLACEHOLDER
+        ? []
+        : [{ path: '/quem-ensina', priority: '0.6', changefreq: 'monthly' }]),
       // /autor sai do sitemap enquanto o responsável técnico for placeholder —
       // a rota devolve 404 nesse caso (ver server/public/config.ts).
       ...(AUTHOR_IS_PLACEHOLDER

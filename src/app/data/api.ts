@@ -3195,6 +3195,7 @@ export interface CreatePodcastPayload {
   publishedAt: string;
   coverColor?: string;
   audioUrl?: string;
+  videoUrl?: string;
   relatedCourseIds?: string[];
   relatedModuleIds?: string[];
 }

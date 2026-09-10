@@ -224,6 +224,15 @@ export interface PodcastEpisode {
   coverColor: string;
   audioUrl?: string;
   /**
+   * O episódio em vídeo. Ausente = este episódio não tem vídeo.
+   *
+   * O acervo que veio do LMS antigo são 43 gravações em vídeo no Vimeo. Elas
+   * não cabem em `audioUrl`: o player `<audio>` receberia uma página em vez de
+   * mídia e nada tocaria. Quem decide o player é o campo preenchido — nunca o
+   * domínio da URL, que muda quando o provedor muda.
+   */
+  videoUrl?: string;
+  /**
    * Transcrição do episódio. Ausente = não transcrito.
    *
    * Conteúdo só-áudio sem alternativa textual não tem via de acesso para quem é

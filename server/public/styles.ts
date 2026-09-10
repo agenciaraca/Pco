@@ -22,6 +22,19 @@ export const PUBLIC_CSS = `
      mexer nela descaracterizaria o selo. Existe para ser o fundo do disco do
      selo — ver .selo-rntp. */
   --rntp-azul:#336699;
+  /* O fundo da faixa do reconhecimento: o azul do RNTP, um pouco mais escuro.
+
+     A faixa usava --brand-gradient, o petróleo esverdeado da PCO, e a seção
+     que fala de um selo azul aparecia esverdeada. Escurecer 15% é o que separa
+     o fundo do anel do próprio selo (#336699) — sem isso o disco se dissolve
+     na faixa, que é o mesmo problema medido no rodapé, ao contrário.
+
+     O degradê segue a regra das outras faixas: sempre do tom mais claro para o
+     mais escuro, e o SÓLIDO do topo existe à parte porque o fill de um SVG não
+     entende linear-gradient() — ele ignora o valor e cai no preto. É a
+     armadilha que já pintou três divisores de preto neste site. */
+  --rntp-fundo-topo:#2b5782;
+  --rntp-fundo:linear-gradient(118deg,#2b5782 0%,#274f76 52%,#1f4160 100%);
   /* O laranja SOB a foto da faixa da carreira.
 
      Não é --brand-orange, e a diferença é medida, não gosto: o site antigo
@@ -227,7 +240,7 @@ p{margin:0}
 
    O texto claro sobre o petróleo é o mesmo par do herói (--on-deep e
    #cfe0dc), e não o --ink-soft de fundo claro, que aqui sumiria. */
-.faixa-rntp{background:var(--brand-gradient);color:var(--on-deep)}
+.faixa-rntp{background:var(--rntp-fundo);color:var(--on-deep)}
 .faixa-rntp h2{color:#fff}
 .faixa-rntp .eyebrow{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#dfeeea}
 .faixa-rntp .rntp-texto{color:#cfe0dc}

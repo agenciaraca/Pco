@@ -22,6 +22,7 @@ function rowToEpisode(r: typeof schema.podcasts.$inferSelect): PodcastEpisode {
     publishedAt: r.publishedAt,
     coverColor: r.coverColor,
     audioUrl: r.audioUrl ?? undefined,
+    videoUrl: r.videoUrl ?? undefined,
     transcript: r.transcript ?? undefined,
     relatedCourseIds: r.relatedCourseIds ?? [],
     relatedModuleIds: r.relatedModuleIds ?? [],
@@ -62,6 +63,7 @@ export async function createPodcast(input: CreatePodcastInput): Promise<PodcastE
     publishedAt: input.publishedAt,
     coverColor: input.coverColor,
     audioUrl: input.audioUrl || undefined,
+    videoUrl: input.videoUrl || undefined,
     transcript: input.transcript || undefined,
     relatedCourseIds: input.relatedCourseIds,
     relatedModuleIds: input.relatedModuleIds,
@@ -79,6 +81,7 @@ export async function createPodcast(input: CreatePodcastInput): Promise<PodcastE
     publishedAt: ep.publishedAt,
     coverColor: ep.coverColor,
     audioUrl: ep.audioUrl ?? null,
+    videoUrl: ep.videoUrl ?? null,
     transcript: ep.transcript ?? null,
     tags: ep.tags ?? [],
     relatedCourseIds: ep.relatedCourseIds ?? [],
@@ -106,6 +109,7 @@ export async function updatePodcast(
   if (patch.publishedAt !== undefined) update.publishedAt = patch.publishedAt;
   if (patch.coverColor !== undefined) update.coverColor = patch.coverColor;
   if (patch.audioUrl !== undefined) update.audioUrl = patch.audioUrl || null;
+  if (patch.videoUrl !== undefined) update.videoUrl = patch.videoUrl || null;
   if (patch.transcript !== undefined) update.transcript = patch.transcript || null;
   if (patch.tags !== undefined) update.tags = patch.tags;
   if (patch.relatedCourseIds !== undefined) update.relatedCourseIds = patch.relatedCourseIds;
