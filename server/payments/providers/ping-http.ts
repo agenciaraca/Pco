@@ -10,6 +10,13 @@
 //   que não consegue vender.
 // - **2xx não basta.** Ver `pareceApi()`, abaixo.
 // - **Corpo de terceiro não é persistido.** Ver `guardarNoLog()`, abaixo.
+//
+// E uma quinta, sobre o que o sucesso **não** prova: credencial aceita não é
+// conta apta a cobrar. A do Pagar.me respondia `ok` durante os dias em que
+// recusava toda venda por não ter o produto Checkout habilitado — o ping lê a
+// credencial, e produto não habilitado só aparece na cobrança real. Por isso a
+// mensagem de sucesso fala de credencial e nada além dela; a ressalva inteira
+// está na tela, uma vez, em vez de gravada em cada gateway.
 
 import type { PingResult } from './types';
 
@@ -119,7 +126,11 @@ export async function pingHttp(
     return { ok: false, alcancou: false, message: `${rotulo}: endereço inválido nas opções.` };
   }
   if (alvo.protocol !== 'https:' && alvo.protocol !== 'http:') {
-    return { ok: false, alcancou: false, message: `${rotulo}: endereço precisa ser http ou https.` };
+    return {
+      ok: false,
+      alcancou: false,
+      message: `${rotulo}: endereço precisa ser http ou https.`,
+    };
   }
   if (enderecoInterno(alvo)) {
     return {
@@ -151,7 +162,7 @@ export async function pingHttp(
           'Portal de acesso, proxy ou página de manutenção respondem assim — a credencial não foi conferida.',
       };
     }
-    return { ok: true, alcancou: true, message: `${rotulo} respondeu e aceitou a credencial.` };
+    return { ok: true, alcancou: true, message: `${rotulo} aceitou a credencial.` };
   }
 
   if (res.status === 404 && opcoes.recursoAusenteProvaCredencial) {
@@ -159,7 +170,7 @@ export async function pingHttp(
     // O `content-type` continua valendo: um 404 em HTML é proxy ou página de
     // manutenção, e ali nenhuma credencial foi conferida.
     if (pareceApi(tipo) && opcoes.recursoAusenteProvaCredencial(corpo)) {
-      return { ok: true, alcancou: true, message: `${rotulo} respondeu e aceitou a credencial.` };
+      return { ok: true, alcancou: true, message: `${rotulo} aceitou a credencial.` };
     }
     guardarNoLog(rotulo, res.status, corpo);
     return {

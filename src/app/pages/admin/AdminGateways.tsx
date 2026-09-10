@@ -92,11 +92,7 @@ export default function AdminGateways() {
             encriptadas em disco.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="pco-btn-primary text-xs"
-        >
+        <button type="button" onClick={() => setCreating(true)} className="pco-btn-primary text-xs">
           <Plus size={12} strokeWidth={2} />
           Novo gateway
         </button>
@@ -146,9 +142,7 @@ export default function AdminGateways() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-pco-deep">
-                          {g.displayName}
-                        </span>
+                        <span className="text-sm font-semibold text-pco-deep">{g.displayName}</span>
                         <span className="pco-badge bg-surface-mute text-ink-muted">
                           {providerInfo?.label ?? g.provider}
                         </span>
@@ -162,13 +156,9 @@ export default function AdminGateways() {
                           {g.mode === 'live' ? 'LIVE' : 'TEST'}
                         </span>
                         {g.active ? (
-                          <span className="pco-badge bg-pco-blue/10 text-pco-blue">
-                            Ativo
-                          </span>
+                          <span className="pco-badge bg-pco-blue/10 text-pco-blue">Ativo</span>
                         ) : (
-                          <span className="pco-badge bg-surface-gray text-ink-muted">
-                            Inativo
-                          </span>
+                          <span className="pco-badge bg-surface-gray text-ink-muted">Inativo</span>
                         )}
                         {providerInfo && !providerInfo.implemented && (
                           <span className="pco-badge bg-pco-orange/10 text-pco-orange">
@@ -202,6 +192,23 @@ export default function AdminGateways() {
                               {new Date(g.lastTestedAt).toLocaleString('pt-BR')}
                             </span>
                           )}
+                        </div>
+                      )}
+                      {/*
+                        O que o verde NAO prova.
+
+                        A conta do Pagar.me testava "ok" durante os dias em que
+                        recusava toda venda, por nao ter o produto Checkout
+                        habilitado: o teste le a CREDENCIAL, e produto ausente
+                        so aparece na cobranca real. O dono leu o verde como
+                        "esta vendendo" e perdeu tempo procurando no lugar
+                        errado -- por isso a ressalva fica colada no resultado,
+                        e nao numa secao de ajuda que ninguem abre.
+                      */}
+                      {g.lastTestStatus === 'ok' && (
+                        <div className="mt-0.5 text-[11px] text-ink-subtle">
+                          Isto prova a credencial, não que a conta pode cobrar: produto não
+                          habilitado no gateway só aparece na venda real.
                         </div>
                       )}
                     </div>
@@ -286,8 +293,8 @@ export default function AdminGateways() {
         description={
           confirmDelete && (
             <>
-              <strong>{confirmDelete.displayName}</strong> e todas suas credenciais serão
-              removidos. Pedidos existentes vinculados continuam visíveis.
+              <strong>{confirmDelete.displayName}</strong> e todas suas credenciais serão removidos.
+              Pedidos existentes vinculados continuam visíveis.
             </>
           )
         }

@@ -17,6 +17,8 @@ import { schema } from '../db/client';
 import { bancoSeTabelaExiste } from '../db/tabela-ausente';
 import { JsonStore } from '../db/json-store';
 import type { Order, OrderStatus } from './types';
+import type { TentativaDeCobranca } from './cobranca';
+import { notaDaCobranca } from './o-reserva-fala';
 
 const store = new JsonStore<Order>('payment-orders.json', () => []);
 
@@ -316,6 +318,35 @@ export async function createOrder(input: CreateInput): Promise<Order> {
   return o;
 }
 
+/**
+ * A nota de histórico da cobrança criada — a mesma nos dois backends.
+ *
+ * Ela era escrita duas vezes, e as duas discordavam: o caminho de banco
+ * registrava a troca de gateway, o de JSON dizia sempre "Gateway respondeu".
+ * Produção roda no banco, então a divergência ficava invisível justamente para
+ * quem a leria em teste.
+ */
+function notaDoGateway(
+  data: {
+    externalId: string;
+    gatewayId?: string;
+    gatewayProvider?: string;
+    tentativas?: TentativaDeCobranca[];
+  },
+  atual: Order,
+): string {
+  if (data.tentativas?.length) {
+    return notaDaCobranca({
+      tentativas: data.tentativas,
+      externalId: data.externalId,
+      providerQueCobrou: data.gatewayProvider ?? atual.gatewayProvider,
+    });
+  }
+  return data.gatewayId && data.gatewayId !== atual.gatewayId
+    ? `Cobrado no gateway ${data.gatewayProvider ?? data.gatewayId} (externalId ${data.externalId})`
+    : `Gateway respondeu (externalId ${data.externalId})`;
+}
+
 export async function attachGatewayResult(
   id: string,
   data: {
@@ -334,6 +365,15 @@ export async function attachGatewayResult(
     gatewayProvider?: Order['gatewayProvider'];
     /** Id do parcelamento, quando a cobrança criada é um carnê. */
     installmentId?: string;
+    /**
+     * Todas as tentativas de `cobrar()`, na ordem.
+     *
+     * É o que faz o pedido dizer **por que** o reserva assumiu. Sem isto a
+     * nota registrava a troca de gateway e não a recusa que a causou — e a
+     * recusa é a única coisa que diz o que consertar. Ausente nos chamadores
+     * antigos, e aí vale a nota de sempre.
+     */
+    tentativas?: TentativaDeCobranca[];
   },
 ): Promise<Order | null> {
   const db = await bancoSeTabelaExiste('payment_orders');
@@ -354,14 +394,7 @@ export async function attachGatewayResult(
         updatedAt: agora,
         events: [
           ...atual.events,
-          {
-            ts: agora,
-            status: data.status,
-            note:
-              data.gatewayId && data.gatewayId !== atual.gatewayId
-                ? `Cobrado no gateway ${data.gatewayProvider ?? data.gatewayId} (externalId ${data.externalId})`
-                : `Gateway respondeu (externalId ${data.externalId})`,
-          },
+          { ts: agora, status: data.status, note: notaDoGateway(data, atual) },
         ],
       })
       .where(eq(schema.paymentOrders.id, id))
@@ -382,11 +415,7 @@ export async function attachGatewayResult(
       updatedAt: new Date().toISOString(),
       events: [
         ...o.events,
-        {
-          ts: new Date().toISOString(),
-          status: data.status,
-          note: `Gateway respondeu (externalId ${data.externalId})`,
-        },
+        { ts: new Date().toISOString(), status: data.status, note: notaDoGateway(data, o) },
       ],
     }),
   );
@@ -460,11 +489,15 @@ export async function updateOrder(id: string, patch: UpdateInput): Promise<Order
   const now = new Date().toISOString();
 
   const mudou: string[] = [];
-  if (patch.status && patch.status !== atual.status) mudou.push(`status ${atual.status} → ${patch.status}`);
+  if (patch.status && patch.status !== atual.status)
+    mudou.push(`status ${atual.status} → ${patch.status}`);
   if (patch.amountCents !== undefined && patch.amountCents !== atual.amountCents) {
-    mudou.push(`valor ${(atual.amountCents / 100).toFixed(2)} → ${(patch.amountCents / 100).toFixed(2)}`);
+    mudou.push(
+      `valor ${(atual.amountCents / 100).toFixed(2)} → ${(patch.amountCents / 100).toFixed(2)}`,
+    );
   }
-  if (patch.userEmail && patch.userEmail !== atual.userEmail) mudou.push(`e-mail ${atual.userEmail} → ${patch.userEmail}`);
+  if (patch.userEmail && patch.userEmail !== atual.userEmail)
+    mudou.push(`e-mail ${atual.userEmail} → ${patch.userEmail}`);
 
   const proximo: Order = {
     ...atual,
@@ -504,7 +537,10 @@ export async function updateOrder(id: string, patch: UpdateInput): Promise<Order
       .where(eq(schema.paymentOrders.id, id));
     return proximo;
   }
-  return await store.update((o) => o.id === id, () => proximo);
+  return await store.update(
+    (o) => o.id === id,
+    () => proximo,
+  );
 }
 
 /**
@@ -518,7 +554,10 @@ export async function updateOrder(id: string, patch: UpdateInput): Promise<Order
 export async function deleteOrder(id: string): Promise<boolean> {
   const db = await bancoSeTabelaExiste('payment_orders');
   if (db) {
-    const r = await db.delete(schema.paymentOrders).where(eq(schema.paymentOrders.id, id)).returning({ id: schema.paymentOrders.id });
+    const r = await db
+      .delete(schema.paymentOrders)
+      .where(eq(schema.paymentOrders.id, id))
+      .returning({ id: schema.paymentOrders.id });
     return r.length > 0;
   }
   return await store.remove((o) => o.id === id);

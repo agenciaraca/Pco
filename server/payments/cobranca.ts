@@ -36,6 +36,42 @@ export class SemGatewayParaCobrar extends Error {
 }
 
 /**
+ * As tentativas viajam ANEXADAS ao erro, não embrulhadas nele.
+ *
+ * Quem chama precisa delas no `catch` — é lá que se grava por que a venda
+ * morreu, e com mais de um candidato o `err` sozinho conta só o que o
+ * **último** respondeu, que costuma ser o reserva. A pessoa lia o erro do
+ * Asaas sem saber que o Pagar.me tinha recusado antes.
+ *
+ * Embrulhar num erro novo quebraria os `instanceof PaymentProviderError` a
+ * jusante, e é por eles que o checkout decide o que dizer a quem está
+ * comprando. Um símbolo próprio não colide com nada e some para quem não o
+ * procura.
+ */
+const TENTATIVAS = Symbol.for('ava-pco.tentativas-de-cobranca');
+
+function anexarTentativas(err: unknown, tentativas: TentativaDeCobranca[]): void {
+  if (err && typeof err === 'object') {
+    try {
+      Object.defineProperty(err, TENTATIVAS, {
+        value: tentativas,
+        enumerable: false,
+        configurable: true,
+      });
+    } catch {
+      // Erro congelado: perde-se o detalhe, não a venda.
+    }
+  }
+}
+
+/** O que foi tentado antes de este erro chegar. Vazio quando não se sabe. */
+export function tentativasDoErro(err: unknown): TentativaDeCobranca[] {
+  if (!err || typeof err !== 'object') return [];
+  const v = (err as Record<symbol, unknown>)[TENTATIVAS];
+  return Array.isArray(v) ? (v as TentativaDeCobranca[]) : [];
+}
+
+/**
  * O erro autoriza tentar o próximo gateway?
  *
  * **Só `PaymentProviderError` marcado `criouCobranca: 'nao'`.** Qualquer outra
@@ -131,10 +167,18 @@ export async function cobrar(opts: {
         codigo: err instanceof PaymentProviderError ? err.code : 'ERRO',
         mensagem: err instanceof Error ? err.message : String(err),
       });
-      if (!podeTentarOProximo(err)) throw err;
+      if (!podeTentarOProximo(err)) {
+        anexarTentativas(err, tentativas);
+        throw err;
+      }
     }
   }
 
-  if (ultimoErro) throw ultimoErro;
-  throw new SemGatewayParaCobrar('Nenhum gateway conseguiu emitir a cobrança.');
+  if (ultimoErro) {
+    anexarTentativas(ultimoErro, tentativas);
+    throw ultimoErro;
+  }
+  const semSaida = new SemGatewayParaCobrar('Nenhum gateway conseguiu emitir a cobrança.');
+  anexarTentativas(semSaida, tentativas);
+  throw semSaida;
 }

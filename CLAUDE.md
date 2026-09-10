@@ -684,6 +684,79 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## O reserva cobrava em silêncio — e a venda que morre contava mais que a que passa
+
+`server/payments/o-reserva-fala.ts` (10/set/2026). O dono relatou *"o gateway
+de cartão é o Pagar.me e ele encaminha para o Asaas"*. **Não era bug de
+roteamento**: o Pagar.me é o primeiro candidato, é tentado, e recusa com
+`The checkout payment method is not available for this account.` — a conta não
+tem o produto Checkout habilitado. O reserva assume e a venda passa. O sistema
+faz o certo.
+
+O que faltava era o sistema **contar isso**. `cobrar()` monta `tentativas[]`
+com cada recusa e os **três** pontos de checkout faziam
+`const { gateway, resultado } = await cobrar(...)`, descartando exatamente a
+informação que responde à pergunta. Nada dizia por quê — nem o pedido, nem o
+painel, nem o log.
+
+**A assimetria é o achado:** a frase só aparecia quando *todos* falhavam, e aí
+o `catch` gravava `err.message` no pedido. A venda que morre conta o porquê; a
+que passa pelo reserva, não — e é o inverso do útil, porque a que morre alguém
+percebe.
+
+### A segunda metade, que só a medição achou
+
+Aquele `catch` gravava a mensagem **crua**. Medido no banco de produção, os
+pedidos falhados de 5 e 6/set carregam
+`{"errors":[{"code":"invalid_object","description":"…"}]}` inteiro dentro de
+`events[].note` — e duas rotas devolviam o mesmo corpo ao navegador.
+
+É o que `providers/ping-http.ts` existe para **não** fazer, com o motivo
+escrito lá: corpo de gateway traz id de conta e `request-id`, e há provedor que
+ecoa fragmento de credencial em validação malformada. `events` entra no despejo
+do banco e sobe para um bucket **sem lifecycle**. A regra valia para o card do
+admin e não valia para o pedido, que é onde o dado fica.
+
+Cinco coisas que qualquer mexida aqui tem de respeitar:
+
+- **Sai a frase, não o corpo.** A extração é por **chave conhecida**
+  (`message`, `description`…), recursiva porque o Asaas aninha — varrer toda
+  string traria id de conta junto. E ela **cala** diante do que parece
+  credencial (`sk_`, `Bearer`, sequência longa sem espaço): perder uma frase
+  custa uma consulta ao log, que tem rotação; gravar uma chave no pedido custa
+  para sempre.
+- **As tentativas viajam ANEXADAS ao erro**, num `Symbol`, não embrulhadas
+  nele. Embrulhar quebraria os `instanceof PaymentProviderError` a jusante, e é
+  por eles que o checkout decide o que dizer a quem está comprando.
+- **A nota de falha traz TODAS as recusas.** O `err` sozinho conta só o que o
+  **último** respondeu, e o último costuma ser o reserva: a pessoa lia o erro do
+  Asaas sem saber que o Pagar.me tinha recusado antes.
+- **A venda normal não ganha ruído.** Sem recusa, a nota é a de sempre — o que
+  se quer enxergar é a exceção.
+- **O painel conta pela ANOTAÇÃO, não comparando com a rota de hoje.** A
+  alternativa (gateway do pedido ≠ principal atual) faria toda venda antiga
+  virar "caiu no reserva" no dia em que alguém trocasse a configuração — que é
+  justamente quando o painel precisa estar dizendo a verdade. O preço é não
+  enxergar o passado que nunca foi anotado, e isso é declarado.
+
+**De quebra, o caminho JSON e o de banco discordavam.** O de banco registrava a
+troca de gateway; o de JSON dizia sempre "Gateway respondeu". Produção roda no
+banco, então a divergência ficava invisível justamente para quem a leria em
+teste. Hoje os dois passam pela mesma função.
+
+### E o botão "Testar" parou de implicar mais do que prova
+
+A mensagem de sucesso era *"Pagar.me respondeu e aceitou a credencial"*, e o
+dono a leu como "está vendendo" — perdendo tempo a procurar no lugar errado.
+Ela virou *"aceitou a credencial"*, e a ressalva inteira ficou **na tela,
+colada no resultado verde**: *"Isto prova a credencial, não que a conta pode
+cobrar: produto não habilitado no gateway só aparece na venda real."* Na tela,
+e não gravada em cada gateway, porque a ressalva é propriedade do teste e não
+do resultado.
+
+`test/o-reserva-nao-cobra-calado.test.ts` — 18 casos, 4 falham contra o código
+anterior (os comportamentais; os do extrator testam código novo).
+
 ## O cupom era aceito e jogado fora — na rota por onde entra a venda
 
 `POST /public/checkout` (10/set/2026). `publicCheckoutSchema` declara
@@ -1705,15 +1778,20 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > `const { gateway, resultado } = await cobrar(...)` — descartando exatamente a
 > informação de que o principal recusou. A venda passa, o pedido é reatribuído
 > ao reserva, e nada em lugar nenhum diz por quê. **É a pergunta do dono, e o
-> produto não sabia respondê-la.** NÃO CONSERTADO — é o primeiro item da lista
-> de retomada.
+> produto não sabia respondê-la.**
+>
+> ~~NÃO CONSERTADO~~ — **feito ao fim do dia**, com uma segunda metade que só a
+> medição achou: o caminho de falha gravava o **corpo cru** do gateway no
+> pedido, e duas rotas o devolviam ao navegador. Ver a seção "O reserva cobrava
+> em silêncio".
 >
 > #### O que subiu à tarde
 >
 > | commit | o quê |
 > | --- | --- |
 > | `5b35921` | o cupom era aceito e jogado fora; e o suporte não trocava senha |
-> | *(este)* | verde `#04d3a9` na paleta inteira; H1 da home sem o ano |
+> | `6e5ae7f` | verde `#04d3a9` na paleta inteira; H1 da home sem o ano |
+> | *(este)* | o reserva cobrava em silêncio — e o corpo cru do gateway ia para o pedido |
 >
 > Mais três de operação, de manhã: `860f7d7` (acervo), `8ff55cf` (biblioteca
 > fechada), `1458310` (busca), `ed7add4` (botão morto + handoff), `9eeb368`
@@ -1721,11 +1799,12 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > #### Na ordem em que eu retomaria
 >
-> 1. **Fazer o reserva falar** (item 4 acima). Gravar `tentativas` nos eventos
->    do pedido → `/admin/pedidos` mostra "Pagar.me recusou: … → cobrado no
->    Asaas". Somar um aviso no painel de saúde e mudar o texto do botão
->    "Testar", que hoje diz "OK" e **implica mais do que prova**. Foi
->    exatamente isso que fez o dono perder tempo.
+> 1. ~~**Fazer o reserva falar**~~ — **feito.** `/admin/pedidos` mostra
+>    "Pagar.me recusou (…): … → cobrado no Asaas"; `/admin/saude` avisa quantas
+>    das cobranças de 48h saíram pelo reserva, com o motivo; e o botão "Testar"
+>    parou de implicar que a conta vende. **A ação do dono continua sendo
+>    habilitar o Checkout no Pagar.me** — enquanto não for, cada compra no
+>    cartão custa ~10 s esperando a recusa.
 > 2. **`docs/PLANO-pagina-ava-pco.md`** — auditoria de conversão da `/ava-pco`
 >    que o dono mandou hoje, guardada na íntegra. **Não começada.** Leia a
 >    seção final ("O que NÃO pode ser inventado") antes: metade dos

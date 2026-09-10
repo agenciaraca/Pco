@@ -122,6 +122,46 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
   }
 
   /*
+    2b-bis) O reserva está COBRANDO?
+
+    O aviso acima mede a promessa (quantas parcelas a rota sustenta); este mede
+    o que aconteceu de fato. São perguntas diferentes, e a segunda não tem
+    sintoma: quando o principal recusa e o reserva cobra, o pedido é pago, a
+    matrícula sai e o alarme de checkout -- que mede taxa de FALHA -- não vê
+    falha nenhuma. A venda passa e ninguém fica sabendo que o principal parou
+    de vender.
+
+    Foi exatamente o que aconteceu com a conta do Pagar.me sem o produto
+    Checkout habilitado: dias inteiros com o Asaas cobrando tudo, e a pergunta
+    do dono foi "por que o sistema encaminha para o Asaas?". O produto não
+    sabia responder.
+
+    `warn`, nunca `error`: cair no reserva é o sistema funcionando. O que se
+    vigia é a proporção -- e o motivo vai junto com o número, porque é ele que
+    diz o que consertar (aqui, habilitar o Checkout no painel do gateway).
+  */
+  try {
+    const { medirQuedasNoReserva } = await import('../payments/o-reserva-fala');
+    const ordersRepo = await import('../payments/orders-repo');
+    const medida = medirQuedasNoReserva(await ordersRepo.listAll(), 48);
+    if (medida.quedas > 0) {
+      const pct = Math.round((medida.quedas / medida.cobrancas) * 100);
+      checks.push({
+        id: 'reserva-cobrando',
+        label: 'Gateway reserva',
+        status: 'warn',
+        message:
+          `${medida.quedas} de ${medida.cobrancas} cobranças em 48h saíram pelo reserva (${pct}%)` +
+          (medida.motivoMaisComum ? ` — ${medida.motivoMaisComum}` : '') +
+          '. O principal recusou; a venda passou, mas cada uma esperou a recusa antes de cobrar.',
+        metric: medida.quedas,
+      });
+    }
+  } catch {
+    // ignora
+  }
+
+  /*
     2c) A página do curso se contradiz?
 
     Os chips do topo contam os módulos reais; a grade "Conteúdo do curso" vem

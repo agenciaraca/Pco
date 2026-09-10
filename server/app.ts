@@ -162,7 +162,8 @@ import * as productsRepo from './payments/products-repo';
 import * as ordersRepo from './payments/orders-repo';
 import * as couponsRepo from './payments/coupons-repo';
 import { ALL_PROVIDERS, getPaymentProvider } from './payments/providers/registry';
-import { cobrar, escolherCandidatos } from './payments/cobranca';
+import { cobrar, escolherCandidatos, tentativasDoErro } from './payments/cobranca';
+import { frasePublica, guardarNoLog, notaDaFalha } from './payments/o-reserva-fala';
 import { listarJobs } from './jobs/inventario';
 import { expurgarTitular } from './privacy/expurgo';
 import * as roteamentoPagamento from './payments/roteamento';
@@ -3526,7 +3527,7 @@ export function buildApp() {
       await bookingsRepo.update(booking.id, { orderId: order.id });
 
       try {
-        const { gateway, resultado: result } = await cobrar({
+        const { gateway, resultado: result, tentativas } = await cobrar({
           candidatos,
           input: {
             amountCents: booking.priceCents,
@@ -3544,6 +3545,9 @@ export function buildApp() {
           gatewayId: gateway.id,
           gatewayProvider: gateway.provider,
           installmentId: result.installmentId,
+          // Sem isto o pedido registra a troca de gateway e nao a recusa que a
+          // causou -- e a recusa e a unica coisa que diz o que consertar.
+          tentativas,
         });
         await recordAudit(c, {
           action: 'session.booking.checkout',
@@ -3553,16 +3557,18 @@ export function buildApp() {
         });
         return c.json(updated, 201);
       } catch (err) {
-        await ordersRepo.updateStatus(
-          order.id,
-          'failed',
-          err instanceof Error ? err.message : 'Erro do provider',
-        );
+        // O corpo CRU do gateway nao entra no pedido: `events` vai para o
+        // despejo do banco e sobe para um bucket sem lifecycle. A frase e
+        // extraida, o corpo fica no log -- a mesma regra do ping.
+        const recusas = tentativasDoErro(err);
+        guardarNoLog(`pedido ${order.id}`, err instanceof Error ? err.message : String(err));
+        await ordersRepo.updateStatus(order.id, 'failed', notaDaFalha(recusas, err));
         return jsonError(
           c,
           502,
           'GATEWAY_FAILED',
-          err instanceof Error ? err.message : 'Falha ao criar checkout no gateway.',
+          frasePublica(err instanceof Error ? err.message : null) ??
+            'Falha ao criar checkout no gateway.',
         );
       }
     },
@@ -11782,7 +11788,7 @@ export function buildApp() {
       });
 
       try {
-        const { gateway, resultado: result } = await cobrar({
+        const { gateway, resultado: result, tentativas } = await cobrar({
           metodo: v.data.metodo,
           candidatos,
           input: {
@@ -11815,6 +11821,9 @@ export function buildApp() {
           gatewayId: gateway.id,
           gatewayProvider: gateway.provider,
           installmentId: result.installmentId,
+          // Sem isto o pedido registra a troca de gateway e nao a recusa que a
+          // causou -- e a recusa e a unica coisa que diz o que consertar.
+          tentativas,
         });
         if (appliedCouponId) {
           await ordersRepo.updateStatus(
@@ -11825,16 +11834,18 @@ export function buildApp() {
         }
         return c.json(updated, 201);
       } catch (err) {
-        await ordersRepo.updateStatus(
-          order.id,
-          'failed',
-          err instanceof Error ? err.message : 'Erro do provider',
-        );
+        // O corpo CRU do gateway nao entra no pedido: `events` vai para o
+        // despejo do banco e sobe para um bucket sem lifecycle. A frase e
+        // extraida, o corpo fica no log -- a mesma regra do ping.
+        const recusas = tentativasDoErro(err);
+        guardarNoLog(`pedido ${order.id}`, err instanceof Error ? err.message : String(err));
+        await ordersRepo.updateStatus(order.id, 'failed', notaDaFalha(recusas, err));
         return jsonError(
           c,
           502,
           'GATEWAY_FAILED',
-          err instanceof Error ? err.message : 'Falha ao criar checkout no gateway.',
+          frasePublica(err instanceof Error ? err.message : null) ??
+            'Falha ao criar checkout no gateway.',
         );
       }
     },
@@ -12103,7 +12114,7 @@ export function buildApp() {
     });
 
     try {
-      const { gateway, resultado: result } = await cobrar({
+      const { gateway, resultado: result, tentativas } = await cobrar({
         metodo: v.data.metodo,
         candidatos,
         input: {
@@ -12131,6 +12142,7 @@ export function buildApp() {
         gatewayId: gateway.id,
         gatewayProvider: gateway.provider,
         installmentId: result.installmentId,
+        tentativas,
       });
       /*
         O uso do cupom e contado a partir DESTA anotacao.
@@ -12188,11 +12200,9 @@ export function buildApp() {
         201,
       );
     } catch (err) {
-      await ordersRepo.updateStatus(
-        order.id,
-        'failed',
-        err instanceof Error ? err.message : 'Erro do provider',
-      );
+      const recusas = tentativasDoErro(err);
+      guardarNoLog(`pedido ${order.id}`, err instanceof Error ? err.message : String(err));
+      await ordersRepo.updateStatus(order.id, 'failed', notaDaFalha(recusas, err));
       return jsonError(c, 502, 'GATEWAY_FAILED', 'Falha ao iniciar o pagamento. Tente novamente.');
     }
   });
