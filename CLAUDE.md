@@ -684,7 +684,90 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## Node 22 no VPS — feito, e a parada revelou um desvio maior
+
+**Executado em 10/set/2026**, numa janela medida: duas amostras de tráfego
+(30 s e 45 s) deram **zero requisição**, e o rollback é uma linha. Produção
+roda **Node 22.23.2**; o Node 20 estava fora de suporte desde abril/2026.
+
+**O caminho é o nvm do usuário `avapco`, nunca `apt`** — `/usr/bin/node` é o
+Node do sistema e este servidor hospeda **oito aplicações de usuários
+diferentes**. Trocar o do sistema atingiria todas, e nenhuma delas é desta
+escola.
+
+A sequência que funcionou, e por que cada passo:
+
+1. `nvm alias default 22` — pega o **lado do build**, porque o deploy
+   automático roda `npm install` e `npm run build` pelo shell de login do
+   `avapco`.
+2. `nvm use 22 && pm2 update` — move o **daemon** do PM2. Sem isto, o
+   `interpreter: 'node'` continua resolvendo pelo PATH do daemon antigo.
+3. `pm2 delete ava-pco && pm2 start ecosystem.config.cjs && pm2 save` — ver
+   abaixo; é o que aplicou a configuração de verdade.
+
+**Uma armadilha que custou uma tentativa:** depois do `pm2 update` o módulo
+`pm2-logrotate` subiu em Node 22 e **a app continuou em Node 20**. `pm2 update`
+*relança* módulo e *reinicia* processo — e reiniciar reusa o `env.PATH`
+capturado quando o processo subiu, que tinha o Node 20 na frente. Ou
+`--update-env`, ou `delete` + `start`.
+
+**Volta:** `nvm alias default 20; nvm use 20; pm2 update; pm2 delete ava-pco;
+pm2 start ecosystem.config.cjs; pm2 save`.
+
+### O que a parada revelou: produção não vinha do `ecosystem.config.cjs`
+
+O arquivo está versionado e descreve a app — e **o processo em produção não
+tinha sido iniciado por ele**. Os sintomas eram visíveis e ninguém os ligava:
+o log vivo era `~/.pm2/logs/ava-pco-out.log` (o padrão do PM2) em vez de
+`~/ava-pco/logs/pm2-out.log`, e **não tinha carimbo de hora**, apesar do
+`time: true` no arquivo. Foi isso que impediu, no mesmo dia, medir o volume de
+requisições por hora.
+
+O que **não** estava aplicado, medido em `pm2 jlist`:
+
+| campo | arquivo pede | produção tinha |
+| --- | --- | --- |
+| `kill_timeout` | 8000 | `undefined` → **1600** |
+| `min_uptime` | 15s | `undefined` |
+| `max_restarts` | 15 | `undefined` |
+| `restart_delay` | 3000 | `undefined` → 0 |
+| `time` | `true` | `undefined` |
+
+**O caro é o primeiro.** 1,6 s é o que o processo tinha entre o `SIGINT` e o
+`SIGKILL` — e este app grava `data/*.json` pelo `JsonStore`, que tem fila de
+escrita. Restart no meio de uma gravação pode truncar o arquivo, e o contador
+marcava **155 restarts**. Não há evidência de que tenha acontecido; o que havia
+era a janela aberta, com o arquivo do repositório afirmando que estava fechada.
+
+É a mesma classe do `AGENTS.md` que este arquivo já registra: **arquivo de
+configuração que descreve algo que não é o que roda não é doc desatualizado —
+é uma afirmação falsa que ninguém confere.** E o cabeçalho dele manda
+`pm2 start ecosystem.config.cjs`, o que, com o processo já de pé por outro
+caminho, disputaria a porta 3035.
+
+`logs/` **entrou no `.gitignore` junto**: o `out_file` aponta para dentro do
+próprio repositório, e sem a linha um `git add -A` no servidor comitaria log de
+requisição.
+
+### Ao mexer em PM2 por `ssh`, use `;` — a quebra de linha some
+
+Comandos separados por **quebra de linha** dentro de
+`ssh vps 'sudo -u avapco -i bash -c "..."'` chegam **colados**. Custou duas
+tentativas no mesmo dia: `pm2 set ...:max_size 10M` virou `10Mpm2`, e
+`nvm alias default 22 >/dev/null 2>&1` fundiu com a linha seguinte e morreu com
+`ambiguous redirect`. É a mesma família da crase no template literal e da barra
+invertida no heredoc — separador que o shell come.
+
+E **confira o resultado no arquivo, não na saída**: `pm2 conf` reimprime a
+configuração inteira a cada `set`, o que faz uma tentativa falha parecer
+bem-sucedida. A verdade está em `~/.pm2/module_conf.json`.
+
 ## Node 20 no VPS: validado sob Node 22, e o servidor é COMPARTILHADO
+
+> **Registro histórico — a migração foi FEITA em 10/set/2026.** Ver a seção
+> acima. O que continua valendo aqui é a medição (a suíte sob Node 22 no
+> próprio servidor) e o motivo de não usar `apt`. O que **não** vale mais é a
+> última frase, que diz faltar decidir e agendar: está decidido e feito.
 
 Medido em 9/set/2026. Esta pendência aparecia como "atualizar o Node do VPS" e
 a medição mudou o tamanho dela nos dois sentidos — é mais arriscada do que
@@ -935,11 +1018,33 @@ Três coisas que qualquer mexida aqui tem de respeitar:
 
 ## O rotador de log vigia um arquivo que ninguém escreve
 
+> **Resolvido em 10/set/2026.** O `pm2-logrotate` **está instalado e
+> configurado** (10M, 14 cópias, comprimidas, corte diário à meia-noite,
+> varredura a cada 5 min), com `pm2 save` para sobreviver a reboot. A
+> instalação **não reiniciou a app** — mesmo pid, mesmo uptime. O parágrafo
+> abaixo descreve o estado até aquele dia; o que ele diz sobre o mecanismo
+> continua valendo.
+>
+> **E isso mudou o que o painel devia dizer.** A frase dele — *"esse outro
+> lugar não tem rotação"* — virou **mentira**, e nunca mais se apagaria
+> sozinha: o arquivo vigiado segue parado para sempre, por desenho. Alarme que
+> descreve o estado permanente e correto do sistema é o ruído que faz alguém
+> ignorar a tela inteira. Trocá-lo por verde seria a mentira oposta — **de
+> dentro do processo não dá para afirmar que o módulo do PM2 está instalado**,
+> porque essa informação não mora aqui. Então, sob PM2 (`process.env.pm_id`
+> definido), o painel diz `na` e entrega o comando que responde
+> (`pm2 conf pm2-logrotate`). Fora do PM2 os dois avisos antigos continuam
+> valendo, e ali descrevem um problema de verdade.
+>
+> `test/rotador-nao-vigia-o-nada.test.ts` — 9 casos, 2 falham contra o código
+> anterior, e um deles é justamente o de **fora** do PM2: consertar um lado não
+> pode apagar o outro.
+
 Medido em 9/set/2026. `APP_LOG_PATH` cai no padrão `~/ava-pco/app.log`, **parado
 desde 24/jul/2026** — desde que o PM2 assumiu o processo. O log vivo é
-`~/.pm2/logs/ava-pco-out.log`, e **o `pm2-logrotate` não está instalado**, então
-ele cresce sem teto (2,2 MB em 9/set; o disco tem 312 GB livres, então não é
-urgente).
+`~/.pm2/logs/ava-pco-out.log`, e o `pm2-logrotate` não estava instalado, então
+ele crescia sem teto (2,2 MB em 9/set, 2,3 MB em 10/set; o disco tem 312 GB
+livres, então nunca foi urgente).
 
 O worker dizia-se saudável porque `rotateIfNeeded` devolvia `false` nos dois
 casos: "não precisou rotacionar" e "o arquivo nem existe".
@@ -954,7 +1059,16 @@ há quantos dias e qual é o caminho.
 
 **O conserto não é apontar para o log do PM2**: rotacionar por baixo de um
 processo que mantém o descritor aberto troca um problema por outro. Quem faz
-isso é o gerenciador do processo — `pm2 install pm2-logrotate`.
+isso é o gerenciador do processo — `pm2 install pm2-logrotate`, feito em
+10/set/2026.
+
+**Uma armadilha de `ssh` que estragou a primeira configuração:** vários
+`pm2 set` separados por **quebra de linha** dentro de
+`ssh vps 'sudo -u avapco -i bash -c "..."'` chegam colados — o valor saiu
+`10Mpm2`, e `retain`/`compress` ficaram no padrão. Separe por `;`. E confira o
+resultado em `~/.pm2/module_conf.json`, não na saída do `pm2 conf`, que
+reimprime a configuração inteira a cada `set` e faz uma tentativa falha parecer
+bem-sucedida.
 
 ## O painel de saúde não perguntava pelos workers
 
@@ -1480,11 +1594,13 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >    imagens** públicas da vitrine (contra 108 PDFs). Hoje os PDFs saem do
 >    índice de busca por extensão; trancá-los de verdade é mudança de desenho do
 >    upload.
-> 2. **Node 20 no VPS** — validado sob Node 22, falta a janela. Ver a seção
->    própria; o servidor hospeda oito aplicações de outros usuários, então o
->    caminho é o nvm do `avapco`, nunca `apt upgrade`.
-> 3. **As duas ações de operação de 9/set** (S3 do backup, `pm2 install
->    pm2-logrotate`) e **as sete decisões do dono**, no bloco de 6/set.
+> 2. ~~**Node 20 no VPS**~~ — **feito no mesmo dia**, junto com o
+>    `pm2-logrotate`. Ver a seção própria: a parada revelou um desvio maior
+>    que o Node, que era produção não vir do `ecosystem.config.cjs`.
+> 3. **A ação de operação que sobrou de 9/set: ligar o S3 do backup.** O
+>    `pm2-logrotate` foi instalado e configurado neste mesmo dia — ver a seção
+>    própria, inclusive o que isso obrigou a mudar no painel de saúde. E **as
+>    sete decisões do dono**, no bloco de 6/set.
 >
 > #### O que o dono precisa fornecer, e cada item destrava uma tela
 >
@@ -1567,25 +1683,16 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > #### Na ordem em que eu retomaria
 >
-> 1. **Node 20 no VPS** — **agora validado sob Node 22**, ver a seção própria
->    acima. O que mudou: a aplicação inteira foi testada no servidor com Node
->    22 (install, build, app de pé e 2717 de 2719 testes), e descobriu-se que
->    o servidor hospeda **oito aplicações de outros usuários** no mesmo Node do
->    sistema — então o caminho não é `apt upgrade`, é o nvm do usuário `avapco`
->    com o interpreter do PM2. Falta só a janela: `nvm alias default 22`,
->    reinstalar `node_modules`, reconfigurar o PM2 e reiniciar. Volta com
->    `nvm alias default 20`.
+> 1. ~~**Node 20 no VPS**~~ — **feito em 10/set/2026**: produção roda Node
+>    22.23.2, pelo nvm do `avapco`, e a parada revelou que produção não vinha
+>    do `ecosystem.config.cjs` (faltava o `kill_timeout` de 8 s, entre outros).
+>    Ver a seção própria.
 > 2. **As duas ações de operação que apareceram hoje**, ambas do dono:
 >    - **Ligar o S3 do backup.** Não há `S3_*` no `.env`, então as duas cópias
 >      (JSON e banco) vivem no mesmo disco da aplicação. É o item 3 da lista
 >      antiga, e agora está medido.
->    - **`pm2 install pm2-logrotate`.** O log do PM2 cresce sem teto. Não é
->      urgente (2,2 MB contra 312 GB livres), mas é a razão de o worker de
->      rotação existir e não cobrir nada.
-> 3. **As sete decisões do dono**, que continuam sendo dele — a lista está no
->    bloco de 6/set, mais abaixo. Uma delas ficou mais barata: com o produto
->    Checkout do Pagar.me habilitado, ele volta como reserva **do cartão**,
->    onde não rebaixa nada. Nunca do boleto.
+>    - ~~**`pm2 install pm2-logrotate`**~~ — **feito em 10/set/2026**, com
+>      configuração e `pm2 save`. Ver a seção própria.
 >
 > #### Duas armadilhas de ferramenta que custaram tempo hoje
 >

@@ -532,7 +532,38 @@ export async function buildSnapshot(): Promise<HealthSnapshot> {
     const paradoHaDias = s.alvoParadoDesde
       ? Math.floor((Date.now() - new Date(s.alvoParadoDesde).getTime()) / 86_400_000)
       : null;
-    if (s.alvoExiste === false) {
+    /*
+      Sob PM2, este worker nao tem trabalho aqui -- e dizer que "nao ha
+      rotacao" seria mentira.
+
+      Ate 10/set/2026 o painel avisava, corretamente, que o alvo estava parado
+      havia meses. Naquele dia o `pm2-logrotate` foi instalado, e a frase
+      "esse outro lugar nao tem rotacao" passou a ser FALSA -- alarme errado,
+      nao so ruidoso. E ele nunca mais se apagaria sozinho: o arquivo vigiado
+      continua parado para sempre, por desenho, porque o stdout da aplicacao
+      vai para `~/.pm2/logs` e quem rotaciona ali e o gerenciador do processo.
+
+      De dentro do processo nao da para afirmar que o modulo esta instalado --
+      isso mora no PM2, nao aqui. Entao o painel diz o que sabe (`na`, nao
+      medi) e entrega o comando que responde, em vez de escolher entre duas
+      afirmacoes que nao pode sustentar. E a mesma regra das telas de metrica:
+      ausencia de medicao nunca vira verde nem vermelho.
+
+      Fora do PM2 -- node puro com `APP_LOG_PATH` apontado -- os dois avisos
+      abaixo continuam valendo, e ai eles descrevem um problema de verdade.
+    */
+    if (process.env.pm_id !== undefined) {
+      checks.push({
+        id: 'log-rotator',
+        label: 'Rotação de log',
+        status: 'na',
+        message:
+          'Sob PM2: o stdout da aplicação vai para ~/.pm2/logs e quem rotaciona ' +
+          'ali é o gerenciador do processo, não este worker. Confira com ' +
+          '`pm2 conf pm2-logrotate` (instalado em 10/set/2026: 10M, 14 cópias, ' +
+          'comprimidas).',
+      });
+    } else if (s.alvoExiste === false) {
       checks.push({
         id: 'log-rotator',
         label: 'Rotação de log',

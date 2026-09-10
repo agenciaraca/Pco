@@ -106,3 +106,8 @@ backups/
 
 # Saída do Playwright MCP (screenshots e logs de sessão)
 .playwright-mcp/
+
+# Log do PM2 e do cron de backup. O ecosystem.config.cjs aponta out_file e
+# error_file para ca, dentro do proprio repositorio -- sem esta linha, um
+# `git add -A` no servidor comitaria log de requisicao.
+logs/

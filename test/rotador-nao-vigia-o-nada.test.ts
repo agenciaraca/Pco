@@ -126,6 +126,78 @@ describe('rotador de log', () => {
     expect(check!.metric).toBeGreaterThanOrEqual(47);
   });
 
+  /*
+    Sob PM2 o aviso passou a ser MENTIRA, e nunca mais se apagaria sozinho.
+
+    Em 10/set/2026 o `pm2-logrotate` foi instalado no servidor. A partir dali a
+    frase do painel — "esse outro lugar não tem rotação" — ficou falsa; e o
+    arquivo vigiado continua parado para sempre, por desenho, porque o stdout
+    da aplicação vai para `~/.pm2/logs`.
+
+    Um alarme que descreve o estado permanente e correto do sistema não é
+    alarme: é o ruído que faz alguém ignorar a tela inteira. E trocá-lo por
+    "ok" seria a mentira oposta — de dentro do processo não dá para afirmar
+    que o módulo do PM2 está instalado, porque essa informação não mora aqui.
+
+    Daí `na` com o comando que responde. É a mesma regra das telas de métrica:
+    ausência de medição não vira verde nem vermelho.
+  */
+  describe('sob PM2, a rotação é do gerenciador do processo', () => {
+    afterEach(() => {
+      delete process.env.pm_id;
+    });
+
+    it('alvo morto deixa de ser aviso e vira "não medi"', async () => {
+      const alvo = path.join(tmpDir, 'sob-pm2.log');
+      await fs.writeFile(alvo, 'linha antiga\n', 'utf8');
+      const antigo = new Date(Date.now() - 47 * 86_400_000);
+      await fs.utimes(alvo, antigo, antigo);
+
+      const m = await carregar(alvo);
+      m._resetParaTeste();
+      m.startWorker(1);
+      await new Promise((r) => setTimeout(r, 30));
+      m.stopWorker();
+
+      process.env.pm_id = '0';
+      const { buildSnapshot } = await import('../server/health/dashboard');
+      const check = (await buildSnapshot()).checks.find((c) => c.id === 'log-rotator');
+      expect(check, 'o painel deixou de dizer qualquer coisa sobre rotação').toBeTruthy();
+      expect(check!.status).toBe('na');
+    });
+
+    it('e não afirma que existe rotação — diz onde conferir', async () => {
+      const alvo = path.join(tmpDir, 'sob-pm2-2.log');
+      const m = await carregar(alvo);
+      m._resetParaTeste();
+      m.startWorker(1);
+      await new Promise((r) => setTimeout(r, 30));
+      m.stopWorker();
+
+      process.env.pm_id = '0';
+      const { buildSnapshot } = await import('../server/health/dashboard');
+      const check = (await buildSnapshot()).checks.find((c) => c.id === 'log-rotator');
+      // Afirmar que está rotacionando seria tão errado quanto afirmar que não
+      // está: o painel entrega o comando e sai da frente.
+      expect(check!.message).toContain('pm2 conf pm2-logrotate');
+      expect(check!.message).toMatch(/~\/\.pm2\/logs/);
+    });
+
+    it('fora do PM2 o aviso continua valendo — o caso não desapareceu', async () => {
+      const alvo = path.join(tmpDir, 'fora-do-pm2.log');
+      const m = await carregar(alvo);
+      m._resetParaTeste();
+      m.startWorker(1);
+      await new Promise((r) => setTimeout(r, 30));
+      m.stopWorker();
+
+      delete process.env.pm_id;
+      const { buildSnapshot } = await import('../server/health/dashboard');
+      const check = (await buildSnapshot()).checks.find((c) => c.id === 'log-rotator');
+      expect(check!.status).toBe('warn');
+    });
+  });
+
   it('com alvo válido o painel não põe aviso nenhum', async () => {
     const alvo = path.join(tmpDir, 'ok.log');
     await fs.writeFile(alvo, 'linha\n', 'utf8');
