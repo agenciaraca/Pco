@@ -27,7 +27,7 @@ export default {
        */
       colors: {
         pco: {
-          blue: '#0097b2', // --accent — cor de marca, para preenchimento e traço
+          blue: '#04d3a9', // --accent — cor de marca, para preenchimento e traço
           /**
            * O mesmo azul, escuro o bastante para **texto** e para fundo de
            * botão com letra branca: 5,09:1 contra o branco, contra 3,46:1 do
@@ -36,9 +36,9 @@ export default {
            * "Marcar como concluída" — e ficava abaixo do mínimo de texto
            * normal. Marca continua marca; o que carrega letra usa esta.
            */
-          'blue-ink': '#00798e',
-          cyan: '#0cc0df', // --accent-bright
-          'cyan-light': '#5ce1e6', // --accent-light
+          'blue-ink': '#027c64',
+          cyan: '#31d5b3', // --accent-bright
+          'cyan-light': '#67d8bf', // --accent-light
           orange: '#ff914d', // --brand-orange (2,23:1 — decorativo, nunca texto)
           /** Laranja legível: 4,91:1 no branco. Para CTA e selo com texto. */
           'orange-ink': '#b8530c',

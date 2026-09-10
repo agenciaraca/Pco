@@ -684,6 +684,132 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## O cupom era aceito e jogado fora — na rota por onde entra a venda
+
+`POST /public/checkout` (10/set/2026). `publicCheckoutSchema` declara
+`couponCode` desde que o cupom existe, e o checkout do **aluno logado** sempre o
+aplicou. Na rota **pública** — por onde entra quem ainda não é aluno, ou seja, a
+maioria — o valor era validado pelo Zod, entrava no corpo, e **nenhuma linha o
+lia**.
+
+Quem tivesse cupom pagaria o preço cheio: sem erro, sem aviso, com o pedido
+gravado no valor errado e o gateway cobrando esse valor. É a mesma classe do CPF
+que não chegava ao Asaas e do campo de aula sem coluna — coletado, validado e
+descartado em silêncio na última curva. Aqui o descarte **cobra dinheiro a mais
+de quem comprou**.
+
+O dono relatou como *"cadastrei um cupom e não aparece campo no checkout"*.
+Faltava o campo, sim; e atrás dele faltava a aplicação. **Acrescentar só o campo
+teria transformado uma lacuna numa promessa quebrada.**
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **O valor com desconto vale nos TRÊS lugares**: na busca por pedido pendente
+  equivalente, no pedido gravado e na cobrança. Aplicar num só deixa o pedido
+  dizendo um preço e o gateway cobrando outro — e `acharPendenteEquivalente`
+  chaveia pelo valor, então esquecê-lo ali faz cada tentativa criar pedido novo.
+- **O uso é anotado com `couponId=` na nota do histórico.** Não há coluna de
+  cupom no pedido: quem incrementa o contador é o webhook de pagamento, lendo
+  essa nota. Sem a linha, cupom com limite de usos **nunca chega ao limite** —
+  vale para sempre, em silêncio.
+- **Cupom inválido volta com o MOTIVO** (`valid.reason`: "expirado", "não vale
+  para este curso"), não com "cupom inválido". É a frase que a pessoa lê abaixo
+  do campo, no momento de pagar.
+- **A conferência é no envio, não enquanto digita.** Uma rota pública de
+  "conferir cupom" seria um oráculo de códigos: dá para varrer o dicionário de
+  cupons sem estar logado. `GET /coupons/check` existe e é `requireAuth()` — e
+  continua assim.
+
+`test/cupom-no-checkout-publico.test.ts` cobra as três metades (campo, envio,
+aplicação) e mais a paridade entre as duas rotas de compra — elas já divergiram
+antes, e é assim que se descobre.
+
+## Trocar a senha do aluno pela ficha dele
+
+`PUT /admin/students/:id/password` (10/set/2026). A capacidade existia em
+`PUT /admin/users/:id/password` e continua lá. O que faltava era ela estar
+**onde o suporte trabalha**: quem atende abre a ficha do aluno, e mandá-lo a
+outra tela procurar a conta pelo e-mail é fricção que custa atendimento. O
+público desta escola é 50+, e o "esqueci minha senha" é justamente o passo em
+que muita gente desiste e liga.
+
+Cinco coisas que qualquer mexida aqui tem de respeitar:
+
+- **A ficha e a conta são coisas diferentes**, e é aqui que isto morde: produção
+  tem **418 contas com login e sem ficha**, e o contrário também existe. A busca
+  tem dois caminhos — e-mail primeiro, id depois.
+- **"Não achei" não é erro genérico.** `SEM_CONTA_DE_ACESSO` diz que aquele
+  aluno não tem por onde entrar, que é o que o atendente precisa para saber o
+  que dizer à pessoa.
+- **A resposta devolve o e-mail da conta trocada.** É o que confirma que a senha
+  trocada é a da conta certa, e não de um homônimo.
+- **O campo mostra a senha em claro, de propósito.** Quem digita é o atendente,
+  que vai ditá-la ao telefone; esconder faz ele digitar errado e ditar outra
+  coisa. Quem lê a tela aqui é o suporte, não o aluno.
+- **A troca derruba as sessões abertas** (`changePassword` incrementa o
+  `tokenVersion`), e a caixa avisa isso antes.
+
+## O verde da PCO — e por que a troca de hex mexeu em texto
+
+10/set/2026, a pedido do dono: a cor de marca passou a ser **`#04d3a9`**, com
+**`#67d8bf`** nos tons claros. A anterior (`#0097b2`) era o token dominante do
+produto — **29 usos no CSS do site público e 158 arquivos do app**.
+
+Ele passou **dois** tons e a paleta tem **cinco papéis**, então o resto foi
+derivado mirando **os mesmos contrastes de antes**, para nada regredir:
+
+| token | antes | agora | no branco |
+| --- | --- | --- | --- |
+| `--accent` / `pco-blue` | `#0097b2` | **`#04d3a9`** | 1,93 (preenchimento) |
+| `--accent-ink` | `#007a91` | `#027e65` | 5,03 (era 5,01) |
+| `--accent-soft` | `#d9eef4` | `#e1faf5` | tinte de fundo |
+| `--accent-bright` / `pco-cyan` | `#0cc0df` | `#31d5b3` | intermediário |
+| `--accent-light` | `#5ce1e6` | **`#67d8bf`** | 1,73 |
+| `--brand-deep` | `#0b7486` | `#02775f` | 5,52 (era 5,45) |
+| `pco-blue-ink` | `#00798e` | `#027c64` | 5,16 (era 5,09) |
+
+**A troca revelou um problema que já existia.** `--accent` aparece 29 vezes no
+CSS do site, e **18 delas são `color:` — texto**. Com o azul antigo isso dava
+3,46:1, já abaixo do mínimo de texto normal; com o verde cairia para **1,93:1**,
+reprovando em qualquer tamanho.
+
+A regra para isso **já estava escrita**, no comentário do Tailwind: *cor de
+marca para preenchimento e traço, `-ink` para o que carrega letra*. O CSS
+público é que não a seguia. Aplicá-la aqui **melhorou** o que existia: 3,46 →
+5,03. A única exceção é a aspa decorativa, que vive em `opacity:.3` e não é
+leitura.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **`--on-accent` é escuro, não branco.** Branco sobre `#04d3a9` dá 1,93:1. É a
+  mesma troca que a faixa laranja já tinha feito, pelo mesmo motivo: sobre cor
+  clara e saturada, o texto é escuro.
+- **No tema escuro o acento CLAREIA.** `--pco-blue-ink` vira o próprio verde de
+  marca ali (9,68:1 sobre `#0a1418`), porque o que precisa de contraste é a
+  letra sobre fundo escuro — o comentário do `theme.css` já dizia isso do
+  ciano.
+- **A fonte de verdade é `docs/design/tokens.css`.** `test/tokens-unicos.test.ts`
+  compara o Tailwind e o CSS público contra ela e falha se divergirem — foi ele
+  que pegou a troca incompleta. Trocar cor sem atualizar aquele arquivo deixa
+  os três desalinhados sem ninguém ver.
+- **Há hex fora dos tokens.** `rgba(0,151,178,…)` em degradês e sombras,
+  `theme-color` do `<meta>`, `public/offline.html`, o `certificate-render.ts` e
+  um componente de celebração. Nenhum deles quebra: eles ficam **azuis no meio
+  do verde**, e ninguém acha depois. A varredura por hex antigo faz parte da
+  troca.
+
+`test/paleta-verde-da-pco.test.ts` — 11 casos, e eles travam a paleta **pelo
+contraste**, não pelo hex: quem trocar a cor de novo precisa passar pelos
+mesmos mínimos.
+
+### O H1 da home perdeu o ano
+
+Era *"Formação em psicanálise clínica que cabe na sua vida, desde 2018"*. A data
+ficava pendurada numa frase que fala de rotina — não completa o sentido e gasta
+o fim da única frase que o leitor e o buscador leem primeiro. O ano continua
+onde responde alguma coisa: `foundingDate` no JSON-LD, a seção "Sobre a PCO" e a
+descrição.
+
 ## Node 22 no VPS — feito, e a parada revelou um desvio maior
 
 **Executado em 10/set/2026**, numa janela medida: duas amostras de tráfego
@@ -1530,6 +1656,106 @@ commit não toca no frontend — o aviso do script é genérico; confirme pelo
 Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
+
+> ### 10/set/2026, tarde — quatro problemas de dinheiro, e três eram invisíveis
+>
+> O dono relatou dois; medir achou mais dois. **Nenhum dos quatro dava erro em
+> lugar nenhum.**
+>
+> #### O que ele relatou, e o que era de verdade
+>
+> **1. "O gateway de cartão é o Pagar.me e ele encaminha para o Asaas."**
+> Não é bug de roteamento. Chamando o provider pelo código do próprio servidor,
+> o Pagar.me **é** o primeiro candidato, é tentado, e recusa:
+>
+> ```
+> The checkout payment method is not available for this account.
+> criouCobranca: nao   →  o reserva (Asaas) assume e cobra
+> ```
+>
+> É a mesma conta **sem o produto Checkout habilitado** que derrubou a venda de
+> 3 a 5/set. O sistema faz o certo. E o "testei a conexão e diz OK" também está
+> certo: o ping lê credencial, e produto não habilitado só aparece na cobrança
+> real — está escrito na seção do botão de testar.
+>
+> **AÇÃO DO DONO:** habilitar o Checkout no painel do Pagar.me. Enquanto não
+> for, **cada compra no cartão custa ~10 s** esperando a recusa (medido: o
+> `POST /public/checkout` levou 10 s; uma cobrança direta leva 1–2 s).
+>
+> **2. "Cadastrei um cupom e não aparece campo no checkout."** Verdade — e
+> **pior por baixo**: `publicCheckoutSchema` declara `couponCode` desde sempre e
+> a rota pública **nunca o lia**. Se eu tivesse só acrescentado o campo, teria
+> transformado uma lacuna em promessa quebrada. Corrigido nas duas pontas; ver a
+> seção do cupom.
+>
+> #### O que ninguém tinha reportado
+>
+> **3. O boleto estava em 1x, pela terceira vez.** `tetoDeParcelas('boleto')`
+> devolvia **1** numa escola que vende 6x, porque o Pagar.me estava como reserva
+> do boleto. **O alarme estava gritando** — `/admin/saude` dizia *"boleto: 6x cai
+> para 1x por causa do reserva (Pagar.me)"*. Ninguém abriu a tela. Reserva
+> removido (backup `.bak-20260910-1415`), e o site voltou a anunciar
+> `12x de R$ 99,88 no cartão ou 6x de R$ 199,77 no boleto`.
+>
+> **A configuração vive em `data/payment-routing.json` e é lida no boot** —
+> editar o arquivo exige `pm2 restart` para valer.
+>
+> **4. O reserva cobra em silêncio.** `cobrar()` monta `tentativas[]` com cada
+> recusa, e os **três** pontos de checkout fazem
+> `const { gateway, resultado } = await cobrar(...)` — descartando exatamente a
+> informação de que o principal recusou. A venda passa, o pedido é reatribuído
+> ao reserva, e nada em lugar nenhum diz por quê. **É a pergunta do dono, e o
+> produto não sabia respondê-la.** NÃO CONSERTADO — é o primeiro item da lista
+> de retomada.
+>
+> #### O que subiu à tarde
+>
+> | commit | o quê |
+> | --- | --- |
+> | `5b35921` | o cupom era aceito e jogado fora; e o suporte não trocava senha |
+> | *(este)* | verde `#04d3a9` na paleta inteira; H1 da home sem o ano |
+>
+> Mais três de operação, de manhã: `860f7d7` (acervo), `8ff55cf` (biblioteca
+> fechada), `1458310` (busca), `ed7add4` (botão morto + handoff), `9eeb368`
+> (Node 22 + logrotate + ecosystem).
+>
+> #### Na ordem em que eu retomaria
+>
+> 1. **Fazer o reserva falar** (item 4 acima). Gravar `tentativas` nos eventos
+>    do pedido → `/admin/pedidos` mostra "Pagar.me recusou: … → cobrado no
+>    Asaas". Somar um aviso no painel de saúde e mudar o texto do botão
+>    "Testar", que hoje diz "OK" e **implica mais do que prova**. Foi
+>    exatamente isso que fez o dono perder tempo.
+> 2. **`docs/PLANO-pagina-ava-pco.md`** — auditoria de conversão da `/ava-pco`
+>    que o dono mandou hoje, guardada na íntegra. **Não começada.** Leia a
+>    seção final ("O que NÃO pode ser inventado") antes: metade dos
+>    placeholders é dado que só ele tem, e duas afirmações do plano contradizem
+>    o produto (fala em "15 formações"; a vitrine tem 4 ativos).
+> 3. **Ligar o S3 do backup** — as duas cópias vivem no disco da aplicação.
+> 4. **As sete decisões do dono**, no bloco de 6/set.
+>
+> #### O que o dono precisa fornecer
+>
+> Habilitar o Checkout no Pagar.me (item 1). Mais o que já estava pendente: foto,
+> titulação, ano de início da clínica e links da Rose (`/autor` está no ar
+> deliberadamente sem isso); custo e prazo do RNTP; carga horária semanal;
+> horário do suporte; prazo do certificado. E, para a `/ava-pco`: número de
+> alunos e de certificados, prazo de garantia, período de acesso, 3 depoimentos
+> autorizados, política de reembolso.
+>
+> #### Armadilhas novas, todas de ferramenta
+>
+> - **Quebra de linha some no `ssh`.** Comandos separados por newline dentro de
+>   `ssh vps 'sudo -u avapco -i bash -c "..."'` chegam **colados**: `10M` virou
+>   `10Mpm2`, e um `>/dev/null 2>&1` fundiu com a linha seguinte. Use `;`.
+> - **Crase dentro do `PUBLIC_JS`, de novo** — num comentário que eu acabara de
+>   escrever, dez linhas depois de ler a seção que avisa sobre isso.
+> - **Barra invertida some no heredoc, três vezes hoje** — inclusive dentro do
+>   parágrafo do CLAUDE.md que avisa sobre ela. O que funciona é construir a
+>   barra por `chr(92)` no Python, sem escrever nenhuma no caminho.
+> - **A máquina fica sem RAM e mata tarefa em segundo plano.** Não é o projeto:
+>   o dono mantém outros projetos rodando (~96 processos, 9 GB). Uma coisa
+>   pesada por vez.
 
 > ### 10/set/2026 — o acervo do LMS antigo veio, e encher a estante virou o achado
 >

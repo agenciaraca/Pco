@@ -14,10 +14,10 @@
  * Ao mexer numa cor, mexa nos dois lugares — ou o desenho volta a divergir.
  */
 :root {
-  --pco-blue: #0097b2;
-  --pco-blue-ink: #00798e;
-  --pco-cyan: #0cc0df;
-  --pco-cyan-light: #5ce1e6;
+  --pco-blue: #04d3a9;
+  --pco-blue-ink: #027c64;
+  --pco-cyan: #31d5b3;
+  --pco-cyan-light: #67d8bf;
   --pco-orange: #ff914d;
   --pco-orange-ink: #b8530c;
   --pco-deep: #063b49;
@@ -66,7 +66,7 @@ html[data-theme='dark'] {
    * No escuro o azul de marca já dá 4,88:1 — aqui `blue-ink` clareia em vez de
    * escurecer, porque o que precisa de contraste é a letra sobre fundo escuro.
    */
-  --pco-blue-ink: #0cc0df;
+  --pco-blue-ink: #04d3a9;
   --pco-orange-ink: #ff914d;
 
   color-scheme: dark;
@@ -179,7 +179,7 @@ body {
   }
   /* Fundo com letra branca usa o azul legível (5,09:1), não o de marca. */
   .pco-btn-primary {
-    @apply pco-btn bg-pco-blue-ink text-white hover:bg-[#00697b] active:bg-[#005a6a];
+    @apply pco-btn bg-pco-blue-ink text-white hover:bg-[#026d58] active:bg-[#02614e];
   }
   .pco-btn-secondary {
     @apply pco-btn bg-white text-pco-deep border border-surface-gray hover:border-pco-blue hover:text-pco-blue;

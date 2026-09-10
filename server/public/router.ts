@@ -87,7 +87,16 @@ const HTML_HEADERS = { 'Content-Type': 'text/html; charset=utf-8' } as const;
  * Vive aqui, e não dentro do template, porque comentário em HTML é servido a
  * cada visita: a explicação pertence ao código, não à página.
  */
-const H1_DA_HOME = `Formação em psicanálise clínica que cabe na sua vida, desde ${ORG.founded}`;
+/*
+  O H1 nao carrega mais o ano.
+
+  Ele era "...que cabe na sua vida, desde 2018", e a data ficava pendurada numa
+  frase que fala de rotina: nao completa o sentido, e gasta o fim da unica
+  frase que o buscador e o leitor leem primeiro. O ano continua onde ele
+  responde alguma coisa -- no `foundingDate` do JSON-LD, na secao "Sobre a PCO"
+  e na descricao -- e ali ele e prova de tempo de escola, nao enfeite.
+*/
+const H1_DA_HOME = 'Formação em psicanálise clínica que cabe na sua vida';
 
 /**
  * O bloco de "não consegui carregar", para onde a página mostraria vazio.

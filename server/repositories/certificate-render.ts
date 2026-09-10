@@ -96,7 +96,7 @@ export function renderCertificateHtml(ctx: CertificateRenderContext): string {
     padding: 40px 60px;
     box-sizing: border-box;
     background-image:
-      radial-gradient(circle at 0% 0%, rgba(0,151,178,0.08) 0%, transparent 50%),
+      radial-gradient(circle at 0% 0%, rgba(4,211,169,0.08) 0%, transparent 50%),
       radial-gradient(circle at 100% 100%, rgba(254,144,2,0.08) 0%, transparent 50%);
   }
   .border-decor {

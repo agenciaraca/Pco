@@ -43,7 +43,7 @@ export default function AchievementCelebration({
         onClick={(e) => e.stopPropagation()}
         style={{
           background:
-            'linear-gradient(135deg, rgba(255,193,7,0.08), rgba(0,151,178,0.08))',
+            'linear-gradient(135deg, rgba(255,193,7,0.08), rgba(4,211,169,0.08))',
         }}
       >
         <div className="absolute inset-0 pointer-events-none">

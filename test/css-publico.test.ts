@@ -20,7 +20,7 @@ describe('CSS público servido', () => {
     // Uma amostra de cada camada: token, botão, e uma classe de cada página
     // transposta do protótipo. Se a poda comer regra, cai aqui.
     for (const trecho of [
-      '--accent:#0097b2',
+      '--accent:#04d3a9',
       '--brand-gradient:',
       '.btn-cta{',
       '.btn-wa{',
