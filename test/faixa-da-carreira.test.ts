@@ -4,19 +4,23 @@
  * Até 10/set/2026 o overlay era um único tom (`#a65e32`), escolhido só para o
  * branco passar em 4,5:1 sobre o `multiply` da foto — passava, e parecia
  * marrom. Depois da paleta verde do dia, destoava do resto da home. A pedido
- * do dono, virou o laranja vivo (`#ff914d`, o mesmo do `.btn-cta` e da faixa
- * final).
+ * do dono, virou o laranja vivo — `#ff914d` primeiro, depois `#ff932e` na
+ * mesma noite, quando o dono corrigiu a marca de novo — o mesmo do `.btn-cta`
+ * e da faixa final.
  *
- * Branco sobre `#ff914d` é **2,3:1** — reprova em qualquer tamanho. A
- * legibilidade agora vem de camadas, não da cor sozinha, e é isso que este
- * arquivo trava:
+ * Branco sobre `#ff932e` é **2,2:1** — reprova em qualquer tamanho. A
+ * legibilidade vem de camadas, não da cor sozinha, e é isso que este arquivo
+ * trava:
  *
- * 1. **O degradê afunda.** `--carreira-fundo` sai do `#ff914d` (topo, onde a
- *    onda encosta) e vai a `#8a3d10` na base, onde ficam os parágrafos.
+ * 1. **O degradê afunda.** `--carreira-fundo` sai do laranja vivo (topo, onde
+ *    a onda encosta) e vai a `#8a3d10` na base, onde ficam os parágrafos.
  * 2. **Um véu quente** (`.faixa-carreira::after`) escurece por cima da foto,
- *    transparente no topo e fechando embaixo.
- * 3. **A foto cai para 30%** de multiply (era 45%): aparece menos, escurece
- *    menos, e some de disputar atenção com o texto.
+ *    transparente no topo e fechando embaixo — afrouxado na mesma noite (o
+ *    dono achou escuro demais), com mais foto aparecendo por baixo.
+ * 3. **A foto** entra por `multiply`, e a opacidade dela é o que separa
+ *    "overlay com foto de fundo" de "foto com filtro" — foi ajustada duas
+ *    vezes na mesma noite (45% → 30% → 40%, a pedido do dono, que queria mais
+ *    rosto e menos overlay).
  * 4. **`text-shadow`** no h2 e nos parágrafos.
  *
  * O caso central compõe o degradê com o véu e **calcula o contraste** — clarear
@@ -169,11 +173,15 @@ describe('faixa da carreira', () => {
   });
 
   it('a foto aparece menos: multiply e opacidade baixa', () => {
+    // Ajustada de 45% para 30% e depois para 40% (10/set/2026, à noite, a
+    // pedido do dono — ele queria mais foto visível). O teto continua
+    // existindo: "a 1 a foto vence" (comentário do CSS) — o que se cobra é
+    // que o degradê continue no comando, não um número específico.
     const corpo = regra('.carreira-foto');
     expect(corpo).toContain('mix-blend-mode:multiply');
     const op = /opacity:\s*(0?\.\d+)/.exec(corpo);
     expect(op, 'a foto perdeu a opacidade explícita').not.toBeNull();
-    expect(Number(op![1]), 'a foto voltou a dominar a faixa').toBeLessThanOrEqual(0.35);
+    expect(Number(op![1]), 'a foto voltou a dominar a faixa').toBeLessThanOrEqual(0.5);
     // Sem isolation o multiply atravessa a seção.
     expect(regra('.faixa-carreira')).toContain('isolation:isolate');
   });

@@ -771,6 +771,113 @@ dentro do `PUBLIC_CSS` e os dois backticks fecharam o template literal —
 `PUBLIC_CSS` virou `number`, o `tsc` acusou. Segunda vez na mesma sessão.
 Comentário em CSS servido: **sem crase, nunca**.
 
+## A "emenda" entre seções: laranja e verde sobre onda translúcida faz cáqui
+
+`server/public/styles.ts` (10/set/2026 à noite, a pedido do dono, que mandou
+screenshot). O pincel dissolve com duas camadas translúcidas (opacity .3 e .5)
+por cima de uma sólida — pensadas para diluir contra um fundo **liso**. Duas
+coisas quebravam essa premissa, e as três queixas do dono ("rodapé", "Sua
+carreira", "Faça já sua matrícula") eram o mesmo defeito:
+
+1. **Textura por baixo.** `.com-textura` (a faixa laranja e a de matrícula)
+   desenha o padrão de ondas até a borda da seção. As camadas translúcidas do
+   pincel revelavam o desenho por baixo em vez de diluir a cor — um remendo
+   felpudo bem onde a dissolução deveria ficar mais limpa.
+2. **Matizes opostos.** Laranja e verde são quase complementares no círculo
+   cromático. Verde translúcido sobre laranja sólido produz caqui/oliva —
+   **isso acontece mesmo sem textura nenhuma**, é a álgebra da mistura alfa, e
+   é por isso que a emenda pior era exatamente `.cta-final` (laranja) → rodapé
+   (verde).
+
+### O conserto tem duas partes, porque as duas causas são independentes
+
+- **`.com-textura::before` ganhou máscara.** O padrão apaga no último trecho da
+  seção (a altura do pincel, com folga de 30px) — o pincel passa a dissolver
+  contra o degradê sólido, nunca contra o padrão.
+- **`.cta-final` ganhou um SEGUNDO fundo**, empilhado por cima do degradê
+  laranja: um gradiente vertical transparente→verde que pinta a mesma zona
+  final de `var(--brand-grad-topo)` — a cor exata que o rodapé usa para a
+  própria onda — **antes** de a onda nascer. A passagem de matiz acontece num
+  degradê comum, e a onda (agora verde sobre verde) dissolve limpo, do mesmo
+  jeito que já funcionava em toda transição analógica do site (teal→cinza,
+  laranja→laranja mais escuro).
+
+`.faixa-carreira` (foto, não textura) recebeu o equivalente: a foto já nascia
+mascarada no topo (110px, para a onda de entrada); ganhou a mesma máscara na
+base, simétrica, para a onda de saída não misturar suas camadas translúcidas
+com o rosto da foto.
+
+**O que NÃO resolve isso, e foi tentado primeiro:** só mascarar a textura
+melhora a faixa verde→cinza (matizes próximos) mas não é suficiente sozinho
+para laranja→verde — o cáqui de matizes opostos continua aparecendo mesmo
+contra um degradê liso. As duas causas pedem os dois consertos.
+
+## Overlay da carreira: o dono perguntou "está em 80%?" — não estava, mas pediu menos
+
+Reduzido a pedido do dono: o véu (`.faixa-carreira::after`) chegava a **.46**
+no ponto mais escuro — não 80%, mas a leitura era "escuro demais" e a foto
+sumia. Agora **.25/.38**, com a foto subindo de **30% para 40%** de multiply.
+O pior ponto de contraste (o meio do degradê sob o véu no seu mínimo) ainda dá
+**4,7:1** — acima do mínimo de 4,5, com menos folga que antes porque o pedido
+foi especificamente "mais foto, menos overlay".
+
+## Faixa de matrícula: a parcela vem primeiro, e maior
+
+`server/public/router.ts`. Era total grande, parcela pequena embaixo — o dono
+pediu o inverso. Numa faixa que existe para vencer a hesitação de comprar, o
+número que baixa a barreira é o da parcela (o que cabe no orçamento mensal),
+não o total. Agora `${condicoesFormatted}` (ex.: "12x de R$ 99,88 no cartão ou
+6x de R$ 199,77 no boleto") é o texto grande, e `${priceFormatted} à vista`
+(ex.: "R$ 1.198,60 à vista") é a nota pequena — mesma troca de papel que já
+existe no `.faixa-cta-preco`/`span`, só invertida.
+
+## "Por que escolher a PCO": ícones em vez de números, três colunas
+
+`server/public/router.ts` + `styles.ts`. Eram oito cartões numerados (1 a 8)
+em caixa — o dono pediu ícone em vez de número, sem caixa, e a seção em três
+colunas: uma com o texto, as outras com os itens (ícone + texto lado a lado).
+
+- **Ícone, não número.** Um número é ordem de lista; os oito itens não têm
+  ordem entre si. Cada ícone remete ao CONTEÚDO do item (cartão para
+  pagamento, relógio para duração), no mesmo traço SVG dos ícones que já
+  existiam em `layout.ts` (WhatsApp, carrinho) — stroke, sem preenchimento,
+  cor de marca no `-ink` (a regra de sempre: cor de marca para preenchimento e
+  traço decorativo, `-ink` não se aplica aqui porque ícone não carrega letra).
+- **Sem caixa.** `.porque-item` é `flex` simples — ícone e texto lado a lado,
+  como uma linha de lista, não mais um cartão com fundo e borda repetido oito
+  vezes.
+- **Três colunas de verdade.** `.porque-layout` é `1fr 1.6fr`: a introdução
+  (eyebrow, h2, lead, CTA) isolada de um lado; do outro, `.porque` é ELE MESMO
+  um grid de duas colunas com os oito itens — é o que faz a seção ler como
+  três colunas (texto | ícones | ícones), não duas.
+
+## A correção de cor da paleta, segunda rodada da mesma noite
+
+`server/public/styles.ts` + `tailwind.config.js` + `docs/design/tokens.css` +
+`src/styles/theme.css` (10/set/2026, à noite). A troca de manhã tinha fixado o
+verde em `#04d3a9`; o dono corrigiu de novo à noite: **`#00a690`** para os
+botões verdes, **`#ff932e`** para os laranja de CTA.
+
+**Mais barata que a primeira troca**, e por isso mais rápida: só `--accent` /
+`pco.blue` e `--brand-orange` / `pco.orange` (e os espelhos DIRETOS deles —
+`--brand-grad-topo`, `--cta-grad-topo`, os gradientes, o `theme-color`, o
+manifest, o favicon) mudaram de valor. `--accent-ink`, `--accent-soft`,
+`--accent-bright`, `--accent-light` e o acento do tema escuro **não**
+precisaram mudar — a primeira troca já os tinha deixado como deviam ficar, e
+nada na segunda pediu revisão deles.
+
+`test/tokens-unicos.test.ts` e `test/paleta-verde-da-pco.test.ts` (ambos de
+manhã) tinham o valor antigo hardcoded — atualizados para travar o novo, pela
+mesma lógica de sempre: o teste trava o **contraste**, não o hex, mas onde
+compara VALOR entre `docs/design/tokens.css`/`tailwind.config.js`/`styles.ts`
+ele precisa saber qual é o valor certo hoje.
+
+**Quarta vez na mesma sessão que a crase quebrou o `PUBLIC_CSS`.** Um
+comentário CSS citando um seletor entre crases (`` `fill` ``, `` `1fr 1.6fr` ``,
+`` `main:has(...)` ``) fecha o template literal e `PUBLIC_CSS` vira `number`.
+Neste arquivo, comentário nunca cita código entre crases — só aspas simples ou
+nada.
+
 ## O rodapé tinha duas colunas, e devia ter quatro
 
 `server/public/layout.ts` + `styles.ts` (10/set/2026, a pedido do dono). A grade

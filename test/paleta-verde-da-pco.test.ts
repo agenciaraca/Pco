@@ -1,9 +1,16 @@
 /**
  * A cor de marca virou verde — e trocar hex sem olhar contraste quebra texto.
  *
- * Em 10/set/2026 o dono definiu o verde da PCO como `#04d3a9`, com `#67d8bf`
- * para os tons claros. A cor antiga (`#0097b2`) era o token dominante do
- * produto: **29 usos no CSS do site público e 158 arquivos do app**.
+ * Em 10/set/2026, de manhã, o dono definiu o verde da PCO como `#04d3a9`, com
+ * `#67d8bf` para os tons claros. **Na mesma noite ele corrigiu de novo**, para
+ * `#00a690` — mais fechado, menos ciano; `#67d8bf` não mudou. A cor original
+ * (`#0097b2`) era o token dominante do produto: **29 usos no CSS do site
+ * público e 158 arquivos do app**.
+ *
+ * A segunda troca ficou mais barata que a primeira: só `--accent`/`pco.blue`
+ * e os espelhos diretos dele mudaram de valor — `--accent-ink`, `-soft`,
+ * `-bright`, `-light` e o acento do tema escuro continuam exatamente como a
+ * primeira troca os deixou, porque nenhum deles precisou mudar de novo.
  *
  * O que a troca revelou, e que já era problema antes dela:
  *
@@ -38,7 +45,7 @@ function razao(a: string, b: string): number {
 }
 
 const ler = (p: string) => fs.readFile(path.join(process.cwd(), p), 'utf8');
-const VERDE = '#04d3a9';
+const VERDE = '#00a690';
 const CLARO = '#67d8bf';
 
 describe('o verde pedido está nos tokens dos dois lados', () => {
@@ -101,7 +108,9 @@ describe('o que carrega letra continua legível', () => {
     for (const l of linhas) {
       const decorativa = l.includes('opacity:.3');
       const naoEhTexto = /border-color|border-top-color|accent-color/.test(l);
-      expect(decorativa || naoEhTexto, `texto na cor de marca: ${l.trim().slice(0, 70)}`).toBe(true);
+      expect(decorativa || naoEhTexto, `texto na cor de marca: ${l.trim().slice(0, 70)}`).toBe(
+        true,
+      );
     }
   });
 

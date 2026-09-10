@@ -10,9 +10,10 @@
  *
  * 1. **O arquivo da textura existe.** `url()` para caminho errado não dá erro
  *    em lugar nenhum: dá 404 no navegador de quem visita e uma faixa lisa.
- * 2. **O texto sobre o laranja é escuro.** Branco sobre `#ff914d` dá 2,8:1 e
- *    reprova em qualquer tamanho; o `--on-orange` da paleta dá 7,5:1. É a
- *    troca que mais tenta quem mexe em faixa colorida.
+ * 2. **O texto sobre o laranja é escuro.** Branco sobre o laranja vivo da
+ *    marca (`#ff932e`, corrigido em 10/set/2026 à noite) dá 2,2:1 e reprova
+ *    em qualquer tamanho; o `--on-orange` da paleta dá 7,7:1. É a troca que
+ *    mais tenta quem mexe em faixa colorida.
  * 3. **A última seção da home é a faixa.** A regra que cola o pincel do rodapé
  *    nela é `main:has(> .cta-final:last-child)`. Entrar qualquer seção depois
  *    dela devolve o vão de 64px sem quebrar nada — e ninguém veria.
@@ -61,7 +62,9 @@ describe('faixa final da home', () => {
     // A textura saiu de `.cta-final::before` para a classe `.com-textura`,
     // porque a faixa azul do RNTP passou a usar a mesma — e duas cópias da
     // mesma regra acabam discordando.
-    const url = /url\('([^']+)'\)/.exec(PUBLIC_CSS.slice(PUBLIC_CSS.indexOf('.com-textura::before')));
+    const url = /url\('([^']+)'\)/.exec(
+      PUBLIC_CSS.slice(PUBLIC_CSS.indexOf('.com-textura::before')),
+    );
     expect(url, 'a faixa deixou de declarar a textura').not.toBeNull();
     const arquivo = path.join(process.cwd(), 'public', url![1].replace(/^\//, ''));
     await expect(
@@ -92,6 +95,8 @@ describe('faixa final da home', () => {
     expect(PUBLIC_CSS).toContain('--pincel-altura:');
     expect(PUBLIC_CSS).toContain('height:var(--pincel-altura)');
     expect(PUBLIC_CSS).toContain('margin-top:calc(-1 * var(--pincel-altura))');
-    expect(PUBLIC_CSS).toContain('padding-bottom:calc(clamp(48px,7vw,88px) + var(--pincel-altura))');
+    expect(PUBLIC_CSS).toContain(
+      'padding-bottom:calc(clamp(48px,7vw,88px) + var(--pincel-altura))',
+    );
   });
 });

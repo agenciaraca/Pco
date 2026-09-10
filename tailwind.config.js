@@ -27,7 +27,12 @@ export default {
        */
       colors: {
         pco: {
-          blue: '#04d3a9', // --accent — cor de marca, para preenchimento e traço
+          /**
+           * Corrigido pelo dono em 10/set/2026 à noite: era `#04d3a9` (a
+           * troca de paleta da mesma manhã), virou `#00a690` — mais fechado.
+           * Só o botão/preenchimento muda; `blue-ink` (texto) continua igual.
+           */
+          blue: '#00a690', // --accent — cor de marca, para preenchimento e traço
           /**
            * O mesmo azul, escuro o bastante para **texto** e para fundo de
            * botão com letra branca: 5,09:1 contra o branco, contra 3,46:1 do
@@ -39,7 +44,7 @@ export default {
           'blue-ink': '#027c64',
           cyan: '#31d5b3', // --accent-bright
           'cyan-light': '#67d8bf', // --accent-light
-          orange: '#ff914d', // --brand-orange (2,23:1 — decorativo, nunca texto)
+          orange: '#ff932e', // --brand-orange (corrigido 10/set/2026 à noite, era #ff914d; decorativo, nunca texto)
           /** Laranja legível: 4,91:1 no branco. Para CTA e selo com texto. */
           'orange-ink': '#b8530c',
           deep: '#063b49', // --brand-petroleo

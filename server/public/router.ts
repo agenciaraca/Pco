@@ -1327,11 +1327,19 @@ publicSite.get('/', async (c) => {
     botão: melhor faltar o valor do que anunciar um errado.
   */
   const carroChefe = courses.find((co) => co.slug === 'curso-de-psicanalise-clinica-online');
+  /*
+    A ordem é a da parcela primeiro, maior — e o total depois, pequeno.
+
+    Era o inverso (total grande, parcela pequena embaixo). Numa faixa que
+    existe para vencer a hesitação de comprar, o número que baixa a barreira é
+    o da parcela — é o que a pessoa vai pagar todo mês, e é ele que cabe no
+    orçamento. O total é a informação de apoio, não a manchete.
+  */
   const precoMatricula = carroChefe?.priceFormatted
-    ? `<p class="faixa-cta-preco">${esc(carroChefe.priceFormatted)}${
+    ? `<p class="faixa-cta-preco">${
         carroChefe.condicoesFormatted
-          ? ` <span>ou ${esc(carroChefe.condicoesFormatted)}</span>`
-          : ''
+          ? `${esc(carroChefe.condicoesFormatted)}<span>${esc(carroChefe.priceFormatted)} à vista</span>`
+          : esc(carroChefe.priceFormatted)
       }</p>`
     : '';
 
@@ -1442,7 +1450,36 @@ publicSite.get('/', async (c) => {
     .map(([t, d]) => `<div class="pilar"><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`)
     .join('');
 
-  // ---- por que escolher a PCO (texto do dono, oito itens) ----
+  /*
+    ---- por que escolher a PCO (texto do dono, oito itens) ----
+
+    Era número (1 a 8) dentro de uma caixinha colorida. O dono pediu ícone, sem
+    caixa — o número é ordem de lista, e estes oito itens não têm ordem entre
+    si; um ícone que remete ao conteúdo do item ("cartão" para pagamento,
+    "relógio" para duração) diz mais do que a posição dele na lista.
+
+    Mesmo traço dos ícones que já existem em `layout.ts` (WhatsApp, carrinho):
+    stroke, sem preenchimento, 24x24, para acompanhar o peso visual do texto
+    ao redor em vez de competir com ele como um selo colorido competiria.
+  */
+  const ICONES_PORQUE = [
+    // Aulas em Vídeo — play
+    '<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>',
+    // Pagamento Facilitado — cartão
+    '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+    // Vasto Material de Leitura — livro aberto
+    '<path d="M2 5c2.5-1.5 5.5-1.5 8 0v14c-2.5-1.5-5.5-1.5-8 0V5Z"/><path d="M22 5c-2.5-1.5-5.5-1.5-8 0v14c2.5-1.5 5.5-1.5 8 0V5Z"/>',
+    // Início Imediato — raio
+    '<polygon points="13 2 3 14 11 14 11 22 21 10 13 10 13 2"/>',
+    // Provas Simplificadas — prancheta com check
+    '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v2H9z"/><path d="m9 13 2 2 4-4"/>',
+    // Duração — relógio
+    '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>',
+    // Reconhecimento RNTP — medalha
+    '<circle cx="12" cy="9" r="6"/><path d="m9 14.5-1.5 6 4.5-2 4.5 2-1.5-6"/>',
+    // Tutoria Dedicada — balão de conversa
+    '<path d="M21 12c0 4.4-4 8-9 8-1.3 0-2.5-.2-3.6-.6L3 21l1.8-4.5C3.7 15 3 13.6 3 12c0-4.4 4-8 9-8s9 3.6 9 8Z"/>',
+  ];
   const porqueItens: Array<[string, string]> = [
     [
       'Aulas em Vídeo',
@@ -1479,8 +1516,11 @@ publicSite.get('/', async (c) => {
   ];
   const porque = porqueItens
     .map(
-      ([t, d], i) =>
-        `<div class="porque-item"><div class="n">${i + 1}</div><div class="t">${esc(t)}</div><div class="d">${esc(d)}</div></div>`,
+      ([t, d], i) => `<div class="porque-item">
+        <svg class="porque-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONES_PORQUE[i % ICONES_PORQUE.length]}</svg>
+        <div><div class="t">${esc(t)}</div><div class="d">${esc(d)}</div></div>
+      </div>`,
     )
     .join('');
 
@@ -1669,16 +1709,24 @@ publicSite.get('/', async (c) => {
 
     <section class="section tem-pincel" style="background:var(--surface-2)">
       <div class="wrap">
-        <span class="eyebrow">Por que escolher a ${ORG.shortName}</span>
-        <h2 style="margin:12px 0 14px">Por que escolher a PCO Psicanálise Clínica Online?</h2>
-        <p class="lead" style="max-width:76ch;margin-bottom:26px">
-          A escolha do seu curso de psicanálise clínica é sempre complicada, pois existe muita
-          oferta e diversos formatos. A PCO simplificou e preparou um curso online para que você,
-          através do seu próprio potencial, se torne um psicanalista.
-        </p>
-        <div class="porque">${raw(porque)}</div>
-        <div style="margin-top:28px">
-          <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero começar</a>
+        <!--
+          Três colunas: o texto sozinho de um lado, os oito itens em duas
+          colunas de ícone+texto do outro — não mais um grid único de oito
+          cartões repetindo a mesma caixa. O texto para de competir por
+          atenção com a lista: ele é a moldura da seção, a lista é o conteúdo.
+        -->
+        <div class="porque-layout">
+          <div class="porque-intro">
+            <span class="eyebrow">Por que escolher a ${ORG.shortName}</span>
+            <h2 style="margin:12px 0 14px">Por que escolher a PCO Psicanálise Clínica Online?</h2>
+            <p class="lead">
+              A escolha do seu curso de psicanálise clínica é sempre complicada, pois existe muita
+              oferta e diversos formatos. A PCO simplificou e preparou um curso online para que
+              você, através do seu próprio potencial, se torne um psicanalista.
+            </p>
+            <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero começar</a>
+          </div>
+          <div class="porque">${raw(porque)}</div>
         </div>
       </div>
       ${pincel(CARREIRA)}

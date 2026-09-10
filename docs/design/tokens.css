@@ -8,12 +8,12 @@
   /* 1/set/2026: o dono pediu o fundo "bem mais claro, quase branco". O handoff
      original traz #f3f4f1 e continua trazendo — esta divergencia e deliberada,
      nao erro de transposicao. Nao reverter para casar com o pacote de design. */
-  --paper: #f9faf8;      /* fundo da pagina */
-  --surface: #fbfcfa;    /* faixas/seções alternadas */
-  --surface-2: #eaece6;  /* recuos, pílulas, fundos de controle */
-  --raise: #ffffff;      /* cartões e superfícies elevadas */
-  --ink: #101828;        /* texto principal (grafite oficial) */
-  --ink-soft: #575c62;   /* texto secundário */
+  --paper: #f9faf8; /* fundo da pagina */
+  --surface: #fbfcfa; /* faixas/seções alternadas */
+  --surface-2: #eaece6; /* recuos, pílulas, fundos de controle */
+  --raise: #ffffff; /* cartões e superfícies elevadas */
+  --ink: #101828; /* texto principal (grafite oficial) */
+  --ink-soft: #575c62; /* texto secundário */
   /*
    * Escurecido de #868c92 para #6f757c em 3/set/2026, por contraste.
    *
@@ -28,45 +28,51 @@
    * como estão, e o aplicativo ganhou `pco.blue-ink` / `pco.orange-ink` para os
    * casos em que a cor carrega letra (botão primário, link).
    */
-  --ink-faint: #6f757c;  /* legendas, placeholders */
-  --line: #dcdfd8;       /* bordas padrão */
-  --line-soft: #e8eae4;  /* bordas sutis/divisores */
+  --ink-faint: #6f757c; /* legendas, placeholders */
+  --line: #dcdfd8; /* bordas padrão */
+  --line-soft: #e8eae4; /* bordas sutis/divisores */
 
   /* marca — ciano manda; troque só este bloco para rebrandar */
-  --accent: #04d3a9;         /* verde da marca (10/set/2026) */
-  --accent-ink: #027e65;     /* verde p/ texto sobre claro — 5,03:1 */
-  --accent-soft: #e1faf5;    /* tint de fundo */
+  --accent: #00a690; /* verde da marca (corrigido 10/set/2026 à noite; era #04d3a9 da mesma manhã) */
+  --accent-ink: #027e65; /* verde p/ texto sobre claro — 5,03:1 */
+  --accent-soft: #e1faf5; /* tint de fundo */
   --on-accent: #ffffff;
-  --accent-bright: #31d5b3;  /* verde claro (gráficos, brilhos) */
-  --accent-light: #67d8bf;   /* verde claro 2 (detalhes finos) */
+  --accent-bright: #31d5b3; /* verde claro (gráficos, brilhos) */
+  --accent-light: #67d8bf; /* verde claro 2 (detalhes finos) */
   --brand-petroleo: #063b49; /* petróleo — superfícies/texto de peso */
-  --brand-deep: #02775f;     /* ponta escura do degradê oficial */
+  --brand-deep: #02775f; /* ponta escura do degradê oficial */
   --on-deep: #eef3f1;
 
   /* laranja — DETALHE de identidade + CTA de conversão; nunca dominante */
-  --brand-orange: #ff914d;
-  --brand-orange-ink: #d96a24;   /* laranja legível sobre claro */
+  --brand-orange: #ff932e; /* corrigido 10/set/2026 à noite; era #ff914d */
+  --brand-orange-ink: #d96a24; /* laranja legível sobre claro */
   --brand-orange-soft: #ffe9db;
   --on-orange: #2b1608;
 
   /* degradês oficiais — sempre do principal para o escuro */
-  --grad-brand: linear-gradient(118deg, #04d3a9 0%, #03aa88 52%, #02775f 100%);
-  --grad-cta: linear-gradient(118deg, #ff914d, #f07a2f);
+  --grad-brand: linear-gradient(118deg, #00a690 0%, #03aa88 52%, #02775f 100%);
+  --grad-cta: linear-gradient(118deg, #ff932e, #f07c10);
 
   /* terceiros */
   --wa: #25d366; /* WhatsApp oficial */
 
   /* semânticos — são ESTADO, nunca cor de marca */
-  --good: #2f7d4f; --good-bg: #e0efe4; --good-line: #bcdcc6;
-  --warn: #9a6a12; --warn-bg: #f5ead1; --warn-line: #e5d09a;
-  --crit: #b0422f; --crit-bg: #f6e2dc; --crit-line: #e8bfb3;
+  --good: #2f7d4f;
+  --good-bg: #e0efe4;
+  --good-line: #bcdcc6;
+  --warn: #9a6a12;
+  --warn-bg: #f5ead1;
+  --warn-line: #e5d09a;
+  --crit: #b0422f;
+  --crit-bg: #f6e2dc;
+  --crit-line: #e8bfb3;
 
   /* geometria e sombra */
   --radius-sm: 9px;
   --radius: 14px;
   --radius-lg: 22px;
-  --shadow: 0 1px 2px rgba(20,25,30,.04), 0 4px 16px rgba(20,25,30,.05);
-  --shadow-lg: 0 12px 34px rgba(11,116,134,.14);
+  --shadow: 0 1px 2px rgba(20, 25, 30, 0.04), 0 4px 16px rgba(20, 25, 30, 0.05);
+  --shadow-lg: 0 12px 34px rgba(11, 116, 134, 0.14);
 
   /* tipografia — site público NÃO carrega webfont (Core Web Vitals) */
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -76,42 +82,102 @@
 }
 
 /* tema escuro — mesmíssimo cuidado */
-:root[data-theme="dark"] {
-  --paper: #101216; --surface: #181b20; --surface-2: #20242a; --raise: #1e2228;
-  --ink: #e9ebe6; --ink-soft: #9ea4aa; --ink-faint: #6e747b;
-  --line: #2b2f36; --line-soft: #242830;
-  --accent: #3fd0b4; --accent-ink: #7fe3cd; --accent-soft: #102c33; --on-accent: #0c1f1d;
-  --accent-bright: #31d5b3; --accent-light: #67d8bf;
-  --brand-petroleo: #041f27; --brand-deep: #04604d; --on-deep: #eef3f1;
-  --brand-orange: #ff914d; --brand-orange-ink: #ffab77; --brand-orange-soft: #33200f;
-  --good: #5cbd83; --good-bg: #16281d; --good-line: #274a34;
-  --warn: #d6a24c; --warn-bg: #2c2413; --warn-line: #4a3c1c;
-  --crit: #e08066; --crit-bg: #2c1a14; --crit-line: #4d2c22;
-  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
-  --shadow-lg: 0 14px 38px rgba(0,0,0,.4);
+:root[data-theme='dark'] {
+  --paper: #101216;
+  --surface: #181b20;
+  --surface-2: #20242a;
+  --raise: #1e2228;
+  --ink: #e9ebe6;
+  --ink-soft: #9ea4aa;
+  --ink-faint: #6e747b;
+  --line: #2b2f36;
+  --line-soft: #242830;
+  --accent: #3fd0b4;
+  --accent-ink: #7fe3cd;
+  --accent-soft: #102c33;
+  --on-accent: #0c1f1d;
+  --accent-bright: #31d5b3;
+  --accent-light: #67d8bf;
+  --brand-petroleo: #041f27;
+  --brand-deep: #04604d;
+  --on-deep: #eef3f1;
+  --brand-orange: #ff932e;
+  --brand-orange-ink: #ffab77;
+  --brand-orange-soft: #33200f;
+  --good: #5cbd83;
+  --good-bg: #16281d;
+  --good-line: #274a34;
+  --warn: #d6a24c;
+  --warn-bg: #2c2413;
+  --warn-line: #4a3c1c;
+  --crit: #e08066;
+  --crit-bg: #2c1a14;
+  --crit-line: #4d2c22;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 14px 38px rgba(0, 0, 0, 0.4);
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #101216; --surface: #181b20; --surface-2: #20242a; --raise: #1e2228;
-    --ink: #e9ebe6; --ink-soft: #9ea4aa; --ink-faint: #6e747b;
-    --line: #2b2f36; --line-soft: #242830;
-    --accent: #3fd0b4; --accent-ink: #7fe3cd; --accent-soft: #102c33; --on-accent: #0c1f1d;
-    --accent-bright: #31d5b3; --accent-light: #67d8bf;
-    --brand-petroleo: #041f27; --brand-deep: #04604d; --on-deep: #eef3f1;
-    --brand-orange: #ff914d; --brand-orange-ink: #ffab77; --brand-orange-soft: #33200f;
-    --good: #5cbd83; --good-bg: #16281d; --good-line: #274a34;
-    --warn: #d6a24c; --warn-bg: #2c2413; --warn-line: #4a3c1c;
-    --crit: #e08066; --crit-bg: #2c1a14; --crit-line: #4d2c22;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
-    --shadow-lg: 0 14px 38px rgba(0,0,0,.4);
+  :root:not([data-theme='light']) {
+    --paper: #101216;
+    --surface: #181b20;
+    --surface-2: #20242a;
+    --raise: #1e2228;
+    --ink: #e9ebe6;
+    --ink-soft: #9ea4aa;
+    --ink-faint: #6e747b;
+    --line: #2b2f36;
+    --line-soft: #242830;
+    --accent: #3fd0b4;
+    --accent-ink: #7fe3cd;
+    --accent-soft: #102c33;
+    --on-accent: #0c1f1d;
+    --accent-bright: #31d5b3;
+    --accent-light: #67d8bf;
+    --brand-petroleo: #041f27;
+    --brand-deep: #04604d;
+    --on-deep: #eef3f1;
+    --brand-orange: #ff932e;
+    --brand-orange-ink: #ffab77;
+    --brand-orange-soft: #33200f;
+    --good: #5cbd83;
+    --good-bg: #16281d;
+    --good-line: #274a34;
+    --warn: #d6a24c;
+    --warn-bg: #2c2413;
+    --warn-line: #4a3c1c;
+    --crit: #e08066;
+    --crit-bg: #2c1a14;
+    --crit-line: #4d2c22;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.28);
+    --shadow-lg: 0 14px 38px rgba(0, 0, 0, 0.4);
     color-scheme: dark;
   }
 }
 
 /* base mínima compartilhada */
-body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
-a { color: var(--accent-ink); text-decoration: none; }
-a:hover { color: var(--accent); }
-h1, h2, h3 { margin: 0; font-weight: 800; letter-spacing: -0.02em; }
-::selection { background: var(--accent-soft); }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+a {
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent);
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+::selection {
+  background: var(--accent-soft);
+}

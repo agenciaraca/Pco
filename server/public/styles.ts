@@ -11,7 +11,12 @@ export const PUBLIC_CSS = `
   --paper:#f9faf8;--surface:#fbfcfa;--surface-2:#eaece6;--raise:#fff;
   --ink:#101828;--ink-soft:#575c62;--ink-faint:#6f757c;
   --line:#dcdfd8;--line-soft:#e8eae4;
-  --accent:#04d3a9;--accent-ink:#027e65;--accent-soft:#e1faf5;--on-accent:#011e18;
+  /* O verde de botão foi corrigido pelo dono em 10/set/2026, à noite: era
+     #04d3a9 (a troca de paleta da manhã), virou #00a690 — mais fechado, menos
+     ciano. Só o BOTÃO muda aqui; --accent-ink (texto/link) e --accent-soft
+     (fundo claro) continuam os mesmos, porque a correção foi sobre o botão,
+     não sobre a família inteira de tons derivados dele. */
+  --accent:#00a690;--accent-ink:#027e65;--accent-soft:#e1faf5;--on-accent:#011e18;
   /* Ciano claro e petróleo: existiam só no lado do aplicativo. Agora os dois
      lados leem os mesmos nomes — ver docs/design/tokens.css. */
   --accent-bright:#31d5b3;--accent-light:#67d8bf;--brand-petroleo:#063b49;
@@ -41,23 +46,35 @@ export const PUBLIC_CSS = `
      4,5:1 sobre o multiply da foto — passava, e parecia marrom. Depois da
      paleta verde do dia, ele destoava do resto da home.
 
-     Agora o topo é o --cta-grad-topo (#ff914d), o mesmo do .btn-cta e da faixa
-     final, para a onda que encosta aqui casar — o fill do SVG do divisor e
-     SOLIDO, nao entende degrade. A legibilidade do branco vem de tres camadas,
-     porque so a cor nao da conta (branco sobre #ff914d e 2,3:1):
-       1. o degrade afunda para #8a3d10 na base, onde ficam os paragrafos;
-       2. a foto cai para 30% de multiply (era 45%) — aparece menos, escurece menos;
-       3. um veu quente sobreposto (.faixa-carreira::after) e text-shadow.
-     Medido no navegador depois de montar: h2 5,4:1, paragrafos 7,3 a 8,7:1. */
-  --carreira-laranja:#ff914d;
-  --carreira-fundo:linear-gradient(168deg,#ff914d 0%,#e0691d 42%,#8a3d10 100%);
-  --brand-orange:#ff914d;--brand-orange-ink:#d96a24;--brand-orange-soft:#ffe9db;--on-orange:#2b1608;
+     Agora o topo é o --cta-grad-topo (#ff932e — corrigido pelo dono em
+     10/set/2026 à noite, era #ff914d), o mesmo do .btn-cta e da faixa final,
+     para a onda que encosta aqui casar — o fill do SVG do divisor e SOLIDO,
+     nao entende degrade. A legibilidade do branco vem de tres camadas, porque
+     so a cor nao da conta (branco sobre #ff932e e 2,2:1):
+       1. o degrade afunda para #8a3d10 na base, onde ficam os paragrafos —
+          ESTE stop nao mudou com a correcao de cor, e por isso os numeros de
+          contraste medidos antes continuam valendo;
+       2. a foto (40% de multiply, ajustada a pedido do dono na mesma noite —
+          era 30%, e antes disso 45%) — mais visivel que antes, ainda assim
+          o degrade manda;
+       3. um veu quente sobreposto (.faixa-carreira::after, tambem afrouxado
+          na mesma pedida — .25/.38, era .34/.46) e text-shadow.
+     Medido: o pior ponto (o meio do degrade sob o veu no seu minimo) da
+     4,7:1 — acima do minimo de 4,5 para texto normal, com folga menor que
+     antes porque o dono pediu especificamente mais foto e menos veu. */
+  --carreira-laranja:#ff932e;
+  --carreira-fundo:linear-gradient(168deg,#ff932e 0%,#e0691d 42%,#8a3d10 100%);
+  --brand-orange:#ff932e;--brand-orange-ink:#d96a24;--brand-orange-soft:#ffe9db;--on-orange:#2b1608;
   /* Alias do laranja antigo, para não quebrar quem já usa --orange. */
-  --orange:#ff914d;--orange-soft:#ffe9db;
+  --orange:#ff932e;--orange-soft:#ffe9db;
   /* Degradê oficial: sempre do principal para o escuro, nunca invertido. */
-  --brand-gradient:linear-gradient(118deg,#04d3a9 0%,#03aa88 52%,#02775f 100%);
-  --brand-grad-topo:#04d3a9;
-  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);--cta-grad-topo:#ff914d;
+  --brand-gradient:linear-gradient(118deg,#00a690 0%,#03aa88 52%,#02775f 100%);
+  --brand-grad-topo:#00a690;
+  /* Corrigido junto com --accent: mesma cor de botão em toda a home, do CTA
+     que abre a página ao que fecha. --cta-gradient chegava a #f07a2f no fim;
+     o segundo stop foi escurecido na mesma proporção, para o botão continuar
+     com a mesma profundidade de sempre. */
+  --cta-gradient:linear-gradient(118deg,#ff932e,#f07c10);--cta-grad-topo:#ff932e;
   --pincel-altura:clamp(60px,10vw,150px);
   --good:#2f7d4f;--good-bg:#e0efe4;--good-line:#bcdcc6;
   --warn:#9a6a12;--warn-bg:#f5ead1;--warn-line:#e5d09a;
@@ -74,11 +91,11 @@ export const PUBLIC_CSS = `
   --line:#2b2f36;--line-soft:#242830;
   --accent:#3fd0b4;--accent-ink:#7fe3cd;--accent-soft:#102c33;--on-accent:#062229;
   --brand-deep:#04604d;--on-deep:#eef3f1;
-  --brand-orange:#ff914d;--brand-orange-ink:#ffab77;--brand-orange-soft:#33200f;--on-orange:#2b1608;
-  --orange:#ff914d;--orange-soft:#33200f;
+  --brand-orange:#ff932e;--brand-orange-ink:#ffab77;--brand-orange-soft:#33200f;--on-orange:#2b1608;
+  --orange:#ff932e;--orange-soft:#33200f;
   --brand-gradient:linear-gradient(118deg,#0a7f95 0%,#0a7183 52%,#0a5f6e 100%);
   --brand-grad-topo:#0a7f95;
-  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);--cta-grad-topo:#ff914d;
+  --cta-gradient:linear-gradient(118deg,#ff932e,#f07c10);--cta-grad-topo:#ff932e;
   --good:#5cbd83;--good-bg:#16281d;--good-line:#274a34;
   --warn:#d6a24c;--warn-bg:#2c2413;--warn-line:#4a3c1c;
   --crit:#e08066;--crit-bg:#2c1a14;--crit-line:#4d2c22;
@@ -91,11 +108,11 @@ export const PUBLIC_CSS = `
   --line:#2b2f36;--line-soft:#242830;
   --accent:#3fd0b4;--accent-ink:#7fe3cd;--accent-soft:#102c33;--on-accent:#062229;
   --brand-deep:#04604d;--on-deep:#eef3f1;
-  --brand-orange:#ff914d;--brand-orange-ink:#ffab77;--brand-orange-soft:#33200f;--on-orange:#2b1608;
-  --orange:#ff914d;--orange-soft:#33200f;
+  --brand-orange:#ff932e;--brand-orange-ink:#ffab77;--brand-orange-soft:#33200f;--on-orange:#2b1608;
+  --orange:#ff932e;--orange-soft:#33200f;
   --brand-gradient:linear-gradient(118deg,#0a7f95 0%,#0a7183 52%,#0a5f6e 100%);
   --brand-grad-topo:#0a7f95;
-  --cta-gradient:linear-gradient(118deg,#ff914d,#f07a2f);--cta-grad-topo:#ff914d;
+  --cta-gradient:linear-gradient(118deg,#ff932e,#f07c10);--cta-grad-topo:#ff932e;
   --good:#5cbd83;--good-bg:#16281d;--good-line:#274a34;
   --warn:#d6a24c;--warn-bg:#2c2413;--warn-line:#4a3c1c;
   --crit:#e08066;--crit-bg:#2c1a14;--crit-line:#4d2c22;
@@ -281,7 +298,23 @@ p{margin:0}
    divisor entre os dois é a virada de cor, e o desenho do rodapé já tem os
    dele (a ondinha nas colunas e o filete de .legal). Mais um traço aqui
    competiria com eles. */
-.cta-final{background:var(--cta-gradient);color:var(--on-orange);text-align:center}
+/* O rodapé sobe seu PROPRIO pincel verde por cima desta faixa (a regra
+   main:has(...cta-final:last-child) + .pincel-topo, logo acima) — e laranja e
+   verde sao quase complementares no circulo cromatico. Uma camada translucida
+   verde sobre laranja solido produz caqui/oliva, nao um degrade limpo, e
+   nenhuma quantidade de mascara de textura consertava isso, porque o problema
+   nao era a textura — era a mistura de matizes opostos.
+
+   O conserto: a própria faixa já entrega VERDE no trecho onde a onda vai
+   nascer (mesma altura da mascara da textura). A onda então mistura verde
+   translúcido com verde solido — a mesma operação que já funciona limpa em
+   toda outra transição do site — e a passagem de laranja para verde acontece
+   ANTES da onda, num degradê comum de duas cores lado a lado no círculo. */
+.cta-final{
+  background:
+    linear-gradient(180deg,transparent 0,transparent calc(100% - var(--pincel-altura) - 20px),var(--brand-grad-topo) 100%),
+    var(--cta-gradient);
+  color:var(--on-orange);text-align:center}
 /* A textura de ondas é DECORATIVA: pseudo-elemento, sem alt e sem entrar na
    árvore de acessibilidade, e com pointer-events:none para não roubar clique
    do botão que está por cima. As linhas são brancas com alfa; a opacidade
@@ -292,8 +325,22 @@ p{margin:0}
    textura de duas caixas encostadas fica fora de fase na junta, e a emenda
    aparece como um risco atravessando a página. */
 .com-textura{position:relative;overflow:hidden}
+/* A textura para ANTES do pincel comecar, nao embaixo dele.
+
+   O pincel dissolve com DUAS camadas translucidas (opacity .3 e .5) por cima
+   de uma solida -- pensadas para se misturar com um fundo LISO. Sobre um fundo
+   com o padrao de ondas, essas duas camadas revelam o desenho por baixo em vez
+   de diluir a cor: o resultado e um remendo felpudo bem no meio da faixa, a
+   "emenda" que aparece tanto no rodape quanto em qualquer secao com textura e
+   pincel.
+
+   A mascara apaga o padrao no ultimo trecho (a altura do pincel, com folga) e
+   deixa ali so o degrade solido da secao -- e e contra ISSO que o pincel sabe
+   dissolver limpo. A textura continua ocupando o resto da faixa inteiro. */
 .com-textura::before{content:'';position:absolute;inset:0;pointer-events:none;
-  background:url('/img/pattern-ondas.webp') repeat center;background-size:620px auto;opacity:.09}
+  background:url('/img/pattern-ondas.webp') repeat center;background-size:620px auto;opacity:.09;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 calc(100% - var(--pincel-altura) - 30px),transparent 100%);
+  mask-image:linear-gradient(180deg,#000 0,#000 calc(100% - var(--pincel-altura) - 30px),transparent 100%)}
 .com-textura > *{position:relative;z-index:1}
 /* A faixa reserva, embaixo, a altura exata do pincel do rodapé — e o pincel é
    puxado para cima na mesma medida (regra logo abaixo). O resultado é um fundo
@@ -308,8 +355,8 @@ p{margin:0}
 main:has(> .cta-final:last-child) + .pincel-topo{
   margin-top:calc(-1 * var(--pincel-altura));position:relative;z-index:2}
 /* Texto ESCURO sobre o laranja, e isto não é escolha de gosto: branco sobre
-   #ff914d dá 2,8:1, que reprova em qualquer tamanho. O #2b1608 de --on-orange
-   dá 7,5:1, e o token existe na paleta exatamente para este uso. */
+   #ff932e dá 2,2:1, que reprova em qualquer tamanho. O #2b1608 de --on-orange
+   dá 7,7:1, e o token existe na paleta exatamente para este uso. */
 .cta-final h2{color:var(--on-orange);margin-bottom:14px}
 .cta-final .lead{color:var(--on-orange);opacity:.86;margin-bottom:26px}
 /* O .btn-cta é laranja e sumiria sobre laranja. Botão claro com a tinta
@@ -420,22 +467,37 @@ main:has(> .cta-final:last-child) + .pincel-topo{
 /* Véu quente sobre a foto, abaixo do texto: puxa o contraste do branco sem
    apagar o laranja. Nasce transparente no topo (onde a onda entra) e fecha
    embaixo, onde estão os parágrafos. */
+/* Reduzido a pedido do dono em 10/set/2026 à noite: chegava a .46 no ponto
+   mais escuro (o dono perguntou se estava em 80% — não estava, mas a leitura
+   era "escuro demais", e a foto realmente sumia). Agora .25/.38, com a foto
+   ao lado subindo de 30% para 40% de multiply: mais rosto e camisa aparecem,
+   e o contraste do texto continua medido, não só reduzido no escuro — o pior
+   ponto (o meio do degradê sob o véu no seu mínimo) ainda dá 4,7:1. */
 .faixa-carreira::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:linear-gradient(180deg,rgba(74,28,6,0) 0,rgba(74,28,6,.34) 20%,rgba(50,18,3,.46) 100%)}
+  background:linear-gradient(180deg,rgba(74,28,6,0) 0,rgba(74,28,6,.25) 20%,rgba(50,18,3,.38) 100%)}
 /* A opacidade é o que separa "overlay laranja com foto de fundo" de "foto com
    filtro laranja". A 1 a foto vence: o rosto e a camisa xadrez disputam
    atenção com o texto que está por cima deles. A .45 ela ambienta e o laranja
    manda, que é o desenho do site antigo. Clarear também piora o contraste —
    menos multiply, fundo mais claro —, então mexer aqui exige remedir. */
-/* A máscara existe por causa da onda que vem da seção anterior: a parte sólida
-   dela encosta no topo desta faixa em laranja liso, e a foto começando no
-   pixel seguinte desenhava uma linha reta atravessando a página inteira — o
-   corte reto que o pincel existe para não ter. Com a foto nascendo ao longo de
-   110px, a faixa começa na cor da onda e revela a imagem. */
+/* A máscara nasce em duas pontas, não numa só.
+
+   A de CIMA já existia: a onda que vem da seção anterior encosta em laranja
+   liso, e a foto começando no pixel seguinte desenhava uma linha reta
+   atravessando a página — o corte reto que o pincel existe para não ter. Com a
+   foto nascendo ao longo de 110px, a faixa começa na cor da onda e revela a
+   imagem.
+
+   A de BAIXO é nova: sem ela, a onda que SAI desta faixa (o pincel do rodapé,
+   puxado para cima) misturava suas duas camadas translúcidas com o rosto e a
+   camisa xadrez por baixo — o mesmo "remendo felpudo" que a textura das outras
+   faixas fazia contra o pincel, aqui pela mesma razão (camada translúcida
+   sobre fundo com desenho, em vez de fundo liso). A foto desaparece na altura
+   do pincel, e o degradê sozinho recebe a onda. */
 .carreira-foto{position:absolute;inset:0;background-size:cover;background-position:center;
-  mix-blend-mode:multiply;opacity:.3;pointer-events:none;
-  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 110px);
-  mask-image:linear-gradient(180deg,transparent 0,#000 110px);
+  mix-blend-mode:multiply;opacity:.4;pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 110px,#000 calc(100% - var(--pincel-altura) - 20px),transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 110px,#000 calc(100% - var(--pincel-altura) - 20px),transparent 100%);
   background-image:url('/img/carreira-psicanalise-760.webp')}
 @media (min-width:701px){.carreira-foto{background-image:url('/img/carreira-psicanalise-1280.webp')}}
 @media (min-width:1401px){.carreira-foto{background-image:url('/img/carreira-psicanalise-1441.webp')}}
@@ -885,15 +947,32 @@ main:has(> .cta-final:last-child) + .pincel-topo{
   background-color:#02775f;
   background-image:linear-gradient(135deg,rgba(4,211,169,.55),rgba(2,119,95,.9)),
     repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 14px,rgba(255,255,255,0) 14px 28px)}
-/* por que escolher */
-.porque{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.porque-item{background:var(--raise);border:1px solid var(--line-soft);border-radius:18px;padding:26px}
-.porque-item .n{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);
-  color:var(--accent-ink);font-weight:800;font-size:15px;display:grid;place-items:center;margin-bottom:14px}
-.porque-item .t{font-weight:700;color:var(--ink);font-size:17px}
-.porque-item .d{font-size:14.5px;color:var(--ink-soft);line-height:1.55;margin-top:6px}
+/* por que escolher — três colunas: o texto isolado, os oito itens em duas
+   colunas de ícone+texto. 1fr contra 1.6fr porque a lista carrega mais peso
+   visual (8 itens) que o texto de apresentação — texto espremido no mesmo
+   espaço da lista ficaria com linhas curtas demais para o tamanho da fonte. */
+.porque-layout{display:grid;grid-template-columns:1fr 1.6fr;gap:48px;align-items:start}
+.porque-intro .lead{margin-bottom:26px}
+/* As "outras colunas" que o pedido do dono descreve: os oito itens formam
+   ELAS MESMAS um grid de duas colunas — é o que faz a seção inteira ler como
+   três colunas (texto | ícones | ícones), não duas. */
+.porque{display:grid;grid-template-columns:1fr 1fr;gap:28px 24px;align-content:start}
+/* Sem caixa, sem borda, sem fundo — o pedido explícito. O item é ícone e texto
+   lado a lado, como uma linha de lista, não mais um cartão repetido oito
+   vezes. */
+.porque-item{display:flex;gap:14px;align-items:flex-start}
+/* Ícone, não número: cada um remete ao conteúdo do item (cartão para
+   pagamento, relógio para duração) em vez de à posição dele numa lista sem
+   ordem. Cor de marca para TRAÇO — a regra de sempre, "-ink" é para o que
+   carrega letra, e um ícone decorativo não carrega letra. */
+.porque-icone{width:26px;height:26px;flex:none;color:var(--accent-ink);margin-top:2px}
+.porque-item .t{font-weight:700;color:var(--ink);font-size:16px}
+.porque-item .d{font-size:14px;color:var(--ink-soft);line-height:1.55;margin-top:4px}
 @media (max-width:900px){
   .afirmacao{grid-template-columns:1fr;gap:28px}
+  .porque-layout{grid-template-columns:1fr;gap:28px}
+}
+@media (max-width:560px){
   .porque{grid-template-columns:1fr}
 }
 

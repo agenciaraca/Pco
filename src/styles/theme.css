@@ -14,11 +14,14 @@
  * Ao mexer numa cor, mexa nos dois lugares — ou o desenho volta a divergir.
  */
 :root {
-  --pco-blue: #04d3a9;
+  /* Corrigidos pelo dono em 10/set/2026 à noite: eram #04d3a9 e #ff914d, da
+     troca de paleta da mesma manhã. Só o preenchimento/botão muda aqui —
+     `-ink` (texto) segue igual, como sempre neste arquivo. */
+  --pco-blue: #00a690;
   --pco-blue-ink: #027c64;
   --pco-cyan: #31d5b3;
   --pco-cyan-light: #67d8bf;
-  --pco-orange: #ff914d;
+  --pco-orange: #ff932e;
   --pco-orange-ink: #b8530c;
   --pco-deep: #063b49;
   --pco-graphite: #101828;
@@ -66,8 +69,8 @@ html[data-theme='dark'] {
    * No escuro o azul de marca já dá 4,88:1 — aqui `blue-ink` clareia em vez de
    * escurecer, porque o que precisa de contraste é a letra sobre fundo escuro.
    */
-  --pco-blue-ink: #04d3a9;
-  --pco-orange-ink: #ff914d;
+  --pco-blue-ink: #00a690;
+  --pco-orange-ink: #ff932e;
 
   color-scheme: dark;
 }
@@ -159,7 +162,13 @@ body {
    * letra mudar ao atravessar o login. A pilha é a mesma de
    * `server/public/styles.ts`.
    */
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   background-color: var(--surface-off);
   color: var(--ink-base);
   -webkit-font-smoothing: antialiased;
@@ -210,15 +219,33 @@ body {
   }
 
   /* Conteúdo HTML importado (corpo da aula). Estiliza tags genéricas. */
-  .pco-prose h1 { @apply text-2xl font-bold text-pco-deep mt-6 mb-3; }
-  .pco-prose h2 { @apply text-xl font-bold text-pco-deep mt-5 mb-2.5; }
-  .pco-prose h3 { @apply text-lg font-semibold text-pco-deep mt-4 mb-2; }
-  .pco-prose h4 { @apply text-base font-semibold text-pco-deep mt-3 mb-1.5; }
-  .pco-prose p { @apply my-3 leading-relaxed; }
-  .pco-prose strong { @apply font-semibold text-pco-deep; }
-  .pco-prose em { @apply italic; }
-  .pco-prose ul { @apply list-disc ml-6 my-3 space-y-1; }
-  .pco-prose ol { @apply list-decimal ml-6 my-3 space-y-1; }
+  .pco-prose h1 {
+    @apply text-2xl font-bold text-pco-deep mt-6 mb-3;
+  }
+  .pco-prose h2 {
+    @apply text-xl font-bold text-pco-deep mt-5 mb-2.5;
+  }
+  .pco-prose h3 {
+    @apply text-lg font-semibold text-pco-deep mt-4 mb-2;
+  }
+  .pco-prose h4 {
+    @apply text-base font-semibold text-pco-deep mt-3 mb-1.5;
+  }
+  .pco-prose p {
+    @apply my-3 leading-relaxed;
+  }
+  .pco-prose strong {
+    @apply font-semibold text-pco-deep;
+  }
+  .pco-prose em {
+    @apply italic;
+  }
+  .pco-prose ul {
+    @apply list-disc ml-6 my-3 space-y-1;
+  }
+  .pco-prose ol {
+    @apply list-decimal ml-6 my-3 space-y-1;
+  }
   .pco-prose blockquote {
     @apply border-l-4 border-pco-blue/40 pl-4 italic text-ink-muted my-3;
   }
@@ -228,7 +255,9 @@ body {
   .pco-prose img {
     @apply rounded-xl my-4 max-w-full h-auto shadow-card;
   }
-  .pco-prose figure { @apply my-4; }
+  .pco-prose figure {
+    @apply my-4;
+  }
   .pco-prose figcaption {
     @apply text-xs text-ink-subtle mt-1 text-center italic;
   }
@@ -239,7 +268,8 @@ body {
   .pco-prose table {
     @apply w-full my-4 border-collapse text-sm;
   }
-  .pco-prose th, .pco-prose td {
+  .pco-prose th,
+  .pco-prose td {
     @apply border border-surface-gray px-3 py-2 text-left align-top;
   }
   .pco-prose th {

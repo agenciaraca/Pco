@@ -119,11 +119,13 @@ describe('tokens do design', () => {
   });
 
   it('o laranja é um só nas duas metades', () => {
-    // A divergência que o handoff listava em aberto: #ff914d no site público,
-    // #FE9002 no admin e na área do aluno. O desenho aprovado decidiu.
-    expect(TOKENS['--brand-orange']).toBe('#ff914d');
-    expect(corDoTailwind('pco.orange')).toBe('#ff914d');
-    expect(PUBLIC_CSS).toContain('--brand-orange:#ff914d');
+    // A divergência original que o handoff listava em aberto era #ff914d no
+    // site público contra #FE9002 no admin e na área do aluno. O laranja em si
+    // foi corrigido de novo em 10/set/2026 à noite (para #ff932e); o que este
+    // caso trava é que continue sendo UM valor só, não qual valor é.
+    expect(TOKENS['--brand-orange']).toBe('#ff932e');
+    expect(corDoTailwind('pco.orange')).toBe('#ff932e');
+    expect(PUBLIC_CSS).toContain('--brand-orange:#ff932e');
     expect(tailwindCodigo).not.toContain('#FE9002');
   });
 });

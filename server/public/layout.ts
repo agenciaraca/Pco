@@ -430,7 +430,7 @@ export function renderPage(o: PageOptions): Html {
         <meta name="description" content="${o.description}" />
         <link rel="canonical" href="${canonical}" />
         <meta name="robots" content="${robots}" />
-        <meta name="theme-color" content="#04d3a9" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#00a690" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#0a5f6e" media="(prefers-color-scheme: dark)" />
         <meta property="og:type" content="${ogType}" />
         <meta property="og:site_name" content="${ORG.name}" />
