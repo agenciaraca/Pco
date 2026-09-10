@@ -795,17 +795,31 @@ carreira", "Faça já sua matrícula") eram o mesmo defeito:
   seção (a altura do pincel, com folga de 30px) — o pincel passa a dissolver
   contra o degradê sólido, nunca contra o padrão.
 - **`.cta-final` ganhou um SEGUNDO fundo**, empilhado por cima do degradê
-  laranja: um gradiente vertical transparente→verde que pinta a mesma zona
-  final de `var(--brand-grad-topo)` — a cor exata que o rodapé usa para a
-  própria onda — **antes** de a onda nascer. A passagem de matiz acontece num
-  degradê comum, e a onda (agora verde sobre verde) dissolve limpo, do mesmo
-  jeito que já funcionava em toda transição analógica do site (teal→cinza,
-  laranja→laranja mais escuro).
+  laranja, que pinta a mesma zona final de `var(--brand-grad-topo)` — a cor
+  exata que o rodapé usa para a própria onda — **antes** de a onda nascer.
 
-`.faixa-carreira` (foto, não textura) recebeu o equivalente: a foto já nascia
-mascarada no topo (110px, para a onda de entrada); ganhou a mesma máscara na
-base, simétrica, para a onda de saída não misturar suas camadas translúcidas
-com o rosto da foto.
+  **A primeira versão disso era um degradê reto laranja→verde, e continuava
+  caqui** — medido em produção, não em teoria: `dy=360-400px` da faixa saía
+  `rgb(194,148,68)` a `rgb(123,150,86)`, R aproximadamente igual a G, azul
+  baixo — a própria definição de caqui. Interpolação RGB direta entre matizes
+  quase opostos passa pelo **meio** do círculo cromático, que é onde mora o
+  marrom-oliva; um degradê de duas paradas não escapa disso, não importa a
+  distância percorrida.
+
+  O degradê certo passa por um **neutro escuro no meio** (`--on-orange`, o
+  mesmo tom já usado no texto da faixa): laranja escurecendo até quase preto
+  não é caqui, preto clareando até verde também não — as duas cores saturadas
+  nunca ficam misturadas ao mesmo tempo. Só então a onda (verde translúcido
+  sobre verde sólido) dissolve limpo, do mesmo jeito que já funcionava em toda
+  transição analógica do site (teal→cinza, laranja→laranja mais escuro).
+
+`.faixa-carreira` (foto, não textura) recebeu o equivalente à primeira parte
+do conserto (a máscara): a foto já nascia mascarada no topo (110px, para a
+onda de entrada); ganhou a mesma máscara na base, simétrica, para a onda de
+saída não misturar suas camadas translúcidas com o rosto da foto. Não precisou
+do neutro escuro no meio — a seção seguinte é `--surface-2` (cinza claro), não
+verde, e cinza não é complementar de laranja: não há matizes opostos para
+separar.
 
 **O que NÃO resolve isso, e foi tentado primeiro:** só mascarar a textura
 melhora a faixa verde→cinza (matizes próximos) mas não é suficiente sozinho

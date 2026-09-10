@@ -305,14 +305,27 @@ p{margin:0}
    nenhuma quantidade de mascara de textura consertava isso, porque o problema
    nao era a textura — era a mistura de matizes opostos.
 
-   O conserto: a própria faixa já entrega VERDE no trecho onde a onda vai
-   nascer (mesma altura da mascara da textura). A onda então mistura verde
-   translúcido com verde solido — a mesma operação que já funciona limpa em
-   toda outra transição do site — e a passagem de laranja para verde acontece
-   ANTES da onda, num degradê comum de duas cores lado a lado no círculo. */
+   A PRIMEIRA tentativa de conserto foi um degrade reto de laranja para verde
+   antes da onda — e continuava caqui, porque interpolação RGB direta entre
+   duas cores quase complementares passa pelo MEIO do círculo cromático, que é
+   onde mora o marrom-oliva. Medido: em produção, o trecho dy=360-400px dessa
+   faixa saía rgb(194,148,68) a rgb(123,150,86) — R aproximadamente igual a G,
+   azul baixo, a própria definição de caqui.
+
+   O conserto de verdade evita que as duas cores fiquem juntas na mistura: o
+   degrade passa por um neutro ESCURO no meio (--on-orange, o mesmo tom já
+   usado no texto desta faixa) em vez de saltar direto de uma cor saturada
+   para a outra. Laranja escurecendo até quase preto não passa por caqui;
+   preto clareando até verde também não — o caqui só existe quando as DUAS
+   cores saturadas estão misturadas ao mesmo tempo, e este degrade nunca
+   deixa isso acontecer. */
 .cta-final{
   background:
-    linear-gradient(180deg,transparent 0,transparent calc(100% - var(--pincel-altura) - 20px),var(--brand-grad-topo) 100%),
+    linear-gradient(180deg,
+      transparent 0,
+      transparent calc(100% - var(--pincel-altura) - 60px),
+      var(--on-orange) calc(100% - var(--pincel-altura) - 4px),
+      var(--brand-grad-topo) 100%),
     var(--cta-gradient);
   color:var(--on-orange);text-align:center}
 /* A textura de ondas é DECORATIVA: pseudo-elemento, sem alt e sem entrar na

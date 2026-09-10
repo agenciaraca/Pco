@@ -30,10 +30,15 @@ import { PUBLIC_CSS } from '../server/public/styles';
  *   dissolver contra o degradê sólido, não contra o padrão.
  * - `.cta-final` (laranja, e é ela que encosta no rodapé verde) ganhou um
  *   SEGUNDO fundo, empilhado por cima do degradê laranja, que pinta a mesma
- *   zona final de verde antes de a onda do rodapé nascer — a passagem de
- *   matiz acontece num degradê comum, e a onda (agora verde sobre verde)
- *   dissolve limpo, do mesmo jeito que já funcionava em toda transição
- *   analógica do site.
+ *   zona final de verde antes de a onda do rodapé nascer. A primeira versão
+ *   disso era um degradê reto laranja→verde, e **continuava caqui** — medido
+ *   em produção — porque interpolação RGB direta entre matizes quase opostos
+ *   passa pelo meio do círculo cromático, que é onde mora o marrom-oliva. O
+ *   degradê certo passa por um NEUTRO ESCURO no meio (`--on-orange`): laranja
+ *   escurecendo até quase preto não é caqui, preto clareando até verde também
+ *   não — as duas cores saturadas nunca ficam misturadas ao mesmo tempo. Só
+ *   então a onda (verde translúcido sobre verde sólido) dissolve limpo, como
+ *   já funcionava em toda transição analógica do site.
  *
  * `.faixa-carreira` (foto, não textura) recebeu o equivalente: a foto já
  * nascia mascarada no topo (110px, para a onda de entrada); ganhou a mesma
@@ -88,6 +93,29 @@ describe('a faixa laranja pré-esverdeia antes da onda do rodapé', () => {
     expect(r).toContain('linear-gradient(180deg');
     expect(r).toContain('var(--brand-grad-topo)');
     expect(r).toContain('var(--cta-gradient)');
+  });
+
+  /*
+    Medido em produção (10/set/2026, à noite): um degradê RETO de laranja para
+    verde — sem parar em nada no meio — continuava caqui. Interpolação RGB
+    direta entre duas cores quase complementares passa pelo MEIO do círculo
+    cromático, que é onde mora o marrom-oliva; dy=360-400px da faixa saía
+    rgb(194,148,68) a rgb(123,150,86) — R aproximadamente igual a G, azul
+    baixo, a própria definição de caqui. O conserto reprovava sozinho o
+    problema que existia para resolver.
+  */
+  it('o degradê passa por um neutro ESCURO no meio — nunca as duas cores juntas', () => {
+    const r = regra('.cta-final');
+    // A ordem no texto da regra importa: o degradê vertical lista os stops em
+    // sequência — transparente, o neutro escuro, só então o verde. Buscar por
+    // índice de substring (em vez de tentar recortar os parênteses do
+    // linear-gradient, que aninham por causa do calc()) é o jeito robusto.
+    const iTransparent = r.indexOf('transparent');
+    const iNeutro = r.indexOf('var(--on-orange)');
+    const iVerde = r.indexOf('var(--brand-grad-topo)');
+    expect(iTransparent, 'o degradê perdeu o começo transparente').toBeGreaterThan(-1);
+    expect(iNeutro, 'o degradê pulou o neutro e foi direto ao verde').toBeGreaterThan(iTransparent);
+    expect(iVerde, 'o verde final sumiu, ou veio antes do neutro').toBeGreaterThan(iNeutro);
   });
 
   it('o verde do pré-fade é EXATAMENTE o que o pincel do rodapé usa', async () => {
