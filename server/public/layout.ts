@@ -321,14 +321,42 @@ function footer(): Html {
   const comercial = ORG.address;
   const pedag = ENDERECO_PEDAGOGICO;
 
-  // A coluna de privacidade só existe quando há texto de verdade para ela.
-  // Sem isso, a grade cai para duas colunas em vez de deixar um vão.
+  // A privacidade resumida só aparece quando há texto de verdade para ela — e
+  // hoje ela é uma FAIXA abaixo das colunas, não uma coluna. Antes ela era a
+  // terceira coluna e, na ausência dela, a grade caía para `cols-2`: por isso o
+  // rodapé de produção tinha só duas colunas. As quatro passaram a ser fixas.
   const temPrivacidade = PRIVACIDADE_RESUMO !== null && PRIVACIDADE_RESUMO.length > 0;
+
+  // As oito âncoras institucionais viviam empilhadas na linha do copyright,
+  // quebrando em duas ou três fileiras. Aqui elas viram DUAS colunas do rodapé,
+  // ao lado da logo e do selo — e a linha de baixo fica só com o © e o resumo
+  // de privacidade quando ele existe.
+  const institucional: Array<[string, string]> = [
+    ['/sobre', 'Quem somos'],
+    ...(AUTHOR_IS_PLACEHOLDER
+      ? []
+      : ([['/quem-ensina', 'Quem ensina']] as Array<[string, string]>)),
+    ['/como-funciona', 'Como funciona'],
+    ['/contato', 'Contato'],
+  ];
+  const ajuda: Array<[string, string]> = [
+    ['/perguntas-frequentes', 'Perguntas frequentes'],
+    ['/legalidade', 'Legalidade da profissão'],
+    ['/termos', 'Termos de Uso'],
+    ['/privacidade', 'Política de Privacidade'],
+  ];
+  const colunaLinks = (titulo: string, itens: Array<[string, string]>) =>
+    `<nav class="rodape-links" aria-label="${titulo}">
+       <h4>${titulo}</h4>
+       <ul>${itens
+         .map(([href, rotulo]) => `<li><a href="${href}">${rotulo}</a></li>`)
+         .join('')}</ul>
+     </nav>`;
 
   return html`
     ${pincel('var(--brand-grad-topo)', { topo: true })}
     <footer class="site-footer">
-      <div class="wrap cols${raw(temPrivacidade ? '' : ' cols-2')}">
+      <div class="wrap cols">
         <div class="rodape-col">
           <img
             src="/logo-pco-dark.png"
@@ -369,26 +397,20 @@ function footer(): Html {
           <p class="rodape-endereco" style="font-style:italic">Escola Reconhecida RNTP</p>
         </div>
 
-        ${raw(
-          temPrivacidade
-            ? `<div class="rodape-col rodape-privacidade">
-                 <p class="rodape-priv-titulo">Política de Privacidade:</p>
-                 ${PRIVACIDADE_RESUMO!.map((par) => `<p>${par}</p>`).join('')}
-                 <p><a class="link-destaque" href="/privacidade">Política de Privacidade completa</a></p>
-               </div>`
-            : '',
-        )}
+        ${raw(colunaLinks('Institucional', institucional))}
+        ${raw(colunaLinks('Ajuda e transparência', ajuda))}
       </div>
+      ${raw(
+        temPrivacidade
+          ? `<div class="wrap rodape-privacidade">
+               <p class="rodape-priv-titulo">Política de Privacidade:</p>
+               ${PRIVACIDADE_RESUMO!.map((par) => `<p>${par}</p>`).join('')}
+               <p><a class="link-destaque" href="/privacidade">Política de Privacidade completa</a></p>
+             </div>`
+          : '',
+      )}
       <div class="wrap legal">
         <span>© ${ORG.founded ?? 2018}–${year} ${ORG.name}. Todos os direitos reservados.</span>
-        <span
-          ><a href="/sobre">Quem somos</a>
-          ${raw(AUTHOR_IS_PLACEHOLDER ? '' : ' · <a href="/quem-ensina">Quem ensina</a>')} ·
-          <a href="/como-funciona">Como funciona</a> · <a href="/legalidade">Legalidade</a> ·
-          <a href="/perguntas-frequentes">Perguntas frequentes</a> ·
-          <a href="/contato">Contato</a> · <a href="/termos">Termos de Uso</a> ·
-          <a class="link-destaque" href="/privacidade">Política de Privacidade</a></span
-        >
       </div>
     </footer>
   `;

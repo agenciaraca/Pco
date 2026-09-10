@@ -311,9 +311,15 @@ main:has(> .cta-final:last-child) + .pincel-topo{
 .btn-claro:focus-visible{outline:3px solid rgba(255,255,255,.9);outline-offset:3px}
 .site-footer{background:var(--brand-gradient);color:var(--on-deep)}
 .site-footer a{color:#cfe0dc}.site-footer a:hover{color:#fff}
-.site-footer .cols{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:36px;padding:56px 0 40px;text-align:center;justify-items:center}
-.site-footer .cols.cols-2{grid-template-columns:1fr 1fr;max-width:820px;margin:0 auto}
+/* Quatro colunas: logo+contato, selo RNTP, e duas de links institucionais.
+   Antes eram três (a terceira, privacidade) e caíam para duas quando não havia
+   texto de privacidade — que é o estado de produção. Os links viviam todos
+   numa linha só, sob o copyright, quebrando em fileiras. */
+.site-footer .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:36px;padding:56px 0 40px;text-align:center;justify-items:center;align-items:start}
 .rodape-col{display:flex;flex-direction:column;align-items:center;gap:9px;max-width:38ch}
+.rodape-links{display:flex;flex-direction:column;gap:0}
+.rodape-links h4{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#9fc0ba;margin:0 0 14px;font-weight:700}
+.rodape-links ul{list-style:none;margin:0;padding:0;display:grid;gap:11px;font-size:14.5px}
 .rodape-contato{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:600}
 .rodape-contato svg{width:17px;height:17px;flex:none}
 .ondinha{width:120px;height:8px;color:rgba(255,255,255,.45);margin:8px 0}
@@ -341,14 +347,14 @@ main:has(> .cta-final:last-child) + .pincel-topo{
   justify-content:center;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff}
 .rodape-social a:hover{background:rgba(255,255,255,.26);color:#fff}
 .rodape-social svg{width:18px;height:18px}
-.rodape-privacidade{text-align:left;max-width:46ch;align-items:flex-start}
+/* Faixa, não coluna: o resumo de privacidade (quando configurado) fica abaixo
+   das quatro colunas, centrado, em vez de disputar largura com elas. */
+.rodape-privacidade{max-width:70ch;margin:0 auto;padding:0 0 32px;text-align:left}
 .rodape-privacidade p{font-size:12.8px;line-height:1.6;color:#dceaef;margin-bottom:8px}
 .rodape-priv-titulo{font-weight:800;font-style:italic;font-size:13.5px;color:#fff}
 .link-destaque{color:var(--brand-orange)!important;font-weight:600}
 .link-destaque:hover{color:#ffb384!important}
-.site-footer h4{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#9fc0ba;margin:0 0 14px;font-weight:700}
-.site-footer ul{list-style:none;margin:0;padding:0;display:grid;gap:9px;font-size:14.5px}
-.site-footer .legal{border-top:1px solid rgba(255,255,255,.12);padding:20px 0;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;font-size:12.5px;color:#9fc0ba}
+.site-footer .legal{border-top:1px solid rgba(255,255,255,.12);padding:20px 0;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:center;text-align:center;font-size:12.5px;color:#9fc0ba}
 .disclaimer{background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--ink);border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.6}
 .wa-float{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:50%;background:#25d366;color:#0b3b1e;display:grid;place-items:center;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:90}
 /* ---- divisor "pincel" ----
@@ -503,6 +509,13 @@ main:has(> .cta-final:last-child) + .pincel-topo{
    botões desta faixa ficavam 33px POR BAIXO dela. */
 .faixa-cta{background:var(--brand-gradient);color:#fff;position:relative;padding-bottom:calc(var(--pincel-altura) + 20px)}
 .faixa-cta h2{color:#fff}
+/* A textura de ondas sobre o degrade petroleo. A classe com-textura usa
+   opacity .09, calibrada para o laranja da cta-final; sobre o fundo escuro
+   daqui as ondas brancas somem nesse valor, dai o reforco. E UMA secao so:
+   textura em duas caixas encostadas fica fora de fase na junta. */
+.faixa-cta.com-textura::before{opacity:.14}
+.faixa-cta-preco{color:#fff;font-size:clamp(20px,3vw,26px);font-weight:800;line-height:1.35}
+.faixa-cta-preco span{display:block;margin-top:4px;font-size:14px;font-weight:600;color:rgba(255,255,255,.82)}
 /* Depoimentos: aspas de verdade, nome e papel separados do texto. */
 .depoimentos{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
 .depo{margin:0;background:var(--raise);border:1px solid var(--line-soft);border-radius:18px;
@@ -543,7 +556,8 @@ main:has(> .cta-final:last-child) + .pincel-topo{
 @media (max-width:900px){
   .nav{display:none}.menu-toggle{display:inline-flex}
   .two-col,.three-col{grid-template-columns:1fr}
-  .site-footer .cols{grid-template-columns:1fr 1fr;gap:28px}
+  /* 4 → 2: logo e selo em cima, as duas colunas de links embaixo. */
+  .site-footer .cols{grid-template-columns:1fr 1fr;gap:28px 24px}
   .nav.open{display:flex;position:absolute;top:64px;left:0;right:0;flex-direction:column;align-items:stretch;background:var(--brand-deep);padding:12px 24px;gap:2px}
   /* No celular a CTA sai da barra e entra no menu aberto — igual ao protótipo,
      que também não empilha CTA e login lado a lado em tela estreita. */
@@ -580,7 +594,7 @@ main:has(> .cta-final:last-child) + .pincel-topo{
   .nav.open .nav-entrar{display:block;margin-top:10px;text-align:center;background:#fff;
     color:var(--brand-deep);font-weight:700;border-radius:999px;padding:12px 14px}
 }
-@media (max-width:860px){.site-footer .cols,.site-footer .cols.cols-2{grid-template-columns:1fr}.rodape-privacidade{text-align:center;align-items:center}}
+@media (max-width:560px){.site-footer .cols{grid-template-columns:1fr}.rodape-privacidade{text-align:center}}
 
 /* ================= PAGINA DO CURSO (protótipo aprovado) =================
    Transposição de docs/design/pages/Curso.dc.html. O protótipo escreve tudo

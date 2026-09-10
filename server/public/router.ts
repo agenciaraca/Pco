@@ -545,9 +545,7 @@ function blocoPerguntas(grupos: Array<{ titulo: string; itens: PublicFaq[] }>): 
     .map(
       (g) =>
         `<h2>${esc(g.titulo)}</h2>` +
-        g.itens
-          .map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`)
-          .join(''),
+        g.itens.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join(''),
     )
     .join('');
 }
@@ -608,8 +606,8 @@ publicSite.get('/legalidade', async (c) => {
           <h2>O que é a CBO 2515-50</h2>
           <p>
             A Classificação Brasileira de Ocupações (CBO) é o cadastro oficial de ocupações do país,
-            mantido pelo Ministério do Trabalho. A ocupação de psicanalista aparece nela sob o código
-            2515-50.
+            mantido pelo Ministério do Trabalho. A ocupação de psicanalista aparece nela sob o
+            código 2515-50.
           </p>
           <p>
             Constar na CBO significa que a ocupação existe e é reconhecida para efeito de registro
@@ -627,8 +625,8 @@ publicSite.get('/legalidade', async (c) => {
           <p>
             Por isso não existe registro de psicanalista no CRP, nem inscrição obrigatória em
             conselho nenhum para atuar. Pela mesma razão, o psicanalista que não é psicólogo nem
-            médico não está sujeito à fiscalização desses conselhos — e também não pode se apresentar
-            como psicólogo ou médico.
+            médico não está sujeito à fiscalização desses conselhos — e também não pode se
+            apresentar como psicólogo ou médico.
           </p>
 
           <h2>O que a formação livre permite</h2>
@@ -640,13 +638,13 @@ publicSite.get('/legalidade', async (c) => {
           <h2>O papel dos registros privados</h2>
           <p>
             RNTP, sindicatos e associações de psicanálise são entidades privadas. O registro nelas é
-            voluntário e vale como filiação — nunca como licença do Estado, porque não existe licença
-            estatal para uma profissão que não é regulamentada.
+            voluntário e vale como filiação — nunca como licença do Estado, porque não existe
+            licença estatal para uma profissão que não é regulamentada.
           </p>
           <p>
             Ele pode somar em credibilidade e dar acesso aos benefícios da própria entidade; o que
-            não pode é ser apresentado como equivalente a inscrição em conselho profissional. A ${ORG
-              .shortName} é escola reconhecida pelo RNTP (${ORG.rntp}).
+            não pode é ser apresentado como equivalente a inscrição em conselho profissional. A
+            ${ORG.shortName} é escola reconhecida pelo RNTP (${ORG.rntp}).
           </p>
         </div>
 
@@ -657,9 +655,7 @@ publicSite.get('/legalidade', async (c) => {
               style="list-style:none;padding:0;margin:0;display:grid;gap:9px;font-size:14px;color:var(--ink-soft)"
             >
               <li>Lei nº 9.394/1996 (LDB), art. 42 — cursos especiais abertos à comunidade.</li>
-              <li>
-                Classificação Brasileira de Ocupações (CBO), código 2515-50 — psicanalista.
-              </li>
+              <li>Classificação Brasileira de Ocupações (CBO), código 2515-50 — psicanalista.</li>
             </ul>
           </div>
           <div class="disclaimer">${YMYL_DISCLAIMER}</div>
@@ -781,8 +777,8 @@ publicSite.get('/como-funciona', async (c) => {
           <h2>O que não é etapa do percurso</h2>
           <p>${AVISO_OPCIONAL}</p>
           <p>
-            E o registro em entidade privada não é etapa da formação: ele vem depois, se você quiser,
-            e é contratado com a entidade, não com a escola.
+            E o registro em entidade privada não é etapa da formação: ele vem depois, se você
+            quiser, e é contratado com a entidade, não com a escola.
           </p>
         </div>
 
@@ -1322,6 +1318,24 @@ publicSite.get('/', async (c) => {
   const CARRO_CHEFE = '/formacao/curso-de-psicanalise-clinica-online';
 
   /*
+    O preço do carro-chefe, para a faixa "Faça já sua matrícula".
+
+    Vem da mesma projeção que monta os cartões (`listPublicCourses`), nunca
+    cravado no HTML: `condicoesFormatted` já cruza a política da escola com o
+    gateway roteado — é o que impede o "12x fantasma". Se o curso não estiver
+    na vitrine, ou não tiver preço, a faixa continua sem número, só com o
+    botão: melhor faltar o valor do que anunciar um errado.
+  */
+  const carroChefe = courses.find((co) => co.slug === 'curso-de-psicanalise-clinica-online');
+  const precoMatricula = carroChefe?.priceFormatted
+    ? `<p class="faixa-cta-preco">${esc(carroChefe.priceFormatted)}${
+        carroChefe.condicoesFormatted
+          ? ` <span>ou ${esc(carroChefe.condicoesFormatted)}</span>`
+          : ''
+      }</p>`
+    : '';
+
+  /*
     Os divisores da home.
 
     A regra: **toda passagem de cor entre seções tem a onda; nenhuma passagem
@@ -1639,10 +1653,11 @@ publicSite.get('/', async (c) => {
       ${pincel(PETROLEO)}
     </section>
 
-    <section class="section-tight faixa-cta">
+    <section class="section-tight faixa-cta com-textura">
       <div class="wrap" style="text-align:center;max-width:720px">
-        <h2 style="color:#fff;margin-bottom:20px">Faça já sua matrícula e comece a estudar</h2>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+        <h2 style="color:#fff;margin-bottom:14px">Faça já sua matrícula e comece a estudar</h2>
+        ${raw(precoMatricula)}
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:22px">
           <a class="btn btn-cta btn-lg" href="${CARRO_CHEFE}">Quero me matricular</a>
           <a class="btn btn-wa" href="${ORG.whatsapp}" rel="noopener nofollow"
             >${ICONE_WHATSAPP} Quero Falar no Whatsapp</a

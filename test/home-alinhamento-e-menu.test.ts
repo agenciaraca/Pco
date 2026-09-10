@@ -123,11 +123,28 @@ describe('menu do topo e rodapé', () => {
   });
 
   it('as duas continuam alcançáveis pelo rodapé, de qualquer página', () => {
-    const i = layout.indexOf('class="wrap legal"');
+    // Desde 10/set/2026 os links institucionais saíram da linha do copyright e
+    // viraram duas COLUNAS do rodapé — a linha de baixo ficou só com o ©. O que
+    // este caso protege é a alcançabilidade, não o lugar exato.
+    const i = layout.indexOf('function footer(');
+    const fim = layout.indexOf('</footer>', i);
     expect(i).toBeGreaterThan(0);
-    const rodape = layout.slice(i, i + 700);
-    expect(rodape, '/sobre ficou órfã').toContain('href="/sobre"');
-    expect(rodape, '/contato ficou órfã').toContain('href="/contato"');
+    const rodape = layout.slice(i, fim);
+    expect(rodape, '/sobre ficou órfã').toContain("'/sobre'");
+    expect(rodape, '/contato ficou órfã').toContain("'/contato'");
+  });
+
+  it('o rodapé tem quatro colunas, e as duas de links saíram da linha do ©', () => {
+    const i = layout.indexOf('function footer(');
+    const fim = layout.indexOf('</footer>', i);
+    const rodape = layout.slice(i, fim);
+    // As duas colunas de links, com rótulo.
+    expect(rodape).toContain("colunaLinks('Institucional'");
+    expect(rodape).toContain("colunaLinks('Ajuda e transparência'");
+    // A linha do copyright não carrega mais a lista de links.
+    const legal = rodape.slice(rodape.indexOf('class="wrap legal"'));
+    expect(legal).not.toContain('href="/termos"');
+    expect(legal).not.toContain('Perguntas frequentes');
   });
 
   it('nenhuma rota do NAV aponta para endereço que não existe mais', () => {

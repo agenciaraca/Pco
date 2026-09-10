@@ -684,6 +684,54 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## O rodapé tinha duas colunas, e devia ter quatro
+
+`server/public/layout.ts` + `styles.ts` (10/set/2026, a pedido do dono). A grade
+era `1fr 1fr 1.3fr`: logo/contato, selo RNTP, e uma terceira coluna de **texto
+de privacidade**. Sem esse texto — o estado de produção — ela caía para
+`cols-2`, e o rodapé mostrava **duas colunas**. As oito âncoras institucionais
+viviam empilhadas numa linha só, sob o copyright, quebrando em fileiras.
+
+Agora são **quatro colunas fixas**: as duas de antes + duas de links
+("Institucional" e "Ajuda e transparência"). A linha de baixo ficou só com o ©.
+
+Três coisas que qualquer mexida aqui tem de respeitar:
+
+- **O resumo de privacidade virou FAIXA, não coluna.** Quando configurado, ele
+  fica abaixo das quatro colunas, num `.wrap` próprio, centrado — não disputa
+  mais largura. Era ele que fazia a grade oscilar entre 2 e 3 colunas.
+- **A paridade do "Quem ensina" continua:** o link só entra quando o autor não
+  é placeholder, a regra de sempre.
+- **O CSS de `.site-footer h4` / `ul` já existia e nada usava** — mesma classe
+  de "a peça estava pronta e a HTML nunca a ligou". Agora é `.rodape-links`.
+
+`test/home-alinhamento-e-menu.test.ts` deixou de procurar `/sobre` e `/contato`
+dentro da linha `.legal` (eles subiram para as colunas) e passou a cobrar a
+alcançabilidade no rodapé inteiro.
+
+## A faixa "Faça já sua matrícula" ganhou textura e o preço do carro-chefe
+
+`server/public/router.ts` (10/set/2026, a pedido do dono). A faixa era degradê
+petróleo liso com dois botões. Ganhou:
+
+- **A textura de ondas** (`.com-textura`, a mesma da `.cta-final` e da faixa
+  RNTP). Sobre o fundo escuro daqui a opacidade base `.09` some, então há um
+  reforço para `.14` — **só** para esta faixa, sem tocar na regra compartilhada.
+- **O preço do Curso de Psicanálise Clínica**, que **vem da projeção**
+  (`listPublicCourses` → `priceFormatted` + `condicoesFormatted`), nunca cravado
+  no HTML: é o que cruza a política da escola com o gateway roteado e impede o
+  "12x fantasma". Curso fora da vitrine ou sem preço → a faixa fica só com os
+  botões.
+
+`test/rodape-quatro-colunas-e-faixa-com-preco.test.ts` — 9 casos, todos falham
+contra o código anterior.
+
+**Armadilha reencontrada:** escrevi `` `.com-textura` `` num comentário CSS
+dentro do `PUBLIC_CSS` — os dois backticks fecharam e reabriram o template
+literal, `PUBLIC_CSS` virou `number`, e o `tsc` acusou nos testes que fazem
+`PUBLIC_CSS.indexOf`. É exatamente o que este arquivo já registra em "Crase
+dentro de template literal". Comentário em CSS servido: sem crase.
+
 ## A trilha abria os dezenove módulos de uma vez — e paginar seria o conserto errado
 
 `src/app/layouts/LearningLayout.tsx` (10/set/2026). O dono relatou: *"listagem
