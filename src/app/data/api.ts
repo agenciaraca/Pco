@@ -3373,6 +3373,24 @@ export async function changeSystemUserPassword(
   return http.put<{ ok: true }>(`/admin/users/${encodeURIComponent(id)}/password`, { password });
 }
 
+/**
+ * Troca a senha do aluno pela ficha dele (a que o suporte abre).
+ *
+ * Endereco proprio, e nao a rota de contas, porque a chave e outra: aqui vai o
+ * id da FICHA, e o servidor resolve a conta pelo e-mail. Aluno sem conta de
+ * acesso volta 404 com motivo escrito -- e isso e informacao para quem
+ * atende, nao falha.
+ */
+export async function changeStudentPassword(
+  studentId: string,
+  password: string,
+): Promise<{ ok: true; email: string }> {
+  return http.put<{ ok: true; email: string }>(
+    `/admin/students/${encodeURIComponent(studentId)}/password`,
+    { password },
+  );
+}
+
 export async function deleteSystemUser(id: string, confirmEmail: string): Promise<{ ok: true }> {
   return http.delete(`/admin/users/${encodeURIComponent(id)}`, {
     headers: { 'X-Confirm-Name': confirmEmail },

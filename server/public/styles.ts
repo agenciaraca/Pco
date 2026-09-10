@@ -767,6 +767,10 @@ main:has(> .cta-final:last-child) + .pincel-topo{
 /* Marca o campo que nao e obrigatorio. Sem isso, quem preenche nao sabe
    onde pode parar, e formulario longo perde gente por duvida. */
 .ck-opcional{font-weight:400;color:var(--ink-subtle)}
+/* Ajuda embaixo do campo de cupom. Ela existe porque a conferencia so
+   acontece ao finalizar: sem a frase, um codigo errado so daria erro no
+   fim, e a pessoa nao saberia que era esperado. */
+.ck-ajuda{margin-top:6px;font-size:12.5px;line-height:1.45;color:var(--ink-subtle)}
 /* Campo — mesma fonte do botão: Componentes.dc.html. O foco é anel macio sobre
    a borda de acento, não contorno que apaga a borda; e faltavam desabilitado e
    erro, então campo bloqueado e campo com erro ficavam iguais a campo normal.

@@ -926,6 +926,13 @@ export function useChangeSystemUserPassword() {
   });
 }
 
+export function useChangeStudentPassword() {
+  return useMutation({
+    mutationFn: ({ studentId, password }: { studentId: string; password: string }) =>
+      api.changeStudentPassword(studentId, password),
+  });
+}
+
 export function useDeleteSystemUser() {
   const qc = useQueryClient();
   return useMutation({

@@ -283,6 +283,10 @@ export const PUBLIC_JS = `
         complemento: g('complemento'), bairro: g('bairro'),
         cidade: g('cidade'), uf: g('uf')
       },
+      // Cupom. Vazio nao vai: o schema o aceita ausente, e mandar string
+      // vazia faria o servidor procurar um cupom de codigo "" e recusar a
+      // compra de quem nao tem cupom nenhum.
+      couponCode: g('couponCode') || undefined,
       // De onde a pessoa veio. Não muda preço nem acesso — o servidor só grava.
       origem: leOrigem()
     };

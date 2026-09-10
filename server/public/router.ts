@@ -2336,7 +2336,22 @@ function formularioCheckout(
       </div>
 
       <div class="ck-bloco">
-        <h2>3. Como você quer pagar</h2>
+        <h2>3. Cupom de desconto <span class="ck-opcional">(se tiver)</span></h2>
+        <div class="ck-campos">
+          <div>
+            <label class="lbl" for="ck-cupom">Código</label>
+            <input class="fi" id="ck-cupom" name="couponCode" maxlength="40" autocapitalize="characters"
+                   autocomplete="off" spellcheck="false" placeholder="Ex.: BEMVINDO10">
+            <p class="ck-ajuda">
+              O desconto é conferido e aplicado ao finalizar. Se o código não valer, a página diz o
+              motivo e nada é cobrado.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ck-bloco">
+        <h2>4. Como você quer pagar</h2>
         <fieldset class="ck-metodos">
           <legend class="sr-only">Meio de pagamento</legend>${opcoesDeMetodo(tetos)}
         </fieldset>

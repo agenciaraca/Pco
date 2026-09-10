@@ -18,6 +18,7 @@ import {
   PlayCircle,
   Calendar,
   Eye,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import Tabs from '../../components/Tabs';
@@ -37,6 +38,7 @@ import {
   useExtendStudentCourseAccess,
   useBlockStudent,
   useUnblockStudent,
+  useChangeStudentPassword,
 } from '../../data/hooks';
 import type { CourseAccessRow, ExtendAccessGrant } from '../../data/api';
 import { useToast } from '../../components/Toast';
@@ -76,6 +78,10 @@ export default function AdminUserDetail() {
   const [impersonating, setImpersonating] = useState(false);
   const bloquear = useBlockStudent();
   const desbloquear = useUnblockStudent();
+  const trocarSenha = useChangeStudentPassword();
+  const [trocandoSenha, setTrocandoSenha] = useState(false);
+  const [senhaNova, setSenhaNova] = useState('');
+  const [erroSenha, setErroSenha] = useState<string | null>(null);
   const toast = useToast();
   const [impersonateError, setImpersonateError] = useState<string | null>(null);
   const auth = useAuth();
@@ -201,6 +207,26 @@ export default function AdminUserDetail() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/*
+            Trocar a senha daqui, e não da tela de contas.
+
+            O público desta escola é 50+, e o "esqueci minha senha" é o passo em
+            que muita gente desiste e liga. Quem atende abre a ficha do aluno —
+            mandá-lo a outra tela procurar a conta pelo e-mail é fricção que
+            custa atendimento.
+
+            A troca derruba as sessões abertas (o servidor incrementa o
+            `tokenVersion`), e isso é dito na caixa: quem está trocando precisa
+            saber que a pessoa vai ser deslogada dos aparelhos dela.
+          */}
+          <button
+            type="button"
+            onClick={() => setTrocandoSenha(true)}
+            className="pco-btn-secondary text-xs"
+          >
+            <KeyRound size={12} strokeWidth={2} />
+            Trocar senha
+          </button>
           {/*
             "Enviar e-mail" nunca teve ação. Em vez de um botão que não faz
             nada, um link que faz o que promete — abrir o cliente de e-mail com
@@ -545,6 +571,93 @@ export default function AdminUserDetail() {
       {active === 'notas' && <AdminNotesPanel studentId={student.id} />}
 
       {active === 'analytics' && <StudentAnalyticsPanel studentId={student.id} />}
+
+      {trocandoSenha && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-troca-senha"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setTrocandoSenha(false);
+          }}
+        >
+          <div className="pco-card w-full max-w-sm p-5">
+            <h2 id="titulo-troca-senha" className="text-base font-semibold text-pco-deep">
+              Trocar a senha de {student.name}
+            </h2>
+            <p className="mt-1 text-xs text-ink-muted">{student.email}</p>
+            <p className="mt-3 rounded-lg bg-surface-gray p-2.5 text-xs text-ink-muted">
+              A pessoa será desconectada de todos os aparelhos e passará a entrar com a senha
+              nova. Combine a senha com ela antes de trocar.
+            </p>
+            <label className="mt-4 block text-xs font-semibold text-pco-deep" htmlFor="senha-nova">
+              Senha nova
+            </label>
+            <input
+              id="senha-nova"
+              className="pco-input mt-1"
+              type="text"
+              value={senhaNova}
+              autoFocus
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(e) => {
+                setSenhaNova(e.target.value);
+                setErroSenha(null);
+              }}
+              placeholder="ao menos 8 caracteres"
+            />
+            {/*
+              O campo é `text`, não `password`, e isso é deliberado: quem digita
+              aqui é o atendente, que precisa LER a senha em voz alta para o
+              aluno do outro lado da linha. Esconder o que ele acabou de
+              inventar faria ele digitar errado e ditar outra coisa.
+            */}
+            {erroSenha && (
+              <p className="mt-2 text-xs text-status-danger" role="alert">
+                {erroSenha}
+              </p>
+            )}
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="pco-btn-ghost text-xs"
+                onClick={() => {
+                  setTrocandoSenha(false);
+                  setSenhaNova('');
+                  setErroSenha(null);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="pco-btn-primary text-xs"
+                disabled={trocarSenha.isPending || senhaNova.length < 8}
+                onClick={async () => {
+                  try {
+                    const r = await trocarSenha.mutateAsync({
+                      studentId: student.id,
+                      password: senhaNova,
+                    });
+                    toast.success('Senha trocada', r.email);
+                    setTrocandoSenha(false);
+                    setSenhaNova('');
+                  } catch (err) {
+                    // O motivo do servidor vai para a tela, não um "falhou".
+                    // "Este aluno não tem conta de acesso" é a resposta que o
+                    // atendente precisa para saber o que dizer à pessoa.
+                    setErroSenha(err instanceof Error ? err.message : 'Não consegui trocar.');
+                  }
+                }}
+              >
+                {trocarSenha.isPending ? 'Trocando…' : 'Trocar senha'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

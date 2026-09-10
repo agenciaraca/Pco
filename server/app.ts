@@ -4907,6 +4907,62 @@ export function buildApp() {
     return c.json(updated);
   });
 
+  /*
+    Trocar a senha do aluno pela ficha dele.
+
+    A capacidade ja existia em `PUT /admin/users/:id/password`, e continua la.
+    O que faltava era ela estar ONDE O SUPORTE TRABALHA: quem atende abre a
+    ficha do aluno, nao a tela de contas do sistema. O publico desta escola e
+    50+, e trocar a propria senha pelo "esqueci minha senha" e justamente o
+    passo em que muita gente desiste e liga -- entao o atendimento faz por
+    ela, e obriga-lo a descobrir outra tela e procurar a conta pelo e-mail e
+    fricção que custa atendimento.
+
+    **A ficha e a conta sao coisas diferentes**, e este e o ponto delicado. Ha
+    418 contas com login e sem ficha em producao, e o contrario tambem existe:
+    ficha importada cujo titular nunca teve conta. Por isso a busca tem dois
+    caminhos -- e-mail primeiro, id depois -- e o "nao achei" **nao e um erro
+    generico**: e a informacao de que aquele aluno nao tem por onde entrar, que
+    e o que o atendente precisa saber para dizer a pessoa o que fazer.
+
+    Trocar a senha invalida as sessoes abertas (`changePassword` incrementa o
+    `tokenVersion`), e isso e desejado: se o suporte esta trocando, ou a pessoa
+    perdeu o acesso, ou ha motivo para derrubar quem estiver dentro.
+  */
+  app.put(
+    '/admin/students/:id/password',
+    requireAuth('admin', 'superadmin'),
+    blockDuringImpersonation('user.password.change'),
+    async (c) => {
+      const body = await c.req.json().catch(() => ({}));
+      const v = validate(changePasswordSchema, body);
+      if (!v.ok) return jsonError(c, 400, 'INVALID_INPUT', 'Dados inválidos', v.error.flatten());
+
+      const studentId = c.req.param('id') as string;
+      const student = await studentsRepo.findAdminStudent(studentId);
+      if (!student) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
+
+      const conta =
+        (student.email ? await usersStore.findUserByEmail(student.email) : null) ??
+        (await usersStore.findRawById(studentId));
+      if (!conta) {
+        return jsonError(
+          c,
+          404,
+          'SEM_CONTA_DE_ACESSO',
+          'Este aluno não tem conta de acesso — não há senha para trocar. ' +
+            'Crie a conta em Usuários com o e-mail dele.',
+        );
+      }
+
+      const ok = await usersStore.changePassword(conta.id, v.data.password);
+      if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Conta não encontrada');
+      // O e-mail volta para a tela: é ele que confirma ao atendente que a senha
+      // trocada é a da conta certa, e não de um homônimo.
+      return c.json({ ok: true, email: conta.email });
+    },
+  );
+
   app.post('/admin/students/:id/block', requireAuth('admin', 'superadmin'), async (c) => {
     const updated = await studentsRepo.setStudentStatus(c.req.param('id') as string, 'bloqueado');
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
@@ -11957,6 +12013,42 @@ export function buildApp() {
       return jsonError(c, 400, 'NO_ACTIVE_GATEWAY', 'Pagamento indisponível no momento.');
     }
 
+    /*
+      Cupom — e ate 10/set/2026 esta rota ACEITAVA o campo e o jogava fora.
+
+      `publicCheckoutSchema` declara `couponCode` desde que o cupom existe, e o
+      checkout do aluno logado sempre o aplicou. Aqui, nao: o valor era
+      validado pelo Zod, entrava no corpo, e nenhuma linha o lia. Quem tivesse
+      um cupom pagaria o preco cheio -- sem erro, sem aviso, com o pedido
+      gravado no valor errado.
+
+      E a mesma classe do CPF que nao chegava ao Asaas e do campo de aula sem
+      coluna: coletado, validado, e descartado em silencio na ultima curva. So
+      que aqui o descarte cobra dinheiro a mais de quem comprou.
+
+      O valor com desconto tem de valer nos TRES lugares -- na busca por pedido
+      pendente equivalente, no pedido gravado e na cobranca. Aplicar num so
+      deixaria o pedido dizendo um preco e o gateway cobrando outro.
+    */
+    let amountCents = product.priceCents;
+    let appliedCouponId: string | null = null;
+    let appliedCouponCode: string | null = null;
+    let discountCents = 0;
+    if (v.data.couponCode) {
+      const coupon = await couponsRepo.findByCode(v.data.couponCode);
+      const valid = couponsRepo.validateCoupon(coupon, product.id, amountCents);
+      if (!valid.ok) {
+        // A frase do repo diz o motivo ("expirado", "nao vale para este
+        // curso"), e e ela que a pessoa le abaixo do campo. "Cupom invalido"
+        // mandaria conferir o que ja esta certo.
+        return jsonError(c, 400, 'COUPON_INVALID', valid.reason);
+      }
+      discountCents = valid.discountCents;
+      amountCents = product.priceCents - discountCents;
+      appliedCouponId = coupon!.id;
+      appliedCouponCode = coupon!.code;
+    }
+
     // Mesma proteção do checkout do aluno: duplo clique ou retentativa de rede
     // não podem virar dois pedidos e duas cobranças. Aqui pesa mais, porque o
     // carrinho com mais de um curso **materializa um produto `bundle` adhoc no
@@ -11964,7 +12056,7 @@ export function buildApp() {
     // dois produtos-fantasma além dos dois pedidos.
     const pendenteDoVisitante = await ordersRepo.acharPendenteEquivalente(user.id, {
       productId: product.id,
-      amountCents: product.priceCents,
+      amountCents,
       metodo: v.data.metodo ?? null,
     });
     if (pendenteDoVisitante && pendenteDoVisitante.checkoutUrl) {
@@ -11998,7 +12090,7 @@ export function buildApp() {
       gatewayId: gw.id,
       gatewayProvider: gw.provider,
       metodo: v.data.metodo ?? null,
-      amountCents: product.priceCents,
+      amountCents,
       currency: product.currency,
     });
 
@@ -12015,9 +12107,10 @@ export function buildApp() {
         metodo: v.data.metodo,
         candidatos,
         input: {
-          amountCents: product.priceCents,
+          amountCents,
           currency: product.currency,
-          description: product.name,
+          description:
+            discountCents > 0 ? `${product.name} (cupom ${appliedCouponCode})` : product.name,
           customerEmail: user.email,
           // Nome, documento e telefone vêm do formulário e param aqui — antes
           // paravam no cadastro do usuário e o gateway recebia só o e-mail. A
@@ -12039,6 +12132,23 @@ export function buildApp() {
         gatewayProvider: gateway.provider,
         installmentId: result.installmentId,
       });
+      /*
+        O uso do cupom e contado a partir DESTA anotacao.
+
+        Nao ha coluna de cupom no pedido: quem incrementa o contador e o
+        webhook de pagamento, procurando `couponId=` na nota do historico. Sem
+        esta linha, um cupom com limite de usos nunca chegaria ao limite --
+        valeria para sempre, em silencio. O checkout do aluno logado ja fazia
+        isto; o publico nao aplicava cupom nenhum, entao nao tinha o que
+        anotar.
+      */
+      if (appliedCouponId) {
+        await ordersRepo.updateStatus(
+          order.id,
+          updated?.status ?? 'pending',
+          `couponId=${appliedCouponId} discount=${discountCents}`,
+        );
+      }
       // Conta nova: e-mail para definir senha (best-effort).
       if (isNewAccount) {
         try {
