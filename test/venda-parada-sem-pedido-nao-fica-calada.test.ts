@@ -111,6 +111,16 @@ describe('a recusa antes do pedido passa a ser contada', () => {
 
   it('só conta o que está dentro da janela', async () => {
     await recusas.registrarRecusa('publico', FRASE_REAL);
+    /*
+      `resumirRecusas(0)` calcula `desde = Date.now()` no instante em que RODA
+      — não no instante em que a recusa foi registrada, uma linha acima. As
+      duas chamadas de `Date.now()` podem cair no mesmo milissegundo (comum em
+      CI, onde a máquina é rápida), e aí o registro entra na janela por empate
+      em vez de ficar de fora: `total` vira 1 em vez de 0, sem nenhum bug no
+      código sob teste. Uma pausa real, maior que a resolução do relógio,
+      garante que a recusa fica inequivocamente ANTES do instante medido.
+    */
+    await new Promise((r) => setTimeout(r, 20));
     const antiga = await recusas.resumirRecusas(0);
     expect(antiga.total).toBe(0);
     // E `null`, não zero com motivo inventado.
