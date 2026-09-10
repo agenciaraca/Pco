@@ -17,7 +17,13 @@
  *
  * Do lado do servidor, o par disto é o `frame-src` de `server/public/csp.ts`.
  * Sem ele o iframe nem chega a carregar.
+ *
+ * `urlDeEmbed` normaliza a URL antes de virar `src`: o acervo de podcasts
+ * guardou `vimeo.com/<id>` (a página de assistir, que recusa iframe e nem
+ * passa na CSP) em vez de `player.vimeo.com/video/<id>`. Ver `lib/videoEmbed`.
  */
+
+import { urlDeEmbed } from '../lib/videoEmbed';
 
 /** Extensões que o navegador toca direto. O resto é embed. */
 const ARQUIVO_DE_MIDIA = /\.(mp4|webm|ogg|ogv|m4v|mov)(\?|#|$)/i;
@@ -44,7 +50,7 @@ export default function VideoAula({ url, titulo }: Props) {
 
   return (
     <iframe
-      src={url}
+      src={urlDeEmbed(url)}
       title={titulo}
       className="w-full h-full"
       frameBorder={0}

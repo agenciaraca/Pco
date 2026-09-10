@@ -684,6 +684,48 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## Os podcasts em vídeo não tocavam — nenhum, e a URL era a causa
+
+`src/app/lib/videoEmbed.ts` + `VideoAula.tsx` (10/set/2026). O acervo de
+podcasts que veio do LMS antigo guardou `videoUrl` como
+`https://vimeo.com/1116765460` — a URL da **página de assistir**, não a do
+player. `VideoAula` punha isso direto no `<iframe src>`, e não tocava por dois
+motivos somados:
+
+1. `vimeo.com/<id>` é a página do site da Vimeo e **recusa ser embutida**
+   (`X-Frame-Options`) — nenhum `Referer` conserta;
+2. a CSP libera `frame-src` só para `player.vimeo.com`, então `vimeo.com` nem
+   chega a carregar.
+
+As **aulas** escaparam porque o HTML de embed do LearnDash já trazia
+`player.vimeo.com/video/<id>`; o `extract_video_url` do import só extrai a
+primeira URL, não normaliza. Os podcasts vieram da API `ldlms/v2/topicos`, que
+devolve a URL crua.
+
+**Medido contra a Vimeo:** 40 dos 43 vídeos respondem 200 no endereço de player
+com o nosso `Referer`. Os outros 3 (`1116765460`, `1072590325`, `1069690573`)
+dão `PrivacyError` mesmo com o Referer certo — esses são configuração de embed
+na conta da Vimeo, ação do dono. Mas os 40 estavam quebrados **pela forma da
+URL**, não pela conta.
+
+`urlDeEmbed` normaliza no ponto único (`VideoAula`, por onde passam aula,
+podcast e preview): conserta o acervo inteiro sem tocar no banco e protege
+qualquer cadastro futuro em que alguém cole a URL da barra de endereço. Três
+regras:
+
+- **Idempotente:** `player.vimeo.com/video/<id>` entra e sai igual.
+- **Preserva o hash do não listado:** `vimeo.com/<id>/<hash>` →
+  `player.vimeo.com/video/<id>?h=<hash>`.
+- **Não inventa:** o que não reconhece volta como veio.
+
+`test/video-embed-normaliza-url.test.ts` — 7 casos, e um deles cobra que toda
+saída de `urlDeEmbed` casa com a whitelist do `frame-src` da CSP: normalizar
+para um host que a CSP não libera trocaria um jeito de não tocar por outro.
+
+**Falta a limpeza dos dados** (as 43 linhas com `vimeo.com/<id>` no banco): é
+higiene, não o conserto — o render já resolve. Fazer pelo VPS, como a migration
+`0022`.
+
 ## A faixa da carreira: laranja vivo, e a legibilidade em camadas
 
 `server/public/styles.ts` (10/set/2026, escolha do dono). O overlay da seção
