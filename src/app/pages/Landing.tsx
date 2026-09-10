@@ -15,13 +15,10 @@ import {
   Sparkles,
   Stethoscope,
   Maximize2,
-  TrendingUp,
   Users,
   ScrollText,
   ShieldCheck,
   CheckCircle2,
-  Layers,
-  Activity,
 } from 'lucide-react';
 
 const recursos = [
@@ -33,7 +30,6 @@ const recursos = [
   { icon: Bot, label: 'Tutor Virtual', desc: 'IA pedagógica.' },
   { icon: Award, label: 'Certificados', desc: 'Validação digital.' },
   { icon: LifeBuoy, label: 'Suporte', desc: 'Acompanhamento humano.' },
-  { icon: TrendingUp, label: 'Plano de retomada', desc: 'Para alunos inativos.' },
 ];
 
 /**
@@ -91,39 +87,109 @@ export default function Landing() {
         <div className="relative max-w-5xl mx-auto px-6 py-24 lg:py-32 text-white">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur text-xs font-medium mb-6">
             <Sparkles size={14} />
-            Nova plataforma de aprendizagem
+            Ambiente de estudo da Psicanálise Clínica Online
           </div>
           <h1 className="text-4xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight max-w-3xl">
-            AVA PCO: sua formação organizada em uma experiência de aprendizagem moderna.
+            Estude psicanálise no seu ritmo — com um ambiente feito para você chegar ao fim.
           </h1>
           <p className="mt-5 text-lg text-white/85 max-w-2xl">
-            Cursos, aulas, jornada de estudos, biblioteca, PCO News, PCO POD, Tutor Virtual,
-            certificados e acompanhamento em um só ambiente.
+            Aulas, trilha de estudo, biblioteca, tutor de dúvidas por IA e certificado com validação
+            pública. Tudo em um lugar, no computador ou no celular, 24 horas por dia.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/onboarding" className="pco-btn-accent">
-              Conhecer o AVA PCO
+          {/*
+            O CTA levava a `/onboarding` e a `#recursos`: os dois pressupõem que
+            quem lê já comprou. Quem chega aqui pela busca ainda vai decidir, e
+            o passo seguinte dele é ver o que existe e quanto custa.
+
+            **Nenhum preço nem parcela nesta página**, de propósito: o teto sai
+            de `server/payments/condicoes.ts` e depende do gateway roteado.
+            Cravar aqui repetiria o "12x fantasma" -- e a vitrine, que é SSR, já
+            calcula e exibe o número certo.
+          */}
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <a href="/formacoes" className="pco-btn-accent">
+              Ver formações e valores
               <ArrowRight size={14} strokeWidth={2} />
-            </Link>
-            <a
-              href="#recursos"
+            </a>
+            <Link
+              to="/login"
               className="pco-btn bg-white/15 text-white hover:bg-white/25 backdrop-blur"
             >
-              Ver recursos
-            </a>
+              Já é aluno? Entrar no AVA
+            </Link>
           </div>
         </div>
       </section>
 
       {/* 2. Posicionamento */}
       <Section>
+        {/*
+          Bloco de resposta direta: as duas primeiras frases definem o que é
+          isto, para quem e o que entrega. E o que os buscadores e os
+          assistentes extraem de uma página -- por isso vem logo depois do
+          hero, em texto corrido, e nao dentro de um card.
+        */}
         <div className="text-center max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold text-pco-deep">
-            Mais do que uma área de aulas. Uma jornada de formação.
+            Feito para quem estuda com a vida adulta acontecendo ao redor.
           </h2>
           <p className="mt-3 text-ink-muted">
-            Estude no seu ritmo, com acompanhamento, retomada e múltiplos formatos de conteúdo.
+            O AVA PCO é o ambiente de estudo online da Psicanálise Clínica Online: reúne as aulas
+            das formações, a trilha de estudo, a biblioteca, o tutor de dúvidas e o certificado num
+            único lugar, acessível pelo navegador do computador ou do celular.
           </p>
+        </div>
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <FeatureCard
+            icon={<Stethoscope className="text-pco-blue" size={22} strokeWidth={1.5} />}
+            title="Quem quer atuar"
+            text="Você quer formação séria em psicanálise para atender, e precisa de um caminho claro do primeiro módulo à certificação."
+          />
+          <FeatureCard
+            icon={<Users className="text-pco-cyan" size={22} strokeWidth={1.5} />}
+            title="Quem já atende"
+            text="Você é psicólogo, terapeuta ou profissional da saúde e quer aprofundar a escuta psicanalítica sem parar a agenda."
+          />
+          <FeatureCard
+            icon={<BookOpen className="text-pco-deep" size={22} strokeWidth={1.5} />}
+            title="Quem estuda por si"
+            text="Você quer entender Freud, Lacan, Jung e a clínica com profundidade, sem a burocracia de uma faculdade."
+          />
+        </div>
+      </Section>
+
+      {/* 2b. Por que o AVA PCO — os três benefícios */}
+      <Section bg="off">
+        <div className="text-center max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold text-pco-deep">
+            Um ambiente pensado para um problema real: a maioria dos alunos online não termina.
+          </h2>
+        </div>
+        {/*
+          É aqui que o acompanhamento de evasão aparece -- e é a única forma
+          legítima de ele aparecer nesta página. Havia uma seção "Retenção" com
+          "score de risco por aluno", "recalculado a cada 6 horas" e "some se
+          ninguém aprovar": linguagem do sistema, dita a quem ainda vai comprar.
+          Quem lê não se sente acolhido, sente-se monitorado.
+
+          O mecanismo é o mesmo; o que muda é de que lado ele é contado.
+        */}
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <FeatureCard
+            icon={<Compass className="text-pco-blue" size={22} strokeWidth={1.5} />}
+            title="Você sempre sabe o próximo passo"
+            text="A trilha mostra onde você está, o que falta e qual é a próxima aula. Sem se perder em pastas de vídeo."
+          />
+          <FeatureCard
+            icon={<LifeBuoy className="text-pco-orange" size={22} strokeWidth={1.5} />}
+            title="Se a vida atropelar, você retoma"
+            text="Ficou semanas fora? O AVA monta um plano de retomada realista e a equipe pedagógica fala com você. Ninguém é abandonado no módulo 2."
+          />
+          <FeatureCard
+            icon={<Bot className="text-pco-cyan" size={22} strokeWidth={1.5} />}
+            title="Dúvida às 23h tem resposta"
+            text="O Tutor Virtual responde sobre o conteúdo das aulas a qualquer hora; para o que é clínico, você tem gente de verdade."
+          />
         </div>
       </Section>
 
@@ -132,16 +198,19 @@ export default function Landing() {
         <div className="grid gap-10 lg:grid-cols-2 items-center">
           <div>
             <Tag>Jornada PCO</Tag>
-            <h2 className="mt-3 text-3xl font-bold text-pco-deep">Trilha visual de aprendizagem</h2>
+            <h2 className="mt-3 text-3xl font-bold text-pco-deep">
+              Sua formação em uma trilha que mostra progresso de verdade
+            </h2>
             <p className="mt-3 text-ink-muted max-w-md">
-              Acompanhe módulos, aulas, avaliações, microvitórias e desbloqueios em uma trilha
-              adulta — sem mascotes, sem ranking infantil. Foco em progresso real.
+              Módulos, aulas e avaliações organizados em sequência. Cada etapa concluída libera a
+              próxima; cada avaliação devolve feedback. Você vê a formação inteira em uma tela — e o
+              quanto já caminhou.
             </p>
             <ul className="mt-6 space-y-2 text-sm text-ink-muted">
-              <Bullet>Bloqueios e desbloqueios por progresso</Bullet>
-              <Bullet>Próxima ação recomendada sempre visível</Bullet>
-              <Bullet>Plano de retomada para inatividade</Bullet>
-              <Bullet>Certificado disponível ao final</Bullet>
+              <Bullet>Próxima ação sempre visível</Bullet>
+              <Bullet>Módulos liberados conforme você avança</Bullet>
+              <Bullet>Uma conquista a cada etapa concluída</Bullet>
+              <Bullet>Certificado liberado ao cumprir os requisitos</Bullet>
             </ul>
           </div>
           <div className="pco-card p-6">
@@ -208,11 +277,13 @@ export default function Landing() {
           </div>
           <div className="order-1 lg:order-2">
             <Tag>Modo de estudo imersivo</Tag>
-            <h2 className="mt-3 text-3xl font-bold text-pco-deep">Concentre-se no que importa</h2>
+            <h2 className="mt-3 text-3xl font-bold text-pco-deep">
+              Quando é hora de estudar, a tela some — fica só a aula
+            </h2>
             <p className="mt-3 text-ink-muted max-w-md">
-              Quando você entra em curso, módulo, aula ou avaliação, o AVA muda para um layout de
-              estudo dedicado. Sidebar contextual com a trilha, painel de apoio e Modo Foco para
-              maximizar vídeo e conteúdo.
+              Ao abrir uma aula, o AVA troca para um layout de estudo: vídeo em destaque, material
+              da aula ao lado, trilha à mão e nada de distração. Você continua de onde parou, em
+              qualquer aparelho.
             </p>
           </div>
         </div>
@@ -222,10 +293,19 @@ export default function Landing() {
       {vitrine.length > 0 && (
         <Section bg="off">
           <div className="text-center mb-10">
-            <Tag>Multi-cursos</Tag>
+            <Tag>Formações</Tag>
             <h2 className="mt-3 text-3xl font-bold text-pco-deep">
-              Várias formações, um único AVA
+              Todas as formações, um só ambiente e um só login
             </h2>
+            {/*
+              O título NÃO traz o número de formações, e isso é deliberado. O
+              plano de conversão pedia "15 formações"; a vitrine pública
+              devolve **2** (medido em produção em 10/set/2026). Número de
+              catálogo cravado em copy erra no dia em que alguém publica ou
+              despublica um curso -- e aqui erraria por treze.
+
+              Quem sabe quantas são é a lista logo abaixo, que vem do catálogo.
+            */}
           </div>
           {/*
           Esta grade listava três cursos escritos à mão — "Psicanálise
@@ -256,13 +336,19 @@ export default function Landing() {
               </Link>
             ))}
           </div>
-          {cursosQ.data && cursosQ.data.length > CURSOS_NA_VITRINE && (
-            <div className="mt-6 text-center">
-              <a href="/formacoes" className="pco-btn-secondary">
-                Ver as {cursosQ.data.length} formações
-              </a>
-            </div>
-          )}
+          {/*
+            O botão só aparecia quando havia MAIS de oito cursos -- ou seja,
+            nunca, com o catálogo de hoje. E é ele que leva à vitrine, que é
+            onde estão o preço e o parcelamento calculados. Numa página de
+            venda, o caminho para a compra não pode depender do tamanho do
+            catálogo.
+          */}
+          <div className="mt-8 text-center">
+            <a href="/formacoes" className="pco-btn-primary">
+              Ver formações e valores
+              <ArrowRight size={14} strokeWidth={2} />
+            </a>
+          </div>
         </Section>
       )}
 
@@ -293,12 +379,22 @@ export default function Landing() {
           <div>
             <Tag>Tutor Virtual IA</Tag>
             <h2 className="mt-3 text-3xl font-bold text-pco-deep">
-              Apoio pedagógico, no ritmo do aluno
+              Um tutor de dúvidas a qualquer hora, treinado no conteúdo da PCO
             </h2>
+            {/*
+              "Limites configuráveis, pacotes adicionais externos" descrevia o
+              contrato de custo da IA para quem administra. Quem está decidindo
+              comprar lê isso como restrição do que vai receber.
+
+              O aviso ético fica -- ele é ativo de confiança, não passivo: uma
+              escola de saúde mental que declara o que a IA NÃO faz ganha
+              autoridade, não perde.
+            */}
             <p className="mt-3 text-ink-muted max-w-md">
-              IA treinada para responder dúvidas dos cursos da PCO. Limites configuráveis, pacotes
-              adicionais externos e escopo claramente delimitado — sempre com aviso de que não
-              substitui supervisão clínica ou atendimento profissional.
+              Pergunte sobre a aula, peça um exemplo, reveja um conceito. O Tutor Virtual responde a
+              partir do material dos seus cursos — não da internet. Ele não substitui supervisão
+              clínica nem atendimento profissional, e diz isso com clareza. Para o que é clínico,
+              você tem tutoria humana.
             </p>
           </div>
           <div className="pco-card p-5">
@@ -312,7 +408,7 @@ export default function Landing() {
               <ChatBubble role="assistant">Boa pergunta. A escuta é a postura ética...</ChatBubble>
             </div>
             <div className="mt-3 text-xs text-ink-subtle">
-              Limite mensal e escopo configurados em /admin/tutor
+              Responde sobre o conteúdo das suas aulas — não sobre casos clínicos.
             </div>
           </div>
         </div>
@@ -347,46 +443,21 @@ export default function Landing() {
         </div>
       </Section>
 
-      {/* 9. Retenção e acompanhamento */}
-      <Section bg="off">
-        <div className="grid gap-10 lg:grid-cols-2 items-center">
-          <div>
-            <Tag>Retenção</Tag>
-            <h2 className="mt-3 text-3xl font-bold text-pco-deep">
-              Acompanhamento que evita evasão
-            </h2>
-            <p className="mt-3 text-ink-muted max-w-md">
-              Score de risco por aluno, ações recomendadas, plano de retomada com IA e revisão
-              humana. A IA sugere — a equipe pedagógica decide.
-            </p>
-          </div>
-          {/*
-            Aqui havia quatro estatísticas de desempenho — "Retenção 90d 64%",
-            "Conclusão 58%", "Reengajados 48%", "Ritmo 2,4 h/sem", todas com
-            variação positiva. Nenhuma vinha de medição: eram as mesmas
-            constantes que a tela interna de retenção exibia. Numa página de
-            venda isso deixa de ser tela que mente e vira propaganda enganosa
-            (CDC, art. 37) — afirmação de resultado a quem ainda vai decidir
-            comprar.
+      {/*
+        Havia aqui uma seção "Retenção": score de risco por aluno, "recalculado
+        a cada 6 horas", "nasce rascunho, some se ninguém aprovar". Tudo
+        verdadeiro, e tudo escrito da perspectiva de quem OPERA a escola.
 
-            O que ficou no lugar é o que o sistema faz de verdade, e cada item
-            aponta para código que existe: o cálculo de risco
-            (`server/services/retention-calculator.ts`), o worker de
-            reengajamento e os planos de retomada, que nascem como rascunho —
-            é isso que torna verdadeira a frase "a IA sugere, a equipe decide".
+        Numa página que fala com quem ainda vai comprar, isso não vende: quem
+        lê se vê vigiado, não acolhido. É a mesma família de defeito que este
+        projeto persegue em `/admin` -- tela que fala a linguagem do sistema em
+        vez da de quem lê. Ali custava confiança; aqui custa venda.
 
-            Publicar os números reais seria outra decisão, e não é técnica:
-            desempenho de escola é dado de negócio, e hoje a base ainda carrega
-            o problema de matrículas da migração.
-          */}
-          <div className="grid grid-cols-2 gap-3">
-            <StatBlock label="Score de risco" texto="Recalculado por aluno a cada 6 horas" />
-            <StatBlock label="Ação recomendada" texto="Sugerida junto com o motivo do risco" />
-            <StatBlock label="Reengajamento" texto="E-mail automático a quem sumiu" />
-            <StatBlock label="Plano de retomada" texto="Nasce rascunho, some se ninguém aprovar" />
-          </div>
-        </div>
-      </Section>
+        O mecanismo não sumiu do produto nem da página: ele virou o benefício
+        "Se a vida atropelar, você retoma", lá em cima, contado do lado do
+        aluno. Vender o acompanhamento para escolas é outra página, com outro
+        público -- e é decisão do dono, não recorte deste arquivo.
+      */}
 
       {/* 10. Certificados */}
       <Section>
@@ -412,11 +483,12 @@ export default function Landing() {
           <div className="order-1 lg:order-2">
             <Tag>Certificados</Tag>
             <h2 className="mt-3 text-3xl font-bold text-pco-deep">
-              Certificação digital com validação
+              Certificado digital que qualquer pessoa pode conferir
             </h2>
             <p className="mt-3 text-ink-muted max-w-md">
-              QR Code, código de validação único e checklist de requisitos. Reemissão controlada e
-              validação aberta para terceiros.
+              Ao concluir, você recebe um certificado com QR Code e código único. Empregador,
+              paciente ou instituição confere a autenticidade em segundos, numa página aberta — sem
+              precisar pedir nada à escola.
             </p>
           </div>
         </div>
@@ -437,81 +509,153 @@ export default function Landing() {
         </div>
       </Section>
 
-      {/* 12. Admin PCO */}
-      <Section>
-        <div className="text-center mb-10">
-          <Tag>Admin PCO</Tag>
-          <h2 className="mt-3 text-3xl font-bold text-pco-deep">
-            Controle pedagógico de ponta a ponta
-          </h2>
-        </div>
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          <FeatureCard
-            icon={<Activity className="text-pco-blue" size={22} strokeWidth={1.5} />}
-            title="Previsão de evasão"
-            text="Score por aluno, motivos e ação recomendada."
-          />
-          <FeatureCard
-            icon={<Sparkles className="text-pco-orange" size={22} strokeWidth={1.5} />}
-            title="Plano de retomada IA"
-            text="Mensagem personalizada, revisão humana, histórico."
-          />
-          <FeatureCard
-            icon={<Layers className="text-pco-deep" size={22} strokeWidth={1.5} />}
-            title="Gestão de IAs"
-            text="Provedores, modelos, escopo, custo, auditoria."
-          />
-          <FeatureCard
-            icon={<TrendingUp className="text-status-success" size={22} strokeWidth={1.5} />}
-            title="Métricas & SEO"
-            text="Tráfego, indexação, palavras-chave, dispositivos."
-          />
-        </div>
-      </Section>
+      {/*
+        E havia uma seção "Admin PCO" -- previsão de evasão, gestão de IAs,
+        métricas e SEO. Zero relevância para quem vai estudar, e o mesmo
+        vazamento de bastidor da seção de retenção: "custo", "auditoria",
+        "indexação" são palavras de quem administra a plataforma.
+      */}
 
       {/* 13. Primeiro acesso */}
       <Section bg="off">
         <div className="text-center mb-10">
-          <Tag>Primeiro acesso</Tag>
+          <Tag>Como funciona</Tag>
           <h2 className="mt-3 text-3xl font-bold text-pco-deep">
-            Onboarding humano, termos transparentes
+            Da matrícula ao certificado, em 4 passos
           </h2>
         </div>
+        {/*
+          Os quatro passos eram "Login · Onboarding · Termos e privacidade ·
+          Plano de estudo": a sequência que o SISTEMA executa depois que alguém
+          já comprou. Quem ainda não comprou precisa saber o que acontece a
+          partir do momento em que ele decide -- é isso que reduz a ansiedade
+          da compra.
+
+          Nenhum passo cita prazo, parcela ou período de acesso: os três são
+          dados que só o dono tem, e o parcelamento é calculado no servidor.
+        */}
         <div className="grid gap-3 md:grid-cols-4">
           {[
-            { icon: ShieldCheck, n: 1, t: 'Login' },
-            { icon: Compass, n: 2, t: 'Onboarding' },
-            { icon: ScrollText, n: 3, t: 'Termos e privacidade' },
-            { icon: CheckCircle2, n: 4, t: 'Plano de estudo' },
-          ].map((s) => (
-            <div key={s.n} className="pco-card text-center">
+            {
+              icon: Compass,
+              n: 1,
+              t: 'Escolha a formação',
+              d: 'Veja o programa, a carga horária e as formas de pagamento na página do curso.',
+            },
+            {
+              icon: ShieldCheck,
+              n: 2,
+              t: 'Acesse na hora',
+              d: 'Assim que a matrícula é confirmada, o login chega no seu e-mail.',
+            },
+            {
+              icon: GraduationCap,
+              n: 3,
+              t: 'Estude no seu ritmo',
+              d: 'Aulas, avaliações, tutor e biblioteca, no computador ou no celular.',
+            },
+            {
+              icon: CheckCircle2,
+              n: 4,
+              t: 'Conclua e valide',
+              d: 'Certificado digital com QR Code e código de validação pública.',
+            },
+          ].map((passo) => (
+            <div key={passo.n} className="pco-card text-center">
               <div className="mx-auto h-9 w-9 rounded-xl bg-pco-blue text-white grid place-items-center font-bold text-sm">
-                {s.n}
+                {passo.n}
               </div>
               <div className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-pco-deep">
-                <s.icon size={14} className="text-pco-blue" strokeWidth={1.75} />
-                {s.t}
+                <passo.icon size={14} className="text-pco-blue" strokeWidth={1.75} />
+                {passo.t}
               </div>
+              <p className="mt-2 text-xs text-ink-muted">{passo.d}</p>
             </div>
           ))}
         </div>
       </Section>
 
+      {/* 13b. Perguntas frequentes */}
+      <Section>
+        <div className="text-center mb-10">
+          <Tag>Perguntas frequentes</Tag>
+          <h2 className="mt-3 text-3xl font-bold text-pco-deep">O que costumam perguntar antes</h2>
+        </div>
+        {/*
+          Cada resposta começa pela resposta -- "Sim.", "Não." -- e só depois
+          explica. É o que um leitor apressado precisa, e é o formato que
+          buscadores e assistentes extraem.
+
+          **Faltam três perguntas do plano, de propósito:** por quanto tempo
+          dura o acesso, se há garantia e como pedir reembolso. As três exigem
+          dado que só o dono tem, e prazo de acesso tem uma armadilha própria
+          (ver "Prazo de acesso" no CLAUDE.md: declarar meses é RETROATIVO, e
+          nenhum curso declara hoje). Publicar prazo ou garantia inventados
+          numa página que vende formação é problema de CDC, não de copy.
+
+          **E não há JSON-LD de FAQ aqui**, embora o plano peça: esta rota é
+          servida como SPA -- o HTML que sai do servidor tem 2,6 kB e nenhum
+          texto (medido em produção). Marcação estruturada dentro de JS depende
+          de o robô renderizar, e nenhum assistente de IA renderiza. Fazer isso
+          direito é mover a página para o SSR, que é decisão à parte.
+        */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Pergunta q="O AVA PCO funciona no celular?">
+            Sim. Funciona no navegador do celular, do tablet e do computador, e pode ser instalado
+            na tela inicial como aplicativo.
+          </Pergunta>
+          <Pergunta q="Preciso estudar em horários fixos?">
+            Não. Todo o conteúdo é gravado e liberado conforme você avança; você estuda quando
+            puder, e continua de onde parou.
+          </Pergunta>
+          <Pergunta q="O certificado é reconhecido?">
+            É um certificado de formação livre, com validação pública por QR Code. A psicanálise não
+            é profissão regulamentada no Brasil: a formação se dá em cursos livres (LDB 9.394/96,
+            art. 42) e a ocupação consta na CBO 2515-50 —{' '}
+            <a href="/legalidade" className="text-pco-blue-ink underline">
+              a página sobre legalidade explica isso em detalhe
+            </a>
+            .
+          </Pergunta>
+          <Pergunta q="O Tutor Virtual substitui um professor?">
+            Não. Ele tira dúvidas sobre o conteúdo das aulas. Supervisão e questões clínicas são
+            tratadas por profissionais.
+          </Pergunta>
+          <Pergunta q="E se eu parar de estudar por um tempo?">
+            Você retoma de onde parou. O AVA monta um plano de retomada e a equipe pedagógica entra
+            em contato — ninguém é deixado para trás por ter sumido algumas semanas.
+          </Pergunta>
+          <Pergunta q="Preciso fazer análise pessoal ou supervisão?">
+            Não. São serviços opcionais, contratados à parte, e não são requisito para concluir o
+            curso nem para receber o certificado.
+          </Pergunta>
+        </div>
+      </Section>
+
       {/* 14. CTA final */}
       <Section>
+        {/*
+          O CTA final era "Entrar no AVA" com "Primeiro acesso" ao lado: as
+          duas portas pressupõem conta. Quem chegou até o fim de uma página de
+          venda sem ter comprado ficava sem para onde ir.
+
+          A compra vem primeiro; o login continua ali, para quem já é aluno.
+        */}
         <div className="text-center max-w-xl mx-auto">
-          <h2 className="text-3xl font-bold text-pco-deep">Pronto para começar?</h2>
+          <h2 className="text-3xl font-bold text-pco-deep">
+            Sua formação em psicanálise começa com um clique — e termina com um certificado.
+          </h2>
           <p className="mt-3 text-ink-muted">
-            Acesse o AVA PCO e comece sua jornada de aprendizagem hoje.
+            Escolha a formação, estude no seu ritmo e conclua com certificado de validação pública.
           </p>
-          <div className="mt-6 flex items-center justify-center gap-3">
-            <Link to="/login" className="pco-btn-primary">
-              Entrar no AVA
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <a href="/formacoes" className="pco-btn-primary">
+              Escolher minha formação
               <ArrowRight size={14} strokeWidth={2} />
-            </Link>
-            <Link to="/onboarding" className="pco-btn-secondary">
+            </a>
+            <Link to="/login" className="pco-btn-secondary">
               <Users size={14} strokeWidth={2} />
-              Primeiro acesso
+              Já sou aluno — entrar
             </Link>
           </div>
         </div>
@@ -537,6 +681,15 @@ function Section({
     <section id={id} className={bg === 'off' ? 'bg-white' : 'bg-surface-off'}>
       <div className="max-w-5xl mx-auto px-6 py-16">{children}</div>
     </section>
+  );
+}
+
+function Pergunta({ q, children }: { q: string; children: React.ReactNode }) {
+  return (
+    <div className="pco-card">
+      <h3 className="font-semibold text-pco-deep">{q}</h3>
+      <p className="mt-2 text-sm text-ink-muted">{children}</p>
+    </div>
   );
 }
 
@@ -583,14 +736,6 @@ function FeatureCard({
  * recurso faz: numa página de venda, número sem medição por trás é afirmação
  * de resultado, e afirmação de resultado tem dono.
  */
-function StatBlock({ label, texto }: { label: string; texto: string }) {
-  return (
-    <div className="pco-card">
-      <div className="text-xs uppercase tracking-wider text-ink-subtle">{label}</div>
-      <div className="mt-1.5 text-sm font-medium leading-snug text-pco-deep">{texto}</div>
-    </div>
-  );
-}
 
 function ChatBubble({ role, children }: { role: 'user' | 'assistant'; children: React.ReactNode }) {
   return (

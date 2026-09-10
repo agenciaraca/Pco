@@ -684,6 +684,61 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## A `/ava-pco` falava com o dono da plataforma, não com quem vai comprar
+
+`src/app/pages/Landing.tsx` (10/set/2026), executando `docs/PLANO-pagina-ava-pco.md`.
+A página listava *"Score de risco"*, *"recalculado a cada 6 horas"*, *"Gestão
+de IAs"*, *"Métricas & SEO"* e *"Limite mensal e escopo configurados em
+/admin/tutor"*. Tudo verdadeiro — e tudo escrito da perspectiva de quem
+**opera** a escola.
+
+É a mesma família de defeito que este projeto persegue em `/admin`: tela que
+fala a linguagem do sistema em vez da de quem lê. Lá custava confiança; aqui
+custa venda, porque quem lê se sente vigiado em vez de acolhido. E os dois
+CTAs — "Conhecer o AVA" e "Entrar no AVA" — pressupunham conta: quem chegava
+pela busca sem ter comprado terminava a página sem para onde ir.
+
+Duas seções inteiras saíram (Retenção e Admin PCO). **O mecanismo não sumiu**:
+virou o benefício *"Se a vida atropelar, você retoma"*, contado do lado do
+aluno — que é a única forma legítima de ele aparecer numa página de venda.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **Nenhum preço nem parcela nesta página.** O teto sai de
+  `payments/condicoes.ts` e depende do gateway roteado; cravar aqui repetiria o
+  "12x fantasma". Os CTAs levam à vitrine, que é SSR e calcula o número certo.
+- **Nenhuma contagem de formações.** O plano pedia *"15 formações"*; a vitrine
+  pública devolve **2** (medido em produção). Número de catálogo em copy erra
+  no dia em que alguém publica ou despublica um curso — e erraria por treze.
+- **O caminho para a compra não depende do tamanho do catálogo.** O botão para
+  a vitrine só aparecia com **mais de oito** cursos, ou seja, nunca.
+- **O que depende de dado do dono ficou de fora, declarado.** Garantia, prazo
+  de acesso, depoimentos e contagem de alunos não entraram — publicar número
+  inventado num site que vende formação em saúde mental é problema de E-E-A-T
+  **e** de CDC, e é a mesma decisão que a `/autor` já tomou. Prazo de acesso
+  tem armadilha própria: declarar meses é **retroativo**.
+
+**E um limite medido, que muda o capítulo de SEO do plano:** esta rota é
+servida como **SPA** — o HTML que sai do servidor tem 2,6 kB e nenhum texto.
+Marcação estruturada (FAQ em JSON-LD, que o plano pede) depende de o robô
+renderizar JS, e **nenhum assistente de IA renderiza**. Por isso não há JSON-LD
+aqui: fazer direito é mover a página para o SSR, como `/formacoes` já é. É
+decisão à parte, e agora está medida.
+
+### A barra do navegador mudava de cor no meio do site
+
+A troca de paleta de 10/set levou o SSR para o verde e deixou o `index.html` da
+SPA, o `manifest.webmanifest` e o `favicon.svg` no **azul antigo**. No celular,
+a barra do navegador trocava de cor ao ir de `/formacoes` (SSR) para `/login`
+(SPA) — o mesmo site com duas identidades, e nada no código reclamando. O
+CLAUDE.md já previa esta classe ("eles ficam azuis no meio do verde, e ninguém
+acha depois"); o que faltava era a varredura chegar até aqui.
+
+`test/pagina-do-ava-fala-com-quem-vai-comprar.test.tsx` — 12 casos, 8 falham
+contra o código anterior. Um deles compara o `theme-color` do `index.html` com
+o do `layout.ts` do SSR: é o tipo de divergência que só aparece no celular de
+quem visita.
+
 ## O reserva cobrava em silêncio — e a venda que morre contava mais que a que passa
 
 `server/payments/o-reserva-fala.ts` (10/set/2026). O dono relatou *"o gateway

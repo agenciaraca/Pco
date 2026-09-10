@@ -11,7 +11,14 @@
       name="description"
       content="AVA PCO — Ambiente Virtual de Aprendizagem da Psicanálise Clínica Online."
     />
-    <meta name="theme-color" content="#0097B2" />
+    <!--
+      Paridade com `server/public/layout.ts`. O SSR foi para o verde na troca de
+      paleta de 10/set/2026 e estas duas linhas ficaram no azul: no celular, a
+      barra do navegador MUDAVA DE COR ao navegar de /formacoes (SSR, verde) para
+      /login (SPA, azul) -- o mesmo site com duas identidades.
+    -->
+    <meta name="theme-color" content="#04d3a9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a5f6e" media="(prefers-color-scheme: dark)" />
     <meta name="robots" content="index, follow" />
 
     <!-- Open Graph -->
