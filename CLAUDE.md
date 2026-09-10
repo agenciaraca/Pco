@@ -1944,8 +1944,9 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 > | `75a9de7` | o reserva cobrava em silêncio — e o corpo cru do gateway ia para o pedido |
 > | `935112f` | a `/ava-pco` passa a falar com quem vai comprar (backstage fora, CTA para a vitrine) |
 > | `7ffed77` | a trilha do modo de estudo abria os 19 módulos de uma vez |
+> | `a66d363` | rodapé em 4 colunas; faixa "Faça já sua matrícula" com textura e o preço do carro-chefe |
 >
-> A suíte saiu de **304 arquivos / 2859 testes** para **306 / 2881**.
+> A suíte saiu de **304 arquivos / 2859 testes** para **307 / 2891**.
 >
 > Mais três de operação, de manhã: `860f7d7` (acervo), `8ff55cf` (biblioteca
 > fechada), `1458310` (busca), `ed7add4` (botão morto + handoff), `9eeb368`
