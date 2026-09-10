@@ -722,9 +722,14 @@ regras:
 saída de `urlDeEmbed` casa com a whitelist do `frame-src` da CSP: normalizar
 para um host que a CSP não libera trocaria um jeito de não tocar por outro.
 
-**Falta a limpeza dos dados** (as 43 linhas com `vimeo.com/<id>` no banco): é
-higiene, não o conserto — o render já resolve. Fazer pelo VPS, como a migration
-`0022`.
+**A limpeza dos dados foi feita no mesmo dia**, pelo VPS
+(`scripts/normalizar_video_url_podcasts.ts`, ensaio + `--commit`, banco de
+produção alcançável só de lá): as 43 linhas de `podcasts.video_url` passaram
+de `vimeo.com/<id>` para `player.vimeo.com/video/<id>` — inclusive a que
+carregava o hash de vídeo não listado (`?h=...`), preservado. **Verificado
+navegando as 43 páginas de episódio logado como aluno**: as 43 carregam
+`iframe src` de `player.vimeo.com`. O script foi apagado do servidor depois de
+rodar — não tem por que ficar lá.
 
 ## A faixa da carreira: laranja vivo, e a legibilidade em camadas
 
