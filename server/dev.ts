@@ -129,6 +129,11 @@ if (staticRoot) {
       'Disallow: /tutor',
       'Disallow: /certificados',
       'Disallow: /suporte',
+      // O acervo da biblioteca mora em /uploads e nao pode virar copia
+      // indexada: sao dissertacoes e obras de terceiros que a escola
+      // distribui para quem estuda aqui, nao material para o buscador
+      // hospedar. As imagens da vitrine, na mesma pasta, seguem indexaveis.
+      'Disallow: /uploads/*.pdf',
       'Allow: /verificar/',
       'Allow: /termos',
       'Allow: /privacidade',
@@ -212,6 +217,12 @@ ${allUrls
   root.use('/uploads/*', async (c, next) => {
     await next();
     c.header('Cache-Control', 'public, max-age=3600');
+    // robots.txt pede para nao rastrear; o cabecalho vale para o que ja foi
+    // rastreado e para quem chega por link direto. So o PDF: as capas de curso
+    // vivem na mesma pasta e aparecer na busca de imagens as ajuda.
+    if (c.req.path.toLowerCase().endsWith('.pdf')) {
+      c.header('X-Robots-Tag', 'noindex, noarchive');
+    }
   });
   root.use('/uploads/*', serveStatic({ root: path.relative(process.cwd(), dataDir) || '.' }));
 

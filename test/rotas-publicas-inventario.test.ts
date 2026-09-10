@@ -54,7 +54,6 @@ const PUBLICAS_POR_DECISAO: Record<string, string> = {
   'GET /api/news': 'posts do blog, conteúdo de marketing',
   'GET /api/podcasts': 'podcast público',
   'GET /api/podcasts/:id': 'episódio público',
-  'GET /api/library': 'biblioteca pública',
   'GET /api/study-paths': 'trilhas de estudo',
   'GET /api/study-paths/:slug': 'trilha de estudo',
   'GET /api/lessons/:id/preview': 'só aula marcada como preview; a rota verifica',

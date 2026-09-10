@@ -3014,7 +3014,34 @@ export function buildApp() {
 
   // ---------- Library ----------
 
-  app.get('/library', async (c) => {
+  /*
+    O catalogo da biblioteca exige login.
+
+    Ele foi publico enquanto a estante tinha meia duzia de itens de semente.
+    Em 10/set/2026 entraram 108 PDFs vindos do LMS antigo -- dissertacoes e
+    obras de terceiros que a escola distribui para quem estuda aqui -- e a
+    rota passou a entregar, sem token nenhum, o acervo inteiro com o endereco
+    direto de cada arquivo.
+
+    Fechar nao custa nada porque nao havia consumidor publico: quem le esta
+    rota sao tres telas de dentro do app (biblioteca do aluno, episodio de
+    podcast e a tela do admin), todas ja atras de login. E o padrao e o que o
+    CLAUDE.md manda procurar -- escrita com guarda (/admin/library) e leitura
+    sem.
+
+    O que isto NAO resolve: o arquivo em si continua servido por /uploads sem
+    auth, entao quem tiver o endereco baixa. Fechar aquilo e mudanca de
+    desenho do upload -- as capas de curso moram na mesma pasta e sao publicas
+    de proposito -- e esta anotada como decisao do dono.
+
+    Mas o conserto aqui nao e cosmetico, e a medicao diz por que: o nome do
+    arquivo e hex opaco de 24 caracteres
+    (`/uploads/ecc1d9359ad7690274a9ecc9.pdf`), gerado no upload. Sem o
+    catalogo nao ha como chegar nele por tentativa -- era a LISTAGEM que
+    entregava o chaveiro inteiro. Se um dia o nome do arquivo passar a sair do
+    titulo, esta frase deixa de valer junto.
+  */
+  app.get('/library', requireAuth(), async (c) => {
     const { type, courseId, mandatoryOnly } = c.req.query();
     return c.json(
       await libraryRepo.listLibrary({

@@ -2924,6 +2924,94 @@ por `GET /me/courses/:courseId/lessons/:lessonId/content`, que passa por
 `courseAccessFor` (matrícula **e** prazo). A chave é removida, não esvaziada:
 `content: ''` faria a tela mostrar a descrição como se fosse a aula.
 
+## A `videoUrl` do podcast é pública, e quem a protege é a Vimeo
+
+`GET /api/podcasts` (medido em 10/set/2026). A rota é pública por desenho —
+podcast é conteúdo de divulgação — e desde a importação ela entrega **43 URLs
+da Vimeo** a qualquer um, sem token.
+
+Isso passou pela mesma pergunta que fechou a biblioteca, e a resposta foi
+diferente. **Medido, não suposto:**
+
+| o que se perguntou | resposta |
+| --- | --- |
+| `player.vimeo.com/video/<id>` sem `Referer` | **403** |
+| o mesmo com `Referer` do nosso domínio | 200 |
+| oEmbed sem o nosso domínio | 200 com **corpo mudo** — nem o título |
+| os 43 episódios ligados a algum curso | **0 de 43** |
+
+Ou seja: ter a URL não dá o vídeo. Quem guarda é o `privacy.embed:
+"whitelist"` da conta da escola, e ele segura. E nenhum dos 43 é material de
+curso — fechar a rota protegeria algo que não está aberto e esconderia
+conteúdo que existe para ser encontrado.
+
+**A parte que não se infere, e é o motivo desta seção existir:** a proteção é
+**inteiramente** da Vimeo, e a nossa metade já foi publicada. As 43 URLs estão
+na internet para sempre. No dia em que alguém trocar a privacidade de um vídeo
+no painel da Vimeo — ou mover o acervo para uma conta com outro padrão —, o
+vídeo fica aberto na hora, sem que uma linha deste repositório mude e sem nada
+aqui para avisar. É o inverso da armadilha que este arquivo já registra: lá a
+Vimeo levava a culpa por um defeito nosso; aqui a defesa é dela e a aparência
+de segurança é nossa.
+
+Antes de mexer na privacidade de qualquer vídeo da conta, meça primeiro:
+`curl -sI -H "Referer: https://psicanaliseclinica.online/"
+https://player.vimeo.com/video/<id>` e o mesmo sem o cabeçalho. **200 nos
+dois** significa que a URL pública passou a ser o vídeo público.
+
+## Encher a estante mudou o que a porta aberta significava
+
+`GET /library` (10/set/2026). A rota nunca teve auth, e o inventário de rotas
+públicas a declarava com o motivo escrito: *"biblioteca pública"*. Isso era
+verdade — enquanto a estante tinha meia dúzia de itens de semente.
+
+No mesmo dia entraram **108 PDFs** vindos do LMS antigo. Medido de fora, da
+internet, sem token nenhum: `GET https://psicanaliseclinica.online/api/library`
+devolvia 200 com os 108 itens **e o endereço direto de cada arquivo**.
+
+**O que NÃO era**, e vale escrever para ninguém superestimar depois: não é
+vazamento de aula paga. Nenhum dos 108 está marcado como obrigatório nem ligado
+a curso — são clássicos e dissertações que a escola distribui para quem estuda
+aqui —, e o corpo da aula continua atrás de `courseAccessFor`. O que havia era o
+acervo inteiro de uma escola publicado na calçada sem ninguém ter decidido isso.
+
+**A decisão nunca foi revista; o que mudou foi o outro lado dela.** A linha do
+inventário estava certa quando foi escrita e passou a estar errada sem que uma
+única linha de código mudasse. É a forma mais difícil de enxergar deste
+projeto: não é regressão, é uma premissa que envelheceu.
+
+Quatro coisas que qualquer mexida aqui tem de respeitar:
+
+- **Fechar não custou nada, e é isso que autoriza fechar sem perguntar.** Os
+  **três** consumidores da rota — biblioteca do aluno, episódio de podcast e a
+  tela do admin — vivem dentro do app logado, e **nenhuma página pública do SSR
+  lê dela**. Foi conferido antes de mexer; se um dia houver consumidor público,
+  o teste falha, que é o momento de decidir de novo em vez de reabrir por
+  reflexo.
+- **O padrão é o que este arquivo já manda procurar:** par de rotas em que a de
+  escrita tem guarda e a de leitura não. `POST/PUT/DELETE /admin/library`
+  sempre exigiu admin.
+- **Fechar a listagem é conserto de verdade, e a medição diz por quê.** O nome
+  do arquivo é hex opaco de 24 caracteres (`/uploads/ecc1d9…f9ecc9.pdf`),
+  gerado no upload — sem o catálogo não se chega nele por tentativa. Era a
+  **listagem** que entregava o chaveiro. No dia em que o nome passar a sair do
+  título, esta frase deixa de valer junto.
+- **Os PDFs saem do índice por EXTENSÃO, não por pasta.** `robots.txt` pede
+  para não rastrear e o `X-Robots-Tag` vale para o que já foi rastreado e para
+  quem chega por link direto — um sem o outro deixa metade aberta. As **8
+  imagens** que moram na mesma pasta plana seguem indexáveis: capa de curso
+  aparecendo na busca de imagens ajuda a escola, e um `noindex` cravado em todo
+  `/uploads` as tiraria de lá sem ninguém decidir. Sem isso, o acervo vira uma
+  cópia hospedada no Google de obra de terceiro, que é o que atrai pedido de
+  remoção.
+
+**O que segue aberto, e é decisão do dono:** o arquivo continua servido por
+`/uploads` sem auth. Trancá-lo de verdade é mudança de desenho do upload,
+porque a mesma pasta serve as capas públicas da vitrine.
+
+`test/acervo-nao-fica-na-vitrine.test.ts` — 8 casos, 2 falham contra o código
+anterior.
+
 ## O backup copiava a metade que não importa
 
 `db/backup-worker` roda todo dia às 04:00 UTC e, até 3/set/2026, copiava **só
