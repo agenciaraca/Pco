@@ -120,5 +120,19 @@ export async function copiaMaisRecente(agora: Date = new Date()): Promise<Estado
     }
   }
 
-  return { banco, qualquer, erro: banco || qualquer ? null : erro };
+  /*
+    O erro sobrevive enquanto o BANCO não for encontrado.
+
+    A primeira versão descartava o erro assim que qualquer pasta legível
+    aparecesse (`banco || qualquer ? null : erro`), e isso reabria justamente o
+    buraco que este arquivo existe para fechar: com a pasta mais recente
+    ilegível e a anterior sem despejo, o resultado era `banco: null, erro:
+    null` — que se lê como "olhei e não há cópia do banco". O painel então
+    pinta vermelho e manda alguém atrás de um backup que pode estar ali, dentro
+    da pasta que não deu para abrir.
+
+    Achado o despejo, um erro numa pasta mais velha não muda o que se ia fazer,
+    e reportá-lo seria ruído.
+  */
+  return { banco, qualquer, erro: banco ? null : erro };
 }

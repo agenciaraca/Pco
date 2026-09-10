@@ -30,7 +30,7 @@
  * quem.
  */
 import { getPaymentProvider } from './providers/registry';
-import { listarRotas } from './roteamento';
+import { listarRotas, candidatosPara } from './roteamento';
 import * as gatewaysRepo from './gateways-repo';
 import type { PaymentGateway } from './types';
 import { PARCELAS_MAXIMAS_POR_METODO } from '../../shared/parcelamento';
@@ -74,6 +74,19 @@ export async function rebaixamentosDeParcela(): Promise<Rebaixamento[]> {
     const rota = rotas.find((r) => r.metodo === metodo);
     if (!rota?.principalId || !rota.fallbackId) continue;
     try {
+      /*
+        Quem manda é `candidatosPara`, não a tabela de rotas.
+
+        Estar gravado como reserva não basta para rebaixar coisa alguma: o
+        roteamento descarta gateway inativo e gateway cujo provider não declara
+        o método. Um reserva nessas condições nunca entra na conta do mínimo —
+        e acusá-lo seria alarme sobre uma promessa que não mudou.
+
+        Ler a mesma função que a vitrine lê também evita a divergência clássica
+        de duas contas do mesmo número em lugares diferentes.
+      */
+      const candidatos = await candidatosPara(metodo);
+      if (!candidatos.some((g) => g.id === rota.fallbackId)) continue;
       const principal = await gatewaysRepo.findById(rota.principalId);
       const reserva = await gatewaysRepo.findById(rota.fallbackId);
       if (!principal || !reserva) continue;

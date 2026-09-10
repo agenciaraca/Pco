@@ -109,6 +109,41 @@ describe('a última cópia é perguntada ao disco', () => {
     expect(r.qualquer).toBeNull();
   });
 
+  it('pasta ilegível com o despejo dentro não vira "não há cópia"', async () => {
+    // Achado auditando o próprio código, no mesmo dia em que foi escrito. A
+    // versão anterior descartava o erro assim que QUALQUER pasta legível
+    // aparecesse. Com a mais recente ilegível e a anterior sem despejo, o
+    // resultado era `banco: null, erro: null` — que se lê como "olhei e não há
+    // cópia do banco", e o painel manda alguém correr atrás de um backup que
+    // pode estar dentro da pasta que não deu para abrir.
+    await snapshot('2026-09-07', 0, 60); // legível, sem banco
+    const recente = path.join(tmpDir, 'backups', '2026-09-08');
+    await fs.mkdir(recente, { recursive: true });
+    await fs.writeFile(path.join(recente, 'db-users.json'), '[]', 'utf8');
+    // Torna a mais recente ilegível trocando-a por um ARQUIVO: `readdir` nela
+    // falha, que é o efeito de permissão negada sem depender de chmod (que o
+    // Windows ignora).
+    await fs.rm(recente, { recursive: true, force: true });
+    await fs.writeFile(recente, 'nao sou um diretorio', 'utf8');
+
+    const r = await copiaMaisRecente(EM('2026-09-08T12:00:00Z'));
+    expect(r.banco, 'não achou despejo — mas isso não é o mesmo que não haver').toBeNull();
+    expect(
+      r.erro,
+      'o motivo tem de sobreviver: sem ele o painel afirma que não há backup',
+    ).toBeTruthy();
+  });
+
+  it('achado o despejo, erro em pasta mais velha é ruído e some', async () => {
+    const velha = path.join(tmpDir, 'backups', '2026-09-01');
+    await fs.mkdir(path.dirname(velha), { recursive: true });
+    await fs.writeFile(velha, 'nao sou um diretorio', 'utf8');
+    await snapshot('2026-09-09', 25, 61);
+    const r = await copiaMaisRecente(EM('2026-09-09T12:00:00Z'));
+    expect(r.banco?.data).toBe('2026-09-09');
+    expect(r.erro, 'com a resposta na mão, o erro não muda o que se faz').toBeNull();
+  });
+
   it('a idade sai da data da pasta, não do mtime do arquivo', async () => {
     // O mtime muda quando o worker apaga snapshots velhas ao lado. A pergunta
     // é de que dia é a cópia.

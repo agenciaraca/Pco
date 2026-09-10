@@ -122,6 +122,44 @@ describe('o reserva não pode rebaixar a promessa em silêncio', () => {
     expect(await rebaixamentosDeParcela()).toEqual([]);
   });
 
+  it('reserva INATIVO não rebaixa nada — e não vira aviso', async () => {
+    // Achado auditando o próprio código no dia em que foi escrito: a primeira
+    // versão lia a tabela de rotas e comparava os tetos, sem passar por
+    // `candidatosPara`. Mas o roteamento descarta gateway inativo: ele nunca
+    // entra na conta do mínimo, a promessa não muda, e o aviso seria sobre um
+    // prejuízo que não existe.
+    const inativo = { ...gateway('gw-pagarme', 'pagarme', 'Pagar.me'), active: false };
+    await escrever('payment-gateways.json', [gateway('gw-asaas', 'asaas', 'Asaas'), inativo]);
+    await escrever('payment-routing.json', [
+      { metodo: 'boleto', principalId: 'gw-asaas', fallbackId: 'gw-pagarme' },
+    ]);
+    const { rebaixamentosDeParcela } = await import('../server/payments/reserva-rebaixa');
+    expect(await rebaixamentosDeParcela()).toEqual([]);
+    // E a prova de que a promessa realmente não mudou: a vitrine segue em 6x.
+    const { tetoDeParcelas } = await import('../server/payments/condicoes');
+    expect(await tetoDeParcelas('boleto')).toBe(PARCELAS_MAXIMAS_POR_METODO.boleto);
+  });
+
+  it('reserva que não sabe cobrar o método também não rebaixa', async () => {
+    // Mesma razão: `candidatosPara` filtra por `metodosSuportados`. Um gateway
+    // que não declara o método não é tentado, então não puxa o mínimo.
+    await escrever('payment-gateways.json', [
+      gateway('gw-asaas', 'asaas', 'Asaas'),
+      gateway('gw-stripe', 'stripe', 'Stripe'),
+    ]);
+    await escrever('payment-routing.json', [
+      { metodo: 'boleto', principalId: 'gw-asaas', fallbackId: 'gw-stripe' },
+    ]);
+    const { getPaymentProvider } = await import('../server/payments/providers/registry');
+    const stripe = getPaymentProvider('stripe');
+    // Se um dia o Stripe passar a declarar boleto, este caso deixa de valer —
+    // e é melhor que ele falhe do que que passe medindo outra coisa.
+    expect(stripe?.metodosSuportados.includes('boleto')).toBe(false);
+
+    const { rebaixamentosDeParcela } = await import('../server/payments/reserva-rebaixa');
+    expect(await rebaixamentosDeParcela()).toEqual([]);
+  });
+
   it('o painel de saúde mostra o aviso, com os dois números', async () => {
     await escrever('payment-gateways.json', [
       gateway('gw-asaas', 'asaas', 'Asaas'),
