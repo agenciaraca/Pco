@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useParams, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import {
   ArrowLeft,
@@ -27,9 +27,32 @@ function formatarDuracao(minutos: number): string {
 }
 
 export default function LearningLayout() {
-  const { courseId } = useParams<{ courseId: string }>();
+  const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const [focusMode, setFocusMode] = useState(false);
   const [trackOpen, setTrackOpen] = useState(false);
+  const trilhaRef = useRef<HTMLElement | null>(null);
+
+  /*
+    Abrir um módulo só não basta: numa trilha de 19 módulos, o aberto pode
+    estar no décimo quinto, e a coluna abre no topo. A pessoa clica numa aula
+    e não vê onde ela está.
+
+    O efeito mora AQUI, junto dos outros hooks, e não perto da barra lateral,
+    porque abaixo há `return`s condicionais — hook depois de return quebra a
+    ordem entre renderizações. Por isso ele também confere `current` antes de
+    tudo: em erro e em carregamento a barra nem existe.
+
+    `scrollIntoView` NÃO existe no jsdom: chamá-lo direto derruba todo teste
+    que renderize esta tela. É a mesma armadilha do `matchMedia` no menu
+    mobile, e a guarda é a mesma.
+  */
+  useEffect(() => {
+    const nav = trilhaRef.current;
+    if (!nav || !lessonId) return;
+    const ativo = nav.querySelector<HTMLElement>(`a[href$="/aula/${lessonId}"]`);
+    if (!ativo || typeof ativo.scrollIntoView !== 'function') return;
+    ativo.scrollIntoView({ block: 'nearest' });
+  }, [lessonId, courseId]);
 
   // Antes de 20/ago/2026 esta barra lateral vinha do seed importado no bundle:
   // a trilha, os módulos e os checks de "concluída" eram os do curso de exemplo,
@@ -85,8 +108,8 @@ export default function LearningLayout() {
         <div className="pco-card max-w-md text-center p-6">
           <h1 className="text-lg font-bold text-pco-deep">Sem conexão</h1>
           <p className="text-sm text-ink-muted mt-2">
-            Não consegui falar com o servidor. Seu curso continua aí — assim que a
-            internet voltar, a página carrega sozinha.
+            Não consegui falar com o servidor. Seu curso continua aí — assim que a internet voltar,
+            a página carrega sozinha.
           </p>
         </div>
       </div>
@@ -117,9 +140,8 @@ export default function LearningLayout() {
             que a afirmação é falsa.
           */}
           <p className="text-sm text-ink-muted mt-2">
-            Pode ser um link antigo, ou o curso pode não estar ligado à sua conta.
-            Se você comprou este curso, fale com a secretaria — o acesso é
-            resolvido de lá.
+            Pode ser um link antigo, ou o curso pode não estar ligado à sua conta. Se você comprou
+            este curso, fale com a secretaria — o acesso é resolvido de lá.
           </p>
           <div className="flex gap-2 justify-center mt-4 flex-wrap">
             <Link to="/cursos" className="pco-btn-primary text-sm inline-flex">
@@ -168,6 +190,38 @@ export default function LearningLayout() {
   const moduloEmAndamento = (m: (typeof course.modules)[number]) =>
     !moduloConcluido(m) && m.lessons.some((l) => doneIds.has(l.id));
 
+  /*
+    ## Por que a barra lateral abria um módulo só
+
+    Ela abria `!moduloConcluido(module)` -- ou seja, TODO módulo ainda não
+    terminado nascia aberto, com todas as aulas dentro. Medido no banco de
+    produção, o carro-chefe tem **19 módulos e 146 aulas**: para quem está
+    começando, isso é a coluna inteira aberta de uma vez, ~165 linhas num painel
+    de 288px, e a aula que a pessoa está assistindo perdida no meio.
+
+    **Paginar seria o conserto errado.** A trilha é sequencial e o valor dela é
+    justamente mostrar o caminho inteiro e onde você está nele; quebrá-la em
+    "página 2 de 4" tira as duas coisas. O que sobrava era ruído, não excesso de
+    informação: dezoito módulos abertos que a pessoa não está cursando agora.
+
+    Então abre **um**: o da aula aberta. Sem aula na URL (a capa do curso), o
+    que está em andamento; se nada começou, o primeiro -- nunca nenhum, porque
+    uma coluna toda fechada esconde o próximo passo, que é o que ela existe
+    para mostrar.
+  */
+  const moduloDaAulaAtual = lessonId
+    ? course.modules.find((m) => m.lessons.some((l) => l.id === lessonId))
+    : undefined;
+  const moduloAAbrir =
+    moduloDaAulaAtual ??
+    course.modules.find(moduloEmAndamento) ??
+    course.modules.find((m) => !moduloConcluido(m)) ??
+    course.modules[0];
+
+  /** Quantas aulas do módulo já foram concluídas — o resumo do que está fechado. */
+  const contagem = (m: (typeof course.modules)[number]) =>
+    `${m.lessons.filter((l) => doneIds.has(l.id)).length}/${m.lessons.length}`;
+
   return (
     <div className="flex min-h-screen bg-surface-off">
       {/*
@@ -209,11 +263,11 @@ export default function LearningLayout() {
             </div>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-3 py-3">
+          <nav ref={trilhaRef} className="flex-1 overflow-y-auto px-3 py-3">
             {course.modules.map((module, mi) => (
               <details
                 key={module.id}
-                open={!moduloConcluido(module)}
+                open={module.id === moduloAAbrir?.id}
                 className="mb-1 rounded-xl"
               >
                 <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer rounded-xl hover:bg-surface-gray text-sm font-medium text-pco-deep">
@@ -228,6 +282,15 @@ export default function LearningLayout() {
                   )}
                   <span className="truncate flex-1">
                     {mi + 1}. {module.title}
+                  </span>
+                  {/*
+                    Com um módulo aberto por vez, os outros dezoito precisam
+                    dizer alguma coisa fechados — senão a coluna vira uma lista
+                    de títulos sem estado, e a pessoa abre um a um para descobrir
+                    onde parou.
+                  */}
+                  <span className="shrink-0 text-[11px] font-medium text-ink-muted tabular-nums">
+                    {contagem(module)}
                   </span>
                 </summary>
                 <ul className="ml-2 my-1 space-y-0.5">
@@ -281,8 +344,15 @@ export default function LearningLayout() {
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-0 z-30 bg-white/85 backdrop-blur border-b border-surface-gray">
           <div className="flex items-center gap-2 px-4 lg:px-6 h-14">
+            {/*
+              Só o ícone: quem usa leitor de tela ouvia "botão" e nada mais. É o
+              mesmo defeito que o menu do site público corrigiu em 6/set — e
+              aqui pesa mais, porque este é o único caminho para a trilha no
+              celular.
+            */}
             <button
               onClick={() => setTrackOpen(true)}
+              aria-label="Abrir a trilha do curso"
               className="lg:hidden h-9 w-9 rounded-lg text-ink-muted hover:bg-surface-gray inline-flex items-center justify-center"
             >
               <Menu size={18} strokeWidth={1.75} />
@@ -343,9 +413,7 @@ export default function LearningLayout() {
                       <div className="text-sm font-semibold text-pco-deep mb-1">
                         {proximaAula.lesson.title}
                       </div>
-                      <div className="text-xs text-ink-muted mb-3">
-                        {proximaAula.module.title}
-                      </div>
+                      <div className="text-xs text-ink-muted mb-3">{proximaAula.module.title}</div>
                       <Link
                         to={`/curso/${course.id}/aula/${proximaAula.lesson.id}`}
                         className="pco-btn-primary w-full justify-center text-xs"
@@ -435,10 +503,7 @@ export default function LearningLayout() {
         </div>
 
         {trackOpen && (
-          <div
-            className="fixed inset-0 z-50 lg:hidden"
-            onClick={() => setTrackOpen(false)}
-          >
+          <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setTrackOpen(false)}>
             <div className="absolute inset-0 bg-pco-deep/40 backdrop-blur-sm" />
             <aside
               onClick={(e) => e.stopPropagation()}
@@ -454,25 +519,62 @@ export default function LearningLayout() {
                 </button>
               </div>
               <div className="p-3">
+                {/*
+                  Esta lista era pior que a do desktop: nem colapso tinha. Os 19
+                  módulos e as 146 aulas do carro-chefe saíam abertos, num painel
+                  de celular, sem marcar o que já foi concluído nem onde a pessoa
+                  está. Mesma regra da barra lateral — um módulo aberto, o da
+                  aula atual — e agora com o estado de cada aula, que é o que faz
+                  a lista responder "onde eu parei?".
+                */}
                 {course.modules.map((module, mi) => (
-                  <div key={module.id} className="mb-3">
-                    <div className="px-2 py-1 text-xs font-semibold text-pco-deep">
-                      {mi + 1}. {module.title}
-                    </div>
+                  <details
+                    key={module.id}
+                    open={module.id === moduloAAbrir?.id}
+                    className="mb-2 rounded-xl"
+                  >
+                    <summary className="flex items-center gap-2 px-2 py-2 cursor-pointer rounded-xl hover:bg-surface-gray text-xs font-semibold text-pco-deep">
+                      <span className="truncate flex-1">
+                        {mi + 1}. {module.title}
+                      </span>
+                      <span className="shrink-0 text-[11px] font-medium text-ink-muted tabular-nums">
+                        {contagem(module)}
+                      </span>
+                    </summary>
                     <ul className="space-y-0.5">
                       {module.lessons.map((lesson) => (
                         <li key={lesson.id}>
                           <NavLink
                             to={`/curso/${course.id}/aula/${lesson.id}`}
                             onClick={() => setTrackOpen(false)}
-                            className="block px-3 py-1.5 text-xs text-ink-muted hover:bg-surface-gray rounded-lg"
+                            className={({ isActive }) =>
+                              clsx(
+                                'flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg',
+                                isActive
+                                  ? 'bg-pco-blue/10 text-pco-deep font-medium'
+                                  : 'text-ink-muted hover:bg-surface-gray',
+                              )
+                            }
                           >
-                            {lesson.title}
+                            {doneIds.has(lesson.id) ? (
+                              <CheckCircle2
+                                size={12}
+                                className="text-status-success shrink-0"
+                                strokeWidth={2}
+                              />
+                            ) : (
+                              <Circle
+                                size={12}
+                                className="text-ink-subtle shrink-0"
+                                strokeWidth={2}
+                              />
+                            )}
+                            <span className="truncate">{lesson.title}</span>
                           </NavLink>
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </details>
                 ))}
               </div>
             </aside>

@@ -684,6 +684,53 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## A trilha abria os dezenove módulos de uma vez — e paginar seria o conserto errado
+
+`src/app/layouts/LearningLayout.tsx` (10/set/2026). O dono relatou: *"listagem
+de módulos e aulas não tem paginação, no modo de estudo"*.
+
+A barra lateral fazia `open={!moduloConcluido(module)}` — **todo** módulo ainda
+não terminado nascia aberto, com todas as aulas dentro. Medido no banco de
+produção, o carro-chefe tem **19 módulos e 146 aulas** (o segundo, 20 e 109; um
+módulo sozinho tem 16): para quem está começando, a coluna inteira abria de uma
+vez, ~165 linhas num painel de 288px, com a aula em curso perdida no meio. No
+celular era pior — o painel da trilha **nem colapso tinha**, e não marcava aula
+concluída nem a atual.
+
+**Paginar seria o conserto errado, e é a parte que importa registrar.** A
+trilha é sequencial, e o valor dela é mostrar o caminho inteiro e onde você
+está nele; "página 2 de 4" tira as duas coisas e ainda obriga a saber em que
+página você está antes de procurar. O que sobrava não era informação demais,
+era **ruído**: dezoito módulos abertos que a pessoa não está cursando agora.
+
+Cinco coisas que qualquer mexida aqui tem de respeitar:
+
+- **Um módulo aberto, e é o da aula da URL.** Sem aula (a capa do curso), o que
+  está em andamento; se nada começou, o primeiro.
+- **Nunca nenhum.** Coluna toda fechada esconde o próximo passo, que é o que
+  ela existe para mostrar — inclusive para quem já concluiu o curso e volta
+  para rever.
+- **O módulo fechado tem de dizer algo.** Daí a contagem `3/8` no cabeçalho:
+  sem ela a coluna vira uma lista de títulos sem estado, e a pessoa abre um a
+  um para descobrir onde parou.
+- **A barra rola até a aula atual.** Abrir um módulo só não basta quando o
+  aberto é o décimo quinto. O efeito mora junto dos outros hooks, e não perto
+  da barra: abaixo há `return`s condicionais, e hook depois de `return` quebra
+  a ordem entre renderizações.
+- **`scrollIntoView` NÃO existe no jsdom.** Chamá-lo direto derruba todo teste
+  que renderize esta tela — a mesma armadilha do `matchMedia` no menu mobile, e
+  a guarda é a mesma. Há um caso cobrando isso, porque a guarda é fácil de
+  remover sem ninguém notar: no navegador continuaria funcionando.
+
+De quebra, o botão que abre a trilha no celular era **só ícone**, sem nome
+acessível — quem usa leitor de tela ouvia "botão". É o único caminho para a
+trilha no celular.
+
+`test/trilha-de-19-modulos-nao-abre-tudo.test.tsx` — 10 casos, 9 falham contra
+o código anterior. **Uma armadilha ao mexer nele:** o painel do celular só é
+montado quando aberto, então o DOM tem uma barra só até alguém clicar. Contar
+`<details>` sem isso mede a metade errada.
+
 ## A `/ava-pco` falava com o dono da plataforma, não com quem vai comprar
 
 `src/app/pages/Landing.tsx` (10/set/2026), executando `docs/PLANO-pagina-ava-pco.md`.
