@@ -144,7 +144,18 @@ export default function Podcasts() {
                   <h3 className="text-base font-semibold text-pco-deep line-clamp-2">
                     {p.title}
                   </h3>
-                  <p className="mt-1 text-xs text-ink-muted line-clamp-2">{p.description}</p>
+                  {/*
+                    Resumo só quando ele acrescenta alguma coisa.
+
+                    Os 43 episódios importados do LMS antigo não tinham resumo
+                    na origem — nem no LearnDash, nem na Vimeo, onde o campo
+                    vem vazio. A importação gravou o título ali em vez de
+                    inventar um texto, e repeti-lo no card faria a mesma frase
+                    aparecer duas vezes coladas.
+                  */}
+                  {p.description && p.description !== p.title && (
+                    <p className="mt-1 text-xs text-ink-muted line-clamp-2">{p.description}</p>
+                  )}
                   <div className="mt-3 flex items-center gap-3 text-xs text-ink-subtle">
                     <span className="inline-flex items-center gap-1">
                       <Clock size={12} />

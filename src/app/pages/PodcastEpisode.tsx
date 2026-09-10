@@ -441,12 +441,22 @@ export default function PodcastEpisode() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-5">
-          <div className="pco-card">
-            <h3 className="text-base font-semibold text-pco-deep mb-3">Sobre este episódio</h3>
-            <p className="text-sm text-ink-muted leading-relaxed whitespace-pre-line">
-              {episode.description}
-            </p>
-          </div>
+          {/*
+            "Sobre este episódio" só aparece quando há o que dizer.
+
+            Os episódios importados do LMS antigo não têm resumo — o campo veio
+            vazio do LearnDash e da Vimeo, e a importação gravou o título ali em
+            vez de inventar. Um bloco chamado "Sobre este episódio" repetindo o
+            título que está logo acima promete conteúdo e não entrega.
+          */}
+          {episode.description && episode.description !== episode.title && (
+            <div className="pco-card">
+              <h3 className="text-base font-semibold text-pco-deep mb-3">Sobre este episódio</h3>
+              <p className="text-sm text-ink-muted leading-relaxed whitespace-pre-line">
+                {episode.description}
+              </p>
+            </div>
+          )}
 
           {/*
             **A transcrição, para quem não pode ouvir.**

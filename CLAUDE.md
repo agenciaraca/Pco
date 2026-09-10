@@ -727,6 +727,101 @@ default 20` e `pm2 restart`).
 build falhou com `Cannot find module '../src/app/data/hooks'` — que se lê como
 incompatibilidade do Node. As exclusões precisam ser ancoradas (`--exclude=./data`).
 
+## O acervo do LMS antigo veio para cá (10/set/2026)
+
+`scripts/importar_do_portalpco.ts`. **43 podcasts e 108 PDFs**, com zero
+falhas. O conteúdo saiu de `portalpco.online` e agora é nosso: os arquivos
+foram **copiados** para o `/uploads` do AVA (335 MB), não linkados — apontar
+para o WordPress deixaria a biblioteca inteira dependendo de um site que vai
+sair do ar, e o dia em que ele sair é o dia em que ninguém lembra disso.
+
+**Onde cada coisa mora na origem**, porque não é óbvio e custou uma tarde para
+descobrir:
+
+| o quê | onde | observação |
+| --- | --- | --- |
+| Podcasts | `sfwd-topic` com "Podcast" no título | são **aulas** do LearnDash, não um tipo próprio |
+| Vídeo do podcast | `ldlms/v2/topicos/:id` → `video_url` | a REST padrão devolve `content` VAZIO |
+| Biblioteca | `wp/v2/media?media_type=application` | 108 PDFs, e **pagina** |
+| Descrição curada | `wpdm/search` | 47 pacotes, mas **só 8 saem** |
+
+**O `wpdm/search` não pagina.** Medido: `page`, `paged`, `offset`, `per_page`,
+`limit`, `items` e `pp` são todos ignorados — a resposta diz `total: 47` e
+devolve sempre os mesmos 8. Por isso a fonte da biblioteca é a mídia, e os
+pacotes entram só como enriquecimento de descrição quando o título casa.
+
+**O endpoint MCP do WordPress não existe** (`/wp-json/mcp/...` responde 404, e
+não há namespace `mcp`). Não faz falta: `ldlms/v2` e `wp/v2/media` entregam
+tudo.
+
+Quatro armadilhas que qualquer importação daqui vai reencontrar:
+
+- **O WordPress responde 400, não lista vazia**, quando se pede página além do
+  total. Tratar como erro mata a importação exatamente onde ela deveria parar.
+- **As credenciais estão em `.env.import`, não no `.env`**, e `dotenv/config`
+  só carrega o segundo. E a senha de aplicação tem **espaços**: sem aspas no
+  arquivo, o shell a interpreta como comando.
+- **O script roda de `scripts/`**, e os imports são relativos. Copiado para a
+  raiz do projeto no servidor, ele resolve `../server/...` um nível acima e
+  morre com `ERR_MODULE_NOT_FOUND`.
+- **Título e autor vêm juntos, nas duas ordens.** Metade do acervo é
+  "Obra — Autor" e a outra metade "Autor — Obra", e nenhuma regra de forma
+  separa: "Luto e Melancolia" e "J. Fadiman e R. Frager" têm a mesma cara. Ver
+  a seção seguinte.
+
+### A duração do podcast é medida, e a Vimeo só a entrega com `Referer`
+
+`scripts/duracao_dos_podcasts.ts`. A importação grava `durationMinutes: 0`
+porque o LearnDash não informa a duração — e zero é "não medido", nunca uma
+estimativa. O número existe no oEmbed da Vimeo, **mas só com o cabeçalho
+`Referer`**: sem ele a resposta vem 200 com um corpo mudo, sem `title` e sem
+`duration`. É o mesmo mecanismo de whitelist que fazia o player dizer
+"conteúdo bloqueado" e parecer problema de conta.
+
+Resultado: **41 de 43 medidos**. Os 2 que não responderam continuam em zero, e
+continuam dizendo que não foram medidos.
+
+**A Vimeo não tem descrição para esses vídeos** — o campo vem vazio nos que
+foram testados. Por isso a importação grava o título em `description`, e as
+duas telas de podcast passaram a esconder o resumo quando ele é igual ao
+título: um bloco "Sobre este episódio" repetindo o cabeçalho promete conteúdo
+e não entrega.
+
+### Separar obra e autor: quando não dá para saber, não se chuta
+
+O ensaio pegou os dois defeitos antes de qualquer gravação, e é para isso que
+ele existe:
+
+1. **"Sigmund Freud — Luto e Melancolia"** virou autor "Luto e Melancolia",
+   porque o separador assumia sempre "Obra — Autor".
+2. **"A associação livre em Freud, fundamento do tratamento psicanalítico"**
+   virou autor, porque contém "Freud" — só que ali Freud é o **assunto**, não
+   quem escreveu.
+
+O que resolve o segundo é exigir que o nome ocupe o lado quase inteiro (até
+cinco palavras, sem artigo à frente). O que resolve o primeiro é uma lista
+curta de autores conhecidos — o acervo é de psicanálise, e são sempre os
+mesmos nomes.
+
+**E quando nenhum lado é reconhecível, não separa**: título inteiro, autor
+"Acervo PCO". Atribuir a obra errada a um autor é um erro que ninguém percebe
+lendo a lista e que corrói a credibilidade do acervo; ficar sem a separação
+custa uma coluna menos precisa. Auditado nos 108: **61 com autor, 47
+conservadores, zero suspeitos**.
+
+### Um risco que quase passou: teste que importa script que executa
+
+`test/importacao-nao-troca-obra-por-autor.test.ts` importa `separarTituloEAutor`
+do script — e o script chamava `void main()` no topo. Passava **só porque o
+ambiente de teste estava sem credencial**, que é o pior tipo de "funciona": com
+elas, um teste percorreria a origem e, com `--commit`, gravaria.
+
+A guarda compara o módulo atual com o módulo executado
+(`fileURLToPath(import.meta.url)` contra `process.argv[1]`), e **não** o nome
+do arquivo. A primeira versão era por nome e falhou em silêncio na primeira vez
+que o script foi copiado para o servidor com outro nome: ele não fez nada e não
+disse por quê.
+
 ## Como perguntar a produção o que ela está fazendo
 
 Achado depois de 9/set/2026, e é a técnica que rendeu quase tudo daquele dia.

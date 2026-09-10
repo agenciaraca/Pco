@@ -47,6 +47,7 @@ import 'dotenv/config';
 import dotenv from 'dotenv';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /*
   As credenciais do LMS antigo moram em `.env.import`, não no `.env`.
@@ -139,16 +140,122 @@ function desescapar(s: string): string {
  * da descrição produziria atribuição errada de obra, que é pior do que a
  * ausência.
  */
+/**
+ * Autores cujo nome aparece no acervo, para desfazer a ordem invertida.
+ *
+ * O ensaio mostrou o problema antes de gravar: **"Sigmund Freud — Luto e
+ * Melancolia"** virava autor "Luto e Melancolia". Metade do acervo é
+ * "Obra — Autor" e a outra metade "Autor — Obra", e nenhuma regra de forma
+ * separa as duas: "Luto e Melancolia" e "J. Fadiman e R. Frager" têm a mesma
+ * cara — duas partes ligadas por "e".
+ *
+ * O que separa é conhecer o nome. É uma lista curta porque o acervo é de
+ * psicanálise, e esses autores são poucos e sempre os mesmos. Nome que não
+ * estiver aqui não é chutado: cai no caminho conservador.
+ */
+const AUTORES_CONHECIDOS = [
+  'freud',
+  'jung',
+  'lacan',
+  'klein',
+  'winnicott',
+  'ferenczi',
+  'bion',
+  'adler',
+  'reich',
+  'erikson',
+  'piaget',
+  'rogers',
+  'skinner',
+  'fromm',
+  'kohut',
+  'dolto',
+  'nasio',
+  'zimerman',
+];
+
+/** Artigos e preposições: uma parte que começa assim é título, não gente. */
+const COMECO_DE_TITULO =
+  /^(a|o|as|os|um|uma|uns|umas|de|do|da|dos|das|em|no|na|nos|nas|por|para|com|sobre|entre|ao|aos)\b/i;
+
+/**
+ * Este lado é o NOME de quem escreveu?
+ *
+ * O nome tem de ocupar o lado quase inteiro. Exigir isso é o que separa o
+ * autor do assunto — e o ensaio mostrou por quê: **"A associação livre em
+ * Freud, fundamento do tratamento psicanalítico"** contém "Freud" e virou
+ * autor. Ali Freud é sobre quem a obra fala, não quem a escreveu.
+ *
+ * Cinco palavras é o teto: "J. Fadiman e R. Frager" tem cinco e é uma dupla de
+ * autores; a partir daí é frase.
+ */
+function pareceNomeDeAutor(s: string): boolean {
+  const t = s.trim();
+  const palavras = t.split(/\s+/);
+  if (palavras.length > 5) return false;
+  if (COMECO_DE_TITULO.test(t)) return false;
+  return AUTORES_CONHECIDOS.some((a) => t.toLowerCase().includes(a));
+}
+
+/**
+ * Este lado parece um nome próprio, mesmo sem estar na lista?
+ *
+ * Duas a quatro palavras, todas começando com maiúscula, sem artigo à frente:
+ * "Daniela Santos Bezerra" passa, "Uma Introdução" não — o artigo é o que
+ * separa nome de subtítulo, e subtítulo é o falso positivo natural aqui.
+ */
+function pareceNomeProprio(s: string): boolean {
+  const t = s.trim();
+  if (COMECO_DE_TITULO.test(t)) return false;
+  const palavras = t.split(/\s+/);
+  if (palavras.length < 2 || palavras.length > 4) return false;
+  return palavras.every((p) => /^[A-ZÁÉÍÓÚÂÊÔÃÕÀÇ]/.test(p));
+}
+
+/**
+ * Separa obra e autor **quando dá para ter certeza**.
+ *
+ * O campo `author` da biblioteca é obrigatório, e a maioria dos títulos traz o
+ * autor junto, depois de um travessão. Três caminhos, nesta ordem:
+ *
+ * 1. Um lado tem nome de autor conhecido e o outro não → é ele o autor,
+ *    qualquer que seja a ordem.
+ * 2. A segunda parte tem inicial abreviada ("J. Fadiman", "C. G. Jung") → é
+ *    gente, porque obra não se escreve assim.
+ * 3. Nenhum dos dois → **não separa**. O título fica inteiro e a curadoria
+ *    fica com a escola.
+ *
+ * O terceiro caminho é o que importa: atribuir a obra errada a um autor é um
+ * erro que ninguém percebe lendo a lista, e que sai caro numa biblioteca de
+ * formação. Ficar sem a separação custa uma coluna menos precisa; errar custa
+ * a credibilidade do acervo.
+ */
 export function separarTituloEAutor(bruto: string): { titulo: string; autor: string } {
   const limpo = desescapar(bruto).trim();
   const m = /^(.*\S)\s+[–—-]\s+(\S.*)$/.exec(limpo);
   if (!m) return { titulo: limpo, autor: 'Acervo PCO' };
-  const [, titulo, autor] = m;
+  const esquerda = m[1]!.trim();
+  const direita = m[2]!.trim();
+
   // "Cap1", "Volume 4", "2019": é parte da obra, não gente.
-  if (/^\d+$/.test(autor!.trim()) || /^(cap|vol|volume|parte|ed|\d)/i.test(autor!.trim())) {
-    return { titulo: limpo, autor: 'Acervo PCO' };
+  const ehParteDaObra = (s: string) => /^(\d+|cap|vol|volume|parte|ed)\b/i.test(s);
+
+  const autorNaEsquerda = pareceNomeDeAutor(esquerda);
+  const autorNaDireita = pareceNomeDeAutor(direita);
+
+  if (autorNaEsquerda && !autorNaDireita) return { titulo: direita, autor: esquerda };
+  if (autorNaDireita && !autorNaEsquerda && !ehParteDaObra(direita)) {
+    return { titulo: esquerda, autor: direita };
   }
-  return { titulo: titulo!.trim(), autor: autor!.trim() };
+  if (!autorNaEsquerda && !ehParteDaObra(direita)) {
+    // Inicial abreviada é sinal forte de pessoa: "J. Fadiman", "C. G. Jung".
+    if (/\b[A-Z]\.\s/.test(direita + ' ')) return { titulo: esquerda, autor: direita };
+    // Nome próprio curto depois de um título longo: "… - Daniela Santos Bezerra".
+    if (pareceNomeProprio(direita) && esquerda.split(/\s+/).length > 4) {
+      return { titulo: esquerda, autor: direita };
+    }
+  }
+  return { titulo: limpo, autor: 'Acervo PCO' };
 }
 
 async function lerPodcastsDaOrigem(): Promise<TopicoWp[]> {
@@ -308,6 +415,87 @@ async function main(): Promise<void> {
     criados++;
   }
   console.log(`\npodcasts: ${criados} criado(s) · ${pulados} já existia(m)`);
+
+  /*
+    A biblioteca: o PDF é COPIADO para o `/uploads` do AVA.
+
+    Apontar `fileUrl` para o WordPress deixaria o acervo inteiro dependendo de
+    um site que vai sair do ar — e o dia em que ele sair é o dia em que ninguém
+    lembra que a biblioteca dependia dele.
+
+    A gravação passa por `saveUpload` com `permiteDocumento`, e não por um
+    `writeFile` direto, porque é lá que moram as regras: o limite de tamanho
+    conferido ANTES de ler os bytes, e a extensão decidida pelo **conteúdo** e
+    não pelo tipo declarado. Um PDF que não for PDF de verdade é recusado ali,
+    que é exatamente onde deve ser.
+  */
+  const libraryRepo = await import('../server/repositories/library');
+  const { saveUpload } = await import('../server/uploads/store');
+  const jaNaBiblioteca = new Set(
+    (await libraryRepo.listLibrary()).map((i) => normalizar(i.title)),
+  );
+
+  let copiados = 0;
+  let repetidos = 0;
+  const falhas: string[] = [];
+  for (const item of biblioteca) {
+    const { titulo, autor } = separarTituloEAutor(item.titulo);
+    if (jaNaBiblioteca.has(normalizar(titulo))) {
+      repetidos++;
+      continue;
+    }
+    if (!item.arquivoUrl) {
+      falhas.push(`${item.id}: sem arquivo de origem`);
+      continue;
+    }
+    try {
+      const r = await fetch(item.arquivoUrl, { headers: { Authorization: auth() } });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const bytes = Buffer.from(await r.arrayBuffer());
+      const nome = decodeURIComponent(item.arquivoUrl.split('/').pop() ?? 'documento.pdf');
+      const salvo = await saveUpload(
+        new File([bytes], nome, { type: 'application/pdf' }),
+        { permiteDocumento: true },
+      );
+      await libraryRepo.createLibrary({
+        title: titulo,
+        author: autor,
+        type: 'pdf',
+        mandatory: false,
+        fileMockUrl: salvo.url,
+        // A descrição curada existe só para os poucos que o gerenciador de
+        // downloads deixa ler; onde não há, o campo fica de fora em vez de
+        // repetir o título como se fosse resumo.
+        tags: item.descricao ? ['acervo', 'importado'] : ['acervo'],
+        relatedCourseIds: [],
+        relatedModuleIds: [],
+      });
+      copiados++;
+    } catch (err) {
+      falhas.push(`${item.id} ${titulo.slice(0, 40)}: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+  console.log(`biblioteca: ${copiados} copiado(s) · ${repetidos} já existia(m) · ${falhas.length} falha(s)`);
+  for (const f of falhas.slice(0, 10)) console.log(`  ! ${f}`);
+  if (falhas.length > 10) console.log(`  … e mais ${falhas.length - 10}`);
 }
 
-void main();
+/*
+  Só roda quando o script é EXECUTADO, nunca quando é importado.
+
+  `test/importacao-nao-troca-obra-por-autor.test.ts` importa
+  `separarTituloEAutor` daqui. Sem esta guarda, importar a função dispararia
+  `main()` — e, com as credenciais no ambiente, um teste chegaria a percorrer a
+  origem e, com `--commit`, a GRAVAR. Passou por sorte enquanto o ambiente de
+  teste estava sem credencial, que é o pior tipo de "funciona".
+*/
+/*
+  A comparação é entre o módulo ATUAL e o que foi mandado executar — não pelo
+  nome do arquivo. Uma guarda por nome parece funcionar e falha em silêncio na
+  primeira vez que o arquivo é copiado com outro nome: foi o que aconteceu ao
+  rodar isto no servidor como `_imp.ts`, onde o script simplesmente não fez
+  nada e não disse por quê.
+*/
+const esteModulo = fileURLToPath(import.meta.url);
+const mandadoExecutar = process.argv[1] ? path.resolve(process.argv[1]) : '';
+if (esteModulo === mandadoExecutar) void main();
