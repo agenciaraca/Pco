@@ -54,15 +54,33 @@ test.describe('AVA PCO smoke', () => {
     await expect(page.getByLabel(/senha/i)).toBeVisible();
   });
 
-  test('rota inexistente cai no SPA fallback (não 404 do servidor)', async ({
-    request,
-  }) => {
-    const res = await request.get('/algum-caminho-que-nao-existe', {
-      headers: { Accept: 'text/html' },
-    });
+  /*
+    Este caso testava o fallback do SPA pedindo `/algum-caminho-que-nao-existe`
+    e cobrando 200. A intenção era boa — provar que o aplicativo é servido —
+    mas o meio escolhido virou uma afirmação: "rota inexistente responde 200".
+
+    Em 10/set/2026 isso deixou de valer, e por um defeito medido: **qualquer**
+    endereço respondia 200 com o `index.html`, então cada URL inventada era uma
+    página válida para o robô de busca indexar. Ver `server/rotas-do-app.ts`.
+
+    A intenção continua coberta, agora por uma rota que existe de verdade.
+  */
+  test('o aplicativo é servido nas rotas dele', async ({ request }) => {
+    const res = await request.get('/dashboard', { headers: { Accept: 'text/html' } });
     expect(res.status()).toBe(200);
     const body = await res.text();
     expect(body).toContain('<div id="root">');
+  });
+
+  test('rota inexistente responde 404, e não a tela do aplicativo', async ({ request }) => {
+    const res = await request.get('/algum-caminho-que-nao-existe', {
+      headers: { Accept: 'text/html' },
+    });
+    expect(res.status()).toBe(404);
+    const body = await res.text();
+    // A página de erro é do site, não o casco do aplicativo esperando JS.
+    expect(body).toContain('Esta página não existe');
+    expect(body).not.toContain('<div id="root">');
   });
 
   test('GET /api/v1/courses sem token retorna 401 (não 500)', async ({ request }) => {

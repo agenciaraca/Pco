@@ -126,7 +126,40 @@ export interface AuthorConfig {
  * volta a valer sozinha, sem mudar mais nada. Enquanto for `null`, o site omite
  * `/autor`, não emite nó `Person` e atribui a autoria à organização.
  */
-export const AUTHOR: AuthorConfig | null = null;
+/**
+ * **Rose Jeremias, psicanalista clínica** — informada pelo dono em 10/set/2026.
+ *
+ * O que está preenchido é o que foi dito, e nada além. Os campos vazios estão
+ * vazios de propósito: `credentials`, `photo` e `sameAs` só podem ser
+ * preenchidos com o que a própria pessoa fornecer.
+ *
+ * **Inventar aqui não é enfeitar um perfil — é atribuir formação em saúde
+ * mental a uma pessoa real.** O molde anterior deste arquivo fazia exatamente
+ * isso ("Especialização em Saúde Mental", "coordenação pedagógica desde 2018",
+ * esperando alguém trocar só o nome), e foi removido por isso. Preencher com
+ * plausibilidade seria repor o mesmo problema com um nome verdadeiro na
+ * frente, que é pior.
+ *
+ * O site mostra só o que existe: sem foto usa as iniciais, e o bloco de
+ * credenciais não aparece enquanto a lista estiver vazia.
+ *
+ * **O que falta, e destrava sozinho ao ser preenchido:** foto, formação e
+ * registro (se houver), links verificáveis (Instagram, Lattes, ORCID, livro),
+ * e o ano em que começou a atender — o único número que as quatro leituras de
+ * comprador pediram e que ninguém pode estimar.
+ */
+export const AUTHOR: AuthorConfig | null = {
+  slug: 'rose-jeremias',
+  name: 'Rose Jeremias',
+  honorific: 'Psicanalista clínica',
+  jobTitle: 'Psicanalista clínica',
+  photo: '',
+  credentials: [],
+  sameAs: [],
+  bio: 'Rose Jeremias é psicanalista clínica e responde pelo conteúdo publicado na Psicanálise Clínica Online.',
+  experience:
+    'A curadoria dos cursos e a revisão do material que a escola publica passam por ela.',
+};
 
 /**
  * `true` enquanto não houver pessoa nomeada assinando o conteúdo.

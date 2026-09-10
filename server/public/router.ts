@@ -375,21 +375,23 @@ publicSite.get('/autor', async (c) => {
               )}
             </div>
           </div>
-          <div class="card">
-            <h3 style="font-size:15px;margin-bottom:10px">Credenciais</h3>
-            <ul
-              style="list-style:none;padding:0;margin:0;display:grid;gap:9px;font-size:14px;color:var(--ink-soft)"
-            >
-              ${raw(
-                autor.credentials
-                  .map(
-                    (cr) =>
-                      `<li style="display:flex;gap:9px"><span style="color:var(--accent)">✓</span><span>${cr}</span></li>`,
-                  )
-                  .join(''),
-              )}
-            </ul>
-          </div>
+          ${autor.credentials.length > 0
+            ? html`<div class="card">
+                <h3 style="font-size:15px;margin-bottom:10px">Credenciais</h3>
+                <ul
+                  style="list-style:none;padding:0;margin:0;display:grid;gap:9px;font-size:14px;color:var(--ink-soft)"
+                >
+                  ${raw(
+                    autor.credentials
+                      .map(
+                        (cr) =>
+                          `<li style="display:flex;gap:9px"><span style="color:var(--accent)">✓</span><span>${cr}</span></li>`,
+                      )
+                      .join(''),
+                  )}
+                </ul>
+              </div>`
+            : ''}
         </div>
         <div class="prose">
           <span class="eyebrow">Experiência &amp; expertise</span>

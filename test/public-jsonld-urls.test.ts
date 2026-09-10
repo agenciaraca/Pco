@@ -91,13 +91,37 @@ describe('instrutor do CourseInstance', () => {
 });
 
 describe('autoria institucional', () => {
-  it('a PCO assina como organização: não há pessoa nomeada configurada', () => {
-    // A escola constrói curso com equipe — pedagogos, psicanalistas, redatores
-    // e editores —, não com um docente de vitrine. `AUTHOR === null` é como
-    // isso fica dito no código, e o que impede o molde de pessoa de voltar.
-    expect(AUTHOR).toBeNull();
-    expect(AUTORIA_INSTITUCIONAL).toBe(true);
-    expect(AUTHOR_IS_PLACEHOLDER).toBe(true);
+  it('há uma pessoa nomeada, e ela não é um molde', () => {
+    // Até 10/set/2026 a autoria era institucional e `AUTHOR` era `null` — não
+    // por princípio, mas porque não havia pessoa. O dono nomeou o responsável
+    // técnico, e a autoria por pessoa passou a valer.
+    //
+    // **A garantia que este caso protege é outra, e continua igual:** o que
+    // não pode voltar é o MOLDE — "Dra. [Nome]" com credenciais plausíveis
+    // anexadas, esperando alguém trocar o nome. Em conteúdo de saúde mental,
+    // aquilo é formação atribuída a quem não a tem.
+    expect(AUTHOR, 'a autoria voltou a não ter dono').not.toBeNull();
+    expect(AUTHOR_IS_PLACEHOLDER).toBe(false);
+    expect(AUTORIA_INSTITUCIONAL).toBe(false);
+    expect(AUTHOR!.name, 'nome com colchetes é molde, não pessoa').not.toMatch(/\[.*\]/);
+    expect(AUTHOR!.slug).toBeTruthy();
+  });
+
+  it('nenhuma credencial é afirmada sem quem a forneça', () => {
+    // Os campos vazios são a parte deliberada: foto, credenciais e links só
+    // podem vir da própria pessoa. O molde removido deste projeto afirmava
+    // "Especialização em Saúde Mental" e "coordenação pedagógica desde 2018"
+    // sobre ninguém — preencher por plausibilidade repõe o mesmo problema com
+    // um nome verdadeiro na frente, que é pior.
+    for (const cr of AUTHOR?.credentials ?? []) {
+      expect(cr, 'credencial com colchete é molde').not.toMatch(/\[.*\]/);
+      expect(cr.trim().length, 'credencial vazia não diz nada').toBeGreaterThan(3);
+    }
+    for (const link of AUTHOR?.sameAs ?? []) {
+      // Link de perfil é o que torna a credencial conferível: sem URL válida
+      // ele vira enfeite.
+      expect(() => new URL(link)).not.toThrow();
+    }
   });
 
   it('o detector de molde continua de pé para quem repuser colchetes', () => {
