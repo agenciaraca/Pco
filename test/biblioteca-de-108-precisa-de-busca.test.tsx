@@ -186,6 +186,21 @@ describe('controle que não pode mudar o resultado não vai para a tela', () => 
     expect(screen.getByText('Formação em Psicanálise')).toBeTruthy();
   });
 
+  it('item sem arquivo não ganha botão que não abre nada', () => {
+    // O `href` caía em '#': "Abrir" existia, a pessoa clicava e nada
+    // acontecia — e o silêncio se lê como site quebrado, quando o que falta é
+    // alguém anexar o PDF. Os 108 importados têm arquivo; item criado à mão
+    // pelo admin pode não ter.
+    montar([{ ...ACERVO_IMPORTADO[0], fileMockUrl: undefined }]);
+    expect(screen.queryByText('Abrir')).toBeNull();
+    expect(screen.getByText('Arquivo ainda não anexado')).toBeTruthy();
+  });
+
+  it('com arquivo, o botão abre o arquivo', () => {
+    montar([ACERVO_IMPORTADO[0]]);
+    expect(screen.getByText('Abrir').closest('a')?.getAttribute('href')).toBe('/uploads/a.pdf');
+  });
+
   it('uma tag só não é filtro — é rótulo repetido em tudo', () => {
     montar();
     expect(screen.queryByText('Tags:')).toBeNull();

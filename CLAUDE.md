@@ -1417,6 +1417,100 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 
 ## Onde o trabalho parou
 
+> ### 10/set/2026 — o acervo do LMS antigo veio, e encher a estante virou o achado
+>
+> O dia teve duas metades, e a segunda nasceu da primeira: trazer 43 podcasts e
+> 108 PDFs do `portalpco.online` **mudou o significado de decisões que já
+> estavam tomadas**, sem que nenhuma linha de código mudasse.
+>
+> #### A primeira coisa a fazer ao retomar
+>
+> ```bash
+> gh run list --limit 5          # a esteira anda?
+> git fetch && git status        # a árvore está limpa?
+> ssh vps 'sudo -u avapco -i bash -c "cd ~/ava-pco && git log --oneline -1"'
+> ```
+>
+> #### O que subiu
+>
+> | commit | o quê |
+> | --- | --- |
+> | `860f7d7` | 43 podcasts em vídeo e 108 PDFs vieram do LMS antigo (migration `0023`) |
+> | `8ff55cf` | encher a estante mudou o que a porta aberta significava |
+> | `1458310` | filtro que não divide nada não é ruído — ele mente |
+>
+> Mais as quatro páginas institucionais e a faixa RNTP azul, do começo do dia.
+> A suíte saiu de **292 arquivos / 2719 testes** para **300 / 2805**.
+>
+> #### O achado do dia, e a forma dele é o que importa
+>
+> **A premissa envelheceu, e nada avisou.** `GET /library` nunca teve auth, e o
+> inventário de rotas públicas a declarava com o motivo escrito: *"biblioteca
+> pública"*. Estava **certo** quando foi escrito, com meia dúzia de itens de
+> semente na estante. Ao pôr 108 PDFs lá dentro, eu tornei aquela frase falsa —
+> sem mudar uma linha de código, sem regressão, sem erro em lugar nenhum.
+>
+> Medido de fora, da internet, sem token: 200 com os 108 itens e o endereço
+> direto de cada arquivo. Fechado, e conferido depois do deploy: **401**.
+>
+> É uma classe nova para este arquivo. As anteriores eram *a rotina rodou,
+> contou e reportou sucesso*; esta é **uma decisão que continuou valendo depois
+> de o mundo dela mudar**. Ao trazer volume para dentro de qualquer tela ou
+> rota, a pergunta a fazer é: *o que era verdade sobre isto quando estava
+> vazio?*
+>
+> A mesma pergunta feita ao vizinho deu resposta **oposta**, e por isso os dois
+> estão documentados: `/api/podcasts` expõe 43 URLs da Vimeo, e a medição
+> (player 403 sem o nosso `Referer`, oEmbed mudo, 0 de 43 ligados a curso)
+> mostra que quem guarda é a whitelist da Vimeo. Fechar protegeria algo que não
+> está aberto. **Medir separou os dois casos; ler o código teria tratado os dois
+> igual.**
+>
+> #### O que a mesma importação quebrou nas telas
+>
+> Os quatro filtros da biblioteca viraram constantes nos 108 itens, e o de tipo
+> era **cravado no código**: clicar em "APOSTILA" respondia "nenhum material",
+> que se lê como *a escola não tem apostilas*. Ver a seção própria — e a mesma
+> forma estava na tela de podcasts, do mesmo import, no mesmo dia.
+>
+> #### Na ordem em que eu retomaria
+>
+> 1. **`/uploads` continua servindo arquivo sem auth.** É o que sobrou do
+>    achado, e é decisão do dono porque a mesma pasta plana serve as **8
+>    imagens** públicas da vitrine (contra 108 PDFs). Hoje os PDFs saem do
+>    índice de busca por extensão; trancá-los de verdade é mudança de desenho do
+>    upload.
+> 2. **Node 20 no VPS** — validado sob Node 22, falta a janela. Ver a seção
+>    própria; o servidor hospeda oito aplicações de outros usuários, então o
+>    caminho é o nvm do `avapco`, nunca `apt upgrade`.
+> 3. **As duas ações de operação de 9/set** (S3 do backup, `pm2 install
+>    pm2-logrotate`) e **as sete decisões do dono**, no bloco de 6/set.
+>
+> #### O que o dono precisa fornecer, e cada item destrava uma tela
+>
+> A página `/autor` está no ar com o nome de Rose Jeremias e **sem credenciais,
+> sem foto e sem links** — deliberadamente. Inventar formação de uma pessoa
+> real num site que vende formação é o tipo de erro que não se desfaz. Faltam,
+> dela: foto, titulação, ano de início da clínica e links profissionais. E,
+> da escola: custo e prazo do registro RNTP, carga horária semanal de estudo,
+> horário do suporte, e prazo de emissão do certificado.
+>
+> #### Três armadilhas que custaram tempo hoje
+>
+> - **Duas suítes ao mesmo tempo mataram a máquina, de novo** — e desta vez a
+>   segunda era um teste avulso rodado *em cima* da suíte completa em segundo
+>   plano. O `--maxWorkers=1` resolve uma execução, não duas.
+> - **A barra invertida sumiu no heredoc**, no intervalo `[\u0300-\u036f]`.
+>   Chega ao disco como caractere combinante literal — **invisível no editor**.
+>   O regex funciona; a legibilidade é que se perde. O que funcionou foi
+>   construir a barra por `chr(92)`. **Aconteceu de novo ao escrever este
+>   próprio parágrafo**, que ficou com o intervalo em caractere literal na
+>   primeira tentativa — dentro do aviso sobre isso.
+> - **`grep -oE '<h1[^>]*>'` não acha H1 que quebra linha.** Duas das páginas
+>   novas pareceram estar sem H1 em produção e estavam corretas — mesma família
+>   do `/tmp/p.html` lido antes do `curl` terminar. Extraia com `[\s\S]*?`,
+>   ou não conclua.
+>
 > ### 9/set/2026 — quatro pedidos do dono, e depois o que MEDIR em produção achou
 >
 > O dia teve duas metades. A primeira foi o dono pedindo mudanças na home, uma

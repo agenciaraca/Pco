@@ -275,15 +275,30 @@ export default function Library() {
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
-                <a
-                  href={item.fileMockUrl ?? '#'}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="pco-btn-primary flex-1 justify-center text-xs"
-                >
-                  <Download size={12} strokeWidth={2} />
-                  Abrir
-                </a>
+                {/*
+                  Sem arquivo, nao ha botao -- ha uma frase.
+
+                  O `href` caia em `'#'`: o cartao mostrava "Abrir", a pessoa
+                  clicava e nada acontecia. Botao que promete o que nao pode
+                  cumprir e a mesma classe do filtro que nao divide nada, e o
+                  silencio e pior: quem clica conclui que o site esta quebrado,
+                  quando o que falta e alguem anexar o PDF.
+                */}
+                {item.fileMockUrl ? (
+                  <a
+                    href={item.fileMockUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="pco-btn-primary flex-1 justify-center text-xs"
+                  >
+                    <Download size={12} strokeWidth={2} />
+                    Abrir
+                  </a>
+                ) : (
+                  <p className="flex-1 text-center text-xs text-ink-subtle">
+                    Arquivo ainda não anexado
+                  </p>
+                )}
               </div>
             </div>
           ))}
