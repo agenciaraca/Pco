@@ -1,29 +1,40 @@
 /**
- * A faixa da carreira: foto de fundo com overlay laranja.
+ * A faixa da carreira: foto de fundo com overlay LARANJA VIVO da marca.
  *
- * O tratamento veio do site antigo, e com ele veio um defeito que **não** foi
- * copiado: lá o texto era branco sobre `#FF9000`, o que dá 2,2:1 e reprova em
- * qualquer tamanho de fonte. É a mesma troca que o projeto já documentou na
- * faixa final — a que mais tenta quem mexe em faixa colorida.
+ * Até 10/set/2026 o overlay era um único tom (`#a65e32`), escolhido só para o
+ * branco passar em 4,5:1 sobre o `multiply` da foto — passava, e parecia
+ * marrom. Depois da paleta verde do dia, destoava do resto da home. A pedido
+ * do dono, virou o laranja vivo (`#ff914d`, o mesmo do `.btn-cta` e da faixa
+ * final).
  *
- * Por isso o caso central aqui **calcula o contraste** em vez de conferir que
- * a cor é a que alguém escreveu. A conta é a da WCAG, e o resultado é um
- * número: clarear o laranja reprova a faixa inteira e o teste diz por quê.
+ * Branco sobre `#ff914d` é **2,3:1** — reprova em qualquer tamanho. A
+ * legibilidade agora vem de camadas, não da cor sozinha, e é isso que este
+ * arquivo trava:
  *
- * Ele vale como piso de tudo porque a foto entra por `mix-blend-mode:multiply`,
- * que só escurece: o tom mais claro que a faixa alcança é o `--carreira-laranja`
- * puro, nas áreas em que a foto é branca. Trocar a imagem não muda o piso.
+ * 1. **O degradê afunda.** `--carreira-fundo` sai do `#ff914d` (topo, onde a
+ *    onda encosta) e vai a `#8a3d10` na base, onde ficam os parágrafos.
+ * 2. **Um véu quente** (`.faixa-carreira::after`) escurece por cima da foto,
+ *    transparente no topo e fechando embaixo.
+ * 3. **A foto cai para 30%** de multiply (era 45%): aparece menos, escurece
+ *    menos, e some de disputar atenção com o texto.
+ * 4. **`text-shadow`** no h2 e nos parágrafos.
+ *
+ * O caso central compõe o degradê com o véu e **calcula o contraste** — clarear
+ * qualquer uma das camadas reprova a faixa e o teste diz qual. O número
+ * ponta-a-ponta, medido no navegador depois de montar: **h2 5,4:1, parágrafos
+ * 7,3 a 8,7:1**.
  *
  * O que mais este arquivo trava:
  *
  * - **Os três arquivos da imagem existem.** `url()` para caminho errado não dá
  *   erro em lugar nenhum: dá 404 no navegador de quem visita e uma faixa lisa.
- * - **O padrão é a MENOR imagem**, como no herói — quem não casar com media
- *   query nenhuma leva a leve, não a pesada.
- * - **A onda da seção anterior usa a cor da faixa.** Ela é sólida e encosta no
- *   topo; apontando para outra cor, aparece uma listra atravessando a página.
+ * - **O padrão é a MENOR imagem**, como no herói.
+ * - **A onda da seção anterior usa a cor do TOPO da faixa.** Ela é sólida e
+ *   encosta no topo; cor diferente vira uma listra atravessando a página. E o
+ *   topo da faixa é o primeiro stop do degradê — não um valor à parte que
+ *   alguém esquece de sincronizar.
  * - **`isolation:isolate`**, sem o qual o multiply mistura com o que estiver
- *   atrás na pilha e o resultado muda conforme a seção vizinha.
+ *   atrás na pilha.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { promises as fs } from 'node:fs';
@@ -57,8 +68,10 @@ function regra(seletor: string): string {
   return PUBLIC_CSS.slice(abre, PUBLIC_CSS.indexOf('}', abre));
 }
 
+type Rgb = [number, number, number];
+
 /** Luminância relativa da WCAG 2.x. */
-function luminancia([r, g, b]: [number, number, number]): number {
+function luminancia([r, g, b]: Rgb): number {
   const canal = (c: number): number => {
     const v = c / 255;
     return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
@@ -66,47 +79,117 @@ function luminancia([r, g, b]: [number, number, number]): number {
   return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
 }
 
-/** Razão de contraste contra o branco puro. */
-function contrasteComBranco(cor: [number, number, number]): number {
+function contrasteComBranco(cor: Rgb): number {
   return 1.05 / (luminancia(cor) + 0.05);
 }
 
-function hexParaRgb(hex: string): [number, number, number] {
+function hexParaRgb(hex: string): Rgb {
   const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
   expect(m, `cor fora do formato #rrggbb: ${hex}`).not.toBeNull();
   const n = parseInt(m![1], 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function corDaFaixa(): [number, number, number] {
-  const m = /--carreira-laranja:\s*(#[0-9a-f]{6})/i.exec(PUBLIC_CSS);
-  expect(m, 'o token --carreira-laranja sumiu da paleta').not.toBeNull();
-  return hexParaRgb(m![1]);
+/** `base` com `cima` (rgba) por cima — o que o navegador faz ao empilhar. */
+function sobrepoe(base: Rgb, cima: Rgb, alpha: number): Rgb {
+  return [
+    Math.round(base[0] * (1 - alpha) + cima[0] * alpha),
+    Math.round(base[1] * (1 - alpha) + cima[1] * alpha),
+    Math.round(base[2] * (1 - alpha) + cima[2] * alpha),
+  ];
+}
+
+/** Os stops `#rrggbb` de um `linear-gradient(...)`, na ordem. */
+function stopsHex(valor: string): string[] {
+  return [...valor.matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0]);
+}
+
+function token(nome: string): string {
+  const m = new RegExp(`${nome}:\\s*([^;]+);`).exec(PUBLIC_CSS);
+  expect(m, `token ${nome} sumiu da paleta`).not.toBeNull();
+  return m![1].trim();
 }
 
 describe('faixa da carreira', () => {
-  it('o texto branco passa em contraste sobre o laranja — que é o pior caso', () => {
-    const cor = corDaFaixa();
-    const razao = contrasteComBranco(cor);
+  it('a onda da seção anterior tem a cor do TOPO da faixa', () => {
+    const i = home.indexOf('class="section faixa-carreira');
+    expect(i, 'a faixa sumiu da home').toBeGreaterThan(-1);
+    const antes = home.slice(0, i);
+    const ultimoFill = [...antes.matchAll(/fill="([^"]+)"/g)].pop();
+    expect(ultimoFill, 'a seção anterior não emite pincel nenhum').toBeTruthy();
+    // O divisor é sólido e encosta no topo da faixa. O topo da faixa é o
+    // primeiro stop de --carreira-fundo — e --carreira-laranja tem de ser
+    // exatamente ele, senão a onda desenha uma listra.
+    expect(ultimoFill![1]).toBe('var(--carreira-laranja)');
+    const primeiroStop = stopsHex(token('--carreira-fundo'))[0];
+    expect(
+      primeiroStop.toLowerCase(),
+      'o topo do degradê da faixa não bate com --carreira-laranja: a onda vira uma listra',
+    ).toBe(token('--carreira-laranja').toLowerCase());
+  });
+
+  it('o texto do MEIO da faixa passa em 4,5:1 — degradê + véu, não a cor sozinha', () => {
+    // Branco sobre o laranja vivo puro reprova; é o que as camadas consertam.
+    const laranjaVivo = hexParaRgb(token('--carreira-laranja'));
+    expect(contrasteComBranco(laranjaVivo)).toBeLessThan(3);
+
+    const stops = stopsHex(token('--carreira-fundo')).map(hexParaRgb);
+    expect(stops.length, '--carreira-fundo precisa de pelo menos 3 stops').toBeGreaterThanOrEqual(
+      3,
+    );
+    const meio = stops[1]; // ~42% — onde começa o primeiro parágrafo
+
+    // O véu (`::after`): pega a MENOR opacidade declarada e a cor mais clara
+    // dele — o pior caso para o texto.
+    const veu = regra('.faixa-carreira::after');
+    const alphas = [...veu.matchAll(/rgba\([^)]*,\s*(0?\.\d+)\)/g)]
+      .map((m) => Number(m[1]))
+      .filter((a) => a > 0);
+    expect(alphas.length, 'o véu perdeu as camadas de opacidade').toBeGreaterThan(0);
+    const veuRgb = (() => {
+      const m = /rgba\((\d+),\s*(\d+),\s*(\d+)/.exec(veu);
+      return m ? ([Number(m[1]), Number(m[2]), Number(m[3])] as Rgb) : ([74, 28, 6] as Rgb);
+    })();
+    const alphaMin = Math.min(...alphas);
+
+    const composto = sobrepoe(meio, veuRgb, alphaMin);
+    const razao = contrasteComBranco(composto);
     expect(
       razao,
-      `rgb(${cor.join(',')}) dá ${razao.toFixed(2)}:1 com texto branco. ` +
-        'O mínimo da WCAG AA para texto normal é 4,5:1. O site antigo usava ' +
-        '#FF9000 aqui, que dá 2,2:1 — clarear o token repete aquele defeito.',
+      `o meio do degradê (${meio.join(',')}) sob o véu a ${alphaMin} dá ` +
+        `${razao.toFixed(2)}:1. Mínimo 4,5:1 para texto normal. ` +
+        'Clarear o degradê ou enfraquecer o véu reprova a faixa.',
     ).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('o texto da faixa é branco de verdade, não herda a tinta de fundo claro', () => {
-    expect(regra('.faixa-carreira h2')).toContain('color:#fff');
-    expect(regra('.carreira-colunas p')).toContain('color:#fff');
+  it('a BASE do degradê — onde estão os parágrafos longos — é folgada', () => {
+    const base = stopsHex(token('--carreira-fundo')).map(hexParaRgb).at(-1)!;
+    // Aqui a foto (multiply) e o véu só escurecem: este é o piso, sem compor.
+    expect(contrasteComBranco(base)).toBeGreaterThanOrEqual(6);
   });
 
-  it('a foto só escurece — é o multiply que faz do laranja o piso', () => {
+  it('a foto aparece menos: multiply e opacidade baixa', () => {
     const corpo = regra('.carreira-foto');
     expect(corpo).toContain('mix-blend-mode:multiply');
-    // Sem isolation o multiply atravessa a seção e o resultado passa a
-    // depender de quem está atrás na pilha.
+    const op = /opacity:\s*(0?\.\d+)/.exec(corpo);
+    expect(op, 'a foto perdeu a opacidade explícita').not.toBeNull();
+    expect(Number(op![1]), 'a foto voltou a dominar a faixa').toBeLessThanOrEqual(0.35);
+    // Sem isolation o multiply atravessa a seção.
     expect(regra('.faixa-carreira')).toContain('isolation:isolate');
+  });
+
+  it('o texto é branco e tem sombra — a terceira camada', () => {
+    for (const sel of ['.faixa-carreira h2', '.carreira-colunas p']) {
+      const r = regra(sel);
+      expect(r, `${sel} deixou de ser branco`).toContain('color:#fff');
+      expect(r, `${sel} perdeu o text-shadow`).toContain('text-shadow');
+    }
+  });
+
+  it('o texto fica acima da foto e do véu', () => {
+    // .wrap em z-index 2; foto em auto(0); véu em 1.
+    expect(regra('.faixa-carreira .wrap')).toContain('z-index:2');
+    expect(regra('.faixa-carreira::after')).toContain('z-index:1');
   });
 
   it('os três arquivos da imagem existem', async () => {
@@ -119,12 +202,10 @@ describe('faixa da carreira', () => {
   });
 
   it('o padrão é a MENOR imagem, e as maiores entram por media query', () => {
-    // Fora de qualquer media query: a leve.
     expect(regra('.carreira-foto')).toContain('carreira-psicanalise-760.webp');
     for (const w of [1280, 1441]) {
       const i = PUBLIC_CSS.indexOf(`carreira-psicanalise-${w}.webp`);
       expect(i, `a imagem de ${w}px não é servida`).toBeGreaterThan(-1);
-      // A regra que a traz tem de estar dentro de um @media min-width.
       const antes = PUBLIC_CSS.slice(0, i);
       const abertura = antes.lastIndexOf('@media');
       expect(
@@ -134,25 +215,8 @@ describe('faixa da carreira', () => {
     }
   });
 
-  it('a onda que desce até a faixa tem a cor da faixa', () => {
-    // Pelo markup: o CSS vai inline no <head>, e o nome da classe aparece
-    // antes ali — a busca pela classe solta cairia dentro da folha de estilo.
-    const i = home.indexOf('class="section faixa-carreira');
-    expect(i, 'a faixa sumiu da home').toBeGreaterThan(-1);
-    // O pincel da seção anterior é o último antes da faixa começar.
-    const antes = home.slice(0, i);
-    const ultimoFill = [...antes.matchAll(/fill="([^"]+)"/g)].pop();
-    expect(ultimoFill, 'a seção anterior não emite pincel nenhum').toBeTruthy();
-    expect(
-      ultimoFill![1],
-      'a onda da seção anterior encosta no topo da faixa: cor diferente vira ' +
-        'uma listra atravessando a página',
-    ).toBe('var(--carreira-laranja)');
-  });
-
   it('o texto que o dono escreveu continua na faixa', () => {
     const i = home.indexOf('class="section faixa-carreira');
-    expect(i, 'a faixa sumiu da home').toBeGreaterThan(-1);
     const faixa = home.slice(i, home.indexOf('</section>', i));
     expect(faixa).toContain('Sua carreira após a Formação em Psicanálise Clínica aqui na PCO');
     expect(faixa).toContain('Desperte o psicanalista em você');

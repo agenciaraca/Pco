@@ -684,6 +684,46 @@ instala a cópia de forma síncrona antes da continuação do `unshift`, e a lin
 nova cai na lista já instalada. O defeito exige a escrita concluída dentro da
 janela, que é o caso real de duas requisições.
 
+## A faixa da carreira: laranja vivo, e a legibilidade em camadas
+
+`server/public/styles.ts` (10/set/2026, escolha do dono). O overlay da seção
+"Sua carreira após a Formação" era `#a65e32` — o laranja da marca rebaixado até
+o branco passar em 4,5:1 sobre o `multiply` da foto. Passava, e parecia marrom.
+Depois da paleta verde do dia, destoava da home inteira.
+
+O dono escolheu (entre verde petróleo, laranja vivo e "só melhorar a foto") o
+**laranja vivo** `#ff914d` — o mesmo do `.btn-cta` e da `.cta-final`.
+
+**Branco sobre `#ff914d` é 2,3:1.** A legibilidade passou a vir de camadas, não
+da cor:
+
+- **`--carreira-fundo`** é degradê: `#ff914d` no topo (onde a onda encosta) →
+  `#8a3d10` na base (onde ficam os parágrafos longos).
+- **`.faixa-carreira::after`** é um véu quente, transparente no topo, fechando
+  a `.46` embaixo.
+- **A foto caiu para 30%** de multiply (era 45%).
+- **`text-shadow`** no h2 e nos parágrafos.
+
+Medido no navegador depois de montar: **h2 5,4:1, parágrafos 7,3–8,7:1**.
+
+Três coisas que qualquer mexida aqui tem de respeitar:
+
+- **O topo do degradê É `--carreira-laranja`.** A onda da seção anterior usa
+  esse token (`fill` de SVG é sólido, não entende degradê); se o primeiro stop
+  divergir do token, aparece uma listra atravessando a página. O teste casa os
+  dois.
+- **O véu faz trabalho real.** O meio do degradê (`#e0691d`) sozinho dá 3,4:1
+  — reprova texto normal. É o véu que leva a 5,4. Enfraquecê-lo reprova a
+  faixa, e `test/faixa-da-carreira.test.ts` **compõe as camadas e calcula** o
+  contraste, não confere a cor que alguém escreveu.
+- **`isolation:isolate` fica.** Sem ele o multiply mistura com a seção de trás
+  e o resultado muda conforme a vizinha.
+
+**Armadilha reencontrada (de novo):** escrevi `` `fill` `` num comentário CSS
+dentro do `PUBLIC_CSS` e os dois backticks fecharam o template literal —
+`PUBLIC_CSS` virou `number`, o `tsc` acusou. Segunda vez na mesma sessão.
+Comentário em CSS servido: **sem crase, nunca**.
+
 ## O rodapé tinha duas colunas, e devia ter quatro
 
 `server/public/layout.ts` + `styles.ts` (10/set/2026, a pedido do dono). A grade

@@ -35,14 +35,22 @@ export const PUBLIC_CSS = `
      armadilha que já pintou três divisores de preto neste site. */
   --rntp-fundo-topo:#2b5782;
   --rntp-fundo:linear-gradient(118deg,#2b5782 0%,#274f76 52%,#1f4160 100%);
-  /* O laranja SOB a foto da faixa da carreira.
+  /* A faixa da carreira: laranja VIVO da marca, a pedido do dono (10/set/2026).
 
-     Não é --brand-orange, e a diferença é medida, não gosto: o site antigo
-     punha texto branco sobre #FF9000, o que dá 2,2:1 e reprova em qualquer
-     tamanho. Este tom é o laranja da marca rebaixado até o branco passar em
-     4,5:1 — e é o PIOR caso da faixa, porque a foto entra por multiply, que
-     só escurece. Clarear isto reprova a faixa inteira de uma vez. */
-  --carreira-laranja:#a65e32;
+     O tom anterior (#a65e32) era o laranja rebaixado até o branco passar em
+     4,5:1 sobre o multiply da foto — passava, e parecia marrom. Depois da
+     paleta verde do dia, ele destoava do resto da home.
+
+     Agora o topo é o --cta-grad-topo (#ff914d), o mesmo do .btn-cta e da faixa
+     final, para a onda que encosta aqui casar — o fill do SVG do divisor e
+     SOLIDO, nao entende degrade. A legibilidade do branco vem de tres camadas,
+     porque so a cor nao da conta (branco sobre #ff914d e 2,3:1):
+       1. o degrade afunda para #8a3d10 na base, onde ficam os paragrafos;
+       2. a foto cai para 30% de multiply (era 45%) — aparece menos, escurece menos;
+       3. um veu quente sobreposto (.faixa-carreira::after) e text-shadow.
+     Medido no navegador depois de montar: h2 5,4:1, paragrafos 7,3 a 8,7:1. */
+  --carreira-laranja:#ff914d;
+  --carreira-fundo:linear-gradient(168deg,#ff914d 0%,#e0691d 42%,#8a3d10 100%);
   --brand-orange:#ff914d;--brand-orange-ink:#d96a24;--brand-orange-soft:#ffe9db;--on-orange:#2b1608;
   /* Alias do laranja antigo, para não quebrar quem já usa --orange. */
   --orange:#ff914d;--orange-soft:#ffe9db;
@@ -408,7 +416,12 @@ main:has(> .cta-final:last-child) + .pincel-topo{
    O padrão é a MENOR imagem, como no herói: quem não casar com media query
    nenhuma fica com a leve. */
 .faixa-carreira{position:relative;isolation:isolate;
-  background-color:var(--carreira-laranja);color:#fff}
+  background:var(--carreira-fundo);background-color:var(--carreira-laranja);color:#fff}
+/* Véu quente sobre a foto, abaixo do texto: puxa o contraste do branco sem
+   apagar o laranja. Nasce transparente no topo (onde a onda entra) e fecha
+   embaixo, onde estão os parágrafos. */
+.faixa-carreira::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(74,28,6,0) 0,rgba(74,28,6,.34) 20%,rgba(50,18,3,.46) 100%)}
 /* A opacidade é o que separa "overlay laranja com foto de fundo" de "foto com
    filtro laranja". A 1 a foto vence: o rosto e a camisa xadrez disputam
    atenção com o texto que está por cima deles. A .45 ela ambienta e o laranja
@@ -420,19 +433,22 @@ main:has(> .cta-final:last-child) + .pincel-topo{
    corte reto que o pincel existe para não ter. Com a foto nascendo ao longo de
    110px, a faixa começa na cor da onda e revela a imagem. */
 .carreira-foto{position:absolute;inset:0;background-size:cover;background-position:center;
-  mix-blend-mode:multiply;opacity:.45;pointer-events:none;
+  mix-blend-mode:multiply;opacity:.3;pointer-events:none;
   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 110px);
   mask-image:linear-gradient(180deg,transparent 0,#000 110px);
   background-image:url('/img/carreira-psicanalise-760.webp')}
 @media (min-width:701px){.carreira-foto{background-image:url('/img/carreira-psicanalise-1280.webp')}}
 @media (min-width:1401px){.carreira-foto{background-image:url('/img/carreira-psicanalise-1441.webp')}}
-/* z-index acima da foto — o .pincel já vive em 2, e o texto precisa dos dois. */
-.faixa-carreira .wrap{position:relative;z-index:1}
-.faixa-carreira h2{color:#fff;text-align:center;margin:0 auto 30px;max-width:34ch}
+/* z-index 2: acima da foto (0) e do véu (1). O .pincel vive em 2 também e o
+   texto precisa ficar por cima dos dois. */
+.faixa-carreira .wrap{position:relative;z-index:2}
+.faixa-carreira h2{color:#fff;text-align:center;margin:0 auto 30px;max-width:34ch;
+  text-shadow:0 1px 4px rgba(60,22,4,.5)}
 /* Duas colunas em tela larga: o texto são dois parágrafos longos, e numa
    coluna só de 1180px cada linha passaria de 150 caracteres. */
 .carreira-colunas{display:grid;grid-template-columns:1fr 1fr;gap:34px}
-.carreira-colunas p{color:#fff;font-size:17px;line-height:1.75;margin:0}
+.carreira-colunas p{color:#fff;font-size:17px;line-height:1.75;margin:0;
+  text-shadow:0 1px 3px rgba(60,22,4,.45)}
 @media (max-width:860px){
   .carreira-colunas{grid-template-columns:1fr;gap:18px}
   .faixa-carreira h2{max-width:none}
