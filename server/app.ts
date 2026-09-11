@@ -3046,15 +3046,49 @@ export function buildApp() {
     entregava o chaveiro inteiro. Se um dia o nome do arquivo passar a sair do
     titulo, esta frase deixa de valer junto.
   */
+  /*
+    Achado em auditoria (11/set/2026): a listagem tem `requireAuth()` e mais
+    nada, mas `relatedCourseIds`/`mandatory` existem para ligar material a um
+    curso específico — é o mecanismo que a tela do admin usa para "material
+    obrigatório deste curso". Ao contrário de TODA outra rota de conteúdo de
+    curso deste projeto (aula, vídeo, transcrição, mentoria, fórum — todas
+    atrás de `courseAccessFor`), esta nunca checava. Qualquer aluno logado,
+    com zero matrículas, pegava a URL direta de material de um curso que
+    nunca comprou. Medido em produção: exposição real era zero (nenhum item
+    ligado a curso ainda) — o risco era o próximo uso do campo "curso" na
+    tela do admin publicar tudo sem deploy nenhum.
+
+    Item SEM curso ligado é acervo geral e continua aberto a qualquer
+    logado — é o caso comum dos 108 itens importados. Item COM curso ligado
+    exige o mesmo acesso que o resto do LMS exige para estudar aquele curso.
+  */
   app.get('/library', requireAuth(), async (c) => {
     const { type, courseId, mandatoryOnly } = c.req.query();
-    return c.json(
-      await libraryRepo.listLibrary({
-        type,
-        courseId,
-        mandatoryOnly: mandatoryOnly === 'true',
-      }),
-    );
+    const todos = await libraryRepo.listLibrary({
+      type,
+      courseId,
+      mandatoryOnly: mandatoryOnly === 'true',
+    });
+    const u = c.get('user')!;
+    if (u.role === 'admin' || u.role === 'superadmin') return c.json(todos);
+    const visiveis = [];
+    for (const item of todos) {
+      const cursos = item.relatedCourseIds ?? [];
+      if (cursos.length === 0) {
+        visiveis.push(item);
+        continue;
+      }
+      let podeVer = false;
+      for (const cid of cursos) {
+        const acc = await courseAccessFor(u.sub, cid);
+        if (acc.canStudy) {
+          podeVer = true;
+          break;
+        }
+      }
+      if (podeVer) visiveis.push(item);
+    }
+    return c.json(visiveis);
   });
 
   // ---------- Certificates ----------
@@ -11940,6 +11974,13 @@ export function buildApp() {
       const order = await ordersRepo.createOrder({
         userId: u.sub,
         userEmail: u.email,
+        // Mesma regra do checkout público (ver o comentário lá): chega do
+        // navegador e não decide nada. Faltava aqui até 11/set/2026 — o
+        // schema nem tinha o campo — e é justamente a rota de quem compra o
+        // SEGUNDO curso já logado, então metade das vendas nunca carregava
+        // `gclid` para as conversões offline do Google Ads, mesmo quando o
+        // clique original existia no `localStorage` da pessoa.
+        attribution: daNavegacao(v.data.origem ?? {}, v.data.origem?.referrer ?? null),
         productId: product.id,
         productSnapshot: {
           name: product.name,

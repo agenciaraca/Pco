@@ -2180,15 +2180,29 @@ Logs: `pm2 logs ava-pco` ou `~/ava-pco/app.log`.
 >
 > #### Na ordem em que eu retomaria
 >
-> 1. **A auditoria completa pedida pelo dono, ainda não começada:** aluno sem
->    pagamento/atribuição não pode abrir outro curso pago (exceto grátis), e
->    varredura geral por qualquer dado/conteúdo vazando no painel do aluno.
->    Candidato natural: o subagente `aluno`.
-> 2. **"Dashboard atualizado"** — pedido do dono, ambíguo (qual dashboard, o
->    quê "atualizado" significa), não esclarecido ainda.
+> 1. ~~**A auditoria completa pedida pelo dono**~~ — **feita, mesmo dia**,
+>    pelo subagente `aluno`. Confirmou a hipótese central (não existe conceito
+>    de "curso grátis" no código, `courseAccessFor` não tem exceção, ~25 rotas
+>    de conteúdo/quiz/certificado testadas e corretas) e achou dois vazamentos
+>    latentes (exposição real zero, risco real alto): `transcripts` vazava
+>    pelo catálogo público, e `/library` não checava matrícula em material
+>    ligado a curso. Ver as duas seções próprias, acima. Os dois foram
+>    corrigidos e vieram junto neste mesmo commit.
+> 2. **"Dashboard atualizado"** — pedido do dono, esclarecido como "dashboard
+>    home do projeto" — ainda preciso confirmar qual tela isso é antes de
+>    agir (candidatos: `/admin/dashboard`, ou o painel de métricas/saúde).
 > 3. **Decidir a cadência do "Treinamento PCO"** — herdou a mesma grade semanal
 >    dos cursos de aluno por ora; é curso interno de operador, pode merecer
 >    outra coisa ou nenhuma.
+>
+> #### E um achado fora do pedido original: o gclid do checkout logado
+>
+> Pergunta do dono sobre a integração do Google Ads ("o BD para entregar
+> conversões offline está pronto?") levou a medir em vez de responder de
+> cabeça: **27 pedidos pagos em 90 dias, 23 com atribuição, só 1 com
+> `gclid`.** A causa era estrutural, não falta de tráfego — `/payments/checkout`
+> (aluno logado, comprando o segundo curso) nunca teve campo `origem`. Ver a
+> seção própria acima. Corrigido no mesmo commit desta rodada.
 
 > ### 10/set/2026, tarde — quatro problemas de dinheiro, e três eram invisíveis
 >
@@ -3931,6 +3945,98 @@ de todos os cursos — os 2,93 mi de caracteres restaurados pela migration 0008.
 por `GET /me/courses/:courseId/lessons/:lessonId/content`, que passa por
 `courseAccessFor` (matrícula **e** prazo). A chave é removida, não esvaziada:
 `content: ''` faria a tela mostrar a descrição como se fosse a aula.
+
+### `aulaSemCorpo` esqueceu `transcripts`, e ficou esquecendo por um ano-luz
+
+`server/access/conteudo-aula.ts` (achado em auditoria de varredura, 11/set/2026,
+a pedido do dono: *"audite também coisas que o aluno não pode ver e que possa
+estar vazando"*). A função nasceu em 27/ago/2026 conhecendo só `content` e
+`videoUrl`. A migration `0017` (3/set/2026) criou a coluna `transcripts` e o
+painel de três idiomas no admin — a transcrição virou recurso de verdade —, e
+ninguém voltou aqui para ensiná-la a tirar a chave nova. Resultado: `GET
+/courses` e `/courses/:id`, as duas públicas, devolviam a transcrição
+**completa** de qualquer aula de curso listado — o mesmo material que
+`content`/`videoUrl` já protegiam, só que em texto.
+
+**Medido, não suposto**: em produção, no dia do achado, nenhuma aula tinha
+`transcripts` preenchido — exposição real zero. O risco era o **próximo** uso
+do painel do admin publicar a transcrição de uma aula paga sem deploy nenhum.
+É a mesma classe de "premissa que envelheceu" já registrada para `/library` e
+`/api/podcasts`: a função estava certa quando foi escrita e ficou errada
+quando um campo novo passou a existir ao lado dos que ela já conhecia.
+
+`test/transcript-de-aula-nao-vaza-pelo-catalogo.test.ts` — 3 casos, falham
+contra o código anterior.
+
+## `GET /library` não checava matrícula em material ligado a curso
+
+`server/app.ts` (mesma auditoria, 11/set/2026). Toda outra rota que entrega
+material de curso — aula, vídeo, transcrição, mentoria, fórum — passa por
+`courseAccessFor`/`requisitantePodeVerCurso`. A biblioteca, não: tinha só
+`requireAuth()`, e o filtro `?courseId=` era decorativo, feito para navegar,
+nunca para proteger.
+
+O mecanismo para ligar material a curso (`relatedCourseIds`, `mandatory` —
+"apostila obrigatória deste curso") já existe desde antes; o que faltava era a
+leitura respeitar o mesmo portão que a escrita já respeita. Sem isso, qualquer
+aluno logado, com **zero** matrículas, lia a URL direta de material obrigatório
+de um curso que nunca comprou — a mesma classe de vazamento do Treinamento PCO
+via `/api/courses`, só que pela porta da biblioteca.
+
+**Medido**: hoje nenhum dos 108 itens do acervo importado está ligado a curso
+(ver "Encher a estante mudou o que a porta aberta significava", acima) —
+exposição real zero. O risco é o dia em que o campo "curso" for usado na tela
+do admin, que já existe para isto.
+
+Duas coisas que a correção fixa:
+
+- **Item sem curso ligado continua aberto a qualquer logado.** É o caso de
+  todo o acervo hoje — acervo geral não é o que este conserto protege.
+- **Item com curso ligado exige `courseAccessFor(...).canStudy`**, o mesmo
+  padrão do resto do LMS. Admin continua vendo tudo, sem checagem — é quem
+  cadastra o vínculo.
+
+`test/library-obrigatoria-de-curso-pago-nao-vaza.test.ts` — 5 casos, 2 falham
+contra o código anterior.
+
+## O checkout do aluno logado nunca capturava `gclid` — metade das vendas ficava fora da atribuição
+
+`shared/schemas.ts` + `server/app.ts` + `src/app/data/api.ts` (11/set/2026).
+Pergunta do dono sobre a integração nova do Google Ads ("o BD para entregar
+conversões offline está pronto?") levou a medir, não seria óbvio de outro
+jeito: **27 pedidos pagos nos últimos 90 dias, 23 com alguma atribuição, mas
+só 1 com `gclid`.**
+
+A causa não era falta de tráfego pago — era que `checkoutSchema` (a rota
+`POST /payments/checkout`, do aluno **já logado**, comprando o segundo curso)
+**nunca teve campo `origem`**. Só `publicCheckoutSchema` (o visitante) tinha.
+`server/public/client.ts` captura `gclid`/UTMs no primeiro toque e guarda em
+`localStorage['pco_origem']` — mas nada no app logado lia essa chave nem
+mandava para o servidor, e o handler de `/payments/checkout` nunca passava
+`attribution` para `createOrder`. Pedido de segunda compra, o caso mais comum
+de aluno recorrente, nascia sempre com `attribution: null`.
+
+Três coisas que qualquer mexida aqui tem de respeitar:
+
+- **`origemBrutaSchema` é um schema só, usado pelas duas rotas de checkout.**
+  Elas já divergiram nisto uma vez — é exatamente como o buraco nasceu — e
+  duas cópias da mesma forma voltariam a discordar.
+- **`localStorage['pco_origem']` é compartilhado entre o site público SSR e o
+  app SPA** porque os dois vivem no MESMO domínio (`PUBLIC_ORIGIN` — ver
+  "Deploying production"), não em subdomínios diferentes. Sem essa premissa a
+  leitura no app não acharia nada.
+- **`origem` não decide nada da compra**, mesma regra do checkout público: não
+  muda preço, não libera acesso, não escolhe gateway. Só alimenta atribuição.
+
+Isto não é o mesmo achado do `stripAccents`/nome-sem-sobrenome do Customer
+Match (ver "Google Ads: Customer Match + Conversões Offline") — aquele
+descartava cliente já capturado; este é dado que nunca chegava a ser
+capturado, numa rota inteira.
+
+`test/checkout-logado-captura-origem.test.ts` — 3 casos, 1 falha contra o
+código anterior (os outros dois já passavam, e continuam passando, para
+provar que a mudança não inventa atribuição onde não há e não muda o
+resultado da compra).
 
 ## Filtro que não divide nada não é ruído — ele mente
 

@@ -247,6 +247,27 @@ export const dataNascimentoSchema = z
   .string({ error: 'Informe a data de nascimento.' })
   .refine(dataDeNascimentoValida, 'Data de nascimento inválida.');
 
+/**
+ * De onde a pessoa veio, exatamente como o navegador captura na primeira
+ * visita (`utm_*`, `gclid`, `fbclid`, `referrer`) — antes de `daNavegacao`
+ * derivar `tipoOrigem` no servidor. Um schema só para as duas rotas de
+ * checkout, porque já divergiram uma vez: até 11/set/2026 só o checkout
+ * PÚBLICO tinha este campo, e o do aluno logado — a rota de quem compra o
+ * segundo curso — não capturava `gclid` nenhum. Metade das vendas nunca
+ * podia ser atribuída a uma campanha do Google Ads, em silêncio.
+ */
+export const origemBrutaSchema = z.object({
+  utm_source: z.string().max(300).optional(),
+  utm_medium: z.string().max(300).optional(),
+  utm_campaign: z.string().max(300).optional(),
+  utm_content: z.string().max(300).optional(),
+  utm_term: z.string().max(300).optional(),
+  utm_id: z.string().max(300).optional(),
+  gclid: z.string().max(300).optional(),
+  fbclid: z.string().max(300).optional(),
+  referrer: z.string().max(300).optional(),
+});
+
 export const checkoutSchema = z.object({
   productId: z.string().min(1),
   /**
@@ -275,6 +296,13 @@ export const checkoutSchema = z.object({
    */
   birthDate: dataNascimentoSchema.optional(),
   endereco: enderecoSchema.optional(),
+  /**
+   * De onde a pessoa veio — capturada no PRIMEIRO acesso (antes do login,
+   * enquanto navegava a vitrine pública) e lida do mesmo `localStorage` que
+   * o script do site público grava (`pco_origem`). Opcional e sem efeito
+   * algum na compra: só alimenta a atribuição de campanha.
+   */
+  origem: origemBrutaSchema.optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
@@ -322,19 +350,7 @@ export const publicCheckoutSchema = z
      * converteu", e é gravado como veio, limitado em tamanho. O servidor não
      * confia nele para mais que isso.
      */
-    origem: z
-      .object({
-        utm_source: z.string().max(300).optional(),
-        utm_medium: z.string().max(300).optional(),
-        utm_campaign: z.string().max(300).optional(),
-        utm_content: z.string().max(300).optional(),
-        utm_term: z.string().max(300).optional(),
-        utm_id: z.string().max(300).optional(),
-        gclid: z.string().max(300).optional(),
-        fbclid: z.string().max(300).optional(),
-        referrer: z.string().max(300).optional(),
-      })
-      .optional(),
+    origem: origemBrutaSchema.optional(),
     /** Consentimento LGPD obrigatório. */
     consent: z.literal(true),
   })

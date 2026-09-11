@@ -1029,6 +1029,28 @@ export interface CheckoutComprador {
   endereco?: Endereco;
 }
 
+/**
+ * Lê a origem que o SITE PÚBLICO capturou no primeiro acesso — a mesma chave
+ * `pco_origem` que `server/public/client.ts` grava no `localStorage`, no
+ * primeiro toque, antes de qualquer login. App e site público moram no MESMO
+ * domínio (ver `PUBLIC_ORIGIN`), então o `localStorage` é compartilhado.
+ *
+ * Até 11/set/2026 esta rota (aluno já logado, comprando o segundo curso)
+ * nunca lia isto — e é justamente a rota por onde passa metade das vendas.
+ * `gclid` nunca chegava ao servidor, e a conversão offline do Google Ads não
+ * conseguia atribuir essas vendas a campanha nenhuma.
+ */
+function lerOrigemDoLocalStorage(): Record<string, string> | undefined {
+  try {
+    const raw = localStorage.getItem('pco_origem');
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function startCheckout(
   productId: string,
   gatewayId?: string,
@@ -1039,6 +1061,7 @@ export async function startCheckout(
     productId,
     gatewayId,
     couponCode,
+    origem: lerOrigemDoLocalStorage(),
     ...comprador,
   });
 }

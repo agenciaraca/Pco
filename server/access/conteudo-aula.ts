@@ -24,8 +24,20 @@
  *
  * O catálogo continua devolvendo título, descrição, duração, ordem e
  * obrigatoriedade de cada aula. Isso é a **ementa**, e ementa vende: sem ela o
- * visitante não sabe o que está comprando. O que sai é o material: `content` e
- * `videoUrl`.
+ * visitante não sabe o que está comprando. O que sai é o material: `content`,
+ * `videoUrl` e `transcripts`.
+ *
+ * ## `transcripts` faltou aqui, e ficou faltando um ano-luz em silêncio
+ *
+ * A migration `0017` (3/set/2026) criou a coluna e o painel de três idiomas no
+ * admin — a transcrição virou recurso de verdade, não só um campo do schema.
+ * Esta função nasceu antes disso (27/ago) e nunca foi atualizada: ela só
+ * conhecia `content` e `videoUrl`. Transcrição de aula É o material — texto em
+ * vez de vídeo, protegido pela mesma regra —, e um `curl` sem token em
+ * `GET /courses` ou `/courses/:id` devolvia a aula inteira em texto para quem
+ * nunca pagou. Achado numa auditoria em 11/set/2026; medido em produção que a
+ * exposição real era zero (nenhuma transcrição preenchida ainda), mas o
+ * próximo uso do painel do admin a teria publicado sem deploy nenhum.
  *
  * ## Onde o aluno pega o conteúdo
  *
@@ -46,21 +58,23 @@ type ComModulos = { modules?: ComAulas[] };
 
 function aulaSemCorpo(l: unknown): unknown {
   if (!l || typeof l !== 'object') return l;
-  if (!('content' in l) && !('videoUrl' in l)) return l;
-  const { content: _corpo, videoUrl: _video, ...resto } = l as {
+  if (!('content' in l) && !('videoUrl' in l) && !('transcripts' in l)) return l;
+  const { content: _corpo, videoUrl: _video, transcripts: _transcricao, ...resto } = l as {
     content?: unknown;
     videoUrl?: unknown;
+    transcripts?: unknown;
   };
   return resto;
 }
 
 /**
- * Devolve o curso sem o material das aulas: sem `content` e sem `videoUrl`.
+ * Devolve o curso sem o material das aulas: sem `content`, `videoUrl` e
+ * `transcripts`.
  *
  * Remove a chave em vez de esvaziá-la: `content: ''` faria a tela do aluno
  * cair no ramo "sem conteúdo" e mostrar a descrição como se fosse a aula, e
  * `videoUrl: ''` faria a aula parecer não ter vídeo. A ausência é o mesmo
- * estado de uma aula que nunca teve nenhum dos dois.
+ * estado de uma aula que nunca teve nenhum dos três.
  *
  * `isPreview` é preservado — quem decide o teaser é a rota de preview.
  */
