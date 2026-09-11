@@ -10,8 +10,8 @@ import {
   Sparkles,
   Flag,
 } from 'lucide-react';
-import { useState } from 'react';
-import { useCourses, useMyProgress } from '../data/hooks';
+import { useMemo, useState } from 'react';
+import { useCourses, useCurrentStudent, useMyProgress } from '../data/hooks';
 import { CardListSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
@@ -21,7 +21,31 @@ import { useT } from '../i18n';
 export default function Jornada() {
   const t = useT();
   const coursesQ = useCourses();
-  const courses = coursesQ.data ?? [];
+  const studentQ = useCurrentStudent();
+  const student = studentQ.data;
+  /*
+    `useCourses()` é `GET /courses` — o CATÁLOGO, que devolve todo curso
+    publicamente listado, matriculado ou não (a mesma rota que `Courses.tsx`
+    usa para a vitrine, com CTA de comprar). "Sua jornada" é outra coisa: é
+    ONDE o aluno estuda o que já é dele. Sem este filtro, o seletor oferecia
+    qualquer curso do catálogo — inclusive um que o aluno nunca comprou — e
+    "Iniciar módulo" levava para dentro dele. O conteúdo real segue protegido
+    (`/me/courses/:c/lessons/:l/content` exige matrícula), mas a tela
+    afirmava, visualmente, que aquele curso era a jornada da pessoa.
+
+    Relatado pelo dono em 11/set/2026: *"quando seleciona a jornada do aluno,
+    aparece o de terapia familiar e inicia por lá... o aluno acessa um curso
+    que ele não está inscrito"*. Mesmo padrão que `Courses.tsx` já usa para
+    separar "já é meu" de "posso comprar".
+  */
+  const enrolledIds = useMemo(
+    () => new Set(student?.enrolledCourseIds ?? []),
+    [student],
+  );
+  const courses = useMemo(
+    () => (coursesQ.data ?? []).filter((c) => enrolledIds.has(c.id)),
+    [coursesQ.data, enrolledIds],
+  );
   const { data: progress } = useMyProgress();
   // A página mostrava sempre `courses[0]` e o seletor ao lado era decorativo:
   // o aluno com mais de um curso escolhia outro e a jornada não mudava.
@@ -40,8 +64,13 @@ export default function Jornada() {
     ) ?? 0;
   const overallPct = totalLessons > 0 ? Math.round((doneLessons / totalLessons) * 100) : 0;
 
-  if (coursesQ.fetchStatus === 'paused') return <SemConexao oQue="sua jornada" />;
-  if (coursesQ.isPending) return <CardListSkeleton count={3} />;
+  if (coursesQ.fetchStatus === 'paused' || studentQ.fetchStatus === 'paused')
+    return <SemConexao oQue="sua jornada" />;
+  // `studentQ` também precisa terminar: sem `enrolledCourseIds` a filtragem
+  // por matrícula vê um conjunto vazio e mostraria "sem cursos" por um
+  // instante mesmo para quem tem curso — mesma classe de flash que este
+  // projeto já corrigiu noutras telas.
+  if (coursesQ.isPending || studentQ.isPending) return <CardListSkeleton count={3} />;
   if (coursesQ.isError)
     return (
       <FalhaAoCarregar
@@ -50,9 +79,23 @@ export default function Jornada() {
         aoTentarDeNovo={() => void coursesQ.refetch()}
       />
     );
-  // Só depois dos três acima: "sem cursos" é conclusão, e conclusão exige ter
-  // conseguido perguntar.
-  if (!course) return <EmptyState title="Sem cursos disponíveis" />;
+  if (studentQ.isError)
+    return (
+      <FalhaAoCarregar
+        erro={studentQ.error}
+        oQue="sua jornada"
+        aoTentarDeNovo={() => void studentQ.refetch()}
+      />
+    );
+  // Só depois dos guardas acima: "sem cursos" é conclusão, e conclusão exige
+  // ter conseguido perguntar.
+  if (!course)
+    return (
+      <EmptyState
+        title="Você ainda não tem curso matriculado"
+        description="Assim que uma matrícula for confirmada, sua jornada aparece aqui."
+      />
+    );
 
   return (
     <div className="space-y-8">

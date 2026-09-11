@@ -4038,6 +4038,83 @@ código anterior (os outros dois já passavam, e continuam passando, para
 provar que a mudança não inventa atribuição onde não há e não muda o
 resultado da compra).
 
+## Suporte: três das cinco funções liam só o JSON, e nunca o banco
+
+`server/repositories/support.ts` (11/set/2026). `listTicketsForStudent` e
+`createTicket` sempre souberam ler/gravar o banco quando ele existe
+(`getDb()`). `listAllTickets`, `findTicket` e `updateTicketStatus` — os três
+que a **tela do admin** usa — nunca ganharam essa ramificação: liam e
+escreviam só no `JsonStore`, sempre, mesmo em produção com Postgres.
+
+Relatado pelo dono: *"suporte de tickets não aparece os abertos"*. Medido no
+mesmo dia: **5 chamados reais no Postgres, zero visíveis** em
+`/admin/suporte` — a tela mostrava os 2 tickets de **semente** do JSON como
+se fossem os únicos que existem. E não era só leitura: `findTicket` e
+`updateTicketStatus` (usadas por "Responder" e por trocar status) também só
+enxergavam o JSON — mesmo que a tela achasse um ticket pelo id certo vindo de
+outra fonte, tentar responder ou mudar o status dele bateria em `null`.
+
+É a mesma classe de "duas cópias da mesma regra discordam" que motiva o
+padrão deste projeto (`shared/documento.ts`, `shared/visibilidade.ts`): aqui
+não eram duas cópias de uma REGRA, eram cinco funções do mesmo repositório
+que deviam seguir o mesmo padrão de leitura/escrita e só duas seguiam.
+
+`test/suporte-le-o-banco-quando-existe.test.ts` — mocka `getDb()` (mesmo
+padrão de `test/curso-desativado-nao-congela-aluno.test.ts`, já que a suíte
+não tem Postgres à mão) com um ticket que só existe no "banco" e nunca no
+JSON. 3 casos, falham contra o código anterior.
+
+## O aviso de cookies nunca sumia depois do aceite
+
+`server/public/styles.ts` (11/set/2026). `client.ts` faz `banner.hidden =
+true` ao clicar "Aceitar" ou "Recusar" — e nada acontecia. `.consent{...
+display:flex...}` e o `[hidden]{display:none}` padrão do navegador têm a
+MESMA especificidade CSS (0,1,0); quando duas regras empatam, vence a que
+carrega **depois** no cascata — e a folha do site sempre carrega depois da
+folha padrão do navegador. `.consent` ganhava sempre, `hidden` nunca tinha
+efeito visual.
+
+Relatado pelo dono: *"notificação de cookie não some quando dá o aceite"*.
+Conserto de uma linha: `.consent[hidden]{display:none}`, com especificidade
+maior (0,2,0) e sem depender de ordem. `test/aviso-de-cookies-some-ao-aceitar.test.ts`
+— 2 casos, falham contra o código anterior.
+
+## "Sua jornada" mostrava o catálogo inteiro, não só o que o aluno comprou
+
+`src/app/pages/Jornada.tsx` (11/set/2026). A página usava `useCourses()` —
+`GET /courses`, o CATÁLOGO PÚBLICO, que devolve todo curso publicamente
+listado, matriculado ou não (a mesma rota que `Courses.tsx` usa para a
+vitrine, com CTA de "comprar"). O seletor de curso e o padrão exibido vinham
+direto dali, sem filtrar por matrícula.
+
+Relatado pelo dono: *"quando seleciona a jornada do aluno, aparece o de
+terapia familiar e inicia por lá... quando o aluno vai na jornada dele,
+aparece e ele acessa um curso que ele não está inscrito"*. Um aluno
+matriculado em um curso só via o catálogo inteiro no seletor e podia
+selecionar/"iniciar" qualquer um deles.
+
+**O que isto NÃO era**: vazamento de conteúdo pago. `GET /courses` nunca
+devolve `content`/`videoUrl`/`transcripts` para ninguém (ver a seção
+`/api/courses`, acima) — a aula em si continua atrás de `courseAccessFor` em
+`/me/courses/:c/lessons/:l/content`. O que a tela mentia era **de quem** é
+aquele curso: "sua jornada" mostrando um curso que não é do aluno, com botão
+"Iniciar módulo" levando para dentro dele.
+
+O conserto segue o padrão que `Courses.tsx` já usa para separar "já é meu" de
+"posso comprar": filtra `courses` por `student.enrolledCourseIds` antes de
+oferecer no seletor ou escolher o padrão. Duas coisas que a correção respeita:
+
+- **A query do aluno também precisa terminar** antes de decidir "sem curso".
+  Sem esperar `useCurrentStudent()`, o filtro veria um conjunto vazio por um
+  instante e mostraria "sem curso" mesmo para quem tem um — mesma classe de
+  flash que este projeto já corrigiu noutras telas com `isPending`/`isError`.
+- **Zero cursos matriculados nunca cai num curso do catálogo por padrão.**
+  A ausência de matrícula é "você ainda não tem curso", não "aqui está
+  qualquer um".
+
+`test/jornada-so-mostra-curso-matriculado.test.tsx` — 3 casos, falham contra
+o código anterior.
+
 ## Filtro que não divide nada não é ruído — ele mente
 
 `src/app/pages/Library.tsx` e `Podcasts.tsx` (10/set/2026). A biblioteca foi desenhada

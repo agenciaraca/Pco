@@ -580,6 +580,11 @@ main:has(> .cta-final:last-child) + .pincel-topo{
   width:min(720px,calc(100% - 32px));background:var(--raise);border:1px solid var(--line);
   border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:18px 20px;
   display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+/* O aceite faz banner.hidden=true no client.ts, e sem isto a barra nunca
+   sumia: o atributo hidden do navegador e esta classe têm a MESMA
+   especificidade (0,1,0), e quem vem depois no CSS vence — que é sempre
+   esta regra, carregada depois da folha de estilo padrão do navegador. */
+.consent[hidden]{display:none}
 .consent p{font-size:14px;color:var(--ink-soft);line-height:1.55;flex:1;min-width:260px}
 .consent a{color:var(--accent-ink);text-decoration:underline}
 .consent-acoes{display:flex;gap:10px;flex:none}
