@@ -43,6 +43,7 @@ import {
   Radio,
   Gauge,
   MessageSquare,
+  Target,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ScrollToTop from '../components/ScrollToTop';
@@ -171,6 +172,7 @@ export default function AdminLayout() {
           { to: '/admin/login-customizacao', label: 'Customizar Login', icon: Palette },
           { to: '/admin/configuracoes', label: t('admin.nav.settings'), icon: SettingsIcon },
           { to: '/admin/marketing', label: 'Tags de marketing', icon: Megaphone },
+          { to: '/admin/google-ads', label: 'Google Ads', icon: Target },
           { to: '/admin/moderacao', label: 'Moderação', icon: ShieldIcon },
           { to: '/admin/lgpd-exclusoes', label: 'LGPD — Exclusões', icon: ShieldCheck },
           { to: '/admin/suporte', label: t('support.title'), icon: LifeBuoy },

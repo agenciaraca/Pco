@@ -102,9 +102,7 @@ export default function AdminUserDetail() {
       await auth.startImpersonation(id);
     } catch (err) {
       setImpersonating(false);
-      setImpersonateError(
-        err instanceof Error ? err.message : 'Falha ao iniciar visualização.',
-      );
+      setImpersonateError(err instanceof Error ? err.message : 'Falha ao iniciar visualização.');
     }
   }
 
@@ -140,8 +138,8 @@ export default function AdminUserDetail() {
           </Link>
         }
       >
-        A ficha pode ter sido removida, ou o link pode estar velho. Contas com
-        login e sem ficha existem — são 418 em produção — e não aparecem aqui.
+        A ficha pode ter sido removida, ou o link pode estar velho. Contas com login e sem ficha
+        existem — são 418 em produção — e não aparecem aqui.
       </NaoEncontrado>
     );
 
@@ -170,7 +168,11 @@ export default function AdminUserDetail() {
     { id: 'acesso', label: 'Acesso', icon: <Calendar size={14} strokeWidth={1.75} /> },
     { id: 'risco', label: 'Risco', icon: <AlertTriangle size={14} strokeWidth={1.75} /> },
     { id: 'certificados', label: 'Certificados', icon: <Award size={14} strokeWidth={1.75} /> },
-    { id: 'recursos', label: 'Tutor / POD / Biblioteca', icon: <Bot size={14} strokeWidth={1.75} /> },
+    {
+      id: 'recursos',
+      label: 'Tutor / POD / Biblioteca',
+      icon: <Bot size={14} strokeWidth={1.75} />,
+    },
     { id: 'historico', label: 'Histórico', icon: <Send size={14} strokeWidth={1.75} /> },
     { id: 'notas', label: 'Notas', icon: <MessageSquare size={14} strokeWidth={1.75} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={14} strokeWidth={1.75} /> },
@@ -240,6 +242,15 @@ export default function AdminUserDetail() {
             Bloquear/desbloquear também não fazia nada — e este é o pior tipo de
             botão morto: o admin clica, o rótulo troca de ideia nenhuma, e ele
             sai achando que trancou o acesso de alguém. Os hooks já existiam.
+
+            E havia uma SEGUNDA camada do mesmo defeito, atrás do botão já
+            ligado: a rota só marcava a FICHA como bloqueada — a conta de
+            login (o que `attachUser`/`requireAuth` de fato consultam a cada
+            requisição) ficava intocada, e o aluno continuava entrando
+            normalmente com a mesma sessão de sempre. O toast já prometia "não
+            consegue mais entrar"; agora ele só afirma isso quando existe conta
+            de acesso pra cortar — sem ela, a ficha muda e a tela diz que não
+            havia sessão para encerrar, em vez de fingir que encerrou.
           */}
           <button
             type="button"
@@ -247,14 +258,19 @@ export default function AdminUserDetail() {
             onClick={async () => {
               const bloqueado = student.status === 'bloqueado';
               try {
-                if (bloqueado) await desbloquear.mutateAsync(student.id);
-                else await bloquear.mutateAsync(student.id);
-                toast.success(
-                  bloqueado ? 'Acesso liberado' : 'Acesso bloqueado',
-                  bloqueado
-                    ? `${student.name} volta a entrar normalmente.`
-                    : `${student.name} não consegue mais entrar.`,
-                );
+                const r = bloqueado
+                  ? await desbloquear.mutateAsync(student.id)
+                  : await bloquear.mutateAsync(student.id);
+                if (bloqueado) {
+                  toast.success('Acesso liberado', `${student.name} volta a entrar normalmente.`);
+                } else if (r.accountBlocked) {
+                  toast.success('Acesso bloqueado', `${student.name} não consegue mais entrar.`);
+                } else {
+                  toast.success(
+                    'Ficha marcada como bloqueada',
+                    `${student.name} não tem conta de acesso vinculada — não havia sessão para encerrar.`,
+                  );
+                }
               } catch (err) {
                 toast.error(
                   'Não foi possível concluir',
@@ -279,7 +295,11 @@ export default function AdminUserDetail() {
           <button
             type="button"
             onClick={handleImpersonate}
-            disabled={impersonating || !auth.user || (auth.user.role !== 'admin' && auth.user.role !== 'superadmin')}
+            disabled={
+              impersonating ||
+              !auth.user ||
+              (auth.user.role !== 'admin' && auth.user.role !== 'superadmin')
+            }
             className="pco-btn-secondary text-xs disabled:opacity-50"
             title="Visualizar a plataforma como este aluno (suporte)"
           >
@@ -313,10 +333,7 @@ export default function AdminUserDetail() {
               label="Último acesso"
               value={new Date(student.lastAccessAt).toLocaleString('pt-BR')}
             />
-            <Row
-              label="Cadastro"
-              value={new Date(student.createdAt).toLocaleDateString('pt-BR')}
-            />
+            <Row label="Cadastro" value={new Date(student.createdAt).toLocaleDateString('pt-BR')} />
           </div>
           <div className="pco-card">
             <h3 className="text-base font-semibold text-pco-deep mb-3">Cursos</h3>
@@ -328,9 +345,7 @@ export default function AdminUserDetail() {
                 >
                   <div className={`h-8 w-8 rounded-lg bg-gradient-to-br ${c.coverColor}`} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-pco-deep truncate">
-                      {c.title}
-                    </div>
+                    <div className="text-sm font-semibold text-pco-deep truncate">{c.title}</div>
                     <div className="text-xs text-ink-subtle">
                       {student.progressByCourse[c.id] ?? 0}% concluído
                     </div>
@@ -354,8 +369,7 @@ export default function AdminUserDetail() {
             // ruído. A migração deixou progresso amarrado a matrícula errada
             // (ver docs/migration-wp-ld.md); esconder a diferença é perder o
             // único lugar onde ela aparece por aluno.
-            const divergente =
-              medido !== undefined && Math.abs(medido.completionPct - pct) >= 5;
+            const divergente = medido !== undefined && Math.abs(medido.completionPct - pct) >= 5;
             return (
               <div key={c.id} className="pco-card">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -363,9 +377,7 @@ export default function AdminUserDetail() {
                     <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${c.coverColor}`} />
                     <div>
                       <div className="text-sm font-semibold text-pco-deep">{c.title}</div>
-                      <div className="text-xs text-ink-subtle">
-                        {c.modules.length} módulos
-                      </div>
+                      <div className="text-xs text-ink-subtle">{c.modules.length} módulos</div>
                     </div>
                   </div>
                   <span className="pco-badge bg-pco-blue/10 text-pco-blue">{pct}%</span>
@@ -392,9 +404,7 @@ export default function AdminUserDetail() {
                 <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                   <Box
                     label="Aulas concluídas"
-                    value={
-                      medido ? `${medido.completedLessons}/${medido.totalLessons}` : '—'
-                    }
+                    value={medido ? `${medido.completedLessons}/${medido.totalLessons}` : '—'}
                   />
                   <Box
                     label="Conclusão calculada"
@@ -471,7 +481,10 @@ export default function AdminUserDetail() {
             <p className="text-sm text-ink-muted mb-4">
               {risk?.recommendedAction ?? 'Nenhuma ação urgente.'}
             </p>
-            <Link to="/admin/plano-retomada-ia" className="pco-btn-primary w-full justify-center text-xs">
+            <Link
+              to="/admin/plano-retomada-ia"
+              className="pco-btn-primary w-full justify-center text-xs"
+            >
               <Sparkles size={12} strokeWidth={2} />
               Gerar Plano de Retomada
             </Link>
@@ -516,7 +529,9 @@ export default function AdminUserDetail() {
           <ResourceCard
             icon={<BookOpen size={18} className="text-pco-deep" strokeWidth={1.75} />}
             title="Biblioteca"
-            value={statsQ.data?.library.downloads != null ? String(statsQ.data.library.downloads) : '—'}
+            value={
+              statsQ.data?.library.downloads != null ? String(statsQ.data.library.downloads) : '—'
+            }
             sub="Tracking de download por aluno em breve"
           />
         </div>
@@ -588,8 +603,8 @@ export default function AdminUserDetail() {
             </h2>
             <p className="mt-1 text-xs text-ink-muted">{student.email}</p>
             <p className="mt-3 rounded-lg bg-surface-gray p-2.5 text-xs text-ink-muted">
-              A pessoa será desconectada de todos os aparelhos e passará a entrar com a senha
-              nova. Combine a senha com ela antes de trocar.
+              A pessoa será desconectada de todos os aparelhos e passará a entrar com a senha nova.
+              Combine a senha com ela antes de trocar.
             </p>
             <label className="mt-4 block text-xs font-semibold text-pco-deep" htmlFor="senha-nova">
               Senha nova
@@ -761,9 +776,7 @@ function AccessPane({ studentId }: { studentId: string }) {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2 pt-3 border-t border-surface-gray">
-              <span className="text-xs uppercase tracking-wide text-ink-subtle mr-1">
-                Renovar
-              </span>
+              <span className="text-xs uppercase tracking-wide text-ink-subtle mr-1">Renovar</span>
               {[6, 12].map((m) => (
                 <button
                   key={m}
@@ -796,15 +809,7 @@ function AccessPane({ studentId }: { studentId: string }) {
   );
 }
 
-function Row({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string | number;
-  mono?: boolean;
-}) {
+function Row({ label, value, mono }: { label: string; value: string | number; mono?: boolean }) {
   return (
     <div className="flex items-center justify-between py-1 text-sm">
       <span className="text-ink-muted">{label}</span>
@@ -837,9 +842,7 @@ function ResourceCard({
 }) {
   return (
     <div className="pco-card">
-      <div className="h-10 w-10 rounded-xl bg-surface-off grid place-items-center mb-3">
-        {icon}
-      </div>
+      <div className="h-10 w-10 rounded-xl bg-surface-off grid place-items-center mb-3">{icon}</div>
       <div className="text-sm font-semibold text-pco-deep">{title}</div>
       <div className="mt-2 text-xl font-bold text-pco-deep">{value}</div>
       <div className="text-xs text-ink-subtle">{sub}</div>
@@ -881,7 +884,12 @@ function CertificadosTab({
   courses,
   certificates,
 }: {
-  student: { id: string; name: string; enrolledCourseIds: string[]; progressByCourse: Record<string, number> };
+  student: {
+    id: string;
+    name: string;
+    enrolledCourseIds: string[];
+    progressByCourse: Record<string, number>;
+  };
   courses: Array<{ id: string; title: string; certificateAvailable?: boolean }>;
   certificates: Array<{
     id: string;
@@ -903,8 +911,7 @@ function CertificadosTab({
     .filter((c): c is NonNullable<typeof c> => !!c && !certifiedCourseIds.has(c.id));
 
   async function handleIssue(courseId: string, courseTitle: string) {
-    if (!confirm(`Emitir certificado de "${courseTitle}" para ${student.name}?`))
-      return;
+    if (!confirm(`Emitir certificado de "${courseTitle}" para ${student.name}?`)) return;
     try {
       await issueMut.mutateAsync({ studentId: student.id, courseId });
       toast.success('Certificado emitido', courseTitle);
@@ -935,12 +942,8 @@ function CertificadosTab({
                       <Award size={18} className="text-status-gold" strokeWidth={1.75} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-pco-deep truncate">
-                        {c.title}
-                      </div>
-                      <div className="text-xs text-ink-subtle font-mono">
-                        {cert.validationCode}
-                      </div>
+                      <div className="text-sm font-semibold text-pco-deep truncate">{c.title}</div>
+                      <div className="text-xs text-ink-subtle font-mono">{cert.validationCode}</div>
                       {cert.issuedAt && (
                         <div className="text-xs text-ink-subtle mt-0.5">
                           Emitido em {new Date(cert.issuedAt).toLocaleDateString('pt-BR')}
@@ -949,9 +952,7 @@ function CertificadosTab({
                     </div>
                   </div>
                   <div className="mt-3">
-                    <div className="text-xs text-ink-muted mb-1">
-                      {cert.progress}% concluído
-                    </div>
+                    <div className="text-xs text-ink-muted mb-1">{cert.progress}% concluído</div>
                     <div className="h-1.5 rounded-full bg-surface-gray overflow-hidden">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-status-gold to-pco-orange"
@@ -980,17 +981,12 @@ function CertificadosTab({
               const progress = student.progressByCourse?.[c.id] ?? 0;
               const certEnabled = c.certificateAvailable !== false;
               return (
-                <div
-                  key={c.id}
-                  className="pco-card flex items-center gap-3"
-                >
+                <div key={c.id} className="pco-card flex items-center gap-3">
                   <div className="h-9 w-9 rounded-lg bg-pco-blue/10 grid place-items-center shrink-0">
                     <Award size={16} className="text-pco-blue" strokeWidth={1.75} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-pco-deep truncate">
-                      {c.title}
-                    </div>
+                    <div className="text-sm font-medium text-pco-deep truncate">{c.title}</div>
                     <div className="text-xs text-ink-subtle">
                       {progress}% concluído
                       {!certEnabled && (

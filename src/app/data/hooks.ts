@@ -3038,6 +3038,54 @@ export function useSaveZoomConfig() {
   });
 }
 
+// Google Ads (Customer Match + Conversões Offline)
+export function useGoogleAdsConfig() {
+  return useQuery({
+    queryKey: ['admin', 'google-ads-config'] as const,
+    queryFn: api.fetchGoogleAdsConfig,
+  });
+}
+
+export function useSaveGoogleAdsConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.saveGoogleAdsConfig,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'google-ads-config'] });
+    },
+  });
+}
+
+export function useTestGoogleAdsConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.testGoogleAdsConnection,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'google-ads-config'] });
+    },
+  });
+}
+
+export function useRunGoogleAdsCustomerMatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.runGoogleAdsCustomerMatch,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'google-ads-config'] });
+    },
+  });
+}
+
+export function useRunGoogleAdsOfflineConversions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.runGoogleAdsOfflineConversions,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'google-ads-config'] });
+    },
+  });
+}
+
 export function useStudentAnalytics(studentId: string | undefined) {
   return useQuery({
     queryKey: ['admin', 'students', studentId, 'analytics'] as const,

@@ -138,6 +138,7 @@ const AdminLiveSessions = lazy(() => import('./pages/admin/AdminLiveSessions'));
 const AdminSetup = lazy(() => import('./pages/admin/AdminSetup'));
 const AdminOnboarding = lazy(() => import('./pages/admin/AdminOnboarding'));
 const AdminZoomConfig = lazy(() => import('./pages/admin/AdminZoomConfig'));
+const AdminGoogleAdsConfig = lazy(() => import('./pages/admin/AdminGoogleAdsConfig'));
 const AdminMentoring = lazy(() => import('./pages/admin/AdminMentoring'));
 const ImportWizardApi = lazy(() => import('./pages/admin/imports/ImportWizardApi'));
 const ImportSchedules = lazy(() => import('./pages/admin/imports/ImportSchedules'));
@@ -317,6 +318,7 @@ export const router = createBrowserRouter([
       { path: 'setup', element: <S><AdminSetup /></S> },
       { path: 'onboarding', element: <S><AdminOnboarding /></S> },
       { path: 'zoom', element: <S><AdminZoomConfig /></S> },
+      { path: 'google-ads', element: <S><AdminGoogleAdsConfig /></S> },
       { path: 'mentorias', element: <S><AdminMentoring /></S> },
       { path: 'imports', element: <S><ImportsHome /></S> },
       { path: 'imports/wizard', element: <S><ImportWizardCsv /></S> },

@@ -834,10 +834,7 @@ export async function salvarRotaPagamento(
   metodo: MetodoPagamento,
   patch: { principalId: string | null; fallbackId: string | null },
 ): Promise<RotaDeMetodoDto> {
-  return http.put<RotaDeMetodoDto>(
-    `/admin/payments/routing/${encodeURIComponent(metodo)}`,
-    patch,
-  );
+  return http.put<RotaDeMetodoDto>(`/admin/payments/routing/${encodeURIComponent(metodo)}`, patch);
 }
 
 // Products
@@ -2405,14 +2402,10 @@ export async function fetchMyBookings(): Promise<SessionBooking[]> {
 }
 
 /** Remarca. Só a data muda — trocar de profissional é agendar outra coisa. */
-export async function rescheduleBooking(
-  id: string,
-  scheduledFor: string,
-): Promise<SessionBooking> {
-  return http.post<SessionBooking>(
-    `/sessions/bookings/${encodeURIComponent(id)}/reschedule`,
-    { scheduledFor },
-  );
+export async function rescheduleBooking(id: string, scheduledFor: string): Promise<SessionBooking> {
+  return http.post<SessionBooking>(`/sessions/bookings/${encodeURIComponent(id)}/reschedule`, {
+    scheduledFor,
+  });
 }
 
 export async function cancelBooking(id: string, reason = ''): Promise<SessionBooking> {
@@ -2661,10 +2654,7 @@ export async function fetchIntegracoes(): Promise<Integracao[]> {
   return http.get<Integracao[]>('/admin/integracoes');
 }
 
-export async function fetchAgendaDoDia(
-  professionalId: string,
-  data: string,
-): Promise<AgendaDoDia> {
+export async function fetchAgendaDoDia(professionalId: string, data: string): Promise<AgendaDoDia> {
   return http.get<AgendaDoDia>(
     `/sessions/professionals/${encodeURIComponent(professionalId)}/horarios`,
     { query: { data } },
@@ -2735,9 +2725,7 @@ export async function deleteAiConfiguration(id: string): Promise<{ ok: true }> {
   return http.delete<{ ok: true }>(`/admin/ai/configurations/${encodeURIComponent(id)}`);
 }
 
-export async function fetchAiConfiguration(
-  id: string,
-): Promise<
+export async function fetchAiConfiguration(id: string): Promise<
   AiConfigPublic & {
     usage: {
       inputTokens: number;
@@ -3286,12 +3274,25 @@ export async function updateAdminStudent(
   return http.put<AdminStudentRow>(`/admin/students/${encodeURIComponent(id)}`, patch);
 }
 
-export async function blockStudent(id: string): Promise<AdminStudentRow> {
-  return http.post<AdminStudentRow>(`/admin/students/${encodeURIComponent(id)}/block`);
+/**
+ * `accountBlocked`/`accountEmail`: a ficha e a conta de login são coisas
+ * diferentes neste produto (há contas sem ficha e fichas sem conta nos dois
+ * sentidos). O bloqueio da FICHA sempre funciona; o corte de SESSÃO só
+ * acontece quando há uma conta encontrada — e é isso que estes dois campos
+ * confirmam, para a tela não prometer "não consegue mais entrar" sobre uma
+ * ficha sem conta nenhuma para cortar.
+ */
+export interface AlterarBloqueioResult extends AdminStudentRow {
+  accountBlocked: boolean | null;
+  accountEmail?: string | null;
 }
 
-export async function unblockStudent(id: string): Promise<AdminStudentRow> {
-  return http.post<AdminStudentRow>(`/admin/students/${encodeURIComponent(id)}/unblock`);
+export async function blockStudent(id: string): Promise<AlterarBloqueioResult> {
+  return http.post<AlterarBloqueioResult>(`/admin/students/${encodeURIComponent(id)}/block`);
+}
+
+export async function unblockStudent(id: string): Promise<AlterarBloqueioResult> {
+  return http.post<AlterarBloqueioResult>(`/admin/students/${encodeURIComponent(id)}/unblock`);
 }
 
 export async function deleteAdminStudent(id: string): Promise<{ ok: true }> {
@@ -5225,6 +5226,64 @@ export async function fetchZoomSignature(
   meetingNumber: string,
 ): Promise<{ signature: string; sdkKey: string }> {
   return http.post('/zoom/signature', { meetingNumber });
+}
+
+// ---------- Google Ads (Customer Match + Conversões Offline) ----------
+
+export interface GoogleAdsConfigDto {
+  configured: boolean;
+  clientId?: string;
+  customerId?: string;
+  loginCustomerId?: string;
+  enabled?: boolean;
+  hasDeveloperToken?: boolean;
+  hasClientSecret?: boolean;
+  hasRefreshToken?: boolean;
+  conversionActionResourceName?: string;
+  customerMatchUserListResourceName?: string;
+  lastCustomerMatchAt?: string;
+  lastCustomerMatchCount?: number;
+  lastOfflineConversionsAt?: string;
+  lastOfflineConversionsCount?: number;
+  lastTestedAt?: string;
+  lastTestStatus?: 'ok' | 'error';
+  lastTestMessage?: string;
+}
+
+export async function fetchGoogleAdsConfig(): Promise<GoogleAdsConfigDto> {
+  return http.get('/admin/google-ads/config');
+}
+
+export async function saveGoogleAdsConfig(input: {
+  developerToken: string;
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+  customerId: string;
+  loginCustomerId?: string;
+}): Promise<GoogleAdsConfigDto> {
+  return http.put('/admin/google-ads/config', input);
+}
+
+export async function testGoogleAdsConnection(): Promise<{ ok: true; accountName: string | null }> {
+  return http.post('/admin/google-ads/test', {});
+}
+
+export async function runGoogleAdsCustomerMatch(): Promise<{
+  scanned: number;
+  complete: number;
+  uploaded: number;
+  userListResourceName: string;
+}> {
+  return http.post('/admin/google-ads/customer-match/run', {});
+}
+
+export async function runGoogleAdsOfflineConversions(): Promise<{
+  candidatos: number;
+  enviados: number;
+  conversionActionResourceName: string;
+}> {
+  return http.post('/admin/google-ads/offline-conversions/run', {});
 }
 
 // ---------- Transcription ----------

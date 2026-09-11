@@ -213,6 +213,10 @@ import * as wishlistStore from './activity/wishlist-store';
 import { buildLeaderboard, getUserRank } from './activity/leaderboard';
 import * as liveSessions from './live-sessions/store';
 import * as zoomConfig from './live-sessions/zoom-config';
+import * as googleAdsConfig from './marketing/google-ads-config';
+import { gaqlSearch, buildContext, GoogleAdsError } from './marketing/google-ads-client';
+import { runCustomerMatch } from './marketing/google-ads-customer-match';
+import { runOfflineConversions } from './marketing/google-ads-offline-conversions';
 import * as mentoringStore from './mentoring/store';
 import * as transcriptionConfig from './transcription/config';
 import * as transcriptionStore from './transcription/store';
@@ -4969,26 +4973,87 @@ export function buildApp() {
     },
   );
 
+  /*
+    A ficha e a conta são coisas diferentes (ver o resto deste arquivo), e é
+    aqui que isto mordeu de verdade: `setStudentStatus('bloqueado')` só
+    escrevia num campo da FICHA — lido pela tela de risco e pelo relatório, e
+    por nada que decide acesso. `attachUser`/`requireAuth` autenticam pela
+    conta em `users` (email, active, tokenVersion), que ficava intocada. O
+    admin marcava "Bloqueado", a tela confirmava, e o aluno continuava
+    logado — o mesmo token de sempre, a mesma sessão de sempre, porque nada no
+    caminho de autenticação nunca perguntou pela ficha.
+
+    O conserto reusa a resolução de conta que `PUT .../password` já tinha
+    (e-mail primeiro, id depois — produção tem contas sem ficha e fichas sem
+    conta nos dois sentidos) e chama `updateUser(..., {active:false})`, que
+    já existe e já faz a parte que importa: desativar E somar o
+    `tokenVersion`, que derruba qualquer token já emitido no PRÓXIMO request,
+    sem esperar expirar.
+
+    Sem conta de acesso, o bloqueio da ficha segue válido (é o que a tela de
+    risco e o relatório leem) — só não há sessão nenhuma para cortar.
+  */
+  async function resolverContaDoAluno(studentId: string): Promise<{ id: string; email: string } | null> {
+    const student = await studentsRepo.findAdminStudent(studentId);
+    const conta =
+      (student?.email ? await usersStore.findUserByEmail(student.email) : null) ??
+      (await usersStore.findRawById(studentId));
+    return conta ? { id: conta.id, email: conta.email } : null;
+  }
+
   app.post('/admin/students/:id/block', requireAuth('admin', 'superadmin'), async (c) => {
-    const updated = await studentsRepo.setStudentStatus(c.req.param('id') as string, 'bloqueado');
+    const id = c.req.param('id') as string;
+    const updated = await studentsRepo.setStudentStatus(id, 'bloqueado');
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
-    return c.json(updated);
+    const conta = await resolverContaDoAluno(id);
+    if (conta) await usersStore.updateUser(conta.id, { active: false });
+    // null (não false) quando não há conta: `false` prometeria "existe conta
+    // e ela não foi bloqueada", que é outra coisa de "não existe conta
+    // nenhuma para cortar".
+    const accountBlocked = conta ? true : null;
+    await recordAudit(c, {
+      action: 'student.block',
+      targetType: 'student',
+      targetId: id,
+      meta: { accountBlocked, accountEmail: conta?.email ?? null },
+    });
+    return c.json({ ...updated, accountBlocked, accountEmail: conta?.email ?? null });
   });
 
   app.post('/admin/students/:id/unblock', requireAuth('admin', 'superadmin'), async (c) => {
-    const updated = await studentsRepo.setStudentStatus(c.req.param('id') as string, 'ativo');
+    const id = c.req.param('id') as string;
+    const updated = await studentsRepo.setStudentStatus(id, 'ativo');
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
-    return c.json(updated);
+    const conta = await resolverContaDoAluno(id);
+    if (conta) await usersStore.updateUser(conta.id, { active: true });
+    await recordAudit(c, {
+      action: 'student.unblock',
+      targetType: 'student',
+      targetId: id,
+      meta: { accountUnblocked: !!conta, accountEmail: conta?.email ?? null },
+    });
+    return c.json({ ...updated, accountBlocked: false, accountEmail: conta?.email ?? null });
   });
 
   app.put('/admin/students/:id/status', requireAuth('admin', 'superadmin'), async (c) => {
+    const id = c.req.param('id') as string;
     const body = await c.req.json().catch(() => ({}));
     const parsed = studentStatusEnum.safeParse(body?.status);
     if (!parsed.success)
       return jsonError(c, 400, 'INVALID_INPUT', 'Status inválido', parsed.error.flatten());
-    const updated = await studentsRepo.setStudentStatus(c.req.param('id') as string, parsed.data);
+    const updated = await studentsRepo.setStudentStatus(id, parsed.data);
     if (!updated) return jsonError(c, 404, 'NOT_FOUND', 'Aluno não encontrado');
-    return c.json(updated);
+    // Esta rota genérica chega ao mesmo status 'bloqueado' que o par
+    // dedicado /block e /unblock — a conta de acesso segue o MESMO destino,
+    // pelo motivo escrito lá em cima: sem isto o bloqueio corta a ficha e não
+    // corta a sessão.
+    let accountBlocked: boolean | null = null;
+    if (parsed.data === 'bloqueado' || parsed.data === 'ativo') {
+      const conta = await resolverContaDoAluno(id);
+      if (conta) await usersStore.updateUser(conta.id, { active: parsed.data !== 'bloqueado' });
+      accountBlocked = conta ? parsed.data === 'bloqueado' : null;
+    }
+    return c.json({ ...updated, accountBlocked });
   });
 
   app.delete('/admin/students/:id', requireAuth('admin', 'superadmin'), async (c) => {
@@ -9315,6 +9380,125 @@ export function buildApp() {
     if (!ok) return jsonError(c, 404, 'NOT_FOUND', 'Config não encontrada.');
     return c.json({ ok: true });
   });
+
+  // ---------- Google Ads: Customer Match + Conversões Offline ----------
+  //
+  // Duas coisas diferentes que saem daqui — ver o comentário no topo de
+  // `marketing/google-ads-config.ts` antes de mexer:
+  //   - Customer Match: lista de quem já é cliente, sobe mensal (cron, dia 1).
+  //   - Conversões offline: qual clique virou venda, sobe diário (cron).
+  // As rotas `/run` fazem a mesma coisa que o cron, só que sob demanda — pra
+  // testar sem esperar a data, e pro botão "Rodar agora" na tela do admin.
+
+  app.get('/admin/google-ads/config', requireAuth('admin', 'superadmin'), async (c) => {
+    const cfg = await googleAdsConfig.getConfig();
+    if (!cfg) return c.json({ configured: false });
+    return c.json({ configured: true, ...googleAdsConfig.getPublicConfig(cfg) });
+  });
+
+  app.put('/admin/google-ads/config', requireAuth('admin', 'superadmin'), async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const developerToken = String(body.developerToken ?? '').trim();
+    const clientId = String(body.clientId ?? '').trim();
+    const clientSecret = String(body.clientSecret ?? '').trim();
+    const refreshToken = String(body.refreshToken ?? '').trim();
+    const customerId = String(body.customerId ?? '').trim();
+    const loginCustomerId = String(body.loginCustomerId ?? '').trim();
+    if (!developerToken || !clientId || !clientSecret || !refreshToken || !customerId) {
+      return jsonError(
+        c,
+        400,
+        'INVALID_INPUT',
+        'developerToken, clientId, clientSecret, refreshToken e customerId são obrigatórios.',
+      );
+    }
+    const cfg = await googleAdsConfig.setConfig({
+      developerToken,
+      clientId,
+      clientSecret,
+      refreshToken,
+      customerId,
+      loginCustomerId: loginCustomerId || undefined,
+    });
+    await recordAudit(c, {
+      action: 'google_ads.config',
+      targetType: 'config',
+      targetId: 'google-ads',
+    });
+    return c.json({ configured: true, ...googleAdsConfig.getPublicConfig(cfg) });
+  });
+
+  /** Testa a credencial com a consulta mais barata que existe (nome da conta) — não muda nada no Ads. */
+  app.post('/admin/google-ads/test', requireAuth('admin', 'superadmin'), async (c) => {
+    try {
+      const ctx = await buildContext();
+      const rows = await gaqlSearch(
+        ctx,
+        'SELECT customer.id, customer.descriptive_name FROM customer LIMIT 1',
+      );
+      const nome = (rows[0] as { customer?: { descriptiveName?: string } } | undefined)?.customer
+        ?.descriptiveName;
+      await googleAdsConfig.patchConfig({
+        lastTestedAt: new Date().toISOString(),
+        lastTestStatus: 'ok',
+        lastTestMessage: nome ? `Conectado: ${nome}` : 'Conectado.',
+      });
+      return c.json({ ok: true, accountName: nome ?? null });
+    } catch (err) {
+      const msg =
+        err instanceof GoogleAdsError
+          ? `${err.message} — ${JSON.stringify(err.body).slice(0, 300)}`
+          : err instanceof Error
+            ? err.message
+            : 'Erro desconhecido.';
+      await googleAdsConfig.patchConfig({
+        lastTestedAt: new Date().toISOString(),
+        lastTestStatus: 'error',
+        lastTestMessage: msg,
+      });
+      return jsonError(c, 400, 'CONNECTION_FAILED', msg);
+    }
+  });
+
+  app.post(
+    '/admin/google-ads/customer-match/run',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      try {
+        const result = await runCustomerMatch();
+        await recordAudit(c, {
+          action: 'google_ads.customer_match_run',
+          targetType: 'config',
+          targetId: 'google-ads',
+          meta: { ...result },
+        });
+        return c.json(result);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Erro desconhecido.';
+        return jsonError(c, 500, 'CUSTOMER_MATCH_FAILED', msg);
+      }
+    },
+  );
+
+  app.post(
+    '/admin/google-ads/offline-conversions/run',
+    requireAuth('admin', 'superadmin'),
+    async (c) => {
+      try {
+        const result = await runOfflineConversions();
+        await recordAudit(c, {
+          action: 'google_ads.offline_conversions_run',
+          targetType: 'config',
+          targetId: 'google-ads',
+          meta: { ...result },
+        });
+        return c.json(result);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Erro desconhecido.';
+        return jsonError(c, 500, 'OFFLINE_CONVERSIONS_FAILED', msg);
+      }
+    },
+  );
 
   // ---------- Zoom config + signature ----------
 
