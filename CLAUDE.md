@@ -4082,6 +4082,31 @@ padrão de `test/curso-desativado-nao-congela-aluno.test.ts`, já que a suíte
 não tem Postgres à mão) com um ticket que só existe no "banco" e nunca no
 JSON. 3 casos, falham contra o código anterior.
 
+### A mesma classe achada de novo, numa varredura sistemática — cupom em CSV
+
+12/set/2026, modo autônomo: depois de achar o defeito em `support.ts`, varri
+todo repositório que mistura banco e JSON procurando função que pulasse o
+branch que as vizinhas do mesmo arquivo já faziam. Achado real:
+`server/payments/coupons-repo.ts::exportCouponsAsCsv` lia `store.getAll()`
+direto — as outras quatro funções do arquivo (`listAll`, `findByCode`,
+`findById`, `createCoupon`) passam por `bancoSeTabelaExiste` primeiro.
+
+Medido: **1 cupom real no Postgres** (`DESCONTO99`) que a lista do admin
+mostra corretamente (via `listAll`) e que o CSV exportado **não** incluiria.
+Corrigido trocando `store.getAll()` por `listAll()` — reusa o branch já
+correto em vez de duplicá-lo.
+
+**O que essa varredura confirmou limpo**, vale registrar para não repetir a
+checagem à toa: `products-repo.ts`, `gateways-repo.ts` (credenciais,
+JSON-only por desenho — "credenciais sempre encriptadas em disco", nunca vão
+para o Postgres) e `sessions/bookings-repo.ts` — as três funções que
+pareciam suspeitas nesse último (`listForUser`, `horarioOcupado`,
+`findByOrderId`) delegam para `listAll()`, já correto.
+
+`test/coupons-csv-le-o-banco.test.ts` — 2 casos, mocka `getDb()` +
+`bancoSeTabelaExiste` (a sonda `to_regclass` que ele roda antes de qualquer
+leitura). Falham contra o código anterior.
+
 ## O aviso de cookies nunca sumia depois do aceite
 
 `server/public/styles.ts` (11/set/2026). `client.ts` faz `banner.hidden =

@@ -314,9 +314,18 @@ export async function createCouponsBulk(
   return { created, skipped };
 }
 
-/** CSV simples com header + rows. Coluna code, discount, valid_until, max_uses, used_count. */
+/*
+  Lia `store.getAll()` direto, pulando o `bancoSeTabelaExiste` que TODA
+  outra função de leitura deste arquivo passa por (`listAll`, `findByCode`,
+  `findById`). Em produção (banco configurado), a lista do admin lê do
+  Postgres e mostra os cupons reais; exportar em CSV lia o JSON — vazio ou
+  desatualizado — e devolvia um arquivo sem os cupons que a própria tela
+  acabou de mostrar. Achado em 12/set/2026, varredura autônoma pela mesma
+  classe de defeito de `support.ts` (algumas funções do arquivo com o
+  branch de banco, outras sem).
+*/
 export async function exportCouponsAsCsv(): Promise<string> {
-  const all = await store.getAll();
+  const all = await listAll();
   const rows: string[] = [];
   rows.push('code,description,discount_kind,discount_value,valid_from,valid_until,max_uses,used_count,active');
   for (const c of all) {
