@@ -4711,8 +4711,25 @@ passaram a responder `200` no conteúdo da aula.
 **O que isto não resolve, e fica registrado para o dono decidir**: a
 matrícula com `enrolledAt` em `1970-01-01` é sinal de um problema de
 importação à parte — data ausente virando época Unix em vez de `null` ou a
-data real. Não investigado a fundo nesta sessão; pode valer uma varredura
-futura por quantas matrículas têm esse mesmo carimbo.
+data real. **Medido**: só **4 de 2569 matrículas** (0,16%) têm esse carimbo,
+uma por curso (`14948`, `16098`, `8495`, `8887`) — não é generalizado, não
+vale a pena perseguir agora.
+
+**E um limite deliberado da varredura, que fica para o dono avaliar**: os
+outros **nove** cursos inativos com `accessMonths` declarado (`8495` — 242
+matrículas, `12315` — 21, `13256` — 13, `16098` — 4, `12739` — 3, `12377` —
+1, `14948` — 2, mais `12245` e `8748`, que **têm** produto próprio) também
+não têm `payment_products` correspondente na maioria dos casos. A diferença
+para os dois já corrigidos é que estes **não** têm a mesma certeza: são
+cursos que existiam antes deste sistema, prováveis compras reais na loja
+WooCommerce antiga (ver "Migração WP/LD/WC", abaixo) cujo produto nunca
+precisou existir em `payment_products` — essa tabela é nativa do checkout
+NOVO. Diferente de Treinamento PCO e "Super Aluno" (os dois documentados
+independentemente como conteúdo NÃO vendido, com `publicListed: false`),
+aqui `accessMonths` pode estar refletindo um prazo que a pessoa realmente
+comprou e que já venceu de verdade. Reabrir isso é decisão comercial — dar
+acesso vitalício de graça a quem pagou por um prazo — não bug de código, e
+por isso não foi tocado.
 
 ## O quiz corrigia a prova e não guardava nada
 
