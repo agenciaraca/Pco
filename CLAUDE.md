@@ -3427,6 +3427,24 @@ valor já normalizado. Upload com normalização errada não dá erro nenhum, s�
 não casa com ninguém — silencioso, então testar de verdade com um e-mail
 conhecido antes de confiar no número enviado.
 
+### `setConfig` tinha a mesma janela de leitura-seguida-de-escrita já corrigida em oito outros lugares
+
+Achado em 12/set/2026, numa varredura autônoma sobre o próprio código escrito
+nesta sessão. `setConfig()` fazia `const prev = await getConfig(); ...; await
+store.setAll([cfg])` — exatamente o padrão que `test/config-de-uma-linha-perde-escrita.test.ts`
+já cobra dos outros oito (`settings`, `login-config`, `tags-store`, três
+agendamentos de relatório, reengajamento, `zoom-config.disable`). Entre o
+`await` da leitura e o da escrita cabe uma chamada concorrente de
+`patchConfig()` — que é exatamente o que o teste de conexão e os dois crons
+(Customer Match, Conversões Offline) fazem para gravar `lastTestedAt`/
+`lastCustomerMatchAt`/`lastOfflineConversionsAt`. Perder essa escrita não dá
+erro: o card de status na tela simplesmente volta a mostrar o resultado do
+teste anterior, ou nenhum.
+
+Corrigido com `store.modify()`, o mesmo padrão dos outros oito.
+`test/google-ads-config-nao-perde-escrita.test.ts` — 2 casos, o primeiro
+falha contra o código anterior.
+
 ## Gateway de pagamento agora tem botão de testar — e ele não cobra ninguém
 
 `POST /admin/payments/gateways/:id/test`, botão **Testar** em `/admin/gateways`

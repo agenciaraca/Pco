@@ -69,6 +69,15 @@ export async function getDecryptedConfig(): Promise<
   };
 }
 
+/*
+  `getAll()` seguido de `setAll()` tem a mesma janela que este projeto já
+  documentou e corrigiu em oito outros lugares (8/set/2026): entre ler `prev`
+  e gravar `[cfg]` há um `await` (o próprio `getConfig()`), e qualquer escrita
+  concorrente nesse intervalo — o teste de conexão ou um cron gravando
+  `lastTestedAt`/`lastCustomerMatchAt` via `patchConfig()` — some sem erro.
+  `store.modify()` já existe exatamente para isto: lê e grava sob a mesma
+  fila de escrita, sem a janela.
+*/
 export async function setConfig(input: {
   developerToken: string;
   clientId: string;
@@ -78,21 +87,24 @@ export async function setConfig(input: {
   loginCustomerId?: string;
 }): Promise<GoogleAdsConfig> {
   const now = new Date().toISOString();
-  const prev = await getConfig();
-  const cfg: GoogleAdsConfig = {
-    developerTokenEncrypted: encryptApiKey(input.developerToken),
-    clientId: input.clientId,
-    clientSecretEncrypted: encryptApiKey(input.clientSecret),
-    refreshTokenEncrypted: encryptApiKey(input.refreshToken),
-    customerId: input.customerId.replace(/\D/g, ''),
-    loginCustomerId: input.loginCustomerId?.replace(/\D/g, '') || undefined,
-    conversionActionResourceName: prev?.conversionActionResourceName,
-    customerMatchUserListResourceName: prev?.customerMatchUserListResourceName,
-    enabled: true,
-    updatedAt: now,
-  };
-  await store.setAll([cfg]);
-  return cfg;
+  return store.modify((items) => {
+    const prev = items[0];
+    const cfg: GoogleAdsConfig = {
+      developerTokenEncrypted: encryptApiKey(input.developerToken),
+      clientId: input.clientId,
+      clientSecretEncrypted: encryptApiKey(input.clientSecret),
+      refreshTokenEncrypted: encryptApiKey(input.refreshToken),
+      customerId: input.customerId.replace(/\D/g, ''),
+      loginCustomerId: input.loginCustomerId?.replace(/\D/g, '') || undefined,
+      conversionActionResourceName: prev?.conversionActionResourceName,
+      customerMatchUserListResourceName: prev?.customerMatchUserListResourceName,
+      enabled: true,
+      updatedAt: now,
+    };
+    items.length = 0;
+    items.push(cfg);
+    return cfg;
+  });
 }
 
 export async function patchConfig(patch: Partial<GoogleAdsConfig>): Promise<void> {
