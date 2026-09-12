@@ -4485,6 +4485,32 @@ Duas regras que valem para qualquer tela de número deste projeto:
 
 Detalhes em `docs/analytics.md`.
 
+### O dashboard principal ainda tinha um número cravado — achado em 12/set/2026
+
+`src/app/pages/admin/AdminDashboard.tsx`. O card "Acessos recentes / Janelas
+de inatividade" mostrava `38`, `19`, `12` para "Sem acesso 7d/14d/30d" — três
+literais no `.tsx`, sem ligação a dado nenhum, em qualquer estado real do
+banco. Achado numa varredura autônoma pedida pelo dono (*"continue em modo
+autônomo... você tem tudo para o dev"*), na mesma classe do que a home e
+`/admin/metricas` já tinham antes de 27/ago.
+
+O conserto não precisou de rota nova: `useAdminStudents()` já estava
+carregado nesta mesma tela (para o card "Fichas de aluno") e já traz
+`lastAccessAt` por aluno. Contagem: alunos com `status === 'ativo'` cujo
+`lastAccessAt` (ou `createdAt`, se nunca acessou) está a ≥7/14/30 dias.
+
+Duas coisas que a correção respeita, pela mesma regra da seção acima:
+
+- **`null`, não `0`, enquanto `useAdminStudents` não termina.** Sem isso, a
+  tela mostraria "0 sem acesso" no primeiro instante de carregamento — que é
+  "não medi ainda" travestido de "medi e ninguém está inativo".
+- **Só conta `status === 'ativo'`.** Aluno já bloqueado não é sinal de
+  evasão a vigiar — é outra categoria, com outra ação.
+
+`test/dashboard-inatividade-nao-e-cravada.test.tsx` — 3 casos, falham contra
+o código anterior (os números cravados nunca mudam, então qualquer cenário
+de dado real os contradiz).
+
 ## Campo de aula sem coluna: o defeito que não dá erro
 
 Três vezes o mesmo padrão, e nenhuma delas apareceu em teste: um campo existia
@@ -4587,11 +4613,23 @@ grade semanal.
 
 Aplicado em produção: **34 módulos, 4 cursos ativos** (Curso de Psicanálise
 Clínica Online — 19 módulos, até 126 dias no último; Terapia Familiar
-Sistêmica — 6; Como ser um Super Aluno Online — 5; e Treinamento PCO — 8,
-curso interno de formação de operadores, que herdou a mesma grade por ora e
-pode merecer cadência própria — decisão do dono, ainda aberta). Verificado ao
-vivo com matrícula do mesmo dia: módulo 1 responde `200`, módulo 2 responde
-`423` com `lockedUntil` em 7 dias.
+Sistêmica — 6; Como ser um Super Aluno Online — 5; e Treinamento PCO — 8).
+Verificado ao vivo com matrícula do mesmo dia: módulo 1 responde `200`,
+módulo 2 responde `423` com `lockedUntil` em 7 dias.
+
+### Treinamento PCO saiu do drip — 12/set/2026
+
+O Treinamento PCO herdou a mesma grade semanal dos outros três por ser
+"curso ativo", mas não é curso de aluno: é treinamento de operador/atendente
+(módulos "Psicologia do Cliente", "Técnicas Avançadas de Venda", "CRM e
+Gestão do Relacionamento"), `publicListed: false`, **16 matrículas**, a mais
+antiga de 2021. Não há razão pedagógica nem comercial para pausar o
+onboarding de um funcionário por sete semanas — o drip existe para dosar o
+ritmo de quem **pagou** por uma formação, não para atrasar quem precisa
+estar produtivo. `scripts/remover_drip_treinamento_pco.ts` (ensaio/`--commit`)
+zerou `releaseAfterEnrollmentDays` dos 7 módulos que tinham trava; módulo 1
+já não tinha (sempre foi imediato). Os outros três cursos continuam na grade
+semanal — isto é específico do Treinamento PCO.
 
 ## O quiz corrigia a prova e não guardava nada
 

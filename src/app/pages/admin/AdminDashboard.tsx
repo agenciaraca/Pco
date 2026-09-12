@@ -271,6 +271,49 @@ export default function AdminDashboard() {
   const certs = certsQ.data ?? [];
   const audit = auditQ.data ?? [];
 
+  /*
+    "Sem acesso Nd" era CRAVADO — 38, 19, 12, sempre os mesmos três números,
+    em qualquer estado real do banco. É a mesma classe de defeito que este
+    projeto já documentou várias vezes na home e no `/admin/metricas`:
+    número inventado dentro do `.tsx`, nunca ligado a dado nenhum. Achado em
+    12/set/2026, numa varredura autônoma pedida pelo dono.
+
+    `students` (via `useAdminStudents`, já carregado acima para o card de
+    fichas) já traz `lastAccessAt` por aluno — não precisa de requisição
+    nova. Sem acesso registrado, cai para `createdAt`: quem nunca voltou
+    desde que se cadastrou está "sem acesso" desde a própria criação da
+    conta, não é ausência de dado.
+  */
+  const diasSemAcesso = (s: (typeof students)[number]): number => {
+    const referencia = s.lastAccessAt || s.createdAt;
+    return Math.floor((Date.now() - new Date(referencia).getTime()) / 86_400_000);
+  };
+  const contasAtivasParaInatividade = students.filter((s) => s.status === 'ativo');
+  const semAcessoNoMinimo = (dias: number) =>
+    contasAtivasParaInatividade.filter((s) => diasSemAcesso(s) >= dias).length;
+  // `null` enquanto `studentsQ` não termina — 0 aqui não é "medi e não achei
+  // ninguém inativo", é "ainda não consegui perguntar". A mesma regra que a
+  // seção de Analytics deste projeto já grava: zero é medição, travessão é
+  // ausência dela.
+  const inatividadeMedida = !studentsQ.isPending && !studentsQ.isError;
+  const janelasInatividade = [
+    {
+      label: 'Sem acesso 7d',
+      value: inatividadeMedida ? semAcessoNoMinimo(7) : null,
+      color: 'bg-pco-orange/15 text-pco-orange',
+    },
+    {
+      label: 'Sem acesso 14d',
+      value: inatividadeMedida ? semAcessoNoMinimo(14) : null,
+      color: 'bg-pco-orange/25 text-pco-orange',
+    },
+    {
+      label: 'Sem acesso 30d',
+      value: inatividadeMedida ? semAcessoNoMinimo(30) : null,
+      color: 'bg-status-danger/15 text-status-danger',
+    },
+  ];
+
   const activeStudents = students.filter((s) => s.status === 'ativo').length;
   // Contas com papel de aluno que não têm ficha. `kpis` vem do servidor e conta
   // contas; `students` vem do catálogo de fichas.
@@ -468,13 +511,9 @@ export default function AdminDashboard() {
             </Link>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Sem acesso 7d', value: 38, color: 'bg-pco-orange/15 text-pco-orange' },
-              { label: 'Sem acesso 14d', value: 19, color: 'bg-pco-orange/25 text-pco-orange' },
-              { label: 'Sem acesso 30d', value: 12, color: 'bg-status-danger/15 text-status-danger' },
-            ].map((b) => (
+            {janelasInatividade.map((b) => (
               <div key={b.label} className={`rounded-xl p-4 ${b.color}`}>
-                <div className="text-2xl font-bold">{b.value}</div>
+                <div className="text-2xl font-bold">{b.value ?? '—'}</div>
                 <div className="text-xs mt-1">{b.label}</div>
               </div>
             ))}
