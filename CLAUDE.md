@@ -4675,6 +4675,45 @@ com o drip já removido no mesmo dia. Verificado ao vivo: o mesmo aluno que
 recebia 403 `ACCESS_EXPIRED` passou a receber `200` com o conteúdo real da
 aula, no mesmo teste, sem tocar em nada além do curso.
 
+### O mesmo bug, num curso de aluno de verdade: "Como ser um Super Aluno Online"
+
+Achar o defeito no Treinamento PCO levantou a pergunta óbvia: existe algum
+curso de **aluno** — não interno — na mesma situação? Sim, e em escala bem
+maior. "Como ser um Super Aluno Online" (id `8887`) é `publicListed: false`
+com **652 matrículas**, já documentadas como "alunos legítimos" (ver
+`/api/courses é público`, acima) — não é conteúdo de teste.
+
+Medido antes de mexer, nos dois sentidos:
+
+- **Zero produtos de venda** referenciam este curso — nem avulso
+  (`payment_products.refId`), nem dentro de bundle
+  (`payment_products.metadata.courseIds`). Não há como comprar acesso a ele,
+  sozinho ou junto de outra coisa.
+- **`accessMonths: 6`**, sem `expiresAt` próprio em nenhuma das 652
+  matrículas — todas dependiam do cálculo `enrolledAt + 6 meses`.
+- **535 das 652 (82%) já estavam com `ACCESS_EXPIRED`** no momento da
+  medição, silenciosamente, do mesmo jeito que o Treinamento PCO: o 403 só
+  aparece pra quem tenta abrir a aula.
+
+A mesma lógica do Treinamento PCO se aplica, com mais peso: sem produto
+nenhum que este prazo pudesse estar protegendo, `accessMonths: 6` não pode
+ser decisão comercial — só pode ser o mesmo molde copiado da importação, que
+o dia inteiro de 12/set/2026 andou desenterrando (drip semanal + prazo de
+acesso, dois cursos).
+
+`scripts/remover_prazo_super_aluno.ts` (ensaio/`--commit`, mesmo formato do
+irmão de Treinamento PCO) removeu `accessMonths` — acesso volta a ser
+vitalício. Verificado ao vivo com dois casos reais: a matrícula mais antiga
+(`1970-01-01`, artefato de data ausente na importação — sempre estaria
+vencida sob a regra antiga) e uma matrícula típica de 26/jun/2025. As duas
+passaram a responder `200` no conteúdo da aula.
+
+**O que isto não resolve, e fica registrado para o dono decidir**: a
+matrícula com `enrolledAt` em `1970-01-01` é sinal de um problema de
+importação à parte — data ausente virando época Unix em vez de `null` ou a
+data real. Não investigado a fundo nesta sessão; pode valer uma varredura
+futura por quantas matrículas têm esse mesmo carimbo.
+
 ## O quiz corrigia a prova e não guardava nada
 
 `server/repositories/quiz-attempts.ts` (6/set/2026). Até então,
