@@ -4649,6 +4649,32 @@ zerou `releaseAfterEnrollmentDays` dos 7 módulos que tinham trava; módulo 1
 já não tinha (sempre foi imediato). Os outros três cursos continuam na grade
 semanal — isto é específico do Treinamento PCO.
 
+### E o mesmo curso também tinha `accessMonths: 6` travando 14 dos 16 por prazo vencido
+
+Verificar o conserto do drip ao vivo (assinando um JWT de um dos 16
+matriculados reais e chamando `/me/courses/14958/lessons/:id/content`)
+devolveu **403 `ACCESS_EXPIRED`**, não `200` — um bug diferente e mais grave
+no mesmo curso. `courses.meta.accessMonths` estava em `6`, o mesmo campo que
+"Prazo de acesso — declarar os meses é RETROATIVO" (acima) documenta para
+cursos **vendidos**: sem `expiresAt` próprio na matrícula, o acesso vence em
+`enrolledAt + accessMonths`, e quem vence não tem como renovar sozinho —
+precisa comprar de novo. Treinamento PCO não tem produto de venda nem
+checkout: `accessMonths: 6` só podia ter vindo do mesmo molde copiado dos
+cursos de aluno na importação, do jeito que o drip semanal também tinha
+vindo.
+
+Medido antes de mexer: **14 das 16 matrículas já estavam vencidas**, a mais
+antiga desde 17/10/2025 — quase um ano de funcionário sem acesso ao próprio
+treinamento obrigatório, sem que isso desse erro em lugar nenhum visível
+(o 403 só aparece para quem tenta abrir a aula, e ninguém tinha motivo para
+achar que era um bug de `accessMonths` em vez de falta de permissão).
+
+`scripts/remover_prazo_treinamento_pco.ts` (ensaio/`--commit`) removeu
+`accessMonths` do `meta` do curso — acesso volta a ser vitalício, coerente
+com o drip já removido no mesmo dia. Verificado ao vivo: o mesmo aluno que
+recebia 403 `ACCESS_EXPIRED` passou a receber `200` com o conteúdo real da
+aula, no mesmo teste, sem tocar em nada além do curso.
+
 ## O quiz corrigia a prova e não guardava nada
 
 `server/repositories/quiz-attempts.ts` (6/set/2026). Até então,
